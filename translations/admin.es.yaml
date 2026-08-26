@@ -338,6 +338,19 @@ centre_teachers.import_assignments.error.no_file: 'No se ha seleccionado ningún
 centre_teachers.import_assignments.error.empty_file: 'El fichero está vacío o no tiene cabeceras válidas.'
 centre_teachers.import_assignments.error.missing_column: 'Columna requerida no encontrada en el fichero:'
 
+# Perfiles especiales (responsable de calidad y auditor interno)
+centre_profiles.title: 'Perfiles'
+centre_profiles.hub_help: 'Asigna los perfiles de responsable de calidad y auditor interno.'
+centre_profiles.manage: 'Gestionar perfiles'
+centre_profiles.help: 'Estos perfiles amplían el acceso de un docente a la documentación del sistema de gestión de la calidad del centro, independientemente de sus grupos o materias.'
+centre_profiles.no_active_year: 'Este centro no tiene un curso académico activo. Establece uno activo para gestionar los perfiles.'
+centre_profiles.quality_managers.label: 'Responsable de calidad'
+centre_profiles.quality_managers.help: 'Coordina el sistema de gestión de la calidad del centro. Escribe al menos 2 caracteres para buscar.'
+centre_profiles.internal_auditors.label: 'Auditor/a interno/a'
+centre_profiles.internal_auditors.help: 'Realiza las auditorías internas del sistema de gestión de la calidad. Escribe al menos 2 caracteres para buscar.'
+centre_profiles.save: 'Guardar'
+centre_profiles.flash.saved: 'Perfiles actualizados correctamente.'
+
 # Árbol de oferta formativa (badges de conteo)
 tree.course_one: 'grupo'
 tree.course_other: 'grupos'

@@ -44,19 +44,19 @@ class EducationalCentre
 
     /** @var Collection<int, Teacher> */
     #[ORM\ManyToMany(targetEntity: Teacher::class)]
-    #[ORM\JoinTable(name: 'educational_centre_committee_members')]
-    private Collection $committeeMembers;
+    #[ORM\JoinTable(name: 'educational_centre_quality_managers')]
+    private Collection $qualityManagers;
 
     /** @var Collection<int, Teacher> */
     #[ORM\ManyToMany(targetEntity: Teacher::class)]
-    #[ORM\JoinTable(name: 'educational_centre_counselors')]
-    private Collection $counselors;
+    #[ORM\JoinTable(name: 'educational_centre_internal_auditors')]
+    private Collection $internalAuditors;
 
     public function __construct()
     {
         $this->admins = new ArrayCollection();
-        $this->committeeMembers = new ArrayCollection();
-        $this->counselors = new ArrayCollection();
+        $this->qualityManagers = new ArrayCollection();
+        $this->internalAuditors = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -149,23 +149,23 @@ class EducationalCentre
     /**
      * @return Collection<int, Teacher>
      */
-    public function getCommitteeMembers(): Collection
+    public function getQualityManagers(): Collection
     {
-        return $this->committeeMembers;
+        return $this->qualityManagers;
     }
 
-    public function addCommitteeMember(Teacher $teacher): static
+    public function addQualityManager(Teacher $teacher): static
     {
-        if (!$this->committeeMembers->contains($teacher)) {
-            $this->committeeMembers->add($teacher);
+        if (!$this->qualityManagers->contains($teacher)) {
+            $this->qualityManagers->add($teacher);
         }
 
         return $this;
     }
 
-    public function removeCommitteeMember(Teacher $teacher): static
+    public function removeQualityManager(Teacher $teacher): static
     {
-        $this->committeeMembers->removeElement($teacher);
+        $this->qualityManagers->removeElement($teacher);
 
         return $this;
     }
@@ -173,23 +173,23 @@ class EducationalCentre
     /**
      * @return Collection<int, Teacher>
      */
-    public function getCounselors(): Collection
+    public function getInternalAuditors(): Collection
     {
-        return $this->counselors;
+        return $this->internalAuditors;
     }
 
-    public function addCounselor(Teacher $teacher): static
+    public function addInternalAuditor(Teacher $teacher): static
     {
-        if (!$this->counselors->contains($teacher)) {
-            $this->counselors->add($teacher);
+        if (!$this->internalAuditors->contains($teacher)) {
+            $this->internalAuditors->add($teacher);
         }
 
         return $this;
     }
 
-    public function removeCounselor(Teacher $teacher): static
+    public function removeInternalAuditor(Teacher $teacher): static
     {
-        $this->counselors->removeElement($teacher);
+        $this->internalAuditors->removeElement($teacher);
 
         return $this;
     }
