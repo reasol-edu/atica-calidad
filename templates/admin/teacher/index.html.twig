@@ -1,0 +1,32 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'teachers.title'|trans({}, 'admin') }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-7xl mx-auto">
+
+    <div class="mb-6 flex items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                {% include 'components/_breadcrumb_home.html.twig' %}
+                <a href="{{ path('app_admin') }}" class="hover:text-forest-600 transition-colors">
+                    {{ 'dashboard.title'|trans({}, 'admin') }}
+                </a>
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ 'teachers.title'|trans({}, 'admin') }}</h1>
+        </div>
+        <a href="{{ path('app_admin_teachers_new') }}"
+           class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white
+                  hover:bg-forest-700 transition-colors shadow-xs">
+            {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+            {{ 'teachers.new'|trans({}, 'admin') }}
+        </a>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+        <twig:Admin:TeacherListComponent />
+    </div>
+
+</div>
+{% endblock %}

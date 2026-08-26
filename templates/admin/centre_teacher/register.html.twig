@@ -1,0 +1,176 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'centre_teachers.register.title'|trans({}, 'admin') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-2xl mx-auto">
+
+    <div class="mb-6">
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_centre_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">{{ 'educational_centre'|trans({}, 'navigation') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0'}) }}
+            <a href="{{ path('app_centre_teachers_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">{{ 'centre_teachers.title'|trans({}, 'admin') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'centre_teachers.register.title'|trans({}, 'admin') }}</h1>
+        {% if centre.activeAcademicYear %}
+            <p class="mt-1 text-sm text-gray-500">{{ centre.activeAcademicYear.name }}</p>
+        {% endif %}
+    </div>
+
+    {% if values.username %}
+        <div class="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            {{ ux_icon('heroicons:exclamation-triangle', {class: 'h-4.5 w-4.5 shrink-0 text-amber-500 mt-0.5'}) }}
+            <p class="text-sm text-amber-800">
+                {{ 'centre_teachers.register.not_found_info'|trans({'%username%': values.username}, 'admin') }}
+            </p>
+        </div>
+    {% endif %}
+
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+        <form method="post" class="px-6 py-6 space-y-5"
+              data-controller="external-auth">
+            <input type="hidden" name="_token" value="{{ csrf_token('register_centre_teacher') }}">
+
+            {# Nombre y apellidos #}
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                    <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1.5">
+                        {{ 'teacher.field.first_name'|trans({}, 'admin') }}
+                    </label>
+                    <input id="first_name" type="text" name="first_name"
+                           value="{{ values.first_name }}"
+                           autofocus
+                           class="block w-full rounded-xl border py-2.5 px-3.5 text-sm text-gray-900
+                                  transition-colors focus:outline-none focus:ring-3
+                                  {{ errors.first_name is defined
+                                      ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-400/20'
+                                      : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:bg-white focus:ring-forest-500/20' }}">
+                    {% if errors.first_name is defined %}
+                        <p class="mt-1.5 text-xs text-red-600">{{ errors.first_name }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1.5">
+                        {{ 'teacher.field.last_name'|trans({}, 'admin') }}
+                    </label>
+                    <input id="last_name" type="text" name="last_name"
+                           value="{{ values.last_name }}"
+                           class="block w-full rounded-xl border py-2.5 px-3.5 text-sm text-gray-900
+                                  transition-colors focus:outline-none focus:ring-3
+                                  {{ errors.last_name is defined
+                                      ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-400/20'
+                                      : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:bg-white focus:ring-forest-500/20' }}">
+                    {% if errors.last_name is defined %}
+                        <p class="mt-1.5 text-xs text-red-600">{{ errors.last_name }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Usuario #}
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700 mb-1.5">
+                    {{ 'teacher.field.username'|trans({}, 'admin') }}
+                </label>
+                <input id="username" type="text" name="username"
+                       value="{{ values.username }}"
+                       autocomplete="username"
+                       class="block w-full rounded-xl border py-2.5 px-3.5 text-sm font-mono text-gray-900
+                              transition-colors focus:outline-none focus:ring-3
+                              {{ errors.username is defined
+                                  ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-400/20'
+                                  : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:bg-white focus:ring-forest-500/20' }}">
+                {% if errors.username is defined %}
+                    <p class="mt-1.5 text-xs text-red-600">{{ errors.username }}</p>
+                {% endif %}
+            </div>
+
+            {# Email #}
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1.5">
+                    {{ 'teacher.field.email'|trans({}, 'admin') }}
+                </label>
+                <input id="email" type="email" name="email"
+                       value="{{ values.email }}"
+                       class="block w-full rounded-xl border py-2.5 px-3.5 text-sm text-gray-900
+                              transition-colors focus:outline-none focus:ring-3
+                              {{ errors.email is defined
+                                  ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-400/20'
+                                  : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:bg-white focus:ring-forest-500/20' }}">
+                {% if errors.email is defined %}
+                    <p class="mt-1.5 text-xs text-red-600">{{ errors.email }}</p>
+                {% endif %}
+            </div>
+
+            {# Modo de acceso #}
+            <div>
+                <span class="block text-sm font-medium text-gray-700 mb-2">{{ 'teacher.field.auth_method'|trans({}, 'admin') }}</span>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <twig:Form:RadioCard
+                        name="auth_method"
+                        value="password"
+                        label="{{ 'teacher.field.auth_password'|trans({}, 'admin') }}"
+                        :checked="not flags.external"
+                        data-external-auth-target="radio"
+                        data-action="change->external-auth#toggle"
+                    />
+                    <twig:Form:RadioCard
+                        name="auth_method"
+                        value="external"
+                        label="{{ 'teacher.field.auth_external'|trans({}, 'admin') }}"
+                        :checked="flags.external"
+                        data-external-auth-target="radio"
+                        data-action="change->external-auth#toggle"
+                    />
+                </div>
+            </div>
+
+            {# Contraseña #}
+            <div data-external-auth-target="passwordBlock"
+                 class="{{ flags.external ? 'hidden' : '' }}">
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1.5">
+                    {{ 'teacher.field.password'|trans({}, 'admin') }}
+                </label>
+                <input id="password" type="password" name="password"
+                       autocomplete="new-password"
+                       data-external-auth-target="passwordInput"
+                       class="block w-full rounded-xl border py-2.5 px-3.5 text-sm text-gray-900
+                              transition-colors focus:outline-none focus:ring-3
+                              {{ errors.password is defined
+                                  ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-400/20'
+                                  : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:bg-white focus:ring-forest-500/20' }}">
+                {% if errors.password is defined %}
+                    <p class="mt-1.5 text-xs text-red-600">{{ errors.password }}</p>
+                {% endif %}
+            </div>
+
+            {# Opciones #}
+            <div class="space-y-3 pt-1">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" name="active" value="1"
+                           {{ flags.active ? 'checked' : '' }}
+                           class="h-4 w-4 rounded border-gray-300 text-forest-600 focus:ring-forest-500">
+                    <span class="text-sm text-gray-700">{{ 'teacher.field.active'|trans({}, 'admin') }}</span>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <a href="{{ path('app_centre_teachers_index', {centreId: centre.id}) }}"
+                   class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700
+                          hover:bg-gray-50 transition-colors">
+                    {{ 'teacher.cancel'|trans({}, 'admin') }}
+                </a>
+                <button type="submit"
+                        class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white
+                               hover:bg-forest-700 transition-colors shadow-xs">
+                    {{ ux_icon('heroicons:user-plus', {class: 'h-4 w-4'}) }}
+                    {{ 'centre_teachers.register.submit'|trans({}, 'admin') }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

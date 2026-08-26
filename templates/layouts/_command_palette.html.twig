@@ -1,0 +1,50 @@
+{# Elements for the command-palette controller (registered on the root sidebar wrapper) #}
+
+{# ── Backdrop ────────────────────────────────────────────────────────── #}
+<div data-command-palette-target="backdrop"
+     data-action="click->command-palette#close"
+     class="hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"></div>
+
+{# ── Dialog ──────────────────────────────────────────────────────────── #}
+<div data-command-palette-target="dialog"
+     class="hidden fixed inset-0 z-50 flex items-start justify-center px-4 pt-20">
+    <div class="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-gray-100">
+
+        {# Input row #}
+        <div class="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
+            {{ ux_icon('heroicons:magnifying-glass', {class: 'h-4 w-4 shrink-0 text-gray-400'}) }}
+            <input data-command-palette-target="input"
+                   data-action="input->command-palette#onInput keydown->command-palette#onKeydown"
+                   type="text"
+                   maxlength="100"
+                   placeholder="{{ 'placeholder'|trans({}, 'search') }}"
+                   autocomplete="off"
+                   class="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder-gray-400">
+            <kbd class="rounded border border-gray-200 px-1.5 py-0.5 text-[10px] text-gray-400">Esc</kbd>
+        </div>
+
+        {# Results #}
+        <div data-command-palette-target="results"
+             class="max-h-80 overflow-y-auto py-1">
+        </div>
+
+    </div>
+</div>
+
+{# ── Templates ───────────────────────────────────────────────────────── #}
+<template data-command-palette-target="groupTemplate">
+    <div class="px-4 pb-1 pt-3">
+        <p data-slot="name"
+           class="text-[10px] font-semibold uppercase tracking-wide text-gray-400"></p>
+    </div>
+</template>
+
+<template data-command-palette-target="itemTemplate">
+    <a class="flex items-center gap-3 px-4 py-2 text-sm text-gray-800
+              hover:bg-gray-50 transition-colors rounded-lg mx-1">
+        <div class="min-w-0 flex-1">
+            <p data-slot="label"    class="truncate font-medium"></p>
+            <p data-slot="sublabel" class="truncate text-xs text-gray-400"></p>
+        </div>
+    </a>
+</template>

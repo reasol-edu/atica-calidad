@@ -1,0 +1,8 @@
+placeholder: 'Buscar…'
+open: 'Abrir búsqueda'
+no_results: 'Sin resultados'
+groups:
+    teachers: 'Docentes'
+    actions: 'Acciones'
+actions:
+    change_year: 'Cambiar de curso'

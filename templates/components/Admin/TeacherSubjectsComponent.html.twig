@@ -1,0 +1,191 @@
+<div {{ attributes }} class="js-teacher-subjects overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
+    {% if centre.activeAcademicYear is null %}
+        <div class="px-6 py-16 text-center">
+            {{ ux_icon('heroicons:exclamation-circle', {class: 'mx-auto h-10 w-10 text-amber-300 mb-3'}) }}
+            <p class="text-sm text-gray-500">{{ 'centre_teachers.subjects.no_active_year'|trans({}, 'admin') }}</p>
+        </div>
+    {% else %}
+        {% set can_write     = this.canWrite %}
+        {% set assignments   = this.assignments %}
+        {% set group_options = this.groupOptions %}
+
+        <div data-loading="addClass(opacity-50 pointer-events-none)" class="transition-opacity">
+            <div class="px-6 py-4 border-b border-gray-100">
+                <h2 class="text-base font-semibold text-gray-900">{{ 'centre_teachers.subjects.title'|trans({}, 'admin') }}</h2>
+                <p class="mt-0.5 text-sm text-gray-500">{{ 'centre_teachers.subjects.hint'|trans({}, 'admin') }}</p>
+            </div>
+
+            {% if assignments is empty %}
+                <p class="px-6 py-6 text-center text-sm italic text-gray-400">{{ 'centre_teachers.subjects.empty'|trans({}, 'admin') }}</p>
+            {% else %}
+                <ul class="divide-y divide-gray-100">
+                    {% for gt in assignments %}
+                        {% set id = gt.id.toRfc4122 %}
+                        <li class="px-6 py-3">
+                            {% if editingId == id %}
+                                <form data-action="submit->live#action:prevent" data-live-action-param="saveEdit"
+                                      class="flex flex-wrap items-center gap-2">
+                                    <select data-model="norender|editGroupId"
+                                            class="js-group-select min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
+                                                   focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                                        {% for group in group_options %}
+                                            <option value="{{ group.id.toRfc4122 }}" {{ group.id.toRfc4122 == editGroupId ? 'selected' : '' }}>
+                                                {{ group.course.name }} · {{ group.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="text"
+                                           data-model="norender|editSubject"
+                                           value="{{ editSubject }}"
+                                           placeholder="{{ 'centre_teachers.subjects.field.subject_placeholder'|trans({}, 'admin') }}"
+                                           class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
+                                                  placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                                    <button type="submit"
+                                            class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium
+                                                   text-white hover:bg-forest-700 transition-colors">
+                                        {{ ux_icon('heroicons:check', {class: 'h-3.5 w-3.5'}) }}{{ 'centre_teachers.subjects.action.save'|trans({}, 'admin') }}
+                                    </button>
+                                    <button type="button" data-action="live#action" data-live-action-param="cancelEdit"
+                                            class="inline-flex shrink-0 items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs
+                                                   font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                                        {{ 'centre_teachers.subjects.action.cancel'|trans({}, 'admin') }}
+                                    </button>
+                                    {% if errors.edit is defined %}<p class="w-full mt-1 text-xs text-red-600">{{ errors.edit }}</p>{% endif %}
+                                </form>
+                            {% else %}
+                                <div class="flex items-center gap-2">
+                                    <span class="flex-1 min-w-0">
+                                        <span class="block truncate text-sm text-gray-800">{{ gt.subject }}</span>
+                                        <span class="block truncate text-xs text-gray-500">{{ gt.group.name }} · {{ gt.group.course.name }}</span>
+                                    </span>
+                                    {% if can_write %}
+                                        <button type="button" data-action="live#action"
+                                                data-live-action-param="startEdit" data-live-id-param="{{ id }}"
+                                                class="shrink-0 inline-flex items-center justify-center rounded-lg p-1.5 text-gray-400
+                                                       hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                                                title="{{ 'centre_teachers.subjects.action.edit'|trans({}, 'admin') }}">
+                                            {{ ux_icon('heroicons:pencil', {class: 'h-4 w-4'}) }}
+                                        </button>
+                                        <button type="button" data-action="live#action"
+                                                data-live-action-param="deleteSubject" data-live-id-param="{{ id }}"
+                                                class="shrink-0 inline-flex items-center justify-center rounded-lg p-1.5 text-gray-400
+                                                       hover:bg-red-50 hover:text-red-600 transition-colors"
+                                                title="{{ 'centre_teachers.subjects.action.delete'|trans({}, 'admin') }}">
+                                            {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% if can_write %}
+                {% if group_options is empty %}
+                    <p class="px-6 py-4 text-xs italic text-gray-400 border-t border-gray-100">{{ 'centre_teachers.subjects.no_groups'|trans({}, 'admin') }}</p>
+                {% else %}
+                    <form data-action="submit->live#action:prevent" data-live-action-param="addSubject"
+                          class="flex flex-wrap items-center gap-2 border-t border-gray-100 bg-gray-50/40 px-6 py-3">
+                        <select data-model="norender|newGroupId"
+                                class="js-group-select min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
+                                       focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                            <option value="">{{ 'centre_teachers.subjects.field.group_placeholder'|trans({}, 'admin') }}</option>
+                            {% for group in group_options %}
+                                <option value="{{ group.id.toRfc4122 }}" {{ group.id.toRfc4122 == newGroupId ? 'selected' : '' }}>
+                                    {{ group.course.name }} · {{ group.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <input type="text"
+                               data-model="norender|newSubject"
+                               value="{{ newSubject }}"
+                               placeholder="{{ 'centre_teachers.subjects.field.subject_placeholder'|trans({}, 'admin') }}"
+                               class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
+                                      placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                        <button type="submit"
+                                class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white
+                                       hover:bg-forest-700 transition-colors"
+                                title="{{ 'centre_teachers.subjects.action.add'|trans({}, 'admin') }}">
+                            {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                        </button>
+                    </form>
+                    {% if errors.add is defined %}<p class="px-6 pb-3 text-xs text-red-600">{{ errors.add }}</p>{% endif %}
+                {% endif %}
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <style>
+    .ts-wrapper { font-size: 0.875rem; }
+    .ts-control { border-radius: 0.5rem !important; border-color: #e5e7eb !important; background-color: #fff !important; padding: 0.375rem 0.625rem !important; box-shadow: none !important; gap: 0.25rem; }
+    .ts-control:focus-within { border-color: #876baf !important; box-shadow: 0 0 0 3px rgb(135 107 175 / 0.2) !important; }
+    .ts-dropdown { border-radius: 0.75rem; border-color: #e5e7eb; box-shadow: 0 4px 12px rgb(0 0 0 / 0.08); overflow: hidden; }
+    .ts-dropdown .option { padding: 0.5rem 0.875rem; }
+    .ts-dropdown .option.active { background-color: #f6f3f9; color: #1f192a; }
+    </style>
+
+    <script type="module" data-live-ignore>
+    import TomSelect from 'tom-select';
+    import { getComponent } from '@symfony/ux-live-component';
+
+    let liveEl   = null;
+    let liveComp = null;
+
+    function initGroupSelect(select) {
+        if (select.tomselect) return;
+        // Once a <select>'s selectedness has been set via script (TomSelect does this on
+        // every init), the browser marks it "dirty": from then on, freshly inserted
+        // <option selected> nodes only get the selected ATTRIBUTE, not the .selected
+        // PROPERTY that TomSelect actually reads. Re-sync it explicitly before init.
+        Array.from(select.options).forEach(function (opt) {
+            opt.selected = opt.hasAttribute('selected');
+        });
+        const modelName = select.dataset.model.split('|').pop();
+        let ready = false;
+
+        new TomSelect(select, {
+            valueField: 'value', labelField: 'text', searchField: ['text'],
+            maxOptions: null, create: false, dropdownParent: 'body', allowEmptyOption: true,
+            render: {
+                no_results: function () {
+                    return '<div class="no-results">{{ 'tom_select.no_results'|trans({}, 'admin') }}</div>';
+                },
+            },
+            onInitialize: function () { requestAnimationFrame(function () { ready = true; }); },
+            onChange: function (value) {
+                if (!ready || !liveComp) return;
+                liveComp.set(modelName, value || '', false);
+            },
+        });
+    }
+
+    function destroyAll() {
+        liveEl.querySelectorAll('.js-group-select').forEach(function (select) {
+            if (select.tomselect) {
+                select.tomselect.destroy();
+                // TomSelect's destroy() reverts <option>s to their init-time snapshot, which
+                // then confuses Idiomorph's diff against the server's fresh markup and makes
+                // it duplicate every <option> instead of updating it in place. Emptying the
+                // select first leaves Idiomorph nothing stale to pair, so it just inserts the
+                // fresh options cleanly.
+                select.innerHTML = '';
+            }
+        });
+    }
+
+    function onRender() {
+        liveEl.querySelectorAll('select.js-group-select').forEach(initGroupSelect);
+    }
+
+    liveEl = document.querySelector('.js-teacher-subjects');
+    if (liveEl) {
+        getComponent(liveEl).then(function (component) {
+            liveComp = component;
+            onRender();
+            component.on('render:started', destroyAll);
+            component.on('render:finished', onRender);
+        });
+    }
+    </script>
+</div>

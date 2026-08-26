@@ -1,0 +1,123 @@
+{% import 'components/_pagination_live.html.twig' as pager %}
+<div {{ attributes }}>
+    {% set pagination = this.pagination %}
+
+    {# Barra de búsqueda #}
+    <div class="px-6 py-3 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
+        <div class="relative flex-1 max-w-xs">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                {{ ux_icon('heroicons:magnifying-glass', {class: 'h-4 w-4 text-gray-400'}) }}
+            </div>
+            <input type="search"
+                   data-model="search"
+                   placeholder="{{ 'teachers.search'|trans({}, 'admin') }}"
+                   value="{{ search }}"
+                   class="block w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm
+                          text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none
+                          focus:ring-3 focus:ring-forest-500/20 transition-colors">
+        </div>
+        <svg data-loading class="hidden h-4 w-4 text-forest-500 animate-spin shrink-0 ml-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+        </svg>
+    </div>
+
+    <div data-loading="addClass(opacity-50 pointer-events-none animate-pulse)" class="transition-opacity">
+    {% if pagination.totalItems == 0 %}
+        <div class="px-6 py-16 text-center">
+            {{ ux_icon('heroicons:users', {class: 'mx-auto h-10 w-10 text-gray-300 mb-3'}) }}
+            <p class="text-sm text-gray-500">
+                {% if search is not empty %}
+                    {{ 'teachers.search_empty'|trans({}, 'admin') }}
+                {% else %}
+                    {{ 'teachers.empty'|trans({}, 'admin') }}
+                {% endif %}
+            </p>
+        </div>
+    {% else %}
+        <div class="overflow-x-auto">
+        <table class="table-cards w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-100 bg-gray-50">
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'teachers.name'|trans({}, 'admin') }}</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'teachers.username'|trans({}, 'admin') }}</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'teachers.email'|trans({}, 'admin') }}</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'teachers.roles'|trans({}, 'admin') }}</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'teachers.actions'|trans({}, 'admin') }}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for teacher in pagination.items %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td data-label="{{ 'teachers.name'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-4">
+                            <a href="{{ path('app_admin_teachers_edit', {id: teacher.id}) }}"
+                               class="font-medium text-gray-900 hover:text-forest-700 transition-colors">{{ teacher.name.lastName }}, {{ teacher.name.firstName }}</a>
+                        </td>
+                        <td data-label="{{ 'teachers.username'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-4 font-mono text-xs text-gray-600">{{ teacher.username }}</td>
+                        <td data-label="{{ 'teachers.email'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-4 text-gray-500 text-xs">{{ teacher.email ?? '—' }}</td>
+                        <td data-label="{{ 'teachers.roles'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-4">
+                            <div class="flex items-center gap-1.5 flex-wrap sm:justify-start justify-end">
+                                {% if teacher.admin %}
+                                    <span class="inline-flex items-center rounded-full bg-forest-50 px-2 py-0.5 text-xs font-medium text-forest-700 ring-1 ring-inset ring-forest-600/20">
+                                        {{ 'teachers.badge.admin'|trans({}, 'admin') }}
+                                    </span>
+                                {% endif %}
+                                {% if not teacher.active %}
+                                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/20">
+                                        {{ 'teachers.badge.inactive'|trans({}, 'admin') }}
+                                    </span>
+                                {% endif %}
+                                {% if teacher.external %}
+                                    <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                                        {{ 'teachers.badge.external'|trans({}, 'admin') }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="{{ path('app_admin_teachers_edit', {id: teacher.id}) }}"
+                                   class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium
+                                          text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors">
+                                    {{ ux_icon('heroicons:pencil-square', {class: 'h-3.5 w-3.5'}) }}
+                                    {{ 'teachers.edit'|trans({}, 'admin') }}
+                                </a>
+                                {% if not is_granted('IS_IMPERSONATOR') and app.user and app.user.userIdentifier != teacher.username %}
+                                    <a href="{{ path('app_dashboard') }}?_switch_user={{ teacher.username|e('url') }}"
+                                       class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-medium
+                                              text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 transition-colors">
+                                        {{ ux_icon('heroicons:arrow-right-on-rectangle', {class: 'h-3.5 w-3.5'}) }}
+                                        {{ 'teachers.switch_user'|trans({}, 'admin') }}
+                                    </a>
+                                {% endif %}
+                                {% if app.user and app.user.id == teacher.id %}
+                                    <span class="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50">
+                                        {{ ux_icon('heroicons:shield-exclamation', {class: 'h-3.5 w-3.5'}) }}
+                                        {{ 'teacher.delete_self_blocked_short'|trans({}, 'admin') }}
+                                    </span>
+                                {% else %}
+                                    <form method="post"
+                                          action="{{ path('app_admin_teachers_delete', {id: teacher.id}) }}"
+                                          class="js-confirm-form"
+                                          data-confirm="{{ 'teachers.delete_confirm'|trans({}, 'admin')|e('html_attr') }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_teacher_' ~ teacher.id) }}">
+                                        <button type="submit"
+                                                class="js-confirm-trigger inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium
+                                                       text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors">
+                                            {{ ux_icon('heroicons:trash', {class: 'h-3.5 w-3.5'}) }}
+                                            {{ 'teachers.delete'|trans({}, 'admin') }}
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        {{ pager.nav(pagination) }}
+    {% endif %}
+    </div>
+</div>

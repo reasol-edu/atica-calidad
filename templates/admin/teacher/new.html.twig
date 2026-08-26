@@ -1,0 +1,222 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'teacher.new.title'|trans({}, 'admin') }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-2xl mx-auto">
+
+    <div class="mb-6">
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_admin') }}" class="hover:text-forest-600 transition-colors">
+                {{ 'dashboard.title'|trans({}, 'admin') }}
+            </a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            <a href="{{ path('app_admin_teachers_index') }}" class="hover:text-forest-600 transition-colors">
+                {{ 'teachers.title'|trans({}, 'admin') }}
+            </a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'teacher.new.title'|trans({}, 'admin') }}</h1>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+        <form method="post" class="px-6 py-6 space-y-5"
+              data-controller="external-auth">
+            <input type="hidden" name="_token" value="{{ csrf_token('new_teacher') }}">
+
+            {# Nombre y apellidos #}
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                    <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1.5">
+                        {{ 'teacher.field.first_name'|trans({}, 'admin') }}
+                    </label>
+                    <input id="first_name" type="text" name="first_name"
+                           value="{{ values.first_name }}"
+                           autofocus
+                           class="block w-full rounded-xl border py-2.5 px-3.5 text-sm text-gray-900
+                                  transition-colors focus:outline-none focus:ring-3
+                                  {{ errors.first_name is defined
+                                      ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-400/20'
+                                      : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:bg-white focus:ring-forest-500/20' }}">
+                    {% if errors.first_name is defined %}
+                        <p class="mt-1.5 text-xs text-red-600">{{ errors.first_name }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1.5">
+                        {{ 'teacher.field.last_name'|trans({}, 'admin') }}
+                    </label>
+                    <input id="last_name" type="text" name="last_name"
+                           value="{{ values.last_name }}"
+                           class="block w-full rounded-xl border py-2.5 px-3.5 text-sm text-gray-900
+                                  transition-colors focus:outline-none focus:ring-3
+                                  {{ errors.last_name is defined
+                                      ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-400/20'
+                                      : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:bg-white focus:ring-forest-500/20' }}">
+                    {% if errors.last_name is defined %}
+                        <p class="mt-1.5 text-xs text-red-600">{{ errors.last_name }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Usuario #}
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700 mb-1.5">
+                    {{ 'teacher.field.username'|trans({}, 'admin') }}
+                </label>
+                <input id="username" type="text" name="username"
+                       value="{{ values.username }}"
+                       autocomplete="username"
+                       class="block w-full rounded-xl border py-2.5 px-3.5 text-sm font-mono text-gray-900
+                              transition-colors focus:outline-none focus:ring-3
+                              {{ errors.username is defined
+                                  ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-400/20'
+                                  : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:bg-white focus:ring-forest-500/20' }}">
+                {% if errors.username is defined %}
+                    <p class="mt-1.5 text-xs text-red-600">{{ errors.username }}</p>
+                {% endif %}
+            </div>
+
+            {# Email #}
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1.5">
+                    {{ 'teacher.field.email'|trans({}, 'admin') }}
+                </label>
+                <input id="email" type="email" name="email"
+                       value="{{ values.email }}"
+                       class="block w-full rounded-xl border py-2.5 px-3.5 text-sm text-gray-900
+                              transition-colors focus:outline-none focus:ring-3
+                              {{ errors.email is defined
+                                  ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-400/20'
+                                  : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:bg-white focus:ring-forest-500/20' }}">
+                {% if errors.email is defined %}
+                    <p class="mt-1.5 text-xs text-red-600">{{ errors.email }}</p>
+                {% endif %}
+            </div>
+
+            {# Modo de acceso #}
+            <div>
+                <span class="block text-sm font-medium text-gray-700 mb-2">{{ 'teacher.field.auth_method'|trans({}, 'admin') }}</span>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <twig:Form:RadioCard
+                        name="auth_method"
+                        value="password"
+                        label="{{ 'teacher.field.auth_password'|trans({}, 'admin') }}"
+                        :checked="not flags.external"
+                        data-external-auth-target="radio"
+                        data-action="change->external-auth#toggle"
+                    />
+                    <twig:Form:RadioCard
+                        name="auth_method"
+                        value="external"
+                        label="{{ 'teacher.field.auth_external'|trans({}, 'admin') }}"
+                        :checked="flags.external"
+                        data-external-auth-target="radio"
+                        data-action="change->external-auth#toggle"
+                    />
+                </div>
+            </div>
+
+            {# Contraseña #}
+            <div data-external-auth-target="passwordBlock"
+                 class="space-y-5 {{ flags.external ? 'hidden' : '' }}">
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1.5">
+                        {{ 'teacher.field.password'|trans({}, 'admin') }}
+                    </label>
+                    <input id="password" type="password" name="password"
+                           autocomplete="new-password"
+                           data-external-auth-target="passwordInput"
+                           class="block w-full rounded-xl border py-2.5 px-3.5 text-sm text-gray-900
+                                  transition-colors focus:outline-none focus:ring-3
+                                  {{ errors.password is defined
+                                      ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-400/20'
+                                      : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:bg-white focus:ring-forest-500/20' }}">
+                    {% if errors.password is defined %}
+                        <p class="mt-1.5 text-xs text-red-600">{{ errors.password }}</p>
+                    {% endif %}
+                </div>
+
+                {# Forzar cambio de contraseña #}
+                <div>
+                    <span class="block text-sm font-medium text-gray-700 mb-2">{{ 'teacher.field.force_password_change'|trans({}, 'admin') }}</span>
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <twig:Form:RadioCard
+                            name="force_password_change"
+                            value="no"
+                            label="{{ 'teacher.field.force_password_change_no'|trans({}, 'admin') }}"
+                            help="{{ 'teacher.field.force_password_change_no_help'|trans({}, 'admin') }}"
+                            :checked="not flags.force_password_change"
+                        />
+                        <twig:Form:RadioCard
+                            name="force_password_change"
+                            value="yes"
+                            label="{{ 'teacher.field.force_password_change_yes'|trans({}, 'admin') }}"
+                            help="{{ 'teacher.field.force_password_change_yes_help'|trans({}, 'admin') }}"
+                            :checked="flags.force_password_change"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {# Rol #}
+            <div>
+                <span class="block text-sm font-medium text-gray-700 mb-2">{{ 'teacher.field.admin'|trans({}, 'admin') }}</span>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <twig:Form:RadioCard
+                        name="admin"
+                        value="no"
+                        label="{{ 'teacher.field.admin_no'|trans({}, 'admin') }}"
+                        help="{{ 'teacher.field.admin_no_help'|trans({}, 'admin') }}"
+                        :checked="not flags.admin"
+                    />
+                    <twig:Form:RadioCard
+                        name="admin"
+                        value="yes"
+                        label="{{ 'teacher.field.admin_yes'|trans({}, 'admin') }}"
+                        help="{{ 'teacher.field.admin_yes_help'|trans({}, 'admin') }}"
+                        :checked="flags.admin"
+                    />
+                </div>
+            </div>
+
+            {# Estado de la cuenta #}
+            <div>
+                <span class="block text-sm font-medium text-gray-700 mb-2">{{ 'teacher.field.active'|trans({}, 'admin') }}</span>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <twig:Form:RadioCard
+                        name="active"
+                        value="yes"
+                        label="{{ 'teacher.field.active_yes'|trans({}, 'admin') }}"
+                        help="{{ 'teacher.field.active_yes_help'|trans({}, 'admin') }}"
+                        :checked="flags.active"
+                    />
+                    <twig:Form:RadioCard
+                        name="active"
+                        value="no"
+                        label="{{ 'teacher.field.active_no'|trans({}, 'admin') }}"
+                        help="{{ 'teacher.field.active_no_help'|trans({}, 'admin') }}"
+                        :checked="not flags.active"
+                    />
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <a href="{{ path('app_admin_teachers_index') }}"
+                   class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700
+                          hover:bg-gray-50 transition-colors">
+                    {{ 'teacher.cancel'|trans({}, 'admin') }}
+                </a>
+                <button type="submit"
+                        class="rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white
+                               hover:bg-forest-700 transition-colors shadow-xs">
+                    {{ 'teacher.save'|trans({}, 'admin') }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

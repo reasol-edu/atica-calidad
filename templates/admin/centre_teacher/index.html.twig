@@ -1,0 +1,79 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'centre_teachers.title'|trans({}, 'admin') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-7xl mx-auto space-y-6">
+
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
+                {% include 'components/_breadcrumb_home.html.twig' %}
+                <a href="{{ path('app_centre_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">{{ 'educational_centre'|trans({}, 'navigation') }}</a>
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0'}) }}
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ 'centre_teachers.title'|trans({}, 'admin') }}</h1>
+            {% set vy = view_year() %}
+            {% if vy %}
+                <p class="mt-1 text-sm {{ is_viewing_past_year() ? 'text-amber-600 font-medium' : 'text-gray-500' }}">{{ vy.name }}</p>
+            {% endif %}
+        </div>
+        {% if centre.activeAcademicYear and not is_viewing_past_year() %}
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{{ path('app_centre_teachers_import', {centreId: centre.id}) }}"
+                   class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700
+                          hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-xs">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                    {{ 'centre_teachers.import.button'|trans({}, 'admin') }}
+                </a>
+                <a href="{{ path('app_centre_teachers_import_assignments', {centreId: centre.id}) }}"
+                   class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700
+                          hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-xs">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                    {{ 'centre_teachers.import_assignments.button'|trans({}, 'admin') }}
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    {# ── Formulario para añadir docente ────────────────────────────────────── #}
+    {% if centre.activeAcademicYear and not is_viewing_past_year() %}
+        <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100">
+                <h2 class="text-sm font-semibold text-gray-700">{{ 'centre_teachers.add.title'|trans({}, 'admin') }}</h2>
+                <p class="mt-0.5 text-xs text-gray-500">{{ 'centre_teachers.add.hint'|trans({}, 'admin') }}</p>
+            </div>
+            <form method="post"
+                  action="{{ path('app_centre_teachers_add', {centreId: centre.id}) }}"
+                  class="px-6 py-4">
+                <input type="hidden" name="_token" value="{{ csrf_token('add_centre_teacher') }}">
+                <div>
+                    <label for="teacher-username" class="block text-xs font-medium text-gray-600 mb-1.5">
+                        {{ 'centre_teachers.add.username_label'|trans({}, 'admin') }}
+                    </label>
+                    <div class="flex gap-3">
+                        <input id="teacher-username" type="text" name="username"
+                               placeholder="{{ 'centre_teachers.add.username_placeholder'|trans({}, 'admin') }}"
+                               autocomplete="off"
+                               class="flex-1 min-w-0 rounded-xl border border-gray-200 bg-gray-50 py-2.5 px-3.5 text-sm font-mono text-gray-900
+                                      placeholder-gray-400 focus:border-forest-500 focus:bg-white focus:outline-none
+                                      focus:ring-3 focus:ring-forest-500/20 transition-colors">
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 rounded-xl border border-forest-600 bg-forest-600 px-4 text-sm font-semibold text-white
+                                       hover:border-forest-700 hover:bg-forest-700 transition-colors shadow-xs shrink-0">
+                            {{ ux_icon('heroicons:user-plus', {class: 'h-4 w-4'}) }}
+                            {{ 'centre_teachers.add.submit'|trans({}, 'admin') }}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    {% endif %}
+
+    {# ── Listado ───────────────────────────────────────────────────────────── #}
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+        <twig:Admin:TeacherCentreListComponent :centre="centre" />
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'centre_teachers.import.title'|trans({}, 'admin') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-2xl mx-auto space-y-8">
+
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_centre_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">{{ 'educational_centre'|trans({}, 'navigation') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0'}) }}
+            <a href="{{ path('app_centre_teachers_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">{{ 'centre_teachers.title'|trans({}, 'admin') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'centre_teachers.import.title'|trans({}, 'admin') }}</h1>
+        {% if centre.activeAcademicYear %}
+            <p class="mt-1 text-sm text-gray-500">{{ centre.activeAcademicYear.name }}</p>
+        {% endif %}
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-base font-semibold text-gray-900">{{ 'centre_teachers.import.title'|trans({}, 'admin') }}</h2>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="px-6 py-6 space-y-6">
+            <input type="hidden" name="_token" value="{{ csrf_token('import_centre_teachers') }}">
+
+            <div class="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3.5 text-blue-700">
+                <p class="text-sm font-medium">{{ 'centre_teachers.import.help.title'|trans({}, 'admin') }}</p>
+                <ul class="mt-2 list-disc list-outside pl-4 space-y-2 text-xs text-blue-600 marker:text-blue-400">
+                    <li>{{ 'centre_teachers.import.help.source'|trans({}, 'admin') }}</li>
+                    <li>{{ 'centre_teachers.import.help.encoding'|trans({}, 'admin') }}</li>
+                    <li>{{ 'centre_teachers.import.help.skipped'|trans({}, 'admin') }}</li>
+                    <li>{{ 'centre_teachers.import.help.cese'|trans({}, 'admin') }}</li>
+                    <li>{{ 'centre_teachers.import.help.existing'|trans({}, 'admin') }}</li>
+                    <li>{{ 'centre_teachers.import.help.new'|trans({}, 'admin') }}</li>
+                </ul>
+            </div>
+
+            <div>
+                <label for="csv"
+                       class="flex flex-col items-center justify-center gap-3 w-full rounded-xl border-2 border-dashed
+                              border-gray-300 bg-gray-50 px-6 py-8 cursor-pointer
+                              hover:border-forest-400 hover:bg-forest-50/40 transition-colors group mt-4 mb-2">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-8 w-8 text-gray-400 group-hover:text-forest-500 transition-colors'}) }}
+                    <span class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2
+                                 text-sm font-medium text-gray-700 shadow-xs group-hover:border-forest-300 group-hover:text-forest-700 transition-colors">
+                        {{ 'centre_teachers.import.choose_file'|trans({}, 'admin') }}
+                    </span>
+                    <span id="csv-filename" class="text-xs text-gray-400">
+                        {{ 'centre_teachers.import.no_file_chosen'|trans({}, 'admin') }}
+                    </span>
+                </label>
+                <input type="file" id="csv" name="csv" accept=".csv,text/csv" class="sr-only hidden"
+                       onchange="document.getElementById('csv-filename').textContent = this.files[0]?.name ?? '{{ 'centre_teachers.import.no_file_chosen'|trans({}, 'admin') }}'">
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+                <a href="{{ path('app_centre_teachers_index', {centreId: centre.id}) }}"
+                   class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                    {{ 'centre_teachers.import.cancel'|trans({}, 'admin') }}
+                </a>
+                <button type="submit"
+                        class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-forest-700 transition-colors shadow-xs">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                    {{ 'centre_teachers.import.submit'|trans({}, 'admin') }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

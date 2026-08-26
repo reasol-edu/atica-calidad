@@ -6,7 +6,11 @@
 {% set active_year = active_centre ? active_centre.activeAcademicYear : null %}
 {% set vy = view_year() %}
 {% set viewing_past = is_viewing_past_year() %}
-<div data-controller="sidebar confirm"
+<div data-controller="sidebar command-palette confirm"
+     data-command-palette-url-value="{{ path('app_search') }}"
+     data-command-palette-actions-value="{{ [
+         {label: 'actions.change_year'|trans({}, 'search'), url: path('app_select_year_page')},
+     ]|json_encode }}"
      data-confirm-cancel-value="{{ 'ui.cancel'|trans }}"
      data-confirm-confirm-value="{{ 'ui.confirm_delete'|trans }}"
      data-confirm-close-value="{{ 'ui.close'|trans }}"
@@ -205,6 +209,25 @@
                 {{ ux_icon('heroicons:bars-3', {class: 'h-5 w-5'}) }}
             </button>
             <a href="{{ path('app_dashboard') }}" class="text-sm font-semibold text-forest-900 lg:hidden">{{ app_name }}</a>
+
+            <div class="ml-auto flex items-center gap-2">
+                {% if active_centre %}
+                    <button type="button"
+                            data-action="command-palette#open"
+                            class="hidden sm:flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 hover:border-forest-300 hover:text-forest-700 transition-colors"
+                            aria-label="{{ 'open'|trans({}, 'search') }}">
+                        {{ ux_icon('heroicons:magnifying-glass', {class: 'h-3.5 w-3.5'}) }}
+                        <span>{{ 'placeholder'|trans({}, 'search') }}</span>
+                        <kbd class="ml-1 rounded border border-gray-200 px-1 py-0.5 text-[10px]">⌘K</kbd>
+                    </button>
+                    <button type="button"
+                            data-action="command-palette#open"
+                            class="sm:hidden rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                            aria-label="{{ 'open'|trans({}, 'search') }}">
+                        {{ ux_icon('heroicons:magnifying-glass', {class: 'h-4 w-4'}) }}
+                    </button>
+                {% endif %}
+            </div>
         </header>
 
         <main class="flex-1">
@@ -276,6 +299,8 @@
         </main>
 
     </div>
+
+    {% include 'layouts/_command_palette.html.twig' %}
 
 </div>
 
