@@ -1,0 +1,71 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'non_working_day.edit.title'|trans({}, 'admin') }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-lg mx-auto">
+
+    <div class="mb-6">
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_centre_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">
+                {{ 'educational_centre'|trans({}, 'navigation') }}
+            </a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            <a href="{{ path('app_centre_non_working_days_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">
+                {{ 'non_working_day.title'|trans({}, 'admin') }}
+            </a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'non_working_day.edit.title'|trans({}, 'admin') }}</h1>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+        <form method="post" class="px-6 py-6 space-y-5">
+            <input type="hidden" name="_token" value="{{ csrf_token('edit_non_working_day_' ~ day.id) }}">
+
+            <div>
+                <label for="date" class="block text-sm font-medium text-gray-700 mb-1.5">
+                    {{ 'non_working_day.field.date'|trans({}, 'admin') }}
+                </label>
+                <input id="date" type="date" name="date"
+                       value="{{ errors is not empty ? app.request.request.get('date') : day.date|date('Y-m-d') }}"
+                       autofocus
+                       class="block w-full rounded-xl border py-2.5 px-3.5 text-sm text-gray-900
+                              transition-colors focus:outline-none focus:ring-3
+                              {{ errors.date is defined
+                                  ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-400/20'
+                                  : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:bg-white focus:ring-forest-500/20' }}">
+                {% if errors.date is defined %}
+                    <p class="mt-1.5 text-xs text-red-600">{{ errors.date }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-1.5">
+                    {{ 'non_working_day.field.description'|trans({}, 'admin') }}
+                </label>
+                <input id="description" type="text" name="description"
+                       value="{{ errors is not empty ? app.request.request.get('description') : day.description }}"
+                       placeholder="{{ 'non_working_day.field.description_placeholder'|trans({}, 'admin') }}"
+                       class="block w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 px-3.5 text-sm text-gray-900
+                              transition-colors focus:outline-none focus:border-forest-500 focus:bg-white focus:ring-3 focus:ring-forest-500/20">
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <a href="{{ path('app_centre_non_working_days_index', {centreId: centre.id}) }}"
+                   class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700
+                          hover:bg-gray-50 transition-colors">
+                    {{ 'non_working_day.edit.cancel'|trans({}, 'admin') }}
+                </a>
+                <button type="submit"
+                        class="rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white
+                               hover:bg-forest-700 transition-colors shadow-xs">
+                    {{ 'non_working_day.edit.save'|trans({}, 'admin') }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

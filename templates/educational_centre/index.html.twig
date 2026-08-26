@@ -14,6 +14,30 @@
 
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
+        {# ── Cursos académicos ── equipo directivo y admins #}
+        {% if is_granted('educational_centre.section', centre) %}
+            <a href="{{ path('app_centre_years_index', {centreId: centre.id}) }}"
+               class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
+                      hover:border-forest-200 hover:shadow-sm transition-all">
+                <div class="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-forest-100 text-forest-600
+                                group-hover:bg-forest-600 group-hover:text-white transition-colors">
+                        {{ ux_icon('heroicons:calendar-days', {class: 'h-5 w-5'}) }}
+                    </div>
+                    <h2 class="text-base font-semibold text-gray-900">{{ 'years.title'|trans({}, 'admin') }}</h2>
+                </div>
+                <div class="px-6 py-4 flex-1">
+                    <p class="text-sm text-gray-500">{{ 'years.hub_help'|trans({}, 'admin') }}</p>
+                </div>
+                <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-end">
+                    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-forest-600 group-hover:text-forest-800 transition-colors">
+                        {{ 'years.manage'|trans({}, 'admin') }}
+                        {{ ux_icon('heroicons:arrow-right', {class: 'h-4 w-4'}) }}
+                    </span>
+                </div>
+            </a>
+        {% endif %}
+
         {# ── Oferta formativa ── equipo directivo y admins #}
         {% if is_granted('educational_centre.section', centre) %}
             <a href="{{ centre.activeAcademicYear ? path('app_centre_offer_index', {centreId: centre.id}) : '#' }}"
@@ -38,6 +62,35 @@
                         </span>
                     {% else %}
                         <span class="text-xs text-gray-400">{{ 'offer.no_active_year'|trans({}, 'admin') }}</span>
+                    {% endif %}
+                </div>
+            </a>
+        {% endif %}
+
+        {# ── Días no lectivos ── equipo directivo y admins #}
+        {% if is_granted('educational_centre.section', centre) %}
+            <a href="{{ centre.activeAcademicYear ? path('app_centre_non_working_days_index', {centreId: centre.id}) : '#' }}"
+               class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
+                      hover:border-forest-200 hover:shadow-sm transition-all
+                      {{ centre.activeAcademicYear is null ? 'opacity-60 pointer-events-none' : '' }}">
+                <div class="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-forest-100 text-forest-600
+                                group-hover:bg-forest-600 group-hover:text-white transition-colors">
+                        {{ ux_icon('heroicons:flag', {class: 'h-5 w-5'}) }}
+                    </div>
+                    <h2 class="text-base font-semibold text-gray-900">{{ 'non_working_day.title'|trans({}, 'admin') }}</h2>
+                </div>
+                <div class="px-6 py-4 flex-1">
+                    <p class="text-sm text-gray-500">{{ 'non_working_day.hub_help'|trans({}, 'admin') }}</p>
+                </div>
+                <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-end">
+                    {% if centre.activeAcademicYear %}
+                        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-forest-600 group-hover:text-forest-800 transition-colors">
+                            {{ 'non_working_day.manage'|trans({}, 'admin') }}
+                            {{ ux_icon('heroicons:arrow-right', {class: 'h-4 w-4'}) }}
+                        </span>
+                    {% else %}
+                        <span class="text-xs text-gray-400">{{ 'non_working_day.no_active_year'|trans({}, 'admin') }}</span>
                     {% endif %}
                 </div>
             </a>

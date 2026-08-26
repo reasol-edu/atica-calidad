@@ -1,0 +1,124 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'non_working_day.import.title'|trans({}, 'admin') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-2xl mx-auto space-y-8">
+
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_centre_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">{{ 'educational_centre'|trans({}, 'navigation') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0'}) }}
+            <a href="{{ path('app_centre_non_working_days_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">{{ 'non_working_day.title'|trans({}, 'admin') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'non_working_day.import.title'|trans({}, 'admin') }}</h1>
+    </div>
+
+    {# ── Importar desde CSV de Séneca ────────────────────────────────────── #}
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-base font-semibold text-gray-900">{{ 'non_working_day.import.seneca.title'|trans({}, 'admin') }}</h2>
+        </div>
+        <form method="post" enctype="multipart/form-data"
+              action="{{ path('app_centre_non_working_days_import_seneca', {centreId: centre.id}) }}"
+              class="px-6 py-6 space-y-6">
+            <input type="hidden" name="_token" value="{{ csrf_token('import_seneca_non_working_days') }}">
+
+            <div class="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3.5 text-blue-700">
+                <p class="text-sm font-medium">{{ 'non_working_day.import.seneca.help.title'|trans({}, 'admin') }}</p>
+                <ul class="mt-2 list-disc list-outside pl-4 space-y-2 text-xs text-blue-600 marker:text-blue-400">
+                    <li>{{ 'non_working_day.import.seneca.help.source'|trans({}, 'admin') }}</li>
+                    <li>{{ 'non_working_day.import.seneca.help.encoding'|trans({}, 'admin') }}</li>
+                    <li>{{ 'non_working_day.import.seneca.help.filter'|trans({}, 'admin') }}</li>
+                    <li>{{ 'non_working_day.import.seneca.help.dedup'|trans({}, 'admin') }}</li>
+                </ul>
+            </div>
+
+            <div>
+                <label for="csv"
+                       class="flex flex-col items-center justify-center gap-3 w-full rounded-xl border-2 border-dashed
+                              border-gray-300 bg-gray-50 px-6 py-8 cursor-pointer
+                              hover:border-forest-400 hover:bg-forest-50/40 transition-colors group mt-4 mb-2">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-8 w-8 text-gray-400 group-hover:text-forest-500 transition-colors'}) }}
+                    <span class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2
+                                 text-sm font-medium text-gray-700 shadow-xs group-hover:border-forest-300 group-hover:text-forest-700 transition-colors">
+                        {{ 'non_working_day.import.choose_file'|trans({}, 'admin') }}
+                    </span>
+                    <span id="csv-filename" class="text-xs text-gray-400">
+                        {{ 'non_working_day.import.no_file_chosen'|trans({}, 'admin') }}
+                    </span>
+                </label>
+                <input type="file" id="csv" name="csv" accept=".csv,text/csv" class="sr-only hidden"
+                       onchange="document.getElementById('csv-filename').textContent = this.files[0]?.name ?? '{{ 'non_working_day.import.no_file_chosen'|trans({}, 'admin') }}'">
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+                <a href="{{ path('app_centre_non_working_days_index', {centreId: centre.id}) }}"
+                   class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                    {{ 'non_working_day.import.cancel'|trans({}, 'admin') }}
+                </a>
+                <button type="submit"
+                        class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-forest-700 transition-colors shadow-xs">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                    {{ 'non_working_day.import.submit'|trans({}, 'admin') }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {# ── Importar desde iCal ─────────────────────────────────────────────── #}
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-base font-semibold text-gray-900">{{ 'non_working_day.import.ical.title'|trans({}, 'admin') }}</h2>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="px-6 py-6 space-y-6">
+            <input type="hidden" name="_token" value="{{ csrf_token('import_non_working_days') }}">
+
+            <div class="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3.5 text-blue-700">
+                <p class="text-sm font-medium">{{ 'non_working_day.import.help.title'|trans({}, 'admin') }}</p>
+                <p class="mt-2 text-xs text-blue-600">
+                    {{ 'non_working_day.import.help.intro'|trans({}, 'admin') }}
+                    <a href="https://www.juntadeandalucia.es/educacion/secretariavirtual/consulta/calendario-escolar/"
+                       target="_blank" rel="noopener noreferrer"
+                       class="font-medium underline hover:text-blue-800">
+                        {{ 'non_working_day.import.help.link'|trans({}, 'admin') }}
+                    </a>
+                </p>
+            </div>
+
+            <div>
+                <label for="ics"
+                       class="flex flex-col items-center justify-center gap-3 w-full rounded-xl border-2 border-dashed
+                              border-gray-300 bg-gray-50 px-6 py-8 cursor-pointer
+                              hover:border-forest-400 hover:bg-forest-50/40 transition-colors group mt-4 mb-2">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-8 w-8 text-gray-400 group-hover:text-forest-500 transition-colors'}) }}
+                    <span class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2
+                                 text-sm font-medium text-gray-700 shadow-xs group-hover:border-forest-300 group-hover:text-forest-700 transition-colors">
+                        {{ 'non_working_day.import.choose_file'|trans({}, 'admin') }}
+                    </span>
+                    <span id="ics-filename" class="text-xs text-gray-400">
+                        {{ 'non_working_day.import.no_file_chosen'|trans({}, 'admin') }}
+                    </span>
+                </label>
+                <input type="file" id="ics" name="ics" accept=".ics,text/calendar" class="sr-only hidden"
+                       onchange="document.getElementById('ics-filename').textContent = this.files[0]?.name ?? '{{ 'non_working_day.import.no_file_chosen'|trans({}, 'admin') }}'">
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+                <a href="{{ path('app_centre_non_working_days_index', {centreId: centre.id}) }}"
+                   class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                    {{ 'non_working_day.import.cancel'|trans({}, 'admin') }}
+                </a>
+                <button type="submit"
+                        class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-forest-700 transition-colors shadow-xs">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                    {{ 'non_working_day.import.submit'|trans({}, 'admin') }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

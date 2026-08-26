@@ -1,0 +1,104 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'years.title'|trans({}, 'admin') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-3xl mx-auto">
+
+    <div class="mb-6">
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_centre_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">
+                {{ 'educational_centre'|trans({}, 'navigation') }}
+            </a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'years.title'|trans({}, 'admin') }}</h1>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+
+        {# Lista de cursos #}
+        {% if years is empty %}
+            <div class="px-6 py-8 text-center">
+                <p class="text-sm text-gray-400">{{ 'years.empty'|trans({}, 'admin') }}</p>
+            </div>
+        {% else %}
+            <ul class="divide-y divide-gray-100">
+                {% for year in years %}
+                    <li class="flex items-center gap-4 px-6 py-4">
+                        <div class="flex-1 min-w-0 flex items-center gap-3">
+                            <span class="text-sm font-medium text-gray-900">{{ year.name }}</span>
+                            {% if centre.activeAcademicYear and centre.activeAcademicYear.id == year.id %}
+                                <span class="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                                    {{ ux_icon('heroicons:check', {class: 'h-3 w-3 mr-1'}) }}{{ 'years.badge.active'|trans({}, 'admin') }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            {# Establecer activo #}
+                            {% if not centre.activeAcademicYear or centre.activeAcademicYear.id != year.id %}
+                                <form method="post"
+                                      action="{{ path('app_centre_years_activate', {centreId: centre.id, yearId: year.id}) }}">
+                                    <input type="hidden" name="_token"
+                                           value="{{ csrf_token('activate_year_' ~ year.id) }}">
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1 rounded-lg border border-green-200 px-2.5 py-1.5
+                                                   text-xs font-medium text-green-700 hover:bg-green-50 hover:border-green-300 transition-colors">
+                                        {{ ux_icon('heroicons:check-circle', {class: 'h-3.5 w-3.5'}) }}
+                                        {{ 'years.action.set_active'|trans({}, 'admin') }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            {# Editar #}
+                            <a href="{{ path('app_centre_years_edit', {centreId: centre.id, yearId: year.id}) }}"
+                               class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5
+                                      text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors">
+                                {{ ux_icon('heroicons:pencil-square', {class: 'h-3.5 w-3.5'}) }}
+                                {{ 'years.action.edit'|trans({}, 'admin') }}
+                            </a>
+                            {# Eliminar #}
+                            <form method="post"
+                                  action="{{ path('app_centre_years_delete', {centreId: centre.id, yearId: year.id}) }}"
+                                  class="js-confirm-form"
+                                  data-confirm="{{ 'years.delete_confirm'|trans({}, 'admin')|e('html_attr') }}">
+                                <input type="hidden" name="_token"
+                                       value="{{ csrf_token('delete_year_' ~ year.id) }}">
+                                <button type="submit"
+                                        class="js-confirm-trigger inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5
+                                               text-xs font-medium text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors">
+                                    {{ ux_icon('heroicons:trash', {class: 'h-3.5 w-3.5'}) }}
+                                    {{ 'years.action.delete'|trans({}, 'admin') }}
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {# Añadir curso #}
+        <div class="border-t border-gray-100 px-6 py-5 bg-gray-50">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                {{ 'years.add.title'|trans({}, 'admin') }}
+            </p>
+            <form method="post"
+                  action="{{ path('app_centre_years_add', {centreId: centre.id}) }}"
+                  class="flex gap-3">
+                <input type="hidden" name="_token" value="{{ csrf_token('add_year_' ~ centre.id) }}">
+                <input type="text" name="name"
+                       placeholder="{{ 'years.field.name_placeholder'|trans({}, 'admin') }}"
+                       class="flex-1 rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-sm
+                              focus:border-forest-500 focus:ring-3 focus:ring-forest-500/20 focus:outline-none transition-colors"
+                       required>
+                <button type="submit"
+                        class="rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white
+                               hover:bg-forest-700 transition-colors shadow-xs shrink-0">
+                    {{ ux_icon('heroicons:plus', {class: 'h-4 w-4 mr-1 inline'}) }}{{ 'years.add.submit'|trans({}, 'admin') }}
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
