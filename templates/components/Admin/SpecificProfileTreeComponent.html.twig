@@ -27,7 +27,14 @@
                     <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
                         {{ ux_icon('heroicons:rectangle-group', {class: 'h-4 w-4 text-gray-400'}) }}
                         <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ 'centre_profiles.specific.col.roots'|trans({}, 'admin') }}</span>
-                        <span class="ml-auto text-xs text-gray-400">{{ roots|length }}</span>
+                        {% if can_write and roots|length > 1 %}
+                            <button type="button" data-action="live#action" data-live-action-param="sortRootsAlphabetically"
+                                    class="ml-auto shrink-0 inline-flex items-center justify-center rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                                    title="{{ 'centre_profiles.specific.sort_alphabetically'|trans({}, 'admin') }}">
+                                {{ ux_icon('heroicons:bars-arrow-down', {class: 'h-4 w-4'}) }}
+                            </button>
+                        {% endif %}
+                        <span class="{{ can_write and roots|length > 1 ? '' : 'ml-auto' }} text-xs text-gray-400">{{ roots|length }}</span>
                     </div>
 
                     {% if roots is empty %}
@@ -95,7 +102,14 @@
                         {% if sel_root %}
                             <span class="mx-1 text-gray-300">·</span>
                             <span class="text-xs font-medium text-forest-700 truncate">{{ sel_root.name }}</span>
-                            <span class="ml-auto text-xs text-gray-400">{{ children|length }}</span>
+                            {% if can_write and children|length > 1 %}
+                                <button type="button" data-action="live#action" data-live-action-param="sortChildrenAlphabetically"
+                                        class="ml-auto shrink-0 inline-flex items-center justify-center rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                                        title="{{ 'centre_profiles.specific.sort_alphabetically'|trans({}, 'admin') }}">
+                                    {{ ux_icon('heroicons:bars-arrow-down', {class: 'h-4 w-4'}) }}
+                                </button>
+                            {% endif %}
+                            <span class="{{ can_write and children|length > 1 ? '' : 'ml-auto' }} text-xs text-gray-400">{{ children|length }}</span>
                         {% endif %}
                     </div>
 

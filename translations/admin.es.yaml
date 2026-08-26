@@ -368,6 +368,7 @@ centre_profiles.specific.field.root_name_placeholder: 'ej: Docente'
 centre_profiles.specific.field.child_name_placeholder: 'ej: Docente ESO/Bach'
 centre_profiles.specific.field.name: 'Nombre del perfil'
 centre_profiles.specific.add: 'Añadir'
+centre_profiles.specific.sort_alphabetically: 'Ordenar alfabéticamente'
 
 centre_profiles.specific.badge.children_one: 'subperfil'
 centre_profiles.specific.badge.children_other: 'subperfiles'

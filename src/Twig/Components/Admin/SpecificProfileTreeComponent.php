@@ -372,6 +372,37 @@ class SpecificProfileTreeComponent extends AbstractController
         $this->em->flush();
     }
 
+    #[LiveAction]
+    public function sortRootsAlphabetically(): void
+    {
+        $this->requireWritableCentre();
+        $this->sortByName($this->profiles->findRootsByCentre($this->centre));
+    }
+
+    #[LiveAction]
+    public function sortChildrenAlphabetically(): void
+    {
+        $this->requireWritableCentre();
+        $root = $this->getSelectedRoot();
+        if ($root === null) {
+            return;
+        }
+
+        $this->sortByName($this->profiles->findChildrenByParent($root));
+    }
+
+    /** @param SpecificProfile[] $siblings */
+    private function sortByName(array $siblings): void
+    {
+        usort($siblings, static fn (SpecificProfile $a, SpecificProfile $b) => strcmp($a->getName(), $b->getName()));
+
+        foreach ($siblings as $position => $sibling) {
+            $sibling->setPosition($position);
+        }
+
+        $this->em->flush();
+    }
+
     // ── Teacher assignment (leaf profiles only) ─────────────────────────────
 
     #[LiveAction]
