@@ -1,0 +1,47 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'page_title'|trans({}, 'dashboard') }}{% endblock %}
+
+{% block content %}
+{% set active_centre = active_centre() %}
+{% set active_year   = active_centre ? active_centre.activeAcademicYear : null %}
+{% set vy            = view_year() %}
+{% set viewing_past  = is_viewing_past_year() %}
+
+<div class="px-6 py-8 max-w-7xl mx-auto space-y-8">
+
+    {# ── Encabezado ─────────────────────────────────────────────────────────── #}
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">
+            {{ 'greeting'|trans({'%name%': app.user.name.firstName}, 'dashboard') }}
+        </h1>
+        {% if vy %}
+            <p class="mt-1 text-sm {{ viewing_past ? 'text-amber-600 font-medium' : 'text-gray-500' }}">
+                {% if viewing_past %}
+                    {{ 'summary_for'|trans({'%year%': vy.name}, 'dashboard') }}
+                {% else %}
+                    {{ random([
+                        'home_subtitle_1'|trans({}, 'dashboard'),
+                        'home_subtitle_2'|trans({}, 'dashboard'),
+                        'home_subtitle_3'|trans({}, 'dashboard'),
+                        'home_subtitle_4'|trans({}, 'dashboard'),
+                        'home_subtitle_5'|trans({}, 'dashboard'),
+                    ]) }}
+                {% endif %}
+            </p>
+        {% elseif active_year is null %}
+            <p class="mt-1 text-sm text-amber-600">
+                {{ 'no_academic_year'|trans({}, 'dashboard') }}
+            </p>
+        {% endif %}
+    </div>
+
+    {% if active_year is null %}
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-8 text-center">
+            {{ ux_icon('heroicons:exclamation-triangle', {class: 'mx-auto h-8 w-8 text-amber-400 mb-2'}) }}
+            <p class="text-sm font-medium text-amber-800">{{ 'no_academic_year'|trans({}, 'dashboard') }}</p>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}
