@@ -1,0 +1,114 @@
+{# Grid del calendario mensual (navegación, cabecera de días, semanas y segmentos),
+   incluido por CalendarComponent para poder llamar a this.isToday()/this.isCurrentMonth()/etc.
+   del componente. #}
+<div {{ attributes.defaults({class: 'rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden'}) }}>
+
+    {# ── Navigation ───────────────────────────────────────────────────────── #}
+    <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+        <button data-action="live#action" data-live-action-param="previousMonth"
+                class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition-colors"
+                aria-label="{{ 'prev_month'|trans({}, 'calendar') }}">
+            {{ ux_icon('heroicons:chevron-left', {class: 'h-4 w-4'}) }}
+        </button>
+        <h2 class="flex-1 text-center text-sm font-semibold text-gray-800">
+            {{ this.monthLabel }}
+        </h2>
+        <button data-action="live#action" data-live-action-param="nextMonth"
+                class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition-colors"
+                aria-label="{{ 'next_month'|trans({}, 'calendar') }}">
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </button>
+        <button data-action="live#action" data-live-action-param="goToday"
+                class="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+            {{ 'today'|trans({}, 'calendar') }}
+        </button>
+    </div>
+
+    {# ── Day-of-week headers (solo lectivos: sin sábado ni domingo) ─────────── #}
+    <div class="grid grid-cols-5 border-b border-gray-100 bg-gray-50">
+        {% for key in ['lun', 'mar', 'mie', 'jue', 'vie'] %}
+            <div class="py-2 text-center text-xs font-medium text-gray-500">
+                {{ key|trans({}, 'calendar') }}
+            </div>
+        {% endfor %}
+    </div>
+
+    {# ── Weeks ────────────────────────────────────────────────────────────── #}
+    <div data-loading="addClass(opacity-50 pointer-events-none animate-pulse)" class="transition-opacity">
+    {% if this.weeks is empty %}
+        <div class="py-12 text-center text-sm text-gray-400">
+            {{ 'no_active_year'|trans({}, 'calendar') }}
+        </div>
+    {% else %}
+        {% for week in this.weeks %}
+            <div class="border-b border-gray-100 last:border-b-0 min-h-24 transition-colors relative
+                        {{ loop.index is even ? 'bg-gray-50' : 'bg-white' }}
+                        hover:bg-forest-50">
+
+                {# Full-height column separator lines, con resalte de la columna del día actual #}
+                <div class="absolute inset-0 grid grid-cols-5 divide-x divide-gray-100 pointer-events-none z-0"
+                     aria-hidden="true">
+                    {% for day in week.days %}
+                        <div class="{{ this.isToday(day) ? 'bg-forest-50' : (this.isNonWorkingDay(day) ? 'bg-gray-100' : '') }}"></div>
+                    {% endfor %}
+                </div>
+
+                {# Celda completa clicable: cubre toda la columna del día para poder abrir su
+                   detalle desde cualquier punto vacío, por debajo del número de día (su propio
+                   enlace) y de los segmentos (que conservan su title al pasar el ratón). #}
+                <div class="absolute inset-0 grid grid-cols-5 z-[5]" aria-hidden="true">
+                    {% for day in week.days %}
+                        <a href="{{ path('app_calendar_day', {date: day.format('Y-m-d')}) }}"
+                           class="block h-full w-full" tabindex="-1"></a>
+                    {% endfor %}
+                </div>
+
+                {# Day numbers — top of each week row #}
+                <div class="relative z-10 grid grid-cols-5">
+                    {% for day in week.days %}
+                        {% set nonWorking = this.isNonWorkingDay(day) %}
+                        <a href="{{ path('app_calendar_day', {date: day.format('Y-m-d')}) }}"
+                           class="block py-1 px-1.5 text-right text-xs hover:font-semibold transition-colors
+                                    {{ this.isCurrentMonth(day) ? 'text-gray-600' : 'text-gray-300' }}
+                                    {{ nonWorking ? 'line-through decoration-gray-300' : '' }}"
+                             {% if nonWorking %}title="{{ this.nonWorkingDayDescription(day) ?? 'non_working_day'|trans({}, 'calendar') }}"{% endif %}>
+                            {% if this.isToday(day) %}
+                                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-forest-600 text-white text-xs font-bold">
+                                    {{ day.format('j') }}
+                                </span>
+                            {% else %}
+                                {{ day.format('j') }}
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+
+                {% if week.segments is not empty %}
+                    <div class="relative z-10 grid grid-cols-5 gap-x-1 gap-y-1 px-1 pb-1 pointer-events-none"
+                         style="grid-template-rows: repeat({{ week.maxLane + 1 }}, minmax(1.25rem, auto));">
+                        {% for segment in week.segments %}
+                            <div class="pointer-events-auto flex items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-[11px] leading-tight {{ segment.color.bg }} {{ segment.color.text }} {{ segment.color.border }}"
+                                 style="grid-column: {{ segment.startCol + 1 }} / span {{ segment.span }}; grid-row: {{ segment.lane + 1 }};"
+                                 title="{{ segment.details is not empty ? segment.label ~ ' — ' ~ segment.details : segment.label }}">
+                                {% if segment.icon is not empty %}
+                                    {{ ux_icon(segment.icon, {class: 'h-3 w-3 shrink-0'}) }}
+                                {% endif %}
+                                <span class="truncate">
+                                    <span class="font-semibold">{{ segment.label }}</span>
+                                    {% if segment.details is not empty %}
+                                        <span class="opacity-80">{{ segment.details }}</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="relative z-10 min-h-2 pointer-events-none"></div>
+                {% endif %}
+
+            </div>
+        {% endfor %}
+    {% endif %}
+    </div>
+
+</div>

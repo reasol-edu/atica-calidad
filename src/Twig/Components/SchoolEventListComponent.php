@@ -1,0 +1,73 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Twig\Components;
+
+use App\Entity\EducationalCentre;
+use App\Entity\Group;
+use App\Entity\SchoolEvent;
+use App\Pagination\Paginator;
+use App\Repository\GroupRepository;
+use App\Repository\SchoolEventRepository;
+use App\Security\Voter\EducationalCentreVoter;
+use App\Service\TenantContext;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
+use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\DefaultActionTrait;
+
+#[AsLiveComponent]
+class SchoolEventListComponent extends AbstractController
+{
+    use DefaultActionTrait;
+    use PaginatedListTrait;
+
+    #[LiveProp]
+    public EducationalCentre $centre;
+
+    #[LiveProp(writable: true)]
+    public string $search = '';
+
+    #[LiveProp(writable: true)]
+    public string $groupId = '';
+
+    public function __construct(
+        private readonly SchoolEventRepository $events,
+        private readonly GroupRepository $groups,
+        private readonly TenantContext $tenantContext,
+    ) {}
+
+    public function mount(EducationalCentre $centre): void
+    {
+        $this->denyAccessUnlessGranted(EducationalCentreVoter::SECTION, $centre);
+        $this->centre = $centre;
+    }
+
+    /** @return Group[] */
+    public function getAvailableGroups(): array
+    {
+        return $this->groups->findByActiveYearOfCentreOrderedByName(
+            $this->centre,
+            $this->tenantContext->getViewYear($this->centre),
+        );
+    }
+
+    /** @return Paginator<SchoolEvent> */
+    public function getPagination(): Paginator
+    {
+        $year = $this->tenantContext->getViewYear($this->centre);
+        if ($year === null) {
+            return Paginator::fromQuery($this->events->findNoneQuery(), 1, self::PAGE_SIZE);
+        }
+
+        return $this->paginate(
+            $this->events->createFilteredQuery($year, trim($this->search), trim($this->groupId)),
+        );
+    }
+
+    public function hasActiveFilters(): bool
+    {
+        return $this->search !== '' || $this->groupId !== '';
+    }
+}

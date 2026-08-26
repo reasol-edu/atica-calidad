@@ -1,0 +1,49 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'page_title'|trans({}, 'calendar') }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-7xl mx-auto space-y-6">
+
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'page_title'|trans({}, 'calendar') }}</h1>
+        {% if isAdmin and tab == 'events' %}
+            <a href="{{ path('app_events_new') }}"
+               class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white
+                      hover:bg-forest-700 transition-colors shadow-xs shrink-0">
+                {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                {{ 'school_event.add'|trans({}, 'admin') }}
+            </a>
+        {% endif %}
+    </div>
+
+    {% if isAdmin %}
+    {# ── Pestañas ─────────────────────────────────────────────────────── #}
+    <nav class="flex gap-6 border-b border-gray-200" aria-label="{{ 'tabs.aria'|trans({}, 'calendar') }}">
+        <a href="{{ path('app_calendar', {tab: 'calendar'}) }}"
+           {% if tab == 'calendar' %}aria-current="page"{% endif %}
+           class="-mb-px inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors
+                  {{ tab == 'calendar' ? 'border-forest-600 text-forest-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+            {{ ux_icon('heroicons:calendar-days', {class: 'h-4 w-4'}) }}
+            {{ 'tabs.calendar'|trans({}, 'calendar') }}
+        </a>
+        <a href="{{ path('app_calendar', {tab: 'events'}) }}"
+           {% if tab == 'events' %}aria-current="page"{% endif %}
+           class="-mb-px inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors
+                  {{ tab == 'events' ? 'border-forest-600 text-forest-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+            {{ ux_icon('heroicons:megaphone', {class: 'h-4 w-4'}) }}
+            {{ 'tabs.events'|trans({}, 'calendar') }}
+        </a>
+    </nav>
+    {% endif %}
+
+    {% if tab == 'events' and isAdmin %}
+        <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+            <twig:SchoolEventListComponent :centre="centre" />
+        </div>
+    {% else %}
+        <twig:CalendarComponent />
+    {% endif %}
+
+</div>
+{% endblock %}

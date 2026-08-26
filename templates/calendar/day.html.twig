@@ -1,0 +1,101 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% set dateLabel = ('weekday.' ~ date.format('N'))|trans({}, 'calendar') ~ ', ' ~ date.format('j') ~ ' de ' ~ ('month.' ~ date.format('n'))|trans({}, 'calendar') ~ ' de ' ~ date.format('Y') %}
+
+{% block title %}{{ dateLabel }} · {{ 'page_title'|trans({}, 'calendar') }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-4xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_calendar') }}" class="hover:text-forest-600 transition-colors">{{ 'page_title'|trans({}, 'calendar') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0'}) }}
+            <span aria-current="page" class="text-gray-700 font-medium">{{ date.format('d/m/Y') }}</span>
+        </div>
+
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div class="flex items-center gap-2">
+                <a href="{{ path('app_calendar_day', {date: prevDate}) }}"
+                   class="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+                   aria-label="{{ 'day.prev'|trans({}, 'calendar') }}">
+                    {{ ux_icon('heroicons:chevron-left', {class: 'h-4 w-4'}) }}
+                </a>
+                <h1 class="text-xl font-bold text-gray-900">{{ dateLabel|capitalize }}</h1>
+                <a href="{{ path('app_calendar_day', {date: nextDate}) }}"
+                   class="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+                   aria-label="{{ 'day.next'|trans({}, 'calendar') }}">
+                    {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+                </a>
+            </div>
+            {% if isAdmin %}
+                <a href="{{ path('app_events_new', {date: date.format('Y-m-d')}) }}"
+                   class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white
+                          hover:bg-forest-700 transition-colors shadow-xs shrink-0">
+                    {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                    {{ 'school_event.add'|trans({}, 'admin') }}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if report.nonWorkingDayLabel is not null %}
+        <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 flex items-center gap-2 text-sm text-gray-600">
+            {{ ux_icon('heroicons:moon', {class: 'h-4 w-4 shrink-0 text-gray-400'}) }}
+            {{ 'day.non_working_notice'|trans({'%label%': report.nonWorkingDayLabel}, 'calendar') }}
+        </div>
+    {% endif %}
+
+    {# ── Eventos ──────────────────────────────────────────────────────────── #}
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+        <div class="px-6 py-4 border-b border-gray-100 rounded-t-2xl">
+            <h2 class="text-base font-semibold text-gray-900">{{ 'day.section.events'|trans({}, 'calendar') }}</h2>
+        </div>
+        {% if report.events is empty %}
+            <p class="px-6 py-4 text-sm text-gray-400">{{ 'day.no_events'|trans({}, 'calendar') }}</p>
+        {% else %}
+            <ul class="divide-y divide-gray-100">
+                {% for event in report.events %}
+                    <li class="px-6 py-3">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">{{ event.name }}</span>
+                                <span class="text-xs text-gray-400 tabular-nums ml-1">{{ event.startTime|date('format.time'|trans) }}–{{ event.endTime|date('format.time'|trans) }}</span>
+                                {% if event.description is not empty %}
+                                    <p class="text-xs text-gray-500 mt-0.5">{{ event.description }}</p>
+                                {% endif %}
+                                {% if event.url is not empty %}
+                                    <a href="{{ event.url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-forest-600 hover:text-forest-700 mt-1">
+                                        {{ ux_icon('heroicons:link', {class: 'h-3 w-3'}) }}
+                                        {{ event.url }}
+                                    </a>
+                                {% endif %}
+                                {% if isAdmin %}
+                                    <a href="{{ path('app_events_edit', {eventId: event.id.toRfc4122}) }}" class="block text-xs text-gray-400 hover:text-gray-600 mt-1">
+                                        {{ 'school_event.action.edit'|trans({}, 'admin') }}
+                                    </a>
+                                {% endif %}
+                            </div>
+                            {% if event.general %}
+                                <span class="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 shrink-0">
+                                    {{ 'school_event.scope.general'|trans({}, 'admin') }}
+                                </span>
+                            {% else %}
+                                <div class="flex flex-wrap gap-1 justify-end shrink-0">
+                                    {% for group in event.groups %}
+                                        <span class="inline-flex items-center rounded-full bg-forest-50 px-2 py-0.5 text-xs font-medium text-forest-700">
+                                            {{ group.name }}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
