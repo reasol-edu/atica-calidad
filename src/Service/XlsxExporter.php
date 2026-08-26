@@ -20,7 +20,7 @@ class XlsxExporter
      */
     public function createResponse(string $filename, array $headers, iterable $rows): BinaryFileResponse
     {
-        $tempPath = sys_get_temp_dir() . '/' . uniqid('gestconv_export_', true) . '.xlsx';
+        $tempPath = sys_get_temp_dir() . '/' . uniqid('atica_export_', true) . '.xlsx';
 
         $writer = new Writer();
         $writer->openToFile($tempPath);

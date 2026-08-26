@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=vendor/symfony/dependency-injection/Loader/schema/services.schema.json
-###> gestconv-plus production stack ################################################
+###> atica-calidad production stack ################################################
 # Variables de entorno: copia .env.example a .env.local, ajusta los valores e
 # indica a Docker Compose que use ese fichero (no se versiona). Exporta una
 # vez por sesión:
@@ -19,7 +19,7 @@ x-app-environment: &app-environment
   APP_ENV:                      prod
   APP_DEBUG:                    "0"
   APP_SECRET:                   "${APP_SECRET:?Crea un .env con APP_SECRET definido}"
-  DATABASE_URL:                 "postgresql://gestconv:${DB_PASSWORD:-changeme}@database:5432/gestconv?serverVersion=16&charset=utf8"
+  DATABASE_URL:                 "postgresql://atica:${DB_PASSWORD:-changeme}@database:5432/atica?serverVersion=16&charset=utf8"
   DEFAULT_URI:                  "${DEFAULT_URI:-http://localhost}"
   MIGRATIONS_PATH:              migrations/postgresql
   APP_LOG:                      "${APP_LOG:-true}"
@@ -31,7 +31,7 @@ services:
 
   # ── Aplicación (FrankenPHP) ───────────────────────────────────────────────
   app:
-    image: reasoledu/gestconv-plus:latest
+    image: atica-calidad:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -57,7 +57,7 @@ services:
   # No ejecuta el entrypoint (migraciones/setup las hace «app»); espera a que «app»
   # las aplique y, si arranca antes, «restart» lo reintenta.
   worker:
-    image: reasoledu/gestconv-plus:latest
+    image: atica-calidad:latest
     restart: unless-stopped
     environment:
       <<: *app-environment
@@ -76,14 +76,14 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB:       gestconv
-      POSTGRES_USER:     gestconv
+      POSTGRES_DB:       atica
+      POSTGRES_USER:     atica
       POSTGRES_PASSWORD: "${DB_PASSWORD:-changeme}"
     volumes:
       # Datos persistentes de PostgreSQL → ./data/postgres
       - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-d", "gestconv", "-U", "gestconv"]
+      test: ["CMD", "pg_isready", "-d", "atica", "-U", "atica"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -61,7 +61,7 @@ final class ForbidGenericDoctrineMethodsRule implements Rule
                     $methodName,
                 )
             )
-            ->identifier('gestconvplus.doctrineGenericMethod')
+            ->identifier('aticacalidad.doctrineGenericMethod')
             ->build(),
         ];
     }
