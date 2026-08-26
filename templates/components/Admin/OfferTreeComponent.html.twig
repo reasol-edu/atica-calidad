@@ -1,0 +1,379 @@
+<div {{ attributes }} class="js-offer-tree">
+    {% if centre.activeAcademicYear is null %}
+        <div class="px-6 py-16 text-center">
+            {{ ux_icon('heroicons:exclamation-circle', {class: 'mx-auto h-10 w-10 text-amber-300 mb-3'}) }}
+            <p class="text-sm text-gray-500">{{ 'offer.no_active_year'|trans({}, 'admin') }}</p>
+        </div>
+    {% else %}
+        {% set can_write       = this.canWrite %}
+        {% set courses         = this.courseList %}
+        {% set course_counts   = this.courseCounts %}
+        {% set groups          = this.groupList %}
+        {% set group_counts    = this.groupCounts %}
+        {% set sel             = this.selected %}
+        {% set sel_course      = this.selectedCourse %}
+        {% set sel_group       = this.selectedGroup %}
+        {% set teacher_options = this.teacherOptions %}
+
+        <div data-loading="addClass(opacity-50 pointer-events-none)" class="transition-opacity space-y-3">
+
+            {# ── Dos columnas: Cursos | Grupos ────────────────────────────── #}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                {# ── Columna izquierda: Cursos ─────────────────────────────── #}
+                <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
+                        {{ ux_icon('heroicons:rectangle-stack', {class: 'h-4 w-4 text-gray-400'}) }}
+                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ 'offer.col.courses'|trans({}, 'admin') }}</span>
+                        <span class="ml-auto text-xs text-gray-400">{{ courses|length }}</span>
+                    </div>
+
+                    {% if courses is empty %}
+                        <p class="px-4 py-6 text-center text-xs italic text-gray-400">{{ 'courses.empty'|trans({}, 'admin') }}</p>
+                    {% else %}
+                        <ul class="divide-y divide-gray-50">
+                            {% for course in courses %}
+                                {% set is_sel = courseId == course.id.toRfc4122 %}
+                                {% set n = course_counts[course.id.toRfc4122] ?? 0 %}
+                                <li>
+                                    <button type="button"
+                                            data-action="live#action"
+                                            data-live-action-param="selectCourse"
+                                            data-live-id-param="{{ course.id }}"
+                                            class="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors
+                                                   {{ is_sel ? 'bg-forest-50 ring-1 ring-inset ring-forest-200' : 'hover:bg-gray-50' }}">
+                                        <span class="flex-1 min-w-0 truncate text-sm {{ is_sel ? 'font-semibold text-forest-800' : 'text-gray-800' }}">
+                                            {{ course.name }}
+                                        </span>
+                                        <span class="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                                                     {{ n > 0 ? 'bg-gray-100 text-gray-500' : 'bg-gray-50 text-gray-300' }}">
+                                            {{ n }} {{ (n == 1 ? 'tree.course_one' : 'tree.course_other')|trans({}, 'admin') }}
+                                        </span>
+                                        {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0 ' ~ (is_sel ? 'text-forest-400' : 'text-gray-300')}) }}
+                                    </button>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    {% if can_write %}
+                        <form data-action="submit->live#action:prevent"
+                              data-live-action-param="addCourse"
+                              class="flex items-center gap-2 border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
+                            <input type="text"
+                                   data-model="norender|addCourseName"
+                                   value="{{ addCourseName }}"
+                                   placeholder="{{ 'courses.field.name_placeholder'|trans({}, 'admin') }}"
+                                   class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
+                                          placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                            <button type="submit"
+                                    class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white
+                                           hover:bg-forest-700 transition-colors"
+                                    title="{{ 'offer.add'|trans({}, 'admin') }}">
+                                {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+
+                {# ── Columna derecha: Grupos del curso seleccionado ──────────── #}
+                <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
+                        {{ ux_icon('heroicons:user-group', {class: 'h-4 w-4 text-gray-400'}) }}
+                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ 'offer.col.groups'|trans({}, 'admin') }}</span>
+                        {% if sel_course %}
+                            <span class="mx-1 text-gray-300">·</span>
+                            <span class="text-xs font-medium text-forest-700 truncate">{{ sel_course.name }}</span>
+                            <span class="ml-auto text-xs text-gray-400">{{ groups|length }}</span>
+                        {% endif %}
+                    </div>
+
+                    {% if not sel_course %}
+                        <p class="px-4 py-6 text-center text-xs italic text-gray-400">{{ 'offer.placeholder.groups'|trans({}, 'admin') }}</p>
+                    {% elseif groups is empty %}
+                        <p class="px-4 py-6 text-center text-xs italic text-gray-400">{{ 'groups.empty'|trans({}, 'admin') }}</p>
+                    {% else %}
+                        <ul class="divide-y divide-gray-50">
+                            {% for group in groups %}
+                                {% set is_sel = groupId == group.id.toRfc4122 %}
+                                {% set gc = group_counts[group.id.toRfc4122] ?? {teachers: 0} %}
+                                <li>
+                                    <button type="button"
+                                            data-action="live#action"
+                                            data-live-action-param="selectGroup"
+                                            data-live-id-param="{{ group.id }}"
+                                            class="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors
+                                                   {{ is_sel ? 'bg-forest-50 ring-1 ring-inset ring-forest-200' : 'hover:bg-gray-50' }}">
+                                        <span class="flex-1 min-w-0 truncate text-sm {{ is_sel ? 'font-semibold text-forest-800' : 'text-gray-800' }}">
+                                            {{ group.name }}
+                                        </span>
+                                        <span title="{{ 'groups.col.teachers'|trans({}, 'admin') }}"
+                                              class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium
+                                                     {{ gc.teachers > 0 ? 'bg-violet-50 text-violet-700' : 'bg-gray-50 text-gray-300' }}">
+                                            {{ ux_icon('heroicons:academic-cap', {class: 'h-3 w-3'}) }}{{ gc.teachers }}
+                                        </span>
+                                        {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4 shrink-0 ' ~ (is_sel ? 'text-forest-400' : 'text-gray-300')}) }}
+                                    </button>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    {% if can_write and sel_course %}
+                        <form data-action="submit->live#action:prevent"
+                              data-live-action-param="addGroup"
+                              class="flex items-center gap-2 border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
+                            <input type="text"
+                                   data-model="norender|addGroupName"
+                                   value="{{ addGroupName }}"
+                                   placeholder="{{ 'groups.field.name_placeholder'|trans({}, 'admin') }}"
+                                   class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
+                                          placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                            <button type="submit"
+                                    class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white
+                                           hover:bg-forest-700 transition-colors"
+                                    title="{{ 'offer.add'|trans({}, 'admin') }}">
+                                {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+
+            </div>{# /grid #}
+
+            {# ── Detalle (curso o grupo seleccionado) ─────────────────────── #}
+            {% if sel %}
+                {% set type         = sel.type %}
+                {% set title_keys   = {course: 'course.edit.title', group: 'group.edit.title'} %}
+                {% set name_keys    = {course: 'course.field.name', group: 'group.field.name'} %}
+                {% set confirm_keys = {course: 'courses.delete_confirm', group: 'groups.delete_confirm'} %}
+
+                <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
+                        {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4 text-gray-400'}) }}
+                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ title_keys[type]|trans({}, 'admin') }}</span>
+                    </div>
+
+                    <div class="px-4 py-4 sm:px-6">
+                        {% if can_write %}
+                            <form data-action="submit->live#action:prevent" data-live-action-param="saveDetail"
+                                  class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+
+                                {# Nombre #}
+                                <div class="sm:col-span-1">
+                                    <label class="mb-1 block text-xs font-medium text-gray-600">{{ name_keys[type]|trans({}, 'admin') }}</label>
+                                    <input type="text"
+                                           data-model="norender|editName"
+                                           value="{{ editName }}"
+                                           class="block w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2
+                                                  {{ errors.name is defined ? 'border-red-300 focus:ring-red-400/20' : 'border-gray-200 focus:border-forest-500 focus:ring-forest-500/20' }}">
+                                    {% if errors.name is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.name }}</p>{% endif %}
+                                </div>
+
+                                {# Observaciones del curso #}
+                                {% if type == 'course' %}
+                                    <div class="sm:col-span-2">
+                                        <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'course.field.details'|trans({}, 'admin') }}</label>
+                                        <textarea data-model="norender|editDetails" rows="2"
+                                                  class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">{{ editDetails }}</textarea>
+                                    </div>
+                                {% endif %}
+
+                                {# Campos específicos de grupo #}
+                                {% if type == 'group' and sel_group %}
+                                    {% set tutor_ids = [] %}
+                                    {% for tu in sel_group.tutors %}{% set tutor_ids = tutor_ids|merge([tu.id.toRfc4122]) %}{% endfor %}
+                                    <div class="sm:col-span-2">
+                                        <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'group.field.tutor'|trans({}, 'admin') }}</label>
+                                        <select id="staff-tutors" multiple class="js-staff-select w-full"
+                                                data-staff-action="setGroupTutors" data-staff-arg="ids"
+                                                data-placeholder="{{ 'group.field.tutor_help'|trans({}, 'admin') }}">
+                                            {% for t in teacher_options %}
+                                                <option value="{{ t.id.toRfc4122 }}" {{ t.id.toRfc4122 in tutor_ids ? 'selected' : '' }}>{{ t.name.lastName }}, {{ t.name.firstName }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="border-t border-gray-100 pt-4 sm:col-span-3">
+                                        <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'group.field.teachers'|trans({}, 'admin') }}</label>
+
+                                        {% if sel_group.teacherAssignments is empty %}
+                                            <p class="text-xs italic text-gray-400">{{ 'group.field.teachers_empty'|trans({}, 'admin') }}</p>
+                                        {% else %}
+                                            <ul class="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+                                                {% for gt in sel_group.teacherAssignments %}
+                                                    <li class="flex items-center gap-2 px-3 py-2 text-sm">
+                                                        <span class="flex-1 min-w-0 truncate text-gray-800">
+                                                            {{ gt.teacher.name.lastName }}, {{ gt.teacher.name.firstName }}
+                                                            <span class="text-gray-400">·</span>
+                                                            <span class="text-gray-500">{{ gt.subject }}</span>
+                                                        </span>
+                                                        {% if can_write %}
+                                                            <button type="button" data-action="live#action"
+                                                                    data-live-action-param="removeGroupTeacher" data-live-id-param="{{ gt.id }}"
+                                                                    class="shrink-0 inline-flex items-center justify-center rounded-lg p-1 text-gray-400
+                                                                           hover:bg-red-50 hover:text-red-600 transition-colors"
+                                                                    title="{{ 'group.action.remove_teacher'|trans({}, 'admin') }}">
+                                                                {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                                                            </button>
+                                                        {% endif %}
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endif %}
+
+                                        {% if can_write %}
+                                            <form data-action="submit->live#action:prevent" data-live-action-param="addGroupTeacher"
+                                                  class="mt-2 flex flex-wrap items-center gap-2">
+                                                <select data-model="norender|newTeacherId"
+                                                        class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
+                                                               focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                                                    <option value="">{{ 'group.field.teacher_select_placeholder'|trans({}, 'admin') }}</option>
+                                                    {% for t in teacher_options %}
+                                                        <option value="{{ t.id.toRfc4122 }}" {{ t.id.toRfc4122 == newTeacherId ? 'selected' : '' }}>{{ t.name.lastName }}, {{ t.name.firstName }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <input type="text"
+                                                       data-model="norender|newTeacherSubject"
+                                                       value="{{ newTeacherSubject }}"
+                                                       placeholder="{{ 'group.field.teacher_subject_placeholder'|trans({}, 'admin') }}"
+                                                       class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
+                                                              placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                                                <button type="submit"
+                                                        class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white
+                                                               hover:bg-forest-700 transition-colors"
+                                                        title="{{ 'group.action.add_teacher'|trans({}, 'admin') }}">
+                                                    {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                                                </button>
+                                            </form>
+                                            {% if errors.teachers is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.teachers }}</p>{% endif %}
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="border-t border-gray-100 pt-4 sm:col-span-3">
+                                        <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'group.field.details'|trans({}, 'admin') }}</label>
+                                        <textarea data-model="norender|editDetails" rows="2"
+                                                  class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">{{ editDetails }}</textarea>
+                                    </div>
+                                {% endif %}
+
+                                {# Botones guardar / eliminar #}
+                                <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 sm:col-span-3">
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2 text-sm font-semibold text-white hover:bg-forest-700 transition-colors shadow-xs">
+                                        {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'offer.detail.save'|trans({}, 'admin') }}
+                                    </button>
+
+                                    <span class="ml-auto"></span>
+
+                                    {% if confirmingDelete %}
+                                        <span class="text-xs text-gray-600">{{ confirm_keys[type]|trans({}, 'admin') }}</span>
+                                        <button type="button" data-action="live#action" data-live-action-param="deleteSelected"
+                                                class="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors">
+                                            {{ 'offer.detail.confirm_yes'|trans({}, 'admin') }}
+                                        </button>
+                                        <button type="button" data-action="live#action" data-live-action-param="cancelDelete"
+                                                class="inline-flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                                            {{ 'offer.detail.cancel'|trans({}, 'admin') }}
+                                        </button>
+                                    {% else %}
+                                        <button type="button" data-action="live#action" data-live-action-param="askDelete"
+                                                class="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors">
+                                            {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}{{ 'offer.detail.delete'|trans({}, 'admin') }}
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </form>
+                        {% else %}
+                            <p class="text-sm text-gray-700">{{ editName }}</p>
+                            {% if editDetails %}<p class="mt-1 text-xs text-gray-500">{{ editDetails }}</p>{% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+    {% endif %}
+
+    <style>
+    .ts-wrapper { font-size: 0.875rem; }
+    .ts-control { border-radius: 0.75rem !important; border-color: #e5e7eb !important; background-color: #fff !important; padding: 0.5rem 0.875rem !important; box-shadow: none !important; gap: 0.25rem; }
+    .ts-control:focus-within { border-color: #876baf !important; box-shadow: 0 0 0 3px rgb(135 107 175 / 0.2) !important; }
+    .ts-control .item { background: #ece6f4; color: #574a68; border: 1px solid #d8cce8; border-radius: 0.5rem; padding: 0.125rem 0.375rem; font-size: 0.8125rem; }
+    .ts-control .item .remove { color: #876baf; border-left-color: #d8cce8; }
+    .ts-dropdown { border-radius: 0.75rem; border-color: #e5e7eb; box-shadow: 0 4px 12px rgb(0 0 0 / 0.08); overflow: hidden; }
+    .ts-dropdown .option { padding: 0.5rem 0.875rem; }
+    .ts-dropdown .option.active { background-color: #f6f3f9; color: #1f192a; }
+    </style>
+
+    <script type="module" data-live-ignore>
+    import TomSelect from 'tom-select';
+    import { getComponent } from '@symfony/ux-live-component';
+
+    let liveEl   = null;
+    let liveComp = null;
+
+    function initStaffSelect(select) {
+        if (select.tomselect) return;
+        // Once a <select>'s selectedness has been set via script (TomSelect does this on
+        // every init), the browser marks it "dirty": from then on, freshly inserted
+        // <option selected> nodes only get the selected ATTRIBUTE, not the .selected
+        // PROPERTY that TomSelect actually reads. Re-sync it explicitly before init.
+        Array.from(select.options).forEach(function (opt) {
+            opt.selected = opt.hasAttribute('selected');
+        });
+        const multiple   = select.multiple;
+        const actionName = select.dataset.staffAction;
+        const argName    = select.dataset.staffArg;
+        let ready = false;
+
+        new TomSelect(select, {
+            plugins: multiple ? ['remove_button'] : [],
+            valueField: 'value', labelField: 'text', searchField: ['text'],
+            maxOptions: null, create: false, dropdownParent: 'body',
+            allowEmptyOption: !multiple,
+            placeholder: select.dataset.placeholder || '',
+            render: {
+                no_results: function () {
+                    return '<div class="no-results">{{ 'tom_select.no_results'|trans({}, 'admin') }}</div>';
+                },
+            },
+            onInitialize: function () { requestAnimationFrame(function () { ready = true; }); },
+            onChange: function (value) {
+                if (!ready || !liveComp) return;
+                const params = {};
+                params[argName] = multiple ? (value || []) : (value || '');
+                liveComp.action(actionName, params);
+            },
+        });
+    }
+
+    function destroyAll() {
+        liveEl.querySelectorAll('.js-staff-select').forEach(function (select) {
+            if (select.tomselect) {
+                select.tomselect.destroy();
+                // TomSelect's destroy() reverts <option>s to their init-time snapshot, which
+                // then confuses Idiomorph's diff against the server's fresh markup and makes
+                // it duplicate every <option> instead of updating it in place. Emptying the
+                // select first leaves Idiomorph nothing stale to pair, so it just inserts the
+                // fresh options cleanly.
+                select.innerHTML = '';
+            }
+        });
+    }
+
+    function onRender() {
+        liveEl.querySelectorAll('select.js-staff-select').forEach(initStaffSelect);
+    }
+
+    liveEl = document.querySelector('.js-offer-tree');
+    if (liveEl) {
+        getComponent(liveEl).then(function (component) {
+            liveComp = component;
+            onRender();
+            component.on('render:started', destroyAll);
+            component.on('render:finished', onRender);
+        });
+    }
+    </script>
+</div>

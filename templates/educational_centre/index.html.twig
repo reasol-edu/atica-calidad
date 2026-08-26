@@ -1,0 +1,49 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'educational_centre'|trans({}, 'navigation') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-7xl mx-auto">
+
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-900">{{ centre.name }}</h1>
+        {% if centre.activeAcademicYear %}
+            <p class="mt-1 text-sm text-gray-500">{{ centre.activeAcademicYear.name }}</p>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+        {# ── Oferta formativa ── equipo directivo y admins #}
+        {% if is_granted('educational_centre.section', centre) %}
+            <a href="{{ centre.activeAcademicYear ? path('app_centre_offer_index', {centreId: centre.id}) : '#' }}"
+               class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
+                      hover:border-forest-200 hover:shadow-sm transition-all
+                      {{ centre.activeAcademicYear is null ? 'opacity-60 pointer-events-none' : '' }}">
+                <div class="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-forest-100 text-forest-600
+                                group-hover:bg-forest-600 group-hover:text-white transition-colors">
+                        {{ ux_icon('heroicons:academic-cap', {class: 'h-5 w-5'}) }}
+                    </div>
+                    <h2 class="text-base font-semibold text-gray-900">{{ 'offer.title'|trans({}, 'admin') }}</h2>
+                </div>
+                <div class="px-6 py-4 flex-1">
+                    <p class="text-sm text-gray-500">{{ 'offer.centre_link_help'|trans({}, 'admin') }}</p>
+                </div>
+                <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-end">
+                    {% if centre.activeAcademicYear %}
+                        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-forest-600 group-hover:text-forest-800 transition-colors">
+                            {{ 'offer.manage'|trans({}, 'admin') }}
+                            {{ ux_icon('heroicons:arrow-right', {class: 'h-4 w-4'}) }}
+                        </span>
+                    {% else %}
+                        <span class="text-xs text-gray-400">{{ 'offer.no_active_year'|trans({}, 'admin') }}</span>
+                    {% endif %}
+                </div>
+            </a>
+        {% endif %}
+
+    </div>
+
+</div>
+{% endblock %}

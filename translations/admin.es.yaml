@@ -59,3 +59,80 @@ centre.flash.created: 'Centro educativo creado correctamente.'
 centre.flash.saved: 'Centro educativo guardado correctamente.'
 centre.flash.deleted: 'Centro educativo eliminado correctamente.'
 centre.flash.delete_error: 'No se puede eliminar este centro porque tiene datos asociados.'
+
+# Árbol de oferta formativa (badges de conteo)
+tree.course_one: 'grupo'
+tree.course_other: 'grupos'
+tree.group_one: 'grupo'
+tree.group_other: 'grupos'
+
+# Cursos
+courses.empty: 'No hay cursos en este curso académico.'
+courses.field.name_placeholder: 'ej: 1º ESO'
+courses.delete_confirm: '¿Eliminar este curso? Se eliminarán también todos sus grupos.'
+
+course.edit.title: 'Editar curso'
+course.field.name: 'Nombre del curso'
+course.field.details: 'Observaciones'
+
+course.error.name_required: 'El nombre es obligatorio.'
+
+course.flash.saved: 'Curso guardado correctamente.'
+course.flash.deleted: 'Curso eliminado correctamente.'
+course.flash.delete_error: 'No se puede eliminar este curso porque tiene datos asociados.'
+
+# Grupos
+groups.title: 'Grupos'
+groups.add.title: 'Añadir grupo'
+groups.add.submit: 'Añadir'
+groups.field.name_placeholder: 'ej: 4ºESO-A'
+groups.empty: 'No hay grupos en este curso.'
+groups.action.edit: 'Editar'
+groups.action.delete: 'Eliminar'
+groups.delete_confirm: '¿Eliminar este grupo? Esta acción no se puede deshacer.'
+groups.flash.name_required: 'El nombre del grupo es obligatorio.'
+groups.col.teachers: 'Docentes'
+
+group.edit.title: 'Editar grupo'
+group.field.name: 'Nombre del grupo'
+group.field.details: 'Observaciones'
+group.field.tutor: 'Tutores/as del grupo'
+group.field.tutor_help: 'Docentes tutores/as del grupo. Selecciónalos de la lista o escribe para filtrar.'
+group.field.teachers: 'Docentes del grupo'
+group.field.teachers_help: 'Docentes que imparten clase en este grupo. Selecciónalos de la lista o escribe para filtrar.'
+group.field.teacher_select_placeholder: 'Selecciona un docente…'
+group.field.teacher_subject_placeholder: 'Materia'
+group.field.teachers_empty: 'Este grupo no tiene docentes asignados todavía.'
+group.action.add_teacher: 'Añadir'
+group.action.remove_teacher: 'Quitar'
+group.save: 'Guardar'
+group.cancel: 'Cancelar'
+group.delete_section: 'Peligro: eliminación del grupo'
+group.delete_warning: 'Una vez eliminado el grupo, no se podrá recuperar.'
+
+group.error.name_required: 'El nombre es obligatorio.'
+group.error.teacher_subject_required: 'Selecciona un docente y escribe la materia que imparte.'
+group.error.teacher_subject_duplicate: 'Este docente ya está asignado a esa materia en el grupo.'
+
+group.flash.added: 'Grupo añadido correctamente.'
+group.flash.saved: 'Grupo guardado correctamente.'
+group.flash.deleted: 'Grupo eliminado correctamente.'
+group.flash.delete_error: 'No se puede eliminar este grupo porque tiene datos asociados.'
+
+# Oferta formativa (navegación por columnas)
+offer.add: 'Añadir'
+offer.col.courses: 'Cursos'
+offer.col.groups: 'Grupos'
+offer.placeholder.groups: 'Selecciona un curso para ver sus grupos.'
+offer.detail.save: 'Guardar cambios'
+offer.detail.delete: 'Eliminar'
+offer.detail.confirm_yes: 'Sí, eliminar'
+offer.detail.cancel: 'Cancelar'
+
+# Oferta formativa — página, enlaces y cabecera
+offer.title: 'Oferta formativa'
+offer.manage: 'Gestionar oferta formativa'
+offer.centre_link_help: 'Cursos y grupos del curso activo.'
+offer.no_active_year: 'Este centro no tiene un curso académico activo. Establece uno activo para gestionar la oferta formativa.'
+
+tom_select.no_results: 'Sin resultados'
