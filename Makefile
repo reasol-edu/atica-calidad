@@ -51,7 +51,7 @@ dev-stop:
 	docker compose --env-file .env.local -f compose.yaml -f compose.dev.yaml down
 
 
-## Genera la presentación en PDF (docs/slides/gestconv-plus.pdf).
+## Genera la presentación en PDF (docs/slides/atica-calidad.pdf).
 ##
 ## Requiere Node.js: usa "npx @marp-team/marp-cli" sin instalación global.
 ## --allow-local-files permite incrustar las capturas de docs/slides/img.
@@ -64,8 +64,8 @@ dev-stop:
 ## directamente con marp sobre el .md (vería los marcadores sin sustituir).
 slides:
 	@command -v npx >/dev/null 2>&1 || { echo "Necesitas Node.js/npx para generar la presentación. Instala Node y reintenta."; exit 1; }
-	sed -e 's/{{VERSION}}/$(VERSION)/g' -e 's#{{PUB_DATE}}#$(PUB_DATE)#g' docs/slides/gestconv-plus.md > docs/slides/_build.md
-	npx --yes @marp-team/marp-cli docs/slides/_build.md --allow-local-files -o docs/slides/gestconv-plus.pdf
+	sed -e 's/{{VERSION}}/$(VERSION)/g' -e 's#{{PUB_DATE}}#$(PUB_DATE)#g' docs/slides/atica-calidad.md > docs/slides/_build.md
+	npx --yes @marp-team/marp-cli docs/slides/_build.md --allow-local-files -o docs/slides/atica-calidad.pdf
 	rm -f docs/slides/_build.md
 
 ## Genera las fichas de referencia rápida (docs/cheatsheets/ficha-*.pdf), una por función básica
@@ -89,7 +89,7 @@ cheatsheets:
 ## Genera el manual completo: PDF, web y fichas de referencia rápida.
 docs: docs-pdf docs-web cheatsheets
 
-## Genera el manual en PDF (docs/manual/gestconv-plus-manual.pdf).
+## Genera el manual en PDF (docs/manual/atica-calidad-manual.pdf).
 ##
 ## Usa pandoc (Markdown -> HTML) y "npx pagedjs-cli" (Chromium headless, el
 ## mismo motor que el PDF de las slides) para imprimir el HTML con el tema CSS.
@@ -106,8 +106,8 @@ docs-pdf:
 	pandoc -s --toc --toc-depth=2 \
 		--lua-filter=docs/pandoc-admonitions.lua \
 		--lua-filter=docs/pandoc-internal-links.lua \
-		--metadata title="Manual de usuario de GestConv+" \
-		--metadata subtitle="Gestión de la convivencia escolar" \
+		--metadata title="Manual de usuario de ÁTICA Calidad" \
+		--metadata subtitle="Gestión documental de apoyo al sistema de gestión de la calidad" \
 		--metadata date="Versión $(VERSION) · $(PUB_DATE)" \
 		--metadata lang=es \
 		-c assets/theme.css -c assets/print.css \
@@ -118,19 +118,19 @@ docs-pdf:
 		"/Applications/Chromium.app/Contents/MacOS/Chromium" \
 		"$$(command -v google-chrome)" "$$(command -v chromium)" "$$(command -v chromium-browser)"; do \
 		[ -x "$$c" ] && echo "$$c" && break; done)}"; \
-		PUPPETEER_EXECUTABLE_PATH="$$CHROME" npx --yes pagedjs-cli _build.html -o gestconv-plus-manual.pdf
+		PUPPETEER_EXECUTABLE_PATH="$$CHROME" npx --yes pagedjs-cli _build.html -o atica-calidad-manual.pdf
 
 ## Construye la web del manual (docs/manual-site/) con MkDocs Material.
 ##
 ## Requiere MkDocs Material: pip install -r docs/manual/requirements.txt
 docs-web:
 	@command -v mkdocs >/dev/null 2>&1 || { echo "Necesitas MkDocs Material: pip install -r docs/manual/requirements.txt"; exit 1; }
-	MANUAL_COPYRIGHT="GestConv+ · versión $(VERSION) · $(PUB_DATE)" mkdocs build -f docs/manual/mkdocs.yml
+	MANUAL_COPYRIGHT="ÁTICA Calidad · versión $(VERSION) · $(PUB_DATE)" mkdocs build -f docs/manual/mkdocs.yml
 
 ## Previsualiza la web del manual en local (http://127.0.0.1:8000).
 docs-serve:
 	@command -v mkdocs >/dev/null 2>&1 || { echo "Necesitas MkDocs Material: pip install -r docs/manual/requirements.txt"; exit 1; }
-	MANUAL_COPYRIGHT="GestConv+ · versión $(VERSION) · $(PUB_DATE)" mkdocs serve -f docs/manual/mkdocs.yml
+	MANUAL_COPYRIGHT="ÁTICA Calidad · versión $(VERSION) · $(PUB_DATE)" mkdocs serve -f docs/manual/mkdocs.yml
 
 ## Actualiza el badge de versión de README.md a partir de config/services.yaml.
 ##
