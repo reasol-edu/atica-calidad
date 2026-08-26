@@ -81,7 +81,7 @@
                 {% set is_active = current_route starts with prefix %}
                 <a href="{{ route }}"
                    {{ is_active ? 'aria-current="page"' : '' }}
-                   class="{{ is_active ? 'bg-forest-800 text-white' : 'text-forest-300 hover:bg-forest-900 hover:text-white' }}
+                   class="{{ is_active ? 'bg-forest-800 text-white border-l-2 border-forest-300' : 'text-forest-100 hover:bg-forest-900 hover:text-white border-l-2 border-transparent' }}
                           group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
                     {{ ux_icon(icon, {class: 'h-5 w-5 shrink-0'}) }}
                     <span class="truncate">{{ label }}</span>
@@ -113,7 +113,7 @@
                 {% set reports_active = current_route starts with 'app_reports_' %}
                 <a href="{{ path('app_reports_index', {centreId: active_centre.id}) }}"
                     {{ reports_active ? 'aria-current="page"' : '' }}
-                   class="{{ reports_active ? 'bg-forest-800 text-white' : 'text-forest-300 hover:bg-forest-900 hover:text-white' }}
+                   class="{{ reports_active ? 'bg-forest-800 text-white border-l-2 border-forest-300' : 'text-forest-100 hover:bg-forest-900 hover:text-white border-l-2 border-transparent' }}
                           group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
                     {{ ux_icon('heroicons:chart-bar', {class: 'h-5 w-5 shrink-0'}) }}
                     <span class="truncate">{{ 'reports'|trans({}, 'navigation') }}</span>
@@ -125,7 +125,7 @@
                 {% set centre_active = current_route starts with 'app_centre_' %}
                 <a href="{{ path('app_centre_index', {centreId: active_centre.id}) }}"
                     {{ centre_active ? 'aria-current="page"' : '' }}
-                   class="{{ centre_active ? 'bg-forest-800 text-white' : 'text-forest-300 hover:bg-forest-900 hover:text-white' }}
+                   class="{{ centre_active ? 'bg-forest-800 text-white border-l-2 border-forest-300' : 'text-forest-100 hover:bg-forest-900 hover:text-white border-l-2 border-transparent' }}
                           group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
                     {{ ux_icon('heroicons:building-library', {class: 'h-5 w-5 shrink-0'}) }}
                     <span class="truncate">{{ 'educational_centre'|trans({}, 'navigation') }}</span>
@@ -138,7 +138,7 @@
                 {% set admin_active = current_route starts with 'app_admin' %}
                 <a href="{{ path('app_admin') }}"
                     {{ admin_active ? 'aria-current="page"' : '' }}
-                   class="{{ admin_active ? 'bg-forest-800 text-white' : 'text-forest-300 hover:bg-forest-900 hover:text-white' }}
+                   class="{{ admin_active ? 'bg-forest-800 text-white border-l-2 border-forest-300' : 'text-forest-100 hover:bg-forest-900 hover:text-white border-l-2 border-transparent' }}
                           group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
                     {{ ux_icon('heroicons:cog-6-tooth', {class: 'h-5 w-5 shrink-0'}) }}
                     <span class="truncate">{{ 'administration'|trans({}, 'navigation') }}</span>
@@ -182,13 +182,13 @@
             <div class="space-y-0.5">
                 <a href="{{ path('app_profile') }}"
                    class="group flex items-center gap-2.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors
-                          {{ current_route starts with 'app_profile' ? 'bg-forest-800 text-white' : 'text-forest-300 hover:bg-forest-900 hover:text-white' }}">
+                          {{ current_route starts with 'app_profile' ? 'bg-forest-800 text-white' : 'text-forest-100 hover:bg-forest-900 hover:text-white' }}">
                     {{ ux_icon('heroicons:user', {class: 'h-4 w-4 shrink-0'}) }}
                     {{ 'profile'|trans({}, 'navigation') }}
                 </a>
                 <a href="{{ path('app_logout', {'_csrf_token': csrf_token('logout')}) }}"
                    class="group flex items-center gap-2.5 rounded-md px-2 py-1.5 text-xs font-medium
-                          text-forest-300 hover:bg-red-500/15 hover:text-red-300 transition-colors">
+                          text-forest-100 hover:bg-red-500/15 hover:text-red-300 transition-colors">
                     {{ ux_icon('heroicons:arrow-right-on-rectangle', {class: 'h-4 w-4 shrink-0'}) }}
                     {{ 'logout'|trans({}, 'navigation') }}
                 </a>
