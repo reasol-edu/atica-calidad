@@ -1,0 +1,167 @@
+{% import 'components/_pagination_live.html.twig' as pager %}
+
+{% set pagination = this.pagination %}
+{% set hasFilters = this.hasActiveFilters %}
+
+<div {{ attributes }}>
+
+    {# ── Panel de filtros ──────────────────────────────────────────────────── #}
+    <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
+
+        {# Fila 1: rango temporal + accesos rápidos #}
+        <div class="flex flex-wrap items-end gap-3">
+            <div class="flex flex-col gap-1 min-w-44">
+                <label class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.date_from'|trans({}, 'admin') }}</label>
+                <input type="datetime-local"
+                       data-model="dateFrom"
+                       value="{{ dateFrom }}"
+                       class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
+                              focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
+            </div>
+            <div class="flex flex-col gap-1 min-w-44">
+                <label class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.date_to'|trans({}, 'admin') }}</label>
+                <input type="datetime-local"
+                       data-model="dateTo"
+                       value="{{ dateTo }}"
+                       class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
+                              focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
+            </div>
+            <div class="flex flex-wrap gap-1.5 pb-0.5">
+                <button type="button" data-action="live#action" data-live-action-param="quickRange" data-live-range-param="last_24h"
+                        class="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600
+                               hover:bg-forest-50 hover:border-forest-200 hover:text-forest-700 transition-colors">
+                    {{ 'email_notification_log.list.quick_range.last_24h'|trans({}, 'admin') }}
+                </button>
+                <button type="button" data-action="live#action" data-live-action-param="quickRange" data-live-range-param="last_week"
+                        class="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600
+                               hover:bg-forest-50 hover:border-forest-200 hover:text-forest-700 transition-colors">
+                    {{ 'email_notification_log.list.quick_range.last_week'|trans({}, 'admin') }}
+                </button>
+                <button type="button" data-action="live#action" data-live-action-param="quickRange" data-live-range-param="last_month"
+                        class="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600
+                               hover:bg-forest-50 hover:border-forest-200 hover:text-forest-700 transition-colors">
+                    {{ 'email_notification_log.list.quick_range.last_month'|trans({}, 'admin') }}
+                </button>
+            </div>
+        </div>
+
+        {# Fila 2: búsqueda + evento + estado #}
+        <div class="flex flex-wrap items-end gap-3">
+
+            <div class="relative flex-1 min-w-48">
+                <label class="text-xs font-medium text-gray-500 block mb-1">{{ 'email_notification_log.list.search_label'|trans({}, 'admin') }}</label>
+                <div class="relative">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        {{ ux_icon('heroicons:magnifying-glass', {class: 'h-4 w-4 text-gray-400'}) }}
+                    </div>
+                    <input type="search"
+                           data-model="norender|search"
+                           data-action="input->live#action"
+                           data-live-action-param="resetPage"
+                           placeholder="{{ 'email_notification_log.list.search_placeholder'|trans({}, 'admin') }}"
+                           value="{{ search }}"
+                           class="block w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm
+                                  text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none
+                                  focus:ring-3 focus:ring-forest-500/20 transition-colors">
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-1 min-w-52">
+                <label class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.col.event'|trans({}, 'admin') }}</label>
+                <select data-model="eventKey"
+                        class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
+                               focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
+                    <option value="">{{ 'email_notification_log.list.event_all'|trans({}, 'admin') }}</option>
+                    {% for key in this.distinctEventKeys %}
+                        <option value="{{ key }}" {{ eventKey == key ? 'selected' }}>
+                            {{ ('email_notification_log.event.' ~ key)|trans({}, 'admin') }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1 min-w-40">
+                <label class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.col.status'|trans({}, 'admin') }}</label>
+                <select data-model="status"
+                        class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
+                               focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
+                    <option value="">{{ 'email_notification_log.list.status_all'|trans({}, 'admin') }}</option>
+                    <option value="success" {{ status == 'success' ? 'selected' }}>{{ 'email_notification_log.list.status_success'|trans({}, 'admin') }}</option>
+                    <option value="failed" {{ status == 'failed' ? 'selected' }}>{{ 'email_notification_log.list.status_failed'|trans({}, 'admin') }}</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2 pb-0.5">
+                <svg data-loading class="hidden h-4 w-4 text-forest-500 animate-spin shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                </svg>
+                {% if hasFilters %}
+                    <button type="button" data-action="live#action" data-live-action-param="clearFilters"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs
+                                   font-medium text-gray-600 hover:bg-gray-100 transition-colors shrink-0">
+                        {{ ux_icon('heroicons:x-mark', {class: 'h-3.5 w-3.5'}) }}
+                        {{ 'email_notification_log.list.clear_filters'|trans({}, 'admin') }}
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ── Tabla / tarjetas ──────────────────────────────────────────────────── #}
+    <div data-loading="addClass(opacity-50 pointer-events-none animate-pulse)" class="transition-opacity">
+    {% if pagination.totalItems == 0 %}
+        <div class="px-6 py-16 text-center">
+            {{ ux_icon('heroicons:envelope', {class: 'mx-auto h-10 w-10 text-gray-300 mb-3'}) }}
+            <p class="text-sm text-gray-500">
+                {{ (hasFilters ? 'email_notification_log.list.search_empty' : 'email_notification_log.list.empty')|trans({}, 'admin') }}
+            </p>
+        </div>
+    {% else %}
+        <div class="overflow-x-auto">
+            <table class="table-cards w-full text-sm">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'email_notification_log.list.col.date'|trans({}, 'admin') }}</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'email_notification_log.list.col.recipient'|trans({}, 'admin') }}</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'email_notification_log.list.col.event'|trans({}, 'admin') }}</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'email_notification_log.list.col.subject'|trans({}, 'admin') }}</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'email_notification_log.list.col.status'|trans({}, 'admin') }}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for log in pagination.items %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td data-label="{{ 'email_notification_log.list.col.date'|trans({}, 'admin')|e('html_attr') }}"
+                                class="px-6 py-3 text-gray-500 whitespace-nowrap">{{ log.sentAt|date('format.datetime'|trans) }}</td>
+                            <td data-label="{{ 'email_notification_log.list.col.recipient'|trans({}, 'admin')|e('html_attr') }}"
+                                class="px-6 py-3 text-gray-800 whitespace-nowrap">{{ log.recipientName }}</td>
+                            <td data-label="{{ 'email_notification_log.list.col.event'|trans({}, 'admin')|e('html_attr') }}"
+                                class="px-6 py-3 text-gray-700 whitespace-nowrap">{{ ('email_notification_log.event.' ~ log.eventKey)|trans({}, 'admin') }}</td>
+                            <td data-label="{{ 'email_notification_log.list.col.subject'|trans({}, 'admin')|e('html_attr') }}"
+                                class="px-6 py-3 text-gray-500 max-w-sm truncate" title="{{ log.subject }}">{{ log.subject }}</td>
+                            <td data-label="{{ 'email_notification_log.list.col.status'|trans({}, 'admin')|e('html_attr') }}"
+                                class="px-6 py-3 whitespace-nowrap">
+                                {% if log.success %}
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                                        {{ ux_icon('heroicons:check-circle', {class: 'h-3 w-3'}) }}
+                                        {{ 'email_notification_log.list.status_success'|trans({}, 'admin') }}
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700"
+                                          title="{{ log.errorMessage }}">
+                                        {{ ux_icon('heroicons:x-circle', {class: 'h-3 w-3'}) }}
+                                        {{ 'email_notification_log.list.status_failed'|trans({}, 'admin') }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {{ pager.nav(pagination) }}
+    {% endif %}
+    </div>
+</div>

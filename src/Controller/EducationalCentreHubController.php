@@ -28,6 +28,16 @@ class EducationalCentreHubController extends AbstractController
         ]);
     }
 
+    #[Route('/ajustes', name: 'app_centre_settings')]
+    public function settings(string $centreId): Response
+    {
+        $centre = $this->requireCentre($centreId);
+
+        return $this->render('educational_centre/settings.html.twig', [
+            'centre' => $centre,
+        ]);
+    }
+
     private function requireCentre(string $centreId): EducationalCentre
     {
         $centre = $this->centres->findById($centreId);

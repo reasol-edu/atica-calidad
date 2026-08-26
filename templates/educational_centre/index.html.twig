@@ -149,6 +149,54 @@
             </a>
         {% endif %}
 
+        {# ── Registro de avisos por correo ── equipo directivo y admins #}
+        {% if is_granted('educational_centre.section', centre) %}
+            <a href="{{ path('app_centre_email_notification_log_index', {centreId: centre.id}) }}"
+               class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
+                      hover:border-forest-200 hover:shadow-sm transition-all">
+                <div class="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-forest-100 text-forest-600
+                                group-hover:bg-forest-600 group-hover:text-white transition-colors">
+                        {{ ux_icon('heroicons:envelope', {class: 'h-5 w-5'}) }}
+                    </div>
+                    <h2 class="text-base font-semibold text-gray-900">{{ 'email_notification_log.title'|trans({}, 'admin') }}</h2>
+                </div>
+                <div class="px-6 py-4 flex-1">
+                    <p class="text-sm text-gray-500">{{ 'email_notification_log.hub_help'|trans({}, 'admin') }}</p>
+                </div>
+                <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-end">
+                    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-forest-600 group-hover:text-forest-800 transition-colors">
+                        {{ 'email_notification_log.manage'|trans({}, 'admin') }}
+                        {{ ux_icon('heroicons:arrow-right', {class: 'h-4 w-4'}) }}
+                    </span>
+                </div>
+            </a>
+        {% endif %}
+
+        {# ── Ajustes del centro ── equipo directivo y admins #}
+        {% if is_granted('educational_centre.section', centre) %}
+            <a href="{{ path('app_centre_settings', {centreId: centre.id}) }}"
+               class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
+                      hover:border-forest-200 hover:shadow-sm transition-all">
+                <div class="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-forest-100 text-forest-600
+                                group-hover:bg-forest-600 group-hover:text-white transition-colors">
+                        {{ ux_icon('heroicons:adjustments-horizontal', {class: 'h-5 w-5'}) }}
+                    </div>
+                    <h2 class="text-base font-semibold text-gray-900">{{ 'settings.centre.title'|trans({}, 'settings') }}</h2>
+                </div>
+                <div class="px-6 py-4 flex-1">
+                    <p class="text-sm text-gray-500">{{ 'settings.hub.help'|trans({}, 'settings') }}</p>
+                </div>
+                <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-end">
+                    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-forest-600 group-hover:text-forest-800 transition-colors">
+                        {{ 'settings.hub.manage'|trans({}, 'settings') }}
+                        {{ ux_icon('heroicons:arrow-right', {class: 'h-4 w-4'}) }}
+                    </span>
+                </div>
+            </a>
+        {% endif %}
+
     </div>
 
 </div>

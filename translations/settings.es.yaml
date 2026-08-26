@@ -1,0 +1,60 @@
+# ── Títulos y secciones ───────────────────────────────────────────────────────
+settings.title: 'Ajustes'
+settings.global.title: 'Ajustes globales'
+settings.global.description: 'Valores predeterminados para toda la aplicación. Los centros pueden sobrescribirlos.'
+settings.centre.title: 'Ajustes del centro'
+settings.centre.description: 'Valores predeterminados para este centro.'
+settings.teacher.title: 'Mis ajustes'
+settings.teacher.description: 'Preferencias personales que tienen prioridad sobre los valores del centro y globales.'
+
+# ── Controles ─────────────────────────────────────────────────────────────────
+settings.default_label: 'Por defecto'
+settings.on: 'Activado'
+settings.off: 'Desactivado'
+settings.saved: 'Guardado'
+settings.no_settings_for_scope: 'No hay ajustes disponibles para este nivel.'
+settings.hub.help: 'Personaliza los ajustes predeterminados para este centro.'
+settings.hub.manage: 'Configurar'
+
+# ── Categorías de ajustes ────────────────────────────────────────────────────
+settings.category.email_alerts.label: 'Avisos por correo'
+settings.category.report_templates.label: 'Plantillas de informes'
+
+# ── Definiciones de ajustes ───────────────────────────────────────────────────
+settings.key.notifications_email_log_enabled.label: 'Registrar los avisos por correo'
+settings.key.notifications_email_log_enabled.description: 'Guarda un registro de cada aviso por correo enviado (destinatario, tipo de evento, asunto y resultado), visible en el hub de centro educativo.'
+
+settings.key.notifications_log_retention_days.label: 'Retención de los registros'
+settings.key.notifications_log_retention_days.description: 'Días que se conservan las entradas del registro de avisos por correo antes de eliminarse automáticamente. Un valor de 0 desactiva esta eliminación automática.'
+
+settings.key.reports_pdf_template_portrait.label: 'Plantilla PDF general (vertical)'
+settings.key.reports_pdf_template_portrait.description: 'PDF de una sola página que se usa como fondo de cada página de los informes en orientación vertical que no tengan una plantilla propia. Si no se sube ninguna, esos informes se generan sin fondo.'
+
+settings.key.reports_pdf_template_landscape.label: 'Plantilla PDF general (apaisada)'
+settings.key.reports_pdf_template_landscape.description: 'PDF de una sola página que se usa como fondo de cada página de los informes en orientación apaisada que no tengan una plantilla propia. Si no se sube ninguna, esos informes se generan sin fondo.'
+
+# ── Errores de validación ──────────────────────────────────────────────────────
+settings.error.integer_range: 'Debe ser un número entre %min% y %max%'
+settings.error.invalid_value: 'Valor no válido'
+
+# ── Plantillas PDF ───────────────────────────────────────────────────────────
+settings.pdf_template.view: 'Ver'
+settings.pdf_template.delete: 'Eliminar'
+settings.pdf_template.upload: 'Subir'
+settings.pdf_template.flash.uploaded: 'Plantilla subida correctamente.'
+settings.pdf_template.flash.deleted: 'Plantilla eliminada.'
+settings.pdf_template.error.no_file: 'Selecciona un fichero PDF.'
+settings.pdf_template.error.too_large: 'El fichero supera el tamaño máximo permitido (10 MB).'
+settings.pdf_template.error.invalid_type: 'El fichero debe ser un PDF.'
+settings.pdf_template.error.invalid_pdf: 'El fichero no es un PDF válido o no se ha podido leer.'
+settings.pdf_template.error.multi_page: 'La plantilla debe tener una sola página; se usará como fondo de todas las páginas del informe.'
+settings.pdf_template.error.wrong_orientation: 'La orientación del PDF no coincide con la de esta plantilla.'
+settings.pdf_template.dropzone_hint: 'Arrastra un PDF aquí o haz clic para seleccionarlo'
+settings.pdf_template.dropzone_too_large: 'El fichero «%filename%» supera el tamaño máximo permitido (%max%).'
+
+# ── Bloqueo ────────────────────────────────────────────────────────────────────
+settings.locked_by_global: 'Bloqueado por la administración global'
+settings.locked_by_centre: 'Bloqueado por el centro educativo'
+settings.lock.title: 'Bloquear este valor para niveles inferiores'
+settings.lock.no_value_title: 'Elige un valor explícito antes de bloquear'
+settings.unlock.title: 'Desbloquear'

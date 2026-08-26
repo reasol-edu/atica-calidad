@@ -1,0 +1,29 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'settings.centre.title'|trans({}, 'settings') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-2xl mx-auto space-y-8">
+
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_centre_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">
+                {{ 'educational_centre'|trans({}, 'navigation') }}
+            </a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'settings.centre.title'|trans({}, 'settings') }}</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ 'settings.centre.description'|trans({}, 'settings') }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+        <div class="flex items-center gap-2 px-6 py-4 border-b border-gray-100">
+            {{ ux_icon('heroicons:adjustments-horizontal', {class: 'h-4 w-4 text-forest-500'}) }}
+            <h2 class="text-sm font-semibold text-gray-700">{{ centre.name }}</h2>
+        </div>
+        <twig:SettingsComponent scope="centre" />
+    </div>
+
+</div>
+{% endblock %}
