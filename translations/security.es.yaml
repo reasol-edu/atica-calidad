@@ -1,0 +1,5 @@
+auth.missing_credentials: 'Introduce tu nombre de usuario y tu contraseña.'
+auth.invalid_credentials: 'No hemos podido iniciar sesión con esas credenciales. Revisa los datos e inténtalo de nuevo.'
+auth.user_inactive: 'Tu cuenta está desactivada. Contacta con la administración del centro.'
+auth.external_unavailable: 'La autenticación externa de Séneca no está disponible en este momento. Inténtalo de nuevo en unos minutos.'
+Invalid credentials.: 'No hemos podido iniciar sesión con esas credenciales. Revisa los datos e inténtalo de nuevo.'

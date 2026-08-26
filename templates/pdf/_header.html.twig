@@ -1,0 +1,12 @@
+<table width="100%" style="border-collapse:collapse;border-bottom:2px solid #576490;padding-bottom:4px;font-family:'DejaVu Sans',Arial,sans-serif;">
+    <tr>
+        {# headerLeft / headerRight llegan ya saneados (app.rich_text) y con los placeholders sustituidos por PdfHeaderBuilder #}
+        {% if headerLeft is defined and headerLeft is not null %}
+            <td style="text-align:left;vertical-align:bottom;font-size:10pt;color:#111827;">{{ headerLeft|raw }}</td>
+            <td style="text-align:right;vertical-align:bottom;font-size:9pt;color:#576490;">{{ headerRight|raw }}</td>
+        {% else %}
+            <td style="text-align:left;font-size:10pt;font-weight:bold;color:#111827;">{{ pdfTitle }}</td>
+            <td style="text-align:right;font-size:9pt;font-weight:bold;color:#576490;">{{ centre.name }}</td>
+        {% endif %}
+    </tr>
+</table>

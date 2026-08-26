@@ -1,0 +1,6 @@
+{# Icono de inicio para el principio de un breadcrumb: enlaza al dashboard #}
+<a href="{{ path('app_dashboard') }}" class="hover:text-forest-600 transition-colors shrink-0"
+   aria-label="{{ 'dashboard'|trans({}, 'navigation') }}">
+    {{ ux_icon('heroicons:squares-2x2', {class: 'h-4 w-4'}) }}
+</a>
+{{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0'}) }}

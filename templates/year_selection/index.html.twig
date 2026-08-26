@@ -1,0 +1,93 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'year_selection.title'|trans({}, 'navigation') }} · {{ app_name }}{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-forest-50 flex flex-col items-center justify-center p-6">
+
+    <div class="w-full max-w-lg">
+
+        {# Cabecera de marca #}
+        <div class="flex items-center justify-center gap-3 mb-8">
+            <img src="{{ asset('static/logo.svg') }}" alt="{{ app_name }}"
+                 class="h-10 w-10 shrink-0">
+            <span class="text-xl font-semibold text-forest-900">{{ app_name }}</span>
+        </div>
+
+        {# Tarjeta principal #}
+        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
+
+            {# Encabezado #}
+            <div class="border-b border-gray-100 px-6 py-5">
+                <h1 class="text-lg font-semibold text-gray-900">
+                    {{ 'year_selection.title'|trans({}, 'navigation') }}
+                </h1>
+                <p class="mt-1 text-sm text-gray-500">{{ centre.name }}</p>
+            </div>
+
+            {# Lista de años #}
+            {% if years is empty %}
+                <div class="px-6 py-10 text-center">
+                    {{ ux_icon('heroicons:calendar-days', {class: 'mx-auto h-10 w-10 text-gray-300 mb-3'}) }}
+                    <p class="text-sm text-gray-500">{{ 'year_selection.no_years'|trans({}, 'navigation') }}</p>
+                </div>
+            {% else %}
+                <ul class="divide-y divide-gray-100">
+                    {% for year in years %}
+                        {% set is_active = active_year and year.id.toRfc4122() == active_year.id.toRfc4122() %}
+                        {% set is_viewing = view_year and year.id.toRfc4122() == view_year.id.toRfc4122() %}
+                        <li>
+                            <form method="post"
+                                  action="{{ path('app_select_year', {id: year.id}) }}">
+                                <input type="hidden" name="_token"
+                                       value="{{ csrf_token('select_year_' ~ year.id) }}">
+                                <input type="hidden" name="_return_to" value="{{ return_to }}">
+                                <button type="submit"
+                                        class="group flex w-full items-center gap-4 px-6 py-4 text-left transition-colors
+                                               {{ is_viewing ? 'bg-forest-50' : 'hover:bg-forest-50' }}">
+                                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors
+                                                {{ is_active
+                                                    ? 'bg-forest-600 text-white'
+                                                    : 'bg-forest-100 text-forest-600 group-hover:bg-forest-600 group-hover:text-white' }}">
+                                        {{ ux_icon('heroicons:calendar-days', {class: 'h-5 w-5'}) }}
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="truncate text-sm font-semibold text-gray-900 group-hover:text-forest-700">
+                                            {{ year.name }}
+                                        </p>
+                                        <p class="mt-0.5 text-xs text-gray-500">
+                                            {% if is_active %}
+                                                {{ 'year_selection.active'|trans({}, 'navigation') }}
+                                            {% elseif is_viewing %}
+                                                {{ 'year_selection.viewing'|trans({}, 'navigation') }}
+                                            {% else %}
+                                                {{ 'year_selection.historical'|trans({}, 'navigation') }}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    {% if is_viewing %}
+                                        {{ ux_icon('heroicons:check', {class: 'h-4 w-4 shrink-0 text-forest-600'}) }}
+                                    {% else %}
+                                        {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0 text-gray-300 group-hover:text-forest-400 transition-colors'}) }}
+                                    {% endif %}
+                                </button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {# Pie: volver #}
+            <div class="border-t border-gray-100 px-6 py-4">
+                <a href="{{ return_to }}"
+                   class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-forest-600 transition-colors">
+                    {{ ux_icon('heroicons:arrow-left', {class: 'h-4 w-4'}) }}
+                    {{ 'year_selection.cancel'|trans({}, 'navigation') }}
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}

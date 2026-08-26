@@ -1,0 +1,276 @@
+<div {{ attributes }}>
+
+    {% set rows = this.rows %}
+
+    {% if rows is empty %}
+        <div class="flex items-center justify-center gap-2 py-10 px-6 text-center">
+            {{ ux_icon('heroicons:check-circle', {class: 'h-5 w-5 text-emerald-500'}) }}
+            <p class="text-sm text-gray-500">{{ 'settings.no_settings_for_scope'|trans({}, 'settings') }}</p>
+        </div>
+    {% else %}
+        {% set currentCategory = null %}
+        {% for row in rows %}
+            {% set def        = row.definition %}
+            {% set key        = def.key %}
+            {% set keySlug    = key|replace({'.': '_', '-': '_'}) %}
+            {% set stored     = row.storedValue %}
+            {% set effective  = row.effectiveValue %}
+            {% set isSaved      = lastSaved == key %}
+            {% set isError      = lastError == key %}
+            {% set isLocked     = row.isLocked %}
+            {% set parentLock   = row.parentLock %}
+            {# Cuando hay candado padre, el control muestra el valor heredado de arriba #}
+            {% set displayValue = parentLock is not null ? effective : stored %}
+
+            {% if def.category != currentCategory %}
+                {% if currentCategory is not null %}
+                        </ul>
+                    </section>
+                {% endif %}
+                {% set currentCategory = def.category %}
+                <section class="{{ loop.first ? '' : 'border-t border-gray-100' }}">
+                    <h3 class="px-6 pt-5 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        {{ (def.category ~ '.label')|trans({}, 'settings') }}
+                    </h3>
+                    <ul class="divide-y divide-gray-100">
+            {% endif %}
+
+            {# Los ajustes richtext y pdf se apilan en vertical: necesitan el ancho completo #}
+            {% set isRichText = def.type.value == 'richtext' %}
+            {% set isPdf      = def.type.value == 'pdf' %}
+            <li class="flex flex-col gap-3 px-6 py-4 {{ (isRichText or isPdf) ? '' : 'sm:flex-row sm:items-center sm:gap-6' }}
+                        {{ parentLock is not null ? 'opacity-60' : '' }}">
+
+                {# ── Label + description ── #}
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                        <p class="text-sm font-medium text-gray-900">
+                            {{ ('settings.key.' ~ keySlug ~ '.label')|trans({}, 'settings') }}
+                        </p>
+                        {% if isRichText %}
+                            <div class="relative" data-controller="dropdown">
+                                <button type="button"
+                                        data-action="dropdown#toggle"
+                                        class="text-gray-300 hover:text-forest-600 transition-colors"
+                                        title="{{ 'settings.placeholder_help.title'|trans({}, 'settings') }}">
+                                    {{ ux_icon('heroicons:information-circle', {class: 'h-4 w-4'}) }}
+                                </button>
+                                <div data-dropdown-target="menu" class="hidden">
+                                    {# En móvil el popover se centra como panel fijo con fondo atenuado, en vez
+                                       de posicionarse relativo al icono: así nunca se sale de la pantalla si el
+                                       icono está cerca del borde. En pantallas más anchas mantiene el
+                                       desplegable pegado al icono, como antes. #}
+                                    <div class="fixed inset-0 z-40 bg-black/40 sm:hidden"
+                                         data-action="click->dropdown#close"></div>
+                                    <div class="fixed inset-x-4 top-1/2 z-50 -translate-y-1/2 max-h-[80vh] overflow-y-auto
+                                                rounded-xl border border-gray-200 bg-white shadow-lg
+                                                sm:absolute sm:inset-x-auto sm:top-auto sm:left-0 sm:z-40 sm:mt-1
+                                                sm:translate-y-0 sm:max-h-none sm:overflow-visible">
+                                        {{ include('components/_settings_placeholder_help.html.twig') }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% set descKey = 'settings.key.' ~ keySlug ~ '.description' %}
+                    {% set descVal = descKey|trans({}, 'settings') %}
+                    {% if descVal != descKey %}
+                        <p class="text-xs text-gray-500 mt-0.5">{{ descVal }}</p>
+                    {% endif %}
+
+                    {# ── Parent-lock notice ── #}
+                    {% if parentLock is not null %}
+                        <p class="flex items-center gap-1 text-xs text-amber-600 mt-1">
+                            {{ ux_icon('heroicons:lock-closed', {class: 'h-3.5 w-3.5 shrink-0'}) }}
+                            {{ parentLock == 'global'
+                                ? 'settings.locked_by_global'|trans({}, 'settings')
+                                : 'settings.locked_by_centre'|trans({}, 'settings') }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                {# ── Control ── #}
+                <div class="flex gap-3 {{ (isRichText or isPdf) ? 'w-full items-start' : 'items-center shrink-0' }}">
+
+                    {% if def.type.value == 'boolean' %}
+                        <select
+                            class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-3 pr-8 text-sm text-gray-900
+                                   focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20
+                                   transition-colors cursor-pointer
+                                   disabled:cursor-not-allowed disabled:opacity-50"
+                            {{ parentLock is not null ? 'disabled' : '' }}
+                            data-controller="setting-save"
+                            data-action="change->setting-save#save"
+                            data-setting-key="{{ key }}">
+                            <option value="__default__" {{ displayValue is null ? 'selected' : '' }} {{ isLocked ? 'disabled' : '' }}>
+                                {{ 'settings.default_label'|trans({}, 'settings') }}
+                                ({{ effective == 'true' ? 'settings.on'|trans({}, 'settings') : 'settings.off'|trans({}, 'settings') }})
+                            </option>
+                            <option value="true"  {{ displayValue == 'true'  ? 'selected' : '' }}>
+                                {{ 'settings.on'|trans({}, 'settings') }}
+                            </option>
+                            <option value="false" {{ displayValue == 'false' ? 'selected' : '' }}>
+                                {{ 'settings.off'|trans({}, 'settings') }}
+                            </option>
+                        </select>
+
+                    {% elseif def.type.value == 'integer' %}
+                        {% if def.minValue is not null and def.maxValue is not null %}
+                            {% set intPlaceholder = effective ~ ' (' ~ def.minValue ~ '–' ~ def.maxValue ~ ')' %}
+                        {% else %}
+                            {% set intPlaceholder = effective %}
+                        {% endif %}
+
+                        <input
+                            type="number"
+                            {% if def.minValue is not null %}min="{{ def.minValue }}"{% endif %}
+                            {% if def.maxValue is not null %}max="{{ def.maxValue }}"{% endif %}
+                            value="{{ displayValue ?? '' }}"
+                            placeholder="{{ intPlaceholder }}"
+                            {{ parentLock is not null ? 'disabled' : '' }}
+                            class="w-28 rounded-lg border py-1.5 px-3 text-sm text-gray-900
+                                   placeholder-gray-400 focus:outline-none focus:ring-3 transition-colors
+                                   disabled:cursor-not-allowed disabled:opacity-50
+                                   {{ isError
+                                       ? 'border-red-400 bg-red-50 focus:border-red-400 focus:ring-red-500/20'
+                                       : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:ring-forest-500/20' }}"
+                            data-controller="setting-save"
+                            data-action="change->setting-save#save"
+                            data-setting-key="{{ key }}">
+
+                    {% elseif def.type.value == 'choice' %}
+                        <select
+                            class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-3 pr-8 text-sm text-gray-900
+                                   focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20
+                                   transition-colors cursor-pointer
+                                   disabled:cursor-not-allowed disabled:opacity-50"
+                            {{ parentLock is not null ? 'disabled' : '' }}
+                            data-controller="setting-save"
+                            data-action="change->setting-save#save"
+                            data-setting-key="{{ key }}">
+                            <option value="__default__" {{ displayValue is null ? 'selected' : '' }} {{ isLocked ? 'disabled' : '' }}>
+                                {{ 'settings.default_label'|trans({}, 'settings') }}
+                                ({{ ('settings.key.' ~ keySlug ~ '.choice.' ~ effective)|trans({}, 'settings') }})
+                            </option>
+                            {% for choice in def.choicesArray %}
+                                <option value="{{ choice }}" {{ displayValue == choice ? 'selected' : '' }}>
+                                    {{ ('settings.key.' ~ keySlug ~ '.choice.' ~ choice)|trans({}, 'settings') }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                    {% elseif def.type.value == 'richtext' %}
+                        {% if parentLock is not null %}
+                            <div class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 prose prose-sm max-w-none text-gray-500">
+                                {{ effective|sanitize_html('app.rich_text') }}
+                            </div>
+                        {% else %}
+                            {# data-live-ignore: Quill genera su propio DOM (barra de herramientas)
+                               y el morphing de LiveComponent lo destrozaría en cada re-render #}
+                            <div id="setting-richtext-{{ keySlug }}" class="w-full min-w-0" data-live-ignore data-controller="rich-editor">
+                                <div data-rich-editor-target="editor" class="bg-white text-sm"></div>
+                                <textarea data-rich-editor-target="input"
+                                          class="hidden"
+                                          data-controller="setting-save"
+                                          data-action="change->setting-save#save"
+                                          data-setting-key="{{ key }}">{{ displayValue ?? '' }}</textarea>
+                            </div>
+                        {% endif %}
+
+                    {% elseif def.type.value == 'pdf' %}
+                        {# data-live-ignore: son formularios normales (subida multipart, no soportada por
+                           LiveAction) que no deben verse afectados por el morphing de LiveComponent en cada
+                           guardado de otra fila #}
+                        <div class="w-full" data-live-ignore>
+                            {% if row.storedFile is not null %}
+                                {# Con una plantilla ya subida, hay que eliminarla antes de poder subir otra:
+                                   así el dropzone nunca convive con un fichero ya guardado en la fila. #}
+                                <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                                    {{ ux_icon('heroicons:document', {class: 'h-4 w-4 shrink-0 text-gray-400'}) }}
+                                    <span class="flex-1 min-w-0 truncate text-gray-700">{{ stored }}</span>
+                                    <span class="shrink-0 text-xs text-gray-400">{{ (row.storedFile.size / 1024)|round }} KB</span>
+                                    <a href="{{ path('app_settings_pdf_template_download', {key: key}) }}"
+                                       class="shrink-0 text-xs font-medium text-forest-600 hover:text-forest-700">
+                                        {{ 'settings.pdf_template.view'|trans({}, 'settings') }}
+                                    </a>
+                                    <form method="post" action="{{ path('app_settings_pdf_template_delete', {key: key}) }}" class="shrink-0">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('settings_pdf_template_delete_' ~ key) }}">
+                                        <button type="submit" class="text-xs font-medium text-red-600 hover:text-red-700">
+                                            {{ 'settings.pdf_template.delete'|trans({}, 'settings') }}
+                                        </button>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <form method="post" action="{{ path('app_settings_pdf_template_upload', {key: key}) }}" enctype="multipart/form-data">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('settings_pdf_template_' ~ key) }}">
+                                    <twig:Form:PdfDropzone id="pdf-template-{{ keySlug }}" name="file" />
+                                    <button type="submit"
+                                            class="mt-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium
+                                                   text-gray-700 hover:bg-gray-50 transition-colors">
+                                        {{ 'settings.pdf_template.upload'|trans({}, 'settings') }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+
+                    {% else %}
+                        <input
+                            type="text"
+                            {% if def.minValue is not null %}minlength="{{ def.minValue }}"{% endif %}
+                            {% if def.maxValue is not null %}maxlength="{{ def.maxValue }}"{% endif %}
+                            value="{{ displayValue ?? '' }}"
+                            placeholder="{{ 'settings.default_label'|trans({}, 'settings') }}: {{ effective }}"
+                            {{ parentLock is not null ? 'disabled' : '' }}
+                            class="w-48 rounded-lg border py-1.5 px-3 text-sm text-gray-900
+                                   placeholder-gray-400 focus:outline-none focus:ring-3 transition-colors
+                                   disabled:cursor-not-allowed disabled:opacity-50
+                                   {{ isError
+                                       ? 'border-red-400 bg-red-50 focus:border-red-400 focus:ring-red-500/20'
+                                       : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:ring-forest-500/20' }}"
+                            data-controller="setting-save"
+                            data-action="change->setting-save#save"
+                            data-setting-key="{{ key }}">
+                    {% endif %}
+
+                    {# ── Lock toggle (global and centre scopes) ── #}
+                    {% if parentLock is null and scope != 'teacher' %}
+                        {% set lockDisabled = stored is null %}
+                        <button type="button"
+                                class="transition-colors {{ isLocked ? 'text-amber-500 hover:text-amber-600' : (lockDisabled ? 'text-gray-200 cursor-not-allowed' : 'text-gray-300 hover:text-amber-400') }}"
+                                {{ lockDisabled ? 'disabled' : '' }}
+                                data-action="click->live#action:prevent"
+                                data-live-action-param="toggleLock"
+                                data-live-key-param="{{ key }}"
+                                title="{{ isLocked ? 'settings.unlock.title'|trans({}, 'settings') : (lockDisabled ? 'settings.lock.no_value_title'|trans({}, 'settings') : 'settings.lock.title'|trans({}, 'settings')) }}">
+                            {{ ux_icon(isLocked ? 'heroicons:lock-closed' : 'heroicons:lock-open', {class: 'h-4 w-4'}) }}
+                        </button>
+                    {% endif %}
+
+                    {# ── Saved feedback ── #}
+                    {% if isSaved %}
+                        <span class="flex items-center gap-1 text-xs font-medium text-emerald-600">
+                            {{ ux_icon('heroicons:check', {class: 'h-3.5 w-3.5'}) }}
+                            {{ 'settings.saved'|trans({}, 'settings') }}
+                        </span>
+                    {% endif %}
+
+                    {# ── Error feedback ── #}
+                    {% if isError %}
+                        <span class="flex items-center gap-1 text-xs font-medium text-red-600">
+                            {{ ux_icon('heroicons:exclamation-circle', {class: 'h-3.5 w-3.5'}) }}
+                            {% if def.type.value == 'integer' and def.minValue is not null and def.maxValue is not null %}
+                                {{ 'settings.error.integer_range'|trans({'%min%': def.minValue, '%max%': def.maxValue}, 'settings') }}
+                            {% else %}
+                                {{ 'settings.error.invalid_value'|trans({}, 'settings') }}
+                            {% endif %}
+                        </span>
+                    {% endif %}
+
+                </div>
+            </li>
+        {% endfor %}
+                </ul>
+            </section>
+    {% endif %}
+
+</div>

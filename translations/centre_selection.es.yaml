@@ -1,0 +1,7 @@
+page_title: 'Seleccionar centro educativo'
+subtitle: 'Selecciona el centro educativo en el que quieres trabajar.'
+no_centres: 'No tienes acceso a ningún centro educativo. Contacta con el administrador.'
+no_centres_admin: 'Todavía no hay ningún centro educativo creado en el servidor.'
+create_centre: 'Crear centro educativo'
+manage_centres: 'Administrar centros'
+logout: 'Cerrar sesión'

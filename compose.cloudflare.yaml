@@ -1,0 +1,39 @@
+###> Overlay de CLOUDFLARE TUNNEL ─────────────────────────────────────────────
+# Overlay opcional para exponer la aplicación a Internet con Cloudflare Tunnel,
+# sin abrir los puertos 80/443 en el host. Igual que compose.dev.yaml, NO se
+# carga de forma automática: hay que combinarlo de forma explícita con el
+# fichero base:
+#
+#   docker compose -f compose.yaml -f compose.cloudflare.yaml up -d
+#
+# Requiere CLOUDFLARE_TUNNEL_TOKEN en tu .env.local (ver la variable comentada
+# en .env.example) con el token del túnel ya creado en el dashboard de
+# Cloudflare (Zero Trust → Networks → Tunnels → Create a tunnel → Cloudflared).
+# El Public Hostname del túnel debe apuntar a http://app:80 (nombre del
+# servicio en la red interna de Compose, no un puerto del host).
+#
+# Guía completa: docs/despliegue/cloudflare-tunnel.md
+##############################################################################
+
+services:
+
+  app:
+    environment:
+      # cloudflared reenvía la IP real del visitante y el esquema https://
+      # originales como cabeceras X-Forwarded-*; sin confiar en la red interna
+      # del túnel, la aplicación vería siempre la IP del contenedor cloudflared
+      # y http:// (rompe el registro de actividad y las cookies seguras).
+      SYMFONY_TRUSTED_PROXIES: "172.28.0.0/24"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN:?Define CLOUDFLARE_TUNNEL_TOKEN en tu .env.local}
+    depends_on:
+      - app
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24

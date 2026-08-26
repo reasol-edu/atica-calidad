@@ -1,0 +1,16 @@
+parameters:
+    level: max
+    paths:
+        - src
+
+    symfony:
+        containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
+
+    doctrine:
+        objectManagerLoader: tests/object-manager.php
+
+services:
+    -
+        class: App\PHPStan\Rules\ForbidGenericDoctrineMethodsRule
+        tags:
+            - phpstan.rules.rule

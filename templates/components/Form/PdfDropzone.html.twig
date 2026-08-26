@@ -1,0 +1,34 @@
+{% props id, name, max_size_mb = 10 %}
+<div data-controller="file-drop"
+     data-file-drop-single-value="true"
+     data-file-drop-max-size-value="{{ max_size_mb * 1024 * 1024 }}"
+     data-file-drop-too-large-message-value="{{ 'settings.pdf_template.dropzone_too_large'|trans({'%filename%': '%filename%', '%max%': max_size_mb ~ ' MB'}, 'settings') }}">
+
+    <div data-file-drop-target="dropzone"
+         data-action="dragenter->file-drop#dragEnter dragover->file-drop#dragOver dragleave->file-drop#dragLeave drop->file-drop#drop click->file-drop#triggerBrowse"
+         class="flex items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-3 cursor-pointer transition-colors hover:border-forest-300 hover:bg-forest-50/50">
+        {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
+        <span class="text-sm text-gray-500">{{ 'settings.pdf_template.dropzone_hint'|trans({}, 'settings') }}</span>
+        <input type="file" id="{{ id }}" name="{{ name }}"
+               accept="application/pdf"
+               data-file-drop-target="input"
+               data-action="change->file-drop#change"
+               class="sr-only">
+    </div>
+
+    <div data-file-drop-target="list" class="mt-2 space-y-1.5"></div>
+
+    <template data-file-drop-target="itemTemplate">
+        <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+            {{ ux_icon('heroicons:document', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+            <span class="text-sm text-gray-700 flex-1 truncate" data-role="name"></span>
+            <span class="text-xs text-gray-400 shrink-0" data-role="size"></span>
+            <button type="button" data-action="click->file-drop#removeFile"
+                    class="text-gray-400 hover:text-red-600 transition-colors" aria-label="{{ 'attachment.remove'|trans({}, 'admin') }}">
+                {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+            </button>
+        </div>
+    </template>
+
+    <p data-file-drop-target="clientError" class="mt-1 text-xs text-red-600 hidden"></p>
+</div>

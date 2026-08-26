@@ -1,0 +1,337 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+{% set current_route = app.request.attributes.get('_route') %}
+{% set active_centre = active_centre() %}
+{% set active_year = active_centre ? active_centre.activeAcademicYear : null %}
+{% set vy = view_year() %}
+{% set viewing_past = is_viewing_past_year() %}
+<div data-controller="sidebar confirm"
+     data-confirm-cancel-value="{{ 'ui.cancel'|trans }}"
+     data-confirm-confirm-value="{{ 'ui.confirm_delete'|trans }}"
+     data-confirm-close-value="{{ 'ui.close'|trans }}"
+     class="h-full">
+
+    {# ── Backdrop móvil ──────────────────────────────────────────────────────── #}
+    <div data-sidebar-target="backdrop"
+         data-action="click->sidebar#close"
+         class="fixed inset-0 z-40 bg-black/60 hidden lg:hidden"></div>
+
+    {# ── Sidebar ─────────────────────────────────────────────────────────────── #}
+    <aside data-sidebar-target="panel"
+           class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-forest-950
+                  -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+
+        {# Cabecera: logo #}
+        <a href="{{ path('app_dashboard') }}"
+           class="flex items-center gap-3 px-5 h-16 border-b border-white/8 shrink-0 hover:bg-forest-900 transition-colors duration-150">
+            <img src="{{ asset('static/logo.svg') }}" alt="{{ app_name }}"
+                 class="h-8 w-8 shrink-0">
+            <div class="min-w-0">
+                <p class="truncate text-sm font-semibold text-white leading-none">{{ app_name }}</p>
+                {% if app_version %}
+                    <p class="mt-0.5 text-xs text-forest-400">v{{ app_version }}</p>
+                {% endif %}
+            </div>
+        </a>
+
+        {# Centro y curso activo / visualizado #}
+        {% if active_centre %}
+        <div class="shrink-0 border-b border-white/8 px-5 py-3">
+            <div class="flex items-center gap-2">
+                <div class="min-w-0 flex-1">
+                    <p class="truncate text-xs font-medium text-white leading-none">{{ active_centre.name }}</p>
+                    {% if vy %}
+                        <p class="mt-1 truncate text-xs {{ viewing_past ? 'text-amber-400' : 'text-forest-400' }}">
+                            {{ vy.name }}
+                            {% if viewing_past %}
+                                <span class="sr-only">({{ 'year_selection.historical'|trans({}, 'navigation') }})</span>
+                            {% endif %}
+                        </p>
+                    {% endif %}
+                </div>
+                {% if can_switch_centre() %}
+                    <a href="{{ path('app_select_centre') }}"
+                       title="{{ 'switch_centre'|trans({}, 'navigation') }}"
+                       aria-label="{{ 'switch_centre'|trans({}, 'navigation') }}"
+                       class="shrink-0 rounded-md p-1 text-forest-500 hover:bg-forest-800 hover:text-white transition-colors">
+                        {{ ux_icon('heroicons:arrows-right-left', {class: 'h-3.5 w-3.5'}) }}
+                    </a>
+                {% endif %}
+                {% if can_switch_year() %}
+                    <a href="{{ path('app_select_year_page', {'return_to': app.request.pathInfo}) }}"
+                       title="{{ 'switch_year'|trans({}, 'navigation') }}"
+                       aria-label="{{ 'switch_year'|trans({}, 'navigation') }}"
+                       class="shrink-0 rounded-md p-1 {{ viewing_past ? 'text-amber-400 hover:bg-amber-500/20 hover:text-amber-300' : 'text-forest-500 hover:bg-forest-800 hover:text-white' }} transition-colors">
+                        {{ ux_icon('heroicons:calendar-days', {class: 'h-3.5 w-3.5'}) }}
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# Navegación principal #}
+        <nav class="flex-1 overflow-y-auto px-3 py-4">
+
+            {% macro nav_item(label, route, icon, current_route, prefix) %}
+                {% set is_active = current_route starts with prefix %}
+                <a href="{{ route }}"
+                   {{ is_active ? 'aria-current="page"' : '' }}
+                   class="{{ is_active ? 'bg-forest-800 text-white' : 'text-forest-300 hover:bg-forest-900 hover:text-white' }}
+                          group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
+                    {{ ux_icon(icon, {class: 'h-5 w-5 shrink-0'}) }}
+                    <span class="truncate">{{ label }}</span>
+                </a>
+            {% endmacro %}
+
+            {# Inicio #}
+            {{ _self.nav_item(
+                'dashboard'|trans({}, 'navigation'),
+                path('app_dashboard'),
+                'heroicons:squares-2x2',
+                current_route,
+                'app_dashboard'
+            ) }}
+
+            <div class="my-3 h-px bg-white/8"></div>
+
+            {# Calendario #}
+            {{ _self.nav_item(
+                'calendar'|trans({}, 'navigation'),
+                path('app_calendar'),
+                'heroicons:calendar-days',
+                current_route,
+                'app_calendar'
+            ) }}
+
+            {# Informes — solo para equipo directivo y admins #}
+            {% if active_centre and is_granted('educational_centre.section', active_centre) %}
+                {% set reports_active = current_route starts with 'app_reports_' %}
+                <a href="{{ path('app_reports_index', {centreId: active_centre.id}) }}"
+                    {{ reports_active ? 'aria-current="page"' : '' }}
+                   class="{{ reports_active ? 'bg-forest-800 text-white' : 'text-forest-300 hover:bg-forest-900 hover:text-white' }}
+                          group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
+                    {{ ux_icon('heroicons:chart-bar', {class: 'h-5 w-5 shrink-0'}) }}
+                    <span class="truncate">{{ 'reports'|trans({}, 'navigation') }}</span>
+                </a>
+            {% endif %}
+
+            {# Centro educativo — solo para equipo directivo y admins #}
+            {% if active_centre and is_granted('educational_centre.section', active_centre) %}
+                {% set centre_active = current_route starts with 'app_centre_' %}
+                <a href="{{ path('app_centre_index', {centreId: active_centre.id}) }}"
+                    {{ centre_active ? 'aria-current="page"' : '' }}
+                   class="{{ centre_active ? 'bg-forest-800 text-white' : 'text-forest-300 hover:bg-forest-900 hover:text-white' }}
+                          group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
+                    {{ ux_icon('heroicons:building-library', {class: 'h-5 w-5 shrink-0'}) }}
+                    <span class="truncate">{{ 'educational_centre'|trans({}, 'navigation') }}</span>
+                </a>
+            {% endif %}
+
+            {# Administración — solo para admins #}
+            {% if is_granted('ROLE_ADMIN') %}
+                <div class="my-3 h-px bg-white/8"></div>
+                {% set admin_active = current_route starts with 'app_admin' %}
+                <a href="{{ path('app_admin') }}"
+                    {{ admin_active ? 'aria-current="page"' : '' }}
+                   class="{{ admin_active ? 'bg-forest-800 text-white' : 'text-forest-300 hover:bg-forest-900 hover:text-white' }}
+                          group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
+                    {{ ux_icon('heroicons:cog-6-tooth', {class: 'h-5 w-5 shrink-0'}) }}
+                    <span class="truncate">{{ 'administration'|trans({}, 'navigation') }}</span>
+                </a>
+            {% endif %}
+
+        </nav>
+
+        {# Sección de usuario #}
+        <div class="shrink-0 border-t border-white/8 p-4 space-y-3">
+
+            {# Banner de suplantación #}
+            {% if is_granted('IS_IMPERSONATOR') %}
+                <div class="rounded-lg bg-amber-500/15 border border-amber-400/25 px-3 py-2.5">
+                    <div class="flex items-center gap-2 mb-2">
+                        {{ ux_icon('heroicons:eye', {class: 'h-3.5 w-3.5 shrink-0 text-amber-300'}) }}
+                        <p class="text-xs font-medium text-amber-200 truncate">
+                            {{ 'impersonating'|trans({'%username%': app.user.username}, 'navigation') }}
+                        </p>
+                    </div>
+                    <a href="{{ path('app_dashboard') }}?_switch_user=_exit"
+                       class="inline-flex items-center gap-1.5 rounded-md bg-amber-400/20 px-2.5 py-1 text-xs font-medium text-amber-200 hover:bg-amber-400/30 hover:text-white transition-colors">
+                        {{ ux_icon('heroicons:arrow-uturn-left', {class: 'h-3.5 w-3.5'}) }}
+                        {{ 'switch_back'|trans({}, 'navigation') }}
+                    </a>
+                </div>
+            {% endif %}
+
+            {# Datos del usuario #}
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-forest-700 text-sm font-semibold text-white select-none">
+                    {{ app.user.name.firstName|first|upper }}
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium text-white leading-none">{{ app.user.name.full() }}</p>
+                    <p class="mt-0.5 truncate text-xs text-forest-400">@{{ app.user.username }}</p>
+                </div>
+            </div>
+
+            {# Acciones del usuario #}
+            <div class="space-y-0.5">
+                <a href="{{ path('app_profile') }}"
+                   class="group flex items-center gap-2.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors
+                          {{ current_route starts with 'app_profile' ? 'bg-forest-800 text-white' : 'text-forest-300 hover:bg-forest-900 hover:text-white' }}">
+                    {{ ux_icon('heroicons:user', {class: 'h-4 w-4 shrink-0'}) }}
+                    {{ 'profile'|trans({}, 'navigation') }}
+                </a>
+                <a href="{{ path('app_logout', {'_csrf_token': csrf_token('logout')}) }}"
+                   class="group flex items-center gap-2.5 rounded-md px-2 py-1.5 text-xs font-medium
+                          text-forest-300 hover:bg-red-500/15 hover:text-red-300 transition-colors">
+                    {{ ux_icon('heroicons:arrow-right-on-rectangle', {class: 'h-4 w-4 shrink-0'}) }}
+                    {{ 'logout'|trans({}, 'navigation') }}
+                </a>
+            </div>
+
+        </div>
+    </aside>
+
+    {# ── Contenido principal ─────────────────────────────────────────────────── #}
+    <div class="flex min-h-full flex-col lg:pl-64">
+
+        {# Cabecera #}
+        <header class="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-gray-200 bg-white px-4">
+            <button type="button"
+                    data-action="sidebar#toggle"
+                    aria-label="{{ 'menu'|trans({}, 'navigation') }}"
+                    class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors lg:hidden">
+                {{ ux_icon('heroicons:bars-3', {class: 'h-5 w-5'}) }}
+            </button>
+            <a href="{{ path('app_dashboard') }}" class="text-sm font-semibold text-forest-900 lg:hidden">{{ app_name }}</a>
+        </header>
+
+        <main class="flex-1">
+            {# Flash messages — región live para lectores de pantalla. Los success
+               se anuncian con polite (no interrumpen); los error con assertive. #}
+            {% set flashes = app.flashes(['success', 'error']) %}
+            <div data-flash-container
+                 class="px-6 pt-6 space-y-2 {{ flashes is empty ? 'hidden' : '' }}"
+                 role="status"
+                 aria-live="{{ flashes.error is defined ? 'assertive' : 'polite' }}"
+                 aria-atomic="true">
+                {% for type, messages in flashes %}
+                    {% for message in messages %}
+                        <div data-flash="{{ type }}"
+                             class="flex items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-opacity duration-500
+                                    {{ type == 'success'
+                                        ? 'bg-green-50 border-green-200 text-green-800'
+                                        : 'bg-red-50 border-red-200 text-red-800' }}">
+                            {{ ux_icon(type == 'success' ? 'heroicons:check-circle' : 'heroicons:exclamation-circle',
+                                {class: 'h-4.5 w-4.5 shrink-0'}) }}
+                            <span class="flex-1">{{ message }}</span>
+                            <button type="button"
+                                    data-flash-close
+                                    class="shrink-0 rounded p-0.5 opacity-50 hover:opacity-100 transition-opacity"
+                                    aria-label="{{ 'ui.close'|trans }}">
+                                {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+
+            {# Plantillas ocultas para que el JS de abajo pueda montar flashes
+               dinámicos (p. ej. tras una LiveAction) sin duplicar SVGs ni
+               cadenas traducidas fuera de Twig. #}
+            <template data-flash-icon-template="success">{{ ux_icon('heroicons:check-circle', {class: 'h-4.5 w-4.5 shrink-0'}) }}</template>
+            <template data-flash-icon-template="error">{{ ux_icon('heroicons:exclamation-circle', {class: 'h-4.5 w-4.5 shrink-0'}) }}</template>
+            <template data-flash-close-template>
+                <button type="button"
+                        data-flash-close
+                        class="shrink-0 rounded p-0.5 opacity-50 hover:opacity-100 transition-opacity"
+                        aria-label="{{ 'ui.close'|trans }}">
+                    {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                </button>
+            </template>
+
+            {# Banner de año histórico #}
+            {% if viewing_past and vy %}
+                <div class="px-6 pt-4">
+                    <div class="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm"
+                         role="status" aria-live="polite">
+                        {{ ux_icon('heroicons:eye', {class: 'h-4 w-4 shrink-0 text-amber-500'}) }}
+                        <span class="flex-1 text-amber-800">
+                            {{ 'viewing_past_year'|trans({'%year%': vy.name}, 'navigation') }}
+                        </span>
+                        <form method="post" action="{{ path('app_reset_year') }}" class="shrink-0">
+                            <input type="hidden" name="_token" value="{{ csrf_token('reset_year') }}">
+                            <input type="hidden" name="_return_to" value="{{ app.request.pathInfo }}">
+                            <button type="submit"
+                                    class="rounded-md bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-200 transition-colors">
+                                {{ 'return_to_active_year'|trans({}, 'navigation') }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+
+    </div>
+
+</div>
+
+<script>
+(function () {
+    function dismissFlash(el) {
+        el.style.opacity = '0';
+        setTimeout(function () { el.remove(); }, 500);
+    }
+    // Los mensajes de error permanecen hasta que el usuario los cierre.
+    document.querySelectorAll('[data-flash="success"]').forEach(function (el) {
+        setTimeout(function () { dismissFlash(el); }, 4000);
+    });
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-flash-close]');
+        if (btn) dismissFlash(btn.closest('[data-flash]'));
+    });
+
+    // Los LiveComponents (Symfony UX) solo repintan su propio fragmento, no
+    // el layout: sus addFlash() no se veían hasta la siguiente navegación
+    // completa. Este listener recibe el evento dispatchBrowserEvent()
+    // equivalente y monta el flash a mano, reutilizando las plantillas
+    // ocultas de arriba para no duplicar SVGs ni cadenas traducidas en JS.
+    document.addEventListener('flash:show', function (e) {
+        var container = document.querySelector('[data-flash-container]');
+        if (!container) return;
+
+        var type = e.detail && e.detail.type === 'error' ? 'error' : 'success';
+        container.classList.remove('hidden');
+        if (type === 'error') container.setAttribute('aria-live', 'assertive');
+
+        var div = document.createElement('div');
+        div.setAttribute('data-flash', type);
+        div.className = 'flex items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-opacity duration-500 '
+            + (type === 'success'
+                ? 'bg-green-50 border-green-200 text-green-800'
+                : 'bg-red-50 border-red-200 text-red-800');
+
+        var iconTemplate = document.querySelector('[data-flash-icon-template="' + type + '"]');
+        if (iconTemplate) div.appendChild(iconTemplate.content.cloneNode(true));
+
+        var span = document.createElement('span');
+        span.className = 'flex-1';
+        span.textContent = e.detail && e.detail.message ? e.detail.message : '';
+        div.appendChild(span);
+
+        var closeTemplate = document.querySelector('[data-flash-close-template]');
+        if (closeTemplate) div.appendChild(closeTemplate.content.cloneNode(true));
+
+        container.appendChild(div);
+
+        if (type === 'success') {
+            setTimeout(function () { dismissFlash(div); }, 4000);
+        }
+    });
+}());
+</script>
+
+{% endblock %}

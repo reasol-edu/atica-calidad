@@ -1,0 +1,18 @@
+{% props id, name, label, value = '', type = 'text', error = null, mono = false, required = false, placeholder = '', model = null %}
+<div>
+    <label for="{{ id }}" class="block text-sm font-medium text-gray-700 mb-1.5">{{ label }}</label>
+    <input
+        id="{{ id }}"
+        name="{{ name }}"
+        value="{{ value }}"
+        type="{{ type }}"
+        {% if required %}required{% endif %}
+        {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+        {% if model is not null %}data-model="{{ model }}"{% endif %}
+        {{ attributes.without('class') }}
+        class="block w-full rounded-xl border py-2.5 px-3.5 text-sm text-gray-900 transition-colors focus:outline-none focus:ring-3{{ mono ? ' font-mono' : '' }}{{ error is not null ? ' border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-400/20' : ' border-gray-200 bg-gray-50 focus:border-forest-500 focus:bg-white focus:ring-forest-500/20' }}"
+    >
+    {% if error is not null %}
+        <p class="mt-1.5 text-xs text-red-600">{{ error }}</p>
+    {% endif %}
+</div>

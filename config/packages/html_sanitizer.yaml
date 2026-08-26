@@ -1,0 +1,33 @@
+framework:
+    html_sanitizer:
+        sanitizers:
+            app.rich_text:
+                allow_safe_elements: false
+                max_input_length: 50000
+                allow_elements:
+                    p: '*'
+                    br: '*'
+                    strong: '*'
+                    b: '*'
+                    em: '*'
+                    i: '*'
+                    u: '*'
+                    ol: '*'
+                    ul: '*'
+                    li: '*'
+                    h2: '*'
+                    blockquote: '*'
+                    a:
+                        - href
+                force_attributes:
+                    a:
+                        rel: 'noopener noreferrer'
+                allowed_link_schemes:
+                    - http
+                    - https
+                    - mailto
+                drop_attributes:
+                    '*':
+                        - style
+                        - class
+                        - id

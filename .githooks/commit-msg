@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Inserts the commit subject into CHANGELOG.md under [Unreleased]
+
+SUBJECT=$(head -1 "$1")
+REPO_ROOT=$(git rev-parse --show-toplevel)
+CHANGELOG="$REPO_ROOT/CHANGELOG.md"
+
+[[ ! -f "$CHANGELOG" ]] && exit 0
+[[ "$SUBJECT" == *"CHANGELOG"* ]] && exit 0
+
+case "$SUBJECT" in
+    feat*|docs*|core*) SECTION="Added"   ;;
+    fix*)              SECTION="Fixed"   ;;
+    *)                 SECTION="Changed" ;;
+esac
+
+export _SECTION="$SECTION"
+export _ENTRY="$SUBJECT"
+export _CHANGELOG="$CHANGELOG"
+
+python3 << 'PYEOF'
+import os
+
+section  = os.environ['_SECTION']
+entry    = os.environ['_ENTRY']
+path     = os.environ['_CHANGELOG']
+new_line = f'- `{entry}`\n'
+header   = f'### {section}\n'
+
+with open(path) as f:
+    lines = f.readlines()
+
+# Idempotent: skip if entry already present (e.g. on --amend with same message)
+if any(entry in line for line in lines):
+    exit(0)
+
+for i, line in enumerate(lines):
+    if line == header:
+        insert_at = i + 1
+        if insert_at < len(lines) and lines[insert_at] == '\n':
+            insert_at += 1
+        lines.insert(insert_at, new_line)
+        break
+else:
+    # Section missing: create it under [Unreleased]
+    for i, line in enumerate(lines):
+        if line.startswith('## [Unreleased]'):
+            j = i + 1
+            while j < len(lines) and lines[j] == '\n':
+                j += 1
+            lines[j:j] = [header, '\n', new_line, '\n']
+            break
+
+with open(path, 'w') as f:
+    f.writelines(lines)
+PYEOF
+
+git add "$CHANGELOG"
+exit 0

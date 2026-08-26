@@ -1,0 +1,96 @@
+{% import 'components/_sort_header.html.twig' as sort %}
+{% import 'components/_pagination_live.html.twig' as pager %}
+<div {{ attributes }}>
+    {% set pagination = this.pagination %}
+
+    {# Barra de búsqueda #}
+    <div class="px-6 py-3 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
+        <div class="relative flex-1 max-w-xs">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                {{ ux_icon('heroicons:magnifying-glass', {class: 'h-4 w-4 text-gray-400'}) }}
+            </div>
+            <input type="search"
+                   data-model="search"
+                   placeholder="{{ 'centres.search'|trans({}, 'admin') }}"
+                   value="{{ search }}"
+                   class="block w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm
+                          text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none
+                          focus:ring-3 focus:ring-forest-500/20 transition-colors">
+        </div>
+        <svg data-loading class="hidden h-4 w-4 text-forest-500 animate-spin shrink-0 ml-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+        </svg>
+    </div>
+
+    <div data-loading="addClass(opacity-50 pointer-events-none animate-pulse)" class="transition-opacity">
+    {% if pagination.totalItems == 0 %}
+        <div class="px-6 py-16 text-center">
+            {{ ux_icon('heroicons:building-library', {class: 'mx-auto h-10 w-10 text-gray-300 mb-3'}) }}
+            <p class="text-sm text-gray-500">
+                {% if search is not empty %}
+                    {{ 'centres.search_empty'|trans({}, 'admin') }}
+                {% else %}
+                    {{ 'centres.empty'|trans({}, 'admin') }}
+                {% endif %}
+            </p>
+        </div>
+    {% else %}
+        <div class="overflow-x-auto">
+        <table class="table-cards w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-100 bg-gray-50">
+                    {{ sort.th('centres.code'|trans({}, 'admin'), 'code', this.sort, this.sortDir) }}
+                    {{ sort.th('centres.name'|trans({}, 'admin'), 'name', this.sort, this.sortDir) }}
+                    {{ sort.th('centres.city'|trans({}, 'admin'), 'city', this.sort, this.sortDir) }}
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'centres.active_year'|trans({}, 'admin') }}</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'centres.actions'|trans({}, 'admin') }}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for centre in pagination.items %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td data-label="{{ 'centres.code'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-4 font-mono text-xs text-gray-500">{{ centre.code }}</td>
+                        <td data-label="{{ 'centres.name'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-4 font-medium text-gray-900">{{ centre.name }}</td>
+                        <td data-label="{{ 'centres.city'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-4 text-gray-600">{{ centre.city }}</td>
+                        <td data-label="{{ 'centres.active_year'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-4">
+                            {% if centre.activeAcademicYear %}
+                                <span class="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                                    {{ centre.activeAcademicYear.name }}
+                                </span>
+                            {% else %}
+                                <span class="text-gray-400 text-xs">{{ 'centres.no_active_year'|trans({}, 'admin') }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="{{ path('app_admin_centres_edit', {id: centre.id}) }}"
+                                   class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium
+                                          text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors">
+                                    {{ ux_icon('heroicons:pencil-square', {class: 'h-3.5 w-3.5'}) }}
+                                    {{ 'centres.edit'|trans({}, 'admin') }}
+                                </a>
+                                <form method="post"
+                                      action="{{ path('app_admin_centres_delete', {id: centre.id}) }}"
+                                      class="js-confirm-form"
+                                      data-confirm="{{ 'centres.delete_confirm'|trans({}, 'admin')|e('html_attr') }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete_centre_' ~ centre.id) }}">
+                                    <button type="submit"
+                                            class="js-confirm-trigger inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium
+                                                   text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors">
+                                        {{ ux_icon('heroicons:trash', {class: 'h-3.5 w-3.5'}) }}
+                                        {{ 'centres.delete'|trans({}, 'admin') }}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        {{ pager.nav(pagination) }}
+    {% endif %}
+    </div>
+</div>

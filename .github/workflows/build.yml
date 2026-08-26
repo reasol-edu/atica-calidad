@@ -1,0 +1,324 @@
+name: Build ejecutables standalone
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versión del build (p.ej. 1.2.3)"
+        required: true
+        default: "dev"
+
+env:
+  # Actualizar cuando salga una nueva versión estable de FrankenPHP
+  # https://github.com/dunglas/frankenphp/releases
+  FRANKENPHP_VERSION: "1.12.4"
+  PHP_VERSION: "8.4"
+
+# ── Job 1: compilar la aplicación PHP una sola vez ───────────────────────────
+jobs:
+  build-app:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: intl, pdo_sqlite, zip, mbstring, ctype, dom, iconv, libxml
+          coverage: none
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Instalar dependencias PHP (producción)
+        run: |
+          composer install \
+            --no-dev \
+            --prefer-dist \
+            --no-scripts \
+            --no-autoloader \
+            --no-interaction
+          composer dump-autoload \
+            --optimize \
+            --no-dev \
+            --classmap-authoritative
+
+      - name: Compilar assets
+        env:
+          APP_ENV: prod
+          APP_DEBUG: "0"
+          DATABASE_URL: "sqlite:////tmp/ci-build.db"
+          APP_SECRET: "ci-placeholder-secret-0000000000000000"
+        run: |
+          php bin/console importmap:install
+          php bin/console tailwind:build --minify
+          php bin/console asset-map:compile
+
+      - name: Preparar bundle de la aplicación
+        run: |
+          mkdir -p /tmp/app-bundle
+          cp -r \
+            assets bin config migrations public src templates translations vendor \
+            composer.json importmap.php symfony.lock \
+            /tmp/app-bundle/
+          mkdir -p /tmp/app-bundle/var
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-bundle
+          path: /tmp/app-bundle
+          retention-days: 1
+
+# ── Job 2: empaquetar por plataforma ─────────────────────────────────────────
+  package:
+    needs: build-app
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - platform: linux-x86_64
+            fp_asset:   frankenphp-linux-x86_64
+            binary:     frankenphp
+            archive:    tar.gz
+          - platform: linux-aarch64
+            fp_asset:   frankenphp-linux-aarch64
+            binary:     frankenphp
+            archive:    tar.gz
+          - platform: macos-x86_64
+            fp_asset:   frankenphp-mac-x86_64
+            binary:     frankenphp
+            archive:    tar.gz
+          - platform: macos-arm64
+            fp_asset:   frankenphp-mac-arm64
+            binary:     frankenphp
+            archive:    tar.gz
+          - platform: windows-x86_64
+            fp_asset:   frankenphp-windows-x86_64.zip
+            binary:     frankenphp.exe
+            archive:    zip
+
+    steps:
+      - uses: actions/checkout@v4   # necesario para dist/
+
+      - name: Descargar bundle de la aplicación
+        uses: actions/download-artifact@v4
+        with:
+          name: app-bundle
+          path: _app
+
+      - name: Determinar versión
+        id: ver
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ github.event.inputs.version || 'dev' }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Descargar binario FrankenPHP (${{ matrix.platform }})
+        run: |
+          curl -fsSL \
+            "https://github.com/dunglas/frankenphp/releases/download/v${{ env.FRANKENPHP_VERSION }}/${{ matrix.fp_asset }}" \
+            -o fp_asset_download
+          if [[ "${{ matrix.fp_asset }}" == *.zip ]]; then
+            unzip fp_asset_download -d fp_extracted
+          else
+            mkdir -p fp_extracted
+            mv fp_asset_download "fp_extracted/${{ matrix.binary }}"
+            chmod +x "fp_extracted/${{ matrix.binary }}"
+          fi
+
+      - name: Ensamblar paquete
+        env:
+          PKG: gestconv-plus-${{ steps.ver.outputs.version }}-${{ matrix.platform }}
+        run: |
+          mkdir -p "${PKG}/data"
+          cp -r _app "${PKG}/app"
+          cp dist/Caddyfile "${PKG}/Caddyfile"
+          echo "${{ steps.ver.outputs.version }}" > "${PKG}/.version"
+
+          if [[ "${{ matrix.platform }}" == windows* ]]; then
+            # Copiar frankenphp.exe + todas las DLLs del raíz del ZIP
+            find fp_extracted -maxdepth 1 \( -name "frankenphp.exe" -o -name "*.dll" \) \
+              -exec cp {} "${PKG}/" \;
+            # Extensiones PHP (ext/) y soporte SSL (extras/)
+            cp -r fp_extracted/ext     "${PKG}/ext"
+            cp -r fp_extracted/extras  "${PKG}/extras"
+            cp dist/php.ini   "${PKG}/php.ini"
+            cp dist/start.bat "${PKG}/start.bat"
+            cp dist/start.ps1 "${PKG}/start.ps1"
+            cp dist/demo.bat  "${PKG}/demo.bat"
+            cp dist/demo.ps1  "${PKG}/demo.ps1"
+          else
+            cp "fp_extracted/${{ matrix.binary }}" "${PKG}/${{ matrix.binary }}"
+            chmod +x "${PKG}/${{ matrix.binary }}"
+            cp dist/start.sh "${PKG}/start.sh"
+            chmod +x "${PKG}/start.sh"
+            cp dist/demo.sh "${PKG}/demo.sh"
+            chmod +x "${PKG}/demo.sh"
+            # macOS: lanzador de demostración abrible con doble clic en el Finder
+            if [[ "${{ matrix.platform }}" == macos* ]]; then
+              cp dist/demo.command "${PKG}/demo.command"
+              chmod +x "${PKG}/demo.command"
+            fi
+          fi
+
+          echo "PKG=${PKG}" >> "$GITHUB_ENV"
+
+      - name: Crear archivo tar.gz
+        if: matrix.archive == 'tar.gz'
+        run: tar czf "${PKG}.tar.gz" "${PKG}"
+
+      - name: Crear archivo zip
+        if: matrix.archive == 'zip'
+        run: zip -r "${PKG}.zip" "${PKG}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gestconv-plus-${{ matrix.platform }}
+          path: gestconv-plus-*.${{ matrix.archive }}
+
+# ── Job 3: generar la documentación (manual, presentación y web) ─────────────
+  docs:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy_pages: ${{ steps.stable.outputs.deploy }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # todos los tags para calcular el estable más alto
+
+      - name: ¿Tag estable e igual o más nuevo?
+        id: stable
+        run: |
+          REF="${{ github.ref_name }}"
+          if [[ "${{ github.ref_type }}" != "tag" ]] || [[ "$REF" == *-* ]]; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Despliega si REF es igual o más nuevo que cualquier otra versión
+          # estable; es decir, no existe ninguna etiqueta estable estrictamente
+          # superior (permite re-publicar la misma versión).
+          NEWER=$(git tag --list 'v*' | grep -vE '[-]' | sort -V \
+                    | awk -v r="$REF" 'found {print} $0 == r {found=1}')
+          if [[ -z "$NEWER" ]]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Instalar pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
+      - name: Instalar MkDocs Material
+        run: pip install -r docs/manual/requirements.txt
+
+      - name: Determinar versión
+        id: ver
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ github.event.inputs.version || 'dev' }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generar manual, presentación y web
+        env:
+          # Reutiliza el Chrome preinstalado del runner para pagedjs-cli y marp-cli
+          # (evita descargar un Chromium aparte).
+          CHROME_PATH: /usr/bin/google-chrome
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
+        run: make slides docs-pdf docs-web cheatsheets
+
+      - name: Ensamblar activos con sufijo de versión
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          mkdir -p _docs-dist
+          cp docs/manual/gestconv-plus-manual.pdf "_docs-dist/gestconv-plus-manual-${VERSION}.pdf"
+          cp docs/slides/gestconv-plus.pdf        "_docs-dist/gestconv-plus-presentacion-${VERSION}.pdf"
+          (cd docs/manual-site && zip -r "../../_docs-dist/gestconv-plus-manual-web-${VERSION}.zip" .)
+          for f in docs/cheatsheets/ficha-*.pdf; do
+            name=$(basename "$f" .pdf)
+            cp "$f" "_docs-dist/gestconv-plus-${name}-${VERSION}.pdf"
+          done
+          (cd _docs-dist && zip "gestconv-plus-documentacion-${VERSION}.zip" ./*.pdf)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gestconv-plus-docs
+          path: _docs-dist/*
+
+      - name: Subir artefacto de Pages (solo última versión estable)
+        if: steps.stable.outputs.deploy == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/manual-site
+
+# ── Job 4: crear release en GitHub (solo para tags) ──────────────────────────
+  release:
+    if: github.ref_type == 'tag'
+    needs: [package, docs]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Descargar todos los artefactos
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gestconv-plus-*
+          merge-multiple: true
+
+      - name: Publicar GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            gestconv-plus-*.tar.gz
+            gestconv-plus-*.zip
+            gestconv-plus-manual-*.pdf
+            gestconv-plus-presentacion-*.pdf
+            gestconv-plus-ficha-*.pdf
+            gestconv-plus-manual-web-*.zip
+            gestconv-plus-documentacion-*.zip
+          # body: " " (un espacio, no "") es intencional: la acción calcula
+          # `body = workflowBody || existingReleaseBody`, y en JS "" es
+          # falsy, así que un body vacío seguía cayendo al body del release
+          # anterior (que ya incluía el "Full Changelog" del run previo) y
+          # generate_release_notes lo anteponía de nuevo en cada rerelease.
+          # Un espacio es "truthy" y evita ese fallback.
+          body: " "
+          generate_release_notes: true
+
+# ── Job 5: publicar la web en GitHub Pages (solo última versión estable) ─────
+  deploy-pages:
+    needs: docs
+    if: needs.docs.outputs.deploy_pages == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Desplegar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

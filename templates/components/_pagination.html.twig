@@ -1,0 +1,76 @@
+{#
+  Componente de paginación reutilizable.
+
+  Variables:
+    pagination  (App\Pagination\Paginator)  — objeto paginador
+    route       (string)                    — nombre de la ruta de la página actual
+    route_params (array, opcional)          — parámetros base de la ruta
+#}
+{% set base_params = route_params|default({}) %}
+
+{% if pagination.totalPages > 1 %}
+<div class="flex items-center justify-between border-t border-gray-100 px-6 py-3 gap-4 flex-wrap">
+
+    {# Resumen #}
+    <p class="text-xs text-gray-500 shrink-0">
+        {{ 'pagination.summary'|trans({
+            '%from%':  pagination.firstItemIndex,
+            '%to%':    pagination.lastItemIndex,
+            '%total%': pagination.totalItems,
+        }) }}
+    </p>
+
+    {# Botones de página #}
+    <nav class="flex items-center gap-1" aria-label="{{ 'pagination.nav_label'|trans }}">
+
+        {# Anterior #}
+        {% if pagination.hasPreviousPage %}
+            <a href="{{ path(route, base_params|merge({page: pagination.previousPage})) }}"
+               class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-200 text-gray-500
+                      hover:bg-gray-50 hover:border-gray-300 transition-colors"
+               aria-label="{{ 'pagination.previous'|trans }}">
+                {{ ux_icon('heroicons:chevron-left', {class: 'h-4 w-4'}) }}
+            </a>
+        {% else %}
+            <span class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-100 text-gray-300 cursor-not-allowed">
+                {{ ux_icon('heroicons:chevron-left', {class: 'h-4 w-4'}) }}
+            </span>
+        {% endif %}
+
+        {# Números de página #}
+        {% for page in pagination.pageRange %}
+            {% if page is null %}
+                <span class="inline-flex items-center justify-center h-8 px-1 text-xs text-gray-400 select-none">…</span>
+            {% elseif page == pagination.currentPage %}
+                <span class="inline-flex items-center justify-center h-8 min-w-8 px-2 rounded-lg
+                             bg-forest-600 text-white text-xs font-semibold"
+                      aria-current="page">
+                    {{ page }}
+                </span>
+            {% else %}
+                <a href="{{ path(route, base_params|merge({page: page})) }}"
+                   class="inline-flex items-center justify-center h-8 min-w-8 px-2 rounded-lg border border-gray-200
+                          text-gray-600 text-xs hover:bg-gray-50 hover:border-gray-300 transition-colors">
+                    {{ page }}
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {# Siguiente #}
+        {% if pagination.hasNextPage %}
+            <a href="{{ path(route, base_params|merge({page: pagination.nextPage})) }}"
+               class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-200 text-gray-500
+                      hover:bg-gray-50 hover:border-gray-300 transition-colors"
+               aria-label="{{ 'pagination.next'|trans }}">
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            </a>
+        {% else %}
+            <span class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-100 text-gray-300 cursor-not-allowed">
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            </span>
+        {% endif %}
+
+    </nav>
+</div>
+{% endif %}
+

@@ -1,0 +1,44 @@
+security:
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
+    providers:
+        app_teachers:
+            entity:
+                class: App\Entity\Teacher
+                property: username
+
+    firewalls:
+        dev:
+            pattern: ^/(_profiler|_wdt|assets|build)/
+            security: false
+        main:
+            lazy: true
+            provider: app_teachers
+            custom_authenticators:
+                - App\Security\TeacherAuthenticator
+            entry_point: App\Security\TeacherAuthenticator
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
+            logout:
+                path: app_logout
+                target: app_login
+            switch_user:
+                role: ROLE_ADMIN
+
+    access_control:
+        - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: '^/contrasena/', roles: PUBLIC_ACCESS }
+        - { path: '^/perfil/verificar-email', roles: PUBLIC_ACCESS }
+        - { path: ^/admin, roles: ROLE_ADMIN }
+        - { path: ^/, roles: ROLE_TEACHER }
+
+when@test:
+    security:
+        password_hashers:
+            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+                algorithm: auto
+                cost: 4
+                time_cost: 3
+                memory_cost: 10

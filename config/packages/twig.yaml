@@ -1,0 +1,11 @@
+twig:
+    file_name_pattern: '*.twig'
+    globals:
+        app_name: '%app.name%'
+        app_repository: 'https://github.com/reasol-edu/gestconv-plus'
+        app_version: '%app.version%'
+        app_pub_date: '%app.pub_date%'
+
+when@test:
+    twig:
+        strict_variables: true

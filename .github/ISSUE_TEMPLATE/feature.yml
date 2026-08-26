@@ -1,0 +1,43 @@
+name: Propuesta de mejora
+description: Sugerir una nueva funcionalidad o mejora en la aplicación
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: ¿Qué problema resuelve?
+      description: Describe la situación actual y por qué resulta un problema o una limitación.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: role
+    attributes:
+      label: Rol principalmente beneficiado
+      options:
+        - Administrador global
+        - Administrador de centro
+        - Tutor/a de grupo
+        - Comisión de convivencia
+        - Orientador/a
+        - Docente
+        - Todos los roles
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solución propuesta
+      description: Describe cómo debería funcionar la mejora.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: ¿Has pensado en otras formas de resolver el problema?
+    validations:
+      required: false

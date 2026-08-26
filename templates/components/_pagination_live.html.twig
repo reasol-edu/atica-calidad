@@ -1,0 +1,66 @@
+{#
+   Paginación para Live Components (botones que disparan `live#action setPage`)
+   con campo «ir a página». Reutilizable desde cualquier listado Live.
+#}
+{% macro nav(pagination, wrapperClass = 'border-t border-gray-100 px-6 py-3', pageAction = 'setPage') %}
+    {% if pagination.totalPages > 1 %}
+        <div class="flex items-center justify-between {{ wrapperClass }} gap-4 flex-wrap">
+            <p class="text-xs text-gray-500 shrink-0">
+                {{ 'pagination.summary'|trans({'%from%': pagination.firstItemIndex, '%to%': pagination.lastItemIndex, '%total%': pagination.totalItems}) }}
+            </p>
+            <div class="flex items-center gap-3 flex-wrap">
+                <form data-controller="goto-page" data-goto-page-max-value="{{ pagination.totalPages }}"
+                      data-action="goto-page#go"
+                      class="flex items-center gap-1.5">
+                    <label for="goto-page-{{ pagination.currentPage }}" class="text-xs text-gray-500">{{ 'pagination.goto_label'|trans }}</label>
+                    <input id="goto-page-{{ pagination.currentPage }}" type="number" inputmode="numeric"
+                           data-goto-page-target="input"
+                           min="1" max="{{ pagination.totalPages }}" value="{{ pagination.currentPage }}"
+                           aria-label="{{ 'pagination.goto_label'|trans }}"
+                           class="w-16 rounded-lg border border-gray-200 bg-white py-1 px-2 text-xs text-gray-900
+                                  focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
+                    <button type="submit"
+                            class="inline-flex items-center justify-center h-7 px-2 rounded-lg border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 hover:border-gray-300 transition-colors">
+                        {{ 'pagination.goto'|trans }}
+                    </button>
+                </form>
+                <nav class="flex items-center gap-1" aria-label="{{ 'pagination.nav_label'|trans }}">
+                    {% if pagination.hasPreviousPage %}
+                        <button data-action="live#action" data-live-action-param="{{ pageAction }}" data-live-page-param="{{ pagination.previousPage }}"
+                                aria-label="{{ 'pagination.previous'|trans }}"
+                                class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-colors">
+                            {{ ux_icon('heroicons:chevron-left', {class: 'h-4 w-4'}) }}
+                        </button>
+                    {% else %}
+                        <span class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-200 text-gray-400 cursor-not-allowed">
+                            {{ ux_icon('heroicons:chevron-left', {class: 'h-4 w-4'}) }}
+                        </span>
+                    {% endif %}
+                    {% for p in pagination.pageRange %}
+                        {% if p is null %}
+                            <span class="inline-flex items-center justify-center h-8 px-1 text-xs text-gray-400 select-none">…</span>
+                        {% elseif p == pagination.currentPage %}
+                            <span class="inline-flex items-center justify-center h-8 min-w-8 px-2 rounded-lg bg-forest-600 text-white text-xs font-semibold">{{ p }}</span>
+                        {% else %}
+                            <button data-action="live#action" data-live-action-param="{{ pageAction }}" data-live-page-param="{{ p }}"
+                                    class="inline-flex items-center justify-center h-8 min-w-8 px-2 rounded-lg border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 hover:border-gray-300 transition-colors">
+                                {{ p }}
+                            </button>
+                        {% endif %}
+                    {% endfor %}
+                    {% if pagination.hasNextPage %}
+                        <button data-action="live#action" data-live-action-param="{{ pageAction }}" data-live-page-param="{{ pagination.nextPage }}"
+                                aria-label="{{ 'pagination.next'|trans }}"
+                                class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-colors">
+                            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+                        </button>
+                    {% else %}
+                        <span class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-200 text-gray-400 cursor-not-allowed">
+                            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+                        </span>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    {% endif %}
+{% endmacro %}

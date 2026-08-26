@@ -1,0 +1,92 @@
+app:
+    welcome: "¡Hola!"
+
+# Acciones globales
+ui.cancel: 'Cancelar'
+ui.close: 'Cerrar'
+ui.confirm_delete: 'Sí, eliminar'
+ui.yes: 'Sí'
+ui.export_started: 'Generando el archivo Excel…'
+ui.edit: 'Editar'
+ui.delete: 'Eliminar'
+ui.move_up: 'Subir'
+ui.move_down: 'Bajar'
+ui.move_up_category: 'Subir categoría'
+ui.move_down_category: 'Bajar categoría'
+
+# Formato de fecha y hora
+format.date: 'd/m/Y'
+format.datetime: 'd/m/Y H:i'
+format.time: 'H:i'
+
+# Perfil del usuario
+profile.title: 'Mi perfil'
+profile.tab.personal: 'Datos personales'
+profile.section.personal: 'Datos personales'
+profile.section.password: 'Cambiar contraseña'
+profile.save: 'Guardar cambios'
+profile.badge.external: 'Usuario IdEA (Séneca)'
+
+profile.field.first_name: 'Nombre'
+profile.field.last_name: 'Apellidos'
+profile.field.username: 'Nombre de usuario'
+profile.field.username_help: 'El nombre de usuario no se puede modificar.'
+profile.field.email: 'Correo electrónico'
+profile.field.current_password: 'Contraseña actual'
+profile.field.new_password: 'Nueva contraseña'
+profile.field.new_password_help: 'Dejar en blanco para no cambiar la contraseña'
+profile.field.new_password_confirm: 'Confirmar nueva contraseña'
+
+profile.password.external_notice: 'Tu contraseña la gestiona tu usuario IdEA (Séneca). Para cambiarla, accede al portal de la Junta de Andalucía.'
+
+profile.error.first_name_required: 'El nombre es obligatorio.'
+profile.error.last_name_required: 'Los apellidos son obligatorios.'
+profile.error.email_invalid: 'El correo electrónico no tiene un formato válido.'
+profile.error.current_password_required: 'Introduce tu contraseña actual para confirmar el cambio.'
+profile.error.current_password_invalid: 'La contraseña actual no es correcta.'
+profile.error.password_mismatch: 'Las contraseñas no coinciden.'
+profile.error.password_too_short: 'La contraseña debe tener al menos %min% caracteres.'
+profile.error.email_taken: 'Ese correo ya lo usa otra cuenta. Indica una dirección distinta.'
+profile.hint.password_policy: 'Mínimo %min% caracteres.'
+
+profile.flash.saved: 'Perfil guardado correctamente.'
+profile.flash.email_verification_sent: 'Hemos enviado un enlace de verificación a tu nueva dirección de correo. Confirma el cambio haciendo clic en el enlace antes de 24 horas.'
+profile.flash.email_verified: 'Correo verificado y actualizado correctamente.'
+profile.flash.email_verification_expired: 'El enlace de verificación ha caducado. Vuelve a cambiar tu correo para recibir uno nuevo.'
+profile.flash.email_verification_invalid: 'El enlace de verificación no es válido.'
+profile.notice.email_pending: 'Tienes un cambio de correo pendiente de verificación: <strong>%email%</strong>. Revisa tu bandeja de entrada.'
+
+# Recuperación de contraseña
+password_reset.page_title.request: 'Recuperar contraseña'
+password_reset.page_title.reset: 'Nueva contraseña'
+password_reset.request.intro: 'Introduce tu nombre de usuario y te enviaremos un enlace para restablecer tu contraseña a la dirección de correo que tienes configurada en tu cuenta.'
+password_reset.request.username_label: 'Nombre de usuario'
+password_reset.request.submit: 'Enviar enlace'
+password_reset.request.back_to_login: 'Volver al inicio de sesión'
+password_reset.request.sent_title: 'Revisa tu correo'
+password_reset.request.sent_body: 'Si existe una cuenta con ese nombre de usuario, con un correo configurado y sin acceso externo, recibirás un mensaje con un enlace válido durante 1 hora.'
+password_reset.reset.intro: 'Elige una nueva contraseña para tu cuenta.'
+password_reset.reset.password_label: 'Nueva contraseña'
+password_reset.reset.confirm_label: 'Confirmar nueva contraseña'
+password_reset.reset.submit: 'Guardar nueva contraseña'
+password_reset.flash.success: 'Contraseña actualizada. Ya puedes iniciar sesión con la nueva contraseña.'
+password_reset.flash.token_invalid: 'El enlace de recuperación no es válido o ha caducado. Solicita uno nuevo.'
+password_reset.error.password_required: 'Introduce una nueva contraseña.'
+password_reset.error.too_many_requests: 'Demasiadas solicitudes. Inténtalo de nuevo en unos minutos.'
+ui.error.invalid_csrf: 'La sesión ha caducado. Vuelve a intentarlo.'
+
+# Cambio de contraseña obligatorio
+force_password_change.title: 'Cambio de contraseña obligatorio'
+force_password_change.hero: 'Por seguridad, un administrador ha solicitado que cambies tu contraseña antes de continuar.'
+force_password_change.intro: 'Un administrador ha activado el cambio obligatorio de contraseña en tu cuenta. Debes establecer una nueva contraseña para poder seguir usando la aplicación.'
+force_password_change.submit: 'Cambiar contraseña'
+force_password_change.logout: '¿Prefieres no cambiarla ahora? Cerrar sesión'
+force_password_change.flash.success: 'Contraseña actualizada correctamente.'
+
+# Paginación
+pagination.summary: 'Mostrando %from%–%to% de %total%'
+pagination.previous: 'Página anterior'
+pagination.next: 'Página siguiente'
+pagination.nav_label: 'Navegación de páginas'
+pagination.goto: 'Ir'
+pagination.goto_label: 'Ir a la página'

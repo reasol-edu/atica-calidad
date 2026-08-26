@@ -1,0 +1,43 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'settings.teacher.title'|trans({}, 'settings') }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-2xl mx-auto space-y-8">
+
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_dashboard') }}" class="hover:text-forest-600 transition-colors">
+                {{ 'dashboard'|trans({}, 'navigation') }}
+            </a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'profile.title'|trans({}, 'messages') }}</h1>
+    </div>
+
+    {# ── Tabs ─────────────────────────────────────────────────────────────── #}
+    <div class="flex gap-1 rounded-xl bg-gray-100 p-1">
+        <a href="{{ path('app_profile') }}"
+           class="flex-1 rounded-lg py-2 text-center text-sm font-medium transition-colors
+                  text-gray-600 hover:text-gray-900">
+            {{ 'profile.tab.personal'|trans({}, 'messages') }}
+        </a>
+        <a href="{{ path('app_profile_settings') }}"
+           class="flex-1 rounded-lg bg-white py-2 text-center text-sm font-medium shadow-xs
+                  text-gray-900 transition-colors">
+            {{ 'settings.title'|trans({}, 'settings') }}
+        </a>
+    </div>
+
+    {# ── Ajustes del docente ────────────────────────────────────────────── #}
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+        <div class="flex items-center gap-2 px-6 py-4 border-b border-gray-100">
+            {{ ux_icon('heroicons:adjustments-horizontal', {class: 'h-4 w-4 text-forest-500'}) }}
+            <h2 class="text-sm font-semibold text-gray-700">{{ 'settings.teacher.title'|trans({}, 'settings') }}</h2>
+        </div>
+        <twig:SettingsComponent scope="teacher" />
+    </div>
+
+</div>
+{% endblock %}

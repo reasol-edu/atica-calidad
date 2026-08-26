@@ -1,0 +1,32 @@
+###> Overlay de DESARROLLO ───────────────────────────────────────────────────
+# Overlay para DESARROLLO. A diferencia de un compose.override.yaml, NO se
+# carga de forma automática: hay que combinarlo de forma explícita con el
+# fichero base para que NO afecte a producción:
+#
+#   docker compose -f compose.yaml -f compose.dev.yaml up -d
+#
+# Así, en producción «docker compose up -d» usa solo compose.yaml y levanta
+# la aplicación y la base de datos, sin exponer el puerto de PostgreSQL.
+#
+# En desarrollo se arranca solo la base de datos; la aplicación PHP se sirve
+# con:  symfony server:start
+##############################################################################
+
+services:
+
+  # Los servicios app y worker quedan tras el perfil "production": con el comando
+  # de desarrollo de arriba NO se levantan (la app se sirve con Symfony CLI y el
+  # worker de Messenger se lanza con «php bin/console messenger:consume» o no se
+  # usa). Para arrancarlos igualmente:
+  #   docker compose -f compose.yaml -f compose.dev.yaml --profile production up -d
+  app:
+    profiles:
+      - production
+
+  worker:
+    profiles:
+      - production
+
+  database:
+    ports:
+      - "5432:5432"

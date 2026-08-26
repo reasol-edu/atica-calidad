@@ -1,0 +1,25 @@
+framework:
+    messenger:
+        failure_transport: failed
+
+        transports:
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'   # doctrine://default?auto_setup=0
+                retry_strategy:
+                    max_retries: 3
+                    delay: 30000
+                    multiplier: 4
+            failed: 'doctrine://default?queue_name=failed&auto_setup=0'
+            sync: 'sync://'
+
+        routing:
+            # Los emails (verificación de email, notificaciones de tutoría/firma) se
+            # envían en segundo plano. El reset de contraseña NO usa el bus: se envía
+            # de forma síncrona vía TransportInterface por ser urgente (token de 1 h).
+            'Symfony\Component\Mailer\Messenger\SendEmailMessage': async
+
+when@test:
+    framework:
+        messenger:
+            routing:
+                'Symfony\Component\Mailer\Messenger\SendEmailMessage': sync

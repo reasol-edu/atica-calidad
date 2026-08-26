@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}{{ 'app.welcome'|trans }} · {{ app_name }}{% endblock %}</title>
+        <link rel="icon" type="image/png" href="{{ asset('static/favicon-96x96.png') }}" sizes="96x96" />
+        <link rel="icon" type="image/svg+xml" href="{{ asset('static/favicon.svg') }}" />
+        <link rel="shortcut icon" href="{{ asset('static/favicon.ico') }}" />
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('static/apple-touch-icon.png') }}" />
+        <link rel="manifest" href="{{ asset('static/site.webmanifest') }}" />
+        <meta name="theme-color" content="#ffffff">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="{{ app_name }}">
+        {% block stylesheets %}{% endblock %}
+        {% block javascripts %}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
+        {% endblock %}
+    </head>
+    <body class="h-full font-sans antialiased">
+        {% block body %}{% endblock %}
+    </body>
+</html>

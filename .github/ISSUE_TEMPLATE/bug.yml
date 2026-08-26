@@ -1,0 +1,61 @@
+name: Error en la aplicación
+description: Reportar un comportamiento incorrecto o inesperado
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: ¿Qué ocurre?
+      description: Describe el error y qué esperabas que pasara en su lugar.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      placeholder: |
+        1. Ir a…
+        2. Hacer clic en…
+        3. Ver el error
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Versión de la aplicación
+      placeholder: "p. ej. 1.2.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Modo de despliegue
+      options:
+        - Docker
+        - Instalación nativa (Linux / macOS)
+        - Instalación nativa (Windows)
+        - Ubuntu 26.04
+        - Plesk
+        - Desarrollo local
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Navegador
+      placeholder: "p. ej. Firefox 127, Chrome 125"
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Información adicional
+      description: Capturas de pantalla, mensajes de error, logs…
+    validations:
+      required: false

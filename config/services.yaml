@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+# See also https://symfony.com/doc/current/service_container/import.html
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    # Versión de la aplicación
+    app.name:                   "ÁTICA Calidad"
+    app.version:                "0.1.0"
+    app.pub_date:               "2026-08-26"
+    # Tiempo mínimo (en microsegundos) que tarda la rama POST de la solicitud
+    # de restablecimiento de contraseña. Iguala las dos ramas (usuario existe /
+    # no existe) para que el envío síncrono del correo no permita enumerar
+    # cuentas por timing. En el entorno de tests se anula (services_test.yaml).
+    app.password_reset.request_min_duration_us: 900000
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
+
+
+

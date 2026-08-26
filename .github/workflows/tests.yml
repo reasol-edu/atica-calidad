@@ -1,0 +1,49 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+
+    env:
+      APP_ENV: test
+      APP_SECRET: test-secret-for-ci-only
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: intl, pdo_sqlite, mbstring, ctype, dom, iconv, libxml
+          coverage: none
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Instalar dependencias
+        run: composer install --prefer-dist --no-interaction
+
+      - name: Cachear binario de Tailwind
+        uses: actions/cache@v4
+        with:
+          path: var/tailwind/v4.1.11
+          key: tailwind-v4.1.11-linux-x64
+
+      - name: Compilar Tailwind CSS
+        run: php bin/console tailwind:build
+
+      - name: Calentar caché de test
+        run: php bin/console cache:warmup
+
+      - name: Pre-compilar íconos para los tests
+        run: php bin/console ux:icons:warm-cache
+
+      - name: Ejecutar tests
+        run: php bin/phpunit

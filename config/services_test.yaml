@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+# Sobrescrituras solo para el entorno de test. Se carga después de services.yaml,
+# así que prevalece sobre el autowiring por defecto de App\.
+when@test:
+    parameters:
+        # En tests se desactiva el padding anti-timing del reset de contraseña
+        # para no añadir ~900 ms a cada POST a /contrasena/recuperar.
+        app.password_reset.request_min_duration_us: 0
