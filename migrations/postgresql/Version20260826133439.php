@@ -45,6 +45,12 @@ final class Version20260826133439 extends AbstractMigration
         $this->addSql('CREATE TABLE educational_centre_internal_auditors (educational_centre_id UUID NOT NULL, teacher_id UUID NOT NULL, PRIMARY KEY (educational_centre_id, teacher_id))');
         $this->addSql('CREATE INDEX IDX_EE6B277561F9EE23 ON educational_centre_internal_auditors (educational_centre_id)');
         $this->addSql('CREATE INDEX IDX_EE6B277541807E1D ON educational_centre_internal_auditors (teacher_id)');
+        $this->addSql('CREATE TABLE specific_profile (id UUID NOT NULL, name VARCHAR(255) NOT NULL, position INT NOT NULL, parent_id UUID DEFAULT NULL, educational_centre_id UUID NOT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE INDEX IDX_72B5CDE4727ACA70 ON specific_profile (parent_id)');
+        $this->addSql('CREATE INDEX IDX_72B5CDE461F9EE23 ON specific_profile (educational_centre_id)');
+        $this->addSql('CREATE TABLE specific_profile_teacher (specific_profile_id UUID NOT NULL, teacher_id UUID NOT NULL, PRIMARY KEY (specific_profile_id, teacher_id))');
+        $this->addSql('CREATE INDEX IDX_A7FBA311DF5533E ON specific_profile_teacher (specific_profile_id)');
+        $this->addSql('CREATE INDEX IDX_A7FBA31141807E1D ON specific_profile_teacher (teacher_id)');
         $this->addSql('CREATE TABLE email_notification_log (id UUID NOT NULL, recipient_name VARCHAR(200) NOT NULL, event_key VARCHAR(50) NOT NULL, subject VARCHAR(255) NOT NULL, success BOOLEAN NOT NULL, error_message TEXT DEFAULT NULL, sent_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, educational_centre_id UUID NOT NULL, recipient_id UUID DEFAULT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE INDEX IDX_E8B54561F9EE23 ON email_notification_log (educational_centre_id)');
         $this->addSql('CREATE INDEX idx_enl_centre_sent ON email_notification_log (educational_centre_id, sent_at)');
@@ -99,6 +105,10 @@ final class Version20260826133439 extends AbstractMigration
         $this->addSql('ALTER TABLE educational_centre_quality_managers ADD CONSTRAINT FK_155CABE41807E1D FOREIGN KEY (teacher_id) REFERENCES teacher (id) ON DELETE CASCADE');
         $this->addSql('ALTER TABLE educational_centre_internal_auditors ADD CONSTRAINT FK_EE6B277561F9EE23 FOREIGN KEY (educational_centre_id) REFERENCES educational_centre (id) ON DELETE CASCADE');
         $this->addSql('ALTER TABLE educational_centre_internal_auditors ADD CONSTRAINT FK_EE6B277541807E1D FOREIGN KEY (teacher_id) REFERENCES teacher (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE specific_profile ADD CONSTRAINT FK_72B5CDE4727ACA70 FOREIGN KEY (parent_id) REFERENCES specific_profile (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE specific_profile ADD CONSTRAINT FK_72B5CDE461F9EE23 FOREIGN KEY (educational_centre_id) REFERENCES educational_centre (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE specific_profile_teacher ADD CONSTRAINT FK_A7FBA311DF5533E FOREIGN KEY (specific_profile_id) REFERENCES specific_profile (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE specific_profile_teacher ADD CONSTRAINT FK_A7FBA31141807E1D FOREIGN KEY (teacher_id) REFERENCES teacher (id) ON DELETE CASCADE');
         $this->addSql('ALTER TABLE email_notification_log ADD CONSTRAINT FK_E8B54561F9EE23 FOREIGN KEY (educational_centre_id) REFERENCES educational_centre (id) ON DELETE CASCADE NOT DEFERRABLE');
         $this->addSql('ALTER TABLE email_notification_log ADD CONSTRAINT FK_E8B545E92F8F78 FOREIGN KEY (recipient_id) REFERENCES teacher (id) ON DELETE SET NULL NOT DEFERRABLE');
         $this->addSql('ALTER TABLE global_setting_value ADD CONSTRAINT FK_466B8E04D11EA911 FOREIGN KEY (definition_id) REFERENCES setting_definition (id) NOT DEFERRABLE');
@@ -134,6 +144,10 @@ final class Version20260826133439 extends AbstractMigration
         $this->addSql('ALTER TABLE educational_centre_quality_managers DROP CONSTRAINT FK_155CABE41807E1D');
         $this->addSql('ALTER TABLE educational_centre_internal_auditors DROP CONSTRAINT FK_EE6B277561F9EE23');
         $this->addSql('ALTER TABLE educational_centre_internal_auditors DROP CONSTRAINT FK_EE6B277541807E1D');
+        $this->addSql('ALTER TABLE specific_profile DROP CONSTRAINT FK_72B5CDE4727ACA70');
+        $this->addSql('ALTER TABLE specific_profile DROP CONSTRAINT FK_72B5CDE461F9EE23');
+        $this->addSql('ALTER TABLE specific_profile_teacher DROP CONSTRAINT FK_A7FBA311DF5533E');
+        $this->addSql('ALTER TABLE specific_profile_teacher DROP CONSTRAINT FK_A7FBA31141807E1D');
         $this->addSql('ALTER TABLE email_notification_log DROP CONSTRAINT FK_E8B54561F9EE23');
         $this->addSql('ALTER TABLE email_notification_log DROP CONSTRAINT FK_E8B545E92F8F78');
         $this->addSql('ALTER TABLE global_setting_value DROP CONSTRAINT FK_466B8E04D11EA911');
@@ -158,6 +172,8 @@ final class Version20260826133439 extends AbstractMigration
         $this->addSql('DROP TABLE educational_centre_admins');
         $this->addSql('DROP TABLE educational_centre_quality_managers');
         $this->addSql('DROP TABLE educational_centre_internal_auditors');
+        $this->addSql('DROP TABLE specific_profile');
+        $this->addSql('DROP TABLE specific_profile_teacher');
         $this->addSql('DROP TABLE email_notification_log');
         $this->addSql('DROP TABLE global_setting_value');
         $this->addSql('DROP TABLE "group"');

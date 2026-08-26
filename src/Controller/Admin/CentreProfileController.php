@@ -34,6 +34,9 @@ class CentreProfileController extends AbstractController
     {
         $centre = $this->requireCentre($centreId);
 
+        $requestedTab = $request->query->getString('tab');
+        $tab          = $requestedTab === 'specific' ? 'specific' : 'global';
+
         /** @var Teacher[] $selectedQualityManagers */
         $selectedQualityManagers = $centre->getQualityManagers()->toArray();
         /** @var Teacher[] $selectedInternalAuditors */
@@ -71,11 +74,12 @@ class CentreProfileController extends AbstractController
 
             $this->addFlash('success', $this->t('centre_profiles.flash.saved'));
 
-            return $this->redirectToRoute('app_centre_profiles_index', ['centreId' => $centre->getId()]);
+            return $this->redirectToRoute('app_centre_profiles_index', ['centreId' => $centre->getId(), 'tab' => 'global']);
         }
 
         return $this->render('admin/centre_profile/index.html.twig', [
             'centre'                   => $centre,
+            'tab'                      => $tab,
             'selectedQualityManagers'  => $selectedQualityManagers,
             'selectedInternalAuditors' => $selectedInternalAuditors,
         ]);

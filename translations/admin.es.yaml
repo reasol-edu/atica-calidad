@@ -351,6 +351,54 @@ centre_profiles.internal_auditors.help: 'Realiza las auditorías internas del si
 centre_profiles.save: 'Guardar'
 centre_profiles.flash.saved: 'Perfiles actualizados correctamente.'
 
+centre_profiles.tabs.aria: 'Pestañas de perfiles'
+centre_profiles.tabs.global: 'Perfiles globales'
+centre_profiles.tabs.specific: 'Perfiles específicos'
+
+centre_profiles.specific.help: 'Crea una jerarquía propia de perfiles para este centro, con hasta dos niveles. Solo se pueden asignar docentes a los perfiles que no tengan subperfiles.'
+centre_profiles.specific.no_active_year: 'Este centro no tiene un curso académico activo. Establece uno activo para gestionar los perfiles específicos.'
+
+centre_profiles.specific.col.roots: 'Perfiles raíz'
+centre_profiles.specific.col.children: 'Subperfiles'
+centre_profiles.specific.placeholder.children: 'Selecciona un perfil raíz para ver sus subperfiles.'
+centre_profiles.specific.roots.empty: 'No hay perfiles raíz todavía.'
+centre_profiles.specific.children.empty: 'Este perfil raíz no tiene subperfiles todavía.'
+
+centre_profiles.specific.field.root_name_placeholder: 'ej: Docente'
+centre_profiles.specific.field.child_name_placeholder: 'ej: Docente ESO/Bach'
+centre_profiles.specific.field.name: 'Nombre del perfil'
+centre_profiles.specific.add: 'Añadir'
+
+centre_profiles.specific.badge.children_one: 'subperfil'
+centre_profiles.specific.badge.children_other: 'subperfiles'
+
+centre_profiles.specific.detail.title: 'Editar perfil'
+centre_profiles.specific.detail.save: 'Guardar cambios'
+centre_profiles.specific.detail.move_up: 'Subir'
+centre_profiles.specific.detail.move_down: 'Bajar'
+centre_profiles.specific.detail.delete: 'Eliminar'
+centre_profiles.specific.detail.confirm_yes: 'Sí, eliminar'
+centre_profiles.specific.detail.cancel: 'Cancelar'
+centre_profiles.specific.delete_confirm_leaf: '¿Eliminar este perfil? Se eliminarán también sus docentes asignados.'
+centre_profiles.specific.delete_confirm_parent: '¿Eliminar este perfil? Se eliminarán también sus subperfiles y los docentes que tengan asignados.'
+
+centre_profiles.specific.error.name_required: 'El nombre es obligatorio.'
+centre_profiles.specific.error.not_assignable: 'No se pueden asignar docentes a un perfil que tiene subperfiles.'
+centre_profiles.specific.error.parent_has_teachers: 'Este perfil tiene docentes asignados. Quítalos antes de añadirle subperfiles.'
+centre_profiles.specific.assignable_hint: 'Este perfil es una categoría organizativa; no se pueden asignar docentes directamente. Elimina o reorganiza sus subperfiles para poder asignar aquí.'
+
+centre_profiles.specific.teachers.title: 'Docentes asignados'
+centre_profiles.specific.teachers.empty: 'Este perfil no tiene docentes asignados todavía.'
+centre_profiles.specific.teachers.search_placeholder: 'Buscar docente por nombre…'
+centre_profiles.specific.teachers.search_help: 'Escribe al menos 2 caracteres para buscar.'
+centre_profiles.specific.action.remove_teacher: 'Quitar'
+
+centre_profiles.specific.flash.saved: 'Perfil guardado correctamente.'
+centre_profiles.specific.flash.deleted: 'Perfil eliminado correctamente.'
+centre_profiles.specific.flash.delete_error: 'No se puede eliminar este perfil.'
+centre_profiles.specific.flash.teacher_assigned: 'Docente asignado correctamente.'
+centre_profiles.specific.flash.teacher_removed: 'Docente eliminado correctamente.'
+
 # Registro de avisos por correo
 email_notification_log.title: 'Registro de avisos por correo'
 email_notification_log.hub_help: 'Consulta el historial de avisos por correo enviados, con su resultado.'
