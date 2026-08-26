@@ -158,7 +158,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
   <div class="text">
     <p>Desde <strong>Centro educativo › Perfiles</strong>, busca y asigna a los docentes que
     ejercerán como <strong>responsable de calidad</strong> y <strong>auditor/a interno/a</strong>
-    del centro este curso académico.</p>
+    del centro. La asignación es permanente: no hace falta repetirla cada curso.</p>
   </div>
 </div>
 

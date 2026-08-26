@@ -104,7 +104,8 @@ gestión de la calidad.
 - **Docentes del centro** — altas manuales o importación desde Séneca.
 - **Oferta formativa** — cursos, grupos y quién imparte clase en cada uno.
 - **Días no lectivos** — importables desde el calendario escolar oficial o desde Séneca.
-- **Perfiles** — responsable de calidad y auditor/a interno/a.
+- **Perfiles** — globales (responsable de calidad, auditor/a interno/a) y específicos (jerarquía
+  de perfiles personalizados por centro, con hasta dos niveles).
 - **Registro de avisos por correo** y **ajustes del centro**.
 
 ---

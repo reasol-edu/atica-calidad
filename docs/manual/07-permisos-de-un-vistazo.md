@@ -11,7 +11,9 @@
 | Gestionar todos los centros del servidor y el profesorado global | — | — | — | ✅ |
 | Bloquear ajustes a nivel global | — | — | — | ✅ |
 
-Los perfiles de **responsable de calidad** y **auditor/a interno/a** se asignan por centro y curso
-académico desde **Centro educativo → Perfiles** (ver
-[Preparar el curso académico](02-preparar-el-curso-academico.md#perfiles)); son ampliaciones sobre
-el acceso base de un docente, no roles excluyentes entre sí.
+Los perfiles de **responsable de calidad** y **auditor/a interno/a** se asignan por centro (de
+forma permanente: no hay que repetirlo en cada curso académico) desde **Centro educativo →
+Perfiles** (ver [Preparar el curso académico](02-preparar-el-curso-academico.md#perfiles)); son
+ampliaciones sobre el acceso base de un docente, no roles excluyentes entre sí. Los **perfiles
+específicos** que cada centro puede crear en la misma pantalla son solo un registro documental — no
+conceden por sí mismos ningún permiso adicional.

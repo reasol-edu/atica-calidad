@@ -25,6 +25,11 @@ cada uno) y sus tutores.
 **Auditor/a interno/a**
 : Perfil que realiza las auditorías internas del sistema de gestión de la calidad de un centro.
 
+**Perfil específico**
+: Perfil personalizado que cada centro crea en **Centro educativo → Perfiles → Perfiles
+específicos**, organizado en una jerarquía de hasta dos niveles. Solo se puede asignar docentes a
+los perfiles sin subperfiles; es un registro documental, sin efecto sobre los permisos de acceso.
+
 **Equipo directivo**
 : Docentes con acceso a la administración de un centro concreto (creación de cursos académicos,
 gestión de docentes, ajustes del centro...), sin necesidad de ser administradores globales.
