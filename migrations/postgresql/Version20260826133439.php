@@ -45,7 +45,7 @@ final class Version20260826133439 extends AbstractMigration
         $this->addSql('CREATE TABLE educational_centre_internal_auditors (educational_centre_id UUID NOT NULL, teacher_id UUID NOT NULL, PRIMARY KEY (educational_centre_id, teacher_id))');
         $this->addSql('CREATE INDEX IDX_EE6B277561F9EE23 ON educational_centre_internal_auditors (educational_centre_id)');
         $this->addSql('CREATE INDEX IDX_EE6B277541807E1D ON educational_centre_internal_auditors (teacher_id)');
-        $this->addSql('CREATE TABLE specific_profile (id UUID NOT NULL, name VARCHAR(255) NOT NULL, position INT NOT NULL, list_item_id UUID DEFAULT NULL, educational_centre_id UUID NOT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE TABLE specific_profile (id UUID NOT NULL, name VARCHAR(255) NOT NULL, position INT NOT NULL, active BOOLEAN NOT NULL, list_item_id UUID DEFAULT NULL, educational_centre_id UUID NOT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE INDEX IDX_72B5CDE4CE208F53 ON specific_profile (list_item_id)');
         $this->addSql('CREATE INDEX IDX_72B5CDE461F9EE23 ON specific_profile (educational_centre_id)');
         $this->addSql('CREATE TABLE specific_profile_assignment (id UUID NOT NULL, specific_profile_id UUID NOT NULL, list_item_id UUID DEFAULT NULL, teacher_id UUID NOT NULL, PRIMARY KEY (id))');

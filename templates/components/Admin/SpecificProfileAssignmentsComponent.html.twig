@@ -1,0 +1,414 @@
+{% import 'components/_pagination_live.html.twig' as pager %}
+
+<div {{ attributes }} class="js-specific-profile-assignments">
+    {% if centre.activeAcademicYear is null %}
+        <div class="px-6 py-16 text-center">
+            {{ ux_icon('heroicons:exclamation-circle', {class: 'mx-auto h-10 w-10 text-amber-300 mb-3'}) }}
+            <p class="text-sm text-gray-500">{{ 'responsibilities.assignments.no_active_year'|trans({}, 'admin') }}</p>
+        </div>
+    {% else %}
+        {% set can_write = this.canWrite %}
+
+        {# ── Pestañas ──────────────────────────────────────────────────────── #}
+        <div class="mb-4 border-b border-gray-200">
+            <nav class="-mb-px flex gap-6">
+                <button type="button" data-action="live#action" data-live-action-param="selectTab" data-live-tab-param="profiles"
+                        class="border-b-2 px-1 py-3 text-sm font-medium transition-colors
+                               {{ tab == 'profiles' ? 'border-forest-600 text-forest-700' : 'border-transparent text-gray-500 hover:text-gray-700' }}">
+                    {{ 'responsibilities.assignments.tab.profiles'|trans({}, 'admin') }}
+                </button>
+                <button type="button" data-action="live#action" data-live-action-param="selectTab" data-live-tab-param="teachers"
+                        class="border-b-2 px-1 py-3 text-sm font-medium transition-colors
+                               {{ tab == 'teachers' ? 'border-forest-600 text-forest-700' : 'border-transparent text-gray-500 hover:text-gray-700' }}">
+                    {{ 'responsibilities.assignments.tab.teachers'|trans({}, 'admin') }}
+                </button>
+            </nav>
+        </div>
+
+        <div data-loading="addClass(opacity-50 pointer-events-none)" class="transition-opacity space-y-4">
+            {% if tab == 'profiles' %}
+                {% set pagination = this.profilePagination %}
+                {% set sel_row    = this.selectedRow %}
+                {% set off_year_count = this.offYearAssignmentCount %}
+
+                {# ── Filtros ──────────────────────────────────────────────── #}
+                <div class="flex flex-wrap items-end gap-3">
+                    <div class="relative flex-1 min-w-48">
+                        <div class="relative">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                {{ ux_icon('heroicons:magnifying-glass', {class: 'h-4 w-4 text-gray-400'}) }}
+                            </div>
+                            <input type="search"
+                                   data-model="norender|profileSearch"
+                                   data-action="input->live#action"
+                                   data-live-action-param="setProfilePage" data-live-page-param="1"
+                                   placeholder="{{ 'responsibilities.assignments.profiles.search_placeholder'|trans({}, 'admin') }}"
+                                   value="{{ profileSearch }}"
+                                   class="block w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm
+                                          text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none
+                                          focus:ring-3 focus:ring-forest-500/20 transition-colors">
+                        </div>
+                    </div>
+                    <button type="button" data-action="live#action" data-live-action-param="toggleShowInactiveProfiles"
+                            class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors shrink-0
+                                   {{ showInactiveProfiles ? 'border-forest-300 bg-forest-50 text-forest-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50' }}">
+                        {{ ux_icon('heroicons:eye-slash', {class: 'h-3.5 w-3.5'}) }}
+                        {{ 'responsibilities.assignments.profiles.show_inactive'|trans({}, 'admin') }}
+                    </button>
+                    {% if can_write %}
+                        <button type="button" data-action="live#action" data-live-action-param="askBulkRemoveOffYear"
+                                {{ off_year_count == 0 ? 'disabled' }}
+                                title="{{ off_year_count == 0 ? 'responsibilities.assignments.bulk_remove.none'|trans({}, 'admin') }}"
+                                class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors shrink-0
+                                       {{ off_year_count == 0
+                                          ? 'border-gray-200 bg-white text-gray-300 cursor-not-allowed'
+                                          : 'border-red-200 bg-white text-red-600 hover:bg-red-50 hover:border-red-300' }}">
+                            {{ ux_icon('heroicons:trash', {class: 'h-3.5 w-3.5'}) }}
+                            {{ 'responsibilities.assignments.bulk_remove.button'|trans({}, 'admin') }}
+                            {% if off_year_count > 0 %}<span class="rounded-full bg-red-100 px-1.5 text-[11px]">{{ off_year_count }}</span>{% endif %}
+                        </button>
+                    {% endif %}
+                </div>
+
+                {% if confirmingBulkRemove %}
+                    <div class="flex flex-wrap items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+                        <p class="flex-1 min-w-0 text-sm text-red-700">
+                            {{ 'responsibilities.assignments.bulk_remove.confirm'|trans({'%count%': off_year_count}, 'admin') }}
+                        </p>
+                        <button type="button" data-action="live#action" data-live-action-param="bulkRemoveOffYear"
+                                class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors shrink-0">
+                            {{ 'responsibilities.assignments.bulk_remove.confirm_yes'|trans({}, 'admin') }}
+                        </button>
+                        <button type="button" data-action="live#action" data-live-action-param="cancelBulkRemove"
+                                class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0">
+                            {{ 'responsibilities.assignments.bulk_remove.cancel'|trans({}, 'admin') }}
+                        </button>
+                    </div>
+                {% endif %}
+
+                {# ── Tabla de perfiles ────────────────────────────────────── #}
+                <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    {% if pagination.totalItems == 0 %}
+                        <div class="px-6 py-16 text-center">
+                            {{ ux_icon('heroicons:rectangle-group', {class: 'mx-auto h-10 w-10 text-gray-300 mb-3'}) }}
+                            <p class="text-sm text-gray-500">{{ 'responsibilities.assignments.profiles.empty'|trans({}, 'admin') }}</p>
+                        </div>
+                    {% else %}
+                        <div class="overflow-x-auto">
+                            <table class="table-cards w-full text-sm">
+                                <thead class="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'responsibilities.assignments.profiles.col.profile'|trans({}, 'admin') }}</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'responsibilities.assignments.profiles.col.teachers'|trans({}, 'admin') }}</th>
+                                        <th scope="col" class="px-6 py-3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    {% for row in pagination.items %}
+                                        {% set is_sel = selectedRowKey == row.key %}
+                                        <tr class="{{ is_sel ? 'bg-forest-50/60' : 'hover:bg-gray-50' }} transition-colors {{ not row.active ? 'opacity-60' }}">
+                                            <td data-label="{{ 'responsibilities.assignments.profiles.col.profile'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-3">
+                                                <button type="button" data-action="live#action" data-live-action-param="selectRow" data-live-key-param="{{ row.key }}"
+                                                        class="text-left font-medium {{ is_sel ? 'text-forest-800' : 'text-gray-800 hover:text-forest-700' }}">
+                                                    {{ row.displayName }}
+                                                </button>
+                                                {% if not row.active %}
+                                                    <span class="ml-1.5 text-xs text-gray-400">({{ 'responsibilities.assignments.warning.inactive_profile'|trans({}, 'admin') }})</span>
+                                                {% endif %}
+                                            </td>
+                                            <td data-label="{{ 'responsibilities.assignments.profiles.col.teachers'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-3">
+                                                {% if row.teachers is empty %}
+                                                    <span class="text-xs italic text-gray-400">{{ 'responsibilities.assignments.profiles.teachers.empty'|trans({}, 'admin') }}</span>
+                                                {% else %}
+                                                    <div class="flex flex-wrap gap-1.5">
+                                                        {% for teacher in row.teachers %}
+                                                            {% set off_year = this.isTeacherOffYear(teacher) %}
+                                                            <span title="{{ off_year ? 'responsibilities.assignments.warning.off_year'|trans({}, 'admin') }}"
+                                                                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs
+                                                                         {{ off_year ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-600' }}">
+                                                                {% if off_year %}{{ ux_icon('heroicons:exclamation-triangle', {class: 'h-3 w-3'}) }}{% endif %}
+                                                                {{ teacher.name.lastName }}, {{ teacher.name.firstName }}
+                                                            </span>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td class="px-6 py-3 text-right">
+                                                <button type="button" data-action="live#action" data-live-action-param="selectRow" data-live-key-param="{{ row.key }}"
+                                                        class="inline-flex items-center justify-center text-gray-300 hover:text-forest-500 transition-colors">
+                                                    {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {{ pager.nav(pagination, pageAction = 'setProfilePage') }}
+                    {% endif %}
+                </div>
+
+                {# ── Detalle del perfil/subperfil seleccionado ───────────── #}
+                {% if sel_row %}
+                    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                        <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
+                            {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4 text-gray-400'}) }}
+                            <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                {{ 'responsibilities.assignments.profiles.detail.title'|trans({}, 'admin') }} — {{ sel_row.displayName }}
+                            </span>
+                            <button type="button" data-action="live#action" data-live-action-param="clearRowSelection"
+                                    class="ml-auto shrink-0 inline-flex items-center justify-center rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+                                {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                            </button>
+                        </div>
+
+                        <div class="px-4 py-4 sm:px-6 space-y-3">
+                            {% if sel_row.teachers is empty %}
+                                <p class="text-xs italic text-gray-400">{{ 'responsibilities.assignments.profiles.teachers.empty'|trans({}, 'admin') }}</p>
+                            {% else %}
+                                <ul class="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+                                    {% for teacher in sel_row.teachers %}
+                                        {% set off_year = this.isTeacherOffYear(teacher) %}
+                                        <li class="flex items-center gap-2 px-3 py-2 text-sm">
+                                            <span class="flex-1 min-w-0 truncate {{ off_year ? 'text-red-700' : 'text-gray-800' }}">
+                                                {{ teacher.name.lastName }}, {{ teacher.name.firstName }}
+                                                {% if off_year %}
+                                                    <span class="ml-1 text-xs font-normal">— {{ 'responsibilities.assignments.warning.off_year'|trans({}, 'admin') }}</span>
+                                                {% endif %}
+                                            </span>
+                                            {% if can_write %}
+                                                <button type="button" data-action="live#action"
+                                                        data-live-action-param="removeTeacherFromRow" data-live-teacher-id-param="{{ teacher.id }}"
+                                                        class="shrink-0 inline-flex items-center justify-center rounded-lg p-1 text-gray-400
+                                                               hover:bg-red-50 hover:text-red-600 transition-colors"
+                                                        title="{{ 'responsibilities.assignments.action.remove'|trans({}, 'admin') }}">
+                                                    {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                                                </button>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+
+                            {% if can_write %}
+                                <div>
+                                    <select class="js-assign-teacher-search w-full"
+                                            data-controller="symfony--ux-autocomplete--autocomplete"
+                                            data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('ux_entity_autocomplete', {alias: 'teacher_centre', academicYearId: centre.activeAcademicYear.id}) }}"
+                                            data-symfony--ux-autocomplete--autocomplete-min-characters-value="2"
+                                            data-symfony--ux-autocomplete--autocomplete-no-results-found-text-value="{{ 'autocomplete.no_results'|trans({}, 'admin') }}"
+                                            data-symfony--ux-autocomplete--autocomplete-tom-select-options-value='{"dropdownParent":"body"}'
+                                            data-placeholder="{{ 'responsibilities.assignments.profiles.detail.search_placeholder'|trans({}, 'admin') }}">
+                                    </select>
+                                    <p class="mt-1 text-xs text-gray-400">{{ 'responsibilities.assignments.profiles.detail.search_help'|trans({}, 'admin') }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+
+            {% else %}
+                {% set t_pagination = this.teacherPagination %}
+                {% set sel_entry    = this.selectedTeacherEntry %}
+                {% set assignable   = this.assignableRowsForTeacher %}
+
+                {# ── Filtros ──────────────────────────────────────────────── #}
+                <div class="flex flex-wrap items-end gap-3">
+                    <div class="relative flex-1 min-w-48">
+                        <div class="relative">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                {{ ux_icon('heroicons:magnifying-glass', {class: 'h-4 w-4 text-gray-400'}) }}
+                            </div>
+                            <input type="search"
+                                   data-model="norender|teacherSearch"
+                                   data-action="input->live#action"
+                                   data-live-action-param="setTeacherPage" data-live-page-param="1"
+                                   placeholder="{{ 'responsibilities.assignments.teachers.search_placeholder'|trans({}, 'admin') }}"
+                                   value="{{ teacherSearch }}"
+                                   class="block w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm
+                                          text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none
+                                          focus:ring-3 focus:ring-forest-500/20 transition-colors">
+                        </div>
+                    </div>
+                    <button type="button" data-action="live#action" data-live-action-param="toggleShowAllYearsTeachers"
+                            class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors shrink-0
+                                   {{ showAllYearsTeachers ? 'border-forest-300 bg-forest-50 text-forest-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50' }}">
+                        {{ ux_icon('heroicons:eye-slash', {class: 'h-3.5 w-3.5'}) }}
+                        {{ 'responsibilities.assignments.teachers.show_all'|trans({}, 'admin') }}
+                    </button>
+                </div>
+
+                {# ── Tabla de docentes ────────────────────────────────────── #}
+                <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    {% if t_pagination.totalItems == 0 %}
+                        <div class="px-6 py-16 text-center">
+                            {{ ux_icon('heroicons:user-group', {class: 'mx-auto h-10 w-10 text-gray-300 mb-3'}) }}
+                            <p class="text-sm text-gray-500">{{ 'responsibilities.assignments.teachers.empty'|trans({}, 'admin') }}</p>
+                        </div>
+                    {% else %}
+                        <div class="overflow-x-auto">
+                            <table class="table-cards w-full text-sm">
+                                <thead class="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'responsibilities.assignments.teachers.col.teacher'|trans({}, 'admin') }}</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'responsibilities.assignments.teachers.col.profiles'|trans({}, 'admin') }}</th>
+                                        <th scope="col" class="px-6 py-3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    {% for entry in t_pagination.items %}
+                                        {% set teacher_id = entry.teacher.id.toRfc4122 %}
+                                        {% set is_sel = selectedTeacherId == teacher_id %}
+                                        <tr class="{{ is_sel ? 'bg-forest-50/60' : 'hover:bg-gray-50' }} transition-colors {{ not entry.inActiveYear ? 'opacity-60' }}">
+                                            <td data-label="{{ 'responsibilities.assignments.teachers.col.teacher'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-3">
+                                                <button type="button" data-action="live#action" data-live-action-param="selectTeacher" data-live-id-param="{{ teacher_id }}"
+                                                        class="text-left font-medium {{ is_sel ? 'text-forest-800' : 'text-gray-800 hover:text-forest-700' }}">
+                                                    {{ entry.teacher.name.lastName }}, {{ entry.teacher.name.firstName }}
+                                                </button>
+                                                {% if not entry.inActiveYear %}
+                                                    <span class="ml-1.5 text-xs text-gray-400">({{ 'responsibilities.assignments.warning.off_year'|trans({}, 'admin') }})</span>
+                                                {% endif %}
+                                            </td>
+                                            <td data-label="{{ 'responsibilities.assignments.teachers.col.profiles'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-3">
+                                                {% if entry.rows is empty %}
+                                                    <span class="text-xs italic text-gray-400">{{ 'responsibilities.assignments.teachers.profiles.empty'|trans({}, 'admin') }}</span>
+                                                {% else %}
+                                                    <div class="flex flex-wrap gap-1.5">
+                                                        {% for row in entry.rows %}
+                                                            <span title="{{ not row.active ? 'responsibilities.assignments.warning.inactive_profile'|trans({}, 'admin') }}"
+                                                                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs
+                                                                         {{ not row.active ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-600' }}">
+                                                                {% if not row.active %}{{ ux_icon('heroicons:exclamation-triangle', {class: 'h-3 w-3'}) }}{% endif %}
+                                                                {{ row.displayName }}
+                                                            </span>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td class="px-6 py-3 text-right">
+                                                <button type="button" data-action="live#action" data-live-action-param="selectTeacher" data-live-id-param="{{ teacher_id }}"
+                                                        class="inline-flex items-center justify-center text-gray-300 hover:text-forest-500 transition-colors">
+                                                    {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {{ pager.nav(t_pagination, pageAction = 'setTeacherPage') }}
+                    {% endif %}
+                </div>
+
+                {# ── Detalle del docente seleccionado ────────────────────── #}
+                {% if sel_entry %}
+                    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                        <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
+                            {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4 text-gray-400'}) }}
+                            <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                {{ 'responsibilities.assignments.teachers.detail.title'|trans({}, 'admin') }}
+                                — {{ sel_entry.teacher.name.lastName }}, {{ sel_entry.teacher.name.firstName }}
+                            </span>
+                            <button type="button" data-action="live#action" data-live-action-param="clearTeacherSelection"
+                                    class="ml-auto shrink-0 inline-flex items-center justify-center rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+                                {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                            </button>
+                        </div>
+
+                        <div class="px-4 py-4 sm:px-6 space-y-3">
+                            {% if sel_entry.rows is empty %}
+                                <p class="text-xs italic text-gray-400">{{ 'responsibilities.assignments.teachers.detail.empty'|trans({}, 'admin') }}</p>
+                            {% else %}
+                                <ul class="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+                                    {% for row in sel_entry.rows %}
+                                        <li class="flex items-center gap-2 px-3 py-2 text-sm">
+                                            <span class="flex-1 min-w-0 truncate {{ not row.active ? 'text-red-700' : 'text-gray-800' }}">
+                                                {{ row.displayName }}
+                                                {% if not row.active %}
+                                                    <span class="ml-1 text-xs font-normal">— {{ 'responsibilities.assignments.warning.inactive_profile'|trans({}, 'admin') }}</span>
+                                                {% endif %}
+                                            </span>
+                                            {% if can_write %}
+                                                <button type="button" data-action="live#action"
+                                                        data-live-action-param="removeRowFromTeacher" data-live-row-key-param="{{ row.key }}"
+                                                        class="shrink-0 inline-flex items-center justify-center rounded-lg p-1 text-gray-400
+                                                               hover:bg-red-50 hover:text-red-600 transition-colors"
+                                                        title="{{ 'responsibilities.assignments.action.remove'|trans({}, 'admin') }}">
+                                                    {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                                                </button>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+
+                            {% if can_write %}
+                                <div class="border-t border-gray-100 pt-3">
+                                    <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.assignments.teachers.detail.add_placeholder'|trans({}, 'admin') }}</label>
+                                    <input type="text"
+                                           data-model="pickerSearch"
+                                           value="{{ pickerSearch }}"
+                                           placeholder="{{ 'responsibilities.assignments.teachers.detail.add_placeholder'|trans({}, 'admin') }}"
+                                           class="mb-2 block w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm
+                                                  placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                                    {% if assignable is empty %}
+                                        <p class="text-xs italic text-gray-400">{{ 'responsibilities.assignments.teachers.detail.add_empty'|trans({}, 'admin') }}</p>
+                                    {% else %}
+                                        <ul class="max-h-48 divide-y divide-gray-100 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+                                            {% for row in assignable %}
+                                                <li class="flex items-center gap-2 px-3 py-1.5 text-sm">
+                                                    <span class="flex-1 min-w-0 truncate text-gray-700">{{ row.displayName }}</span>
+                                                    <button type="button" data-action="live#action"
+                                                            data-live-action-param="assignRowToTeacher" data-live-row-key-param="{{ row.key }}"
+                                                            class="shrink-0 inline-flex items-center gap-1 rounded-md bg-forest-600 px-2 py-1 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
+                                                        {{ ux_icon('heroicons:plus', {class: 'h-3 w-3'}) }}
+                                                        {{ 'responsibilities.assignments.teachers.detail.add'|trans({}, 'admin') }}
+                                                    </button>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <script type="module" data-live-ignore>
+    import { getComponent } from '@symfony/ux-live-component';
+
+    let liveEl   = null;
+    let liveComp = null;
+    let bound    = new WeakSet();
+
+    function bindSearch(select) {
+        if (bound.has(select)) return;
+        bound.add(select);
+        select.addEventListener('autocomplete:connect', function (event) {
+            const ts = event.detail.tomSelect;
+            ts.on('change', function (value) {
+                if (!value || !liveComp) return;
+                liveComp.action('assignTeacherToRow', { teacherId: value });
+                ts.clear();
+                ts.clearOptions();
+            });
+        });
+    }
+
+    function onRender() {
+        liveEl.querySelectorAll('select.js-assign-teacher-search').forEach(bindSearch);
+    }
+
+    liveEl = document.querySelector('.js-specific-profile-assignments');
+    if (liveEl) {
+        getComponent(liveEl).then(function (component) {
+            liveComp = component;
+            onRender();
+            component.on('render:finished', onRender);
+        });
+    }
+    </script>
+</div>

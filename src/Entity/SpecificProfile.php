@@ -33,6 +33,9 @@ class SpecificProfile
     #[ORM\Column]
     private int $position = 0;
 
+    #[ORM\Column]
+    private bool $active = true;
+
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private EducationalCentre $educationalCentre;
@@ -75,6 +78,18 @@ class SpecificProfile
     public function setPosition(int $position): static
     {
         $this->position = $position;
+
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->active;
+    }
+
+    public function setActive(bool $active): static
+    {
+        $this->active = $active;
 
         return $this;
     }

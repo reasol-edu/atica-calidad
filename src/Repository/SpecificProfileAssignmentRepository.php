@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use App\Entity\SpecificProfileAssignment;
@@ -138,6 +139,25 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
         }
 
         return $map;
+    }
+
+    /**
+     * All assignments for a centre, fetch-joined with teacher, list item and profile — one query
+     * to build both tabs of the cross-cutting assignments screen without N+1.
+     *
+     * @return SpecificProfileAssignment[]
+     */
+    public function findAllForCentre(EducationalCentre $centre): array
+    {
+        return $this->createQueryBuilder('a')
+            ->select('a', 't', 'li', 'p')
+            ->join('a.teacher', 't')
+            ->leftJoin('a.listItem', 'li')
+            ->join('a.specificProfile', 'p')
+            ->where('p.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->getQuery()
+            ->getResult();
     }
 
     /** Whether any assignment references this list item — blocks its deletion. */

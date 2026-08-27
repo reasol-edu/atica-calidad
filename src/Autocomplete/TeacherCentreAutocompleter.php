@@ -35,6 +35,15 @@ class TeacherCentreAutocompleter implements EntityAutocompleterInterface
     {
         $qb = $repository->createQueryBuilder('t');
 
+        if (trim($query) === '') {
+            // The widget's own JS fires a request with an empty query as soon as it's focused,
+            // before the configured minimum character count is reached. Matching nothing here
+            // (rather than every teacher via LIKE '%%') keeps that pre-focus request from
+            // silently pre-loading a full, unfiltered list that then just sits there getting
+            // highlighted instead of actually narrowing down as the user types.
+            return $qb->andWhere('1 = 0');
+        }
+
         $academicYearId = trim(
             (string) ($this->requestStack->getCurrentRequest()?->query->getString('academicYearId') ?? '')
         );

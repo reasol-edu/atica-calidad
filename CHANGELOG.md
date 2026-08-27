@@ -9,10 +9,22 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Added
 
-- Perfiles específicos: cada centro puede crear su propia jerarquía de perfiles personalizados
-  (hasta dos niveles) y asignarles docentes desde **Centro educativo → Perfiles → Perfiles
-  específicos**, con un editor en tiempo real y un botón de ordenación alfabética por columna. Solo
-  se pueden asignar docentes a los perfiles sin subperfiles.
+- Nueva sección **Responsabilidades** en el menú lateral, accesible al responsable de calidad, al
+  equipo directivo y a la administración, con dos herramientas:
+  - **Listas**: jerarquías propias de nombres para el centro, con la profundidad que se necesite
+    (p. ej. «Grupo» → «1º ESO» → «1º ESO-A»), navegables por migas de pan, con estado activo/inactivo
+    por elemento, borrado protegido (elementos con hijos o en uso) y ordenación alfabética. Cualquier
+    elemento puede llevar etiquetas propias, creadas sobre la marcha y heredadas por sus
+    descendientes; las etiquetas huérfanas se eliminan solas.
+  - **Perfiles específicos**: cada centro puede crear responsabilidades personalizadas (tutorías,
+    jefaturas...) y asignarles docentes directamente, o asociarlas a un elemento de una lista para
+    generar automáticamente un **subperfil** por cada hoja descendiente, cada uno con sus propios
+    docentes asignados. Los perfiles, como los elementos de lista, pueden marcarse como inactivos.
+  - **Asignar perfiles**: vista de trabajo transversal sobre las asignaciones ya existentes, por
+    perfil (todos los perfiles/subperfiles activos con sus docentes) o por docente (todos los
+    docentes del curso activo con sus perfiles), con búsqueda, paginación, aviso visual de docentes
+    que ya no pertenecen al curso activo y un botón para quitarlos de golpe de todos los perfiles
+    activos.
 - Primera versión del esqueleto de la aplicación, adaptado a partir de la infraestructura genérica
   de [GestConv+](https://github.com/reasol-edu/gestconv-plus): acceso con usuario y contraseña o
   autenticación externa (iSéneca), soporte multi-centro, calendario con eventos de centro y días no
@@ -25,9 +37,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 
-- La pantalla **Perfiles** se organiza ahora en dos pestañas: **Perfiles globales** (responsable de
-  calidad y auditor/a interno/a, sin cambios de comportamiento) y **Perfiles específicos** (nuevos,
-  ver arriba).
 - Ajustado el uso del color coral de la paleta: ya no es el color de texto por defecto del menú
   lateral ni de los paneles de las pantallas de acceso (podía leerse como aviso o error); ahora se
   reserva como acento puntual (elemento activo del menú, decoración del panel de acceso).
+
+### Fixed
+
+- El buscador de docentes (al asignarlos a un perfil, o como administrador/a de un centro) ya no
+  se queda mostrando la lista completa sin filtrar nada más que el resaltado de las letras
+  escritas: hasta alcanzar el mínimo de caracteres configurado, no muestra ningún resultado, en
+  vez del listado sin filtrar que se cargaba al hacer clic en el buscador.

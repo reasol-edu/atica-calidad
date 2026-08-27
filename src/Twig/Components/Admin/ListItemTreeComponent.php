@@ -130,11 +130,12 @@ class ListItemTreeComponent extends AbstractController
     }
 
     /**
-     * Tags visible on the selected item but attached to one of its ancestors, not itself.
+     * All tags visible on the selected item (own + inherited from ancestors), merged into
+     * a single alphabetically sorted list, each flagged with whether it is inherited.
      *
-     * @return Tag[]
+     * @return array<int, array{tag: Tag, inherited: bool}>
      */
-    public function getInheritedTags(): array
+    public function getDisplayTags(): array
     {
         $selected = $this->getSelected();
         if ($selected === null) {
@@ -143,10 +144,13 @@ class ListItemTreeComponent extends AbstractController
 
         $own = $selected->getTags();
 
-        return array_values(array_filter(
-            $selected->getEffectiveTags()->toArray(),
-            static fn (Tag $tag): bool => !$own->contains($tag)
-        ));
+        $rows = array_map(
+            static fn (Tag $tag): array => ['tag' => $tag, 'inherited' => !$own->contains($tag)],
+            $selected->getEffectiveTags()->toArray()
+        );
+        usort($rows, static fn (array $a, array $b): int => $a['tag']->getName() <=> $b['tag']->getName());
+
+        return $rows;
     }
 
     // ── Navigation actions ───────────────────────────────────────────────────

@@ -120,18 +120,6 @@
                 </a>
             {% endif %}
 
-            {# Centro educativo — solo para equipo directivo y admins #}
-            {% if active_centre and is_granted('educational_centre.section', active_centre) %}
-                {% set centre_active = current_route starts with 'app_centre_' %}
-                <a href="{{ path('app_centre_index', {centreId: active_centre.id}) }}"
-                    {{ centre_active ? 'aria-current="page"' : '' }}
-                   class="{{ centre_active ? 'bg-forest-800 text-white border-l-2 border-forest-300' : 'text-forest-100 hover:bg-forest-900 hover:text-white border-l-2 border-transparent' }}
-                          group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
-                    {{ ux_icon('heroicons:building-library', {class: 'h-5 w-5 shrink-0'}) }}
-                    <span class="truncate">{{ 'educational_centre'|trans({}, 'navigation') }}</span>
-                </a>
-            {% endif %}
-
             {# Responsabilidades — responsable de calidad, equipo directivo y admins #}
             {% if active_centre and is_granted('educational_centre.responsibilities', active_centre) %}
                 {% set responsibilities_active = current_route starts with 'app_responsibilities_' %}
@@ -141,6 +129,18 @@
                           group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
                     {{ ux_icon('heroicons:clipboard-document-check', {class: 'h-5 w-5 shrink-0'}) }}
                     <span class="truncate">{{ 'responsibilities'|trans({}, 'navigation') }}</span>
+                </a>
+            {% endif %}
+
+            {# Centro educativo — solo para equipo directivo y admins #}
+            {% if active_centre and is_granted('educational_centre.section', active_centre) %}
+                {% set centre_active = current_route starts with 'app_centre_' %}
+                <a href="{{ path('app_centre_index', {centreId: active_centre.id}) }}"
+                    {{ centre_active ? 'aria-current="page"' : '' }}
+                   class="{{ centre_active ? 'bg-forest-800 text-white border-l-2 border-forest-300' : 'text-forest-100 hover:bg-forest-900 hover:text-white border-l-2 border-transparent' }}
+                          group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
+                    {{ ux_icon('heroicons:building-library', {class: 'h-5 w-5 shrink-0'}) }}
+                    <span class="truncate">{{ 'educational_centre'|trans({}, 'navigation') }}</span>
                 </a>
             {% endif %}
 

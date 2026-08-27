@@ -24,9 +24,18 @@ class TeacherAutocompleter implements EntityAutocompleterInterface
 
     public function createFilteredQueryBuilder(EntityRepository $repository, string $query): QueryBuilder
     {
+        $qb = $repository->createQueryBuilder('t');
+
+        if (trim($query) === '') {
+            // See TeacherCentreAutocompleter::createFilteredQueryBuilder() for why: the widget's
+            // own JS fires a request with an empty query on focus, before the configured minimum
+            // character count is reached.
+            return $qb->andWhere('1 = 0');
+        }
+
         $q = '%' . $query . '%';
 
-        return $repository->createQueryBuilder('t')
+        return $qb
             ->where('LOWER(t.name.firstName) LIKE LOWER(:q)')
             ->orWhere('LOWER(t.name.lastName) LIKE LOWER(:q)')
             ->orWhere('LOWER(t.username) LIKE LOWER(:q)')

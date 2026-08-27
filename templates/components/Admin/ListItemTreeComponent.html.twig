@@ -2,7 +2,7 @@
     {% set visible      = this.visibleItems %}
     {% set breadcrumb   = this.breadcrumb %}
     {% set sel          = this.selected %}
-    {% set inherited    = this.inheritedTags %}
+    {% set display_tags = this.displayTags %}
     {% set existing_tag_names = this.existingTagNames %}
 
     {# ── Migas de pan ─────────────────────────────────────────────────── #}
@@ -135,12 +135,27 @@
                         </button>
                     </div>
 
-                    <label class="flex items-center gap-2 sm:col-span-3">
-                        <input type="checkbox" data-model="editActive"
-                               class="rounded border-gray-300 text-forest-600 focus:ring-forest-500/30">
-                        <span class="text-sm text-gray-700">{{ 'responsibilities.lists.field.active'|trans({}, 'admin') }}</span>
-                        <span class="text-xs text-gray-400">— {{ 'responsibilities.lists.field.active_help'|trans({}, 'admin') }}</span>
-                    </label>
+                    <div class="sm:col-span-3">
+                        <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'responsibilities.lists.field.active'|trans({}, 'admin') }}</span>
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <twig:Form:RadioCard
+                                name="list_item_active"
+                                value="1"
+                                label="{{ 'responsibilities.lists.field.active_yes'|trans({}, 'admin') }}"
+                                help="{{ 'responsibilities.lists.field.active_yes_help'|trans({}, 'admin') }}"
+                                :checked="editActive"
+                                data-model="editActive"
+                            />
+                            <twig:Form:RadioCard
+                                name="list_item_active"
+                                value="0"
+                                label="{{ 'responsibilities.lists.field.active_no'|trans({}, 'admin') }}"
+                                help="{{ 'responsibilities.lists.field.active_no_help'|trans({}, 'admin') }}"
+                                :checked="not editActive"
+                                data-model="editActive"
+                            />
+                        </div>
+                    </div>
 
                     <div class="sm:col-span-3">
                         <button type="submit"
@@ -154,32 +169,28 @@
                 <div class="border-t border-gray-100 pt-4">
                     <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.lists.tags.title'|trans({}, 'admin') }}</label>
 
-                    {% if inherited is not empty %}
-                        <div class="mb-2 flex flex-wrap gap-1.5">
-                            {% for tag in inherited %}
-                                <span title="{{ 'responsibilities.lists.tags.inherited_hint'|trans({}, 'admin') }}"
-                                      class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-500">
-                                    {{ ux_icon('heroicons:tag', {class: 'h-3 w-3'}) }}
-                                    {{ tag.name }}
-                                </span>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-
-                    {% if sel.tags is empty and inherited is empty %}
+                    {% if display_tags is empty %}
                         <p class="text-xs italic text-gray-400">{{ 'responsibilities.lists.tags.empty'|trans({}, 'admin') }}</p>
-                    {% elseif sel.tags is not empty %}
+                    {% else %}
                         <div class="mb-2 flex flex-wrap gap-1.5">
-                            {% for tag in sel.tags %}
-                                <span class="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-xs text-violet-700">
-                                    {{ ux_icon('heroicons:tag', {class: 'h-3 w-3'}) }}
-                                    {{ tag.name }}
-                                    <button type="button" data-action="live#action"
-                                            data-live-action-param="removeTag" data-live-tag-id-param="{{ tag.id }}"
-                                            class="ml-0.5 shrink-0 text-violet-400 hover:text-violet-700">
-                                        {{ ux_icon('heroicons:x-mark', {class: 'h-3 w-3'}) }}
-                                    </button>
-                                </span>
+                            {% for row in display_tags %}
+                                {% if row.inherited %}
+                                    <span title="{{ 'responsibilities.lists.tags.inherited_hint'|trans({}, 'admin') }}"
+                                          class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-500">
+                                        {{ ux_icon('heroicons:tag', {class: 'h-3 w-3'}) }}
+                                        {{ row.tag.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-xs text-violet-700">
+                                        {{ ux_icon('heroicons:tag', {class: 'h-3 w-3'}) }}
+                                        {{ row.tag.name }}
+                                        <button type="button" data-action="live#action"
+                                                data-live-action-param="removeTag" data-live-tag-id-param="{{ row.tag.id }}"
+                                                class="ml-0.5 shrink-0 text-violet-400 hover:text-violet-700">
+                                            {{ ux_icon('heroicons:x-mark', {class: 'h-3 w-3'}) }}
+                                        </button>
+                                    </span>
+                                {% endif %}
                             {% endfor %}
                         </div>
                     {% endif %}

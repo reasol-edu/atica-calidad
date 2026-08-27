@@ -50,6 +50,9 @@ class SpecificProfileTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $editName = '';
 
+    #[LiveProp(writable: true)]
+    public bool $editActive = true;
+
     /** @var array<string, string> */
     #[LiveProp]
     public array $errors = [];
@@ -139,6 +142,7 @@ class SpecificProfileTreeComponent extends AbstractController
         $this->selectedLeafId   = '';
         $selected                = $this->getSelected();
         $this->editName          = $selected?->getName() ?? '';
+        $this->editActive        = $selected?->isActive() ?? true;
     }
 
     #[LiveAction]
@@ -181,6 +185,7 @@ class SpecificProfileTreeComponent extends AbstractController
         }
 
         $selected->setName($name);
+        $selected->setActive($this->editActive);
         $this->em->flush();
 
         $this->errors = [];

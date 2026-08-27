@@ -47,6 +47,12 @@
                                     <span class="flex-1 min-w-0 truncate text-sm {{ is_sel ? 'font-semibold text-forest-800' : 'text-gray-800' }}">
                                         {{ profile.name }}
                                     </span>
+                                    {% if not profile.active %}
+                                        <span title="{{ 'responsibilities.specific_profiles.badge.inactive'|trans({}, 'admin') }}"
+                                              class="shrink-0 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">
+                                            {{ ux_icon('heroicons:eye-slash', {class: 'h-3 w-3'}) }}
+                                        </span>
+                                    {% endif %}
                                     {% if profile.listItem %}
                                         <span title="{{ 'responsibilities.specific_profiles.badge.list_associated'|trans({}, 'admin') }}"
                                               class="shrink-0 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
@@ -118,6 +124,27 @@
                                             title="{{ 'responsibilities.specific_profiles.detail.move_down'|trans({}, 'admin') }}">
                                         {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4'}) }}
                                     </button>
+                                </div>
+                                <div class="sm:col-span-3">
+                                    <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'responsibilities.specific_profiles.field.active'|trans({}, 'admin') }}</span>
+                                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                        <twig:Form:RadioCard
+                                            name="specific_profile_active"
+                                            value="1"
+                                            label="{{ 'responsibilities.specific_profiles.field.active_yes'|trans({}, 'admin') }}"
+                                            help="{{ 'responsibilities.specific_profiles.field.active_yes_help'|trans({}, 'admin') }}"
+                                            :checked="editActive"
+                                            data-model="editActive"
+                                        />
+                                        <twig:Form:RadioCard
+                                            name="specific_profile_active"
+                                            value="0"
+                                            label="{{ 'responsibilities.specific_profiles.field.active_no'|trans({}, 'admin') }}"
+                                            help="{{ 'responsibilities.specific_profiles.field.active_no_help'|trans({}, 'admin') }}"
+                                            :checked="not editActive"
+                                            data-model="editActive"
+                                        />
+                                    </div>
                                 </div>
                                 <div class="sm:col-span-3">
                                     <button type="submit"
