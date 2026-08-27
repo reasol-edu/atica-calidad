@@ -5,173 +5,88 @@
             <p class="text-sm text-gray-500">{{ 'responsibilities.specific_profiles.no_active_year'|trans({}, 'admin') }}</p>
         </div>
     {% else %}
-        {% set can_write     = this.canWrite %}
-        {% set roots         = this.rootProfiles %}
-        {% set root_counts   = this.rootTeacherCounts %}
-        {% set children      = this.childProfiles %}
-        {% set child_counts  = this.childTeacherCounts %}
-        {% set sel_root      = this.selectedRoot %}
-        {% set sel           = this.selected %}
-        {% set can_assign    = this.canAssignTeachers %}
-        {% set sel_teachers  = this.selectedTeachers %}
+        {% set can_write = this.canWrite %}
+        {% set profiles  = this.profiles %}
+        {% set counts    = this.profileTeacherCounts %}
+        {% set sel       = this.selected %}
+        {% set sel_leaf  = sel and sel.listItem ? this.selectedLeaf : null %}
 
         <p class="mb-3 text-sm text-gray-500">{{ 'responsibilities.specific_profiles.help'|trans({}, 'admin') }}</p>
 
         <div data-loading="addClass(opacity-50 pointer-events-none)" class="transition-opacity space-y-3">
 
-            {# ── Dos columnas: Perfiles raíz | Subperfiles ────────────────── #}
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-                {# ── Columna izquierda: Perfiles raíz ──────────────────────── #}
-                <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
-                    <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
-                        {{ ux_icon('heroicons:rectangle-group', {class: 'h-4 w-4 text-gray-400'}) }}
-                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ 'responsibilities.specific_profiles.col.roots'|trans({}, 'admin') }}</span>
-                        {% if can_write and roots|length > 1 %}
-                            <button type="button" data-action="live#action" data-live-action-param="sortRootsAlphabetically"
-                                    class="ml-auto shrink-0 inline-flex items-center justify-center rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                                    title="{{ 'responsibilities.specific_profiles.sort_alphabetically'|trans({}, 'admin') }}">
-                                {{ ux_icon('heroicons:bars-arrow-down', {class: 'h-4 w-4'}) }}
-                            </button>
-                        {% endif %}
-                        <span class="{{ can_write and roots|length > 1 ? '' : 'ml-auto' }} text-xs text-gray-400">{{ roots|length }}</span>
-                    </div>
-
-                    {% if roots is empty %}
-                        <p class="px-4 py-6 text-center text-xs italic text-gray-400">{{ 'responsibilities.specific_profiles.roots.empty'|trans({}, 'admin') }}</p>
-                    {% else %}
-                        <ul class="divide-y divide-gray-50">
-                            {% for root in roots %}
-                                {% set is_sel = rootId == root.id.toRfc4122 %}
-                                {% set n_children = root.children|length %}
-                                {% set n_teachers = root_counts[root.id.toRfc4122] ?? 0 %}
-                                <li>
-                                    <button type="button"
-                                            data-action="live#action"
-                                            data-live-action-param="selectRoot"
-                                            data-live-id-param="{{ root.id }}"
-                                            class="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors
-                                                   {{ is_sel ? 'bg-forest-50 ring-1 ring-inset ring-forest-200' : 'hover:bg-gray-50' }}">
-                                        <span class="flex-1 min-w-0 truncate text-sm {{ is_sel ? 'font-semibold text-forest-800' : 'text-gray-800' }}">
-                                            {{ root.name }}
-                                        </span>
-                                        {% if n_children > 0 %}
-                                            <span class="shrink-0 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
-                                                {{ n_children }} {{ (n_children == 1 ? 'responsibilities.specific_profiles.badge.children_one' : 'responsibilities.specific_profiles.badge.children_other')|trans({}, 'admin') }}
-                                            </span>
-                                        {% else %}
-                                            <span title="{{ 'responsibilities.specific_profiles.teachers.title'|trans({}, 'admin') }}"
-                                                  class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium
-                                                         {{ n_teachers > 0 ? 'bg-violet-50 text-violet-700' : 'bg-gray-50 text-gray-300' }}">
-                                                {{ ux_icon('heroicons:academic-cap', {class: 'h-3 w-3'}) }}{{ n_teachers }}
-                                            </span>
-                                        {% endif %}
-                                        {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0 ' ~ (is_sel ? 'text-forest-400' : 'text-gray-300')}) }}
-                                    </button>
-                                </li>
-                            {% endfor %}
-                        </ul>
+            {# ── Lista de perfiles ─────────────────────────────────────── #}
+            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
+                    {{ ux_icon('heroicons:rectangle-group', {class: 'h-4 w-4 text-gray-400'}) }}
+                    <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ 'responsibilities.specific_profiles.col.profiles'|trans({}, 'admin') }}</span>
+                    {% if can_write and profiles|length > 1 %}
+                        <button type="button" data-action="live#action" data-live-action-param="sortAlphabetically"
+                                class="ml-auto shrink-0 inline-flex items-center justify-center rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                                title="{{ 'responsibilities.specific_profiles.sort_alphabetically'|trans({}, 'admin') }}">
+                            {{ ux_icon('heroicons:bars-arrow-down', {class: 'h-4 w-4'}) }}
+                        </button>
                     {% endif %}
-
-                    {% if can_write %}
-                        <form data-action="submit->live#action:prevent"
-                              data-live-action-param="addRoot"
-                              class="flex items-center gap-2 border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
-                            <input type="text"
-                                   data-model="norender|addRootName"
-                                   value="{{ addRootName }}"
-                                   placeholder="{{ 'responsibilities.specific_profiles.field.root_name_placeholder'|trans({}, 'admin') }}"
-                                   class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
-                                          placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
-                            <button type="submit"
-                                    class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white
-                                           hover:bg-forest-700 transition-colors"
-                                    title="{{ 'responsibilities.specific_profiles.add'|trans({}, 'admin') }}">
-                                {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
-                            </button>
-                        </form>
-                        {% if errors.add_root is defined %}<p class="px-3 pb-2 text-xs text-red-600">{{ errors.add_root }}</p>{% endif %}
-                    {% endif %}
+                    <span class="{{ can_write and profiles|length > 1 ? '' : 'ml-auto' }} text-xs text-gray-400">{{ profiles|length }}</span>
                 </div>
 
-                {# ── Columna derecha: Subperfiles del perfil raíz seleccionado ── #}
-                <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
-                    <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
-                        {{ ux_icon('heroicons:folder', {class: 'h-4 w-4 text-gray-400'}) }}
-                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ 'responsibilities.specific_profiles.col.children'|trans({}, 'admin') }}</span>
-                        {% if sel_root %}
-                            <span class="mx-1 text-gray-300">·</span>
-                            <span class="text-xs font-medium text-forest-700 truncate">{{ sel_root.name }}</span>
-                            {% if can_write and children|length > 1 %}
-                                <button type="button" data-action="live#action" data-live-action-param="sortChildrenAlphabetically"
-                                        class="ml-auto shrink-0 inline-flex items-center justify-center rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                                        title="{{ 'responsibilities.specific_profiles.sort_alphabetically'|trans({}, 'admin') }}">
-                                    {{ ux_icon('heroicons:bars-arrow-down', {class: 'h-4 w-4'}) }}
-                                </button>
-                            {% endif %}
-                            <span class="{{ can_write and children|length > 1 ? '' : 'ml-auto' }} text-xs text-gray-400">{{ children|length }}</span>
-                        {% endif %}
-                    </div>
-
-                    {% if not sel_root %}
-                        <p class="px-4 py-6 text-center text-xs italic text-gray-400">{{ 'responsibilities.specific_profiles.placeholder.children'|trans({}, 'admin') }}</p>
-                    {% elseif children is empty %}
-                        <p class="px-4 py-6 text-center text-xs italic text-gray-400">{{ 'responsibilities.specific_profiles.children.empty'|trans({}, 'admin') }}</p>
-                    {% else %}
-                        <ul class="divide-y divide-gray-50">
-                            {% for child in children %}
-                                {% set is_sel = childId == child.id.toRfc4122 %}
-                                {% set n_teachers = child_counts[child.id.toRfc4122] ?? 0 %}
-                                <li>
-                                    <button type="button"
-                                            data-action="live#action"
-                                            data-live-action-param="selectChild"
-                                            data-live-id-param="{{ child.id }}"
-                                            class="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors
-                                                   {{ is_sel ? 'bg-forest-50 ring-1 ring-inset ring-forest-200' : 'hover:bg-gray-50' }}">
-                                        <span class="flex-1 min-w-0 truncate text-sm {{ is_sel ? 'font-semibold text-forest-800' : 'text-gray-800' }}">
-                                            {{ child.name }}
+                {% if profiles is empty %}
+                    <p class="px-4 py-6 text-center text-xs italic text-gray-400">{{ 'responsibilities.specific_profiles.profiles.empty'|trans({}, 'admin') }}</p>
+                {% else %}
+                    <ul class="divide-y divide-gray-50">
+                        {% for profile in profiles %}
+                            {% set is_sel = selectedId == profile.id.toRfc4122 %}
+                            {% set n_teachers = counts[profile.id.toRfc4122] ?? 0 %}
+                            <li>
+                                <button type="button"
+                                        data-action="live#action"
+                                        data-live-action-param="selectProfile"
+                                        data-live-id-param="{{ profile.id }}"
+                                        class="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors
+                                               {{ is_sel ? 'bg-forest-50 ring-1 ring-inset ring-forest-200' : 'hover:bg-gray-50' }}">
+                                    <span class="flex-1 min-w-0 truncate text-sm {{ is_sel ? 'font-semibold text-forest-800' : 'text-gray-800' }}">
+                                        {{ profile.name }}
+                                    </span>
+                                    {% if profile.listItem %}
+                                        <span title="{{ 'responsibilities.specific_profiles.badge.list_associated'|trans({}, 'admin') }}"
+                                              class="shrink-0 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                                            {{ ux_icon('heroicons:rectangle-group', {class: 'h-3 w-3'}) }}
                                         </span>
-                                        <span title="{{ 'responsibilities.specific_profiles.teachers.title'|trans({}, 'admin') }}"
-                                              class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium
-                                                     {{ n_teachers > 0 ? 'bg-violet-50 text-violet-700' : 'bg-gray-50 text-gray-300' }}">
-                                            {{ ux_icon('heroicons:academic-cap', {class: 'h-3 w-3'}) }}{{ n_teachers }}
-                                        </span>
-                                        {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0 ' ~ (is_sel ? 'text-forest-400' : 'text-gray-300')}) }}
-                                    </button>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-
-                    {% if can_write and sel_root %}
-                        {% if sel_root.teachers is not empty %}
-                            <p class="px-3 pt-2 text-xs text-amber-600">{{ 'responsibilities.specific_profiles.error.parent_has_teachers'|trans({}, 'admin') }}</p>
-                        {% else %}
-                            <form data-action="submit->live#action:prevent"
-                                  data-live-action-param="addChild"
-                                  class="flex items-center gap-2 border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
-                                <input type="text"
-                                       data-model="norender|addChildName"
-                                       value="{{ addChildName }}"
-                                       placeholder="{{ 'responsibilities.specific_profiles.field.child_name_placeholder'|trans({}, 'admin') }}"
-                                       class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
-                                              placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
-                                <button type="submit"
-                                        class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white
-                                               hover:bg-forest-700 transition-colors"
-                                        title="{{ 'responsibilities.specific_profiles.add'|trans({}, 'admin') }}">
-                                    {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                                    {% endif %}
+                                    <span title="{{ 'responsibilities.specific_profiles.teachers.title'|trans({}, 'admin') }}"
+                                          class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium
+                                                 {{ n_teachers > 0 ? 'bg-violet-50 text-violet-700' : 'bg-gray-50 text-gray-300' }}">
+                                        {{ ux_icon('heroicons:academic-cap', {class: 'h-3 w-3'}) }}{{ n_teachers }}
+                                    </span>
+                                    {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0 ' ~ (is_sel ? 'text-forest-400' : 'text-gray-300')}) }}
                                 </button>
-                            </form>
-                        {% endif %}
-                        {% if errors.add_child is defined %}<p class="px-3 pb-2 text-xs text-red-600">{{ errors.add_child }}</p>{% endif %}
-                    {% endif %}
-                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
 
-            </div>{# /grid #}
+                {% if can_write %}
+                    <form data-action="submit->live#action:prevent"
+                          data-live-action-param="addProfile"
+                          class="flex items-center gap-2 border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
+                        <input type="text"
+                               data-model="norender|addName"
+                               value="{{ addName }}"
+                               placeholder="{{ 'responsibilities.specific_profiles.field.name_placeholder'|trans({}, 'admin') }}"
+                               class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
+                                      placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                        <button type="submit"
+                                class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white
+                                       hover:bg-forest-700 transition-colors"
+                                title="{{ 'responsibilities.specific_profiles.add'|trans({}, 'admin') }}">
+                            {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                        </button>
+                    </form>
+                    {% if errors.add is defined %}<p class="px-3 pb-2 text-xs text-red-600">{{ errors.add }}</p>{% endif %}
+                {% endif %}
+            </div>
 
-            {# ── Detalle (perfil raíz o subperfil seleccionado) ───────────── #}
+            {# ── Detalle del perfil seleccionado ──────────────────────── #}
             {% if sel %}
                 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
                     <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
@@ -179,11 +94,10 @@
                         <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ 'responsibilities.specific_profiles.detail.title'|trans({}, 'admin') }}</span>
                     </div>
 
-                    <div class="px-4 py-4 sm:px-6">
+                    <div class="px-4 py-4 sm:px-6 space-y-4">
                         {% if can_write %}
                             <form data-action="submit->live#action:prevent" data-live-action-param="saveDetail"
                                   class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-
                                 <div class="sm:col-span-2">
                                     <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.specific_profiles.field.name'|trans({}, 'admin') }}</label>
                                     <input type="text"
@@ -193,7 +107,6 @@
                                                   {{ errors.name is defined ? 'border-red-300 focus:ring-red-400/20' : 'border-gray-200 focus:border-forest-500 focus:ring-forest-500/20' }}">
                                     {% if errors.name is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.name }}</p>{% endif %}
                                 </div>
-
                                 <div class="flex items-end gap-2 sm:col-span-1">
                                     <button type="button" data-action="live#action" data-live-action-param="moveUp" data-live-id-param="{{ sel.id }}"
                                             class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-500 hover:bg-gray-50 transition-colors"
@@ -206,81 +119,202 @@
                                         {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4'}) }}
                                     </button>
                                 </div>
-
-                                {# Docentes asignados (solo perfiles sin subperfiles) #}
-                                <div class="border-t border-gray-100 pt-4 sm:col-span-3">
-                                    <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.specific_profiles.teachers.title'|trans({}, 'admin') }}</label>
-
-                                    {% if not can_assign %}
-                                        <p class="text-xs text-gray-500">{{ 'responsibilities.specific_profiles.assignable_hint'|trans({}, 'admin') }}</p>
-                                    {% else %}
-                                        {% if sel_teachers is empty %}
-                                            <p class="text-xs italic text-gray-400">{{ 'responsibilities.specific_profiles.teachers.empty'|trans({}, 'admin') }}</p>
-                                        {% else %}
-                                            <ul class="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
-                                                {% for teacher in sel_teachers %}
-                                                    <li class="flex items-center gap-2 px-3 py-2 text-sm">
-                                                        <span class="flex-1 min-w-0 truncate text-gray-800">
-                                                            {{ teacher.name.lastName }}, {{ teacher.name.firstName }}
-                                                        </span>
-                                                        <button type="button" data-action="live#action"
-                                                                data-live-action-param="removeTeacher" data-live-teacher-id-param="{{ teacher.id }}"
-                                                                class="shrink-0 inline-flex items-center justify-center rounded-lg p-1 text-gray-400
-                                                                       hover:bg-red-50 hover:text-red-600 transition-colors"
-                                                                title="{{ 'responsibilities.specific_profiles.action.remove_teacher'|trans({}, 'admin') }}">
-                                                            {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
-                                                        </button>
-                                                    </li>
-                                                {% endfor %}
-                                            </ul>
-                                        {% endif %}
-
-                                        <div class="mt-2">
-                                            <select class="js-assign-teacher-search w-full"
-                                                    data-controller="symfony--ux-autocomplete--autocomplete"
-                                                    data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('ux_entity_autocomplete', {alias: 'teacher_centre', academicYearId: centre.activeAcademicYear.id}) }}"
-                                                    data-symfony--ux-autocomplete--autocomplete-min-characters-value="2"
-                                                    data-symfony--ux-autocomplete--autocomplete-no-results-found-text-value="{{ 'autocomplete.no_results'|trans({}, 'admin') }}"
-                                                    data-symfony--ux-autocomplete--autocomplete-tom-select-options-value='{"dropdownParent":"body"}'
-                                                    data-placeholder="{{ 'responsibilities.specific_profiles.teachers.search_placeholder'|trans({}, 'admin') }}">
-                                            </select>
-                                            <p class="mt-1 text-xs text-gray-400">{{ 'responsibilities.specific_profiles.teachers.search_help'|trans({}, 'admin') }}</p>
-                                        </div>
-                                        {% if errors.assign is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.assign }}</p>{% endif %}
-                                    {% endif %}
-                                </div>
-
-                                {# Botones guardar / eliminar #}
-                                <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 sm:col-span-3">
+                                <div class="sm:col-span-3">
                                     <button type="submit"
                                             class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2 text-sm font-semibold text-white hover:bg-forest-700 transition-colors shadow-xs">
                                         {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'responsibilities.specific_profiles.detail.save'|trans({}, 'admin') }}
                                     </button>
+                                </div>
+                            </form>
+                        {% endif %}
 
-                                    <span class="ml-auto"></span>
+                        {# ── Elemento de lista asociado ───────────────────── #}
+                        <div class="border-t border-gray-100 pt-4">
+                            <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.specific_profiles.list_association.title'|trans({}, 'admin') }}</label>
+                            <p class="mb-2 text-xs text-gray-400">{{ 'responsibilities.specific_profiles.list_association.help'|trans({}, 'admin') }}</p>
 
-                                    {% if confirmingDelete %}
-                                        <span class="text-xs text-gray-600">
-                                            {{ (sel.leaf ? 'responsibilities.specific_profiles.delete_confirm_leaf' : 'responsibilities.specific_profiles.delete_confirm_parent')|trans({}, 'admin') }}
-                                        </span>
-                                        <button type="button" data-action="live#action" data-live-action-param="deleteSelected"
-                                                class="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors">
-                                            {{ 'responsibilities.specific_profiles.detail.confirm_yes'|trans({}, 'admin') }}
+                            {% if sel.listItem %}
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-forest-50 px-3 py-1.5 text-sm font-medium text-forest-700">
+                                        {{ ux_icon('heroicons:rectangle-group', {class: 'h-4 w-4'}) }}
+                                        {{ sel.listItem.name }}
+                                    </span>
+                                    {% if can_write %}
+                                        <button type="button" data-action="live#action" data-live-action-param="openPicker"
+                                                class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                                            {{ 'responsibilities.specific_profiles.list_association.change'|trans({}, 'admin') }}
                                         </button>
-                                        <button type="button" data-action="live#action" data-live-action-param="cancelDelete"
-                                                class="inline-flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-                                            {{ 'responsibilities.specific_profiles.detail.cancel'|trans({}, 'admin') }}
-                                        </button>
-                                    {% else %}
-                                        <button type="button" data-action="live#action" data-live-action-param="askDelete"
-                                                class="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors">
-                                            {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}{{ 'responsibilities.specific_profiles.detail.delete'|trans({}, 'admin') }}
+                                        <button type="button" data-action="live#action" data-live-action-param="clearListAssociation"
+                                                class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
+                                            {{ 'responsibilities.specific_profiles.list_association.clear'|trans({}, 'admin') }}
                                         </button>
                                     {% endif %}
                                 </div>
-                            </form>
-                        {% else %}
-                            <p class="text-sm text-gray-700">{{ editName }}</p>
+                            {% else %}
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs italic text-gray-400">{{ 'responsibilities.specific_profiles.list_association.none'|trans({}, 'admin') }}</span>
+                                    {% if can_write %}
+                                        <button type="button" data-action="live#action" data-live-action-param="openPicker"
+                                                class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                                            {{ 'responsibilities.specific_profiles.list_association.pick'|trans({}, 'admin') }}
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+
+                            {% if pickerActive %}
+                                {% set picker_items      = this.pickerVisibleItems %}
+                                {% set picker_breadcrumb = this.pickerBreadcrumb %}
+                                <div class="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-gray-50/40">
+                                    <nav class="flex flex-wrap items-center gap-1 border-b border-gray-100 bg-white px-3 py-2 text-xs">
+                                        <button type="button" data-action="live#action" data-live-action-param="pickerNavigate" data-live-id-param=""
+                                                class="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium
+                                                       {{ pickerParentId == '' ? 'bg-forest-50 text-forest-700' : 'text-gray-500 hover:bg-gray-100' }}">
+                                            {{ ux_icon('heroicons:home', {class: 'h-3.5 w-3.5'}) }}
+                                            {{ 'responsibilities.lists.root'|trans({}, 'admin') }}
+                                        </button>
+                                        {% for crumb in picker_breadcrumb %}
+                                            {{ ux_icon('heroicons:chevron-right', {class: 'h-3.5 w-3.5 text-gray-300 shrink-0'}) }}
+                                            <button type="button" data-action="live#action" data-live-action-param="pickerNavigate" data-live-id-param="{{ crumb.id }}"
+                                                    class="rounded-md px-2 py-1 font-medium
+                                                           {{ pickerParentId == crumb.id.toRfc4122 ? 'bg-forest-50 text-forest-700' : 'text-gray-500 hover:bg-gray-100' }}">
+                                                {{ crumb.name }}
+                                            </button>
+                                        {% endfor %}
+                                        <button type="button" data-action="live#action" data-live-action-param="closePicker"
+                                                class="ml-auto rounded-md px-2 py-1 font-medium text-gray-400 hover:bg-gray-100">
+                                            {{ ux_icon('heroicons:x-mark', {class: 'h-3.5 w-3.5'}) }}
+                                        </button>
+                                    </nav>
+                                    {% if picker_items is empty %}
+                                        <p class="px-4 py-4 text-center text-xs italic text-gray-400">{{ 'responsibilities.lists.items.empty'|trans({}, 'admin') }}</p>
+                                    {% else %}
+                                        <ul class="divide-y divide-gray-100 bg-white">
+                                            {% for item in picker_items %}
+                                                <li class="flex items-center px-3 py-2">
+                                                    <button type="button" data-action="live#action" data-live-action-param="pickerNavigate" data-live-id-param="{{ item.id }}"
+                                                            class="flex flex-1 items-center gap-2 text-left text-sm text-gray-700 hover:text-forest-700 min-w-0">
+                                                        {{ ux_icon('heroicons:chevron-right', {class: 'h-3.5 w-3.5 shrink-0 text-gray-300'}) }}
+                                                        <span class="truncate">{{ item.name }}</span>
+                                                        {% if not item.active %}
+                                                            <span class="shrink-0 text-xs text-gray-400">({{ 'responsibilities.lists.inactive'|trans({}, 'admin') }})</span>
+                                                        {% endif %}
+                                                    </button>
+                                                    {% if item.active %}
+                                                        <button type="button" data-action="live#action" data-live-action-param="pickListItem" data-live-id-param="{{ item.id }}"
+                                                                class="shrink-0 rounded-md bg-forest-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
+                                                            {{ 'responsibilities.specific_profiles.list_association.pick'|trans({}, 'admin') }}
+                                                        </button>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        {# ── Subperfiles o asignación directa ─────────────── #}
+                        {% if sel.listItem %}
+                            {% set leaves      = this.leaves %}
+                            {% set leaf_counts = this.leafTeacherCounts %}
+                            <div class="border-t border-gray-100 pt-4">
+                                <label class="mb-2 block text-xs font-medium text-gray-600">{{ 'responsibilities.specific_profiles.subprofiles.title'|trans({}, 'admin') }}</label>
+                                {% if leaves is empty %}
+                                    <p class="text-xs italic text-gray-400">{{ 'responsibilities.specific_profiles.subprofiles.empty'|trans({}, 'admin') }}</p>
+                                {% else %}
+                                    <ul class="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+                                        {% for leaf in leaves %}
+                                            {% set is_leaf_sel = selectedLeafId == leaf.id.toRfc4122 %}
+                                            {% set n = leaf_counts[leaf.id.toRfc4122] ?? 0 %}
+                                            <li>
+                                                <button type="button" data-action="live#action" data-live-action-param="selectLeaf" data-live-id-param="{{ leaf.id }}"
+                                                        class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors
+                                                               {{ is_leaf_sel ? 'bg-forest-50 text-forest-800 font-semibold' : 'text-gray-700 hover:bg-gray-50' }}">
+                                                    <span class="flex-1 min-w-0 truncate">{{ sel.name }} {{ leaf.name }}</span>
+                                                    <span class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium
+                                                                 {{ n > 0 ? 'bg-violet-50 text-violet-700' : 'bg-gray-50 text-gray-300' }}">
+                                                        {{ ux_icon('heroicons:academic-cap', {class: 'h-3 w-3'}) }}{{ n }}
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        {% if not sel.listItem or sel_leaf %}
+                            {% set assigned = this.assignedTeachers %}
+                            <div class="border-t border-gray-100 pt-4">
+                                <label class="mb-1 block text-xs font-medium text-gray-600">
+                                    {{ 'responsibilities.specific_profiles.teachers.title'|trans({}, 'admin') }}
+                                    {% if sel.listItem %}<span class="font-normal text-gray-400">— {{ sel.name }} {{ sel_leaf.name }}</span>{% endif %}
+                                </label>
+
+                                {% if assigned is empty %}
+                                    <p class="text-xs italic text-gray-400">{{ 'responsibilities.specific_profiles.teachers.empty'|trans({}, 'admin') }}</p>
+                                {% else %}
+                                    <ul class="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+                                        {% for teacher in assigned %}
+                                            <li class="flex items-center gap-2 px-3 py-2 text-sm">
+                                                <span class="flex-1 min-w-0 truncate text-gray-800">
+                                                    {{ teacher.name.lastName }}, {{ teacher.name.firstName }}
+                                                </span>
+                                                {% if can_write %}
+                                                    <button type="button" data-action="live#action"
+                                                            data-live-action-param="removeTeacher" data-live-teacher-id-param="{{ teacher.id }}"
+                                                            class="shrink-0 inline-flex items-center justify-center rounded-lg p-1 text-gray-400
+                                                                   hover:bg-red-50 hover:text-red-600 transition-colors"
+                                                            title="{{ 'responsibilities.specific_profiles.action.remove_teacher'|trans({}, 'admin') }}">
+                                                        {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                                                    </button>
+                                                {% endif %}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+
+                                {% if can_write %}
+                                    <div class="mt-2">
+                                        <select class="js-assign-teacher-search w-full"
+                                                data-controller="symfony--ux-autocomplete--autocomplete"
+                                                data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('ux_entity_autocomplete', {alias: 'teacher_centre', academicYearId: centre.activeAcademicYear.id}) }}"
+                                                data-symfony--ux-autocomplete--autocomplete-min-characters-value="2"
+                                                data-symfony--ux-autocomplete--autocomplete-no-results-found-text-value="{{ 'autocomplete.no_results'|trans({}, 'admin') }}"
+                                                data-symfony--ux-autocomplete--autocomplete-tom-select-options-value='{"dropdownParent":"body"}'
+                                                data-placeholder="{{ 'responsibilities.specific_profiles.teachers.search_placeholder'|trans({}, 'admin') }}">
+                                        </select>
+                                        <p class="mt-1 text-xs text-gray-400">{{ 'responsibilities.specific_profiles.teachers.search_help'|trans({}, 'admin') }}</p>
+                                    </div>
+                                {% endif %}
+                                {% if errors.assign is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.assign }}</p>{% endif %}
+                            </div>
+                        {% elseif sel.listItem %}
+                            <p class="border-t border-gray-100 pt-4 text-xs text-gray-500">{{ 'responsibilities.specific_profiles.subprofiles.select_hint'|trans({}, 'admin') }}</p>
+                        {% endif %}
+
+                        {# ── Eliminar ──────────────────────────────────────── #}
+                        {% if can_write %}
+                            <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4">
+                                <span class="ml-auto"></span>
+                                {% if confirmingDelete %}
+                                    <span class="text-xs text-gray-600">{{ 'responsibilities.specific_profiles.delete_confirm'|trans({}, 'admin') }}</span>
+                                    <button type="button" data-action="live#action" data-live-action-param="deleteSelected"
+                                            class="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors">
+                                        {{ 'responsibilities.specific_profiles.detail.confirm_yes'|trans({}, 'admin') }}
+                                    </button>
+                                    <button type="button" data-action="live#action" data-live-action-param="cancelDelete"
+                                            class="inline-flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                                        {{ 'responsibilities.specific_profiles.detail.cancel'|trans({}, 'admin') }}
+                                    </button>
+                                {% else %}
+                                    <button type="button" data-action="live#action" data-live-action-param="askDelete"
+                                            class="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors">
+                                        {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}{{ 'responsibilities.specific_profiles.detail.delete'|trans({}, 'admin') }}
+                                    </button>
+                                {% endif %}
+                            </div>
                         {% endif %}
                     </div>
                 </div>

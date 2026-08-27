@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Twig\Components\Admin;
 
 use App\Entity\EducationalCentre;
+use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
+use App\Repository\ListItemRepository;
+use App\Repository\SpecificProfileAssignmentRepository;
 use App\Repository\SpecificProfileRepository;
 use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
@@ -21,11 +24,13 @@ use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * Inline editor for a centre's custom "specific profile" hierarchy: root
- * profiles (e.g. "Docente") with up to one level of children (e.g. "Docente
- * ESO/Bach", "Docente FP"). Only profiles without children ("leaves" — a root
- * with zero children counts as one) can have teachers assigned directly; a
- * profile with children is a purely organisational category.
+ * Inline editor for a centre's flat list of "specific profiles" (e.g.
+ * "Tutor/a"). Each profile is optionally associated with a list element
+ * (see ListItem): when it is, every leaf descendant of that element is a
+ * "virtual subperfil" (e.g. "Tutor/a 1º ESO-A") with its own independent
+ * teacher assignments, browsed and edited here; when it isn't, teachers are
+ * assigned to the profile directly. List items themselves are managed on
+ * the separate "Listas" screen — this component only picks among them.
  */
 #[AsLiveComponent]
 class SpecificProfileTreeComponent extends AbstractController
@@ -37,19 +42,11 @@ class SpecificProfileTreeComponent extends AbstractController
     public EducationalCentre $centre;
 
     #[LiveProp(writable: true)]
-    public string $rootId = '';
+    public string $selectedId = '';
 
     #[LiveProp(writable: true)]
-    public string $childId = '';
+    public string $addName = '';
 
-    /** Inline "add" inputs, one per column. */
-    #[LiveProp(writable: true)]
-    public string $addRootName = '';
-
-    #[LiveProp(writable: true)]
-    public string $addChildName = '';
-
-    /** Detail-panel field for the selected profile. */
     #[LiveProp(writable: true)]
     public string $editName = '';
 
@@ -57,20 +54,32 @@ class SpecificProfileTreeComponent extends AbstractController
     #[LiveProp]
     public array $errors = [];
 
-    /** Inline two-step confirmation for deleting the selected profile. */
     #[LiveProp(writable: true)]
     public bool $confirmingDelete = false;
+
+    /** Picker for choosing which list element a profile is associated with. */
+    #[LiveProp(writable: true)]
+    public bool $pickerActive = false;
+
+    #[LiveProp(writable: true)]
+    public string $pickerParentId = '';
+
+    /** Which leaf ("subperfil") of the associated list element is currently being edited. */
+    #[LiveProp(writable: true)]
+    public string $selectedLeafId = '';
 
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
         private readonly SpecificProfileRepository $profiles,
+        private readonly SpecificProfileAssignmentRepository $assignments,
+        private readonly ListItemRepository $listItems,
         private readonly TeacherRepository $teachers,
     ) {}
 
     public function mount(EducationalCentre $centre): void
     {
-        $this->denyAccessUnlessGranted(EducationalCentreVoter::SECTION, $centre);
+        $this->denyAccessUnlessGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre);
         $this->centre = $centre;
     }
 
@@ -85,127 +94,60 @@ class SpecificProfileTreeComponent extends AbstractController
         return $this->centre->getActiveAcademicYear() !== null;
     }
 
-    // ── Column data ──────────────────────────────────────────────────────────
+    // ── Profile list ─────────────────────────────────────────────────────────
 
     /** @return SpecificProfile[] */
-    public function getRootProfiles(): array
+    public function getProfiles(): array
     {
-        return $this->profiles->findRootsByCentre($this->centre);
+        return $this->profiles->findByCentre($this->centre);
     }
 
     /** @return array<string, int> */
-    public function getRootTeacherCounts(): array
+    public function getProfileTeacherCounts(): array
     {
-        return $this->profiles->findTeacherCountsByProfiles($this->getRootProfiles());
-    }
-
-    /** @return SpecificProfile[] */
-    public function getChildProfiles(): array
-    {
-        $root = $this->getSelectedRoot();
-
-        return $root === null ? [] : $this->profiles->findChildrenByParent($root);
-    }
-
-    /** @return array<string, int> */
-    public function getChildTeacherCounts(): array
-    {
-        return $this->profiles->findTeacherCountsByProfiles($this->getChildProfiles());
-    }
-
-    // ── Selected entities ────────────────────────────────────────────────────
-
-    public function getSelectedRoot(): ?SpecificProfile
-    {
-        if ($this->rootId === '') {
-            return null;
-        }
-
-        $root = $this->profiles->findByIdAndCentre($this->rootId, $this->centre);
-
-        // Defense in depth: rootId is client-writable — never trust it to
-        // actually be a root profile.
-        return ($root !== null && $root->isRoot()) ? $root : null;
-    }
-
-    public function getSelectedChild(): ?SpecificProfile
-    {
-        $root = $this->getSelectedRoot();
-        if ($root === null || $this->childId === '') {
-            return null;
-        }
-
-        $child = $this->profiles->findByIdAndCentre($this->childId, $this->centre);
-
-        // Defense in depth: childId must actually belong to the currently selected root.
-        return ($child !== null && $child->getParent() === $root) ? $child : null;
+        return $this->assignments->findAssignedTeacherCountsByProfiles($this->getProfiles());
     }
 
     public function getSelected(): ?SpecificProfile
     {
-        return $this->getSelectedChild() ?? $this->getSelectedRoot();
-    }
-
-    public function canAssignTeachers(): bool
-    {
-        return $this->getSelected()?->isLeaf() ?? false;
-    }
-
-    /** @return Teacher[] */
-    public function getSelectedTeachers(): array
-    {
-        $selected = $this->getSelected();
-        if ($selected === null) {
-            return [];
+        if ($this->selectedId === '') {
+            return null;
         }
 
-        $list = $selected->getTeachers()->toArray();
-        usort($list, static fn (Teacher $a, Teacher $b) => $a->getName()->getLastName() <=> $b->getName()->getLastName());
-
-        return $list;
-    }
-
-    // ── Selection actions ────────────────────────────────────────────────────
-
-    #[LiveAction]
-    public function selectRoot(#[LiveArg] string $id): void
-    {
-        $this->rootId  = $id;
-        $this->childId = '';
-        $this->loadDetail();
+        return $this->profiles->findByIdAndCentre($this->selectedId, $this->centre);
     }
 
     #[LiveAction]
-    public function selectChild(#[LiveArg] string $id): void
+    public function selectProfile(#[LiveArg] string $id): void
     {
-        $this->childId = $id;
+        $this->selectedId = $id;
         $this->loadDetail();
     }
 
     #[LiveAction]
     public function clearSelection(): void
     {
-        $this->rootId = $this->childId = '';
-        $this->errors = [];
+        $this->selectedId = '';
+        $this->errors     = [];
     }
 
     private function loadDetail(): void
     {
-        $this->errors = [];
+        $this->errors         = [];
         $this->confirmingDelete = false;
-        $selected = $this->getSelected();
-        $this->editName = $selected?->getName() ?? '';
+        $this->pickerActive     = false;
+        $this->selectedLeafId   = '';
+        $selected                = $this->getSelected();
+        $this->editName          = $selected?->getName() ?? '';
     }
 
-    // ── Add actions ──────────────────────────────────────────────────────────
-
     #[LiveAction]
-    public function addRoot(): void
+    public function addProfile(): void
     {
         $this->requireWritableCentre();
-        $name = trim($this->addRootName);
+        $name = trim($this->addName);
         if ($name === '') {
-            $this->errors = ['add_root' => $this->t('responsibilities.specific_profiles.error.name_required')];
+            $this->errors = ['add' => $this->t('responsibilities.specific_profiles.error.name_required')];
 
             return;
         }
@@ -213,51 +155,14 @@ class SpecificProfileTreeComponent extends AbstractController
         $profile = (new SpecificProfile())
             ->setEducationalCentre($this->centre)
             ->setName($name)
-            ->setPosition($this->profiles->nextRootPosition($this->centre));
+            ->setPosition($this->profiles->nextPosition($this->centre));
 
         $this->em->persist($profile);
         $this->em->flush();
 
-        $this->addRootName = '';
-        $this->selectRoot($profile->getId()->toRfc4122());
+        $this->addName = '';
+        $this->selectProfile($profile->getId()->toRfc4122());
     }
-
-    #[LiveAction]
-    public function addChild(): void
-    {
-        $this->requireWritableCentre();
-        $root = $this->getSelectedRoot();
-        if ($root === null) {
-            return;
-        }
-
-        if (!$root->getTeachers()->isEmpty()) {
-            $this->errors = ['add_child' => $this->t('responsibilities.specific_profiles.error.parent_has_teachers')];
-
-            return;
-        }
-
-        $name = trim($this->addChildName);
-        if ($name === '') {
-            $this->errors = ['add_child' => $this->t('responsibilities.specific_profiles.error.name_required')];
-
-            return;
-        }
-
-        $child = (new SpecificProfile())
-            ->setEducationalCentre($this->centre)
-            ->setName($name)
-            ->setPosition($this->profiles->nextChildPosition($root));
-        $child->setParent($root);
-
-        $this->em->persist($child);
-        $this->em->flush();
-
-        $this->addChildName = '';
-        $this->selectChild($child->getId()->toRfc4122());
-    }
-
-    // ── Detail save / delete ─────────────────────────────────────────────────
 
     #[LiveAction]
     public function saveDetail(): void
@@ -299,32 +204,18 @@ class SpecificProfileTreeComponent extends AbstractController
     {
         $this->requireWritableCentre();
         $this->confirmingDelete = false;
-        $selected = $this->getSelected();
+        $selected               = $this->getSelected();
         if ($selected === null) {
             return;
         }
 
-        $wasRoot = $selected->isRoot();
+        $this->em->remove($selected);
+        $this->em->flush();
 
-        try {
-            $this->em->remove($selected);
-            $this->em->flush();
-            $this->flashSuccess($this->t('responsibilities.specific_profiles.flash.deleted'));
-        } catch (\Exception) {
-            $this->flashError($this->t('responsibilities.specific_profiles.flash.delete_error'));
-
-            return;
-        }
-
-        if ($wasRoot) {
-            $this->rootId = $this->childId = '';
-        } else {
-            $this->childId = '';
-        }
+        $this->selectedId = '';
         $this->loadDetail();
+        $this->flashSuccess($this->t('responsibilities.specific_profiles.flash.deleted'));
     }
-
-    // ── Reordering ───────────────────────────────────────────────────────────
 
     #[LiveAction]
     public function moveUp(#[LiveArg] string $id): void
@@ -346,10 +237,7 @@ class SpecificProfileTreeComponent extends AbstractController
             return;
         }
 
-        $parent   = $target->getParent();
-        $siblings = array_values($parent === null
-            ? $this->profiles->findRootsByCentre($this->centre)
-            : $this->profiles->findChildrenByParent($parent));
+        $siblings = array_values($this->profiles->findByCentre($this->centre));
 
         $index = null;
         foreach ($siblings as $i => $sibling) {
@@ -365,7 +253,7 @@ class SpecificProfileTreeComponent extends AbstractController
             return;
         }
 
-        $targetPosition   = $target->getPosition();
+        $targetPosition = $target->getPosition();
         $target->setPosition($swapWith->getPosition());
         $swapWith->setPosition($targetPosition);
 
@@ -373,55 +261,200 @@ class SpecificProfileTreeComponent extends AbstractController
     }
 
     #[LiveAction]
-    public function sortRootsAlphabetically(): void
+    public function sortAlphabetically(): void
     {
         $this->requireWritableCentre();
-        $this->sortByName($this->profiles->findRootsByCentre($this->centre));
-    }
+        $profiles = $this->getProfiles();
+        usort($profiles, static fn (SpecificProfile $a, SpecificProfile $b) => strcmp($a->getName(), $b->getName()));
 
-    #[LiveAction]
-    public function sortChildrenAlphabetically(): void
-    {
-        $this->requireWritableCentre();
-        $root = $this->getSelectedRoot();
-        if ($root === null) {
-            return;
-        }
-
-        $this->sortByName($this->profiles->findChildrenByParent($root));
-    }
-
-    /** @param SpecificProfile[] $siblings */
-    private function sortByName(array $siblings): void
-    {
-        usort($siblings, static fn (SpecificProfile $a, SpecificProfile $b) => strcmp($a->getName(), $b->getName()));
-
-        foreach ($siblings as $position => $sibling) {
-            $sibling->setPosition($position);
+        foreach ($profiles as $position => $profile) {
+            $profile->setPosition($position);
         }
 
         $this->em->flush();
     }
 
-    // ── Teacher assignment (leaf profiles only) ─────────────────────────────
+    // ── List-element picker ──────────────────────────────────────────────────
+
+    #[LiveAction]
+    public function openPicker(): void
+    {
+        $this->pickerActive   = true;
+        $this->pickerParentId = '';
+    }
+
+    #[LiveAction]
+    public function closePicker(): void
+    {
+        $this->pickerActive = false;
+    }
+
+    #[LiveAction]
+    public function pickerNavigate(#[LiveArg] string $id): void
+    {
+        $this->pickerParentId = $id;
+    }
+
+    public function getPickerParent(): ?ListItem
+    {
+        if ($this->pickerParentId === '') {
+            return null;
+        }
+
+        return $this->listItems->findByIdAndCentre($this->pickerParentId, $this->centre);
+    }
+
+    /** @return ListItem[] */
+    public function getPickerVisibleItems(): array
+    {
+        $parent = $this->getPickerParent();
+
+        return $parent === null
+            ? $this->listItems->findRootsByCentre($this->centre)
+            : $this->listItems->findChildrenByParent($parent);
+    }
+
+    /** @return ListItem[] */
+    public function getPickerBreadcrumb(): array
+    {
+        $trail = [];
+        for ($item = $this->getPickerParent(); $item !== null; $item = $item->getParent()) {
+            array_unshift($trail, $item);
+        }
+
+        return $trail;
+    }
+
+    #[LiveAction]
+    public function pickListItem(#[LiveArg] string $id): void
+    {
+        $this->requireWritableCentre();
+        $selected = $this->getSelected();
+        $item     = $this->listItems->findByIdAndCentre($id, $this->centre);
+        if ($selected === null || $item === null || !$item->isActive()) {
+            return;
+        }
+
+        $this->applyListAssociation($selected, $item);
+        $this->pickerActive   = false;
+        $this->selectedLeafId = '';
+    }
+
+    #[LiveAction]
+    public function clearListAssociation(): void
+    {
+        $this->requireWritableCentre();
+        $selected = $this->getSelected();
+        if ($selected === null) {
+            return;
+        }
+
+        $this->applyListAssociation($selected, null);
+        $this->selectedLeafId = '';
+    }
+
+    /**
+     * Changing (or clearing) a profile's associated list element invalidates
+     * every existing assignment — they were scoped to the previous leaves
+     * (or to direct mode), which no longer apply.
+     */
+    private function applyListAssociation(SpecificProfile $profile, ?ListItem $item): void
+    {
+        foreach ($profile->getAssignments()->toArray() as $assignment) {
+            $profile->removeAssignment($assignment);
+        }
+        $profile->setListItem($item);
+        $this->em->flush();
+    }
+
+    // ── Leaves ("subperfiles") of an associated list element ────────────────
+
+    /** @return ListItem[] */
+    public function getLeaves(): array
+    {
+        $selected = $this->getSelected();
+        $listItem = $selected?->getListItem();
+
+        return $listItem === null ? [] : $this->listItems->findLeafDescendants($listItem);
+    }
+
+    /** @return array<string, int> */
+    public function getLeafTeacherCounts(): array
+    {
+        $selected = $this->getSelected();
+
+        return $selected === null ? [] : $this->assignments->findTeacherCountsByListItems($selected, $this->getLeaves());
+    }
+
+    public function getSelectedLeaf(): ?ListItem
+    {
+        if ($this->selectedLeafId === '') {
+            return null;
+        }
+
+        foreach ($this->getLeaves() as $leaf) {
+            if ($leaf->getId()->toRfc4122() === $this->selectedLeafId) {
+                return $leaf;
+            }
+        }
+
+        return null;
+    }
+
+    #[LiveAction]
+    public function selectLeaf(#[LiveArg] string $id): void
+    {
+        $this->selectedLeafId = $id;
+        $this->errors         = [];
+    }
+
+    #[LiveAction]
+    public function clearLeafSelection(): void
+    {
+        $this->selectedLeafId = '';
+    }
+
+    // ── Teacher assignment ───────────────────────────────────────────────────
+
+    /** Whether the currently relevant assignable unit (the profile itself, or the selected leaf) is ready to take assignments. */
+    public function canAssignTeachers(): bool
+    {
+        $selected = $this->getSelected();
+        if ($selected === null) {
+            return false;
+        }
+
+        return $selected->isListAssociated() ? $this->getSelectedLeaf() !== null : true;
+    }
+
+    /** @return Teacher[] */
+    public function getAssignedTeachers(): array
+    {
+        $selected = $this->getSelected();
+        if ($selected === null || !$this->canAssignTeachers()) {
+            return [];
+        }
+
+        return $this->assignments->findTeachersByProfileAndListItem($selected, $this->getSelectedLeaf());
+    }
 
     #[LiveAction]
     public function assignTeacher(#[LiveArg] string $teacherId): void
     {
         $this->requireWritableCentre();
         $selected = $this->getSelected();
-        if ($selected === null || !$selected->isLeaf()) {
+        if ($selected === null || !$this->canAssignTeachers()) {
             $this->errors = ['assign' => $this->t('responsibilities.specific_profiles.error.not_assignable')];
 
             return;
         }
 
         $teacher = $this->resolveTeacher($teacherId);
-        if ($teacher === null || $selected->getTeachers()->contains($teacher)) {
+        if ($teacher === null) {
             return;
         }
 
-        $selected->addTeacher($teacher);
+        $selected->addAssignment($teacher, $this->getSelectedLeaf());
         $this->em->flush();
         $this->flashSuccess($this->t('responsibilities.specific_profiles.flash.teacher_assigned'));
     }
@@ -431,16 +464,16 @@ class SpecificProfileTreeComponent extends AbstractController
     {
         $this->requireWritableCentre();
         $selected = $this->getSelected();
-        if ($selected === null) {
+        $teacher  = $this->resolveTeacher($teacherId);
+        if ($selected === null || $teacher === null) {
             return;
         }
 
-        $teacher = $this->resolveTeacher($teacherId);
-        if ($teacher === null) {
-            return;
+        foreach ($selected->getAssignments() as $assignment) {
+            if ($assignment->getTeacher() === $teacher && $assignment->getListItem() === $this->getSelectedLeaf()) {
+                $selected->removeAssignment($assignment);
+            }
         }
-
-        $selected->removeTeacher($teacher);
         $this->em->flush();
         $this->flashSuccess($this->t('responsibilities.specific_profiles.flash.teacher_removed'));
     }
@@ -454,7 +487,7 @@ class SpecificProfileTreeComponent extends AbstractController
 
     private function requireWritableCentre(): EducationalCentre
     {
-        $this->denyAccessUnlessGranted(EducationalCentreVoter::SECTION, $this->centre);
+        $this->denyAccessUnlessGranted(EducationalCentreVoter::RESPONSIBILITIES, $this->centre);
         if (!$this->canWrite()) {
             throw $this->createAccessDeniedException();
         }
@@ -476,10 +509,5 @@ class SpecificProfileTreeComponent extends AbstractController
     private function flashSuccess(string $message): void
     {
         $this->dispatchBrowserEvent('flash:show', ['type' => 'success', 'message' => $message]);
-    }
-
-    private function flashError(string $message): void
-    {
-        $this->dispatchBrowserEvent('flash:show', ['type' => 'error', 'message' => $message]);
     }
 }

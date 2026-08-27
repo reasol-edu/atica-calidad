@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\EducationalCentre;
+use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -20,23 +21,11 @@ class SpecificProfileRepository extends ServiceEntityRepository
     }
 
     /** @return SpecificProfile[] */
-    public function findRootsByCentre(EducationalCentre $centre): array
+    public function findByCentre(EducationalCentre $centre): array
     {
         return $this->createQueryBuilder('sp')
             ->where('sp.educationalCentre = :centre')
-            ->andWhere('sp.parent IS NULL')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('sp.position', 'ASC')
-            ->getQuery()
-            ->getResult();
-    }
-
-    /** @return SpecificProfile[] */
-    public function findChildrenByParent(SpecificProfile $parent): array
-    {
-        return $this->createQueryBuilder('sp')
-            ->where('sp.parent = :parent')
-            ->setParameter('parent', $parent->getId(), 'uuid')
             ->orderBy('sp.position', 'ASC')
             ->getQuery()
             ->getResult();
@@ -55,69 +44,25 @@ class SpecificProfileRepository extends ServiceEntityRepository
         return $result instanceof SpecificProfile ? $result : null;
     }
 
-    public function nextRootPosition(EducationalCentre $centre): int
+    public function nextPosition(EducationalCentre $centre): int
     {
         return (int) $this->createQueryBuilder('sp')
             ->select('COUNT(sp.id)')
             ->where('sp.educationalCentre = :centre')
-            ->andWhere('sp.parent IS NULL')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->getQuery()
             ->getSingleScalarResult();
     }
 
-    public function nextChildPosition(SpecificProfile $parent): int
+    /** Whether any profile is associated with this list item — blocks its deletion. */
+    public function isListItemInUse(ListItem $item): bool
     {
-        return (int) $this->createQueryBuilder('sp')
-            ->select('COUNT(sp.id)')
-            ->where('sp.parent = :parent')
-            ->setParameter('parent', $parent->getId(), 'uuid')
+        return $this->createQueryBuilder('sp')
+            ->select('1')
+            ->where('sp.listItem = :item')
+            ->setParameter('item', $item->getId(), 'uuid')
+            ->setMaxResults(1)
             ->getQuery()
-            ->getSingleScalarResult();
-    }
-
-    /**
-     * Number of teachers assigned per profile, keyed by profile UUID (RFC4122).
-     * Single grouped query; avoids N+1 across a list of profiles.
-     *
-     * @param  SpecificProfile[] $profiles
-     * @return array<string, int>
-     */
-    public function findTeacherCountsByProfiles(array $profiles): array
-    {
-        if ($profiles === []) {
-            return [];
-        }
-
-        $qb           = $this->createQueryBuilder('sp')
-            ->select('sp.id AS pid', 'COUNT(t.id) AS cnt')
-            ->leftJoin('sp.teachers', 't');
-        $placeholders = [];
-        foreach ($profiles as $i => $profile) {
-            $placeholders[] = ":profile{$i}";
-            $qb->setParameter("profile{$i}", $profile->getId(), 'uuid');
-        }
-
-        /** @var list<array<string, int|string>> $rows */
-        $rows = $qb
-            ->where('sp IN (' . implode(', ', $placeholders) . ')')
-            ->groupBy('sp.id')
-            ->getQuery()
-            ->getScalarResult();
-
-        $uuidNorm = [];
-        foreach ($profiles as $profile) {
-            $rfc = $profile->getId()->toRfc4122();
-            $uuidNorm[$rfc]                          = $rfc;
-            $uuidNorm[$profile->getId()->toBinary()] = $rfc;
-        }
-
-        $map = [];
-        foreach ($rows as $row) {
-            $key = $uuidNorm[(string) $row['pid']] ?? (string) $row['pid'];
-            $map[$key] = (int) $row['cnt'];
-        }
-
-        return $map;
+            ->getOneOrNullResult() !== null;
     }
 }

@@ -351,29 +351,66 @@ centre_profiles.internal_auditors.help: 'Realiza las auditorías internas del si
 centre_profiles.save: 'Guardar'
 centre_profiles.flash.saved: 'Perfiles actualizados correctamente.'
 
-# Responsabilidades — hub y perfiles específicos
+# Responsabilidades — hub, listas y perfiles específicos
 responsibilities.hub_intro: 'Configura las responsabilidades del profesorado y los listados asociados a ellas.'
 
+# ── Listas ───────────────────────────────────────────────────────────────────
+responsibilities.lists.title: 'Listas'
+responsibilities.lists.hub_help: 'Crea jerarquías propias de nombres para el centro (grupos, departamentos...) y etiquétalas.'
+responsibilities.lists.manage: 'Gestionar listas'
+responsibilities.lists.help: 'Crea jerarquías de elementos con la profundidad que necesites (por ejemplo, «Grupo» → «1º ESO» → «1º ESO-A»). Cada elemento puede llevar sus propias etiquetas, que heredan también sus descendientes.'
+
+responsibilities.lists.root: 'Raíz'
+responsibilities.lists.col.roots: 'Listas'
+responsibilities.lists.col.children: 'Elementos'
+responsibilities.lists.items.empty: 'No hay elementos todavía.'
+responsibilities.lists.inactive: 'Inactivo'
+responsibilities.lists.action.open: 'Ver elementos'
+responsibilities.lists.sort_alphabetically: 'Ordenar alfabéticamente'
+
+responsibilities.lists.field.name_placeholder: 'ej: Grupo'
+responsibilities.lists.field.name: 'Nombre'
+responsibilities.lists.field.active: 'Activo'
+responsibilities.lists.field.active_help: 'Los elementos inactivos no se pueden elegir en sitios nuevos, pero siguen viéndose donde ya se usaban.'
+responsibilities.lists.add: 'Añadir'
+
+responsibilities.lists.detail.title: 'Editar elemento'
+responsibilities.lists.detail.save: 'Guardar cambios'
+responsibilities.lists.detail.move_up: 'Subir'
+responsibilities.lists.detail.move_down: 'Bajar'
+responsibilities.lists.detail.delete: 'Eliminar'
+responsibilities.lists.detail.confirm_yes: 'Sí, eliminar'
+responsibilities.lists.detail.cancel: 'Cancelar'
+responsibilities.lists.delete_confirm: '¿Eliminar este elemento?'
+
+responsibilities.lists.error.name_required: 'El nombre es obligatorio.'
+responsibilities.lists.error.delete_has_children: 'No se puede eliminar: tiene elementos hijos. Elimínalos primero.'
+responsibilities.lists.error.delete_in_use: 'No se puede eliminar: está en uso (asociado a un perfil o con docentes asignados a través de uno).'
+
+responsibilities.lists.tags.title: 'Etiquetas'
+responsibilities.lists.tags.empty: 'Este elemento no tiene etiquetas.'
+responsibilities.lists.tags.inherited_hint: 'Etiqueta heredada de un elemento superior.'
+responsibilities.lists.tags.add: 'Añadir'
+responsibilities.lists.tags.add_placeholder: 'Escribe o elige una etiqueta…'
+
+responsibilities.lists.flash.saved: 'Elemento guardado correctamente.'
+responsibilities.lists.flash.deleted: 'Elemento eliminado correctamente.'
+
+# ── Perfiles específicos ─────────────────────────────────────────────────────
 responsibilities.specific_profiles.title: 'Perfiles específicos'
-responsibilities.specific_profiles.hub_help: 'Crea una jerarquía propia de perfiles personalizados para el centro y asígnales docentes.'
+responsibilities.specific_profiles.hub_help: 'Crea perfiles personalizados para el centro y asígnales docentes, opcionalmente a través de una lista.'
 responsibilities.specific_profiles.manage: 'Gestionar perfiles específicos'
-responsibilities.specific_profiles.help: 'Crea una jerarquía propia de perfiles para este centro, con hasta dos niveles. Solo se pueden asignar docentes a los perfiles que no tengan subperfiles.'
+responsibilities.specific_profiles.help: 'Crea perfiles personalizados para este centro. Un perfil puede asociarse a un elemento de una lista: en ese caso, cada hoja descendiente de ese elemento es un subperfil con sus propios docentes asignados.'
 responsibilities.specific_profiles.no_active_year: 'Este centro no tiene un curso académico activo. Establece uno activo para gestionar los perfiles específicos.'
 
-responsibilities.specific_profiles.col.roots: 'Perfiles raíz'
-responsibilities.specific_profiles.col.children: 'Subperfiles'
-responsibilities.specific_profiles.placeholder.children: 'Selecciona un perfil raíz para ver sus subperfiles.'
-responsibilities.specific_profiles.roots.empty: 'No hay perfiles raíz todavía.'
-responsibilities.specific_profiles.children.empty: 'Este perfil raíz no tiene subperfiles todavía.'
+responsibilities.specific_profiles.col.profiles: 'Perfiles'
+responsibilities.specific_profiles.profiles.empty: 'No hay perfiles todavía.'
+responsibilities.specific_profiles.sort_alphabetically: 'Ordenar alfabéticamente'
+responsibilities.specific_profiles.badge.list_associated: 'Asociado a una lista'
 
-responsibilities.specific_profiles.field.root_name_placeholder: 'ej: Docente'
-responsibilities.specific_profiles.field.child_name_placeholder: 'ej: Docente ESO/Bach'
+responsibilities.specific_profiles.field.name_placeholder: 'ej: Tutor/a'
 responsibilities.specific_profiles.field.name: 'Nombre del perfil'
 responsibilities.specific_profiles.add: 'Añadir'
-responsibilities.specific_profiles.sort_alphabetically: 'Ordenar alfabéticamente'
-
-responsibilities.specific_profiles.badge.children_one: 'subperfil'
-responsibilities.specific_profiles.badge.children_other: 'subperfiles'
 
 responsibilities.specific_profiles.detail.title: 'Editar perfil'
 responsibilities.specific_profiles.detail.save: 'Guardar cambios'
@@ -382,23 +419,30 @@ responsibilities.specific_profiles.detail.move_down: 'Bajar'
 responsibilities.specific_profiles.detail.delete: 'Eliminar'
 responsibilities.specific_profiles.detail.confirm_yes: 'Sí, eliminar'
 responsibilities.specific_profiles.detail.cancel: 'Cancelar'
-responsibilities.specific_profiles.delete_confirm_leaf: '¿Eliminar este perfil? Se eliminarán también sus docentes asignados.'
-responsibilities.specific_profiles.delete_confirm_parent: '¿Eliminar este perfil? Se eliminarán también sus subperfiles y los docentes que tengan asignados.'
+responsibilities.specific_profiles.delete_confirm: '¿Eliminar este perfil? Se eliminarán también sus docentes asignados.'
 
 responsibilities.specific_profiles.error.name_required: 'El nombre es obligatorio.'
-responsibilities.specific_profiles.error.not_assignable: 'No se pueden asignar docentes a un perfil que tiene subperfiles.'
-responsibilities.specific_profiles.error.parent_has_teachers: 'Este perfil tiene docentes asignados. Quítalos antes de añadirle subperfiles.'
-responsibilities.specific_profiles.assignable_hint: 'Este perfil es una categoría organizativa; no se pueden asignar docentes directamente. Elimina o reorganiza sus subperfiles para poder asignar aquí.'
+responsibilities.specific_profiles.error.not_assignable: 'Selecciona antes un subperfil al que asignar el docente.'
+
+responsibilities.specific_profiles.list_association.title: 'Elemento de lista asociado'
+responsibilities.specific_profiles.list_association.help: 'Si asocias este perfil a un elemento de una lista, cada hoja descendiente será un subperfil independiente.'
+responsibilities.specific_profiles.list_association.none: 'Sin asociar'
+responsibilities.specific_profiles.list_association.pick: 'Elegir'
+responsibilities.specific_profiles.list_association.change: 'Cambiar'
+responsibilities.specific_profiles.list_association.clear: 'Quitar asociación'
+
+responsibilities.specific_profiles.subprofiles.title: 'Subperfiles'
+responsibilities.specific_profiles.subprofiles.empty: 'El elemento asociado no tiene hojas todavía.'
+responsibilities.specific_profiles.subprofiles.select_hint: 'Selecciona un subperfil para asignarle docentes.'
 
 responsibilities.specific_profiles.teachers.title: 'Docentes asignados'
-responsibilities.specific_profiles.teachers.empty: 'Este perfil no tiene docentes asignados todavía.'
+responsibilities.specific_profiles.teachers.empty: 'Todavía no hay docentes asignados.'
 responsibilities.specific_profiles.teachers.search_placeholder: 'Buscar docente por nombre…'
 responsibilities.specific_profiles.teachers.search_help: 'Escribe al menos 2 caracteres para buscar.'
 responsibilities.specific_profiles.action.remove_teacher: 'Quitar'
 
 responsibilities.specific_profiles.flash.saved: 'Perfil guardado correctamente.'
 responsibilities.specific_profiles.flash.deleted: 'Perfil eliminado correctamente.'
-responsibilities.specific_profiles.flash.delete_error: 'No se puede eliminar este perfil.'
 responsibilities.specific_profiles.flash.teacher_assigned: 'Docente asignado correctamente.'
 responsibilities.specific_profiles.flash.teacher_removed: 'Docente eliminado correctamente.'
 

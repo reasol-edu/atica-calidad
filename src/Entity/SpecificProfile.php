@@ -10,6 +10,14 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
+/**
+ * A centre-defined profile (e.g. "Tutor/a"). Optionally associated with a
+ * list element: when it is, every leaf descendant of that element is a
+ * "virtual subperfil" (e.g. "Tutor/a 1º ESO-A") with its own independent
+ * teacher assignments; when it isn't, teachers are assigned to the profile
+ * directly. See SpecificProfileAssignment for how both cases share one
+ * storage mechanism.
+ */
 #[ORM\Entity(repositoryClass: SpecificProfileRepository::class)]
 class SpecificProfile
 {
@@ -25,27 +33,21 @@ class SpecificProfile
     #[ORM\Column]
     private int $position = 0;
 
-    #[ORM\ManyToOne(targetEntity: self::class, inversedBy: 'children')]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
-    private ?self $parent = null;
-
-    /** @var Collection<int, self> */
-    #[ORM\OneToMany(targetEntity: self::class, mappedBy: 'parent')]
-    private Collection $children;
-
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private EducationalCentre $educationalCentre;
 
-    /** @var Collection<int, Teacher> */
-    #[ORM\ManyToMany(targetEntity: Teacher::class)]
-    #[ORM\JoinTable(name: 'specific_profile_teacher')]
-    private Collection $teachers;
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?ListItem $listItem = null;
+
+    /** @var Collection<int, SpecificProfileAssignment> */
+    #[ORM\OneToMany(targetEntity: SpecificProfileAssignment::class, mappedBy: 'specificProfile', cascade: ['persist'], orphanRemoval: true)]
+    private Collection $assignments;
 
     public function __construct()
     {
-        $this->children = new ArrayCollection();
-        $this->teachers = new ArrayCollection();
+        $this->assignments = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -77,46 +79,6 @@ class SpecificProfile
         return $this;
     }
 
-    public function getParent(): ?self
-    {
-        return $this->parent;
-    }
-
-    /**
-     * A profile can only be nested one level deep: its parent must itself be
-     * a root profile, never another child. This is what makes a third level
-     * structurally impossible, not just blocked at the UI layer.
-     */
-    public function setParent(?self $parent): static
-    {
-        if ($parent !== null && $parent->getEducationalCentre() !== $this->educationalCentre) {
-            throw new \LogicException('A specific profile cannot be attached to a parent from another centre.');
-        }
-        if ($parent !== null && !$parent->isRoot()) {
-            throw new \LogicException('A specific profile cannot be nested more than two levels.');
-        }
-
-        $this->parent = $parent;
-
-        return $this;
-    }
-
-    public function isRoot(): bool
-    {
-        return $this->parent === null;
-    }
-
-    public function isLeaf(): bool
-    {
-        return $this->children->isEmpty();
-    }
-
-    /** @return Collection<int, self> */
-    public function getChildren(): Collection
-    {
-        return $this->children;
-    }
-
     public function getEducationalCentre(): EducationalCentre
     {
         return $this->educationalCentre;
@@ -129,31 +91,53 @@ class SpecificProfile
         return $this;
     }
 
-    /** @return Collection<int, Teacher> */
-    public function getTeachers(): Collection
+    public function getListItem(): ?ListItem
     {
-        return $this->teachers;
+        return $this->listItem;
     }
 
-    /**
-     * Only leaf profiles (no children) can have teachers assigned directly —
-     * a profile with children is a purely organisational category.
-     */
-    public function addTeacher(Teacher $teacher): static
+    public function setListItem(?ListItem $listItem): static
     {
-        if (!$this->isLeaf()) {
-            throw new \LogicException('Cannot assign teachers to a profile that has children.');
+        if ($listItem !== null && $listItem->getEducationalCentre() !== $this->educationalCentre) {
+            throw new \LogicException('A specific profile cannot be associated with a list item from another centre.');
         }
-        if (!$this->teachers->contains($teacher)) {
-            $this->teachers->add($teacher);
+
+        $this->listItem = $listItem;
+
+        return $this;
+    }
+
+    public function isListAssociated(): bool
+    {
+        return $this->listItem !== null;
+    }
+
+    /** @return Collection<int, SpecificProfileAssignment> */
+    public function getAssignments(): Collection
+    {
+        return $this->assignments;
+    }
+
+    public function hasAssignment(Teacher $teacher, ?ListItem $listItem): bool
+    {
+        return $this->assignments->exists(
+            static fn (int $i, SpecificProfileAssignment $a): bool =>
+                $a->getTeacher() === $teacher && $a->getListItem() === $listItem
+        );
+    }
+
+    public function addAssignment(Teacher $teacher, ?ListItem $listItem = null): static
+    {
+        if (!$this->hasAssignment($teacher, $listItem)) {
+            $this->assignments->add(new SpecificProfileAssignment($this, $listItem, $teacher));
         }
 
         return $this;
     }
 
-    public function removeTeacher(Teacher $teacher): static
+    public function removeAssignment(SpecificProfileAssignment $assignment): static
     {
-        $this->teachers->removeElement($teacher);
+        $this->assignments->removeElement($assignment);
 
         return $this;
     }

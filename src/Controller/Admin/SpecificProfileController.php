@@ -35,7 +35,7 @@ class SpecificProfileController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $this->denyAccessUnlessGranted(EducationalCentreVoter::SECTION, $centre);
+        $this->denyAccessUnlessGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre);
 
         return $centre;
     }

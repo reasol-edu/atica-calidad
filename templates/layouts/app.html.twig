@@ -132,8 +132,8 @@
                 </a>
             {% endif %}
 
-            {# Responsabilidades — solo para equipo directivo y admins #}
-            {% if active_centre and is_granted('educational_centre.section', active_centre) %}
+            {# Responsabilidades — responsable de calidad, equipo directivo y admins #}
+            {% if active_centre and is_granted('educational_centre.responsibilities', active_centre) %}
                 {% set responsibilities_active = current_route starts with 'app_responsibilities_' %}
                 <a href="{{ path('app_responsibilities_index', {centreId: active_centre.id}) }}"
                     {{ responsibilities_active ? 'aria-current="page"' : '' }}
