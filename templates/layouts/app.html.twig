@@ -108,6 +108,15 @@
                 'app_calendar'
             ) }}
 
+            {# Árbol documental #}
+            {{ _self.nav_item(
+                'document_tree'|trans({}, 'navigation'),
+                path('app_document_tree'),
+                'heroicons:folder-open',
+                current_route,
+                'app_document_tree'
+            ) }}
+
             {# Informes — solo para equipo directivo y admins #}
             {% if active_centre and is_granted('educational_centre.section', active_centre) %}
                 {% set reports_active = current_route starts with 'app_reports_' %}

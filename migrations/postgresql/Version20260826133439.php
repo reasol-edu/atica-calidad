@@ -59,6 +59,14 @@ final class Version20260826133439 extends AbstractMigration
         $this->addSql('CREATE INDEX IDX_9AF1FFD1BAD26311 ON list_item_tag (tag_id)');
         $this->addSql('CREATE TABLE tag (id UUID NOT NULL, name VARCHAR(100) NOT NULL, educational_centre_id UUID NOT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE INDEX IDX_389B78361F9EE23 ON tag (educational_centre_id)');
+        $this->addSql('CREATE TABLE document_section (id UUID NOT NULL, name VARCHAR(255) NOT NULL, position INT NOT NULL, parent_id UUID DEFAULT NULL, educational_centre_id UUID NOT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE INDEX IDX_891CDC33727ACA70 ON document_section (parent_id)');
+        $this->addSql('CREATE INDEX IDX_891CDC3361F9EE23 ON document_section (educational_centre_id)');
+        $this->addSql('CREATE TABLE document_section_profile (id UUID NOT NULL, document_section_id UUID NOT NULL, specific_profile_id UUID NOT NULL, list_item_id UUID DEFAULT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE INDEX IDX_5ADC66DE79E0482C ON document_section_profile (document_section_id)');
+        $this->addSql('CREATE INDEX IDX_5ADC66DEDF5533E ON document_section_profile (specific_profile_id)');
+        $this->addSql('CREATE INDEX IDX_5ADC66DECE208F53 ON document_section_profile (list_item_id)');
+        $this->addSql('CREATE UNIQUE INDEX uq_document_section_profile ON document_section_profile (document_section_id, specific_profile_id, list_item_id)');
         $this->addSql('CREATE TABLE email_notification_log (id UUID NOT NULL, recipient_name VARCHAR(200) NOT NULL, event_key VARCHAR(50) NOT NULL, subject VARCHAR(255) NOT NULL, success BOOLEAN NOT NULL, error_message TEXT DEFAULT NULL, sent_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, educational_centre_id UUID NOT NULL, recipient_id UUID DEFAULT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE INDEX IDX_E8B54561F9EE23 ON email_notification_log (educational_centre_id)');
         $this->addSql('CREATE INDEX idx_enl_centre_sent ON email_notification_log (educational_centre_id, sent_at)');
@@ -115,6 +123,11 @@ final class Version20260826133439 extends AbstractMigration
         $this->addSql('ALTER TABLE list_item_tag ADD CONSTRAINT FK_9AF1FFD1CE208F53 FOREIGN KEY (list_item_id) REFERENCES list_item (id) ON DELETE CASCADE');
         $this->addSql('ALTER TABLE list_item_tag ADD CONSTRAINT FK_9AF1FFD1BAD26311 FOREIGN KEY (tag_id) REFERENCES tag (id) ON DELETE CASCADE');
         $this->addSql('ALTER TABLE tag ADD CONSTRAINT FK_389B78361F9EE23 FOREIGN KEY (educational_centre_id) REFERENCES educational_centre (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE document_section ADD CONSTRAINT FK_891CDC33727ACA70 FOREIGN KEY (parent_id) REFERENCES document_section (id) ON DELETE CASCADE NOT DEFERRABLE');
+        $this->addSql('ALTER TABLE document_section ADD CONSTRAINT FK_891CDC3361F9EE23 FOREIGN KEY (educational_centre_id) REFERENCES educational_centre (id) ON DELETE CASCADE NOT DEFERRABLE');
+        $this->addSql('ALTER TABLE document_section_profile ADD CONSTRAINT FK_5ADC66DE79E0482C FOREIGN KEY (document_section_id) REFERENCES document_section (id) ON DELETE CASCADE NOT DEFERRABLE');
+        $this->addSql('ALTER TABLE document_section_profile ADD CONSTRAINT FK_5ADC66DEDF5533E FOREIGN KEY (specific_profile_id) REFERENCES specific_profile (id) ON DELETE CASCADE NOT DEFERRABLE');
+        $this->addSql('ALTER TABLE document_section_profile ADD CONSTRAINT FK_5ADC66DECE208F53 FOREIGN KEY (list_item_id) REFERENCES list_item (id) ON DELETE CASCADE NOT DEFERRABLE');
         $this->addSql('ALTER TABLE email_notification_log ADD CONSTRAINT FK_E8B54561F9EE23 FOREIGN KEY (educational_centre_id) REFERENCES educational_centre (id) ON DELETE CASCADE NOT DEFERRABLE');
         $this->addSql('ALTER TABLE email_notification_log ADD CONSTRAINT FK_E8B545E92F8F78 FOREIGN KEY (recipient_id) REFERENCES teacher (id) ON DELETE SET NULL NOT DEFERRABLE');
         $this->addSql('ALTER TABLE global_setting_value ADD CONSTRAINT FK_466B8E04D11EA911 FOREIGN KEY (definition_id) REFERENCES setting_definition (id) NOT DEFERRABLE');
@@ -155,6 +168,11 @@ final class Version20260826133439 extends AbstractMigration
         $this->addSql('ALTER TABLE list_item_tag DROP CONSTRAINT FK_9AF1FFD1CE208F53');
         $this->addSql('ALTER TABLE list_item_tag DROP CONSTRAINT FK_9AF1FFD1BAD26311');
         $this->addSql('ALTER TABLE tag DROP CONSTRAINT FK_389B78361F9EE23');
+        $this->addSql('ALTER TABLE document_section DROP CONSTRAINT FK_891CDC33727ACA70');
+        $this->addSql('ALTER TABLE document_section DROP CONSTRAINT FK_891CDC3361F9EE23');
+        $this->addSql('ALTER TABLE document_section_profile DROP CONSTRAINT FK_5ADC66DE79E0482C');
+        $this->addSql('ALTER TABLE document_section_profile DROP CONSTRAINT FK_5ADC66DEDF5533E');
+        $this->addSql('ALTER TABLE document_section_profile DROP CONSTRAINT FK_5ADC66DECE208F53');
         $this->addSql('ALTER TABLE email_notification_log DROP CONSTRAINT FK_E8B54561F9EE23');
         $this->addSql('ALTER TABLE email_notification_log DROP CONSTRAINT FK_E8B545E92F8F78');
         $this->addSql('ALTER TABLE global_setting_value DROP CONSTRAINT FK_466B8E04D11EA911');
@@ -179,6 +197,8 @@ final class Version20260826133439 extends AbstractMigration
         $this->addSql('DROP TABLE list_item');
         $this->addSql('DROP TABLE list_item_tag');
         $this->addSql('DROP TABLE tag');
+        $this->addSql('DROP TABLE document_section');
+        $this->addSql('DROP TABLE document_section_profile');
         $this->addSql('DROP TABLE email_notification_log');
         $this->addSql('DROP TABLE global_setting_value');
         $this->addSql('DROP TABLE non_working_day');

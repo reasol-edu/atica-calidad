@@ -1,0 +1,180 @@
+<div {{ attributes.defaults(stimulus_controller('document-tree-sortable')) }} class="js-document-section-tree">
+    {% set tree           = this.tree %}
+    {% set available_rows = this.availableProfileRows %}
+
+    {# ── Escritorio (>= lg): árbol completo, arrastrar y soltar ──────────── #}
+    <div class="hidden lg:block p-4">
+        <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-gray-700">{{ 'document_section.title'|trans({}, 'admin') }}</h2>
+            <button type="button" data-action="live#action" data-live-action-param="toggleAdd" data-live-parent-id-param="{{ this.rootSentinel }}"
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-forest-700 transition-colors">
+                {{ ux_icon('heroicons:plus', {class: 'h-3.5 w-3.5'}) }}
+                {{ 'document_section.add_root'|trans({}, 'admin') }}
+            </button>
+        </div>
+
+        {% if addingParentId == this.rootSentinel %}
+            <form data-action="submit->live#action:prevent" data-live-action-param="addSection" data-live-parent-id-param=""
+                  class="mb-3 flex items-center gap-2">
+                <input type="text" data-model="norender|addValue" value="{{ addValue }}" autofocus
+                       placeholder="{{ 'document_section.field.name_placeholder'|trans({}, 'admin') }}"
+                       class="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                <button type="submit" class="shrink-0 rounded-md bg-forest-600 px-2.5 py-1.5 text-white hover:bg-forest-700">
+                    {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                </button>
+            </form>
+            {% if errors.add is defined %}<p class="mb-3 text-xs text-red-600">{{ errors.add }}</p>{% endif %}
+        {% endif %}
+
+        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white p-2">
+            {% if tree is empty %}
+                <p class="px-2 py-6 text-center text-xs italic text-gray-400">{{ 'document_section.tree.empty'|trans({}, 'admin') }}</p>
+            {% endif %}
+            <ul class="js-document-section-list" data-parent-id="">
+                {% for node in tree %}
+                    {% include 'components/Admin/_document_section_node.html.twig' with {node: node, depth: 0} %}
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    {# ── Móvil (< lg): migas de pan, sin arrastrar ────────────────────────── #}
+    <div class="lg:hidden p-4 space-y-3">
+        {% set visible    = this.visibleSections %}
+        {% set breadcrumb = this.breadcrumb %}
+
+        <nav class="flex flex-wrap items-center gap-1 text-sm">
+            <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param=""
+                    class="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium
+                           {{ currentParentId == '' ? 'bg-forest-50 text-forest-700' : 'text-gray-500 hover:bg-gray-100' }}">
+                {{ ux_icon('heroicons:home', {class: 'h-4 w-4'}) }}
+                {{ 'document_section.root'|trans({}, 'admin') }}
+            </button>
+            {% for crumb in breadcrumb %}
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 text-gray-300 shrink-0'}) }}
+                <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ crumb.id }}"
+                        class="rounded-md px-2 py-1 font-medium
+                               {{ currentParentId == crumb.id.toRfc4122 ? 'bg-forest-50 text-forest-700' : 'text-gray-500 hover:bg-gray-100' }}">
+                    {{ crumb.name }}
+                </button>
+            {% endfor %}
+        </nav>
+
+        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+            {% if visible is empty %}
+                <p class="px-4 py-6 text-center text-xs italic text-gray-400">{{ 'document_section.tree.empty'|trans({}, 'admin') }}</p>
+            {% else %}
+                <ul class="divide-y divide-gray-50">
+                    {% for section in visible %}
+                        {% set sid = section.id.toRfc4122 %}
+                        <li class="px-3 py-2.5 space-y-2">
+                            <div class="flex items-center gap-1">
+                                {% if renamingId == sid %}
+                                    <form data-action="submit->live#action:prevent" data-live-action-param="saveRename"
+                                          class="flex flex-1 items-center gap-1.5 min-w-0">
+                                        <input type="text" data-model="norender|renameValue" value="{{ renameValue }}" autofocus
+                                               class="min-w-0 flex-1 rounded-md border border-forest-300 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                                        <button type="submit" class="shrink-0 text-forest-600" title="{{ 'document_section.save'|trans({}, 'admin') }}">
+                                            {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
+                                        </button>
+                                        <button type="button" data-action="live#action" data-live-action-param="cancelRename"
+                                                class="shrink-0 text-gray-400" title="{{ 'document_section.cancel'|trans({}, 'admin') }}">
+                                            {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <button type="button" data-action="live#action" data-live-action-param="startRename" data-live-id-param="{{ sid }}"
+                                            class="flex-1 min-w-0 truncate text-left text-sm text-gray-800">
+                                        {{ section.name }}
+                                    </button>
+                                {% endif %}
+
+                                <button type="button" data-action="live#action" data-live-action-param="moveUp" data-live-id-param="{{ sid }}"
+                                        title="{{ 'document_section.move_up'|trans({}, 'admin') }}"
+                                        class="shrink-0 p-1 text-gray-400 hover:text-gray-600">
+                                    {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4'}) }}
+                                </button>
+                                <button type="button" data-action="live#action" data-live-action-param="moveDown" data-live-id-param="{{ sid }}"
+                                        title="{{ 'document_section.move_down'|trans({}, 'admin') }}"
+                                        class="shrink-0 p-1 text-gray-400 hover:text-gray-600">
+                                    {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4'}) }}
+                                </button>
+
+                                <button type="button" data-action="live#action" data-live-action-param="toggleProfilePanel" data-live-id-param="{{ sid }}"
+                                        title="{{ 'document_section.profiles.title'|trans({}, 'admin') }}"
+                                        class="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs
+                                               {{ section.isRestricted ? 'bg-violet-50 text-violet-700' : 'text-gray-300' }}">
+                                    {{ ux_icon('heroicons:shield-check', {class: 'h-3.5 w-3.5'}) }}
+                                    {% if section.isRestricted %}{{ section.profileRestrictions|length }}{% endif %}
+                                </button>
+
+                                <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ sid }}"
+                                        title="{{ 'document_section.action.open'|trans({}, 'admin') }}"
+                                        class="shrink-0 inline-flex items-center justify-center p-1 text-gray-300 hover:text-forest-500">
+                                    {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+                                    {% if section.children|length > 0 %}
+                                        <span class="ml-0.5 text-xs text-gray-400">{{ section.children|length }}</span>
+                                    {% endif %}
+                                </button>
+
+                                {% if confirmingDeleteId == sid %}
+                                    <button type="button" data-action="live#action" data-live-action-param="deleteSection" data-live-id-param="{{ sid }}"
+                                            class="shrink-0 rounded-md bg-red-600 px-1.5 py-0.5 text-xs font-medium text-white">
+                                        {{ 'document_section.confirm_yes'|trans({}, 'admin') }}
+                                    </button>
+                                    <button type="button" data-action="live#action" data-live-action-param="cancelDelete"
+                                            class="shrink-0 rounded-md border border-gray-200 px-1.5 py-0.5 text-xs text-gray-600">
+                                        {{ 'document_section.cancel'|trans({}, 'admin') }}
+                                    </button>
+                                {% else %}
+                                    <button type="button" data-action="live#action" data-live-action-param="askDelete" data-live-id-param="{{ sid }}"
+                                            title="{{ 'document_section.delete'|trans({}, 'admin') }}"
+                                            class="shrink-0 p-1 text-gray-300 hover:text-red-600">
+                                        {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}
+                                    </button>
+                                {% endif %}
+                            </div>
+
+                            {% if errors.rename is defined and renamingId == sid %}<p class="text-xs text-red-600">{{ errors.rename }}</p>{% endif %}
+                            {% if errors.delete is defined and confirmingDeleteId == sid %}<p class="text-xs text-red-600">{{ errors.delete }}</p>{% endif %}
+
+                            {% if profilePanelId == sid %}
+                                <div class="rounded-lg border border-violet-100 bg-violet-50/50 p-2.5">
+                                    {% if available_rows is empty %}
+                                        <p class="text-xs italic text-violet-400">{{ 'document_section.profiles.empty'|trans({}, 'admin') }}</p>
+                                    {% else %}
+                                        <div class="flex flex-wrap gap-1.5">
+                                            {% for row in available_rows %}
+                                                {% set checked = section.hasProfileRestriction(row.profile, row.listItem) %}
+                                                <button type="button" data-action="live#action" data-live-action-param="toggleProfileRestriction"
+                                                        data-live-id-param="{{ sid }}" data-live-row-key-param="{{ row.key }}"
+                                                        class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs transition-colors
+                                                               {{ checked ? 'bg-violet-600 text-white' : 'bg-white text-violet-700 border border-violet-200' }}">
+                                                    {% if checked %}{{ ux_icon('heroicons:check', {class: 'h-3 w-3'}) }}{% endif %}
+                                                    {{ row.displayName }}
+                                                </button>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <form data-action="submit->live#action:prevent" data-live-action-param="addSection" data-live-parent-id-param="{{ currentParentId }}"
+                  class="flex items-center gap-2 border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
+                <input type="text" data-model="norender|addValue" value="{{ addValue }}"
+                       placeholder="{{ 'document_section.field.name_placeholder'|trans({}, 'admin') }}"
+                       class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                <button type="submit"
+                        class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white hover:bg-forest-700 transition-colors"
+                        title="{{ 'document_section.add'|trans({}, 'admin') }}">
+                    {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                </button>
+            </form>
+            {% if errors.add is defined %}<p class="px-3 pb-2 text-xs text-red-600">{{ errors.add }}</p>{% endif %}
+        </div>
+    </div>
+</div>

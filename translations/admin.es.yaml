@@ -464,6 +464,28 @@ responsibilities.assignments.flash.teacher_assigned: 'Docente asignado correctam
 responsibilities.assignments.flash.teacher_removed: 'Docente eliminado correctamente.'
 responsibilities.assignments.flash.bulk_removed: 'Se han quitado %count% docentes de sus perfiles activos.'
 
+# Árbol documental — pestaña Editar
+document_section.title: 'Secciones'
+document_section.root: 'Raíz'
+document_section.add: 'Añadir'
+document_section.add_root: 'Añadir sección raíz'
+document_section.add_child: 'Añadir subsección'
+document_section.save: 'Guardar'
+document_section.cancel: 'Cancelar'
+document_section.delete: 'Eliminar'
+document_section.confirm_yes: 'Eliminar'
+document_section.drag: 'Arrastrar para reordenar o mover a otra sección'
+document_section.move_up: 'Subir'
+document_section.move_down: 'Bajar'
+document_section.action.open: 'Abrir'
+document_section.field.name_placeholder: 'Nombre de la sección…'
+document_section.tree.empty: 'Todavía no hay ninguna sección.'
+document_section.profiles.title: 'Perfiles/subperfiles asociados'
+document_section.profiles.empty: 'No hay perfiles activos disponibles para asociar.'
+document_section.error.name_required: 'Indica un nombre para la sección.'
+document_section.error.delete_has_children: 'Esta sección tiene subsecciones: elimínalas primero.'
+document_section.flash.deleted: 'Sección eliminada.'
+
 # Registro de avisos por correo
 email_notification_log.title: 'Registro de avisos por correo'
 email_notification_log.hub_help: 'Consulta el historial de avisos por correo enviados, con su resultado.'
