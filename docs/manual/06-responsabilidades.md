@@ -4,12 +4,14 @@ Este capítulo es para el responsable de calidad y el equipo directivo. Además 
 fijos del centro —**responsable de calidad** y **auditor/a interno/a**, descritos en
 [Preparar el curso académico](02-preparar-el-curso-academico.md#perfiles)—, cada centro puede
 necesitar responsabilidades propias: tutorías, jefaturas de familia profesional, coordinaciones...
-Eso es lo que gestiona la sección **Responsabilidades**, con dos herramientas:
+Eso es lo que gestiona la sección **Responsabilidades**, con tres herramientas:
 
 - **Listas** — jerarquías propias de nombres (grupos, departamentos...) que sirven de base para
   construir esas responsabilidades sin repetir trabajo.
 - **Perfiles específicos** — las responsabilidades personalizadas en sí, opcionalmente construidas
   sobre una lista.
+- **Asignar perfiles** — una vista de trabajo transversal sobre las asignaciones ya hechas, por
+  perfil o por docente (ver [Asignar perfiles](#asignar-perfiles) más abajo).
 
 ## Acceso
 
@@ -143,9 +145,37 @@ Para asignar docentes, selecciona primero el subperfil que corresponda en la lis
     la nueva. Antes de cambiar la asociación de un perfil que ya tiene docentes asignados, anota
     quién estaba en cada subperfil si vas a necesitar volver a asignarlos.
 
+### Perfiles activos e inactivos
+
+Igual que los elementos de lista, un perfil específico tiene un estado, **activo** o **inactivo**.
+Un perfil inactivo (y, si está asociado a una lista, cada uno de sus subperfiles) deja de poder
+elegirse para asignaciones nuevas — tanto al asignar un docente directamente como al restringir un
+evento del calendario (ver [Asignar perfiles](#asignar-perfiles) y
+[Calendario](03-calendario.md#eventos)) — pero los docentes ya asignados no se pierden.
+
 ### Ordenar y eliminar perfiles
 
 El botón de ordenar alfabético (junto al listado de perfiles) reordena todos los perfiles
 específicos del centro de una vez. Eliminar un perfil elimina también todas sus asignaciones de
 docentes, directas o a través de subperfiles; como los perfiles específicos ya no tienen jerarquía
 propia, no hace falta comprobar hijos antes de borrar.
+
+## Asignar perfiles
+
+Mientras que **Perfiles específicos** es donde se crean y configuran los perfiles, **Asignar
+perfiles** es una vista de trabajo sobre las asignaciones que ya existen, pensada para comprobar de
+un vistazo quién tiene qué — especialmente útil al empezar un curso nuevo, cuando algunos docentes
+ya no están. Tiene dos pestañas:
+
+- **Perfiles** — todos los perfiles y subperfiles activos del centro, con los docentes asignados a
+  cada uno. Un docente que ya no pertenece al curso académico activo se resalta en rojo. Un botón
+  permite quitar de golpe, de todos los perfiles activos, a los docentes que ya no pertenecen al
+  curso activo (con confirmación previa). Un botón aparte muestra también los perfiles/subperfiles
+  inactivos, aparte del filtro por defecto. Al tocar un perfil se abre un panel para añadir o quitar
+  docentes.
+- **Docentes** — todos los docentes del curso académico activo (un botón permite ver también los de
+  otros cursos, si todavía tienen alguna asignación), con los perfiles que tiene cada uno. Un perfil
+  o subperfil inactivo se marca en rojo. Al tocar un docente se abre un panel para añadir o quitar
+  perfiles.
+
+Ambas pestañas incluyen buscador (por nombre de perfil/subperfil o de docente) y paginación.

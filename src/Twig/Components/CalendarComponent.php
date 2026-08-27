@@ -8,10 +8,11 @@ use App\Entity\AcademicYear;
 use App\Entity\EducationalCentre;
 use App\Entity\SchoolEvent;
 use App\Entity\Teacher;
+use App\Model\ProfileAssignmentRow;
 use App\Repository\SchoolEventRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\AssignmentColorPalette;
 use App\Service\CalendarMonthGridBuilder;
-use App\Service\GroupColorPalette;
 use App\Service\NonWorkingDayChecker;
 use App\Service\TenantContext;
 use Symfony\Component\Clock\ClockInterface;
@@ -20,7 +21,7 @@ use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 
 /**
  * Calendario mensual: eventos de centro (según visibilidad — generales para
- * todos, restringidos según grupo impartido o tutorizado) en una cuadrícula
+ * todos, restringidos según perfil o subperfil asignado) en una cuadrícula
  * mensual.
  */
 #[AsLiveComponent]
@@ -38,7 +39,7 @@ class CalendarComponent extends AbstractCalendarComponent
         ClockInterface $clock,
         private readonly SchoolEventRepository $eventRepository,
         private readonly CalendarMonthGridBuilder $gridBuilder,
-        private readonly GroupColorPalette $colorPalette,
+        private readonly AssignmentColorPalette $colorPalette,
     ) {
         parent::__construct($tenantContext, $translator, $nonWorkingDayChecker, $clock);
     }
@@ -66,10 +67,10 @@ class CalendarComponent extends AbstractCalendarComponent
                 'end'   => $item->getDate(),
             ],
             function (SchoolEvent $item): array {
-                $firstGroup = $item->getGroups()->first();
-                $color      = $item->isGeneral() || $firstGroup === false
+                $firstRestriction = $item->getProfileRestrictions()->first();
+                $color            = $item->isGeneral() || $firstRestriction === false
                     ? self::GENERAL_EVENT_COLOR
-                    : $this->colorPalette->colorFor($firstGroup->getId()->toRfc4122());
+                    : $this->colorPalette->colorFor(ProfileAssignmentRow::keyFor($firstRestriction->getSpecificProfile(), $firstRestriction->getListItem()));
 
                 return [
                     'label'   => $item->getStartTime()->format('H:i') . '–' . $item->getEndTime()->format('H:i') . ' ' . $item->getName(),

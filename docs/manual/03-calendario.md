@@ -13,8 +13,9 @@ eventos programados y, si el día no es lectivo, el motivo.
 
 El equipo directivo y la administración del centro pueden crear eventos (p. ej. una reunión o una
 fecha de entrega) desde la pestaña **Eventos** del calendario. Cada evento puede ser **general**
-(visible para todo el profesorado del centro) o **restringido a grupos concretos** (solo lo ven
-quienes imparten clase o tutorizan alguno de esos grupos).
+(visible para todo el profesorado del centro) o **restringido a perfiles o subperfiles concretos**
+de [Responsabilidades](06-responsabilidades.md#perfiles-especificos) (solo lo ven quienes tengan
+asignado alguno de los perfiles o subperfiles seleccionados).
 
 Más adelante, esta sección mostrará también los plazos de entrega de documentación del sistema de
 gestión de la calidad.

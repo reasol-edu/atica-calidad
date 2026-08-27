@@ -6,11 +6,12 @@ namespace App\Controller;
 
 use App\Attribute\CurrentCentre;
 use App\Entity\EducationalCentre;
-use App\Entity\Group;
 use App\Entity\SchoolEvent;
-use App\Repository\GroupRepository;
+use App\Entity\SchoolEventProfile;
+use App\Model\ProfileAssignmentRow;
 use App\Repository\SchoolEventRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\ProfileAssignmentRowBuilder;
 use App\Service\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,7 +29,7 @@ class SchoolEventController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly TenantContext $tenantContext,
         private readonly SchoolEventRepository $events,
-        private readonly GroupRepository $groups,
+        private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly TranslatorInterface $translator,
     ) {}
 
@@ -46,20 +47,20 @@ class SchoolEventController extends AbstractController
         $errors = [];
         $values = $this->emptyValues();
         $values['date'] = trim($request->query->getString('date'));
-        $selectedGroupIds = [];
+        $selectedProfileKeys = [];
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('new_school_event', $request->request->getString('_token'))) {
                 throw $this->createAccessDeniedException();
             }
 
-            $values           = $this->valuesFromRequest($request);
-            $selectedGroupIds = $request->request->all('groups');
-            $errors           = $this->validate($values, $selectedGroupIds);
+            $values              = $this->valuesFromRequest($request);
+            $selectedProfileKeys = $request->request->all('profiles');
+            $errors              = $this->validate($values, $selectedProfileKeys);
 
             if (empty($errors)) {
                 $event = (new SchoolEvent())->setAcademicYear($year);
-                $this->applyValues($event, $values, $centre, $selectedGroupIds);
+                $this->applyValues($event, $values, $centre, $selectedProfileKeys);
 
                 $this->em->persist($event);
                 $this->em->flush();
@@ -71,11 +72,11 @@ class SchoolEventController extends AbstractController
         }
 
         return $this->render('school_event/new.html.twig', [
-            'centre'           => $centre,
-            'errors'           => $errors,
-            'values'           => $values,
-            'availableGroups'  => $this->groups->findByActiveYearOfCentreOrderedByName($centre),
-            'selectedGroupIds' => $selectedGroupIds,
+            'centre'               => $centre,
+            'errors'               => $errors,
+            'values'               => $values,
+            'availableProfileRows' => $this->rowBuilder->buildActiveRows($centre),
+            'selectedProfileKeys'  => $selectedProfileKeys,
         ]);
     }
 
@@ -105,9 +106,9 @@ class SchoolEventController extends AbstractController
             'url'         => $event->getUrl() ?? '',
             'scope'       => $event->isGeneral() ? 'general' : 'restricted',
         ];
-        $selectedGroupIds = array_map(
-            static fn (Group $g): string => $g->getId()->toRfc4122(),
-            $event->getGroups()->toArray(),
+        $selectedProfileKeys = array_map(
+            static fn (SchoolEventProfile $r): string => ProfileAssignmentRow::keyFor($r->getSpecificProfile(), $r->getListItem()),
+            $event->getProfileRestrictions()->toArray(),
         );
 
         if ($request->isMethod('POST')) {
@@ -115,12 +116,12 @@ class SchoolEventController extends AbstractController
                 throw $this->createAccessDeniedException();
             }
 
-            $values           = $this->valuesFromRequest($request);
-            $selectedGroupIds = $request->request->all('groups');
-            $errors           = $this->validate($values, $selectedGroupIds);
+            $values              = $this->valuesFromRequest($request);
+            $selectedProfileKeys = $request->request->all('profiles');
+            $errors              = $this->validate($values, $selectedProfileKeys);
 
             if (empty($errors)) {
-                $this->applyValues($event, $values, $centre, $selectedGroupIds);
+                $this->applyValues($event, $values, $centre, $selectedProfileKeys);
                 $this->em->flush();
 
                 $this->addFlash('success', $this->t('school_event.flash.saved'));
@@ -130,12 +131,12 @@ class SchoolEventController extends AbstractController
         }
 
         return $this->render('school_event/edit.html.twig', [
-            'centre'           => $centre,
-            'event'            => $event,
-            'errors'           => $errors,
-            'values'           => $values,
-            'availableGroups'  => $this->groups->findByActiveYearOfCentreOrderedByName($centre),
-            'selectedGroupIds' => $selectedGroupIds,
+            'centre'               => $centre,
+            'event'                => $event,
+            'errors'               => $errors,
+            'values'               => $values,
+            'availableProfileRows' => $this->rowBuilder->buildActiveRows($centre),
+            'selectedProfileKeys'  => $selectedProfileKeys,
         ]);
     }
 
@@ -196,12 +197,12 @@ class SchoolEventController extends AbstractController
     }
 
     /**
-     * @param array<string, string> $values
-     * @param array<array-key, mixed> $selectedGroupIds
+     * @param array<string, string>   $values
+     * @param array<array-key, mixed> $selectedProfileKeys
      *
      * @return array<string, string>
      */
-    private function validate(array $values, array $selectedGroupIds): array
+    private function validate(array $values, array $selectedProfileKeys): array
     {
         $errors = [];
 
@@ -223,8 +224,8 @@ class SchoolEventController extends AbstractController
 
         if (!in_array($values['scope'], ['general', 'restricted'], true)) {
             $errors['scope'] = $this->t('school_event.error.scope_required');
-        } elseif ($values['scope'] === 'restricted' && $selectedGroupIds === []) {
-            $errors['scope'] = $this->t('school_event.error.groups_required');
+        } elseif ($values['scope'] === 'restricted' && $selectedProfileKeys === []) {
+            $errors['scope'] = $this->t('school_event.error.profiles_required');
         }
 
         if ($values['url'] !== '' && filter_var($values['url'], FILTER_VALIDATE_URL) === false) {
@@ -236,9 +237,9 @@ class SchoolEventController extends AbstractController
 
     /**
      * @param array<string, string>   $values
-     * @param array<array-key, mixed> $selectedGroupIds
+     * @param array<array-key, mixed> $selectedProfileKeys
      */
-    private function applyValues(SchoolEvent $event, array $values, EducationalCentre $centre, array $selectedGroupIds): void
+    private function applyValues(SchoolEvent $event, array $values, EducationalCentre $centre, array $selectedProfileKeys): void
     {
         $general = $values['scope'] === 'general';
 
@@ -250,19 +251,19 @@ class SchoolEventController extends AbstractController
             ->setUrl($values['url'] !== '' ? $values['url'] : null)
             ->setGeneral($general);
 
-        foreach ($event->getGroups()->toArray() as $group) {
-            $event->removeGroup($group);
+        foreach ($event->getProfileRestrictions()->toArray() as $restriction) {
+            $event->removeProfileRestriction($restriction);
         }
 
         if (!$general) {
-            $centreGroupsById = [];
-            foreach ($this->groups->findByActiveYearOfCentreOrderedByName($centre) as $group) {
-                $centreGroupsById[$group->getId()->toRfc4122()] = $group;
+            $rowsByKey = [];
+            foreach ($this->rowBuilder->buildActiveRows($centre) as $row) {
+                $rowsByKey[$row->key()] = $row;
             }
 
-            foreach ($selectedGroupIds as $groupId) {
-                if (is_string($groupId) && isset($centreGroupsById[$groupId])) {
-                    $event->addGroup($centreGroupsById[$groupId]);
+            foreach ($selectedProfileKeys as $key) {
+                if (is_string($key) && isset($rowsByKey[$key])) {
+                    $event->addProfileRestriction($rowsByKey[$key]->profile, $rowsByKey[$key]->listItem);
                 }
             }
         }

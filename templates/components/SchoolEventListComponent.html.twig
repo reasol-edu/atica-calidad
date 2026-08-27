@@ -3,7 +3,7 @@
     centreId: centre.id.toRfc4122,
     active: this.hasActiveFilters,
     key: 'school-event-filters',
-    defaults: {search: '', groupId: ''},
+    defaults: {search: '', profileRowKey: ''},
 })) }}>
     {% if centre.activeAcademicYear is null %}
         <div class="px-6 py-16 text-center">
@@ -30,18 +30,18 @@
                               focus:ring-3 focus:ring-forest-500/20 transition-colors">
             </div>
 
-            {% set availableGroups = this.availableGroups %}
-            {% if availableGroups is not empty %}
-                <select data-model="norender|groupId"
+            {% set availableProfileRows = this.availableProfileRows %}
+            {% if availableProfileRows is not empty %}
+                <select data-model="norender|profileRowKey"
                         data-action="change->live#action"
                         data-live-action-param="resetPage"
                         class="rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-8 text-sm text-gray-700
                                focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20
                                transition-colors shrink-0">
-                    <option value="">{{ 'school_event.filter.all_groups'|trans({}, 'admin') }}</option>
-                    {% for group in availableGroups %}
-                        <option value="{{ group.id.toRfc4122 }}" {{ groupId == group.id.toRfc4122 ? 'selected' : '' }}>
-                            {{ group.name }}
+                    <option value="">{{ 'school_event.filter.all_profiles'|trans({}, 'admin') }}</option>
+                    {% for row in availableProfileRows %}
+                        <option value="{{ row.key }}" {{ profileRowKey == row.key ? 'selected' : '' }}>
+                            {{ row.displayName }}
                         </option>
                     {% endfor %}
                 </select>
@@ -93,9 +93,9 @@
                                     </span>
                                 {% else %}
                                     <div class="flex flex-wrap gap-1">
-                                        {% for group in event.groups %}
+                                        {% for restriction in event.profileRestrictions %}
                                             <span class="inline-flex items-center rounded-full bg-forest-50 px-2 py-0.5 text-xs font-medium text-forest-700">
-                                                {{ group.name }}
+                                                {{ restriction.specificProfile.name }}{% if restriction.listItem %} {{ restriction.listItem.name }}{% endif %}
                                             </span>
                                         {% endfor %}
                                     </div>

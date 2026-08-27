@@ -7,11 +7,9 @@ namespace App\Controller\Admin;
 use App\Controller\TranslatorTrait;
 use App\Controller\PastYearGuardTrait;
 use App\Entity\EducationalCentre;
-use App\Entity\Group;
 use App\Entity\PersonName;
 use App\Entity\Teacher;
 use App\Repository\EducationalCentreRepository;
-use App\Repository\GroupRepository;
 use App\Repository\TeacherRepository;
 use App\Service\CsvReader;
 use App\Service\TenantContext;
@@ -35,7 +33,6 @@ class CentreTeacherController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly EducationalCentreRepository $centres,
         private readonly TeacherRepository $teachers,
-        private readonly GroupRepository $groups,
         private readonly UserPasswordHasherInterface $hasher,
         private readonly TranslatorInterface $translator,
         private readonly TenantContext $tenantContext,
@@ -165,112 +162,6 @@ class CentreTeacherController extends AbstractController
         return $this->redirectToRoute('app_centre_teachers_index', ['centreId' => $centre->getId()]);
     }
 
-    #[Route('/importar-asignaciones', name: 'app_centre_teachers_import_assignments')]
-    public function importAssignments(string $centreId, Request $request): Response
-    {
-        $centre = $this->requireCentreWithActiveYear($centreId);
-        $this->denyIfViewingPastYear($centre);
-
-        if (!$request->isMethod('POST')) {
-            return $this->render('admin/centre_teacher/import_assignments.html.twig', ['centre' => $centre]);
-        }
-
-        if (!$this->isCsrfTokenValid('import_teacher_assignments', $request->request->getString('_token'))) {
-            throw $this->createAccessDeniedException();
-        }
-
-        $file = $request->files->get('csv');
-        if (!$file instanceof UploadedFile || !$file->isValid()) {
-            $this->addFlash('error', $this->t('centre_teachers.import_assignments.error.no_file'));
-
-            return $this->render('admin/centre_teacher/import_assignments.html.twig', ['centre' => $centre]);
-        }
-
-        $content = (string) file_get_contents($file->getPathname());
-        $parsed  = $this->csvReader->parse($content);
-
-        if ($parsed['headers'] === []) {
-            $this->addFlash('error', $this->t('centre_teachers.import_assignments.error.empty_file'));
-
-            return $this->redirectToRoute('app_centre_teachers_import_assignments', ['centreId' => $centre->getId()]);
-        }
-
-        $required = ['Unidad', 'Profesor/a', 'Materia'];
-        $missing  = $this->csvReader->findMissingColumn($parsed['headers'], $required);
-        if ($missing !== null) {
-            $this->addFlash('error', $this->t('centre_teachers.import_assignments.error.missing_column') . ' «' . $missing . '»');
-
-            return $this->redirectToRoute('app_centre_teachers_import_assignments', ['centreId' => $centre->getId()]);
-        }
-
-        /** @var array<string, Group> $groupsByName */
-        $groupsByName = [];
-        foreach ($this->groups->findByActiveYearOfCentreOrderedByName($centre) as $group) {
-            $groupsByName[mb_strtolower($group->getName())] = $group;
-        }
-
-        $linked  = 0;
-        $skipped = 0;
-        /** @var array<string, true> $unknownTeachers */
-        $unknownTeachers = [];
-        /** @var array<string, true> $unknownGroups */
-        $unknownGroups = [];
-
-        foreach ($parsed['rows'] as $row) {
-            $groupName  = $row['Unidad'] ?? '';
-            $fullName   = $row['Profesor/a'] ?? '';
-            $subject    = trim($row['Materia'] ?? '');
-            $nameParts  = explode(', ', $fullName, 2);
-            $lastName   = $nameParts[0];
-            $firstName  = $nameParts[1] ?? '';
-
-            if ($groupName === '' || $firstName === '' || $lastName === '' || $subject === '') {
-                $skipped++;
-                continue;
-            }
-
-            $group = $groupsByName[mb_strtolower($groupName)] ?? null;
-            if ($group === null) {
-                $unknownGroups[$groupName] = true;
-                continue;
-            }
-
-            $teacher = $this->teachers->findByFullName($firstName, $lastName);
-            if ($teacher === null) {
-                $unknownTeachers[$fullName] = true;
-                continue;
-            }
-
-            if (!$group->hasTeacherSubject($teacher, $subject)) {
-                $group->addTeacher($teacher, $subject);
-                $linked++;
-            }
-        }
-
-        $this->em->flush();
-
-        $summary = $this->translator->trans('centre_teachers.import_assignments.flash.summary', [
-            '%linked%'  => $linked,
-            '%skipped%' => $skipped,
-        ], 'admin');
-
-        if ($unknownTeachers !== []) {
-            $summary .= ' ' . $this->translator->trans('centre_teachers.import_assignments.flash.unknown_teachers', [
-                '%teachers%' => implode(', ', array_map(static fn (string $n) => '«' . $n . '»', array_keys($unknownTeachers))),
-            ], 'admin');
-        }
-
-        if ($unknownGroups !== []) {
-            $summary .= ' ' . $this->translator->trans('centre_teachers.import_assignments.flash.unknown_groups', [
-                '%groups%' => implode(', ', array_map(static fn (string $g) => '«' . $g . '»', array_keys($unknownGroups))),
-            ], 'admin');
-        }
-
-        $this->addFlash($unknownTeachers === [] && $unknownGroups === [] ? 'success' : 'error', $summary);
-
-        return $this->redirectToRoute('app_centre_teachers_index', ['centreId' => $centre->getId()]);
-    }
-
     #[Route('/registrar', name: 'app_centre_teachers_register')]
     public function register(string $centreId, Request $request): Response
     {
@@ -338,24 +229,6 @@ class CentreTeacherController extends AbstractController
             'errors' => $errors,
             'values' => $values,
             'flags'  => $flags,
-        ]);
-    }
-
-    #[Route('/{teacherId}/materias', name: 'app_centre_teachers_subjects')]
-    public function subjects(string $centreId, string $teacherId): Response
-    {
-        $centre  = $this->requireCentreWithActiveYear($centreId);
-        $this->denyIfViewingPastYear($centre);
-        $teacher = $this->teachers->findById($teacherId);
-
-        $activeYear = $centre->getActiveAcademicYear();
-        if ($teacher === null || $activeYear === null || !$activeYear->getTeachers()->contains($teacher)) {
-            throw $this->createNotFoundException();
-        }
-
-        return $this->render('admin/centre_teacher/subjects.html.twig', [
-            'centre'  => $centre,
-            'teacher' => $teacher,
         ]);
     }
 

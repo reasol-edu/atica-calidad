@@ -45,14 +45,13 @@ class SchoolEvent
     #[ORM\Column]
     private bool $general = false;
 
-    /** @var Collection<int, Group> */
-    #[ORM\ManyToMany(targetEntity: Group::class)]
-    #[ORM\JoinTable(name: 'school_event_group')]
-    private Collection $groups;
+    /** @var Collection<int, SchoolEventProfile> */
+    #[ORM\OneToMany(targetEntity: SchoolEventProfile::class, mappedBy: 'schoolEvent', cascade: ['persist'], orphanRemoval: true)]
+    private Collection $profileRestrictions;
 
     public function __construct()
     {
-        $this->groups = new ArrayCollection();
+        $this->profileRestrictions = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -156,24 +155,32 @@ class SchoolEvent
         return $this;
     }
 
-    /** @return Collection<int, Group> */
-    public function getGroups(): Collection
+    /** @return Collection<int, SchoolEventProfile> */
+    public function getProfileRestrictions(): Collection
     {
-        return $this->groups;
+        return $this->profileRestrictions;
     }
 
-    public function addGroup(Group $group): static
+    public function hasProfileRestriction(SpecificProfile $profile, ?ListItem $listItem): bool
     {
-        if (!$this->groups->contains($group)) {
-            $this->groups->add($group);
+        return $this->profileRestrictions->exists(
+            static fn (int $i, SchoolEventProfile $r): bool =>
+                $r->getSpecificProfile() === $profile && $r->getListItem() === $listItem
+        );
+    }
+
+    public function addProfileRestriction(SpecificProfile $profile, ?ListItem $listItem = null): static
+    {
+        if (!$this->hasProfileRestriction($profile, $listItem)) {
+            $this->profileRestrictions->add(new SchoolEventProfile($this, $profile, $listItem));
         }
 
         return $this;
     }
 
-    public function removeGroup(Group $group): static
+    public function removeProfileRestriction(SchoolEventProfile $restriction): static
     {
-        $this->groups->removeElement($group);
+        $this->profileRestrictions->removeElement($restriction);
 
         return $this;
     }

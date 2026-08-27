@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Twig\Components;
 
 use App\Entity\EducationalCentre;
-use App\Entity\Group;
 use App\Entity\SchoolEvent;
+use App\Model\ProfileAssignmentRow;
 use App\Pagination\Paginator;
-use App\Repository\GroupRepository;
 use App\Repository\SchoolEventRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\ProfileAssignmentRowBuilder;
 use App\Service\TenantContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -30,11 +30,11 @@ class SchoolEventListComponent extends AbstractController
     public string $search = '';
 
     #[LiveProp(writable: true)]
-    public string $groupId = '';
+    public string $profileRowKey = '';
 
     public function __construct(
         private readonly SchoolEventRepository $events,
-        private readonly GroupRepository $groups,
+        private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly TenantContext $tenantContext,
     ) {}
 
@@ -44,13 +44,10 @@ class SchoolEventListComponent extends AbstractController
         $this->centre = $centre;
     }
 
-    /** @return Group[] */
-    public function getAvailableGroups(): array
+    /** @return ProfileAssignmentRow[] */
+    public function getAvailableProfileRows(): array
     {
-        return $this->groups->findByActiveYearOfCentreOrderedByName(
-            $this->centre,
-            $this->tenantContext->getViewYear($this->centre),
-        );
+        return $this->rowBuilder->buildActiveRows($this->centre);
     }
 
     /** @return Paginator<SchoolEvent> */
@@ -62,12 +59,12 @@ class SchoolEventListComponent extends AbstractController
         }
 
         return $this->paginate(
-            $this->events->createFilteredQuery($year, trim($this->search), trim($this->groupId)),
+            $this->events->createFilteredQuery($year, trim($this->search), trim($this->profileRowKey)),
         );
     }
 
     public function hasActiveFilters(): bool
     {
-        return $this->search !== '' || $this->groupId !== '';
+        return $this->search !== '' || $this->profileRowKey !== '';
     }
 }

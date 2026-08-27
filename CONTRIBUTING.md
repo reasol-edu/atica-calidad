@@ -108,7 +108,7 @@ Las distintas áreas funcionales de ÁTICA Calidad, alineadas con sus controlado
 |----------------|----------------------------------|
 | `calendar`     | Calendario, eventos de centro y días no lectivos |
 | `reports`      | Informes del sistema de gestión de la calidad |
-| `centre`       | Centro educativo: cursos académicos, docentes, oferta formativa, perfiles y ajustes del centro |
+| `centre`       | Centro educativo: cursos académicos, docentes, perfiles y ajustes del centro |
 | `admin`        | Administración global multi-centro (no confundir con el namespace `Admin` del código, que también incluye pantallas de gestión de un solo centro) |
 | `security`     | Autenticación, autorización y control de acceso |
 

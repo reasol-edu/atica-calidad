@@ -10,7 +10,7 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 ### Added
 
 - Nueva sección **Responsabilidades** en el menú lateral, accesible al responsable de calidad, al
-  equipo directivo y a la administración, con dos herramientas:
+  equipo directivo y a la administración, con tres herramientas:
   - **Listas**: jerarquías propias de nombres para el centro, con la profundidad que se necesite
     (p. ej. «Grupo» → «1º ESO» → «1º ESO-A»), navegables por migas de pan, con estado activo/inactivo
     por elemento, borrado protegido (elementos con hijos o en uso) y ordenación alfabética. Cualquier
@@ -27,10 +27,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
     activos.
 - Primera versión del esqueleto de la aplicación, adaptado a partir de la infraestructura genérica
   de [GestConv+](https://github.com/reasol-edu/gestconv-plus): acceso con usuario y contraseña o
-  autenticación externa (iSéneca), soporte multi-centro, calendario con eventos de centro y días no
-  lectivos (sin modo tablón), sección Informes (todavía vacía), y la administración del centro
-  educativo: cursos académicos, docentes, oferta formativa (cursos y grupos), perfiles de
-  responsable de calidad y auditor/a interno/a, registro de avisos por correo y ajustes del centro.
+  autenticación externa (iSéneca), soporte multi-centro, calendario con eventos de centro (generales
+  o restringidos a perfiles/subperfiles de Responsabilidades) y días no lectivos (sin modo tablón),
+  sección Informes (todavía vacía), y la administración del centro educativo: cursos académicos,
+  docentes, perfiles de responsable de calidad y auditor/a interno/a, registro de avisos por correo
+  y ajustes del centro.
 - Paleta de color propia (`#8da1b9`, `#95adb6`, `#cbb3bf`, `#dbc7be`, `#ef959c`).
 - Sistema de generación de manual de usuario (PDF y web), fichas de referencia rápida y
   presentación, adaptado del proyecto original.

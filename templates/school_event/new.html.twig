@@ -89,18 +89,18 @@
                     data-action="change->event-scope#toggle" />
             </div>
 
-            <div data-event-scope-target="groupsBlock" class="hidden">
-                <label for="groups" class="block text-sm font-medium text-gray-700 mb-1.5">
-                    {{ 'school_event.field.groups'|trans({}, 'admin') }}
+            <div data-event-scope-target="profilesBlock" class="hidden">
+                <label for="profiles" class="block text-sm font-medium text-gray-700 mb-1.5">
+                    {{ 'school_event.field.profiles'|trans({}, 'admin') }}
                 </label>
-                <select id="groups" name="groups[]" multiple
+                <select id="profiles" name="profiles[]" multiple
                         class="w-full text-sm ts-local"
-                        data-placeholder="{{ 'school_event.field.groups_placeholder'|trans({}, 'admin')|e('html_attr') }}"
-                        data-no-results="{{ 'school_event.field.groups_no_results'|trans({}, 'admin')|e('html_attr') }}">
-                    {% for group in availableGroups %}
-                        <option value="{{ group.id.toRfc4122 }}"
-                                {{ group.id.toRfc4122 in selectedGroupIds ? 'selected' : '' }}>
-                            {{ group.name }}
+                        data-placeholder="{{ 'school_event.field.profiles_placeholder'|trans({}, 'admin')|e('html_attr') }}"
+                        data-no-results="{{ 'school_event.field.profiles_no_results'|trans({}, 'admin')|e('html_attr') }}">
+                    {% for row in availableProfileRows %}
+                        <option value="{{ row.key }}"
+                                {{ row.key in selectedProfileKeys ? 'selected' : '' }}>
+                            {{ row.displayName }}
                         </option>
                     {% endfor %}
                 </select>
@@ -125,11 +125,11 @@
 {% endblock %}
 
 {% block javascripts %}{{ parent() }}
-{% if availableGroups is not empty %}
+{% if availableProfileRows is not empty %}
 <script type="module">
 import TomSelect from 'tom-select';
 
-const el = document.getElementById('groups');
+const el = document.getElementById('profiles');
 if (el) {
 
 const placeholder = el.dataset.placeholder ?? '';

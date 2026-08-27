@@ -83,9 +83,9 @@
                                 </span>
                             {% else %}
                                 <div class="flex flex-wrap gap-1 justify-end shrink-0">
-                                    {% for group in event.groups %}
+                                    {% for restriction in event.profileRestrictions %}
                                         <span class="inline-flex items-center rounded-full bg-forest-50 px-2 py-0.5 text-xs font-medium text-forest-700">
-                                            {{ group.name }}
+                                            {{ restriction.specificProfile.name }}{% if restriction.listItem %} {{ restriction.listItem.name }}{% endif %}
                                         </span>
                                     {% endfor %}
                                 </div>

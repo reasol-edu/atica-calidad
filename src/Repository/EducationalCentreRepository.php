@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\AcademicYear;
 use App\Entity\EducationalCentre;
-use App\Entity\Group;
 use App\Entity\Teacher;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
@@ -136,20 +136,19 @@ class EducationalCentreRepository extends ServiceEntityRepository
             $merged[$centre->getId()->toRfc4122()] = $centre;
         }
 
-        // Centres via group membership — navigate from Group since ManyToOne associations are unidirectional
+        // Centres via academic-year membership — a plain teacher (no admin role) belongs to a
+        // centre by being listed as a teacher of one of its academic years, any year, not just
+        // the active one.
         foreach ($this->getEntityManager()->createQueryBuilder()
-            ->select('g')
-            ->from(Group::class, 'g')
-            ->join('g.course', 'c')
-            ->join('c.academicYear', 'ay')
-            ->leftJoin('g.groupTeachers', 'ggt')
-            ->leftJoin('g.tutors', 'gtu')
-            ->where('ggt.teacher = :tid OR gtu.id = :tid')
+            ->select('ay')
+            ->from(AcademicYear::class, 'ay')
+            ->join('ay.teachers', 't')
+            ->where('t.id = :tid')
             ->setParameter('tid', $tid, 'uuid')
             ->distinct()
             ->getQuery()
-            ->getResult() as $group) {
-            $ec = $group->getAcademicYear()->getEducationalCentre();
+            ->getResult() as $academicYear) {
+            $ec = $academicYear->getEducationalCentre();
             $merged[$ec->getId()->toRfc4122()] = $ec;
         }
 

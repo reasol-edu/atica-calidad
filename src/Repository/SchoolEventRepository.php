@@ -6,9 +6,11 @@ namespace App\Repository;
 
 use App\Entity\AcademicYear;
 use App\Entity\SchoolEvent;
+use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
+use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -75,17 +77,31 @@ class SchoolEventRepository extends ServiceEntityRepository
         return $this->visibleForTeacherQueryBuilder($viewer, $year)->getQuery()->getResult();
     }
 
-    /** @return Query<null, SchoolEvent> */
-    public function createFilteredQuery(AcademicYear $year, string $search = '', string $groupId = ''): Query
+    /**
+     * @param string $profileRowKey a ProfileAssignmentRow::key() — either a specific-profile UUID
+     *                              (direct profile) or "{profileId}:{listItemId}" (a subperfil)
+     *
+     * @return Query<null, SchoolEvent>
+     */
+    public function createFilteredQuery(AcademicYear $year, string $search = '', string $profileRowKey = ''): Query
     {
         $qb = $this->baseQueryBuilder($year)
             ->orderBy('se.date', 'DESC')
             ->addOrderBy('se.startTime', 'ASC');
 
-        if ($groupId !== '') {
-            $qb->join('se.groups', 'fg')
-                ->andWhere('fg.id = :groupId')
-                ->setParameter('groupId', $groupId, 'uuid');
+        if ($profileRowKey !== '') {
+            [$profileId, $listItemId] = array_pad(explode(':', $profileRowKey, 2), 2, null);
+
+            $qb->join('se.profileRestrictions', 'fr')
+                ->andWhere('fr.specificProfile = :frProfile')
+                ->setParameter('frProfile', $profileId, 'uuid');
+
+            if ($listItemId === null) {
+                $qb->andWhere('fr.listItem IS NULL');
+            } else {
+                $qb->andWhere('fr.listItem = :frListItem')
+                    ->setParameter('frListItem', $listItemId, 'uuid');
+            }
         }
 
         if ($search !== '') {
@@ -111,12 +127,17 @@ class SchoolEventRepository extends ServiceEntityRepository
     private function visibleForTeacherQueryBuilder(Teacher $viewer, AcademicYear $year): QueryBuilder
     {
         $qb = $this->baseQueryBuilder($year);
-        $qb->leftJoin('se.groups', 'g')
-            ->leftJoin('g.groupTeachers', 'gt')
+        $qb->leftJoin('se.profileRestrictions', 'sep')
+            ->leftJoin(
+                SpecificProfileAssignment::class,
+                'spa',
+                Join::WITH,
+                'spa.specificProfile = sep.specificProfile AND spa.teacher = :viewer'
+                . ' AND (spa.listItem = sep.listItem OR (spa.listItem IS NULL AND sep.listItem IS NULL))',
+            )
             ->andWhere($qb->expr()->orX(
                 'se.general = true',
-                'gt.teacher = :viewer',
-                ':viewer MEMBER OF g.tutors',
+                'spa.id IS NOT NULL',
             ))
             ->setParameter('viewer', $viewer->getId(), 'uuid');
 

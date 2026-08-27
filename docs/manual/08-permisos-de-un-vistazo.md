@@ -6,7 +6,7 @@
 | Acceder a la documentación del sistema de calidad (según se vaya construyendo) | — | ✅ | ✅ | ✅ | ✅ |
 | Gestionar Responsabilidades (listas y perfiles específicos) | — | — | ✅ | ✅ | ✅ |
 | Crear eventos en el calendario | — | — | — | ✅ | ✅ |
-| Administrar cursos académicos, docentes, oferta formativa, días no lectivos y perfiles del centro | — | — | — | ✅ | ✅ |
+| Administrar cursos académicos, docentes, días no lectivos y perfiles del centro | — | — | — | ✅ | ✅ |
 | Consultar el registro de avisos por correo del centro | — | — | — | ✅ | ✅ |
 | Configurar los ajustes del centro | — | — | — | ✅ | ✅ |
 | Gestionar todos los centros del servidor y el profesorado global | — | — | — | — | ✅ |
@@ -19,6 +19,8 @@ ampliaciones sobre el acceso base de un docente, no roles excluyentes entre sí.
 
 El **responsable de calidad** es, además, el único de los dos perfiles fijos con acceso a
 [Responsabilidades](06-responsabilidades.md) — el auditor/a interno/a no la ve. Dentro de esa
-sección, los **perfiles específicos** que cada centro crea son un registro documental de quién
-ejerce cada responsabilidad (tutorías, jefaturas...): no conceden por sí mismos ningún permiso
-adicional en la aplicación.
+sección, los **perfiles específicos** que cada centro crea son ante todo un registro documental de
+quién ejerce cada responsabilidad (tutorías, jefaturas...): no conceden por sí mismos ningún permiso
+de administración. Su único efecto sobre lo que un docente puede ver es indirecto: si un evento del
+calendario se restringe a un perfil o subperfil concreto, solo lo verán quienes lo tengan asignado
+(ver [Calendario](03-calendario.md#eventos)).

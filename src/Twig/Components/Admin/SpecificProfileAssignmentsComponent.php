@@ -6,12 +6,11 @@ namespace App\Twig\Components\Admin;
 
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
+use App\Model\ProfileAssignmentRow;
 use App\Pagination\Paginator;
-use App\Repository\ListItemRepository;
-use App\Repository\SpecificProfileAssignmentRepository;
-use App\Repository\SpecificProfileRepository;
 use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\ProfileAssignmentRowBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -81,9 +80,7 @@ class SpecificProfileAssignmentsComponent extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
-        private readonly SpecificProfileRepository $profiles,
-        private readonly SpecificProfileAssignmentRepository $assignments,
-        private readonly ListItemRepository $listItems,
+        private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly TeacherRepository $teachers,
     ) {}
 
@@ -110,40 +107,7 @@ class SpecificProfileAssignmentsComponent extends AbstractController
     /** @return ProfileAssignmentRow[] */
     private function getAllRows(): array
     {
-        if ($this->rowsCache !== null) {
-            return $this->rowsCache;
-        }
-
-        $teachersByKey = [];
-        foreach ($this->assignments->findAllForCentre($this->centre) as $assignment) {
-            $key                   = ProfileAssignmentRow::keyFor($assignment->getSpecificProfile(), $assignment->getListItem());
-            $teachersByKey[$key][] = $assignment->getTeacher();
-        }
-
-        $rows = [];
-        foreach ($this->profiles->findByCentre($this->centre) as $profile) {
-            $listItem = $profile->getListItem();
-
-            if ($listItem === null) {
-                $key    = ProfileAssignmentRow::keyFor($profile, null);
-                $rows[] = new ProfileAssignmentRow($profile, null, $profile->getName(), $profile->isActive(), $teachersByKey[$key] ?? []);
-
-                continue;
-            }
-
-            foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
-                $key    = ProfileAssignmentRow::keyFor($profile, $leaf);
-                $rows[] = new ProfileAssignmentRow(
-                    $profile,
-                    $leaf,
-                    $profile->getName() . ' ' . $leaf->getName(),
-                    $profile->isActive() && $leaf->isActive(),
-                    $teachersByKey[$key] ?? [],
-                );
-            }
-        }
-
-        return $this->rowsCache = $rows;
+        return $this->rowsCache ??= $this->rowBuilder->buildAllRows($this->centre);
     }
 
     private function findRowByKey(string $key): ?ProfileAssignmentRow

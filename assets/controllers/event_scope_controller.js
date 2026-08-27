@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['groupsBlock', 'radio'];
+    static targets = ['profilesBlock', 'radio'];
 
     connect() {
         this.#apply();
@@ -13,6 +13,6 @@ export default class extends Controller {
 
     #apply() {
         const restricted = this.radioTargets.find(r => r.checked)?.value === 'restricted';
-        this.groupsBlockTarget.classList.toggle('hidden', !restricted);
+        this.profilesBlockTarget.classList.toggle('hidden', !restricted);
     }
 }

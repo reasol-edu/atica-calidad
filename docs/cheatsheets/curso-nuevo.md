@@ -26,16 +26,11 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 
 <div class="step">
   <span class="num">3</span>
-  <div class="text"><p>Definir la oferta formativa: cursos, grupos y quién imparte clase en cada uno.</p></div>
-</div>
-
-<div class="step">
-  <span class="num">4</span>
   <div class="text"><p>Definir los días no lectivos, importándolos desde el calendario escolar oficial.</p></div>
 </div>
 
 <div class="step">
-  <span class="num">5</span>
+  <span class="num">4</span>
   <div class="text"><p>Asignar los perfiles de responsable de calidad y auditor/a interno/a.</p></div>
 </div>
 
@@ -61,8 +56,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
     <p>Desde <strong>Centro educativo › Cursos académicos</strong>, crea el curso nuevo (por
     ejemplo, <strong>2026-2027</strong>) y márcalo como <strong>activo</strong>.</p>
     <p>Solo puede haber un curso activo por centro: es el curso de referencia para las altas de
-    docentes y la oferta formativa. Los cursos anteriores no se pierden — quedan disponibles como
-    histórico.</p>
+    docentes. Los cursos anteriores no se pierden — quedan disponibles como histórico.</p>
   </div>
 </div>
 
@@ -94,31 +88,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 
 <p class="kicker">ÁTICA Calidad · Ficha rápida · Equipo directivo</p>
 
-# 3. Definir la oferta formativa
-
-<div class="steps sin-capturas">
-
-<div class="step">
-  <span class="num">1</span>
-  <div class="text">
-    <p>Desde <strong>Centro educativo › Oferta formativa</strong>, añade los cursos (p. ej. «1º
-    ESO») y sus grupos (p. ej. «1ºESO-A»), y asigna a cada grupo sus docentes por materia y sus
-    tutores.</p>
-    <p>Las asignaciones docente-grupo-materia también se pueden importar desde el CSV de Séneca
-    (perfil de Dirección: <strong>Personal › Personal del centro › Materia y grupos › Unidad:
-    Cualquiera › Exportar datos</strong>) desde <strong>Centro educativo › Docentes del centro ›
-    Importar asignaciones</strong>. Es imprescindible haber importado antes el profesorado
-    (paso 2).</p>
-  </div>
-</div>
-
-</div>
-
----
-
-<p class="kicker">ÁTICA Calidad · Ficha rápida · Equipo directivo</p>
-
-# 4. Definir los días no lectivos
+# 3. Definir los días no lectivos
 
 <div class="steps sin-capturas">
 
@@ -149,7 +119,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 
 <p class="kicker">ÁTICA Calidad · Ficha rápida · Equipo directivo</p>
 
-# 5. Asignar los perfiles de calidad
+# 4. Asignar los perfiles de calidad
 
 <div class="steps sin-capturas">
 
@@ -176,7 +146,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
   <span class="num">✓</span>
   <div class="text">
     <p>Con los pasos anteriores, el curso <strong>2026-2027</strong> queda activo, con su
-    profesorado, oferta formativa, días no lectivos y perfiles de calidad asignados.</p>
+    profesorado, días no lectivos y perfiles de calidad asignados.</p>
   </div>
 </div>
 

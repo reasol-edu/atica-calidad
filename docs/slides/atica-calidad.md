@@ -71,8 +71,8 @@ calidad, además, gestiona **Responsabilidades** (siguiente sección).
 
 ## Equipo directivo / Administración del centro
 
-Configura el centro educativo: cursos académicos, docentes, oferta formativa, días no lectivos,
-perfiles y ajustes. También gestiona Responsabilidades.
+Configura el centro educativo: cursos académicos, docentes, días no lectivos, perfiles y ajustes.
+También gestiona Responsabilidades.
 
 ## Administración de la plataforma
 
@@ -88,7 +88,7 @@ Mantiene el servidor y gestiona todos los centros alojados en él.
 
 El calendario muestra los días lectivos del curso académico, con los festivos y días no lectivos
 marcados. El equipo directivo puede programar **eventos** de centro, generales o restringidos a
-grupos concretos.
+perfiles o subperfiles concretos de Responsabilidades.
 
 Más adelante, aquí se mostrarán también los **plazos de entrega de documentación** del sistema de
 gestión de la calidad.
@@ -103,7 +103,6 @@ gestión de la calidad.
 
 - **Cursos académicos** — crear y activar el curso.
 - **Docentes del centro** — altas manuales o importación desde Séneca.
-- **Oferta formativa** — cursos, grupos y quién imparte clase en cada uno.
 - **Días no lectivos** — importables desde el calendario escolar oficial o desde Séneca.
 - **Perfiles** — responsable de calidad y auditor/a interno/a del centro.
 - **Registro de avisos por correo** y **ajustes del centro**.
@@ -134,6 +133,14 @@ directamente o **asociadas a una lista**: entonces cada hoja genera un subperfil
 - «Tutor/a» + lista «Grupo» → *Tutor/a 1º ESO-A*, *Tutor/a 1º ESO-B*...
 - «Jefatura de Familia Profesional» + «FP» → *Jefatura... Informática y Comunicaciones*, *Jefatura...
   Sanidad*
+
+Estos mismos perfiles y subperfiles también sirven para restringir eventos del calendario a quien
+corresponda.
+
+## Asignar perfiles
+
+Vista transversal sobre las asignaciones ya hechas, por perfil o por docente, con aviso de
+docentes fuera del curso activo y borrado masivo de esas asignaciones.
 
 ---
 

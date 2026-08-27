@@ -52,9 +52,8 @@ class SearchController extends AbstractController
                     $groups['teachers'] = array_map(fn ($t) => [
                         'label'    => $t->getName()->getLastName() . ', ' . $t->getName()->getFirstName(),
                         'sublabel' => $t->getUsername(),
-                        'url'      => $this->generateUrl('app_centre_teachers_subjects', [
-                            'centreId'  => $centre->getId()->toRfc4122(),
-                            'teacherId' => $t->getId()->toRfc4122(),
+                        'url'      => $this->generateUrl('app_centre_teachers_index', [
+                            'centreId' => $centre->getId()->toRfc4122(),
                         ]),
                     ], $teachers);
                 }

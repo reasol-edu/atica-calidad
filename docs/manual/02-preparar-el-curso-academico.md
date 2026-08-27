@@ -18,12 +18,6 @@ trabajar con la aplicación este curso, bien buscando su usuario si ya existe en
 curso anterior o de otro centro), bien registrándolo, o importando el listado completo desde un CSV
 exportado de Séneca.
 
-## Oferta formativa
-
-Desde **Centro educativo → Oferta formativa** defines los cursos (p. ej. «1º ESO») y grupos (p. ej.
-«1ºESO-A») del curso académico activo, y asignas a cada grupo sus docentes (con la materia que
-imparten) y sus tutores.
-
 ## Días no lectivos
 
 Desde **Centro educativo → Días no lectivos** registras los festivos, puentes y días de libre

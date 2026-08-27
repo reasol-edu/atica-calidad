@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Service;
 
 /**
- * Asigna de forma determinista una combinación de colores a un grupo, de modo
- * que el mismo grupo obtenga siempre el mismo color y los distintos grupos se
- * distingan visualmente entre sí (usado en las barras de sanciones del calendario).
+ * Asigna de forma determinista una combinación de colores a una clave (hoy, el perfil o
+ * subperfil al que está restringido un evento), de modo que la misma clave obtenga siempre el
+ * mismo color y las distintas claves se distingan visualmente entre sí en el calendario.
  */
-final class GroupColorPalette
+final class AssignmentColorPalette
 {
     /**
      * @var list<array{bg: string, text: string, border: string}>
@@ -32,9 +32,9 @@ final class GroupColorPalette
     /**
      * @return array{bg: string, text: string, border: string}
      */
-    public function colorFor(string $groupId): array
+    public function colorFor(string $key): array
     {
-        $index = crc32($groupId) % count(self::PALETTE);
+        $index = crc32($key) % count(self::PALETTE);
 
         return self::PALETTE[$index];
     }
