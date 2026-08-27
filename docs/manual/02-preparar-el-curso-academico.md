@@ -32,16 +32,13 @@ CSV de Séneca. El calendario los marca automáticamente como no lectivos.
 
 ## Perfiles
 
-Desde **Centro educativo → Perfiles** hay dos pestañas:
+Desde **Centro educativo → Perfiles** asigna a docentes concretos los perfiles de **responsable de
+calidad** y **auditor/a interno/a** del centro. La asignación es permanente por centro: no hace
+falta repetirla en cada curso académico.
 
-- **Perfiles globales** — asigna a docentes concretos los perfiles de **responsable de calidad** y
-  **auditor/a interno/a** del centro. La asignación es permanente por centro: no hace falta
-  repetirla en cada curso académico.
-- **Perfiles específicos** — crea una jerarquía propia de perfiles personalizados para el centro
-  (por ejemplo, «Docente» con los subperfiles «Docente ESO/Bach» y «Docente FP»), con hasta dos
-  niveles. Solo se pueden asignar docentes a los perfiles que no tengan subperfiles; un perfil con
-  subperfiles es una categoría puramente organizativa. Cada columna tiene un botón para ordenar sus
-  perfiles alfabéticamente.
+Estos son los dos únicos perfiles fijos del centro. Si necesitas responsabilidades adicionales y
+personalizadas (tutorías, jefaturas de familia profesional, coordinaciones...), se crean aparte,
+en [Responsabilidades](06-responsabilidades.md).
 
 ## Ajustes del centro
 

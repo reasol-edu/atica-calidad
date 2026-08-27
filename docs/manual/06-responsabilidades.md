@@ -1,0 +1,151 @@
+# Responsabilidades
+
+Este capítulo es para el responsable de calidad y el equipo directivo. Además de los dos perfiles
+fijos del centro —**responsable de calidad** y **auditor/a interno/a**, descritos en
+[Preparar el curso académico](02-preparar-el-curso-academico.md#perfiles)—, cada centro puede
+necesitar responsabilidades propias: tutorías, jefaturas de familia profesional, coordinaciones...
+Eso es lo que gestiona la sección **Responsabilidades**, con dos herramientas:
+
+- **Listas** — jerarquías propias de nombres (grupos, departamentos...) que sirven de base para
+  construir esas responsabilidades sin repetir trabajo.
+- **Perfiles específicos** — las responsabilidades personalizadas en sí, opcionalmente construidas
+  sobre una lista.
+
+## Acceso
+
+**Responsabilidades** aparece en el menú lateral, entre **Centro educativo** y **Administración**,
+para quien tenga alguno de estos papeles en el centro activo: **responsable de calidad**, **equipo
+directivo / administración del centro** o **administración de la plataforma**. El **auditor/a
+interno/a** y el resto del profesorado no la ven — a diferencia de los perfiles fijos (ver
+[Permisos de un vistazo](08-permisos-de-un-vistazo.md)), esta sección sí requiere uno de esos
+papeles para acceder, no solo para ser gestionada.
+
+## Listas
+
+Una lista es una jerarquía de nombres con la profundidad que necesites — no hay límite de niveles.
+Por ejemplo, para reflejar la estructura de grupos de un centro:
+
+```
+Grupo
+├── 1º ESO
+│   ├── 1º ESO-A
+│   └── 1º ESO-B
+├── 2º ESO
+│   └── 2º ESO-A
+└── 3º ESO
+    ├── 3º ESO-A
+    └── 3º ESO-B
+```
+
+O la de sus departamentos:
+
+```
+Departamento
+├── ESO/Bach
+│   ├── Matemáticas
+│   └── Biología y Geología
+└── FP
+    ├── Informática y Comunicaciones
+    └── Sanidad
+```
+
+No hay una entidad "Lista" separada de sus elementos: cada elemento raíz (aquí, «Grupo» y
+«Departamento») es simplemente un elemento sin padre, y toda la jerarquía que cuelga de él se
+gestiona igual que el resto. Estas listas son permanentes por centro, igual que los perfiles fijos:
+no se repiten cada curso académico.
+
+### Navegar y crear elementos
+
+Desde **Responsabilidades → Listas** se navega con migas de pan: empiezas en la raíz (todas las
+listas del centro) y tocas el icono de flecha de un elemento para entrar en sus hijos. Un formulario
+en la parte inferior de cada nivel añade elementos nuevos ahí mismo. El botón de ordenar (icono de
+flechas) reordena alfabéticamente todos los elementos del nivel actual de una vez.
+
+### Elementos activos e inactivos
+
+Cada elemento tiene un estado, **activo** o **inactivo**. Los elementos inactivos dejan de poder
+elegirse en sitios nuevos (por ejemplo, al asociar un perfil específico a un elemento de la lista),
+pero siguen viéndose con normalidad donde ya se estuvieran usando — no desaparece nada de golpe.
+Útil, por ejemplo, para retirar un grupo del curso anterior sin perder su histórico.
+
+### Eliminar elementos
+
+Un elemento no se puede eliminar en dos casos:
+
+- **Si tiene hijos** — hay que eliminar antes los elementos hijos, uno a uno o de dentro hacia
+  fuera.
+- **Si está en uso** — porque un perfil específico está asociado a él, o porque hay docentes
+  asignados a través de él (ver [Perfiles específicos](#perfiles-especificos) más abajo).
+
+### Etiquetas
+
+Cualquier elemento de una lista, esté al nivel que esté (no solo las hojas), puede llevar sus
+propias etiquetas. Las etiquetas se **heredan hacia abajo**: un elemento ve tanto las suyas propias
+como las de todos sus antecesores.
+
+Por ejemplo, si etiquetas el elemento «ESO/Bach» (hijo de «Departamento») con la etiqueta
+`ESO/Bachillerato`, tanto «Matemáticas» como «Biología y Geología» —sus hijos— mostrarán esa
+etiqueta como heredada, sin necesidad de repetirla en cada uno.
+
+Las etiquetas se crean sobre la marcha, escribiendo su nombre en el campo de la sección
+**Etiquetas** del elemento — si ya existe una con ese nombre en el centro (en cualquier otro
+elemento), se reutiliza; si no, se crea al vuelo. No hay una pantalla aparte para gestionarlas: son
+efímeras, así que cuando una etiqueta deja de estar asignada a cualquier elemento se elimina
+automáticamente, sin dejar huérfanas que limpiar a mano.
+
+En el panel de detalle, todas las etiquetas visibles en el elemento —propias y heredadas— se
+muestran juntas, ordenadas alfabéticamente; las heredadas se distinguen visualmente (no se pueden
+quitar desde ahí, hay que quitarlas del elemento donde están definidas).
+
+## Perfiles específicos
+
+Un perfil específico es una responsabilidad personalizada del centro — a diferencia de los perfiles
+fijos (responsable de calidad, auditor/a interno/a), cada centro define los suyos con el nombre que
+necesite: «Tutor/a», «Jefatura de departamento», «Coordinación TIC»...
+
+### Asignación directa
+
+En su forma más simple, un perfil específico no está asociado a ninguna lista: se crea con un
+nombre y se le asignan directamente uno o varios docentes, buscándolos por nombre en el propio panel
+de detalle. Es el caso adecuado para responsabilidades que no se repiten por grupo, departamento ni
+ningún otro criterio — por ejemplo, «Coordinación TIC».
+
+### Asociar un perfil a una lista: subperfiles
+
+Cuando la responsabilidad sí se repite una vez por cada elemento de una lista, en vez de crear un
+perfil por elemento a mano, asocias el perfil **a un elemento de una lista** (sección **Elemento de
+lista asociado** → **Elegir**, con el mismo navegador de migas de pan que en Listas). A partir de
+ahí, cada elemento **hoja** (sin hijos) descendiente de ese elemento se convierte automáticamente en
+un **subperfil** independiente, con sus propios docentes asignados — no hace falta crearlos ni
+mantenerlos a mano, se derivan solos de la lista.
+
+El nombre de cada subperfil es el del perfil seguido del nombre de la hoja. Dos ejemplos:
+
+- Perfil **«Tutor/a»** asociado al elemento **«Grupo»** → aparecen los subperfiles **«Tutor/a 1º
+  ESO-A»**, **«Tutor/a 1º ESO-B»**, **«Tutor/a 2º ESO-A»**, etc. — uno por cada grupo-clase.
+- Perfil **«Jefatura de Familia Profesional»** asociado al elemento **«FP»** (que cuelga de
+  «Departamento») → aparecen los subperfiles **«Jefatura de Familia Profesional Informática y
+  Comunicaciones»** y **«Jefatura de Familia Profesional Sanidad»** — uno por cada familia
+  profesional, no por cada asignatura de «ESO/Bach».
+
+Nótese que el elemento asociado no tiene por qué ser una raíz: en el segundo ejemplo, el perfil se
+asocia a «FP», un hijo de «Departamento», así que solo genera subperfiles a partir de sus propias
+hojas, ignorando la rama «ESO/Bach».
+
+Para asignar docentes, selecciona primero el subperfil que corresponda en la lista de la sección
+**Subperfiles** y después búscalos por nombre, igual que en la asignación directa.
+
+!!! warning "Cambiar o quitar la asociación borra las asignaciones existentes"
+    Si cambias el elemento de lista asociado a un perfil, o quitas la asociación (**Quitar
+    asociación**), se eliminan **todas** las asignaciones de docentes de ese perfil — tanto las
+    directas como las de todos sus subperfiles. Tiene sentido: las asignaciones existentes estaban
+    ligadas a los subperfiles derivados de la asociación anterior, y ya no significan lo mismo con
+    la nueva. Antes de cambiar la asociación de un perfil que ya tiene docentes asignados, anota
+    quién estaba en cada subperfil si vas a necesitar volver a asignarlos.
+
+### Ordenar y eliminar perfiles
+
+El botón de ordenar alfabético (junto al listado de perfiles) reordena todos los perfiles
+específicos del centro de una vez. Eliminar un perfil elimina también todas sus asignaciones de
+docentes, directas o a través de subperfiles; como los perfiles específicos ya no tienen jerarquía
+propia, no hace falta comprobar hijos antes de borrar.

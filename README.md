@@ -74,6 +74,7 @@ Capítulos:
 | Calendario | Navegación, eventos de centro |
 | Informes | (todavía sin contenido) |
 | Administrar el centro educativo | Referencia de cada sección del hub de centro |
+| Responsabilidades | Listas jerárquicas, etiquetas y perfiles específicos con subperfiles |
 | Administrar la plataforma | Administración global, ajustes, correo, copias de seguridad |
 | Permisos de un vistazo | Perfiles y tabla de permisos |
 | Resolución de problemas | Soluciones a las dudas más habituales |

@@ -20,7 +20,7 @@ a la vez que la aplicación.
   alojados en él.
 
 El detalle completo de lo que puede hacer cada perfil está en
-[Permisos de un vistazo](07-permisos-de-un-vistazo.md).
+[Permisos de un vistazo](08-permisos-de-un-vistazo.md).
 
 ## Acceso a la aplicación
 
@@ -36,9 +36,11 @@ No hace falta leerlo de principio a fin; cada persona puede ir directamente a lo
 - **¿Formas parte del equipo directivo?** Empieza por
   [Preparar el curso académico](02-preparar-el-curso-academico.md) y consulta
   [Administrar el centro educativo](05-administrar-el-centro.md).
+- **¿Eres responsable de calidad, o vas a repartir tutorías, jefaturas u otras responsabilidades
+  del centro?** Consulta [Responsabilidades](06-responsabilidades.md).
 - **¿Vas a instalar la aplicación o mantener el servidor?** Los capítulos
   [Instalación y puesta en marcha](01-instalacion-y-puesta-en-marcha.md) y
-  [Administrar la plataforma](06-administrar-la-plataforma.md) son los únicos con contenido
+  [Administrar la plataforma](07-administrar-la-plataforma.md) son los únicos con contenido
   técnico. Si tu centro ya tiene ÁTICA Calidad en marcha, puedes saltártelos por completo.
 
 ## Sobre el proyecto

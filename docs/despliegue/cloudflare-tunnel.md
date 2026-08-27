@@ -212,7 +212,7 @@ docker compose -f compose.yaml -f compose.cloudflare.yaml logs cloudflared
 Ambos deben mostrar la conexión establecida con la red de Cloudflare (`Registered tunnel
 connection`). Comprueba después que el dominio responde desde fuera de la red del centro (por
 ejemplo, desde datos móviles) y que los
-[registros del servidor](../manual/06-administrar-la-plataforma.md)
+[registros del servidor](../manual/07-administrar-la-plataforma.md)
 muestran IPs de clientes reales y no `127.0.0.1` — confirma que `SYMFONY_TRUSTED_PROXIES` se está
 aplicando correctamente.
 

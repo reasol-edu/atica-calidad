@@ -27,9 +27,9 @@ curso activo (**Centro educativo → Docentes del centro**).
 ## No me llegan los correos de la aplicación
 
 Comprueba con la administración de la plataforma que el correo del servidor está
-[configurado y activo](06-administrar-la-plataforma.md#correo-electronico-del-servidor), y que el
+[configurado y activo](07-administrar-la-plataforma.md#correo-electronico-del-servidor), y que el
 worker (Messenger) está en marcha — ver
-[Correos en cola](06-administrar-la-plataforma.md#correos-en-cola-messenger).
+[Correos en cola](07-administrar-la-plataforma.md#correos-en-cola-messenger).
 
 ## La aplicación no arranca tras una actualización
 
@@ -40,4 +40,4 @@ php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
 Si el problema persiste, consulta los registros del servidor (ver
-[Administrar la plataforma](06-administrar-la-plataforma.md)) para identificar el error concreto.
+[Administrar la plataforma](07-administrar-la-plataforma.md)) para identificar el error concreto.

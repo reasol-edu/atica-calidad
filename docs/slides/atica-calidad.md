@@ -66,12 +66,13 @@ Accede a la aplicación con su usuario y consulta el **calendario** del centro.
 ## Responsable de calidad / Auditor/a interno/a
 
 Perfiles asignables a docentes concretos, pensados para coordinar y auditar el sistema de gestión
-de la calidad del centro a medida que se construya esa parte de la aplicación.
+de la calidad del centro a medida que se construya esa parte de la aplicación. El responsable de
+calidad, además, gestiona **Responsabilidades** (siguiente sección).
 
 ## Equipo directivo / Administración del centro
 
 Configura el centro educativo: cursos académicos, docentes, oferta formativa, días no lectivos,
-perfiles y ajustes.
+perfiles y ajustes. También gestiona Responsabilidades.
 
 ## Administración de la plataforma
 
@@ -104,9 +105,35 @@ gestión de la calidad.
 - **Docentes del centro** — altas manuales o importación desde Séneca.
 - **Oferta formativa** — cursos, grupos y quién imparte clase en cada uno.
 - **Días no lectivos** — importables desde el calendario escolar oficial o desde Séneca.
-- **Perfiles** — globales (responsable de calidad, auditor/a interno/a) y específicos (jerarquía
-  de perfiles personalizados por centro, con hasta dos niveles).
+- **Perfiles** — responsable de calidad y auditor/a interno/a del centro.
 - **Registro de avisos por correo** y **ajustes del centro**.
+
+---
+
+# Responsabilidades
+
+---
+
+## Listas
+
+Jerarquías propias de nombres, con la profundidad que se necesite:
+
+```
+Grupo → 1º ESO → 1º ESO-A, 1º ESO-B
+Departamento → FP → Informática y Comunicaciones, Sanidad
+```
+
+Cada elemento puede llevar **etiquetas**, creadas sobre la marcha y heredadas por sus
+descendientes. Los elementos inactivos o en uso no se pierden ni se pueden borrar por accidente.
+
+## Perfiles específicos → subperfiles
+
+Cada centro crea sus propias responsabilidades (tutorías, jefaturas...) y les asigna docentes,
+directamente o **asociadas a una lista**: entonces cada hoja genera un subperfil automático.
+
+- «Tutor/a» + lista «Grupo» → *Tutor/a 1º ESO-A*, *Tutor/a 1º ESO-B*...
+- «Jefatura de Familia Profesional» + «FP» → *Jefatura... Informática y Comunicaciones*, *Jefatura...
+  Sanidad*
 
 ---
 

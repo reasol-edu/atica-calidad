@@ -1,9 +1,10 @@
 # Fichas de referencia rápida
 
 Fuente de las fichas de referencia rápida («cheatsheets») de ÁTICA Calidad: una por cada función
-básica ya disponible, pensadas para consultarse en el móvil, más una para el equipo directivo sobre
-cómo configurar un curso académico nuevo. Todos los comandos de esta página se ejecutan desde la
-raíz del repositorio con `make`, no directamente desde esta carpeta.
+básica ya disponible, pensadas para consultarse en el móvil, más un par para el equipo directivo /
+responsable de calidad sobre tareas de configuración (curso académico nuevo, responsabilidades del
+centro). Todos los comandos de esta página se ejecutan desde la raíz del repositorio con `make`, no
+directamente desde esta carpeta.
 
 Se han retirado las fichas del proyecto original ligadas a funciones que no forman parte de ÁTICA
 Calidad (partes, notas, sanciones, ausencias, guardias, notificaciones y ficha de contacto del
@@ -14,9 +15,10 @@ nuevas fichas a medida que crezca.
 
 - `busqueda-rapida.md`, `instalar-app.md` — fichas [Marp](https://marp.app) por función, pensadas
   para el móvil (todavía sin capturas — ver «Regenerar las capturas» más abajo).
-- `curso-nuevo.md` — ficha para el equipo directivo, pensada para escritorio (a diferencia de las
-  demás), usando la clase `.captura-escritorio` de `theme.css`.
-- Las tres fichas comparten el mismo mecanismo de versión/fecha que `docs/slides/atica-calidad.md`
+- `curso-nuevo.md`, `responsabilidades.md` — fichas para el equipo directivo / responsable de
+  calidad, pensadas para escritorio (a diferencia de las demás), usando la clase
+  `.captura-escritorio` de `theme.css`.
+- Todas las fichas comparten el mismo mecanismo de versión/fecha que `docs/slides/atica-calidad.md`
   (marcadores `{{VERSION}}`/`{{PUB_DATE}}` sustituidos por `make cheatsheets`).
 - `theme.css` — tema Marp compartido por las fichas (página A4 vertical, paleta de marca).
 - `img/` — capturas de pantalla referenciadas desde las fichas.

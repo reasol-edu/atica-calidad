@@ -147,7 +147,7 @@ siguiente ejecución, evitando solapamientos.
 
 El transporte `async` lleva los correos pendientes y `scheduler_default` gestiona las tareas
 programadas. Consulta
-[Correos en cola (Messenger)](../manual/06-administrar-la-plataforma.md#correos-en-cola-messenger)
+[Correos en cola (Messenger)](../manual/07-administrar-la-plataforma.md#correos-en-cola-messenger)
 para los comandos de diagnóstico de la cola.
 
 ## 8. HTTPS y dominio definitivo
@@ -201,5 +201,5 @@ mysqldump -u usuario -p nombre_bd > backup-$(date +%Y%m%d).sql
 ```
 
 Consulta
-[Copias de seguridad](../manual/06-administrar-la-plataforma.md#copias-de-seguridad)
+[Copias de seguridad](../manual/07-administrar-la-plataforma.md#copias-de-seguridad)
 en el manual para más contexto sobre protección de datos y política de conservación.
