@@ -132,6 +132,18 @@
                 </a>
             {% endif %}
 
+            {# Responsabilidades — solo para equipo directivo y admins #}
+            {% if active_centre and is_granted('educational_centre.section', active_centre) %}
+                {% set responsibilities_active = current_route starts with 'app_responsibilities_' %}
+                <a href="{{ path('app_responsibilities_index', {centreId: active_centre.id}) }}"
+                    {{ responsibilities_active ? 'aria-current="page"' : '' }}
+                   class="{{ responsibilities_active ? 'bg-forest-800 text-white border-l-2 border-forest-300' : 'text-forest-100 hover:bg-forest-900 hover:text-white border-l-2 border-transparent' }}
+                          group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
+                    {{ ux_icon('heroicons:clipboard-document-check', {class: 'h-5 w-5 shrink-0'}) }}
+                    <span class="truncate">{{ 'responsibilities'|trans({}, 'navigation') }}</span>
+                </a>
+            {% endif %}
+
             {# Administración — solo para admins #}
             {% if is_granted('ROLE_ADMIN') %}
                 <div class="my-3 h-px bg-white/8"></div>

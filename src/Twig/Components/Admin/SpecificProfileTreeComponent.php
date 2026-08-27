@@ -205,7 +205,7 @@ class SpecificProfileTreeComponent extends AbstractController
         $this->requireWritableCentre();
         $name = trim($this->addRootName);
         if ($name === '') {
-            $this->errors = ['add_root' => $this->t('centre_profiles.specific.error.name_required')];
+            $this->errors = ['add_root' => $this->t('responsibilities.specific_profiles.error.name_required')];
 
             return;
         }
@@ -232,14 +232,14 @@ class SpecificProfileTreeComponent extends AbstractController
         }
 
         if (!$root->getTeachers()->isEmpty()) {
-            $this->errors = ['add_child' => $this->t('centre_profiles.specific.error.parent_has_teachers')];
+            $this->errors = ['add_child' => $this->t('responsibilities.specific_profiles.error.parent_has_teachers')];
 
             return;
         }
 
         $name = trim($this->addChildName);
         if ($name === '') {
-            $this->errors = ['add_child' => $this->t('centre_profiles.specific.error.name_required')];
+            $this->errors = ['add_child' => $this->t('responsibilities.specific_profiles.error.name_required')];
 
             return;
         }
@@ -270,7 +270,7 @@ class SpecificProfileTreeComponent extends AbstractController
 
         $name = trim($this->editName);
         if ($name === '') {
-            $this->errors = ['name' => $this->t('centre_profiles.specific.error.name_required')];
+            $this->errors = ['name' => $this->t('responsibilities.specific_profiles.error.name_required')];
 
             return;
         }
@@ -279,7 +279,7 @@ class SpecificProfileTreeComponent extends AbstractController
         $this->em->flush();
 
         $this->errors = [];
-        $this->flashSuccess($this->t('centre_profiles.specific.flash.saved'));
+        $this->flashSuccess($this->t('responsibilities.specific_profiles.flash.saved'));
     }
 
     #[LiveAction]
@@ -309,9 +309,9 @@ class SpecificProfileTreeComponent extends AbstractController
         try {
             $this->em->remove($selected);
             $this->em->flush();
-            $this->flashSuccess($this->t('centre_profiles.specific.flash.deleted'));
+            $this->flashSuccess($this->t('responsibilities.specific_profiles.flash.deleted'));
         } catch (\Exception) {
-            $this->flashError($this->t('centre_profiles.specific.flash.delete_error'));
+            $this->flashError($this->t('responsibilities.specific_profiles.flash.delete_error'));
 
             return;
         }
@@ -411,7 +411,7 @@ class SpecificProfileTreeComponent extends AbstractController
         $this->requireWritableCentre();
         $selected = $this->getSelected();
         if ($selected === null || !$selected->isLeaf()) {
-            $this->errors = ['assign' => $this->t('centre_profiles.specific.error.not_assignable')];
+            $this->errors = ['assign' => $this->t('responsibilities.specific_profiles.error.not_assignable')];
 
             return;
         }
@@ -423,7 +423,7 @@ class SpecificProfileTreeComponent extends AbstractController
 
         $selected->addTeacher($teacher);
         $this->em->flush();
-        $this->flashSuccess($this->t('centre_profiles.specific.flash.teacher_assigned'));
+        $this->flashSuccess($this->t('responsibilities.specific_profiles.flash.teacher_assigned'));
     }
 
     #[LiveAction]
@@ -442,7 +442,7 @@ class SpecificProfileTreeComponent extends AbstractController
 
         $selected->removeTeacher($teacher);
         $this->em->flush();
-        $this->flashSuccess($this->t('centre_profiles.specific.flash.teacher_removed'));
+        $this->flashSuccess($this->t('responsibilities.specific_profiles.flash.teacher_removed'));
     }
 
     private function resolveTeacher(string $id): ?Teacher
