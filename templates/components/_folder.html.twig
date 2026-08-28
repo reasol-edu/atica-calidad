@@ -51,6 +51,15 @@
                                 class="rounded-md border border-gray-200 px-1.5 py-0.5 text-xs text-gray-600">{{ 'folder.cancel'|trans({}, 'admin') }}</button>
                     </span>
                 {% else %}
+                    {# Move up/down live outside the menu on non-small screens (room for standalone icons); on small screens they move inside it alongside the rest, to keep the row from getting too cramped for touch. #}
+                    <button type="button" data-action="live#action" data-live-action-param="moveFolderUp" data-live-id-param="{{ fid }}"
+                            class="hidden sm:inline-flex p-1 text-gray-300 hover:text-gray-600" title="{{ 'folder.move_up'|trans({}, 'admin') }}">
+                        {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4'}) }}
+                    </button>
+                    <button type="button" data-action="live#action" data-live-action-param="moveFolderDown" data-live-id-param="{{ fid }}"
+                            class="hidden sm:inline-flex p-1 text-gray-300 hover:text-gray-600" title="{{ 'folder.move_down'|trans({}, 'admin') }}">
+                        {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4'}) }}
+                    </button>
                     <div class="relative" data-controller="dropdown">
                         <button type="button" data-action="dropdown#toggle"
                                 class="p-1 text-gray-300 hover:text-gray-600" title="{{ 'folder.more_actions'|trans({}, 'admin') }}">
@@ -58,12 +67,12 @@
                         </button>
                         <div data-dropdown-target="menu" class="hidden absolute right-0 z-40 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
                             <button type="button" data-action="live#action" data-live-action-param="moveFolderUp" data-live-id-param="{{ fid }}"
-                                    class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                    class="flex sm:hidden w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
                                 {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
                                 {{ 'folder.move_up'|trans({}, 'admin') }}
                             </button>
                             <button type="button" data-action="live#action" data-live-action-param="moveFolderDown" data-live-id-param="{{ fid }}"
-                                    class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                    class="flex sm:hidden w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
                                 {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
                                 {{ 'folder.move_down'|trans({}, 'admin') }}
                             </button>

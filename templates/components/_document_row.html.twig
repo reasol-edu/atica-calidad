@@ -67,6 +67,21 @@
                             class="rounded-md border border-gray-200 px-1.5 py-0.5 text-xs text-gray-600">{{ 'cancel'|trans({}, 'document_content') }}</button>
                 </span>
             {% else %}
+                {% if can_manage %}
+                    {# Move up/down live outside the menu on non-small screens; on small screens they move inside it with the rest, to keep the row from getting too cramped for touch. #}
+                    {% if index > 0 %}
+                        <button type="button" data-action="live#action" data-live-action-param="moveDocumentUp" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
+                                class="hidden sm:inline-flex shrink-0 p-1 text-gray-300 hover:text-gray-600" title="{{ 'move_up'|trans({}, 'document_content') }}">
+                            {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4'}) }}
+                        </button>
+                    {% endif %}
+                    {% if index < count - 1 %}
+                        <button type="button" data-action="live#action" data-live-action-param="moveDocumentDown" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
+                                class="hidden sm:inline-flex shrink-0 p-1 text-gray-300 hover:text-gray-600" title="{{ 'move_down'|trans({}, 'document_content') }}">
+                            {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4'}) }}
+                        </button>
+                    {% endif %}
+                {% endif %}
                 <div class="shrink-0 relative" data-controller="dropdown">
                     <button type="button" data-action="dropdown#toggle"
                             class="p-1 text-gray-300 hover:text-gray-600" title="{{ 'more_actions'|trans({}, 'document_content') }}">
@@ -76,14 +91,14 @@
                         {% if can_manage %}
                             {% if index > 0 %}
                                 <button type="button" data-action="live#action" data-live-action-param="moveDocumentUp" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
-                                        class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                        class="flex sm:hidden w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
                                     {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
                                     {{ 'move_up'|trans({}, 'document_content') }}
                                 </button>
                             {% endif %}
                             {% if index < count - 1 %}
                                 <button type="button" data-action="live#action" data-live-action-param="moveDocumentDown" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
-                                        class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                        class="flex sm:hidden w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
                                     {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
                                     {{ 'move_down'|trans({}, 'document_content') }}
                                 </button>
