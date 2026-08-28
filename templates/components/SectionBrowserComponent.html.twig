@@ -51,6 +51,11 @@
                         {{ ux_icon('heroicons:document-text', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
                         <span class="min-w-0 flex-1">
                             <span class="block truncate text-sm font-medium text-gray-800">{{ doc.name }}</span>
+                            {% if doc.activeRevision %}
+                                <span class="block truncate text-xs text-gray-400">
+                                    v{{ doc.activeRevision.version }} · {{ doc.activeRevision.revisedAt|date('d/m/Y H:i') }} · {{ doc.activeRevision.uploadedBy.name.lastName }}, {{ doc.activeRevision.uploadedBy.name.firstName }}
+                                </span>
+                            {% endif %}
                             <span class="block truncate text-xs text-gray-400">{{ result.path }}</span>
                         </span>
                         {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 text-gray-300 shrink-0'}) }}
