@@ -11,7 +11,7 @@
         <div class="px-4 py-3">
             {% if group.label is not null %}
                 <div class="mb-2 flex items-center justify-between gap-2">
-                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ group.label }}</h3>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ group.label|highlight(localSearchQuery) }}</h3>
                     {% if can_manage and group.documents|length > 1 %}
                         <button type="button" data-action="live#action" data-live-action-param="sortDocumentsAlphabetically"
                                 data-live-folder-id-param="{{ fid }}" data-live-row-key-param="{{ group.rowKey }}"

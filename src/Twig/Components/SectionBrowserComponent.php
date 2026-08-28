@@ -744,6 +744,9 @@ class SectionBrowserComponent extends AbstractController
     public function getFolderDocumentGroups(Folder $folder): array
     {
         $all = $this->documents->findByFolder($folder);
+        if ($all === []) {
+            return [];
+        }
 
         if (!$folder->isGroupByProfile()) {
             return [['label' => null, 'rowKey' => null, 'documents' => $all]];
@@ -771,7 +774,9 @@ class SectionBrowserComponent extends AbstractController
 
     /**
      * Like getFolderDocumentGroups(), but each group's documents are narrowed down to whatever
-     * matches the section-scoped search box (name, upload profile, active revision's uploader).
+     * matches the section-scoped search box (name, upload profile/subperfil, active revision's
+     * uploader) — matching the profile or subperfil surfaces every document tagged with it, not
+     * just ones whose own name happens to contain the query.
      * Display-only — reorder/sort LiveActions always call getFolderDocumentGroups() directly so
      * they keep operating on the full, unfiltered set regardless of what's currently searched.
      *
@@ -808,6 +813,11 @@ class SectionBrowserComponent extends AbstractController
 
         $profile = $document->getUploadProfile();
         if ($profile !== null && str_contains(mb_strtolower($profile->getName()), $needle)) {
+            return true;
+        }
+
+        $listItem = $document->getUploadListItem();
+        if ($listItem !== null && str_contains(mb_strtolower($listItem->getName()), $needle)) {
             return true;
         }
 

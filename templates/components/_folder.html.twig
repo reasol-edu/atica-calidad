@@ -1,6 +1,10 @@
 {# folder: Folder — inherits the parent component's context (this, expandedFolderId, errors...) #}
 {% set fid = folder.id.toRfc4122 %}
-{% set expanded = expandedFolderId == fid %}
+{% set searching = localSearchQuery|trim|length > 0 %}
+{# A local search really just filters — it can't surface a match sitting in a collapsed folder —
+   so every folder renders expanded while a query is active, without touching expandedFolderId
+   itself (collapsing back to whatever was actually toggled once the search is cleared). #}
+{% set expanded = expandedFolderId == fid or searching %}
 {% set can_edit = this.canEditStructure %}
 {% set can_manage = this.canManageFolder(folder) %}
 {% set can_upload = this.canUploadToFolder(folder) %}

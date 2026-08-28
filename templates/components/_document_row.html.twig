@@ -33,7 +33,7 @@
         {% else %}
             <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                    <span class="min-w-0 max-w-full truncate text-sm text-gray-800">{{ document.name }}</span>
+                    <span class="min-w-0 max-w-full truncate text-sm text-gray-800">{{ document.name|highlight(localSearchQuery) }}</span>
                     {% if pending %}
                         <span class="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">{{ 'status.pending'|trans({}, 'document_content') }}</span>
                     {% elseif not active %}
@@ -42,7 +42,7 @@
                 </div>
                 {% if active %}
                     <p class="truncate text-xs text-gray-400">
-                        v{{ active.version }} · {{ active.revisedAt|date('d/m/Y H:i') }} · {{ active.uploadedBy.name.lastName }}, {{ active.uploadedBy.name.firstName }}
+                        v{{ active.version }} · {{ active.revisedAt|date('d/m/Y H:i') }} · {{ active.uploadedBy.name.lastName|highlight(localSearchQuery) }}, {{ active.uploadedBy.name.firstName|highlight(localSearchQuery) }}
                     </p>
                 {% endif %}
             </div>
