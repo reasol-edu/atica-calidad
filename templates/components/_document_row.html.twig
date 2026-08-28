@@ -244,14 +244,45 @@
 
             {% if can_upload_revision %}
                 <form action="{{ path('app_folder_document_new_revision', {folderId: fid, documentId: did}) }}" method="post" enctype="multipart/form-data"
-                      class="flex flex-wrap items-center gap-2 pt-1">
+                      data-controller="file-drop" data-file-drop-single-value="true"
+                      data-file-drop-max-size-value="{{ 20 * 1024 * 1024 }}"
+                      data-file-drop-too-large-message-value="{{ 'upload.dropzone_too_large'|trans({'%filename%': '%filename%', '%max%': '20 MB'}, 'document_content') }}"
+                      class="pt-1">
                     <input type="hidden" name="_token" value="{{ csrf_token('folder_document_revision_' ~ did) }}">
                     {% if can_manage %}
-                        <input type="number" name="version" min="1" value="{{ document.nextVersion }}"
-                               class="w-16 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs">
+                        <label class="mb-2 flex items-center gap-1.5 text-xs text-gray-500">
+                            {{ 'upload.version'|trans({}, 'document_content') }}
+                            <input type="number" name="version" min="1" value="{{ document.nextVersion }}"
+                                   class="w-16 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs">
+                        </label>
                     {% endif %}
-                    <input type="file" name="file" required class="min-w-0 flex-1 text-xs text-gray-500">
-                    <button type="submit" class="shrink-0 rounded-md bg-forest-600 px-2 py-1 text-xs font-medium text-white hover:bg-forest-700">
+
+                    <div data-file-drop-target="dropzone"
+                         data-action="dragenter->file-drop#dragEnter dragover->file-drop#dragOver dragleave->file-drop#dragLeave drop->file-drop#drop click->file-drop#triggerBrowse"
+                         class="flex items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-white px-4 py-3 cursor-pointer hover:border-forest-300 hover:bg-forest-50/50 transition-colors">
+                        {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
+                        <span class="text-sm text-gray-500">{{ 'revision.dropzone_hint'|trans({}, 'document_content') }}</span>
+                        <input type="file" id="revision-upload-{{ did }}" name="file"
+                               data-file-drop-target="input" data-action="change->file-drop#change" class="sr-only">
+                    </div>
+
+                    <div data-file-drop-target="list" class="mt-2 space-y-1.5"></div>
+
+                    <template data-file-drop-target="itemTemplate">
+                        <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+                            {{ ux_icon('heroicons:document', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                            <span class="text-sm text-gray-700 flex-1 truncate" data-role="name"></span>
+                            <span class="text-xs text-gray-400 shrink-0" data-role="size"></span>
+                            <button type="button" data-action="click->file-drop#removeFile" class="text-gray-400 hover:text-red-600 transition-colors">
+                                {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                            </button>
+                        </div>
+                    </template>
+
+                    <p data-file-drop-target="clientError" class="mt-1 text-xs text-red-600 hidden"></p>
+
+                    <button type="submit" data-file-drop-target="submit" class="hidden mt-2 items-center gap-1.5 rounded-md bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700">
+                        {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
                         {{ 'revision.upload_new'|trans({}, 'document_content') }}
                     </button>
                 </form>
