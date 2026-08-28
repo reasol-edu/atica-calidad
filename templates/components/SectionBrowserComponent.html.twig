@@ -37,30 +37,52 @@
 
     {% if searchQuery|trim|length >= 2 %}
         {# ── Search results (replace normal browsing while a query is active) ── #}
-        {% set results = this.getSearchResults %}
+        {% set folder_results = this.getFolderSearchResults %}
+        {% set document_results = this.getSearchResults %}
         <div class="space-y-2">
-            {% if results is empty %}
+            {% if folder_results is empty and document_results is empty %}
                 <p class="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
                     {{ 'search.empty'|trans({}, 'document_content') }}
                 </p>
             {% else %}
-                {% for result in results %}
-                    {% set doc = result.document %}
-                    <button type="button" data-action="live#action" data-live-action-param="openSearchResult" data-live-document-id-param="{{ doc.id.toRfc4122 }}"
-                            class="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left hover:border-forest-300 hover:bg-forest-50/40 transition-colors">
-                        {{ ux_icon('heroicons:document-text', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
-                        <span class="min-w-0 flex-1">
-                            <span class="block truncate text-sm font-medium text-gray-800">{{ doc.name }}</span>
-                            {% if doc.activeRevision %}
-                                <span class="block truncate text-xs text-gray-400">
-                                    v{{ doc.activeRevision.version }} · {{ doc.activeRevision.revisedAt|date('d/m/Y H:i') }} · {{ doc.activeRevision.uploadedBy.name.lastName }}, {{ doc.activeRevision.uploadedBy.name.firstName }}
-                                </span>
-                            {% endif %}
-                            <span class="block truncate text-xs text-gray-400">{{ result.path }}</span>
-                        </span>
-                        {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 text-gray-300 shrink-0'}) }}
-                    </button>
-                {% endfor %}
+                {% if folder_results is not empty %}
+                    <h3 class="px-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{{ 'search.folders_heading'|trans({}, 'document_content') }}</h3>
+                    {% for result in folder_results %}
+                        {% set res_folder = result.folder %}
+                        <button type="button" data-action="live#action" data-live-action-param="openFolderSearchResult" data-live-folder-id-param="{{ res_folder.id.toRfc4122 }}"
+                                class="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left hover:border-forest-300 hover:bg-forest-50/40 transition-colors">
+                            {{ ux_icon('heroicons:folder', {class: 'h-5 w-5 text-forest-500 shrink-0'}) }}
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate text-sm font-medium text-gray-800">{{ res_folder.name|highlight(searchQuery) }}</span>
+                                <span class="block truncate text-xs text-gray-400">{{ result.path }}</span>
+                            </span>
+                            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 text-gray-300 shrink-0'}) }}
+                        </button>
+                    {% endfor %}
+                {% endif %}
+
+                {% if document_results is not empty %}
+                    {% if folder_results is not empty %}
+                        <h3 class="px-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{{ 'search.documents_heading'|trans({}, 'document_content') }}</h3>
+                    {% endif %}
+                    {% for result in document_results %}
+                        {% set doc = result.document %}
+                        <button type="button" data-action="live#action" data-live-action-param="openSearchResult" data-live-document-id-param="{{ doc.id.toRfc4122 }}"
+                                class="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left hover:border-forest-300 hover:bg-forest-50/40 transition-colors">
+                            {{ ux_icon('heroicons:document-text', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate text-sm font-medium text-gray-800">{{ doc.name|highlight(searchQuery) }}</span>
+                                {% if doc.activeRevision %}
+                                    <span class="block truncate text-xs text-gray-400">
+                                        v{{ doc.activeRevision.version }} · {{ doc.activeRevision.revisedAt|date('d/m/Y H:i') }} · {{ doc.activeRevision.uploadedBy.name.lastName|highlight(searchQuery) }}, {{ doc.activeRevision.uploadedBy.name.firstName|highlight(searchQuery) }}
+                                    </span>
+                                {% endif %}
+                                <span class="block truncate text-xs text-gray-400">{{ result.path }}</span>
+                            </span>
+                            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 text-gray-300 shrink-0'}) }}
+                        </button>
+                    {% endfor %}
+                {% endif %}
             {% endif %}
         </div>
     {% else %}

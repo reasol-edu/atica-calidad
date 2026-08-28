@@ -119,6 +119,10 @@ class SectionBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $revisionPanelDocumentId = '';
 
+    /** A document just landed on via search — briefly pulses instead of opening its revision panel. */
+    #[LiveProp(writable: true)]
+    public string $highlightedDocumentId = '';
+
     #[LiveProp(writable: true)]
     public string $editingRevisionId = '';
 
@@ -169,18 +173,22 @@ class SectionBrowserComponent extends AbstractController
         string $initialFolderId = '',
         string $initialDocumentId = '',
         string $initialSettingsFolderId = '',
+        string $initialHighlightDocumentId = '',
     ): void {
         $this->centre = $centre;
-        $this->applyLocation($initialSectionId, $initialFolderId, $initialDocumentId, $initialSettingsFolderId);
+        $this->applyLocation($initialSectionId, $initialFolderId, $initialDocumentId, $initialSettingsFolderId, $initialHighlightDocumentId);
     }
 
     /**
-     * Resolves a (section, folder, document, settings-folder) quadruple — from the initial page
-     * load's query string or from a browser back/forward navigation — into the browsing state,
-     * silently falling back to whatever part is still valid (e.g. a folder that got deleted since
-     * the URL was recorded, or a settings folder the current teacher can no longer edit).
+     * Resolves a (section, folder, document, settings-folder, highlighted-document) tuple — from
+     * the initial page load's query string or from a browser back/forward navigation — into the
+     * browsing state, silently falling back to whatever part is still valid (e.g. a folder that
+     * got deleted since the URL was recorded, or a settings folder the current teacher can no
+     * longer edit). $documentId opens that document's revision panel (the clock icon); the
+     * separate $highlightDocumentId instead just flashes it (search results land here without
+     * forcing the revision panel open — see openSearchResult()).
      */
-    private function applyLocation(string $sectionId, string $folderId, string $documentId, string $settingsFolderId = ''): void
+    private function applyLocation(string $sectionId, string $folderId, string $documentId, string $settingsFolderId = '', string $highlightDocumentId = ''): void
     {
         $this->currentSectionId = $sectionId !== '' && $this->sections->findByIdAndCentre($sectionId, $this->centre) !== null
             ? $sectionId
@@ -197,6 +205,9 @@ class SectionBrowserComponent extends AbstractController
                 $this->expandedFolderId = $folderId;
                 if ($documentId !== '' && $this->documents->findByIdAndFolder($documentId, $folder) !== null) {
                     $this->revisionPanelDocumentId = $documentId;
+                }
+                if ($highlightDocumentId !== '' && $this->documents->findByIdAndFolder($highlightDocumentId, $folder) !== null) {
+                    $this->highlightedDocumentId = $highlightDocumentId;
                 }
             }
         }
@@ -215,10 +226,10 @@ class SectionBrowserComponent extends AbstractController
      * event itself, or every back/forward press would push a new (forward) history entry.
      */
     #[LiveAction]
-    public function syncFromUrl(#[LiveArg] string $section = '', #[LiveArg] string $folder = '', #[LiveArg] string $document = '', #[LiveArg] string $settings = ''): void
+    public function syncFromUrl(#[LiveArg] string $section = '', #[LiveArg] string $folder = '', #[LiveArg] string $document = '', #[LiveArg] string $settings = '', #[LiveArg] string $highlight = ''): void
     {
         $this->resetTransientState();
-        $this->applyLocation($section, $folder, $document, $settings);
+        $this->applyLocation($section, $folder, $document, $settings, $highlight);
     }
 
     /** Tells the document-tree-url Stimulus controller to reflect the current location in the URL (pushState). */
@@ -346,6 +357,7 @@ class SectionBrowserComponent extends AbstractController
         $this->confirmingDeleteDocumentId = '';
         $this->movingDocumentId          = '';
         $this->revisionPanelDocumentId   = '';
+        $this->highlightedDocumentId     = '';
         $this->editingRevisionId         = '';
         $this->confirmingDeleteRevisionId = '';
         $this->localSearchQuery          = '';
@@ -391,6 +403,7 @@ class SectionBrowserComponent extends AbstractController
         $this->confirmingDeleteDocumentId = '';
         $this->movingDocumentId           = '';
         $this->revisionPanelDocumentId    = '';
+        $this->highlightedDocumentId      = '';
         $this->editingRevisionId          = '';
         $this->confirmingDeleteRevisionId = '';
         $this->dispatchLocation();
@@ -785,7 +798,10 @@ class SectionBrowserComponent extends AbstractController
     public function getVisibleFolderDocumentGroups(Folder $folder): array
     {
         $query = trim($this->localSearchQuery);
-        if ($query === '') {
+        // The folder's own title matching is itself the hit (see the highlighted folder name in
+        // _folder.html.twig) — show everything inside it rather than also filtering documents down
+        // to whichever ones separately happen to match too.
+        if ($query === '' || str_contains(mb_strtolower($folder->getName()), mb_strtolower($query))) {
             return $this->getFolderDocumentGroups($folder);
         }
 
@@ -1229,16 +1245,56 @@ class SectionBrowserComponent extends AbstractController
         return $results;
     }
 
+    /**
+     * Folders whose own name matches the current search query anywhere in the centre's tree, each
+     * paired with its section-path breadcrumb — same access filtering as document search. Shown as
+     * a visually distinct group from document results (see the "search.folders_heading" label) so
+     * it's clear a hit is a folder, not a document.
+     *
+     * @return list<array{folder: Folder, path: string}>
+     */
+    public function getFolderSearchResults(): array
+    {
+        $query = trim($this->searchQuery);
+        if (mb_strlen($query) < 2) {
+            return [];
+        }
+
+        $teacher = $this->teacher();
+        $results = [];
+        foreach ($this->folders->searchByCentre($this->centre, $query) as $folder) {
+            if (!$this->access->canViewFolder($teacher, $folder)) {
+                continue;
+            }
+            $results[] = ['folder' => $folder, 'path' => $this->folderPath($folder)];
+        }
+
+        return $results;
+    }
+
+    /** @return list<string> root-first names of a section's ancestor trail, including the section itself */
+    private function sectionTrail(DocumentSection $section): array
+    {
+        $trail = [];
+        for ($s = $section; $s !== null; $s = $s->getParent()) {
+            array_unshift($trail, $s->getName());
+        }
+
+        return $trail;
+    }
+
     private function documentPath(Document $document): string
     {
-        $folder = $document->getFolder();
-        $trail  = [];
-        for ($section = $folder->getDocumentSection(); $section !== null; $section = $section->getParent()) {
-            array_unshift($trail, $section->getName());
-        }
+        $folder  = $document->getFolder();
+        $trail   = $this->sectionTrail($folder->getDocumentSection());
         $trail[] = $folder->getName();
 
         return implode(' › ', $trail);
+    }
+
+    private function folderPath(Folder $folder): string
+    {
+        return implode(' › ', $this->sectionTrail($folder->getDocumentSection()));
     }
 
     #[LiveAction]
@@ -1253,7 +1309,7 @@ class SectionBrowserComponent extends AbstractController
         $this->localSearchQuery = '';
     }
 
-    /** Jumps straight to a search result: opens its section, expands its folder, opens its revision panel. */
+    /** Jumps straight to a search result: opens its section, expands its folder, and briefly highlights the document — never forces its revision panel open. */
     #[LiveAction]
     public function openSearchResult(#[LiveArg] string $documentId): void
     {
@@ -1269,9 +1325,29 @@ class SectionBrowserComponent extends AbstractController
         $folder = $document->getFolder();
         $this->currentSectionId = $folder->getDocumentSection()->getId()->toRfc4122();
         $this->resetTransientState();
-        $this->expandedFolderId        = $folder->getId()->toRfc4122();
-        $this->revisionPanelDocumentId = $documentId;
-        $this->searchQuery             = '';
+        $this->expandedFolderId       = $folder->getId()->toRfc4122();
+        $this->highlightedDocumentId  = $documentId;
+        $this->searchQuery            = '';
+        $this->dispatchLocation();
+    }
+
+    /** Jumps straight to a folder search result: opens its section and expands it. */
+    #[LiveAction]
+    public function openFolderSearchResult(#[LiveArg] string $folderId): void
+    {
+        $teacher = $this->teacher();
+        $folder  = $this->folders->findById($folderId);
+        if ($folder === null || $folder->getEducationalCentre() !== $this->centre) {
+            throw $this->createNotFoundException();
+        }
+        if (!$this->access->canViewFolder($teacher, $folder)) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $this->currentSectionId = $folder->getDocumentSection()->getId()->toRfc4122();
+        $this->resetTransientState();
+        $this->expandedFolderId = $folder->getId()->toRfc4122();
+        $this->searchQuery      = '';
         $this->dispatchLocation();
     }
 

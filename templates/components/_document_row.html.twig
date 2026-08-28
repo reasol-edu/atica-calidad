@@ -6,9 +6,11 @@
 {% set can_upload_revision = this.canManageDocumentAsUploader(document) %}
 {% set can_review = this.canReviewFolder(folder) %}
 {% set can_edit_metadata = this.canEditRevisionMetadata %}
+{% set highlighted = highlightedDocumentId == did %}
 
 <div>
-    <div class="group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50">
+    <div {{ (highlighted ? 'data-controller="scroll-into-view"' : '')|raw }}
+         class="group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50 {{ highlighted ? 'document-highlight-pulse' : '' }}">
         {% if active %}
             <a href="{{ path('app_folder_document_revision_download', {folderId: fid, documentId: did, revisionId: active.id.toRfc4122}) }}"
                class="shrink-0 text-gray-400 hover:text-forest-600" title="{{ 'download'|trans({}, 'document_content') }}">

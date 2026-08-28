@@ -27,7 +27,7 @@
                     class="flex flex-1 items-center gap-2 min-w-0 text-left">
                 {{ ux_icon(expanded ? 'heroicons:chevron-down' : 'heroicons:chevron-right', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
                 {{ ux_icon('heroicons:folder', {class: 'h-4 w-4 text-forest-500 shrink-0'}) }}
-                <span class="truncate text-sm font-medium text-gray-800">{{ folder.name }}</span>
+                <span class="truncate text-sm font-medium text-gray-800">{{ folder.name|highlight(localSearchQuery) }}</span>
             </button>
         {% endif %}
 

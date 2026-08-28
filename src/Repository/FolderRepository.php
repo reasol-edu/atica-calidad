@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\DocumentSection;
+use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -26,6 +27,21 @@ class FolderRepository extends ServiceEntityRepository
             ->where('f.documentSection = :section')
             ->setParameter('section', $section->getId(), 'uuid')
             ->orderBy('f.position', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /** @return list<Folder> whose name matches $query anywhere in the centre's tree, ordered by name */
+    public function searchByCentre(EducationalCentre $centre, string $query, int $limit = 30): array
+    {
+        return $this->createQueryBuilder('f')
+            ->join('f.documentSection', 's')
+            ->where('s.educationalCentre = :centre')
+            ->andWhere('LOWER(f.name) LIKE LOWER(:query)')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('query', '%' . $query . '%')
+            ->orderBy('f.name', 'ASC')
+            ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
     }

@@ -243,6 +243,16 @@ summary:focus-visible {
   0%   { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+/* Search-result "you just landed here" flash: a few gentle background pulses that settle back to
+   transparent, applied to a document row when jumped to from the tree-wide search or ⌘K (instead
+   of forcing its revision panel open). */
+@keyframes document-highlight-pulse {
+  0%, 100% { background-color: transparent; }
+  50%      { background-color: color-mix(in srgb, var(--color-forest-500) 20%, transparent); }
+}
+.document-highlight-pulse {
+  animation: document-highlight-pulse 1.4s ease-in-out 3;
+}
 .ts-dropdown-content { overflow: hidden auto; max-height: 200px; scroll-behavior: smooth; }
 .ts-wrapper.plugin-drag_drop .ts-dragging { color: transparent !important; }
 .ts-wrapper.plugin-drag_drop .ts-dragging > * { visibility: hidden !important; }

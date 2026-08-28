@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Document;
+use App\Entity\DocumentSection;
+use App\Entity\Folder;
 use App\Entity\Teacher;
 use App\Repository\DocumentRepository;
+use App\Repository\FolderRepository;
 use App\Repository\TeacherRepository;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\TenantContext;
@@ -25,6 +28,7 @@ class SearchController extends AbstractController
         private readonly TenantContext $tenantContext,
         private readonly TeacherRepository $teacherRepository,
         private readonly DocumentRepository $documentRepository,
+        private readonly FolderRepository $folderRepository,
         private readonly DocumentTreeAccessChecker $documentTreeAccess,
         #[Target('search')]
         private readonly RateLimiterFactoryInterface $searchLimiter,
@@ -68,6 +72,23 @@ class SearchController extends AbstractController
 
         $user = $this->getUser();
         if ($user instanceof Teacher) {
+            $folders = [];
+            foreach ($this->folderRepository->searchByCentre($centre, $q, 5) as $folder) {
+                if ($this->documentTreeAccess->canViewFolder($user, $folder)) {
+                    $folders[] = $folder;
+                }
+            }
+            if ($folders !== []) {
+                $groups['folders'] = array_map(fn (Folder $f) => [
+                    'label'    => $f->getName(),
+                    'sublabel' => $this->folderPath($f),
+                    'url'      => $this->generateUrl('app_document_tree', [
+                        'section' => $f->getDocumentSection()->getId()->toRfc4122(),
+                        'folder'  => $f->getId()->toRfc4122(),
+                    ]),
+                ], $folders);
+            }
+
             $documents = [];
             foreach ($this->documentRepository->searchByCentre($centre, $q, 5) as $document) {
                 if ($this->documentTreeAccess->canViewDocument($user, $document)) {
@@ -81,7 +102,7 @@ class SearchController extends AbstractController
                     'url'      => $this->generateUrl('app_document_tree', [
                         'section'  => $d->getFolder()->getDocumentSection()->getId()->toRfc4122(),
                         'folder'   => $d->getFolder()->getId()->toRfc4122(),
-                        'document' => $d->getId()->toRfc4122(),
+                        'highlight' => $d->getId()->toRfc4122(),
                     ]),
                 ], $documents);
             }
@@ -90,13 +111,26 @@ class SearchController extends AbstractController
         return $this->json(['groups' => $groups]);
     }
 
+    /** @return list<string> root-first names of a section's ancestor trail, including the section itself */
+    private function sectionTrail(DocumentSection $section): array
+    {
+        $trail = [];
+        for ($s = $section; $s !== null; $s = $s->getParent()) {
+            array_unshift($trail, $s->getName());
+        }
+
+        return $trail;
+    }
+
+    private function folderPath(Folder $folder): string
+    {
+        return implode(' › ', $this->sectionTrail($folder->getDocumentSection()));
+    }
+
     private function documentPath(Document $document): string
     {
-        $folder = $document->getFolder();
-        $trail  = [];
-        for ($section = $folder->getDocumentSection(); $section !== null; $section = $section->getParent()) {
-            array_unshift($trail, $section->getName());
-        }
+        $folder  = $document->getFolder();
+        $trail   = $this->sectionTrail($folder->getDocumentSection());
         $trail[] = $folder->getName();
 
         return implode(' › ', $trail);

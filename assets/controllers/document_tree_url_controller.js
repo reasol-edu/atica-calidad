@@ -45,6 +45,11 @@ export default class extends Controller {
             folder: url.searchParams.get('folder') ?? '',
             document: url.searchParams.get('document') ?? '',
             settings: url.searchParams.get('settings') ?? '',
+            // Not written by pushLocation() (the highlight is a one-shot "you just landed here"
+            // flash, not a piece of state later navigation should keep re-asserting) — but still
+            // read back here so landing on a search result's URL and then going back/forward to it
+            // restores the same flash.
+            highlight: url.searchParams.get('highlight') ?? '',
         }, 0);
     }
 

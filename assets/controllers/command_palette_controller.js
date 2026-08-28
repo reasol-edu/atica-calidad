@@ -5,6 +5,7 @@ const GROUP_LABELS = {
     students_taught: 'Tu alumnado',
     students_other:  'Otro alumnado',
     teachers:        'Docentes',
+    folders:         'Carpetas',
     documents:       'Documentos',
 };
 
