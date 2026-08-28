@@ -1,0 +1,61 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'document_section.import.title'|trans({}, 'admin') }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-2xl mx-auto space-y-8">
+
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_document_tree', {tab: 'edit'}) }}" class="hover:text-forest-600 transition-colors">{{ 'page_title'|trans({}, 'document_tree') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'document_section.import.title'|trans({}, 'admin') }}</h1>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+        <form method="post" enctype="multipart/form-data" class="px-6 py-6 space-y-6">
+            <input type="hidden" name="_token" value="{{ csrf_token('import_document_sections') }}">
+
+            <div class="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3.5 text-amber-800">
+                {{ ux_icon('heroicons:exclamation-triangle', {class: 'h-4 w-4 inline-block mr-1 -mt-0.5'}) }}
+                <span class="text-sm font-medium">{{ 'document_section.import.help.title'|trans({}, 'admin') }}</span>
+                <p class="mt-2 text-xs text-amber-700">{{ 'document_section.import.help.replace'|trans({}, 'admin') }}</p>
+                <p class="mt-1 text-xs text-amber-700">{{ 'document_section.import.help.profiles'|trans({}, 'admin') }}</p>
+            </div>
+
+            <div>
+                <label for="json"
+                       class="flex flex-col items-center justify-center gap-3 w-full rounded-xl border-2 border-dashed
+                              border-gray-300 bg-gray-50 px-6 py-8 cursor-pointer
+                              hover:border-forest-400 hover:bg-forest-50/40 transition-colors group mt-4 mb-2">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-8 w-8 text-gray-400 group-hover:text-forest-500 transition-colors'}) }}
+                    <span class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2
+                                 text-sm font-medium text-gray-700 shadow-xs group-hover:border-forest-300 group-hover:text-forest-700 transition-colors">
+                        {{ 'document_section.import.choose_file'|trans({}, 'admin') }}
+                    </span>
+                    <span id="json-filename" class="text-xs text-gray-400">
+                        {{ 'document_section.import.no_file_chosen'|trans({}, 'admin') }}
+                    </span>
+                </label>
+                <input type="file" id="json" name="json" accept=".json,application/json" class="sr-only hidden"
+                       onchange="document.getElementById('json-filename').textContent = this.files[0]?.name ?? '{{ 'document_section.import.no_file_chosen'|trans({}, 'admin') }}'">
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+                <a href="{{ path('app_document_tree', {tab: 'edit'}) }}"
+                   class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                    {{ 'document_section.import.cancel'|trans({}, 'admin') }}
+                </a>
+                <button type="submit"
+                        class="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 transition-colors shadow-xs">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                    {{ 'document_section.import.submit'|trans({}, 'admin') }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

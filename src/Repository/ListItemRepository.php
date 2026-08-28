@@ -77,6 +77,22 @@ class ListItemRepository extends ServiceEntityRepository
     }
 
     /**
+     * The whole centre's list-item tree in one query, ordered so that a stable pre-order walk can
+     * be rebuilt in memory (siblings sorted by position).
+     *
+     * @return ListItem[]
+     */
+    public function findAllByCentre(EducationalCentre $centre): array
+    {
+        return $this->createQueryBuilder('li')
+            ->where('li.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('li.position', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Every leaf (childless) descendant of $root, in a stable pre-order walk
      * (siblings sorted by position). Single query for the whole centre, then
      * an in-memory tree walk — avoids recursive SQL, which isn't portable

@@ -49,10 +49,15 @@ class DocumentSection
     #[ORM\OneToMany(targetEntity: DocumentSectionProfile::class, mappedBy: 'documentSection', cascade: ['persist'], orphanRemoval: true)]
     private Collection $profileRestrictions;
 
+    /** @var Collection<int, Folder> */
+    #[ORM\OneToMany(targetEntity: Folder::class, mappedBy: 'documentSection', cascade: ['persist'], orphanRemoval: true)]
+    private Collection $folders;
+
     public function __construct()
     {
-        $this->children            = new ArrayCollection();
-        $this->profileRestrictions = new ArrayCollection();
+        $this->children             = new ArrayCollection();
+        $this->profileRestrictions  = new ArrayCollection();
+        $this->folders              = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -171,5 +176,11 @@ class DocumentSection
         $this->profileRestrictions->removeElement($restriction);
 
         return $this;
+    }
+
+    /** @return Collection<int, Folder> */
+    public function getFolders(): Collection
+    {
+        return $this->folders;
     }
 }

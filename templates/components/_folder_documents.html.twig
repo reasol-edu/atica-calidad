@@ -1,0 +1,100 @@
+{# folder: Folder, can_manage: bool, can_upload: bool — inherits the parent component's context #}
+{% set fid = folder.id.toRfc4122 %}
+{% set groups = this.getVisibleFolderDocumentGroups(folder) %}
+
+<div class="divide-y divide-gray-100">
+    {% if groups is empty %}
+        <p class="px-4 py-6 text-center text-sm text-gray-400">{{ 'empty'|trans({}, 'document_content') }}</p>
+    {% endif %}
+
+    {% for group in groups %}
+        <div class="px-4 py-3">
+            {% if group.label is not null %}
+                <div class="mb-2 flex items-center justify-between gap-2">
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ group.label }}</h3>
+                    {% if can_manage and group.documents|length > 1 %}
+                        <button type="button" data-action="live#action" data-live-action-param="sortDocumentsAlphabetically"
+                                data-live-folder-id-param="{{ fid }}" data-live-row-key-param="{{ group.rowKey }}"
+                                class="text-gray-400 hover:text-forest-600" title="{{ 'sort_alphabetically'|trans({}, 'document_content') }}">
+                            {{ ux_icon('heroicons:bars-arrow-down', {class: 'h-4 w-4'}) }}
+                        </button>
+                    {% endif %}
+                </div>
+            {% elseif can_manage and group.documents|length > 1 %}
+                <div class="mb-2 flex justify-end">
+                    <button type="button" data-action="live#action" data-live-action-param="sortDocumentsAlphabetically"
+                            data-live-folder-id-param="{{ fid }}" data-live-row-key-param=""
+                            class="text-gray-400 hover:text-forest-600" title="{{ 'sort_alphabetically'|trans({}, 'document_content') }}">
+                        {{ ux_icon('heroicons:bars-arrow-down', {class: 'h-4 w-4'}) }}
+                    </button>
+                </div>
+            {% endif %}
+
+            <div class="space-y-1">
+                {% for document in group.documents %}
+                    {% include 'components/_document_row.html.twig' with {document: document, folder: folder, can_manage: can_manage, index: loop.index0, count: group.documents|length} %}
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+
+    {% if can_upload %}
+        {% set upload_profile_rows = this.getAllowedUploadProfileRows(folder) %}
+        <div class="px-4 py-3 bg-gray-50/40">
+            <form action="{{ path('app_folder_upload', {folderId: fid}) }}" method="post" enctype="multipart/form-data"
+                  data-controller="file-drop" data-file-drop-single-value="false"
+                  data-file-drop-max-size-value="{{ 20 * 1024 * 1024 }}"
+                  data-file-drop-too-large-message-value="{{ 'upload.dropzone_too_large'|trans({'%filename%': '%filename%', '%max%': '20 MB'}, 'document_content') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('folder_upload_' ~ fid) }}">
+                <div data-file-drop-target="dropzone"
+                     data-action="dragenter->file-drop#dragEnter dragover->file-drop#dragOver dragleave->file-drop#dragLeave drop->file-drop#drop click->file-drop#triggerBrowse"
+                     class="flex items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-white px-4 py-3 cursor-pointer hover:border-forest-300 hover:bg-forest-50/50 transition-colors">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
+                    <span class="text-sm text-gray-500">{{ 'upload.dropzone_hint'|trans({}, 'document_content') }}</span>
+                    <input type="file" id="upload-{{ fid }}" name="files[]" multiple
+                           data-file-drop-target="input" data-action="change->file-drop#change" class="sr-only">
+                </div>
+
+                <div data-file-drop-target="list" class="mt-2 space-y-1.5"></div>
+
+                <template data-file-drop-target="itemTemplate">
+                    <div class="rounded-lg border border-gray-200 bg-white p-3 space-y-2">
+                        <div class="flex items-center gap-3">
+                            {{ ux_icon('heroicons:document', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                            <span class="min-w-0 flex-1 truncate text-sm text-gray-700" data-role="name"></span>
+                            <span class="shrink-0 text-xs text-gray-400" data-role="size"></span>
+                            <button type="button" data-action="click->file-drop#removeFile" class="shrink-0 text-gray-400 hover:text-red-600 transition-colors">
+                                {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                            </button>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 pl-7">
+                            <label class="flex items-center gap-1.5 text-xs text-gray-500">
+                                {{ 'upload.version'|trans({}, 'document_content') }}
+                                <input type="number" data-role="version-input" value="1" min="1"
+                                       class="w-16 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs">
+                            </label>
+                            {% if folder.groupByProfile and upload_profile_rows is not empty %}
+                                <label class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                    {{ 'upload.profile'|trans({}, 'document_content') }}
+                                    <select data-role="profile-select" class="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs">
+                                        <option value="">{{ 'upload.profile_none'|trans({}, 'document_content') }}</option>
+                                        {% for row in upload_profile_rows %}
+                                            <option value="{{ row.key }}">{{ row.displayName }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </label>
+                            {% endif %}
+                        </div>
+                    </div>
+                </template>
+
+                <p data-file-drop-target="clientError" class="mt-1 text-xs text-red-600 hidden"></p>
+
+                <button type="submit" data-file-drop-target="submit" class="hidden mt-2 items-center gap-1.5 rounded-md bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                    {{ 'upload.submit'|trans({}, 'document_content') }}
+                </button>
+            </form>
+        </div>
+    {% endif %}
+</div>

@@ -4,5 +4,6 @@ no_results: 'Sin resultados'
 groups:
     teachers: 'Docentes'
     actions: 'Acciones'
+    documents: 'Documentos'
 actions:
     change_year: 'Cambiar de curso'

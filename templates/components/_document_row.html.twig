@@ -1,0 +1,261 @@
+{# document, folder: Folder, can_manage: bool, index: int, count: int — inherits parent component context #}
+{% set fid = folder.id.toRfc4122 %}
+{% set did = document.id.toRfc4122 %}
+{% set active = document.activeRevision %}
+{% set pending = document.pendingRevision %}
+{% set can_upload_revision = this.canManageDocumentAsUploader(document) %}
+{% set can_review = this.canReviewFolder(folder) %}
+{% set can_edit_metadata = this.canEditRevisionMetadata %}
+
+<div>
+    <div class="group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50">
+        {% if active %}
+            <a href="{{ path('app_folder_document_revision_download', {folderId: fid, documentId: did, revisionId: active.id.toRfc4122}) }}"
+               class="shrink-0 text-gray-400 hover:text-forest-600" title="{{ 'download'|trans({}, 'document_content') }}">
+                {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-4 w-4'}) }}
+            </a>
+        {% else %}
+            <span class="shrink-0 text-gray-300" title="{{ 'status.no_revision'|trans({}, 'document_content') }}">
+                {{ ux_icon('heroicons:clock', {class: 'h-4 w-4'}) }}
+            </span>
+        {% endif %}
+
+        {{ ux_icon('heroicons:document-text', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+
+        {% if renamingDocumentId == did %}
+            <form data-action="submit->live#action:prevent" data-live-action-param="saveRenameDocument" data-live-folder-id-param="{{ fid }}"
+                  class="flex flex-1 items-center gap-1.5 min-w-0">
+                <input type="text" data-model="norender|renameDocumentName" value="{{ renameDocumentName }}" autofocus
+                       class="min-w-0 flex-1 rounded-md border border-forest-300 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                <button type="submit" class="shrink-0 text-forest-600 hover:text-forest-800">{{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}</button>
+                <button type="button" data-action="live#action" data-live-action-param="cancelRenameDocument" class="shrink-0 text-gray-400 hover:text-gray-600">{{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}</button>
+            </form>
+        {% else %}
+            <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                    <span class="min-w-0 max-w-full truncate text-sm text-gray-800">{{ document.name }}</span>
+                    {% if pending %}
+                        <span class="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">{{ 'status.pending'|trans({}, 'document_content') }}</span>
+                    {% elseif not active %}
+                        <span class="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-500">{{ 'status.no_revision'|trans({}, 'document_content') }}</span>
+                    {% endif %}
+                </div>
+                {% if active %}
+                    <p class="truncate text-xs text-gray-400">
+                        v{{ active.version }} · {{ active.revisedAt|date('d/m/Y H:i') }} · {{ active.uploadedBy.name.lastName }}, {{ active.uploadedBy.name.firstName }}
+                    </p>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {% if can_manage or can_upload_revision %}
+            <button type="button" data-action="live#action" data-live-action-param="toggleRevisionPanel" data-live-id-param="{{ did }}"
+                    class="shrink-0 transition-colors {{ revisionPanelDocumentId == did ? 'text-forest-600' : 'text-gray-300 hover:text-forest-600' }}"
+                    title="{{ 'revision.manage'|trans({}, 'document_content') }}">
+                {{ ux_icon('heroicons:clock', {class: 'h-4 w-4'}) }}
+            </button>
+        {% endif %}
+
+        {% if can_manage or can_upload_revision %}
+            {% if confirmingDeleteDocumentId == did %}
+                <span class="shrink-0 inline-flex items-center gap-1">
+                    <button type="button" data-action="live#action" data-live-action-param="deleteDocument" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
+                            class="rounded-md bg-red-600 px-1.5 py-0.5 text-xs font-medium text-white">{{ 'confirm_yes'|trans({}, 'document_content') }}</button>
+                    <button type="button" data-action="live#action" data-live-action-param="cancelDeleteDocument"
+                            class="rounded-md border border-gray-200 px-1.5 py-0.5 text-xs text-gray-600">{{ 'cancel'|trans({}, 'document_content') }}</button>
+                </span>
+            {% else %}
+                <div class="shrink-0 relative" data-controller="dropdown">
+                    <button type="button" data-action="dropdown#toggle"
+                            class="p-1 text-gray-300 hover:text-gray-600" title="{{ 'more_actions'|trans({}, 'document_content') }}">
+                        {{ ux_icon('heroicons:ellipsis-vertical', {class: 'h-4 w-4'}) }}
+                    </button>
+                    <div data-dropdown-target="menu" class="hidden absolute right-0 z-40 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                        {% if can_manage %}
+                            {% if index > 0 %}
+                                <button type="button" data-action="live#action" data-live-action-param="moveDocumentUp" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
+                                        class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                    {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                                    {{ 'move_up'|trans({}, 'document_content') }}
+                                </button>
+                            {% endif %}
+                            {% if index < count - 1 %}
+                                <button type="button" data-action="live#action" data-live-action-param="moveDocumentDown" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
+                                        class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                    {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                                    {{ 'move_down'|trans({}, 'document_content') }}
+                                </button>
+                            {% endif %}
+                            <button type="button" data-action="live#action" data-live-action-param="startRenameDocument" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
+                                    class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                {{ ux_icon('heroicons:pencil', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                                {{ 'rename'|trans({}, 'document_content') }}
+                            </button>
+                            <button type="button" data-action="live#action" data-live-action-param="startMoveDocument" data-live-id-param="{{ did }}"
+                                    class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                {{ ux_icon('heroicons:arrows-right-left', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                                {{ 'move.title'|trans({}, 'document_content') }}
+                            </button>
+                        {% endif %}
+                        <button type="button" data-action="live#action" data-live-action-param="askDeleteDocument" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
+                                class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50">
+                            {{ ux_icon('heroicons:trash', {class: 'h-4 w-4 shrink-0'}) }}
+                            {{ 'delete'|trans({}, 'document_content') }}
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {% if errors.renameDocument is defined and renamingDocumentId == did %}<p class="ml-8 text-xs text-red-600">{{ errors.renameDocument }}</p>{% endif %}
+    {% if errors.deleteDocument is defined and confirmingDeleteDocumentId == did %}<p class="ml-8 text-xs text-red-600">{{ errors.deleteDocument }}</p>{% endif %}
+    {% if errors.activeRevision is defined and revisionPanelDocumentId == did %}<p class="ml-8 text-xs text-red-600">{{ errors.activeRevision }}</p>{% endif %}
+    {% if errors.editRevision is defined and revisionPanelDocumentId == did %}<p class="ml-8 text-xs text-red-600">{{ errors.editRevision }}</p>{% endif %}
+
+    {% if movingDocumentId == did %}
+        {% set destinations = this.getMoveDestinationFolders(document) %}
+        <div class="ml-8 mb-2 flex flex-wrap items-center gap-1.5">
+            {% if destinations is empty %}
+                <p class="text-xs italic text-gray-400">{{ 'move.empty'|trans({}, 'document_content') }}</p>
+            {% else %}
+                {% for dest in destinations %}
+                    <button type="button" data-action="live#action" data-live-action-param="moveDocument"
+                            data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}" data-live-destination-folder-id-param="{{ dest.id.toRfc4122 }}"
+                            class="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600 hover:border-forest-300 hover:bg-forest-50 hover:text-forest-700">
+                        {{ dest.name }}
+                    </button>
+                {% endfor %}
+            {% endif %}
+            <button type="button" data-action="live#action" data-live-action-param="cancelMoveDocument" class="text-xs text-gray-400 hover:text-gray-600">
+                {{ 'cancel'|trans({}, 'document_content') }}
+            </button>
+        </div>
+    {% endif %}
+
+    {% if revisionPanelDocumentId == did and (can_manage or can_upload_revision or can_review) %}
+        <div class="ml-8 mb-3 space-y-1.5 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+            {% if not (can_manage or can_review) %}
+                <p class="text-xs italic text-gray-400">{{ 'revision.uploader_only_hint'|trans({}, 'document_content') }}</p>
+            {% endif %}
+            {% if can_manage or can_review %}
+            {% set revisions = this.getDocumentRevisions(document) %}
+            {% for revision in revisions %}
+                <div class="flex flex-wrap items-center gap-2 rounded-md border border-gray-100 bg-white px-2.5 py-1.5">
+                    {% if can_manage and editingRevisionId == revision.id.toRfc4122 %}
+                        <form data-action="submit->live#action:prevent" data-live-action-param="saveEditRevision"
+                              data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
+                              class="flex flex-wrap shrink-0 items-center gap-1.5">
+                            <span class="text-xs text-gray-400">v</span>
+                            <input type="number" min="1" data-model="norender|editVersionValue" value="{{ editVersionValue }}" autofocus
+                                   class="w-14 rounded-md border border-forest-300 bg-white px-1.5 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                            {% if can_edit_metadata %}
+                                <select data-controller="tom-select"
+                                        data-tom-select-placeholder-value="{{ 'revision.uploaded_by_placeholder'|trans({}, 'document_content') }}"
+                                        data-model="norender|editUploadedById" class="w-40 text-xs ts-local">
+                                    {% for candidate in this.getCentreTeachers %}
+                                        <option value="{{ candidate.id.toRfc4122 }}" {{ candidate.id.toRfc4122 == editUploadedById ? 'selected' : '' }}>
+                                            {{ candidate.name.lastName }}, {{ candidate.name.firstName }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <input type="datetime-local" data-model="norender|editRevisedAtValue" value="{{ editRevisedAtValue }}"
+                                       class="rounded-md border border-forest-300 bg-white px-1.5 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                            {% endif %}
+                            <button type="submit" class="text-forest-600 hover:text-forest-800">{{ ux_icon('heroicons:check', {class: 'h-3.5 w-3.5'}) }}</button>
+                            <button type="button" data-action="live#action" data-live-action-param="cancelEditRevision" class="text-gray-400 hover:text-gray-600">{{ ux_icon('heroicons:x-mark', {class: 'h-3.5 w-3.5'}) }}</button>
+                        </form>
+                    {% else %}
+                        <span class="shrink-0 text-xs font-semibold text-gray-700">v{{ revision.version }}</span>
+                        {% if can_manage %}
+                            <button type="button" data-action="live#action" data-live-action-param="startEditRevision"
+                                    data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}" data-live-revision-id-param="{{ revision.id.toRfc4122 }}"
+                                    class="shrink-0 text-gray-300 hover:text-forest-600" title="{{ 'revision.edit'|trans({}, 'document_content') }}">
+                                {{ ux_icon('heroicons:pencil', {class: 'h-3 w-3'}) }}
+                            </button>
+                        {% endif %}
+                    {% endif %}
+                    <a href="{{ path('app_folder_document_revision_download', {folderId: fid, documentId: did, revisionId: revision.id.toRfc4122}) }}"
+                       class="shrink-0 text-gray-400 hover:text-forest-600" title="{{ 'download'|trans({}, 'document_content') }}">
+                        {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-3.5 w-3.5'}) }}
+                    </a>
+                    <span class="shrink-0 text-xs text-gray-400">{{ revision.revisedAt|date('d/m/Y H:i') }} · {{ revision.uploadedBy.name.lastName }}, {{ revision.uploadedBy.name.firstName }}</span>
+                    {% if revision.pendingReview %}
+                        <span class="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">{{ 'status.pending'|trans({}, 'document_content') }}</span>
+                    {% elseif revision.rejected %}
+                        <span class="shrink-0 rounded-full bg-red-50 px-1.5 py-0.5 text-[11px] text-red-700">{{ 'status.rejected'|trans({}, 'document_content') }}</span>
+                    {% else %}
+                        <span class="shrink-0 rounded-full bg-forest-50 px-1.5 py-0.5 text-[11px] text-forest-700">{{ 'status.approved'|trans({}, 'document_content') }}</span>
+                    {% endif %}
+                    {% if revision.reviewResult %}<span class="text-xs italic text-gray-400 truncate">{{ revision.reviewResult }}</span>{% endif %}
+
+                    <span class="flex-1"></span>
+
+                    {% if can_manage and revision.isApproved %}
+                        {% if active == revision %}
+                            <span class="shrink-0 text-[11px] text-forest-600">{{ 'revision.active'|trans({}, 'document_content') }}</span>
+                        {% else %}
+                            <button type="button" data-action="live#action" data-live-action-param="setActiveRevision"
+                                    data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}" data-live-revision-id-param="{{ revision.id.toRfc4122 }}"
+                                    class="shrink-0 text-[11px] font-medium text-forest-600 hover:underline">
+                                {{ 'revision.make_active'|trans({}, 'document_content') }}
+                            </button>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if can_edit_metadata %}
+                        {% if confirmingDeleteRevisionId == revision.id.toRfc4122 %}
+                            <button type="button" data-action="live#action" data-live-action-param="deleteRevision"
+                                    data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
+                                    class="shrink-0 rounded-md bg-red-600 px-1.5 py-0.5 text-[11px] font-medium text-white">{{ 'confirm_yes'|trans({}, 'document_content') }}</button>
+                            <button type="button" data-action="live#action" data-live-action-param="cancelDeleteRevision"
+                                    class="shrink-0 rounded-md border border-gray-200 px-1.5 py-0.5 text-[11px] text-gray-600">{{ 'cancel'|trans({}, 'document_content') }}</button>
+                        {% else %}
+                            <button type="button" data-action="live#action" data-live-action-param="askDeleteRevision"
+                                    data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}" data-live-revision-id-param="{{ revision.id.toRfc4122 }}"
+                                    class="shrink-0 text-gray-300 hover:text-red-600" title="{{ 'revision.delete'|trans({}, 'document_content') }}">
+                                {{ ux_icon('heroicons:trash', {class: 'h-3.5 w-3.5'}) }}
+                            </button>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                {% if can_review and revision.pendingReview %}
+                    <div class="ml-2 flex flex-wrap items-center gap-2 rounded-md border border-amber-100 bg-amber-50/50 px-2.5 py-2">
+                        <form action="{{ path('app_folder_document_revision_approve', {folderId: fid, documentId: did, revisionId: revision.id.toRfc4122}) }}"
+                              method="post" class="flex flex-1 items-center gap-1.5 min-w-[12rem]">
+                            <input type="hidden" name="_token" value="{{ csrf_token('folder_document_revision_review_' ~ revision.id.toRfc4122) }}">
+                            <input type="text" name="reviewResult" placeholder="{{ 'review.result_placeholder'|trans({}, 'document_content') }}"
+                                   class="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs">
+                            <button type="submit" class="shrink-0 rounded-md bg-forest-600 px-2 py-1 text-xs font-medium text-white hover:bg-forest-700">
+                                {{ 'review.approve'|trans({}, 'document_content') }}
+                            </button>
+                        </form>
+                        <form action="{{ path('app_folder_document_revision_reject', {folderId: fid, documentId: did, revisionId: revision.id.toRfc4122}) }}" method="post">
+                            <input type="hidden" name="_token" value="{{ csrf_token('folder_document_revision_review_' ~ revision.id.toRfc4122) }}">
+                            <button type="submit" class="shrink-0 rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50">
+                                {{ 'review.reject'|trans({}, 'document_content') }}
+                            </button>
+                        </form>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            {% endif %}
+
+            {% if can_upload_revision %}
+                <form action="{{ path('app_folder_document_new_revision', {folderId: fid, documentId: did}) }}" method="post" enctype="multipart/form-data"
+                      class="flex flex-wrap items-center gap-2 pt-1">
+                    <input type="hidden" name="_token" value="{{ csrf_token('folder_document_revision_' ~ did) }}">
+                    {% if can_manage %}
+                        <input type="number" name="version" min="1" value="{{ document.nextVersion }}"
+                               class="w-16 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs">
+                    {% endif %}
+                    <input type="file" name="file" required class="min-w-0 flex-1 text-xs text-gray-500">
+                    <button type="submit" class="shrink-0 rounded-md bg-forest-600 px-2 py-1 text-xs font-medium text-white hover:bg-forest-700">
+                        {{ 'revision.upload_new'|trans({}, 'document_content') }}
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

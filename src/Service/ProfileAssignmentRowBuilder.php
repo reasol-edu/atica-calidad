@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\EducationalCentre;
+use App\Entity\SpecificProfile;
 use App\Model\ProfileAssignmentRow;
 use App\Repository\ListItemRepository;
 use App\Repository\SpecificProfileAssignmentRepository;
@@ -66,5 +67,42 @@ final class ProfileAssignmentRowBuilder
             $this->buildAllRows($centre),
             static fn (ProfileAssignmentRow $row): bool => $row->active,
         ));
+    }
+
+    /**
+     * Like buildActiveRows(), but a list-associated profile also gets one extra row for itself
+     * (no specific leaf) right before its per-subperfil rows — a "whole profile" pick meaning
+     * every subperfil counts, for pickers where enumerating each one isn't required (e.g.
+     * restricting a folder to a profile without pinning it to one particular subperfil). Rows are
+     * grouped by profile, groups ordered alphabetically by profile name, so a picker listing them
+     * reads as: generic option first, then its subperfiles in list order, then the next profile.
+     *
+     * @return ProfileAssignmentRow[]
+     */
+    public function buildActiveRowsWithWholeProfileOption(EducationalCentre $centre): array
+    {
+        $rowsByProfile = [];
+        foreach ($this->buildActiveRows($centre) as $row) {
+            $rowsByProfile[$row->profile->getId()->toRfc4122()][] = $row;
+        }
+
+        $profiles = array_values(array_filter(
+            $this->profiles->findByCentre($centre),
+            static fn (SpecificProfile $profile): bool => $profile->isActive(),
+        ));
+        usort($profiles, static fn (SpecificProfile $a, SpecificProfile $b): int => strcasecmp($a->getName(), $b->getName()));
+
+        $rows = [];
+        foreach ($profiles as $profile) {
+            $key = $profile->getId()->toRfc4122();
+            if ($profile->getListItem() !== null) {
+                $rows[] = new ProfileAssignmentRow($profile, null, $profile->getName() . ' (todos)', true, []);
+            }
+            foreach ($rowsByProfile[$key] ?? [] as $row) {
+                $rows[] = $row;
+            }
+        }
+
+        return $rows;
     }
 }

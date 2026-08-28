@@ -5,6 +5,7 @@ const GROUP_LABELS = {
     students_taught: 'Tu alumnado',
     students_other:  'Otro alumnado',
     teachers:        'Docentes',
+    documents:       'Documentos',
 };
 
 const normalize = (text) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

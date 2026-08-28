@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Document;
+use App\Entity\Teacher;
+use App\Repository\DocumentRepository;
 use App\Repository\TeacherRepository;
+use App\Service\DocumentTreeAccessChecker;
 use App\Service\TenantContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Target;
@@ -20,6 +24,8 @@ class SearchController extends AbstractController
     public function __construct(
         private readonly TenantContext $tenantContext,
         private readonly TeacherRepository $teacherRepository,
+        private readonly DocumentRepository $documentRepository,
+        private readonly DocumentTreeAccessChecker $documentTreeAccess,
         #[Target('search')]
         private readonly RateLimiterFactoryInterface $searchLimiter,
     ) {}
@@ -60,6 +66,39 @@ class SearchController extends AbstractController
             }
         }
 
+        $user = $this->getUser();
+        if ($user instanceof Teacher) {
+            $documents = [];
+            foreach ($this->documentRepository->searchByCentre($centre, $q, 5) as $document) {
+                if ($this->documentTreeAccess->canViewDocument($user, $document)) {
+                    $documents[] = $document;
+                }
+            }
+            if ($documents !== []) {
+                $groups['documents'] = array_map(fn (Document $d) => [
+                    'label'    => $d->getName(),
+                    'sublabel' => $this->documentPath($d),
+                    'url'      => $this->generateUrl('app_document_tree', [
+                        'section'  => $d->getFolder()->getDocumentSection()->getId()->toRfc4122(),
+                        'folder'   => $d->getFolder()->getId()->toRfc4122(),
+                        'document' => $d->getId()->toRfc4122(),
+                    ]),
+                ], $documents);
+            }
+        }
+
         return $this->json(['groups' => $groups]);
+    }
+
+    private function documentPath(Document $document): string
+    {
+        $folder = $document->getFolder();
+        $trail  = [];
+        for ($section = $folder->getDocumentSection(); $section !== null; $section = $section->getParent()) {
+            array_unshift($trail, $section->getName());
+        }
+        $trail[] = $folder->getName();
+
+        return implode(' › ', $trail);
     }
 }

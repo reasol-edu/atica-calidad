@@ -1,0 +1,147 @@
+<div {{ attributes.defaults(stimulus_controller('document-tree-url')) }} class="js-section-browser space-y-4">
+    {% set breadcrumb = this.getBreadcrumb %}
+    {% set child_sections = this.getVisibleSections %}
+    {% set current = this.getCurrentSection %}
+    {% set can_edit = this.canEditStructure %}
+    {% set available_profile_rows = this.getAvailableProfileRows %}
+
+    {# ── Search across the whole tree ── #}
+    <form data-action="submit->live#action:prevent" class="relative">
+        {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400'}) }}
+        <input type="search" data-model="debounce(300)|searchQuery" value="{{ searchQuery }}"
+               placeholder="{{ 'search.placeholder'|trans({}, 'document_content') }}"
+               class="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 {{ searchQuery is not empty ? 'pr-9' : 'pr-3' }} text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+        {% if searchQuery is not empty %}
+            <button type="button" data-action="live#action" data-live-action-param="clearSearch"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-600">
+                {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+            </button>
+        {% endif %}
+    </form>
+
+    {# ── Breadcrumb ── #}
+    <nav class="flex flex-wrap items-center gap-1 text-sm text-gray-500">
+        <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param=""
+                class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-gray-100 hover:text-gray-700 {{ current is null ? 'font-medium text-gray-800' : '' }}">
+            {{ ux_icon('heroicons:home', {class: 'h-3.5 w-3.5'}) }}
+            {{ 'breadcrumb.root'|trans({}, 'document_content') }}
+        </button>
+        {% for crumb in breadcrumb %}
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-3.5 w-3.5 text-gray-300'}) }}
+            <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ crumb.id.toRfc4122 }}"
+                    class="rounded-md px-1.5 py-0.5 hover:bg-gray-100 hover:text-gray-700 {{ crumb == current ? 'font-medium text-gray-800' : '' }}">
+                {{ crumb.name }}
+            </button>
+        {% endfor %}
+    </nav>
+
+    {% if searchQuery|trim|length >= 2 %}
+        {# ── Search results (replace normal browsing while a query is active) ── #}
+        {% set results = this.getSearchResults %}
+        <div class="space-y-2">
+            {% if results is empty %}
+                <p class="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
+                    {{ 'search.empty'|trans({}, 'document_content') }}
+                </p>
+            {% else %}
+                {% for result in results %}
+                    {% set doc = result.document %}
+                    <button type="button" data-action="live#action" data-live-action-param="openSearchResult" data-live-document-id-param="{{ doc.id.toRfc4122 }}"
+                            class="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left hover:border-forest-300 hover:bg-forest-50/40 transition-colors">
+                        {{ ux_icon('heroicons:document-text', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate text-sm font-medium text-gray-800">{{ doc.name }}</span>
+                            <span class="block truncate text-xs text-gray-400">{{ result.path }}</span>
+                        </span>
+                        {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 text-gray-300 shrink-0'}) }}
+                    </button>
+                {% endfor %}
+            {% endif %}
+        </div>
+    {% else %}
+        {# ── Child sections ── #}
+        {% if child_sections is not empty %}
+            <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {% for section in child_sections %}
+                    <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ section.id.toRfc4122 }}"
+                            class="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left hover:border-forest-300 hover:bg-forest-50/40 transition-colors">
+                        {{ ux_icon('heroicons:rectangle-stack', {class: 'h-5 w-5 text-forest-500 shrink-0'}) }}
+                        <span class="min-w-0 truncate text-sm font-medium text-gray-800">{{ section.name }}</span>
+                        {{ ux_icon('heroicons:chevron-right', {class: 'ml-auto h-4 w-4 text-gray-300 shrink-0'}) }}
+                    </button>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {# ── Folders of the current section ── #}
+        {% if current %}
+            {% set folders = this.getVisibleFolders %}
+            <div class="space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h2 class="text-sm font-semibold text-gray-700">{{ 'folders_title'|trans({}, 'document_content') }}</h2>
+                    <div class="flex items-center gap-2">
+                        <form data-action="submit->live#action:prevent" class="relative">
+                            {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400'}) }}
+                            <input type="search" data-model="debounce(300)|localSearchQuery" value="{{ localSearchQuery }}"
+                                   placeholder="{{ 'search.local_placeholder'|trans({}, 'document_content') }}"
+                                   class="w-40 rounded-lg border border-gray-200 bg-white py-1.5 pl-8 {{ localSearchQuery is not empty ? 'pr-7' : 'pr-2' }} text-xs focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                            {% if localSearchQuery is not empty %}
+                                <button type="button" data-action="live#action" data-live-action-param="clearLocalSearch"
+                                        class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-600">
+                                    {{ ux_icon('heroicons:x-mark', {class: 'h-3.5 w-3.5'}) }}
+                                </button>
+                            {% endif %}
+                        </form>
+                        {% if can_edit %}
+                            <button type="button" data-action="live#action" data-live-action-param="toggleShowObsoleteFolders"
+                                    class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs {{ showObsoleteFolders ? 'text-amber-700 bg-amber-50' : 'text-gray-400 hover:text-gray-600' }}">
+                                {{ ux_icon(showObsoleteFolders ? 'heroicons:eye' : 'heroicons:eye-slash', {class: 'h-3.5 w-3.5'}) }}
+                                {{ 'toggle_obsolete'|trans({}, 'document_content') }}
+                            </button>
+                            <button type="button" data-action="live#action" data-live-action-param="startAddFolder"
+                                    class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
+                                {{ ux_icon('heroicons:plus', {class: 'h-3.5 w-3.5'}) }}
+                                {{ 'add_folder'|trans({}, 'document_content') }}
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if addingFolder %}
+                    <div>
+                        <form data-action="submit->live#action:prevent" data-live-action-param="addFolder"
+                              class="flex items-center gap-2 rounded-xl border border-gray-200 bg-white p-3">
+                            <input type="text" data-model="norender|addFolderName" value="{{ addFolderName }}" autofocus
+                                   placeholder="{{ 'add_folder_placeholder'|trans({}, 'document_content') }}"
+                                   class="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                            <button type="submit" class="shrink-0 rounded-md bg-forest-600 px-3 py-1.5 text-sm text-white hover:bg-forest-700">
+                                {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
+                            </button>
+                            <button type="button" data-action="live#action" data-live-action-param="cancelAddFolder"
+                                    class="shrink-0 rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
+                                {{ 'cancel'|trans({}, 'document_content') }}
+                            </button>
+                        </form>
+                        {% if errors.addFolder is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.addFolder }}</p>{% endif %}
+                    </div>
+                {% endif %}
+
+                {% if folders is empty %}
+                    <p class="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
+                        {{ 'folders_empty'|trans({}, 'document_content') }}
+                    </p>
+                {% else %}
+                    <div class="space-y-2">
+                        {% for folder in folders %}
+                            {% include 'components/_folder.html.twig' with {folder: folder} %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% elseif child_sections is empty %}
+            <p class="rounded-2xl border border-gray-200 bg-white px-6 py-16 text-center text-sm text-gray-400">
+                {{ 'nothing_visible'|trans({}, 'document_content') }}
+            </p>
+        {% endif %}
+    {% endif %}
+</div>

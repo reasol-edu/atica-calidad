@@ -1,0 +1,173 @@
+{# folder: Folder — inherits the parent component's context (this, expandedFolderId, errors...) #}
+{% set fid = folder.id.toRfc4122 %}
+{% set expanded = expandedFolderId == fid %}
+{% set can_edit = this.canEditStructure %}
+{% set can_manage = this.canManageFolder(folder) %}
+{% set can_upload = this.canUploadToFolder(folder) %}
+
+<div class="overflow-hidden rounded-xl border border-gray-200 bg-white {{ folder.obsolete ? 'opacity-60' : '' }}">
+    <div class="group flex items-center gap-2 px-4 py-3">
+        {% if folder.obsolete %}
+            <span title="{{ 'folder.obsolete_hint'|trans({}, 'admin') }}">{{ ux_icon('heroicons:archive-box', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}</span>
+        {% endif %}
+
+        {% if renamingFolderId == fid %}
+            <form data-action="submit->live#action:prevent" data-live-action-param="saveRenameFolder" class="flex flex-1 items-center gap-1.5 min-w-0">
+                <input type="text" data-model="norender|renameFolderName" value="{{ renameFolderName }}" autofocus
+                       class="min-w-0 flex-1 rounded-md border border-forest-300 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                <button type="submit" class="shrink-0 text-forest-600 hover:text-forest-800">{{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}</button>
+                <button type="button" data-action="live#action" data-live-action-param="cancelRenameFolder" class="shrink-0 text-gray-400 hover:text-gray-600">{{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}</button>
+            </form>
+        {% else %}
+            <button type="button" data-action="live#action" data-live-action-param="toggleFolder" data-live-id-param="{{ fid }}"
+                    class="flex flex-1 items-center gap-2 min-w-0 text-left">
+                {{ ux_icon(expanded ? 'heroicons:chevron-down' : 'heroicons:chevron-right', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                {{ ux_icon('heroicons:folder', {class: 'h-4 w-4 text-forest-500 shrink-0'}) }}
+                <span class="truncate text-sm font-medium text-gray-800">{{ folder.name }}</span>
+            </button>
+        {% endif %}
+
+        {% if folder.isVisibilityRestricted %}
+            <span title="{{ 'folder.visibility_restricted_hint'|trans({}, 'admin') }}" class="shrink-0 inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs text-violet-700">
+                {{ ux_icon('heroicons:eye-slash', {class: 'h-3 w-3'}) }}
+            </span>
+        {% endif %}
+
+        {% if can_edit %}
+            <div class="shrink-0 flex items-center gap-1">
+                <button type="button" data-action="live#action" data-live-action-param="toggleFolderSettings" data-live-id-param="{{ fid }}"
+                        class="p-1 transition-colors {{ folderSettingsPanelId == fid ? 'text-forest-600' : 'text-gray-300 hover:text-forest-600' }}"
+                        title="{{ 'folder.settings'|trans({}, 'admin') }}">{{ ux_icon('heroicons:cog-6-tooth', {class: 'h-4 w-4'}) }}</button>
+
+                {% if confirmingDeleteFolderId == fid %}
+                    <span class="inline-flex items-center gap-1">
+                        <button type="button" data-action="live#action" data-live-action-param="deleteFolder" data-live-id-param="{{ fid }}"
+                                class="rounded-md bg-red-600 px-1.5 py-0.5 text-xs font-medium text-white">{{ 'folder.confirm_yes'|trans({}, 'admin') }}</button>
+                        <button type="button" data-action="live#action" data-live-action-param="cancelDeleteFolder"
+                                class="rounded-md border border-gray-200 px-1.5 py-0.5 text-xs text-gray-600">{{ 'folder.cancel'|trans({}, 'admin') }}</button>
+                    </span>
+                {% else %}
+                    <div class="relative" data-controller="dropdown">
+                        <button type="button" data-action="dropdown#toggle"
+                                class="p-1 text-gray-300 hover:text-gray-600" title="{{ 'folder.more_actions'|trans({}, 'admin') }}">
+                            {{ ux_icon('heroicons:ellipsis-vertical', {class: 'h-4 w-4'}) }}
+                        </button>
+                        <div data-dropdown-target="menu" class="hidden absolute right-0 z-40 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                            <button type="button" data-action="live#action" data-live-action-param="moveFolderUp" data-live-id-param="{{ fid }}"
+                                    class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                                {{ 'folder.move_up'|trans({}, 'admin') }}
+                            </button>
+                            <button type="button" data-action="live#action" data-live-action-param="moveFolderDown" data-live-id-param="{{ fid }}"
+                                    class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                                {{ 'folder.move_down'|trans({}, 'admin') }}
+                            </button>
+                            <button type="button" data-action="live#action" data-live-action-param="startRenameFolder" data-live-id-param="{{ fid }}"
+                                    class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                {{ ux_icon('heroicons:pencil', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                                {{ 'folder.rename'|trans({}, 'admin') }}
+                            </button>
+                            <button type="button" data-action="live#action" data-live-action-param="askDeleteFolder" data-live-id-param="{{ fid }}"
+                                    class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50">
+                                {{ ux_icon('heroicons:trash', {class: 'h-4 w-4 shrink-0'}) }}
+                                {{ 'folder.delete'|trans({}, 'admin') }}
+                            </button>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {% if folder.requiresReview %}
+            <span title="{{ 'folder.requires_review_hint'|trans({}, 'admin') }}" class="shrink-0 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+                {{ ux_icon('heroicons:shield-check', {class: 'h-3 w-3'}) }}
+            </span>
+        {% endif %}
+    </div>
+
+    {% if errors.renameFolder is defined and renamingFolderId == fid %}<p class="px-4 pb-2 text-xs text-red-600">{{ errors.renameFolder }}</p>{% endif %}
+    {% if errors.deleteFolder is defined and confirmingDeleteFolderId == fid %}<p class="px-4 pb-2 text-xs text-red-600">{{ errors.deleteFolder }}</p>{% endif %}
+
+    {% if can_edit and folderSettingsPanelId == fid %}
+        <div class="border-t border-gray-100 bg-gray-50/60 px-4 py-3 space-y-3">
+            <div class="flex flex-wrap gap-4">
+                <button type="button" data-action="live#action" data-live-action-param="toggleGroupByProfile" data-live-id-param="{{ fid }}"
+                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs {{ folder.groupByProfile ? 'bg-forest-600 text-white' : 'bg-white text-gray-600 border border-gray-200' }}">
+                    {% if folder.groupByProfile %}{{ ux_icon('heroicons:check', {class: 'h-3 w-3'}) }}{% endif %}
+                    {{ 'folder.field.group_by_profile'|trans({}, 'admin') }}
+                </button>
+                <button type="button" data-action="live#action" data-live-action-param="toggleAutoArchive" data-live-id-param="{{ fid }}"
+                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs {{ folder.autoArchive ? 'bg-forest-600 text-white' : 'bg-white text-gray-600 border border-gray-200' }}">
+                    {% if folder.autoArchive %}{{ ux_icon('heroicons:check', {class: 'h-3 w-3'}) }}{% endif %}
+                    {{ 'folder.field.auto_archive'|trans({}, 'admin') }}
+                </button>
+                <button type="button" data-action="live#action"
+                        data-live-action-param="{{ folder.obsolete ? 'toggleObsolete' : 'askMarkObsolete' }}" data-live-id-param="{{ fid }}"
+                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs {{ folder.obsolete ? 'bg-amber-600 text-white' : 'bg-white text-gray-600 border border-gray-200' }}">
+                    {% if folder.obsolete %}{{ ux_icon('heroicons:check', {class: 'h-3 w-3'}) }}{% endif %}
+                    {{ 'folder.field.obsolete'|trans({}, 'admin') }}
+                </button>
+            </div>
+
+            {% if confirmingObsoleteFolderId == fid %}
+                <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+                    <p class="text-xs text-amber-800">{{ 'folder.field.obsolete_confirm'|trans({}, 'admin') }}</p>
+                    <div class="flex items-center gap-2">
+                        <button type="button" data-action="live#action" data-live-action-param="toggleObsolete" data-live-id-param="{{ fid }}"
+                                class="rounded-md bg-amber-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-amber-700">
+                            {{ 'folder.field.obsolete_confirm_yes'|trans({}, 'admin') }}
+                        </button>
+                        <button type="button" data-action="live#action" data-live-action-param="cancelMarkObsolete"
+                                class="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50">
+                            {{ 'folder.cancel'|trans({}, 'admin') }}
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if available_profile_rows is empty %}
+                <p class="text-xs italic text-gray-400">{{ 'folder.profiles.empty'|trans({}, 'admin') }}</p>
+            {% else %}
+                {% for entry in [
+                    {list: 'responsible', label: 'folder.field.responsible_profiles', selected: responsibleProfileKeys},
+                    {list: 'upload', label: 'folder.field.upload_profiles', selected: uploadProfileKeys},
+                    {list: 'visibility', label: 'folder.field.visibility_profiles', selected: visibilityProfileKeys},
+                    {list: 'review', label: 'folder.field.review_profiles', selected: reviewProfileKeys},
+                ] %}
+                    <div>
+                        <p class="mb-1.5 text-xs font-medium text-gray-600">{{ entry.label|trans({}, 'admin') }}</p>
+                        <select multiple data-controller="tom-select"
+                                data-tom-select-placeholder-value="{{ 'folder.profiles.picker_placeholder'|trans({}, 'admin') }}"
+                                data-tom-select-no-results-value="{{ 'folder.profiles.picker_no_results'|trans({}, 'admin') }}"
+                                data-model="norender|{{ entry.list }}ProfileKeys"
+                                class="w-full text-sm ts-local">
+                            {% for row in available_profile_rows %}
+                                <option value="{{ row.key }}" {{ row.key in entry.selected ? 'selected' : '' }}>{{ row.displayName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="flex justify-end gap-2">
+                {% if available_profile_rows is not empty %}
+                    <button type="button" data-action="live#action" data-live-action-param="saveFolderProfiles" data-live-id-param="{{ fid }}"
+                            class="rounded-md bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700">
+                        {{ 'folder.profiles.save'|trans({}, 'admin') }}
+                    </button>
+                {% endif %}
+                <button type="button" data-action="live#action" data-live-action-param="toggleFolderSettings" data-live-id-param="{{ fid }}"
+                        class="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                    {{ 'folder.settings_close'|trans({}, 'admin') }}
+                </button>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if expanded %}
+        <div class="border-t border-gray-100">
+            {% include 'components/_folder_documents.html.twig' with {folder: folder, can_manage: can_manage, can_upload: can_upload} %}
+        </div>
+    {% endif %}
+</div>

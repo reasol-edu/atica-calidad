@@ -160,6 +160,48 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Whether this teacher currently holds any of the given profile/subperfil pairs. A null list
+     * item in a pair means either of two things depending on the profile itself: for a profile
+     * with no list association, it means the profile directly (the only way it's ever assigned);
+     * for a profile that DOES have a list association, it's a "whole profile" selection meaning
+     * any of its subperfiles counts — used to let a restriction target every subperfil of a
+     * profile at once without enumerating them. Used to check folder/section permissions against
+     * a restriction list.
+     *
+     * @param array<int, array{0: SpecificProfile, 1: ?ListItem}> $pairs
+     */
+    public function isTeacherAssignedToAny(Teacher $teacher, array $pairs): bool
+    {
+        if ($pairs === []) {
+            return false;
+        }
+
+        $qb = $this->createQueryBuilder('a')
+            ->select('1')
+            ->where('a.teacher = :teacher')
+            ->setParameter('teacher', $teacher->getId(), 'uuid')
+            ->setMaxResults(1);
+
+        $conditions = [];
+        foreach ($pairs as $i => $pair) {
+            [$profile, $listItem] = $pair;
+            $qb->setParameter("profile{$i}", $profile->getId(), 'uuid');
+            if ($listItem !== null) {
+                $qb->setParameter("listItem{$i}", $listItem->getId(), 'uuid');
+                $conditions[] = "(a.specificProfile = :profile{$i} AND a.listItem = :listItem{$i})";
+            } elseif ($profile->getListItem() !== null) {
+                $conditions[] = "(a.specificProfile = :profile{$i})";
+            } else {
+                $conditions[] = "(a.specificProfile = :profile{$i} AND a.listItem IS NULL)";
+            }
+        }
+
+        $qb->andWhere(implode(' OR ', $conditions));
+
+        return $qb->getQuery()->getOneOrNullResult() !== null;
+    }
+
     /** Whether any assignment references this list item — blocks its deletion. */
     public function isListItemAssigned(ListItem $item): bool
     {

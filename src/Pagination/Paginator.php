@@ -39,8 +39,15 @@ final class Paginator
             ->setFirstResult(max(0, ($currentPage - 1) * $pageSize))
             ->setMaxResults($pageSize);
 
+        // fetchJoinCollection defaults to true, which routes the paginator through Doctrine's
+        // LimitSubqueryOutputWalker even for queries with no to-many fetch-join at all. That
+        // walker has a known incompatibility with ORDER BY on an embedded/embeddable field (e.g.
+        // Teacher::$name.lastName): the id-only subquery it builds silently returns zero rows,
+        // so getItems() comes back empty while the separate COUNT query still reports the right
+        // total. None of this app's paginated queries addSelect() a to-many association (the only
+        // case fetchJoinCollection=true actually matters for), so false is correct everywhere.
         /** @var DoctrinePaginator<U> $paginator */
-        $paginator = new DoctrinePaginator($query);
+        $paginator = new DoctrinePaginator($query, false);
 
         return new self($paginator, count($paginator), $currentPage, $pageSize);
     }

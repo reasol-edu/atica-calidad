@@ -42,3 +42,8 @@
 ###> macos ###
 .DS_Store
 ###< macos ###
+
+###> editors/tools ###
+/.idea/
+/.claude/
+###< editors/tools ###
