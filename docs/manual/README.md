@@ -11,8 +11,9 @@ del repositorio con `make`, no directamente desde esta carpeta.
 - `mkdocs.yml` — configuración de MkDocs Material para la versión web (navegación, tema, exclusiones).
 - `requirements.txt` — dependencias de Python para generar la web (MkDocs Material y sus plugins).
 - `assets/` — hojas de estilo (`theme.css`, `print.css`) compartidas por el PDF y la web.
-- `img/` — capturas de pantalla y otras imágenes referenciadas desde los capítulos (todavía sin
-  contenido: los capítulos actuales son esqueletos sin capturas).
+- `img/` — capturas de pantalla y otras imágenes referenciadas desde los capítulos. De momento solo
+  las usa [Árbol documental](07-arbol-documental.md); el resto de capítulos son todavía esqueletos
+  sin capturas.
 - `atica-calidad-manual.pdf` y `_build.html` — salidas generadas por `make docs-pdf` (ver abajo); no
   se editan a mano.
 

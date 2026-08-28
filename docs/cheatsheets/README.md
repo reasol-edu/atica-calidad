@@ -15,9 +15,9 @@ nuevas fichas a medida que crezca.
 
 - `busqueda-rapida.md`, `instalar-app.md` — fichas [Marp](https://marp.app) por función, pensadas
   para el móvil (todavía sin capturas — ver «Regenerar las capturas» más abajo).
-- `curso-nuevo.md`, `responsabilidades.md` — fichas para el equipo directivo / responsable de
-  calidad, pensadas para escritorio (a diferencia de las demás), usando la clase
-  `.captura-escritorio` de `theme.css`.
+- `curso-nuevo.md`, `responsabilidades.md`, `arbol-documental.md` — fichas para el equipo
+  directivo / responsable de calidad, pensadas para escritorio (a diferencia de las demás), usando
+  la clase `.captura-escritorio` de `theme.css`.
 - Todas las fichas comparten el mismo mecanismo de versión/fecha que `docs/slides/atica-calidad.md`
   (marcadores `{{VERSION}}`/`{{PUB_DATE}}` sustituidos por `make cheatsheets`).
 - `theme.css` — tema Marp compartido por las fichas (página A4 vertical, paleta de marca).

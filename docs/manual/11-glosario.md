@@ -40,8 +40,9 @@ estar asignada a ningún elemento.
 : Responsabilidad personalizada que cada centro crea en **Responsabilidades → Perfiles
 específicos**. Puede asignar docentes directamente, o asociarse a un elemento de una lista para
 generar automáticamente un subperfil por cada hoja descendiente. Puede estar activo o inactivo. Es
-un registro documental, sin efecto sobre los permisos de administración — aunque sí puede usarse
-para restringir a quién se muestra un evento del calendario.
+ante todo un registro documental, sin efecto sobre los permisos de administración general — pero sí
+puede usarse para restringir a quién se muestra un evento del calendario, o quién ve o gestiona una
+sección o una carpeta del árbol documental (ver [Árbol documental](07-arbol-documental.md)).
 
 **Subperfil**
 : Perfil «virtual» que aparece automáticamente cuando un perfil específico está asociado a un
@@ -52,6 +53,38 @@ docentes asignados. No existe como entidad aparte; desaparece si cambia la asoci
 : Tarjeta de **Responsabilidades** con una vista de trabajo sobre las asignaciones de perfiles
 específicos ya existentes, por perfil o por docente, pensada para detectar de un vistazo docentes
 que ya no pertenecen al curso académico activo.
+
+**Árbol documental**
+: Sección del menú lateral, visible para todo el profesorado, donde vive la documentación del
+sistema de gestión de la calidad: secciones, carpetas, documentos y revisiones. Ver
+[Árbol documental](07-arbol-documental.md).
+
+**Sección (del árbol documental)**
+: Nodo de la estructura del árbol documental, con la profundidad que se necesite. Se gestiona desde
+la pestaña **Editar árbol**, reservada a responsable de calidad, equipo directivo/admin. del centro
+y admin. de la plataforma. Puede restringirse a perfiles/subperfiles de Responsabilidades; la
+restricción no se hereda a sus subsecciones.
+
+**Carpeta**
+: Contenedor de documentos dentro de una sección del árbol documental. Se crea y configura desde la
+pestaña **Ver**, también reservado a responsable de calidad/equipo directivo/admin. Tiene cuatro
+listas independientes de perfiles/subperfiles — responsables, de subida, de visibilidad y de
+revisión — que determinan quién puede ver y gestionar su contenido (ver
+[Permisos sobre una carpeta](07-arbol-documental.md#permisos-sobre-una-carpeta)). Puede marcarse
+como **obsoleta** para ocultarla sin eliminar nada.
+
+**Documento**
+: Fichero con nombre propio dentro de una carpeta, con un historial de una o varias **revisiones**.
+Se descarga siempre su **revisión activa**.
+
+**Revisión**
+: Cada versión numerada de un documento, con su propio fichero. Puede quedar **pendiente de visto
+bueno** si la carpeta tiene perfiles de revisión configurados, hasta que alguien con ese permiso la
+apruebe (pasa a ser la revisión activa) o la rechace.
+
+**Revisión activa**
+: La revisión de un documento que se descarga y se muestra por defecto. Se elige automáticamente al
+aprobar una revisión pendiente, o manualmente por quien es responsable de la carpeta.
 
 **Equipo directivo**
 : Docentes con acceso a la administración de un centro concreto (creación de cursos académicos,

@@ -11,7 +11,7 @@ por documentar del resto del hub.
 Desde **Centro educativo → Registro de avisos por correo** se consulta el historial de correos
 automáticos enviados por la aplicación (destinatario, evento, asunto y resultado del envío),
 filtrable por fecha, evento y resultado. El registro solo se guarda si el ajuste **«Registrar los
-avisos por correo»** está activado (ver [Ajustes disponibles](07-administrar-la-plataforma.md#ajustes-disponibles)),
+avisos por correo»** está activado (ver [Ajustes disponibles](08-administrar-la-plataforma.md#ajustes-disponibles)),
 y sus entradas se eliminan automáticamente pasado el número de días configurado en
 **«Retención de los registros»**.
 

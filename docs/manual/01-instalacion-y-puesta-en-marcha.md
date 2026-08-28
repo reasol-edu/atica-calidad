@@ -23,7 +23,7 @@ docker compose up -d
 
 El volumen `/data` dentro del contenedor contiene la base de datos (si usas SQLite) y los ficheros
 subidos. Haz copia de seguridad de ese volumen con regularidad — ver
-[Copias de seguridad](07-administrar-la-plataforma.md#copias-de-seguridad).
+[Copias de seguridad](08-administrar-la-plataforma.md#copias-de-seguridad).
 
 ### Arranque automático al reiniciar el servidor
 

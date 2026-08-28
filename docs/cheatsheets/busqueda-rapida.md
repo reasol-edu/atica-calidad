@@ -38,12 +38,24 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 <div class="step">
   <span class="num">4</span>
   <div class="text">
-    <p>Toca un resultado para ir directo a su ficha.</p>
+    <p>La misma búsqueda encuentra también secciones, carpetas y documentos del árbol documental
+    —incluido el perfil de subida y quién subió la última revisión— agrupados por tipo.</p>
+  </div>
+</div>
+
+<div class="step">
+  <span class="num">5</span>
+  <div class="text">
+    <p>Toca un resultado para ir directo ahí. Con un documento, no se despliegan sus versiones: se
+    resalta con un parpadeo suave para localizarlo entre el resto del contenido de la carpeta.</p>
   </div>
 </div>
 
 </div>
 
 <div class="nota">
-  <p>Pulsa <strong>Esc</strong> para cerrar la búsqueda en cualquier momento. La búsqueda de docentes solo aparece para administración y equipo directivo.</p>
+  <p>Pulsa <strong>Esc</strong> para cerrar la búsqueda en cualquier momento. La búsqueda de
+  docentes solo aparece para administración y equipo directivo; la del árbol documental respeta las
+  mismas restricciones de visibilidad que navegando por él (ver
+  <a href="../manual/07-arbol-documental.md">Árbol documental</a>).</p>
 </div>

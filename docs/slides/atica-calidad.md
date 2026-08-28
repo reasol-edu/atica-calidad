@@ -49,9 +49,9 @@ por docente y por centro.
 
 ## Estado del proyecto
 
-Este es el **esqueleto inicial** de la aplicación: la base técnica, el acceso, la administración
-del centro y el calendario ya están construidos. La gestión documental propiamente dicha —el
-contenido central del SGC— se irá añadiendo a partir de aquí.
+La base técnica, el acceso, la administración del centro, el calendario, Responsabilidades y el
+**árbol documental** —el contenido central del SGC— ya están construidos. La aplicación se irá
+ampliando a partir de aquí (informes, plazos de entrega...).
 
 ---
 
@@ -65,9 +65,9 @@ Accede a la aplicación con su usuario y consulta el **calendario** del centro.
 
 ## Responsable de calidad / Auditor/a interno/a
 
-Perfiles asignables a docentes concretos, pensados para coordinar y auditar el sistema de gestión
-de la calidad del centro a medida que se construya esa parte de la aplicación. El responsable de
-calidad, además, gestiona **Responsabilidades** (siguiente sección).
+Perfiles asignables a docentes concretos, con acceso completo al árbol documental del centro para
+coordinar y auditar su sistema de gestión de la calidad. El responsable de calidad, además,
+gestiona **Responsabilidades** (siguiente sección).
 
 ## Equipo directivo / Administración del centro
 
@@ -141,6 +141,28 @@ corresponda.
 
 Vista transversal sobre las asignaciones ya hechas, por perfil o por docente, con aviso de
 docentes fuera del curso activo y borrado masivo de esas asignaciones.
+
+---
+
+# Árbol documental
+
+---
+
+## Secciones, carpetas, documentos y revisiones
+
+- **Secciones** — la estructura del árbol (como el índice de una carpeta física), restringible por
+  perfil de Responsabilidades. Se editan en la pestaña **Editar árbol**.
+- **Carpetas** — dentro de cada sección, con cuatro listas de perfiles independientes: quién la
+  **gestiona**, quién puede **subir**, a quién se le **muestra** y quién debe dar el **visto
+  bueno**. Se crean y configuran en la pestaña **Ver**.
+- **Documentos y revisiones** — cada documento guarda su historial completo de versiones; si la
+  carpeta lo exige, una revisión nueva queda **pendiente** hasta que se aprueba o se rechaza.
+
+## Búsqueda
+
+Tres formas de buscar según el contexto —global sobre todo el árbol, local dentro de una sección, o
+la paleta de comandos (**⌘K**) desde cualquier pantalla— con resultados resaltados y acceso directo
+a la sección, carpeta o documento que coincide.
 
 ---
 
