@@ -1272,6 +1272,42 @@ class SectionBrowserComponent extends AbstractController
         return $results;
     }
 
+    /**
+     * Sections whose own name matches the current search query anywhere in the centre's tree,
+     * each paired with its ancestor breadcrumb — same access filtering as document/folder search.
+     * Shown as its own group ("search.sections_heading") so it's clear a hit is a whole section.
+     *
+     * @return list<array{section: DocumentSection, path: string}>
+     */
+    public function getSectionSearchResults(): array
+    {
+        $query = trim($this->searchQuery);
+        if (mb_strlen($query) < 2) {
+            return [];
+        }
+
+        $teacher = $this->teacher();
+        $results = [];
+        foreach ($this->sections->searchByCentre($this->centre, $query) as $section) {
+            if (!$this->access->canViewSection($teacher, $section)) {
+                continue;
+            }
+            $results[] = ['section' => $section, 'path' => $this->sectionSearchPath($section)];
+        }
+
+        return $results;
+    }
+
+    private function sectionSearchPath(DocumentSection $section): string
+    {
+        $parent = $section->getParent();
+        if ($parent === null) {
+            return $this->translator->trans('breadcrumb.root', [], 'document_content');
+        }
+
+        return implode(' › ', $this->sectionTrail($parent));
+    }
+
     /** @return list<string> root-first names of a section's ancestor trail, including the section itself */
     private function sectionTrail(DocumentSection $section): array
     {
@@ -1348,6 +1384,25 @@ class SectionBrowserComponent extends AbstractController
         $this->resetTransientState();
         $this->expandedFolderId = $folder->getId()->toRfc4122();
         $this->searchQuery      = '';
+        $this->dispatchLocation();
+    }
+
+    /** Jumps straight to a section search result: navigates to it, same as clicking through the breadcrumb. */
+    #[LiveAction]
+    public function openSectionSearchResult(#[LiveArg] string $sectionId): void
+    {
+        $teacher = $this->teacher();
+        $section = $this->sections->findByIdAndCentre($sectionId, $this->centre);
+        if ($section === null) {
+            throw $this->createNotFoundException();
+        }
+        if (!$this->access->canViewSection($teacher, $section)) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $this->currentSectionId = $sectionId;
+        $this->resetTransientState();
+        $this->searchQuery = '';
         $this->dispatchLocation();
     }
 

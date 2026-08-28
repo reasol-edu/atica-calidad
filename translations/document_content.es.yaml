@@ -19,6 +19,7 @@ sort_alphabetically: 'Ordenar alfabéticamente'
 
 search.placeholder: 'Buscar documentos en todo el árbol…'
 search.empty: 'No se han encontrado resultados que coincidan con la búsqueda.'
+search.sections_heading: 'Secciones'
 search.folders_heading: 'Carpetas'
 search.documents_heading: 'Documentos'
 search.local_placeholder: 'Buscar en esta sección…'

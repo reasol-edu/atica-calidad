@@ -42,6 +42,20 @@ class DocumentSectionRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /** @return list<DocumentSection> whose name matches $query anywhere in the centre's tree, ordered by name */
+    public function searchByCentre(EducationalCentre $centre, string $query, int $limit = 30): array
+    {
+        return $this->createQueryBuilder('ds')
+            ->where('ds.educationalCentre = :centre')
+            ->andWhere('LOWER(ds.name) LIKE LOWER(:query)')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('query', '%' . $query . '%')
+            ->orderBy('ds.name', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
     public function findByIdAndCentre(string $id, EducationalCentre $centre): ?DocumentSection
     {
         $result = $this->createQueryBuilder('ds')

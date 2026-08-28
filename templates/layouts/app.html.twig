@@ -11,6 +11,14 @@
      data-command-palette-actions-value="{{ [
          {label: 'actions.change_year'|trans({}, 'search'), url: path('app_select_year_page')},
      ]|json_encode }}"
+     data-command-palette-no-results-value="{{ 'no_results'|trans({}, 'search') }}"
+     data-command-palette-group-labels-value="{{ {
+         actions: 'groups.actions'|trans({}, 'search'),
+         teachers: 'groups.teachers'|trans({}, 'search'),
+         sections: 'groups.sections'|trans({}, 'search'),
+         folders: 'groups.folders'|trans({}, 'search'),
+         documents: 'groups.documents'|trans({}, 'search'),
+     }|json_encode }}"
      data-confirm-cancel-value="{{ 'ui.cancel'|trans }}"
      data-confirm-confirm-value="{{ 'ui.confirm_delete'|trans }}"
      data-confirm-close-value="{{ 'ui.close'|trans }}"

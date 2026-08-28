@@ -1,19 +1,13 @@
 import { Controller } from '@hotwired/stimulus';
 
-const GROUP_LABELS = {
-    actions:         'Acciones',
-    students_taught: 'Tu alumnado',
-    students_other:  'Otro alumnado',
-    teachers:        'Docentes',
-    folders:         'Carpetas',
-    documents:       'Documentos',
-};
-
 const normalize = (text) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
+// Group headers and the "no results" text are never hardcoded here; they come from the
+// server-rendered data-*-value attributes (see templates/layouts/app.html.twig), which read them
+// from translations/search.es.yaml, same as every other string in this app.
 export default class extends Controller {
     static targets = ['backdrop', 'dialog', 'input', 'results', 'itemTemplate', 'groupTemplate'];
-    static values  = { url: String, actions: Array };
+    static values  = { url: String, actions: Array, noResults: String, groupLabels: Object };
 
     #debounce = null;
     #abort    = null;
@@ -120,7 +114,7 @@ export default class extends Controller {
         if (keys.length === 0) {
             const empty = document.createElement('p');
             empty.className = 'px-4 py-6 text-center text-sm text-gray-400';
-            empty.textContent = 'Sin resultados';
+            empty.textContent = this.noResultsValue;
             this.resultsTarget.appendChild(empty);
             return;
         }
@@ -131,7 +125,7 @@ export default class extends Controller {
 
             // Group header
             const header = this.groupTemplateTarget.content.cloneNode(true);
-            header.querySelector('[data-slot="name"]').textContent = GROUP_LABELS[key] ?? key;
+            header.querySelector('[data-slot="name"]').textContent = this.groupLabelsValue[key] ?? key;
             this.resultsTarget.appendChild(header);
 
             for (const item of items) {

@@ -9,6 +9,7 @@ use App\Entity\DocumentSection;
 use App\Entity\Folder;
 use App\Entity\Teacher;
 use App\Repository\DocumentRepository;
+use App\Repository\DocumentSectionRepository;
 use App\Repository\FolderRepository;
 use App\Repository\TeacherRepository;
 use App\Service\DocumentTreeAccessChecker;
@@ -20,6 +21,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[IsGranted('ROLE_TEACHER')]
 class SearchController extends AbstractController
@@ -28,8 +30,10 @@ class SearchController extends AbstractController
         private readonly TenantContext $tenantContext,
         private readonly TeacherRepository $teacherRepository,
         private readonly DocumentRepository $documentRepository,
+        private readonly DocumentSectionRepository $documentSectionRepository,
         private readonly FolderRepository $folderRepository,
         private readonly DocumentTreeAccessChecker $documentTreeAccess,
+        private readonly TranslatorInterface $translator,
         #[Target('search')]
         private readonly RateLimiterFactoryInterface $searchLimiter,
     ) {}
@@ -72,6 +76,22 @@ class SearchController extends AbstractController
 
         $user = $this->getUser();
         if ($user instanceof Teacher) {
+            $sections = [];
+            foreach ($this->documentSectionRepository->searchByCentre($centre, $q, 5) as $section) {
+                if ($this->documentTreeAccess->canViewSection($user, $section)) {
+                    $sections[] = $section;
+                }
+            }
+            if ($sections !== []) {
+                $groups['sections'] = array_map(fn (DocumentSection $s) => [
+                    'label'    => $s->getName(),
+                    'sublabel' => $this->sectionSearchPath($s),
+                    'url'      => $this->generateUrl('app_document_tree', [
+                        'section' => $s->getId()->toRfc4122(),
+                    ]),
+                ], $sections);
+            }
+
             $folders = [];
             foreach ($this->folderRepository->searchByCentre($centre, $q, 5) as $folder) {
                 if ($this->documentTreeAccess->canViewFolder($user, $folder)) {
@@ -120,6 +140,16 @@ class SearchController extends AbstractController
         }
 
         return $trail;
+    }
+
+    private function sectionSearchPath(DocumentSection $section): string
+    {
+        $parent = $section->getParent();
+        if ($parent === null) {
+            return $this->translator->trans('breadcrumb.root', [], 'document_content');
+        }
+
+        return implode(' › ', $this->sectionTrail($parent));
     }
 
     private function folderPath(Folder $folder): string

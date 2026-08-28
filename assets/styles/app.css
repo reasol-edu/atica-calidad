@@ -253,6 +253,10 @@ summary:focus-visible {
 .document-highlight-pulse {
   animation: document-highlight-pulse 1.4s ease-in-out 3;
 }
+/* Our search boxes render their own "×" clear button; hide the browser's native one
+   (WebKit/Blink's search-cancel button, Edge's clear-button) so it isn't shown twice. */
+input[type="search"]::-webkit-search-cancel-button { display: none; }
+input[type="search"]::-ms-clear { display: none; }
 .ts-dropdown-content { overflow: hidden auto; max-height: 200px; scroll-behavior: smooth; }
 .ts-wrapper.plugin-drag_drop .ts-dragging { color: transparent !important; }
 .ts-wrapper.plugin-drag_drop .ts-dragging > * { visibility: hidden !important; }
