@@ -16,10 +16,13 @@ function formatFileSize(bytes) {
 
 // Several independent single-file dropzones (one per empty entrega row) sharing one "Enviar
 // entregas" submit button — unlike file_drop_controller (one dropzone per form), here each row's
-// <input type="file" name="files[]"> already carries its own positionally-matched hidden
+// <input type="file" name="files[N]"> already carries its own explicitly-indexed hidden
 // items[N][slotKey] field (rendered server-side, see _activity_submission_row.html.twig), so this
 // controller only needs to stage each row's own file and toggle the shared submit button once any
-// row has one — no client-side renumbering, the form POSTs natively.
+// row has one — no client-side renumbering, the form POSTs natively. The explicit N in both names
+// matters: with a plain files[]/items[] pair, PHP renumbers files[] to only the parts actually
+// present in the request body, and some browsers omit untouched file inputs from it entirely —
+// desyncing which file is "row N" from the hidden field that says what row N actually is.
 export default class extends Controller {
     static targets = ['dropzone', 'input', 'preview', 'submit'];
 

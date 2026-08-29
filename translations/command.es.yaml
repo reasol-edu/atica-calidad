@@ -22,4 +22,9 @@ setup.skipped: 'La base de datos ya contiene datos. Se omite la inicialización.
 setup.success: 'Aplicación inicializada: usuario "admin" creado. No se ha creado ningún centro educativo de demostración.'
 setup.success_demo_data: 'Aplicación inicializada: usuario "admin" y centro "IES Test" (23999999, Linares) creados.'
 
+load_demo_data.description: 'Crea el centro educativo de demostración "IES Ada Lovelace" con docentes, responsabilidades, árbol documental ISO 9001:2015 y una actividad de ejemplo'
+load_demo_data.error.existing: 'Ya existe un centro "%name%" (%code%). Elimínalo primero si quieres volver a generar los datos de demostración.'
+load_demo_data.error.usernames_taken: 'Ya existen docentes con estos nombres de usuario: %usernames%. Elimínalos primero si quieres volver a generar los datos de demostración.'
+load_demo_data.success: 'Centro de demostración "%name%" (%code%) creado con el curso académico "%year%".'
+
 field.required: 'Este campo es obligatorio.'

@@ -88,6 +88,11 @@ class ActivityController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        // Both files[N] and items[N][slotKey] use the SAME explicit N (see
+        // _activity_submission_row.html.twig) rather than files[]/items[] — a plain files[]
+        // gets renumbered by PHP to only the parts actually present in the request body, and
+        // some browsers (mobile Safari included) omit untouched <input type="file"> entirely,
+        // which would silently desync file N from the row it was really staged in.
         $uploadedFiles = $request->files->all('files');
         if ($uploadedFiles === []) {
             $this->addFlash('error', $this->t('upload.error.no_file'));
@@ -137,7 +142,13 @@ class ActivityController extends AbstractController
                 continue;
             }
 
-            $this->documentCreation->createWithFirstRevision($folder, $slot->displayName, $slot->profile, $slot->listItem, $file, $teacher);
+            // resolveSlot() looks up an Individual-scope slot's document by its assigned
+            // teacher ($slot->teacher), not by whoever is actually submitting — so a manager
+            // uploading on someone else's behalf must still record that assigned teacher as the
+            // uploader, or the document it creates would never match this slot again (it'd
+            // permanently look unsubmitted here while sitting, orphaned, in the folder). For
+            // ByProfile-scope slots $slot->teacher is always null, so this is just $teacher.
+            $this->documentCreation->createWithFirstRevision($folder, $slot->displayName, $slot->profile, $slot->listItem, $file, $slot->teacher ?? $teacher);
             ++$created;
         }
 

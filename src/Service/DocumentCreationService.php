@@ -69,6 +69,12 @@ final class DocumentCreationService
         $pendingReview = $folder->requiresReview();
         $revision      = new DocumentRevision($document, $version, $documentFile, $pendingReview, $uploader);
         $this->em->persist($revision);
+        // DocumentRevision's constructor only sets its own $document reference (the owning
+        // side); this manually keeps Document::$revisions consistent too, so a caller that
+        // inspects the returned Document right away (getPendingRevision(), etc.) — instead of
+        // reloading it fresh from the database, where Doctrine would hydrate this collection
+        // itself — sees the revision it just created.
+        $document->getRevisions()->add($revision);
 
         if (!$pendingReview) {
             $document->setActiveRevision($revision);
