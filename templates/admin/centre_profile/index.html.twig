@@ -30,7 +30,7 @@
                 <p class="text-xs text-gray-400 mb-2">{{ 'centre_profiles.quality_managers.help'|trans({}, 'admin') }}</p>
                 <select name="quality_managers[]" multiple
                         data-controller="symfony--ux-autocomplete--autocomplete"
-                        data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('ux_entity_autocomplete', {alias: 'teacher_centre', academicYearId: centre.activeAcademicYear.id}) }}"
+                        data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('app_entity_autocomplete', {alias: 'teacher_centre', academicYearId: centre.activeAcademicYear.id}) }}"
                         data-symfony--ux-autocomplete--autocomplete-min-characters-value="2"
                         data-symfony--ux-autocomplete--autocomplete-no-results-found-text-value="{{ 'autocomplete.no_results'|trans({}, 'admin') }}"
                         data-symfony--ux-autocomplete--autocomplete-tom-select-options-value='{"dropdownParent":"body"}'
@@ -48,7 +48,7 @@
                 <p class="text-xs text-gray-400 mb-2">{{ 'centre_profiles.internal_auditors.help'|trans({}, 'admin') }}</p>
                 <select name="internal_auditors[]" multiple
                         data-controller="symfony--ux-autocomplete--autocomplete"
-                        data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('ux_entity_autocomplete', {alias: 'teacher_centre', academicYearId: centre.activeAcademicYear.id}) }}"
+                        data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('app_entity_autocomplete', {alias: 'teacher_centre', academicYearId: centre.activeAcademicYear.id}) }}"
                         data-symfony--ux-autocomplete--autocomplete-min-characters-value="2"
                         data-symfony--ux-autocomplete--autocomplete-no-results-found-text-value="{{ 'autocomplete.no_results'|trans({}, 'admin') }}"
                         data-symfony--ux-autocomplete--autocomplete-tom-select-options-value='{"dropdownParent":"body"}'

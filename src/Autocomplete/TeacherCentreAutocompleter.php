@@ -99,7 +99,7 @@ class TeacherCentreAutocompleter implements EntityAutocompleterInterface
             return false;
         }
 
-        return $security->isGranted(EducationalCentreVoter::SECTION, $year->getEducationalCentre());
+        return $security->isGranted(EducationalCentreVoter::RESPONSIBILITIES, $year->getEducationalCentre());
     }
 
     public function getGroupBy(): mixed
