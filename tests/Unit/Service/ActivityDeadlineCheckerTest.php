@@ -91,4 +91,38 @@ final class ActivityDeadlineCheckerTest extends TestCase
 
         self::assertFalse($this->checker()->isOverdue($activity));
     }
+
+    /**
+     * cycleEndDateNear() must be driven entirely by the given $reference, not by "now" — the
+     * calendar calls it with the browsed month's date, which can be far from the real clock.
+     */
+    public function testCycleEndDateNearIsDrivenByTheReferenceNotByNow(): void
+    {
+        self::mockTime('2020-01-01 00:00:00');
+        $activity = $this->activity(1, 9, 30, 6);
+
+        $reference = new \DateTimeImmutable('2025-10-15');
+
+        self::assertSame('2026-06-30', $this->checker()->cycleEndDateNear($activity, $reference)->format('Y-m-d'));
+    }
+
+    public function testCycleEndDateNearForAWrappingRangeInTheLateStretchOfTheCycle(): void
+    {
+        self::mockTime('2020-01-01 00:00:00');
+        $activity = $this->activity(1, 9, 30, 6);
+
+        $reference = new \DateTimeImmutable('2026-03-01');
+
+        self::assertSame('2026-06-30', $this->checker()->cycleEndDateNear($activity, $reference)->format('Y-m-d'));
+    }
+
+    public function testCycleEndDateNearForANonWrappingRangeUsesTheReferencesOwnYear(): void
+    {
+        self::mockTime('2020-01-01 00:00:00');
+        $activity = $this->activity(1, 9, 30, 9);
+
+        $reference = new \DateTimeImmutable('2030-09-10');
+
+        self::assertSame('2030-09-30', $this->checker()->cycleEndDateNear($activity, $reference)->format('Y-m-d'));
+    }
 }

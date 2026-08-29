@@ -22,17 +22,26 @@ final class ActivityDeadlineChecker
     /** The real calendar date the activity's deadline falls on for the cycle "now" belongs to. */
     public function currentCycleEndDate(Activity $activity): \DateTimeImmutable
     {
-        $now = $this->clock->now();
+        return $this->cycleEndDateNear($activity, $this->clock->now());
+    }
+
+    /**
+     * The real calendar date the activity's deadline falls on for the cycle $reference belongs
+     * to — same anchoring/year-crossing logic as currentCycleEndDate(), just anchored to an
+     * arbitrary date instead of "now". Used by the calendar, which can be browsed to any month.
+     */
+    public function cycleEndDateNear(Activity $activity, \DateTimeImmutable $reference): \DateTimeImmutable
+    {
         $end = new \DateTimeImmutable(\sprintf(
             '%04d-%02d-%02d 23:59:59',
-            (int) $now->format('Y'),
+            (int) $reference->format('Y'),
             $activity->getEndMonth(),
             $activity->getEndDay(),
         ));
 
-        // A range that crosses the calendar year boundary (e.g. Sep–Jun): while we're still in
-        // the "start" stretch (Sep–Dec), the relevant end date is next calendar year's.
-        if ($activity->getStartMonth() > $activity->getEndMonth() && (int) $now->format('n') >= $activity->getStartMonth()) {
+        // A range that crosses the calendar year boundary (e.g. Sep–Jun): while the reference is
+        // still in the "start" stretch (Sep–Dec), the relevant end date is next calendar year's.
+        if ($activity->getStartMonth() > $activity->getEndMonth() && (int) $reference->format('n') >= $activity->getStartMonth()) {
             $end = $end->modify('+1 year');
         }
 

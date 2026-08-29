@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Component;
 
 use App\Entity\AcademicYear;
+use App\Entity\Activity;
+use App\Entity\ActivityCategory;
+use App\Entity\ActivitySubmissionScope;
+use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
+use App\Entity\Folder;
 use App\Entity\PersonName;
 use App\Entity\SchoolEvent;
 use App\Entity\SpecificProfile;
@@ -131,6 +136,104 @@ final class CalendarComponentTest extends ControllerTestCase
         $component->call('previousMonth');
         $props = $this->props($component);
         self::assertSame(8, $props['month']);
+    }
+
+    private function folder(EducationalCentre $centre): Folder
+    {
+        $section = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+
+        return (new Folder())->setDocumentSection($section)->setName('Carpeta');
+    }
+
+    public function testShowsAnActivityDeadlineInItsOwnMonthForATeacherWhoHoldsTheUploadProfile(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        $activity = (new Activity())->setCategory($category)->setTitle('Programaciones didácticas')->setStart(1, 9)->setEnd(30, 9)->setFolder($folder);
+        $teacher  = $this->teacher('docente');
+        $assign   = new SpecificProfileAssignment($profile, null, $teacher);
+
+        $this->persist($centre, $year, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, $assign);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('CalendarComponent', ['year' => 2025, 'month' => 9], $this->client);
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('Programaciones didácticas', $html);
+    }
+
+    public function testDoesNotShowAnActivityDeadlineInAnUnrelatedMonth(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        $activity = (new Activity())->setCategory($category)->setTitle('Programaciones didácticas')->setStart(1, 9)->setEnd(30, 9)->setFolder($folder);
+        $teacher  = $this->teacher('docente');
+        $assign   = new SpecificProfileAssignment($profile, null, $teacher);
+
+        $this->persist($centre, $year, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, $assign);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('CalendarComponent', ['year' => 2025, 'month' => 11], $this->client);
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringNotContainsString('Programaciones didácticas', $html);
+    }
+
+    public function testAnAdminWithNoUploadProfileOfTheirOwnDoesNotSeeTheActivityDeadline(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        $activity = (new Activity())->setCategory($category)->setTitle('Programaciones didácticas')->setStart(1, 9)->setEnd(30, 9)->setFolder($folder);
+        $admin    = $this->teacher('director')->setAdmin(true);
+
+        $this->persist($centre, $year, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('CalendarComponent', ['year' => 2025, 'month' => 9], $this->client);
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringNotContainsString('Programaciones didácticas', $html);
+    }
+
+    public function testAByProfileActivityWithTwoOwnerRowsShowsBothOnTheGrid(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $mate     = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura Matemáticas');
+        $info     = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura Informática');
+        $folder->addUploadProfile($mate);
+        $folder->addUploadProfile($info);
+        $activity = (new Activity())->setCategory($category)->setTitle('Programaciones didácticas')->setStart(1, 9)->setEnd(30, 9)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile);
+        $teacher  = $this->teacher('docente');
+        $assignA  = new SpecificProfileAssignment($mate, null, $teacher);
+        $assignB  = new SpecificProfileAssignment($info, null, $teacher);
+
+        $this->persist($centre, $year, $category, $folder->getDocumentSection(), $folder, $mate, $info, $activity, $teacher, $assignA, $assignB);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('CalendarComponent', ['year' => 2025, 'month' => 9], $this->client);
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('Jefatura Matemáticas', $html);
+        self::assertStringContainsString('Jefatura Informática', $html);
     }
 
     public function testNextMonthAcrossAYearBoundaryRollsOverTheYear(): void

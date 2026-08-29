@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Service;
 
 use App\Entity\AcademicYear;
+use App\Entity\Activity;
+use App\Entity\ActivityCategory;
+use App\Entity\ActivityCompletion;
+use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
+use App\Entity\Folder;
 use App\Entity\NonWorkingDay;
 use App\Entity\PersonName;
 use App\Entity\SchoolEvent;
@@ -60,7 +65,7 @@ final class DayDetailBuilderTest extends RepositoryTestCase
         $admin = $this->teacher('admin');
         $this->persist($centre, $year, $profile, $event, $admin);
 
-        $report = $this->builder->build($year, $admin, true, $date);
+        $report = $this->builder->build($year, $centre, $admin, true, $date);
 
         self::assertCount(1, $report->events);
     }
@@ -74,7 +79,7 @@ final class DayDetailBuilderTest extends RepositoryTestCase
         $teacher = $this->teacher('docente');
         $this->persist($centre, $year, $event, $teacher);
 
-        $report = $this->builder->build($year, $teacher, false, $date);
+        $report = $this->builder->build($year, $centre, $teacher, false, $date);
 
         self::assertCount(1, $report->events);
     }
@@ -90,7 +95,7 @@ final class DayDetailBuilderTest extends RepositoryTestCase
         $teacher = $this->teacher('docente');
         $this->persist($centre, $year, $profile, $event, $teacher);
 
-        $report = $this->builder->build($year, $teacher, false, $date);
+        $report = $this->builder->build($year, $centre, $teacher, false, $date);
 
         self::assertCount(0, $report->events);
     }
@@ -107,7 +112,7 @@ final class DayDetailBuilderTest extends RepositoryTestCase
         $assignment = new SpecificProfileAssignment($profile, null, $teacher);
         $this->persist($centre, $year, $profile, $event, $teacher, $assignment);
 
-        $report = $this->builder->build($year, $teacher, false, $date);
+        $report = $this->builder->build($year, $centre, $teacher, false, $date);
 
         self::assertCount(1, $report->events);
     }
@@ -120,9 +125,90 @@ final class DayDetailBuilderTest extends RepositoryTestCase
         $event  = $this->event($year, $date, general: true);
         $this->persist($centre, $year, $event);
 
-        $report = $this->builder->build($year, null, false, $date);
+        $report = $this->builder->build($year, $centre, null, false, $date);
 
         self::assertCount(0, $report->events);
+    }
+
+    private function folder(EducationalCentre $centre): Folder
+    {
+        $section = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+
+        return (new Folder())->setDocumentSection($section)->setName('Carpeta');
+    }
+
+    public function testAnActivityDeadlineLandingOnTheRequestedDateAppearsForItsOwner(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $date     = new \DateTimeImmutable('2025-09-30');
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        $activity = (new Activity())->setCategory($category)->setTitle('Programaciones didácticas')->setStart(1, 9)->setEnd(30, 9)->setFolder($folder);
+        $teacher  = $this->teacher('docente');
+        $assign   = new SpecificProfileAssignment($profile, null, $teacher);
+
+        $this->persist($centre, $year, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, $assign);
+
+        $report = $this->builder->build($year, $centre, $teacher, false, $date);
+
+        self::assertCount(1, $report->activityDeadlines);
+        self::assertSame('Programaciones didácticas', $report->activityDeadlines[0]->activity->getTitle());
+        self::assertFalse($report->activityDeadlines[0]->completed);
+    }
+
+    public function testAnActivityDeadlineDoesNotAppearOnAnUnrelatedDate(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $date     = new \DateTimeImmutable('2025-09-08');
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        $activity = (new Activity())->setCategory($category)->setTitle('Programaciones didácticas')->setStart(1, 9)->setEnd(30, 9)->setFolder($folder);
+        $teacher  = $this->teacher('docente');
+        $assign   = new SpecificProfileAssignment($profile, null, $teacher);
+
+        $this->persist($centre, $year, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, $assign);
+
+        $report = $this->builder->build($year, $centre, $teacher, false, $date);
+
+        self::assertSame([], $report->activityDeadlines);
+    }
+
+    public function testACompletedActivityDeadlineReflectsItsCompletionState(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $date     = new \DateTimeImmutable('2025-09-30');
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new Activity())->setCategory($category)->setTitle('Lectura de la política de calidad')->setStart(1, 9)->setEnd(30, 9);
+        $teacher  = $this->teacher('docente');
+        $completion = new ActivityCompletion($activity, $teacher, null, null, $teacher);
+
+        $this->persist($centre, $year, $category, $activity, $teacher, $completion);
+
+        $report = $this->builder->build($year, $centre, $teacher, false, $date);
+
+        self::assertCount(1, $report->activityDeadlines);
+        self::assertTrue($report->activityDeadlines[0]->completed);
+    }
+
+    public function testAnAnonymousViewerSeesNoActivityDeadlines(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $date     = new \DateTimeImmutable('2025-09-30');
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new Activity())->setCategory($category)->setTitle('Lectura de la política de calidad')->setStart(1, 9)->setEnd(30, 9);
+        $this->persist($centre, $year, $category, $activity);
+
+        $report = $this->builder->build($year, $centre, null, false, $date);
+
+        self::assertSame([], $report->activityDeadlines);
     }
 
     public function testNonWorkingDayLabelUsesTheRegisteredDescriptionWhenPresent(): void
@@ -134,7 +220,7 @@ final class DayDetailBuilderTest extends RepositoryTestCase
         $teacher = $this->teacher('docente');
         $this->persist($centre, $year, $holiday, $teacher);
 
-        $report = $this->builder->build($year, $teacher, false, $date);
+        $report = $this->builder->build($year, $centre, $teacher, false, $date);
 
         self::assertSame('Fiesta local', $report->nonWorkingDayLabel);
     }
@@ -147,7 +233,7 @@ final class DayDetailBuilderTest extends RepositoryTestCase
         $teacher = $this->teacher('docente');
         $this->persist($centre, $year, $teacher);
 
-        $report = $this->builder->build($year, $teacher, false, $date);
+        $report = $this->builder->build($year, $centre, $teacher, false, $date);
 
         self::assertNotNull($report->nonWorkingDayLabel);
     }
@@ -160,7 +246,7 @@ final class DayDetailBuilderTest extends RepositoryTestCase
         $teacher = $this->teacher('docente');
         $this->persist($centre, $year, $teacher);
 
-        $report = $this->builder->build($year, $teacher, false, $date);
+        $report = $this->builder->build($year, $centre, $teacher, false, $date);
 
         self::assertNull($report->nonWorkingDayLabel);
     }

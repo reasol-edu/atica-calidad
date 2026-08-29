@@ -7,8 +7,6 @@ namespace App\Service;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\EducationalCentre;
-use App\Entity\ListItem;
-use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Model\ActivityDashboardItem;
 use App\Model\ActivityDashboardStatus;
@@ -40,7 +38,7 @@ final class ActivityDashboardSummaryBuilder
         $needsAttention = [];
 
         foreach ($this->activities->findAllByCentre($centre) as $activity) {
-            foreach ($this->ownersFor($teacher, $activity) as $owner) {
+            foreach ($this->completion->getMyOwnedObligations($teacher, $activity) as $owner) {
                 ++$total;
 
                 if ($this->completion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'])) {
@@ -74,38 +72,6 @@ final class ActivityDashboardSummaryBuilder
         });
 
         return new ActivityDashboardSummary($total, $completed, $pending, $overdue, array_slice($needsAttention, 0, self::MAX_ITEMS));
-    }
-
-    /**
-     * Every obligation $teacher personally owns for $activity. A no-folder activity applies to
-     * every teacher individually; a folder-backed one only if $teacher actually holds an upload
-     * slot — ByProfile scope can yield more than one owner row (e.g. head of two departments).
-     *
-     * @return list<array{profile: ?SpecificProfile, listItem: ?ListItem, teacher: ?Teacher, label: ?string}>
-     */
-    private function ownersFor(Teacher $teacher, Activity $activity): array
-    {
-        if (!$activity->requiresSubmissions()) {
-            return [['profile' => null, 'listItem' => null, 'teacher' => $teacher, 'label' => null]];
-        }
-
-        if ($this->completion->hasIndividualCompletionOwner($activity)) {
-            if ($this->completion->getMyOwnedSlots($teacher, $activity) === []) {
-                return [];
-            }
-
-            return [['profile' => null, 'listItem' => null, 'teacher' => $teacher, 'label' => null]];
-        }
-
-        return array_map(
-            static fn (array $owner): array => [
-                'profile'  => $owner['profile'],
-                'listItem' => $owner['listItem'],
-                'teacher'  => null,
-                'label'    => $owner['profile']->getName() . ($owner['listItem'] !== null ? ' ' . $owner['listItem']->getName() : ''),
-            ],
-            $this->completion->getMyOwnedCompletionOwners($teacher, $activity),
-        );
     }
 
     private function categoryPath(ActivityCategory $category): string

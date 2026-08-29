@@ -128,6 +128,41 @@ final class ActivityCompletionChecker
         return $owners;
     }
 
+    /**
+     * Every obligation $teacher personally owns for $activity, by upload profile — a no-folder
+     * activity applies to every teacher individually; a folder-backed one only if $teacher
+     * actually holds an upload slot (ignoring folder-management rights, see getMyOwnedSlots());
+     * ByProfile scope can yield more than one owner row (e.g. head of two departments). Shared by
+     * the dashboard activity summary and the calendar.
+     *
+     * @return list<array{profile: ?SpecificProfile, listItem: ?ListItem, teacher: ?Teacher, label: ?string, key: string}>
+     */
+    public function getMyOwnedObligations(Teacher $teacher, Activity $activity): array
+    {
+        if (!$activity->requiresSubmissions()) {
+            return [['profile' => null, 'listItem' => null, 'teacher' => $teacher, 'label' => null, 'key' => '']];
+        }
+
+        if ($this->hasIndividualCompletionOwner($activity)) {
+            if ($this->getMyOwnedSlots($teacher, $activity) === []) {
+                return [];
+            }
+
+            return [['profile' => null, 'listItem' => null, 'teacher' => $teacher, 'label' => null, 'key' => '']];
+        }
+
+        return array_map(
+            static fn (array $owner): array => [
+                'profile'  => $owner['profile'],
+                'listItem' => $owner['listItem'],
+                'teacher'  => null,
+                'label'    => $owner['profile']->getName() . ($owner['listItem'] !== null ? ' ' . $owner['listItem']->getName() : ''),
+                'key'      => ProfileAssignmentRow::keyFor($owner['profile'], $owner['listItem']),
+            ],
+            $this->getMyOwnedCompletionOwners($teacher, $activity),
+        );
+    }
+
     public function isCompletedFor(Activity $activity, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher): bool
     {
         if ($activity->isAutoComplete()) {

@@ -8,9 +8,13 @@ use App\Entity\AcademicYear;
 use App\Entity\EducationalCentre;
 use App\Entity\SchoolEvent;
 use App\Entity\Teacher;
+use App\Model\ActivityDeadlineOccurrence;
 use App\Model\ProfileAssignmentRow;
+use App\Repository\ActivityRepository;
 use App\Repository\SchoolEventRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\ActivityCompletionChecker;
+use App\Service\ActivityDeadlineChecker;
 use App\Service\AssignmentColorPalette;
 use App\Service\CalendarMonthGridBuilder;
 use App\Service\NonWorkingDayChecker;
@@ -20,14 +24,16 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 
 /**
- * Calendario mensual: eventos de centro (según visibilidad — generales para
- * todos, restringidos según perfil o subperfil asignado) en una cuadrícula
- * mensual.
+ * Calendario mensual: eventos de centro (según visibilidad — generales para todos, restringidos
+ * según perfil o subperfil asignado) más, para cada docente, el plazo de sus propias actividades
+ * (aquellas en las que ostenta un perfil de subida — nunca "todas las del centro", ni aunque sea
+ * admin: ver ActivityCompletionChecker::getMyOwnedObligations()) en una cuadrícula mensual.
  */
 #[AsLiveComponent]
 class CalendarComponent extends AbstractCalendarComponent
 {
     private const array GENERAL_EVENT_COLOR = ['bg' => 'bg-sky-100', 'text' => 'text-sky-800', 'border' => 'border-sky-300'];
+    private const array PERSONAL_ACTIVITY_COLOR = ['bg' => 'bg-violet-100', 'text' => 'text-violet-800', 'border' => 'border-violet-300'];
 
     /** @var list<SchoolEvent>|null */
     private ?array $itemsCache = null;
@@ -40,6 +46,9 @@ class CalendarComponent extends AbstractCalendarComponent
         private readonly SchoolEventRepository $eventRepository,
         private readonly CalendarMonthGridBuilder $gridBuilder,
         private readonly AssignmentColorPalette $colorPalette,
+        private readonly ActivityRepository $activityRepository,
+        private readonly ActivityCompletionChecker $activityCompletion,
+        private readonly ActivityDeadlineChecker $activityDeadline,
     ) {
         parent::__construct($tenantContext, $translator, $nonWorkingDayChecker, $clock);
     }
@@ -55,18 +64,37 @@ class CalendarComponent extends AbstractCalendarComponent
             return [];
         }
 
-        $items = $this->getItemsForYear($centre, $academicYear);
+        $items = [
+            ...$this->getItemsForYear($centre, $academicYear),
+            ...$this->getActivityDeadlineItems($centre),
+        ];
 
         return $this->gridBuilder->build(
             $this->year,
             $this->month,
             $items,
-            static fn (SchoolEvent $item): array => [
-                'id'    => 'event-' . $item->getId()->toRfc4122(),
-                'start' => $item->getDate(),
-                'end'   => $item->getDate(),
-            ],
-            function (SchoolEvent $item): array {
+            static fn (SchoolEvent|ActivityDeadlineOccurrence $item): array => $item instanceof ActivityDeadlineOccurrence
+                ? [
+                    'id'    => 'activity-' . $item->activity->getId()->toRfc4122() . ($item->ownerKey !== '' ? '-' . $item->ownerKey : ''),
+                    'start' => $item->date,
+                    'end'   => $item->date,
+                ]
+                : [
+                    'id'    => 'event-' . $item->getId()->toRfc4122(),
+                    'start' => $item->getDate(),
+                    'end'   => $item->getDate(),
+                ],
+            function (SchoolEvent|ActivityDeadlineOccurrence $item): array {
+                if ($item instanceof ActivityDeadlineOccurrence) {
+                    return [
+                        'label'   => $item->activity->getTitle() . ($item->ownerLabel !== null ? ' · ' . $item->ownerLabel : ''),
+                        'details' => '',
+                        'color'   => $item->ownerKey !== '' ? $this->colorPalette->colorFor($item->ownerKey) : self::PERSONAL_ACTIVITY_COLOR,
+                        'icon'    => $item->completed ? 'heroicons:check-circle' : 'heroicons:clipboard-document-check',
+                        'muted'   => $item->completed,
+                    ];
+                }
+
                 $firstRestriction = $item->getProfileRestrictions()->first();
                 $color            = $item->isGeneral() || $firstRestriction === false
                     ? self::GENERAL_EVENT_COLOR
@@ -103,6 +131,28 @@ class CalendarComponent extends AbstractCalendarComponent
         }
 
         $this->itemsCache = $items;
+
+        return $items;
+    }
+
+    /** @return list<ActivityDeadlineOccurrence> */
+    private function getActivityDeadlineItems(EducationalCentre $centre): array
+    {
+        $user = $this->getUser();
+        if (!$user instanceof Teacher) {
+            return [];
+        }
+
+        $reference = (new \DateTimeImmutable())->setDate($this->year, $this->month, 15);
+
+        $items = [];
+        foreach ($this->activityRepository->findAllByCentre($centre) as $activity) {
+            foreach ($this->activityCompletion->getMyOwnedObligations($user, $activity) as $owner) {
+                $date      = $this->activityDeadline->cycleEndDateNear($activity, $reference);
+                $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher']);
+                $items[]   = new ActivityDeadlineOccurrence($activity, $date, $owner['label'], $owner['key'], $completed);
+            }
+        }
 
         return $items;
     }

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Controller;
 
 use App\Entity\AcademicYear;
+use App\Entity\Activity;
+use App\Entity\ActivityCategory;
 use App\Entity\EducationalCentre;
 use App\Entity\PersonName;
 use App\Entity\SchoolEvent;
@@ -93,5 +95,22 @@ final class CalendarControllerTest extends ControllerTestCase
 
         $body = (string) $this->client->getResponse()->getContent();
         self::assertStringContainsString('Claustro', $body);
+    }
+
+    public function testDayViewShowsAnActivityDeadlineOnItsDate(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new Activity())->setCategory($category)->setTitle('Lectura de la política de calidad')->setStart(1, 9)->setEnd(30, 9);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $year, $category, $activity, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $this->client->request('GET', '/calendario/dia/2025-09-30');
+
+        $body = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('Lectura de la política de calidad', $body);
     }
 }

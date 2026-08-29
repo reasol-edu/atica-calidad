@@ -149,6 +149,82 @@ final class ActivityCompletionCheckerTest extends RepositoryTestCase
         self::assertSame([], $this->checker->getMyOwnedCompletionOwners($admin, $activity));
     }
 
+    public function testGetMyOwnedObligationsAppliesANoFolderActivityToEveryTeacher(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new Activity())->setCategory($category)->setTitle('Actividad manual')->setStart(1, 9)->setEnd(30, 9);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $activity, $teacher);
+
+        $obligations = $this->checker->getMyOwnedObligations($teacher, $activity);
+
+        self::assertCount(1, $obligations);
+        self::assertSame($teacher, $obligations[0]['teacher']);
+        self::assertNull($obligations[0]['profile']);
+        self::assertSame('', $obligations[0]['key']);
+    }
+
+    public function testGetMyOwnedObligationsForIndividualScopeRequiresAHeldSlot(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $folder->addUploadProfile($profile);
+        $activity = $this->activity($category)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::Individual);
+        $holder   = $this->teacher('tutor');
+        $assign   = new SpecificProfileAssignment($profile, null, $holder);
+        $outsider = $this->teacher('otro');
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $holder, $assign, $outsider);
+
+        self::assertCount(1, $this->checker->getMyOwnedObligations($holder, $activity));
+        self::assertSame([], $this->checker->getMyOwnedObligations($outsider, $activity));
+    }
+
+    public function testGetMyOwnedObligationsForByProfileScopeYieldsOneRowPerDistinctOwner(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $mate     = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura Matemáticas');
+        $info     = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura Informática');
+        $folder->addUploadProfile($mate);
+        $folder->addUploadProfile($info);
+        $activity = $this->activity($category)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile);
+        $teacher  = $this->teacher('docente');
+        $assignA  = new SpecificProfileAssignment($mate, null, $teacher);
+        $assignB  = new SpecificProfileAssignment($info, null, $teacher);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $mate, $info, $activity, $teacher, $assignA, $assignB);
+
+        $obligations = $this->checker->getMyOwnedObligations($teacher, $activity);
+
+        self::assertCount(2, $obligations);
+        $keys = array_map(static fn (array $o): string => $o['key'], $obligations);
+        sort($keys);
+        self::assertNotSame($keys[0], $keys[1]);
+        $labels = array_map(static fn (array $o): ?string => $o['label'], $obligations);
+        sort($labels);
+        self::assertSame(['Jefatura Informática', 'Jefatura Matemáticas'], $labels);
+    }
+
+    public function testGetMyOwnedObligationsIgnoresFolderManagementRights(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        $activity = $this->activity($category)->setFolder($folder);
+        $manager  = $this->teacher('director')->setAdmin(true);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $manager);
+
+        self::assertSame([], $this->checker->getMyOwnedObligations($manager, $activity));
+    }
+
     public function testHasIndividualCompletionOwnerIsTrueWithoutAFolder(): void
     {
         $centre   = $this->centre();

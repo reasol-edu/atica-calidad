@@ -97,5 +97,39 @@
         {% endif %}
     </div>
 
+    {# ── Actividades ──────────────────────────────────────────────────────── #}
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+        <div class="px-6 py-4 border-b border-gray-100 rounded-t-2xl">
+            <h2 class="text-base font-semibold text-gray-900">{{ 'day.section.activities'|trans({}, 'calendar') }}</h2>
+        </div>
+        {% if report.activityDeadlines is empty %}
+            <p class="px-6 py-4 text-sm text-gray-400">{{ 'day.no_activities'|trans({}, 'calendar') }}</p>
+        {% else %}
+            <ul class="divide-y divide-gray-100">
+                {% for occurrence in report.activityDeadlines %}
+                    <li class="px-6 py-3">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <a href="{{ path('app_activities', {category: occurrence.activity.category.id.toRfc4122, activity: occurrence.activity.id.toRfc4122}) }}"
+                                   class="text-sm font-medium text-gray-900 hover:text-forest-600 transition-colors {{ occurrence.completed ? 'line-through text-gray-400' : '' }}">
+                                    {{ occurrence.activity.title }}
+                                </a>
+                                {% if occurrence.ownerLabel is not null %}
+                                    <p class="text-xs text-gray-500 mt-0.5">{{ occurrence.ownerLabel }}</p>
+                                {% endif %}
+                            </div>
+                            {% if occurrence.completed %}
+                                <span class="inline-flex items-center gap-1 rounded-full bg-forest-50 px-2.5 py-0.5 text-xs font-medium text-forest-700 shrink-0">
+                                    {{ ux_icon('heroicons:check-circle', {class: 'h-3.5 w-3.5'}) }}
+                                    {{ 'completion.done'|trans({}, 'activity_content') }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+
 </div>
 {% endblock %}
