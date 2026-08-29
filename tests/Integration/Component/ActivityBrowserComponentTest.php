@@ -439,6 +439,97 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertStringContainsString('aceptadas 1/1', $html);
     }
 
+    public function testToggleRevisionPanelExpandsTheRevisionManagementPanel(): void
+    {
+        $centre  = $this->centre();
+        $category = $this->category($centre);
+        $folder  = $this->folder($centre);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $folder->addUploadProfile($profile);
+        $activity = $this->activity($category)->setFolder($folder);
+
+        $admin = $this->admin();
+        $document = new Document($folder, 'Perfil');
+        $document->setUploadProfile($profile, null);
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $admin);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $admin, $document, $file, $revision);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $panelMarker = 'ml-4 space-y-1.5 border-l-2';
+
+        $htmlBefore = (string) $component->render()->crawler()->html();
+        self::assertStringNotContainsString($panelMarker, $htmlBefore);
+
+        $component->call('toggleRevisionPanel', ['id' => $document->getId()->toRfc4122()]);
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertSame($document->getId()->toRfc4122(), $instance->revisionPanelDocumentId);
+
+        $htmlAfter = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString($panelMarker, $htmlAfter);
+    }
+
+    /**
+     * A reviewer (not the folder's responsible/manager) viewing someone else's submission under
+     * "Todas las entregas" — the read-only branch of _activity_submission_row.html.twig, a
+     * different code path than the "Mis entregas" one covered above.
+     */
+    public function testToggleRevisionPanelExpandsThePanelForAReviewerInTheOtherSubmissionsSection(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $uploadProfile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Ajeno');
+        $reviewProfile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Revisor');
+        $folder->addUploadProfile($uploadProfile);
+        $folder->addReviewProfile($reviewProfile);
+        $activity = $this->activity($category)->setFolder($folder);
+
+        $reviewer  = $this->teacher('revisor');
+        $uploader  = $this->teacher('subidor');
+        $reviewAssignment = new SpecificProfileAssignment($reviewProfile, null, $reviewer);
+
+        $document = new Document($folder, 'Ajeno');
+        $document->setUploadProfile($uploadProfile, null);
+        $file     = new DocumentFile(hash('sha256', 'y'), 'y', 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $uploader);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $uploadProfile, $reviewProfile, $activity, $reviewer, $uploader, $reviewAssignment, $document, $file, $revision);
+
+        $this->loginAs($reviewer, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('toggleAllSubmissions', ['activityId' => $activity->getId()->toRfc4122()]);
+
+        $panelMarker = 'ml-4 space-y-1.5 border-l-2';
+        $htmlBefore  = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('Ajeno', $htmlBefore, 'sanity check: the read-only row is visible');
+        self::assertStringNotContainsString($panelMarker, $htmlBefore);
+
+        $component->call('toggleRevisionPanel', ['id' => $document->getId()->toRfc4122()]);
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertSame($document->getId()->toRfc4122(), $instance->revisionPanelDocumentId);
+
+        $htmlAfter = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString($panelMarker, $htmlAfter);
+    }
+
     // ── markCompleted ─────────────────────────────────────────────────────────
 
     public function testMarkCompletedCreatesACompletionForANonAutoCompleteActivity(): void
