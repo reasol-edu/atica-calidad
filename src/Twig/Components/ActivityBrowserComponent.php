@@ -122,6 +122,10 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $confirmingDeleteActivityId = '';
 
+    /** '' when not confirming; otherwise "{activityId}:{profileId}:{listItemId}" of the completion pending confirmation. */
+    #[LiveProp(writable: true)]
+    public string $confirmingCompleteKey = '';
+
     // ── Per-activity display toggles ─────────────────────────────────────────
     /** @var string[] activity ids whose "todas las entregas" section is expanded. */
     #[LiveProp(writable: true)]
@@ -675,17 +679,31 @@ class ActivityBrowserComponent extends AbstractController
     }
 
     #[LiveAction]
+    public function askMarkCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = ''): void
+    {
+        $this->confirmingCompleteKey = $activityId . ':' . $profileId . ':' . $listItemId;
+    }
+
+    #[LiveAction]
+    public function cancelMarkCompleted(): void
+    {
+        $this->confirmingCompleteKey = '';
+    }
+
+    #[LiveAction]
     public function markCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = ''): void
     {
         $activity = $this->activities->findById($activityId);
         if ($activity === null) {
+            $this->confirmingCompleteKey = '';
+
             return;
         }
 
-        $teacher       = $this->teacher();
-        $profile       = $profileId === '' ? null : $this->profiles->findByIdAndCentre($profileId, $this->centre);
-        $listItem      = $listItemId === '' ? null : $this->listItems->findByIdAndCentre($listItemId, $this->centre);
-        $targetTeacher = $profile === null ? $teacher : null;
+        $teacher                     = $this->teacher();
+        [$profile, $listItem]        = $this->resolveOwnerIds($profileId, $listItemId);
+        $targetTeacher               = $profile === null ? $teacher : null;
+        $this->confirmingCompleteKey = '';
 
         if (!$this->completion->markCompleted($activity, $targetTeacher, $profile, $listItem, $teacher)) {
             return;
@@ -694,6 +712,37 @@ class ActivityBrowserComponent extends AbstractController
         $this->em->flush();
 
         $this->flashSuccess($this->t('activity.flash.completed'));
+    }
+
+    /** No confirmation required — undoing a completion is low-stakes and easy to redo. */
+    #[LiveAction]
+    public function unmarkCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = ''): void
+    {
+        $activity = $this->activities->findById($activityId);
+        if ($activity === null) {
+            return;
+        }
+
+        $teacher               = $this->teacher();
+        [$profile, $listItem]  = $this->resolveOwnerIds($profileId, $listItemId);
+        $targetTeacher         = $profile === null ? $teacher : null;
+
+        if (!$this->completion->unmarkCompleted($activity, $targetTeacher, $profile, $listItem)) {
+            return;
+        }
+
+        $this->em->flush();
+
+        $this->flashSuccess($this->t('activity.flash.completion_undone'));
+    }
+
+    /** @return array{0: ?SpecificProfile, 1: ?ListItem} */
+    private function resolveOwnerIds(string $profileId, string $listItemId): array
+    {
+        $profile  = $profileId === '' ? null : $this->profiles->findByIdAndCentre($profileId, $this->centre);
+        $listItem = $listItemId === '' ? null : $this->listItems->findByIdAndCentre($listItemId, $this->centre);
+
+        return [$profile, $listItem];
     }
 
     // ── Revision panel (mirrors SectionBrowserComponent's equivalents, scoped to an activity's own folder) ──

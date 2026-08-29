@@ -2,6 +2,7 @@
 {% set list_item_id = list_item ? list_item.id.toRfc4122 : '' %}
 {% set owner_teacher = teacher_owned ? app.user : null %}
 {% set completed = this.isCompletedFor(activity, profile, list_item, owner_teacher) %}
+{% set completion_key = activity.id.toRfc4122 ~ ':' ~ profile_id ~ ':' ~ list_item_id %}
 
 <div class="flex items-center gap-2">
     {% if not teacher_owned %}
@@ -12,15 +13,40 @@
             {{ ux_icon('heroicons:check-circle', {class: 'h-4 w-4'}) }}
             {{ 'completion.done'|trans({}, 'activity_content') }}
         </span>
+        {% if not activity.autoComplete %}
+            <button type="button" data-action="live#action" data-live-action-param="unmarkCompleted"
+                    data-live-activity-id-param="{{ activity.id.toRfc4122 }}"
+                    data-live-profile-id-param="{{ profile_id }}"
+                    data-live-list-item-id-param="{{ list_item_id }}"
+                    class="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                {{ 'completion.undo'|trans({}, 'activity_content') }}
+            </button>
+        {% endif %}
     {% elseif not activity.autoComplete %}
-        <button type="button" data-action="live#action" data-live-action-param="markCompleted"
-                data-live-activity-id-param="{{ activity.id.toRfc4122 }}"
-                data-live-profile-id-param="{{ profile_id }}"
-                data-live-list-item-id-param="{{ list_item_id }}"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-            {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
-            {{ 'completion.mark_done'|trans({}, 'activity_content') }}
-        </button>
+        {% if confirmingCompleteKey == completion_key %}
+            <span class="text-xs text-gray-600">{{ 'completion.confirm_prompt'|trans({}, 'activity_content') }}</span>
+            <button type="button" data-action="live#action" data-live-action-param="markCompleted"
+                    data-live-activity-id-param="{{ activity.id.toRfc4122 }}"
+                    data-live-profile-id-param="{{ profile_id }}"
+                    data-live-list-item-id-param="{{ list_item_id }}"
+                    class="inline-flex items-center gap-1 rounded-lg bg-forest-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
+                {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
+                {{ 'completion.confirm_yes'|trans({}, 'activity_content') }}
+            </button>
+            <button type="button" data-action="live#action" data-live-action-param="cancelMarkCompleted"
+                    class="rounded-lg border border-gray-200 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50 transition-colors">
+                {{ 'completion.cancel'|trans({}, 'activity_content') }}
+            </button>
+        {% else %}
+            <button type="button" data-action="live#action" data-live-action-param="askMarkCompleted"
+                    data-live-activity-id-param="{{ activity.id.toRfc4122 }}"
+                    data-live-profile-id-param="{{ profile_id }}"
+                    data-live-list-item-id-param="{{ list_item_id }}"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
+                {{ 'completion.mark_done'|trans({}, 'activity_content') }}
+            </button>
+        {% endif %}
     {% else %}
         <span class="text-xs italic text-gray-400">{{ 'activity.auto_complete'|trans({}, 'activity_content') }}</span>
     {% endif %}

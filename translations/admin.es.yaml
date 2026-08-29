@@ -655,3 +655,4 @@ activity.error.auto_complete_requires_folder: 'Una actividad sin carpeta asociad
 activity.flash.saved: 'Actividad guardada correctamente.'
 activity.flash.deleted: 'Actividad eliminada correctamente.'
 activity.flash.completed: 'Actividad marcada como completada.'
+activity.flash.completion_undone: 'Se ha deshecho la finalización.'

@@ -202,4 +202,25 @@ final class ActivityCompletionChecker
 
         return true;
     }
+
+    /**
+     * Removes the ActivityCompletion for the given owner, if any. Auto-complete activities have
+     * nothing persisted to remove — their status is always computed, never stored. Does not
+     * flush — the caller decides when. Returns whether it removed one.
+     */
+    public function unmarkCompleted(Activity $activity, ?Teacher $targetTeacher, ?SpecificProfile $profile, ?ListItem $listItem): bool
+    {
+        if ($activity->isAutoComplete()) {
+            return false;
+        }
+
+        $completion = $this->completions->findOneForOwner($activity, $targetTeacher, $profile, $listItem);
+        if ($completion === null) {
+            return false;
+        }
+
+        $this->em->remove($completion);
+
+        return true;
+    }
 }

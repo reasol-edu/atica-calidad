@@ -370,4 +370,42 @@ final class ActivityCompletionCheckerTest extends RepositoryTestCase
 
         self::assertFalse($this->checker->markCompleted($activity, $teacher, null, null, $teacher));
     }
+
+    public function testUnmarkCompletedRemovesAnExistingCompletionAndReturnsTrue(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = $this->activity($category);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $activity, $teacher, new ActivityCompletion($activity, $teacher, null, null, $teacher));
+
+        $removed = $this->checker->unmarkCompleted($activity, $teacher, null, null);
+
+        self::assertTrue($removed);
+        $this->em->flush();
+        self::assertFalse($this->checker->isCompletedFor($activity, null, null, $teacher));
+    }
+
+    public function testUnmarkCompletedIsANoOpWhenNotCompleted(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = $this->activity($category);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $activity, $teacher);
+
+        self::assertFalse($this->checker->unmarkCompleted($activity, $teacher, null, null));
+    }
+
+    public function testUnmarkCompletedIsANoOpForAnAutoCompleteActivity(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $activity = $this->activity($category)->setFolder($folder)->setAutoComplete(true);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $activity, $teacher);
+
+        self::assertFalse($this->checker->unmarkCompleted($activity, $teacher, null, null));
+    }
 }

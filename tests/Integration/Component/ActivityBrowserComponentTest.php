@@ -520,6 +520,156 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertCount(1, $completions->findBy(['activity' => $reloadedActivity]));
     }
 
+    public function testAskMarkCompletedSetsTheConfirmationKeyWithoutCompletingYet(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $activity, $teacher);
+        $activityId = $activity->getId()->toRfc4122();
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('askMarkCompleted', ['activityId' => $activityId]);
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertSame($activityId . '::', $instance->confirmingCompleteKey);
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityCompletionRepository $completions */
+        $completions = self::getContainer()->get(\App\Repository\ActivityCompletionRepository::class);
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedActivity = $activities->findById($activityId);
+        self::assertNotNull($reloadedActivity);
+        self::assertCount(0, $completions->findBy(['activity' => $reloadedActivity]));
+    }
+
+    public function testCancelMarkCompletedClearsTheConfirmationKeyWithoutCompleting(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $activity, $teacher);
+        $activityId = $activity->getId()->toRfc4122();
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('askMarkCompleted', ['activityId' => $activityId]);
+        $component->call('cancelMarkCompleted');
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertSame('', $instance->confirmingCompleteKey);
+    }
+
+    public function testMarkCompletedClearsTheConfirmationKeyAfterCompleting(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $activity, $teacher);
+        $activityId = $activity->getId()->toRfc4122();
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('askMarkCompleted', ['activityId' => $activityId]);
+        $component->call('markCompleted', ['activityId' => $activityId]);
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertSame('', $instance->confirmingCompleteKey);
+    }
+
+    public function testUnmarkCompletedRemovesAnExistingCompletionWithoutConfirmation(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category);
+        $teacher  = $this->teacher('docente');
+        $existing = new ActivityCompletion($activity, $teacher, null, null, $teacher);
+        $this->persist($centre, $category, $activity, $teacher, $existing);
+        $activityId = $activity->getId()->toRfc4122();
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('unmarkCompleted', ['activityId' => $activityId]);
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityCompletionRepository $completions */
+        $completions = self::getContainer()->get(\App\Repository\ActivityCompletionRepository::class);
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedActivity = $activities->findById($activityId);
+        self::assertNotNull($reloadedActivity);
+        self::assertCount(0, $completions->findBy(['activity' => $reloadedActivity]));
+    }
+
+    public function testAskMarkCompletedRendersTheConfirmationPromptInsteadOfCompleting(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $activity, $teacher);
+        $activityId = $activity->getId()->toRfc4122();
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre, 'initialActivityId' => $activityId], $this->client);
+        $component->call('askMarkCompleted', ['activityId' => $activityId]);
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('¿Confirmar como completada?', $html);
+        self::assertStringNotContainsString('Completada', $html);
+    }
+
+    public function testACompletedActivityShowsAnUndoLinkInsteadOfTheDoneBadgeOnly(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category);
+        $teacher  = $this->teacher('docente');
+        $existing = new ActivityCompletion($activity, $teacher, null, null, $teacher);
+        $this->persist($centre, $category, $activity, $teacher, $existing);
+        $activityId = $activity->getId()->toRfc4122();
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre, 'initialActivityId' => $activityId], $this->client);
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('Completada', $html);
+        self::assertStringContainsString('Deshacer', $html);
+    }
+
+    public function testUnmarkCompletedIsANoOpForAnAutoCompleteActivity(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $activity = $this->activity($category)->setFolder($folder)->setAutoComplete(true);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $activity, $teacher);
+        $activityId = $activity->getId()->toRfc4122();
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        // Must not throw / error even though there's nothing persisted to remove.
+        $component->call('unmarkCompleted', ['activityId' => $activityId]);
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityCompletionRepository $completions */
+        $completions = self::getContainer()->get(\App\Repository\ActivityCompletionRepository::class);
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedActivity = $activities->findById($activityId);
+        self::assertNotNull($reloadedActivity);
+        self::assertCount(0, $completions->findBy(['activity' => $reloadedActivity]));
+    }
+
     // ── Revision panel LiveActions ────────────────────────────────────────────
 
     private function documentWithApprovedRevision(Folder $folder, Teacher $uploader): Document
