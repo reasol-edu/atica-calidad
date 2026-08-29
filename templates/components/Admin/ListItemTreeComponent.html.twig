@@ -165,6 +165,35 @@
                     </div>
                 </form>
 
+                {# ── Asociado a un perfil/subperfil ─────────────────────── #}
+                {% set association_rows = this.associationRows %}
+                <div class="border-t border-gray-100 pt-4">
+                    <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.lists.association.title'|trans({}, 'admin') }}</label>
+                    <p class="mb-2 text-xs text-gray-400">{{ 'responsibilities.lists.association.help'|trans({}, 'admin') }}</p>
+
+                    {% if association_rows is empty %}
+                        <p class="text-xs italic text-gray-400">{{ 'responsibilities.lists.association.empty'|trans({}, 'admin') }}</p>
+                    {% else %}
+                        <form data-action="submit->live#action:prevent" data-live-action-param="saveAssociation"
+                              class="flex flex-wrap items-center gap-2">
+                            <select data-controller="tom-select"
+                                    data-tom-select-placeholder-value="{{ 'responsibilities.lists.association.picker_placeholder'|trans({}, 'admin') }}"
+                                    data-tom-select-no-results-value="{{ 'responsibilities.lists.association.picker_no_results'|trans({}, 'admin') }}"
+                                    data-model="norender|associationKey"
+                                    class="min-w-0 flex-1 text-sm ts-local">
+                                <option value="">{{ 'responsibilities.lists.association.none_option'|trans({}, 'admin') }}</option>
+                                {% for row in association_rows %}
+                                    <option value="{{ row.key }}" {{ row.key == associationKey ? 'selected' : '' }}>{{ row.displayName }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit"
+                                    class="shrink-0 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
+                                {{ 'responsibilities.lists.association.save'|trans({}, 'admin') }}
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+
                 {# ── Etiquetas (fuera del form anterior: un <form> no puede anidar otro) ── #}
                 <div class="border-t border-gray-100 pt-4">
                     <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.lists.tags.title'|trans({}, 'admin') }}</label>

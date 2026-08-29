@@ -7,11 +7,13 @@ namespace App\Twig\Components\Admin;
 use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
 use App\Entity\Tag;
+use App\Model\ProfileAssignmentRow;
 use App\Repository\ListItemRepository;
 use App\Repository\SpecificProfileAssignmentRepository;
 use App\Repository\SpecificProfileRepository;
 use App\Repository\TagRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\ProfileAssignmentRowBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -56,6 +58,10 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $newTagName = '';
 
+    /** Key (see ProfileAssignmentRow::key()) of the profile/subperfil this item is associated with, or ''. */
+    #[LiveProp(writable: true)]
+    public string $associationKey = '';
+
     /** @var array<string, string> */
     #[LiveProp]
     public array $errors = [];
@@ -70,6 +76,7 @@ class ListItemTreeComponent extends AbstractController
         private readonly TagRepository $tags,
         private readonly SpecificProfileRepository $profiles,
         private readonly SpecificProfileAssignmentRepository $assignments,
+        private readonly ProfileAssignmentRowBuilder $rowBuilder,
     ) {}
 
     public function mount(EducationalCentre $centre): void
@@ -185,6 +192,14 @@ class ListItemTreeComponent extends AbstractController
         $selected                = $this->getSelected();
         $this->editName          = $selected?->getName() ?? '';
         $this->editActive        = $selected?->isActive() ?? true;
+        $this->associationKey    = $this->associationKeyFor($selected);
+    }
+
+    private function associationKeyFor(?ListItem $item): string
+    {
+        $profile = $item?->getAssociatedProfile();
+
+        return $profile === null ? '' : ProfileAssignmentRow::keyFor($profile, $item->getAssociatedProfileListItem());
     }
 
     // ── Add / save / delete ──────────────────────────────────────────────────
@@ -398,6 +413,45 @@ class ListItemTreeComponent extends AbstractController
         if ($pruned) {
             $this->em->flush();
         }
+    }
+
+    // ── Association with a profile/subperfil ─────────────────────────────────
+
+    /** @return ProfileAssignmentRow[] every active profile, plus one row per active subperfil, to pick an association from. */
+    public function getAssociationRows(): array
+    {
+        return $this->rowBuilder->buildActiveRows($this->centre);
+    }
+
+    #[LiveAction]
+    public function saveAssociation(): void
+    {
+        $selected = $this->getSelected();
+        if ($selected === null) {
+            return;
+        }
+
+        if ($this->associationKey === '') {
+            $selected->setAssociation(null);
+            $this->em->flush();
+            $this->flashSuccess($this->t('responsibilities.lists.association.flash.cleared'));
+
+            return;
+        }
+
+        $rowsByKey = [];
+        foreach ($this->getAssociationRows() as $row) {
+            $rowsByKey[$row->key()] = $row;
+        }
+
+        $row = $rowsByKey[$this->associationKey] ?? null;
+        if ($row === null) {
+            return;
+        }
+
+        $selected->setAssociation($row->profile, $row->listItem);
+        $this->em->flush();
+        $this->flashSuccess($this->t('responsibilities.lists.association.flash.saved'));
     }
 
     private function t(string $key): string

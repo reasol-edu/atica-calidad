@@ -360,6 +360,16 @@ responsibilities.lists.tags.inherited_hint: 'Etiqueta heredada de un elemento su
 responsibilities.lists.tags.add: 'Añadir'
 responsibilities.lists.tags.add_placeholder: 'Escribe o elige una etiqueta…'
 
+responsibilities.lists.association.title: 'Asociado a'
+responsibilities.lists.association.help: 'Vincula este elemento con el perfil o subperfil de Responsabilidades que corresponda (por ejemplo, una materia con la jefatura de departamento de la que depende).'
+responsibilities.lists.association.none_option: 'Sin asociar'
+responsibilities.lists.association.empty: 'No hay perfiles activos disponibles para asociar.'
+responsibilities.lists.association.picker_placeholder: 'Buscar perfil o subperfil…'
+responsibilities.lists.association.picker_no_results: 'Sin resultados'
+responsibilities.lists.association.save: 'Guardar'
+responsibilities.lists.association.flash.saved: 'Asociación guardada correctamente.'
+responsibilities.lists.association.flash.cleared: 'Asociación eliminada.'
+
 responsibilities.lists.flash.saved: 'Elemento guardado correctamente.'
 responsibilities.lists.flash.deleted: 'Elemento eliminado correctamente.'
 

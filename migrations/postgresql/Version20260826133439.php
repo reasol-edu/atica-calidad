@@ -51,9 +51,11 @@ final class Version20260826133439 extends AbstractMigration
         $this->addSql('CREATE INDEX IDX_A5A5F2C9CE208F53 ON specific_profile_assignment (list_item_id)');
         $this->addSql('CREATE INDEX IDX_A5A5F2C941807E1D ON specific_profile_assignment (teacher_id)');
         $this->addSql('CREATE UNIQUE INDEX uq_specific_profile_assignment ON specific_profile_assignment (specific_profile_id, list_item_id, teacher_id)');
-        $this->addSql('CREATE TABLE list_item (id UUID NOT NULL, name VARCHAR(255) NOT NULL, position INT NOT NULL, active BOOLEAN NOT NULL, parent_id UUID DEFAULT NULL, educational_centre_id UUID NOT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE TABLE list_item (id UUID NOT NULL, name VARCHAR(255) NOT NULL, position INT NOT NULL, active BOOLEAN NOT NULL, parent_id UUID DEFAULT NULL, educational_centre_id UUID NOT NULL, associated_profile_id UUID DEFAULT NULL, associated_profile_list_item_id UUID DEFAULT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE INDEX IDX_5AD5FAF7727ACA70 ON list_item (parent_id)');
         $this->addSql('CREATE INDEX IDX_5AD5FAF761F9EE23 ON list_item (educational_centre_id)');
+        $this->addSql('CREATE INDEX IDX_5AD5FAF7274D33F9 ON list_item (associated_profile_id)');
+        $this->addSql('CREATE INDEX IDX_5AD5FAF740EE1903 ON list_item (associated_profile_list_item_id)');
         $this->addSql('CREATE TABLE list_item_tag (list_item_id UUID NOT NULL, tag_id UUID NOT NULL, PRIMARY KEY (list_item_id, tag_id))');
         $this->addSql('CREATE INDEX IDX_9AF1FFD1CE208F53 ON list_item_tag (list_item_id)');
         $this->addSql('CREATE INDEX IDX_9AF1FFD1BAD26311 ON list_item_tag (tag_id)');
@@ -155,6 +157,8 @@ final class Version20260826133439 extends AbstractMigration
         $this->addSql('ALTER TABLE specific_profile_assignment ADD CONSTRAINT FK_A5A5F2C941807E1D FOREIGN KEY (teacher_id) REFERENCES teacher (id) NOT DEFERRABLE');
         $this->addSql('ALTER TABLE list_item ADD CONSTRAINT FK_5AD5FAF7727ACA70 FOREIGN KEY (parent_id) REFERENCES list_item (id) ON DELETE CASCADE');
         $this->addSql('ALTER TABLE list_item ADD CONSTRAINT FK_5AD5FAF761F9EE23 FOREIGN KEY (educational_centre_id) REFERENCES educational_centre (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE list_item ADD CONSTRAINT FK_5AD5FAF7274D33F9 FOREIGN KEY (associated_profile_id) REFERENCES specific_profile (id) ON DELETE SET NULL');
+        $this->addSql('ALTER TABLE list_item ADD CONSTRAINT FK_5AD5FAF740EE1903 FOREIGN KEY (associated_profile_list_item_id) REFERENCES list_item (id) ON DELETE SET NULL');
         $this->addSql('ALTER TABLE list_item_tag ADD CONSTRAINT FK_9AF1FFD1CE208F53 FOREIGN KEY (list_item_id) REFERENCES list_item (id) ON DELETE CASCADE');
         $this->addSql('ALTER TABLE list_item_tag ADD CONSTRAINT FK_9AF1FFD1BAD26311 FOREIGN KEY (tag_id) REFERENCES tag (id) ON DELETE CASCADE');
         $this->addSql('ALTER TABLE tag ADD CONSTRAINT FK_389B78361F9EE23 FOREIGN KEY (educational_centre_id) REFERENCES educational_centre (id) ON DELETE CASCADE');
@@ -221,6 +225,8 @@ final class Version20260826133439 extends AbstractMigration
         $this->addSql('ALTER TABLE specific_profile_assignment DROP CONSTRAINT FK_A5A5F2C941807E1D');
         $this->addSql('ALTER TABLE list_item DROP CONSTRAINT FK_5AD5FAF7727ACA70');
         $this->addSql('ALTER TABLE list_item DROP CONSTRAINT FK_5AD5FAF761F9EE23');
+        $this->addSql('ALTER TABLE list_item DROP CONSTRAINT FK_5AD5FAF7274D33F9');
+        $this->addSql('ALTER TABLE list_item DROP CONSTRAINT FK_5AD5FAF740EE1903');
         $this->addSql('ALTER TABLE list_item_tag DROP CONSTRAINT FK_9AF1FFD1CE208F53');
         $this->addSql('ALTER TABLE list_item_tag DROP CONSTRAINT FK_9AF1FFD1BAD26311');
         $this->addSql('ALTER TABLE tag DROP CONSTRAINT FK_389B78361F9EE23');

@@ -42,6 +42,28 @@ class ListItem
     #[ORM\OneToMany(targetEntity: self::class, mappedBy: 'parent')]
     private Collection $children;
 
+    /**
+     * A loose cross-reference from this item to a profile or subperfil (e.g. a "Matemáticas" item
+     * associated with the "Jefatura de departamento" subperfil it falls under) — unrelated to the
+     * parent/child hierarchy. Mirrors the (profile, listItem) pair used everywhere else in the app
+     * to identify "a profile, or one specific subperfil of it" (see ProfileAssignmentRow):
+     * $associatedProfileListItem is only ever set alongside a non-null $associatedProfile, and only
+     * to one of that profile's own leaf descendants (see setAssociation()). Deleting either the
+     * profile or the list item just clears the corresponding column back to null (ON DELETE SET
+     * NULL) instead of blocking the deletion — but deleting the leaf alone would otherwise leave
+     * $associatedProfile dangling on its own, pointing at a list-associated profile with no
+     * subperfil chosen, which is never a state setAssociation() allows in the first place; the
+     * getters below paper over that by treating it as no association at all (see
+     * hasConsistentAssociation()).
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?SpecificProfile $associatedProfile = null;
+
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?self $associatedProfileListItem = null;
+
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private EducationalCentre $educationalCentre;
@@ -132,6 +154,64 @@ class ListItem
     public function isRoot(): bool
     {
         return $this->parent === null;
+    }
+
+    /**
+     * A list-associated profile's own subperfil leaf is a separate row (see
+     * $associatedProfileListItem), which the database only nulls on ITS OWN deletion — deleting
+     * the leaf doesn't also touch $associatedProfile. Without this check, that would silently turn
+     * "associated with subperfil X of profile Y" into "associated with the whole of profile Y",
+     * which is never a valid state for a list-associated profile (setAssociation() never allows
+     * setting one without a subperfil) — so treat it as no association at all instead.
+     */
+    private function hasConsistentAssociation(): bool
+    {
+        if ($this->associatedProfile === null) {
+            return true;
+        }
+
+        return $this->associatedProfile->getListItem() === null || $this->associatedProfileListItem !== null;
+    }
+
+    public function getAssociatedProfile(): ?SpecificProfile
+    {
+        return $this->hasConsistentAssociation() ? $this->associatedProfile : null;
+    }
+
+    /** The specific subperfil ("Jefatura de departamento" leaf) the association points to — null if unset, or if it points at a plain, non-list-associated profile. */
+    public function getAssociatedProfileListItem(): ?self
+    {
+        return $this->hasConsistentAssociation() ? $this->associatedProfileListItem : null;
+    }
+
+    public function isAssociated(): bool
+    {
+        return $this->getAssociatedProfile() !== null;
+    }
+
+    /**
+     * Associates this item with a profile — either a plain one ($listItem left null) or, for a
+     * list-associated profile, one specific subperfil ($listItem, one of the profile's own leaf
+     * descendants). Pass null to clear the association entirely.
+     */
+    public function setAssociation(?SpecificProfile $profile, ?ListItem $listItem = null): static
+    {
+        if ($profile === null && $listItem !== null) {
+            throw new \LogicException('A subperfil cannot be set without its profile.');
+        }
+
+        if ($profile !== null && $profile->getEducationalCentre() !== $this->educationalCentre) {
+            throw new \LogicException('A list item cannot be associated with a profile from another centre.');
+        }
+
+        if ($listItem !== null && $listItem->getEducationalCentre() !== $this->educationalCentre) {
+            throw new \LogicException('A list item cannot be associated with a subperfil from another centre.');
+        }
+
+        $this->associatedProfile         = $profile;
+        $this->associatedProfileListItem = $listItem;
+
+        return $this;
     }
 
     public function isLeaf(): bool
