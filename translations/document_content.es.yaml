@@ -1,5 +1,8 @@
 breadcrumb.root: 'Raíz'
 
+folder.activity_hint: 'Esta carpeta está asociada a la actividad "%title%": las entregas se gestionan desde Actividades.'
+folder.activity_link: 'Ir a la actividad'
+
 folders_title: 'Carpetas'
 folders_empty: 'Todavía no hay ninguna carpeta en esta sección.'
 nothing_visible: 'Todavía no hay nada visible en el árbol documental.'

@@ -7,5 +7,7 @@ groups:
     sections: 'Secciones'
     folders: 'Carpetas'
     documents: 'Documentos'
+    activity_categories: 'Categorías de actividades'
+    activities: 'Actividades'
 actions:
     change_year: 'Cambiar de curso'

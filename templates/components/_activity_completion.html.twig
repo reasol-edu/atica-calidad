@@ -1,0 +1,27 @@
+{% set profile_id = profile ? profile.id.toRfc4122 : '' %}
+{% set list_item_id = list_item ? list_item.id.toRfc4122 : '' %}
+{% set owner_teacher = teacher_owned ? app.user : null %}
+{% set completed = this.isCompletedFor(activity, profile, list_item, owner_teacher) %}
+
+<div class="flex items-center gap-2">
+    {% if not teacher_owned %}
+        <span class="text-xs text-gray-500">{{ profile.name }}{{ list_item ? ' ' ~ list_item.name : '' }}:</span>
+    {% endif %}
+    {% if completed %}
+        <span class="inline-flex items-center gap-1 rounded-full bg-forest-50 px-2.5 py-1 text-xs font-medium text-forest-700">
+            {{ ux_icon('heroicons:check-circle', {class: 'h-4 w-4'}) }}
+            {{ 'completion.done'|trans({}, 'activity_content') }}
+        </span>
+    {% elseif not activity.autoComplete %}
+        <button type="button" data-action="live#action" data-live-action-param="markCompleted"
+                data-live-activity-id-param="{{ activity.id.toRfc4122 }}"
+                data-live-profile-id-param="{{ profile_id }}"
+                data-live-list-item-id-param="{{ list_item_id }}"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+            {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
+            {{ 'completion.mark_done'|trans({}, 'activity_content') }}
+        </button>
+    {% else %}
+        <span class="text-xs italic text-gray-400">{{ 'activity.auto_complete'|trans({}, 'activity_content') }}</span>
+    {% endif %}
+</div>

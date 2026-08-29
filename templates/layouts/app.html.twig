@@ -18,6 +18,8 @@
          sections: 'groups.sections'|trans({}, 'search'),
          folders: 'groups.folders'|trans({}, 'search'),
          documents: 'groups.documents'|trans({}, 'search'),
+         activity_categories: 'groups.activity_categories'|trans({}, 'search'),
+         activities: 'groups.activities'|trans({}, 'search'),
      }|json_encode }}"
      data-confirm-cancel-value="{{ 'ui.cancel'|trans }}"
      data-confirm-confirm-value="{{ 'ui.confirm_delete'|trans }}"
@@ -123,6 +125,15 @@
                 'heroicons:folder-open',
                 current_route,
                 'app_document_tree'
+            ) }}
+
+            {# Actividades #}
+            {{ _self.nav_item(
+                'activities'|trans({}, 'navigation'),
+                path('app_activities'),
+                'heroicons:check-circle',
+                current_route,
+                'app_activities'
             ) }}
 
             {# Informes — solo para equipo directivo y admins #}

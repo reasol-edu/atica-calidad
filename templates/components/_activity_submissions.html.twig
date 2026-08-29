@@ -1,0 +1,120 @@
+{% set aid = activity.id.toRfc4122 %}
+{% set fid = folder.id.toRfc4122 %}
+{% set my_slots = this.getMySlots(activity) %}
+{% set other_slots = this.getOtherSlots(activity) %}
+{% set stats = this.getStats(activity) %}
+{% set my_stats = this.getMySubmissionStats(activity) %}
+{% set all_expanded = aid in expandedAllSubmissions or my_slots is empty %}
+
+<div class="border-t border-gray-100 pt-3 space-y-3">
+    {# ── Mis entregas ─────────────────────────────────────────────────── #}
+    <div>
+        <div class="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3">
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ 'submission.section_title'|trans({}, 'activity_content') }}</p>
+            {% if my_slots is not empty %}
+                <p class="text-xs text-gray-500">
+                    {{- 'submission.my_stats.delivered'|trans({'%delivered%': my_stats.delivered, '%total%': my_stats.total}, 'activity_content') }}
+                    {%- if my_stats.needsReview %}, {{ 'submission.my_stats.accepted'|trans({'%accepted%': my_stats.accepted, '%total%': my_stats.total}, 'activity_content') }}
+                        {%- if my_stats.rejected > 0 %}, {{ 'submission.my_stats.rejected'|trans({'%rejected%': my_stats.rejected, '%total%': my_stats.total}, 'activity_content') }}{% endif -%}
+                    {%- endif -%}
+                </p>
+            {% endif %}
+        </div>
+        {% set open_document = null %}
+        {% if my_slots is empty %}
+            <p class="text-xs italic text-gray-400">{{ 'submission.mine_empty'|trans({}, 'activity_content') }}</p>
+        {% else %}
+            {# The revision panel (with its own approve/reject/new-revision <form> elements) is
+               rendered separately below, OUTSIDE this form — browsers don't support nested forms,
+               so an open panel here would silently submit through this form's action instead of
+               its own. #}
+            <form action="{{ path('app_activity_submission_upload', {activityId: aid}) }}" method="post" enctype="multipart/form-data"
+                  data-controller="activity-submissions">
+                <input type="hidden" name="_token" value="{{ csrf_token('activity_submission_upload_' ~ aid) }}">
+                <div class="space-y-1.5">
+                    {% for slot in my_slots %}
+                        {% set document = this.resolveSlot(activity, slot) %}
+                        {% if document and document.id.toRfc4122 == revisionPanelDocumentId %}{% set open_document = document %}{% endif %}
+                        {% include 'components/_activity_submission_row.html.twig' with {activity: activity, folder: folder, slot: slot, document: document, index: loop.index0} %}
+                    {% endfor %}
+                </div>
+                <button type="submit" data-activity-submissions-target="submit"
+                        class="hidden mt-2 items-center gap-1.5 rounded-md bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                    {{ 'submission.submit'|trans({}, 'activity_content') }}
+                </button>
+            </form>
+        {% endif %}
+        {% if open_document is not null %}
+            {% include 'components/_activity_submission_panel.html.twig' with {activity: activity, folder: folder, document: open_document} %}
+        {% endif %}
+    </div>
+
+    {# ── Compleción ───────────────────────────────────────────────────── #}
+    {% if this.hasIndividualCompletionOwner(activity) %}
+        {% include 'components/_activity_completion.html.twig' with {activity: activity, profile: null, list_item: null, teacher_owned: true} %}
+    {% else %}
+        <div class="flex flex-wrap items-center gap-3">
+            {% for owner in this.getMyCompletionOwners(activity) %}
+                {% include 'components/_activity_completion.html.twig' with {activity: activity, profile: owner.profile, list_item: owner.listItem, teacher_owned: false} %}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {# ── Estadísticas ─────────────────────────────────────────────────── #}
+    <div>
+        <button type="button" data-action="live#action" data-live-action-param="toggleStats" data-live-activity-id-param="{{ aid }}"
+                class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700">
+            {{ ux_icon('heroicons:chart-bar', {class: 'h-3.5 w-3.5'}) }}
+            {{ 'submission.stats_toggle'|trans({}, 'activity_content') }}
+            {{ ux_icon(aid in statsShown ? 'heroicons:chevron-up' : 'heroicons:chevron-down', {class: 'h-3.5 w-3.5'}) }}
+        </button>
+        {% if aid in statsShown %}
+            <div class="mt-2 overflow-hidden rounded-lg border border-gray-100">
+                <table class="w-full text-xs">
+                    <tbody class="divide-y divide-gray-50">
+                        {% for group in stats.groups %}
+                            <tr>
+                                <td class="px-3 py-1.5 text-gray-600">{{ group.label }}</td>
+                                <td class="px-3 py-1.5 text-right text-gray-500 whitespace-nowrap">
+                                    {{ 'submission.stats_delivered'|trans({}, 'activity_content') }}:
+                                    {{ group.delivered }}/{{ group.total }}
+                                    ({{ group.total > 0 ? (100 * group.delivered / group.total)|round : 0 }}%)
+                                </td>
+                                {% if stats.needsReview %}
+                                    <td class="px-3 py-1.5 text-right text-gray-500 whitespace-nowrap">
+                                        {{ 'submission.stats_accepted'|trans({}, 'activity_content') }}:
+                                        {{ group.accepted }}/{{ group.total }}
+                                        ({{ group.total > 0 ? (100 * group.accepted / group.total)|round : 0 }}%)
+                                    </td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+
+    {# ── Todas las entregas ───────────────────────────────────────────── #}
+    {% if other_slots is not empty %}
+        <div>
+            <button type="button" data-action="live#action" data-live-action-param="toggleAllSubmissions" data-live-activity-id-param="{{ aid }}"
+                    class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700">
+                {{ ux_icon(all_expanded ? 'heroicons:chevron-down' : 'heroicons:chevron-right', {class: 'h-3.5 w-3.5'}) }}
+                {{ 'submission.all_section_title'|trans({}, 'activity_content') }}
+            </button>
+            {% if all_expanded %}
+                <div class="mt-2 space-y-1.5">
+                    {% for slot in other_slots %}
+                        {% set document = this.resolveSlot(activity, slot) %}
+                        {% include 'components/_activity_submission_row.html.twig' with {activity: activity, folder: folder, slot: slot, document: document, read_only: true} %}
+                        {% if document and document.id.toRfc4122 == revisionPanelDocumentId %}
+                            {% include 'components/_activity_submission_panel.html.twig' with {activity: activity, folder: folder, document: document} %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

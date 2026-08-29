@@ -80,4 +80,16 @@ class FolderRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    /** @return list<Folder> every folder in the centre, ordered by name — populates the activity-folder-linking picker. */
+    public function findAllByCentre(EducationalCentre $centre): array
+    {
+        return $this->createQueryBuilder('f')
+            ->join('f.documentSection', 's')
+            ->where('s.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('f.name', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

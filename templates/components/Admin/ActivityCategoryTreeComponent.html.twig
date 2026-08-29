@@ -1,0 +1,136 @@
+<div {{ attributes }} class="js-activity-category-tree space-y-3">
+    {% set visible    = this.visibleCategories %}
+    {% set breadcrumb = this.breadcrumb %}
+
+    {# ── Migas de pan ─────────────────────────────────────────────────── #}
+    <nav class="flex flex-wrap items-center gap-1 text-sm">
+        <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param=""
+                class="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium
+                       {{ currentParentId == '' ? 'bg-forest-50 text-forest-700' : 'text-gray-500 hover:bg-gray-100' }}">
+            {{ ux_icon('heroicons:home', {class: 'h-4 w-4'}) }}
+            {{ 'activity_category.root'|trans({}, 'admin') }}
+        </button>
+        {% for crumb in breadcrumb %}
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 text-gray-300 shrink-0'}) }}
+            <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ crumb.id }}"
+                    class="rounded-md px-2 py-1 font-medium
+                           {{ currentParentId == crumb.id.toRfc4122 ? 'bg-forest-50 text-forest-700' : 'text-gray-500 hover:bg-gray-100' }}">
+                {{ crumb.name }}
+            </button>
+        {% endfor %}
+    </nav>
+
+    {# ── Nivel actual ─────────────────────────────────────────────────── #}
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+        <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
+            {{ ux_icon('heroicons:rectangle-group', {class: 'h-4 w-4 text-gray-400'}) }}
+            <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                {{ breadcrumb is empty ? 'activity_category.col.roots'|trans({}, 'admin') : 'activity_category.col.children'|trans({}, 'admin') }}
+            </span>
+            <span class="ml-auto text-xs text-gray-400">{{ visible|length }}</span>
+        </div>
+
+        {% if visible is empty %}
+            <p class="px-4 py-6 text-center text-xs italic text-gray-400">{{ 'activity_category.items.empty'|trans({}, 'admin') }}</p>
+        {% else %}
+            <ul class="divide-y divide-gray-50">
+                {% for category in visible %}
+                    {% set cid = category.id.toRfc4122 %}
+                    <li class="px-4 py-2.5">
+                        {% if renamingId == cid %}
+                            <form data-action="submit->live#action:prevent" data-live-action-param="saveRename"
+                                  class="flex items-center gap-2">
+                                <input type="text" data-model="norender|renameValue" value="{{ renameValue }}" autofocus
+                                       class="min-w-0 flex-1 rounded-lg border border-forest-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                                <button type="submit" class="text-forest-600 hover:text-forest-800">{{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}</button>
+                                <button type="button" data-action="live#action" data-live-action-param="cancelRename" class="text-gray-400 hover:text-gray-600">{{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}</button>
+                            </form>
+                            {% if errors.rename is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.rename }}</p>{% endif %}
+                        {% elseif confirmingDeleteId == cid %}
+                            <div class="flex items-center gap-2">
+                                <span class="flex-1 text-xs text-gray-600">{{ 'activity_category.delete_confirm'|trans({}, 'admin') }}</span>
+                                <button type="button" data-action="live#action" data-live-action-param="deleteCategory" data-live-id-param="{{ cid }}"
+                                        class="rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700">
+                                    {{ 'activity_category.confirm_yes'|trans({}, 'admin') }}
+                                </button>
+                                <button type="button" data-action="live#action" data-live-action-param="cancelDelete"
+                                        class="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">
+                                    {{ 'activity_category.cancel'|trans({}, 'admin') }}
+                                </button>
+                            </div>
+                            {% if errors.delete is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.delete }}</p>{% endif %}
+                        {% else %}
+                            <div class="flex items-center gap-2">
+                                <span class="min-w-0 flex-1 truncate text-sm text-gray-800">{{ category.name }}</span>
+                                {% if category.children|length > 0 %}
+                                    <span class="shrink-0 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                                        {{ category.children|length }}
+                                    </span>
+                                {% endif %}
+                                <button type="button" data-action="live#action" data-live-action-param="moveUp" data-live-id-param="{{ cid }}"
+                                        class="hidden sm:inline-flex shrink-0 items-center justify-center p-1 text-gray-300 hover:text-gray-600">
+                                    {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4'}) }}
+                                </button>
+                                <button type="button" data-action="live#action" data-live-action-param="moveDown" data-live-id-param="{{ cid }}"
+                                        class="hidden sm:inline-flex shrink-0 items-center justify-center p-1 text-gray-300 hover:text-gray-600">
+                                    {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4'}) }}
+                                </button>
+                                <div class="relative shrink-0" data-controller="dropdown">
+                                    <button type="button" data-action="dropdown#toggle"
+                                            class="p-1 text-gray-300 hover:text-gray-600" title="{{ 'activity_category.more_actions'|trans({}, 'admin') }}">
+                                        {{ ux_icon('heroicons:ellipsis-vertical', {class: 'h-4 w-4'}) }}
+                                    </button>
+                                    <div data-dropdown-target="menu" class="hidden absolute right-0 z-40 mt-1 w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                        <button type="button" data-action="live#action dropdown#toggle" data-live-action-param="moveUp" data-live-id-param="{{ cid }}"
+                                                class="flex sm:hidden w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                            {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                                            {{ 'activity_category.move_up'|trans({}, 'admin') }}
+                                        </button>
+                                        <button type="button" data-action="live#action dropdown#toggle" data-live-action-param="moveDown" data-live-id-param="{{ cid }}"
+                                                class="flex sm:hidden w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                            {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                                            {{ 'activity_category.move_down'|trans({}, 'admin') }}
+                                        </button>
+                                        <button type="button" data-action="live#action dropdown#toggle" data-live-action-param="startRename" data-live-id-param="{{ cid }}"
+                                                class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                            {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                                            {{ 'activity_category.rename'|trans({}, 'admin') }}
+                                        </button>
+                                        <button type="button" data-action="live#action dropdown#toggle" data-live-action-param="askDelete" data-live-id-param="{{ cid }}"
+                                                class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50">
+                                            {{ ux_icon('heroicons:trash', {class: 'h-4 w-4 shrink-0'}) }}
+                                            {{ 'activity_category.delete'|trans({}, 'admin') }}
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ cid }}"
+                                        title="{{ 'activity_category.action.open'|trans({}, 'admin') }}"
+                                        class="shrink-0 inline-flex items-center justify-center p-1 text-gray-300 hover:text-forest-500 transition-colors">
+                                    {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+                                </button>
+                            </div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <form data-action="submit->live#action:prevent"
+              data-live-action-param="addCategory"
+              class="flex items-center gap-2 border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
+            <input type="text"
+                   data-model="norender|addValue"
+                   value="{{ addValue }}"
+                   placeholder="{{ 'activity_category.field.name_placeholder'|trans({}, 'admin') }}"
+                   class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
+                          placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+            <button type="submit"
+                    class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white
+                           hover:bg-forest-700 transition-colors"
+                    title="{{ 'activity_category.add'|trans({}, 'admin') }}">
+                {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+            </button>
+        </form>
+        {% if errors.add is defined %}<p class="px-3 pb-2 text-xs text-red-600">{{ errors.add }}</p>{% endif %}
+    </div>
+</div>

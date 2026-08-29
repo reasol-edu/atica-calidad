@@ -51,6 +51,51 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Teachers who currently hold this profile/subperfil combination — either a direct assignment
+     * to that leaf, or a whole-profile (wildcard, listItem IS NULL) assignment that covers every
+     * subperfil. Unlike findTeachersByProfileAndListItem() (the exact-match version the per-leaf
+     * admin assignment screen needs, since there it must show/manage the specific assignment row
+     * for that leaf), this answers "who can act as this row" — same wildcard-counts-as-any
+     * convention as isTeacherAssignedToAny(). Used to expand a folder upload row into one
+     * submission slot per teacher for Activity::SCOPE_INDIVIDUAL.
+     *
+     * @return Teacher[]
+     */
+    public function findTeachersHoldingProfileAndListItem(SpecificProfile $profile, ?ListItem $listItem): array
+    {
+        $qb = $this->createQueryBuilder('a')
+            ->select('a', 't')
+            ->join('a.teacher', 't')
+            ->where('a.specificProfile = :profile')
+            ->setParameter('profile', $profile->getId(), 'uuid')
+            ->orderBy('t.name.lastName', 'ASC');
+
+        if ($listItem === null) {
+            $qb->andWhere('a.listItem IS NULL');
+        } else {
+            $qb->andWhere('a.listItem = :listItem OR a.listItem IS NULL')
+                ->setParameter('listItem', $listItem->getId(), 'uuid');
+        }
+
+        /** @var SpecificProfileAssignment[] $rows */
+        $rows = $qb->getQuery()->getResult();
+
+        $teachers = [];
+        $seen     = [];
+        foreach ($rows as $row) {
+            $teacher = $row->getTeacher();
+            $key     = $teacher->getId()->toRfc4122();
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $teachers[] = $teacher;
+        }
+
+        return $teachers;
+    }
+
+    /**
      * Number of teachers assigned per leaf, keyed by list item UUID (RFC4122).
      * Single grouped query; avoids N+1 across the profile's leaf descendants.
      *

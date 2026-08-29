@@ -1,0 +1,90 @@
+{% set read_only = read_only|default(false) %}
+{% set index = index|default(0) %}
+{% set aid = activity.id.toRfc4122 %}
+{% set can_manage = this.canManageFolder(folder) %}
+{% set can_review = this.canReviewFolder(folder) %}
+
+{% if document is not null %}
+    {% set did = document.id.toRfc4122 %}
+    {% set active = document.activeRevision %}
+    {% set pending = document.pendingRevision %}
+    {% set can_manage_as_uploader = this.canManageDocumentAsUploader(document) %}
+    {% set highlighted = highlightedDocumentId == did %}
+
+    {% if not read_only %}
+        <input type="hidden" name="items[{{ index }}][slotKey]" value="{{ slot.key }}">
+        <input type="file" name="files[]" class="sr-only" data-activity-submissions-target="input" data-action="change->activity-submissions#change">
+    {% endif %}
+
+    <div data-role="submission-row" {{ (highlighted ? 'data-controller="scroll-into-view"' : '')|raw }}
+         class="group flex flex-wrap items-center gap-2 rounded-lg border border-gray-100 bg-white px-2.5 py-1.5 {{ highlighted ? 'document-highlight-pulse' : '' }}">
+        {% if active %}
+            <a href="{{ path('app_folder_document_revision_download', {folderId: folder.id.toRfc4122, documentId: did, revisionId: active.id.toRfc4122}) }}"
+               class="shrink-0 text-gray-300 hover:text-forest-600 transition-colors" title="{{ 'download'|trans({}, 'document_content') }}">
+                {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-4 w-4'}) }}
+            </a>
+        {% else %}
+            <span class="shrink-0 text-gray-200" title="{{ 'status.no_revision'|trans({}, 'activity_content') }}">
+                {{ ux_icon('heroicons:clock', {class: 'h-4 w-4'}) }}
+            </span>
+        {% endif %}
+
+        <span class="min-w-0 flex-1 truncate text-sm text-gray-800">{{ document.name }}</span>
+
+        {% if pending %}
+            <span class="shrink-0 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                {{ 'status.pending'|trans({}, 'activity_content') }}
+            </span>
+        {% elseif not active %}
+            <span class="shrink-0 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">
+                {{ 'status.no_revision'|trans({}, 'activity_content') }}
+            </span>
+        {% endif %}
+
+        {% if active %}
+            <span class="shrink-0 text-xs text-gray-400">
+                {{ active.revisedAt|date('d/m/Y') }} · {{ active.uploadedBy.name.lastName }}, {{ active.uploadedBy.name.firstName }}
+            </span>
+        {% endif %}
+
+        {% if can_manage or can_manage_as_uploader or can_review %}
+            <button type="button" data-action="live#action" data-live-action-param="toggleRevisionPanel" data-live-id-param="{{ did }}"
+                    class="shrink-0 transition-colors {{ revisionPanelDocumentId == did ? 'text-forest-600' : 'text-gray-300 hover:text-forest-600' }}"
+                    title="{{ 'revision.manage'|trans({}, 'activity_content') }}">
+                {{ ux_icon('heroicons:clock', {class: 'h-4 w-4'}) }}
+            </button>
+
+            {% if confirmingDeleteDocumentId == did %}
+                <span class="shrink-0 inline-flex items-center gap-1">
+                    <button type="button" data-action="live#action" data-live-action-param="deleteDocument" data-live-id-param="{{ did }}"
+                            class="rounded-md bg-red-600 px-1.5 py-0.5 text-xs font-medium text-white">{{ 'confirm_yes'|trans({}, 'activity_content') }}</button>
+                    <button type="button" data-action="live#action" data-live-action-param="cancelDeleteDocument"
+                            class="rounded-md border border-gray-200 px-1.5 py-0.5 text-xs text-gray-600">{{ 'cancel'|trans({}, 'activity_content') }}</button>
+                </span>
+            {% else %}
+                <button type="button" data-action="live#action" data-live-action-param="askDeleteDocument" data-live-id-param="{{ did }}"
+                        class="shrink-0 text-gray-300 hover:text-red-600 transition-colors" title="{{ 'delete'|trans({}, 'activity_content') }}">
+                    {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}
+                </button>
+            {% endif %}
+        {% endif %}
+    </div>
+
+{% elseif read_only %}
+    <div class="flex items-center gap-2 rounded-lg border border-dashed border-gray-100 bg-gray-50/40 px-2.5 py-1.5">
+        {{ ux_icon('heroicons:clock', {class: 'h-4 w-4 text-gray-300 shrink-0'}) }}
+        <span class="min-w-0 flex-1 truncate text-sm text-gray-500">{{ slot.displayName }}</span>
+        <span class="shrink-0 text-xs italic text-gray-400">{{ 'status.no_revision'|trans({}, 'activity_content') }}</span>
+    </div>
+{% else %}
+    <input type="hidden" name="items[{{ index }}][slotKey]" value="{{ slot.key }}">
+    <div data-role="submission-row"
+         data-activity-submissions-target="dropzone"
+         data-action="dragenter->activity-submissions#dragEnter dragover->activity-submissions#dragOver dragleave->activity-submissions#dragLeave drop->activity-submissions#drop click->activity-submissions#triggerBrowse"
+         class="flex items-center gap-3 rounded-lg border-2 border-dashed border-gray-200 bg-white px-3 py-2.5 cursor-pointer hover:border-forest-300 hover:bg-forest-50/50 transition-colors">
+        {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+        <span class="min-w-0 flex-1 truncate text-sm text-gray-600">{{ slot.displayName }}</span>
+        <span data-activity-submissions-target="preview" class="shrink-0 text-xs text-gray-400">{{ 'submission.dropzone_hint'|trans({}, 'activity_content') }}</span>
+        <input type="file" name="files[]" class="sr-only" data-activity-submissions-target="input" data-action="change->activity-submissions#change">
+    </div>
+{% endif %}

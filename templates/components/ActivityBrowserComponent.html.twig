@@ -1,0 +1,167 @@
+<div {{ attributes }} class="js-activity-browser space-y-4">
+    {% set breadcrumb = this.getBreadcrumb %}
+    {% set child_categories = this.getVisibleCategories %}
+    {% set current = this.getCurrentCategory %}
+    {% set can_edit = this.canEdit %}
+
+    {# ── Búsqueda de todo el árbol de actividades ─────────────────────── #}
+    <form data-action="submit->live#action:prevent" class="relative">
+        {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400'}) }}
+        <input type="search" data-model="debounce(300)|searchQuery" value="{{ searchQuery }}"
+               placeholder="{{ 'search.placeholder'|trans({}, 'activity_content') }}"
+               class="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 {{ searchQuery is not empty ? 'pr-9' : 'pr-3' }} text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+        {% if searchQuery is not empty %}
+            <button type="button" data-action="live#action" data-live-action-param="clearSearch"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-600">
+                {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+            </button>
+        {% endif %}
+    </form>
+
+    {% if searchQuery|trim|length >= 2 %}
+        {# ── Resultados de búsqueda ────────────────────────────────────── #}
+        {% set category_results   = this.getCategorySearchResults %}
+        {% set activity_results   = this.getActivitySearchResults %}
+        {% set submission_results = this.getSubmissionSearchResults %}
+        {% set any_shown = false %}
+
+        {% if category_results is not empty %}
+            <div>
+                <p class="mb-1 px-1 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'search.categories_heading'|trans({}, 'activity_content') }}</p>
+                <div class="space-y-1">
+                    {% for result in category_results %}
+                        <button type="button" data-action="live#action" data-live-action-param="openCategorySearchResult" data-live-id-param="{{ result.category.id }}"
+                                class="flex w-full items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left hover:bg-gray-50 {{ result.direct ? '' : 'opacity-60' }}">
+                            {{ ux_icon('heroicons:rectangle-group', {class: 'h-4 w-4 shrink-0 text-gray-400'}) }}
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate text-sm text-gray-800">{{ result.category.name|highlight(searchQuery) }}</span>
+                                <span class="block truncate text-xs text-gray-400">{{ result.path }}</span>
+                            </span>
+                            {% if not result.direct %}
+                                <span class="shrink-0 text-xs italic text-gray-400">{{ 'search.other_profiles_hint'|trans({}, 'activity_content') }}</span>
+                            {% endif %}
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% set any_shown = true %}
+        {% endif %}
+
+        {% if activity_results is not empty %}
+            <div class="{{ any_shown ? 'pt-2' : '' }}">
+                <p class="mb-1 px-1 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'search.activities_heading'|trans({}, 'activity_content') }}</p>
+                <div class="space-y-1">
+                    {% for result in activity_results %}
+                        <button type="button" data-action="live#action" data-live-action-param="openActivitySearchResult" data-live-id-param="{{ result.activity.id }}"
+                                class="flex w-full items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left hover:bg-gray-50 {{ result.direct ? '' : 'opacity-60' }}">
+                            {{ ux_icon('heroicons:check-circle', {class: 'h-4 w-4 shrink-0 text-gray-400'}) }}
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate text-sm text-gray-800">{{ result.activity.title|highlight(searchQuery) }}</span>
+                                <span class="block truncate text-xs text-gray-400">{{ result.path }}</span>
+                            </span>
+                            {% if not result.direct %}
+                                <span class="shrink-0 text-xs italic text-gray-400">{{ 'search.other_profiles_hint'|trans({}, 'activity_content') }}</span>
+                            {% endif %}
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% set any_shown = true %}
+        {% endif %}
+
+        {% if submission_results is not empty %}
+            <div class="{{ any_shown ? 'pt-2' : '' }}">
+                <p class="mb-1 px-1 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'search.submissions_heading'|trans({}, 'activity_content') }}</p>
+                <div class="space-y-1">
+                    {% for result in submission_results %}
+                        <button type="button" data-action="live#action" data-live-action-param="openSubmissionSearchResult" data-live-id-param="{{ result.document.id }}"
+                                class="flex w-full items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left hover:bg-gray-50 {{ result.direct ? '' : 'opacity-60' }}">
+                            {{ ux_icon('heroicons:document', {class: 'h-4 w-4 shrink-0 text-gray-400'}) }}
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate text-sm text-gray-800">{{ result.document.name|highlight(searchQuery) }}</span>
+                                <span class="block truncate text-xs text-gray-400">{{ result.path }}</span>
+                            </span>
+                            {% if not result.direct %}
+                                <span class="shrink-0 text-xs italic text-gray-400">{{ 'search.other_profiles_hint'|trans({}, 'activity_content') }}</span>
+                            {% endif %}
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% set any_shown = true %}
+        {% endif %}
+
+        {% if not any_shown %}
+            <p class="px-1 py-6 text-center text-sm text-gray-400">{{ 'search.empty'|trans({}, 'activity_content') }}</p>
+        {% endif %}
+    {% else %}
+        {# ── Migas de pan ──────────────────────────────────────────────── #}
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <nav class="flex flex-wrap items-center gap-1 text-sm text-gray-500">
+                <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param=""
+                        class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-gray-100 hover:text-gray-700 {{ current is null ? 'font-medium text-gray-800' : '' }}">
+                    {{ ux_icon('heroicons:home', {class: 'h-3.5 w-3.5'}) }}
+                    {{ 'breadcrumb.root'|trans({}, 'activity_content') }}
+                </button>
+                {% for crumb in breadcrumb %}
+                    {{ ux_icon('heroicons:chevron-right', {class: 'h-3.5 w-3.5 text-gray-300'}) }}
+                    <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ crumb.id.toRfc4122 }}"
+                            class="rounded-md px-1.5 py-0.5 hover:bg-gray-100 hover:text-gray-700 {{ crumb == current ? 'font-medium text-gray-800' : '' }}">
+                        {{ crumb.name }}
+                    </button>
+                {% endfor %}
+            </nav>
+            <button type="button" data-action="live#action" data-live-action-param="toggleShowAllProfiles"
+                    class="shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors
+                           {{ showAllProfiles ? 'border-forest-300 bg-forest-50 text-forest-700' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50' }}">
+                {{ ux_icon('heroicons:eye', {class: 'h-3.5 w-3.5'}) }}
+                {{ 'show_all_profiles'|trans({}, 'activity_content') }}
+            </button>
+        </div>
+
+        {# ── Categorías hijas ──────────────────────────────────────────── #}
+        {% if child_categories is not empty %}
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {% for category in child_categories %}
+                    <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ category.id.toRfc4122 }}"
+                            class="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left hover:border-forest-300 hover:bg-forest-50/40 transition-colors">
+                        {{ ux_icon('heroicons:rectangle-group', {class: 'h-5 w-5 shrink-0 text-gray-400'}) }}
+                        <span class="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">{{ category.name }}</span>
+                        {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0 text-gray-300'}) }}
+                    </button>
+                {% endfor %}
+            </div>
+        {% elseif current is null %}
+            <p class="py-6 text-center text-sm italic text-gray-400">{{ 'categories_empty'|trans({}, 'activity_content') }}</p>
+        {% endif %}
+
+        {# ── Actividades de la categoría actual ────────────────────────── #}
+        {% if current is not null %}
+            {% set visible_activities = this.getVisibleActivities %}
+
+            {% if can_edit %}
+                <div class="flex justify-end">
+                    <button type="button" data-action="live#action" data-live-action-param="startAddActivity"
+                            class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-3 py-2 text-sm font-medium text-white hover:bg-forest-700 transition-colors">
+                        {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                        {{ 'activity.add'|trans({}, 'admin') }}
+                    </button>
+                </div>
+            {% endif %}
+
+            {% if activityFormOpen and formActivityId == '' %}
+                {% include 'components/_activity_form.html.twig' %}
+            {% endif %}
+
+            {% if visible_activities is empty %}
+                <p class="py-6 text-center text-sm italic text-gray-400">{{ 'activities_empty'|trans({}, 'activity_content') }}</p>
+            {% else %}
+                <div class="space-y-4">
+                    {% for activity in visible_activities %}
+                        {% include 'components/_activity.html.twig' with {activity: activity, can_edit: can_edit} %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+</div>

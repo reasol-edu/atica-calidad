@@ -71,6 +71,15 @@ class Folder
     #[ORM\OneToMany(targetEntity: Document::class, mappedBy: 'folder', cascade: ['persist'], orphanRemoval: true)]
     private Collection $documents;
 
+    /**
+     * Inverse side of Activity::$folder — Activity owns the relation. When set, this folder's
+     * documents ARE that activity's submissions: uploading a new document directly (from the
+     * document tree) is blocked in favour of going through the activity (see FolderController /
+     * _folder_documents.html.twig).
+     */
+    #[ORM\OneToOne(mappedBy: 'folder')]
+    private ?Activity $activity = null;
+
     public function __construct()
     {
         $this->responsibleProfiles = new ArrayCollection();
@@ -171,6 +180,11 @@ class Folder
     public function isLeaf(): bool
     {
         return $this->documents->isEmpty();
+    }
+
+    public function getActivity(): ?Activity
+    {
+        return $this->activity;
     }
 
     // ── Responsible profiles ─────────────────────────────────────────────────

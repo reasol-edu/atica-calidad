@@ -38,7 +38,21 @@
         </div>
     {% endfor %}
 
-    {% if can_upload %}
+    {% if folder.activity %}
+        <div class="px-4 py-3 bg-gray-50/40">
+            <div class="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
+                {{ ux_icon('heroicons:check-circle', {class: 'h-5 w-5 text-forest-500 shrink-0'}) }}
+                <span class="min-w-0 flex-1 text-sm text-gray-600">
+                    {{ 'folder.activity_hint'|trans({'%title%': folder.activity.title}, 'document_content') }}
+                </span>
+                <a href="{{ path('app_activities', {activity: folder.activity.id.toRfc4122}) }}"
+                   class="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-forest-200 bg-forest-50 px-3 py-1.5 text-xs font-medium text-forest-700 hover:bg-forest-100 transition-colors">
+                    {{ 'folder.activity_link'|trans({}, 'document_content') }}
+                    {{ ux_icon('heroicons:arrow-right', {class: 'h-3.5 w-3.5'}) }}
+                </a>
+            </div>
+        </div>
+    {% elseif can_upload %}
         {% set upload_profile_rows = this.getAllowedUploadProfileRows(folder) %}
         <div class="px-4 py-3 bg-gray-50/40">
             <form action="{{ path('app_folder_upload', {folderId: fid}) }}" method="post" enctype="multipart/form-data"

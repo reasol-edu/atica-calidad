@@ -1,0 +1,145 @@
+{% set editing = formActivityId != '' %}
+<div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
+    <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
+        {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4 text-gray-400'}) }}
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            {{ (editing ? 'activity.edit' : 'activity.add')|trans({}, 'admin') }}
+        </span>
+    </div>
+
+    <form data-action="submit->live#action:prevent" data-live-action-param="saveActivity" class="px-4 py-4 sm:px-6 space-y-4">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div class="sm:col-span-2">
+                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.title'|trans({}, 'admin') }}</label>
+                <input type="text" data-model="norender|formTitle" value="{{ formTitle }}"
+                       class="block w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2
+                              {{ errors.title is defined ? 'border-red-300 focus:ring-red-400/20' : 'border-gray-200 focus:border-forest-500 focus:ring-forest-500/20' }}">
+                {% if errors.title is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.title }}</p>{% endif %}
+            </div>
+
+            <div class="sm:col-span-2">
+                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.description'|trans({}, 'admin') }}</label>
+                <textarea data-model="norender|formDescription" rows="3"
+                          class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">{{ formDescription }}</textarea>
+            </div>
+
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.start'|trans({}, 'admin') }}</label>
+                <div class="flex items-center gap-2">
+                    <input type="number" min="1" max="31" placeholder="{{ 'activity.field.day'|trans({}, 'admin') }}"
+                           data-model="norender|formStartDay" value="{{ formStartDay }}"
+                           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                    <input type="number" min="1" max="12" placeholder="{{ 'activity.field.month'|trans({}, 'admin') }}"
+                           data-model="norender|formStartMonth" value="{{ formStartMonth }}"
+                           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                </div>
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.end'|trans({}, 'admin') }}</label>
+                <div class="flex items-center gap-2">
+                    <input type="number" min="1" max="31" placeholder="{{ 'activity.field.day'|trans({}, 'admin') }}"
+                           data-model="norender|formEndDay" value="{{ formEndDay }}"
+                           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                    <input type="number" min="1" max="12" placeholder="{{ 'activity.field.month'|trans({}, 'admin') }}"
+                           data-model="norender|formEndMonth" value="{{ formEndMonth }}"
+                           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                </div>
+            </div>
+            {% if errors.dates is defined %}<p class="sm:col-span-2 text-xs text-red-600">{{ errors.dates }}</p>{% endif %}
+
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.folder'|trans({}, 'admin') }}</label>
+                <select data-controller="tom-select"
+                        data-tom-select-placeholder-value="{{ 'activity.field.folder_picker_placeholder'|trans({}, 'admin') }}"
+                        data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
+                        data-model="norender|formFolderId" class="w-full text-sm ts-local">
+                    <option value="">{{ 'activity.field.folder_none'|trans({}, 'admin') }}</option>
+                    {% for folder in this.getAvailableFolders %}
+                        <option value="{{ folder.id.toRfc4122 }}" {{ folder.id.toRfc4122 == formFolderId ? 'selected' : '' }}>{{ this.getFolderLabel(folder) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.list_item'|trans({}, 'admin') }}</label>
+                <select data-controller="tom-select"
+                        data-tom-select-placeholder-value="{{ 'activity.field.list_item_picker_placeholder'|trans({}, 'admin') }}"
+                        data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
+                        data-model="norender|formListItemId" class="w-full text-sm ts-local">
+                    <option value="">{{ 'activity.field.list_item_none'|trans({}, 'admin') }}</option>
+                    {% for item in this.getAvailableListItems %}
+                        <option value="{{ item.id.toRfc4122 }}" {{ item.id.toRfc4122 == formListItemId ? 'selected' : '' }}>{{ this.getListItemLabel(item) }}</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.list_item_help'|trans({}, 'admin') }}</p>
+            </div>
+
+            <div class="sm:col-span-2">
+                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.tags'|trans({}, 'admin') }}</label>
+                <select multiple data-controller="tom-select"
+                        data-tom-select-placeholder-value="{{ 'activity.field.tags_placeholder'|trans({}, 'admin') }}"
+                        data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
+                        data-model="norender|formTagIds" class="w-full text-sm ts-local">
+                    {% for tag in this.getAvailableTags %}
+                        <option value="{{ tag.id.toRfc4122 }}" {{ tag.id.toRfc4122 in formTagIds ? 'selected' : '' }}>{{ tag.name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.tags_help'|trans({}, 'admin') }}</p>
+            </div>
+
+            <div class="sm:col-span-2">
+                <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.required'|trans({}, 'admin') }}</span>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <twig:Form:RadioCard name="activity_required" value="1"
+                        label="{{ 'activity.field.required_yes'|trans({}, 'admin') }}"
+                        :checked="formRequired" data-model="formRequired" />
+                    <twig:Form:RadioCard name="activity_required" value="0"
+                        label="{{ 'activity.field.required_no'|trans({}, 'admin') }}"
+                        :checked="not formRequired" data-model="formRequired" />
+                </div>
+            </div>
+
+            <div class="sm:col-span-2">
+                <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.scope'|trans({}, 'admin') }}</span>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <twig:Form:RadioCard name="activity_scope" value="by_profile"
+                        label="{{ 'activity.field.scope_by_profile'|trans({}, 'admin') }}"
+                        help="{{ 'activity.field.scope_by_profile_help'|trans({}, 'admin') }}"
+                        :checked="formScope == 'by_profile'" data-model="formScope" />
+                    <twig:Form:RadioCard name="activity_scope" value="individual"
+                        label="{{ 'activity.field.scope_individual'|trans({}, 'admin') }}"
+                        help="{{ 'activity.field.scope_individual_help'|trans({}, 'admin') }}"
+                        :checked="formScope == 'individual'" data-model="formScope" />
+                </div>
+            </div>
+
+            <div class="sm:col-span-2">
+                <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.auto_complete'|trans({}, 'admin') }}</span>
+                {% if formFolderId == '' %}
+                    <p class="text-xs italic text-gray-400">{{ 'activity.field.auto_complete_disabled_hint'|trans({}, 'admin') }}</p>
+                {% else %}
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <twig:Form:RadioCard name="activity_auto_complete" value="0"
+                            label="{{ 'activity.field.auto_complete_no'|trans({}, 'admin') }}"
+                            help="{{ 'activity.field.auto_complete_no_help'|trans({}, 'admin') }}"
+                            :checked="not formAutoComplete" data-model="formAutoComplete" />
+                        <twig:Form:RadioCard name="activity_auto_complete" value="1"
+                            label="{{ 'activity.field.auto_complete_yes'|trans({}, 'admin') }}"
+                            help="{{ 'activity.field.auto_complete_yes_help'|trans({}, 'admin') }}"
+                            :checked="formAutoComplete" data-model="formAutoComplete" />
+                    </div>
+                {% endif %}
+                {% if errors.autoComplete is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.autoComplete }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 border-t border-gray-100 pt-4">
+            <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2 text-sm font-semibold text-white hover:bg-forest-700 transition-colors shadow-xs">
+                {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'activity.save'|trans({}, 'admin') }}
+            </button>
+            <button type="button" data-action="live#action" data-live-action-param="cancelActivityForm"
+                    class="inline-flex items-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                {{ 'activity.cancel'|trans({}, 'admin') }}
+            </button>
+        </div>
+    </form>
+</div>

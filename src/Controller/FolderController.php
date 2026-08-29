@@ -11,12 +11,12 @@ use App\Entity\DocumentRevision;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Entity\Teacher;
-use App\Repository\DocumentFileRepository;
 use App\Repository\DocumentRepository;
 use App\Repository\DocumentRevisionRepository;
 use App\Repository\FolderRepository;
 use App\Security\Voter\FolderVoter;
 use App\Service\AttachmentDownloadResponder;
+use App\Service\DocumentCreationService;
 use App\Service\DocumentTreeAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -48,9 +48,9 @@ class FolderController extends AbstractController
         private readonly FolderRepository $folders,
         private readonly DocumentRepository $documents,
         private readonly DocumentRevisionRepository $revisions,
-        private readonly DocumentFileRepository $documentFiles,
         private readonly DocumentTreeAccessChecker $access,
         private readonly AttachmentDownloadResponder $downloadResponder,
+        private readonly DocumentCreationService $documentCreation,
     ) {}
 
     /**
@@ -69,7 +69,7 @@ class FolderController extends AbstractController
         if ($this->isUploadTooLarge($request)) {
             $this->addFlash('error', $this->t('upload.error.too_large'));
 
-            return $this->redirectToFolder($folder);
+            return $this->redirectToFolder($folder, $request);
         }
 
         if (!$this->isCsrfTokenValid('folder_upload_' . $folderId, $request->request->getString('_token'))) {
@@ -80,7 +80,7 @@ class FolderController extends AbstractController
         if ($uploadedFiles === []) {
             $this->addFlash('error', $this->t('upload.error.no_file'));
 
-            return $this->redirectToFolder($folder);
+            return $this->redirectToFolder($folder, $request);
         }
 
         $allowedProfileRows = $this->access->allowedUploadProfileRows($teacher, $folder);
@@ -98,7 +98,7 @@ class FolderController extends AbstractController
                     '%filename%' => $file->getClientOriginalName(),
                 ], 'document_content'));
 
-                return $this->redirectToFolder($folder);
+                return $this->redirectToFolder($folder, $request);
             }
 
             $item    = $items[$i] ?? [];
@@ -119,20 +119,7 @@ class FolderController extends AbstractController
                 }
             }
 
-            $content      = (string) file_get_contents($file->getPathname());
-            $documentFile = $this->storeDocumentFile($content, $file->getMimeType() ?? 'application/octet-stream', $file->getClientOriginalName());
-
-            $document = new Document($folder, $name);
-            $document->setUploadProfile($profile, $listItem);
-            $this->em->persist($document);
-
-            $pendingReview = $folder->requiresReview();
-            $revision      = new DocumentRevision($document, $version, $documentFile, $pendingReview, $teacher);
-            $this->em->persist($revision);
-
-            if (!$pendingReview) {
-                $document->setActiveRevision($revision);
-            }
+            $this->documentCreation->createWithFirstRevision($folder, $name, $profile, $listItem, $file, $teacher, $version);
 
             ++$created;
         }
@@ -140,13 +127,13 @@ class FolderController extends AbstractController
         if ($created === 0) {
             $this->addFlash('error', $this->t('upload.error.no_file'));
 
-            return $this->redirectToFolder($folder);
+            return $this->redirectToFolder($folder, $request);
         }
 
         $this->em->flush();
         $this->addFlash('success', $this->translator->trans('upload.flash.created', ['%count%' => $created], 'document_content'));
 
-        return $this->redirectToFolder($folder);
+        return $this->redirectToFolder($folder, $request);
     }
 
     #[Route('/documentos/{documentId}/revisiones', name: 'app_folder_document_new_revision', methods: ['POST'])]
@@ -162,7 +149,7 @@ class FolderController extends AbstractController
         if ($this->isUploadTooLarge($request)) {
             $this->addFlash('error', $this->t('upload.error.too_large'));
 
-            return $this->redirectToFolder($folder);
+            return $this->redirectToFolder($folder, $request);
         }
 
         if (!$this->isCsrfTokenValid('folder_document_revision_' . $documentId, $request->request->getString('_token'))) {
@@ -173,12 +160,12 @@ class FolderController extends AbstractController
         if (!$file instanceof UploadedFile || !$file->isValid()) {
             $this->addFlash('error', $this->t('upload.error.no_file'));
 
-            return $this->redirectToFolder($folder);
+            return $this->redirectToFolder($folder, $request);
         }
         if ($file->getSize() > self::MAX_DOCUMENT_SIZE) {
             $this->addFlash('error', $this->t('upload.error.too_large'));
 
-            return $this->redirectToFolder($folder);
+            return $this->redirectToFolder($folder, $request);
         }
 
         $canManage = $this->access->canManageFolder($teacher, $folder);
@@ -188,20 +175,20 @@ class FolderController extends AbstractController
             if ($requestedVersion < 1) {
                 $this->addFlash('error', $this->t('revision.error.invalid_version'));
 
-                return $this->redirectToFolder($folder);
+                return $this->redirectToFolder($folder, $request);
             }
             if ($document->hasVersion($requestedVersion)) {
                 $this->addFlash('error', $this->translator->trans('revision.error.version_in_use', [
                     '%version%' => $requestedVersion,
                 ], 'document_content'));
 
-                return $this->redirectToFolder($folder);
+                return $this->redirectToFolder($folder, $request);
             }
             $version = $requestedVersion;
         }
 
         $content      = (string) file_get_contents($file->getPathname());
-        $documentFile = $this->storeDocumentFile($content, $file->getMimeType() ?? 'application/octet-stream', $file->getClientOriginalName());
+        $documentFile = $this->documentCreation->storeFile($content, $file->getMimeType() ?? 'application/octet-stream', $file->getClientOriginalName());
 
         $pendingReview = $folder->requiresReview();
         $revision      = new DocumentRevision($document, $version, $documentFile, $pendingReview, $teacher);
@@ -215,7 +202,7 @@ class FolderController extends AbstractController
 
         $this->addFlash('success', $this->t('revision.flash.uploaded'));
 
-        return $this->redirectToFolder($folder);
+        return $this->redirectToFolder($folder, $request);
     }
 
     #[Route('/documentos/{documentId}/revisiones/{revisionId}/descargar', name: 'app_folder_document_revision_download', methods: ['GET'])]
@@ -267,7 +254,7 @@ class FolderController extends AbstractController
 
         $this->addFlash('success', $this->t('review.flash.approved'));
 
-        return $this->redirectToFolder($folder);
+        return $this->redirectToFolder($folder, $request);
     }
 
     #[Route('/documentos/{documentId}/revisiones/{revisionId}/rechazar', name: 'app_folder_document_revision_reject', methods: ['POST'])]
@@ -296,20 +283,7 @@ class FolderController extends AbstractController
 
         $this->addFlash('success', $this->t('review.flash.rejected'));
 
-        return $this->redirectToFolder($folder);
-    }
-
-    private function storeDocumentFile(string $content, string $mimeType, string $originalFilename): DocumentFile
-    {
-        $hash         = hash('sha256', $content);
-        $documentFile = $this->documentFiles->findByHash($hash);
-        if ($documentFile === null) {
-            $documentFile = new DocumentFile($hash, $content, $mimeType, $originalFilename, strlen($content));
-            $this->em->persist($documentFile);
-            $this->em->flush();
-        }
-
-        return $documentFile;
+        return $this->redirectToFolder($folder, $request);
     }
 
     private function requireFolder(string $folderId, EducationalCentre $centre): Folder
@@ -342,8 +316,20 @@ class FolderController extends AbstractController
         return $user;
     }
 
-    private function redirectToFolder(Folder $folder): Response
+    /**
+     * These routes are also submitted from the Actividades page (a submission's Document lives in
+     * an activity's folder, but the folder itself may not be reachable from the document tree for
+     * the current teacher, or the teacher simply wants to stay where they were) — redirect back to
+     * wherever the form was submitted from when that's a same-origin page, falling back to the
+     * document tree only when there's no usable referer.
+     */
+    private function redirectToFolder(Folder $folder, Request $request): Response
     {
+        $referer = $request->headers->get('referer');
+        if ($referer !== null && str_starts_with($referer, $request->getSchemeAndHttpHost() . '/')) {
+            return $this->redirect($referer);
+        }
+
         return $this->redirectToRoute('app_document_tree', [
             'section' => $folder->getDocumentSection()->getId()->toRfc4122(),
             'folder'  => $folder->getId()->toRfc4122(),

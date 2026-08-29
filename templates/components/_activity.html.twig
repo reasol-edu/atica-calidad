@@ -1,0 +1,83 @@
+{% set aid = activity.id.toRfc4122 %}
+{% set folder = activity.folder %}
+{% set has_submissions = activity.requiresSubmissions %}
+
+<div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
+    <div class="px-4 py-4 sm:px-6 space-y-3">
+        {% if activityFormOpen and formActivityId == aid %}
+            {% include 'components/_activity_form.html.twig' %}
+        {% else %}
+            <div class="flex flex-wrap items-start justify-between gap-2">
+                <div class="min-w-0 flex-1 space-y-1">
+                    <h3 class="text-base font-semibold text-gray-900">{{ activity.title }}</h3>
+                    <p class="text-xs text-gray-500">
+                        {{ 'activity.deadline'|trans({
+                            '%start%': '%02d/%02d'|format(activity.startDay, activity.startMonth),
+                            '%end%': '%02d/%02d'|format(activity.endDay, activity.endMonth),
+                        }, 'activity_content') }}
+                    </p>
+                    {% if activity.description %}
+                        <p class="text-sm text-gray-600 whitespace-pre-line">{{ activity.description }}</p>
+                    {% endif %}
+                    <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span title="{{ (activity.required ? 'activity.required' : 'activity.optional')|trans({}, 'activity_content') }}"
+                              class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium {{ activity.required ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-500' }}">
+                            {{ ux_icon(activity.required ? 'heroicons:exclamation-circle' : 'heroicons:minus-circle', {class: 'h-3.5 w-3.5'}) }}
+                            {{ (activity.required ? 'activity.required' : 'activity.optional')|trans({}, 'activity_content') }}
+                        </span>
+                        {% if has_submissions %}
+                            <span title="{{ (activity.autoComplete ? 'activity.auto_complete' : 'activity.manual')|trans({}, 'activity_content') }}"
+                                  class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                                {{ ux_icon(activity.autoComplete ? 'heroicons:bolt' : 'heroicons:hand-raised', {class: 'h-3.5 w-3.5'}) }}
+                                {{ (activity.autoComplete ? 'activity.auto_complete' : 'activity.manual')|trans({}, 'activity_content') }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if can_edit %}
+                    {% if confirmingDeleteActivityId == aid %}
+                        <span class="inline-flex shrink-0 items-center gap-1">
+                            <span class="text-xs text-gray-600">{{ 'activity.delete_confirm'|trans({}, 'admin') }}</span>
+                            <button type="button" data-action="live#action" data-live-action-param="deleteActivity" data-live-id-param="{{ aid }}"
+                                    class="rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700">
+                                {{ 'activity.confirm_yes'|trans({}, 'admin') }}
+                            </button>
+                            <button type="button" data-action="live#action" data-live-action-param="cancelDeleteActivity"
+                                    class="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">
+                                {{ 'activity.cancel'|trans({}, 'admin') }}
+                            </button>
+                        </span>
+                    {% else %}
+                        <div class="relative shrink-0" data-controller="dropdown">
+                            <button type="button" data-action="dropdown#toggle"
+                                    class="p-1.5 text-gray-300 hover:text-gray-600" title="{{ 'activity.more_actions'|trans({}, 'admin') }}">
+                                {{ ux_icon('heroicons:ellipsis-vertical', {class: 'h-5 w-5'}) }}
+                            </button>
+                            <div data-dropdown-target="menu" class="hidden absolute right-0 z-40 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                                <button type="button" data-action="live#action dropdown#toggle" data-live-action-param="startEditActivity" data-live-id-param="{{ aid }}"
+                                        class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                    {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                                    {{ 'activity.edit'|trans({}, 'admin') }}
+                                </button>
+                                <button type="button" data-action="live#action dropdown#toggle" data-live-action-param="askDeleteActivity" data-live-id-param="{{ aid }}"
+                                        class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50">
+                                    {{ ux_icon('heroicons:trash', {class: 'h-4 w-4 shrink-0'}) }}
+                                    {{ 'activity.delete'|trans({}, 'admin') }}
+                                </button>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            {% if has_submissions %}
+                {% include 'components/_activity_submissions.html.twig' with {activity: activity, folder: folder} %}
+            {% else %}
+                <div class="border-t border-gray-100 pt-3">
+                    {% include 'components/_activity_completion.html.twig' with {activity: activity, profile: null, list_item: null, teacher_owned: true} %}
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>

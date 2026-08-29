@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\Activity;
 use App\Entity\Document;
 use App\Entity\DocumentSection;
 use App\Entity\DocumentSectionProfile;
@@ -217,5 +218,48 @@ final class DocumentTreeAccessChecker
         }
 
         return $row->listItem !== null && $folder->hasUploadProfile($row->profile, null);
+    }
+
+    /**
+     * Every concrete upload-profile/subperfil row this folder accepts, regardless of any
+     * particular teacher — unlike allowedUploadProfileRows(), this never includes the profile-wide
+     * "(todos)" wildcard row itself: a wildcard restriction is expanded here into each of its
+     * concrete subperfil rows instead (via folderAcceptsUploadRow()'s own understanding of the
+     * wildcard), since this is meant for grouping by who could actually hold each row — nobody
+     * holds "(todos)" itself. Used by ActivitySubmissionSlotBuilder to enumerate an activity's
+     * expected submissions.
+     *
+     * @return ProfileAssignmentRow[]
+     */
+    public function getFolderUploadRows(Folder $folder): array
+    {
+        $rows = [];
+        foreach ($this->rowBuilder->buildActiveRows($folder->getEducationalCentre()) as $row) {
+            if ($this->folderAcceptsUploadRow($folder, $row)) {
+                $rows[] = $row;
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Whether an activity is relevant to this teacher for browsing purposes — they manage, can
+     * upload to, or can review its folder. Deliberately narrower than canViewFolder(): visibility
+     * restrictions are a real access gate (checked separately, always), this is just "would this
+     * teacher normally expect to see this in their list" — the "Mostrar lo de todos los perfiles"
+     * toggle bypasses only this relevance check, never the underlying visibility. An activity
+     * without a folder (a plain manual reminder, no profiles to consult) is always relevant.
+     */
+    public function isActivityRelevantToTeacher(Teacher $teacher, Activity $activity): bool
+    {
+        $folder = $activity->getFolder();
+        if ($folder === null) {
+            return true;
+        }
+
+        return $this->canManageFolder($teacher, $folder)
+            || $this->canUploadToFolder($teacher, $folder)
+            || $this->canReviewFolder($teacher, $folder);
     }
 }

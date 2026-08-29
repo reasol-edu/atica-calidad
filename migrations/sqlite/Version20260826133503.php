@@ -137,6 +137,22 @@ final class Version20260826133503 extends AbstractMigration
         $this->addSql('CREATE UNIQUE INDEX uq_teacher_setting_def_teacher ON teacher_setting_value (definition_id, teacher_id)');
         $this->addSql('CREATE TABLE messenger_messages (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, body CLOB NOT NULL, headers CLOB NOT NULL, queue_name VARCHAR(190) NOT NULL, created_at DATETIME NOT NULL, available_at DATETIME NOT NULL, delivered_at DATETIME DEFAULT NULL)');
         $this->addSql('CREATE INDEX IDX_75EA56E0FB7336F0E3BD61CE16BA31DBBF396750 ON messenger_messages (queue_name, available_at, delivered_at, id)');
+        $this->addSql('CREATE TABLE activity_category (id BLOB NOT NULL, name VARCHAR(255) NOT NULL, position INTEGER NOT NULL, parent_id BLOB DEFAULT NULL, educational_centre_id BLOB NOT NULL, PRIMARY KEY (id), CONSTRAINT FK_A646A9CF727ACA70 FOREIGN KEY (parent_id) REFERENCES activity_category (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE, CONSTRAINT FK_A646A9CF61F9EE23 FOREIGN KEY (educational_centre_id) REFERENCES educational_centre (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE)');
+        $this->addSql('CREATE INDEX IDX_A646A9CF727ACA70 ON activity_category (parent_id)');
+        $this->addSql('CREATE INDEX IDX_A646A9CF61F9EE23 ON activity_category (educational_centre_id)');
+        $this->addSql('CREATE TABLE activity (id BLOB NOT NULL, title VARCHAR(255) NOT NULL, description CLOB DEFAULT NULL, start_day INTEGER NOT NULL, start_month INTEGER NOT NULL, end_day INTEGER NOT NULL, end_month INTEGER NOT NULL, required BOOLEAN NOT NULL, auto_complete BOOLEAN NOT NULL, submission_scope VARCHAR(255) NOT NULL, position INTEGER NOT NULL, category_id BLOB NOT NULL, folder_id BLOB DEFAULT NULL, list_item_id BLOB DEFAULT NULL, PRIMARY KEY (id), CONSTRAINT FK_AC74095A12469DE2 FOREIGN KEY (category_id) REFERENCES activity_category (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE, CONSTRAINT FK_AC74095A162CB942 FOREIGN KEY (folder_id) REFERENCES folder (id) ON DELETE SET NULL NOT DEFERRABLE INITIALLY IMMEDIATE, CONSTRAINT FK_AC74095ACE208F53 FOREIGN KEY (list_item_id) REFERENCES list_item (id) ON DELETE SET NULL NOT DEFERRABLE INITIALLY IMMEDIATE)');
+        $this->addSql('CREATE INDEX IDX_AC74095A12469DE2 ON activity (category_id)');
+        $this->addSql('CREATE UNIQUE INDEX UNIQ_AC74095A162CB942 ON activity (folder_id)');
+        $this->addSql('CREATE INDEX IDX_AC74095ACE208F53 ON activity (list_item_id)');
+        $this->addSql('CREATE TABLE activity_tag (activity_id BLOB NOT NULL, tag_id BLOB NOT NULL, PRIMARY KEY (activity_id, tag_id), CONSTRAINT FK_71B0290181C06096 FOREIGN KEY (activity_id) REFERENCES activity (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE, CONSTRAINT FK_71B02901BAD26311 FOREIGN KEY (tag_id) REFERENCES tag (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE)');
+        $this->addSql('CREATE INDEX IDX_71B0290181C06096 ON activity_tag (activity_id)');
+        $this->addSql('CREATE INDEX IDX_71B02901BAD26311 ON activity_tag (tag_id)');
+        $this->addSql('CREATE TABLE activity_completion (id BLOB NOT NULL, completed_at DATETIME NOT NULL, activity_id BLOB NOT NULL, teacher_id BLOB DEFAULT NULL, profile_id BLOB DEFAULT NULL, list_item_id BLOB DEFAULT NULL, completed_by_id BLOB NOT NULL, PRIMARY KEY (id), CONSTRAINT FK_6D34097681C06096 FOREIGN KEY (activity_id) REFERENCES activity (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE, CONSTRAINT FK_6D34097641807E1D FOREIGN KEY (teacher_id) REFERENCES teacher (id) NOT DEFERRABLE INITIALLY IMMEDIATE, CONSTRAINT FK_6D340976CCFA12B8 FOREIGN KEY (profile_id) REFERENCES specific_profile (id) ON DELETE SET NULL NOT DEFERRABLE INITIALLY IMMEDIATE, CONSTRAINT FK_6D340976CE208F53 FOREIGN KEY (list_item_id) REFERENCES list_item (id) ON DELETE SET NULL NOT DEFERRABLE INITIALLY IMMEDIATE, CONSTRAINT FK_6D34097685ECDE76 FOREIGN KEY (completed_by_id) REFERENCES teacher (id) NOT DEFERRABLE INITIALLY IMMEDIATE)');
+        $this->addSql('CREATE INDEX IDX_6D34097681C06096 ON activity_completion (activity_id)');
+        $this->addSql('CREATE INDEX IDX_6D34097641807E1D ON activity_completion (teacher_id)');
+        $this->addSql('CREATE INDEX IDX_6D340976CCFA12B8 ON activity_completion (profile_id)');
+        $this->addSql('CREATE INDEX IDX_6D340976CE208F53 ON activity_completion (list_item_id)');
+        $this->addSql('CREATE INDEX IDX_6D34097685ECDE76 ON activity_completion (completed_by_id)');
     }
 
     public function down(Schema $schema): void
@@ -174,5 +190,9 @@ final class Version20260826133503 extends AbstractMigration
         $this->addSql('DROP TABLE teacher');
         $this->addSql('DROP TABLE teacher_setting_value');
         $this->addSql('DROP TABLE messenger_messages');
+        $this->addSql('DROP TABLE activity_category');
+        $this->addSql('DROP TABLE activity');
+        $this->addSql('DROP TABLE activity_tag');
+        $this->addSql('DROP TABLE activity_completion');
     }
 }

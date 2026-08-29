@@ -7,6 +7,9 @@ namespace App\Repository;
 use App\Entity\Document;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
+use App\Entity\ListItem;
+use App\Entity\SpecificProfile;
+use App\Entity\Teacher;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -97,5 +100,76 @@ class DocumentRepository extends ServiceEntityRepository
             ->setParameter('folder', $folder->getId(), 'uuid')
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    /**
+     * Resolves an activity submission slot (see ActivitySubmissionSlot) to its Document, if
+     * anyone has already uploaded one — matched by identity, including NULL (a plain,
+     * non-list-associated profile has $listItem === null, which must match exactly, not "any").
+     * $firstUploader, when given (Individual submission scope), additionally requires the
+     * document's own first (version 1) revision to have been uploaded by that exact teacher — two
+     * different teachers submitting under the same profile/subperfil/name are two different
+     * Documents, distinguished only by who created each one first.
+     */
+    public function findOneByFolderProfileListItemNameAndFirstUploader(
+        Folder $folder,
+        ?SpecificProfile $profile,
+        ?ListItem $listItem,
+        string $name,
+        ?Teacher $firstUploader,
+    ): ?Document {
+        $qb = $this->createQueryBuilder('d')
+            ->where('d.folder = :folder')
+            ->andWhere('d.name = :name')
+            ->setParameter('folder', $folder->getId(), 'uuid')
+            ->setParameter('name', $name);
+
+        if ($profile !== null) {
+            $qb->andWhere('d.uploadProfile = :profile')->setParameter('profile', $profile->getId(), 'uuid');
+        } else {
+            $qb->andWhere('d.uploadProfile IS NULL');
+        }
+
+        if ($listItem !== null) {
+            $qb->andWhere('d.uploadListItem = :listItem')->setParameter('listItem', $listItem->getId(), 'uuid');
+        } else {
+            $qb->andWhere('d.uploadListItem IS NULL');
+        }
+
+        if ($firstUploader !== null) {
+            $qb->andWhere(
+                'EXISTS ('
+                . 'SELECT 1 FROM App\Entity\DocumentRevision r'
+                . ' WHERE r.document = d AND r.version = 1 AND r.uploadedBy = :firstUploader'
+                . ')'
+            )->setParameter('firstUploader', $firstUploader->getId(), 'uuid');
+        }
+
+        $result = $qb->setMaxResults(1)->getQuery()->getOneOrNullResult();
+
+        return $result instanceof Document ? $result : null;
+    }
+
+    /**
+     * Documents that are activity submissions (their folder backs an Activity) matching $query —
+     * used by the Actividades section's own search bar and by ⌘K's `documents` group (to decide
+     * whether a hit should link to the activity instead of the document tree).
+     *
+     * @return list<Document>
+     */
+    public function searchActivitySubmissionsByCentre(EducationalCentre $centre, string $query, int $limit = 30): array
+    {
+        return $this->createQueryBuilder('d')
+            ->join('d.folder', 'f')
+            ->join('f.activity', 'a')
+            ->join('f.documentSection', 's')
+            ->where('s.educationalCentre = :centre')
+            ->andWhere('LOWER(d.name) LIKE LOWER(:query)')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('query', '%' . $query . '%')
+            ->orderBy('d.name', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
     }
 }

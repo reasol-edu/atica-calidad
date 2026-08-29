@@ -52,6 +52,10 @@ final class Version20260826133453 extends AbstractMigration
         $this->addSql('CREATE TABLE teacher (id BINARY(16) NOT NULL, username VARCHAR(180) NOT NULL, `admin` TINYINT NOT NULL, password VARCHAR(255) DEFAULT NULL, external TINYINT NOT NULL, active TINYINT NOT NULL, force_password_change TINYINT NOT NULL, email VARCHAR(180) DEFAULT NULL, pending_email VARCHAR(180) DEFAULT NULL, email_verification_token VARCHAR(64) DEFAULT NULL, email_verification_token_expires_at DATETIME DEFAULT NULL, password_reset_token VARCHAR(64) DEFAULT NULL, password_reset_token_expires_at DATETIME DEFAULT NULL, name_first_name VARCHAR(255) NOT NULL, name_last_name VARCHAR(255) NOT NULL, UNIQUE INDEX UNIQ_B0F6A6D5F85E0677 (username), UNIQUE INDEX UNIQ_B0F6A6D5C4995C67 (email_verification_token), UNIQUE INDEX UNIQ_B0F6A6D56B7BA4B6 (password_reset_token), PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');
         $this->addSql('CREATE TABLE teacher_setting_value (id BINARY(16) NOT NULL, value VARCHAR(255) NOT NULL, definition_id BINARY(16) NOT NULL, teacher_id BINARY(16) NOT NULL, file_id BINARY(16) DEFAULT NULL, INDEX IDX_9C9E2521D11EA911 (definition_id), INDEX IDX_9C9E252141807E1D (teacher_id), INDEX IDX_9C9E252193CB796C (file_id), UNIQUE INDEX uq_teacher_setting_def_teacher (definition_id, teacher_id), PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');
         $this->addSql('CREATE TABLE messenger_messages (id BIGINT AUTO_INCREMENT NOT NULL, body LONGTEXT NOT NULL, headers LONGTEXT NOT NULL, queue_name VARCHAR(190) NOT NULL, created_at DATETIME NOT NULL, available_at DATETIME NOT NULL, delivered_at DATETIME DEFAULT NULL, INDEX IDX_75EA56E0FB7336F0E3BD61CE16BA31DBBF396750 (queue_name, available_at, delivered_at, id), PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');
+        $this->addSql('CREATE TABLE activity_category (id BINARY(16) NOT NULL, name VARCHAR(255) NOT NULL, position INT NOT NULL, parent_id BINARY(16) DEFAULT NULL, educational_centre_id BINARY(16) NOT NULL, INDEX IDX_A646A9CF727ACA70 (parent_id), INDEX IDX_A646A9CF61F9EE23 (educational_centre_id), PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');
+        $this->addSql('CREATE TABLE activity (id BINARY(16) NOT NULL, title VARCHAR(255) NOT NULL, description LONGTEXT DEFAULT NULL, start_day INT NOT NULL, start_month INT NOT NULL, end_day INT NOT NULL, end_month INT NOT NULL, required TINYINT NOT NULL, auto_complete TINYINT NOT NULL, submission_scope VARCHAR(255) NOT NULL, position INT NOT NULL, category_id BINARY(16) NOT NULL, folder_id BINARY(16) DEFAULT NULL, list_item_id BINARY(16) DEFAULT NULL, INDEX IDX_AC74095A12469DE2 (category_id), UNIQUE INDEX UNIQ_AC74095A162CB942 (folder_id), INDEX IDX_AC74095ACE208F53 (list_item_id), PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');
+        $this->addSql('CREATE TABLE activity_tag (activity_id BINARY(16) NOT NULL, tag_id BINARY(16) NOT NULL, INDEX IDX_71B0290181C06096 (activity_id), INDEX IDX_71B02901BAD26311 (tag_id), PRIMARY KEY (activity_id, tag_id)) DEFAULT CHARACTER SET utf8mb4');
+        $this->addSql('CREATE TABLE activity_completion (id BINARY(16) NOT NULL, completed_at DATETIME NOT NULL, activity_id BINARY(16) NOT NULL, teacher_id BINARY(16) DEFAULT NULL, profile_id BINARY(16) DEFAULT NULL, list_item_id BINARY(16) DEFAULT NULL, completed_by_id BINARY(16) NOT NULL, INDEX IDX_6D34097681C06096 (activity_id), INDEX IDX_6D34097641807E1D (teacher_id), INDEX IDX_6D340976CCFA12B8 (profile_id), INDEX IDX_6D340976CE208F53 (list_item_id), INDEX IDX_6D34097685ECDE76 (completed_by_id), PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4');
         $this->addSql('ALTER TABLE academic_year ADD CONSTRAINT FK_275AE72161F9EE23 FOREIGN KEY (educational_centre_id) REFERENCES educational_centre (id)');
         $this->addSql('ALTER TABLE teacher_academic_year ADD CONSTRAINT FK_EF1B6955C54F3401 FOREIGN KEY (academic_year_id) REFERENCES academic_year (id) ON DELETE CASCADE');
         $this->addSql('ALTER TABLE teacher_academic_year ADD CONSTRAINT FK_EF1B695541807E1D FOREIGN KEY (teacher_id) REFERENCES teacher (id) ON DELETE CASCADE');
@@ -115,6 +119,18 @@ final class Version20260826133453 extends AbstractMigration
         $this->addSql('ALTER TABLE teacher_setting_value ADD CONSTRAINT FK_9C9E2521D11EA911 FOREIGN KEY (definition_id) REFERENCES setting_definition (id)');
         $this->addSql('ALTER TABLE teacher_setting_value ADD CONSTRAINT FK_9C9E252141807E1D FOREIGN KEY (teacher_id) REFERENCES teacher (id)');
         $this->addSql('ALTER TABLE teacher_setting_value ADD CONSTRAINT FK_9C9E252193CB796C FOREIGN KEY (file_id) REFERENCES setting_file (id)');
+        $this->addSql('ALTER TABLE activity_category ADD CONSTRAINT FK_A646A9CF727ACA70 FOREIGN KEY (parent_id) REFERENCES activity_category (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE activity_category ADD CONSTRAINT FK_A646A9CF61F9EE23 FOREIGN KEY (educational_centre_id) REFERENCES educational_centre (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE activity ADD CONSTRAINT FK_AC74095A12469DE2 FOREIGN KEY (category_id) REFERENCES activity_category (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE activity ADD CONSTRAINT FK_AC74095A162CB942 FOREIGN KEY (folder_id) REFERENCES folder (id) ON DELETE SET NULL');
+        $this->addSql('ALTER TABLE activity ADD CONSTRAINT FK_AC74095ACE208F53 FOREIGN KEY (list_item_id) REFERENCES list_item (id) ON DELETE SET NULL');
+        $this->addSql('ALTER TABLE activity_tag ADD CONSTRAINT FK_71B0290181C06096 FOREIGN KEY (activity_id) REFERENCES activity (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE activity_tag ADD CONSTRAINT FK_71B02901BAD26311 FOREIGN KEY (tag_id) REFERENCES tag (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE activity_completion ADD CONSTRAINT FK_6D34097681C06096 FOREIGN KEY (activity_id) REFERENCES activity (id) ON DELETE CASCADE');
+        $this->addSql('ALTER TABLE activity_completion ADD CONSTRAINT FK_6D34097641807E1D FOREIGN KEY (teacher_id) REFERENCES teacher (id)');
+        $this->addSql('ALTER TABLE activity_completion ADD CONSTRAINT FK_6D340976CCFA12B8 FOREIGN KEY (profile_id) REFERENCES specific_profile (id) ON DELETE SET NULL');
+        $this->addSql('ALTER TABLE activity_completion ADD CONSTRAINT FK_6D340976CE208F53 FOREIGN KEY (list_item_id) REFERENCES list_item (id) ON DELETE SET NULL');
+        $this->addSql('ALTER TABLE activity_completion ADD CONSTRAINT FK_6D34097685ECDE76 FOREIGN KEY (completed_by_id) REFERENCES teacher (id)');
     }
 
     public function down(Schema $schema): void
@@ -182,6 +198,18 @@ final class Version20260826133453 extends AbstractMigration
         $this->addSql('ALTER TABLE teacher_setting_value DROP FOREIGN KEY FK_9C9E2521D11EA911');
         $this->addSql('ALTER TABLE teacher_setting_value DROP FOREIGN KEY FK_9C9E252141807E1D');
         $this->addSql('ALTER TABLE teacher_setting_value DROP FOREIGN KEY FK_9C9E252193CB796C');
+        $this->addSql('ALTER TABLE activity_category DROP FOREIGN KEY FK_A646A9CF727ACA70');
+        $this->addSql('ALTER TABLE activity_category DROP FOREIGN KEY FK_A646A9CF61F9EE23');
+        $this->addSql('ALTER TABLE activity DROP FOREIGN KEY FK_AC74095A12469DE2');
+        $this->addSql('ALTER TABLE activity DROP FOREIGN KEY FK_AC74095A162CB942');
+        $this->addSql('ALTER TABLE activity DROP FOREIGN KEY FK_AC74095ACE208F53');
+        $this->addSql('ALTER TABLE activity_tag DROP FOREIGN KEY FK_71B0290181C06096');
+        $this->addSql('ALTER TABLE activity_tag DROP FOREIGN KEY FK_71B02901BAD26311');
+        $this->addSql('ALTER TABLE activity_completion DROP FOREIGN KEY FK_6D34097681C06096');
+        $this->addSql('ALTER TABLE activity_completion DROP FOREIGN KEY FK_6D34097641807E1D');
+        $this->addSql('ALTER TABLE activity_completion DROP FOREIGN KEY FK_6D340976CCFA12B8');
+        $this->addSql('ALTER TABLE activity_completion DROP FOREIGN KEY FK_6D340976CE208F53');
+        $this->addSql('ALTER TABLE activity_completion DROP FOREIGN KEY FK_6D34097685ECDE76');
         $this->addSql('DROP TABLE academic_year');
         $this->addSql('DROP TABLE teacher_academic_year');
         $this->addSql('DROP TABLE centre_setting_value');
@@ -214,5 +242,9 @@ final class Version20260826133453 extends AbstractMigration
         $this->addSql('DROP TABLE teacher');
         $this->addSql('DROP TABLE teacher_setting_value');
         $this->addSql('DROP TABLE messenger_messages');
+        $this->addSql('DROP TABLE activity_category');
+        $this->addSql('DROP TABLE activity');
+        $this->addSql('DROP TABLE activity_tag');
+        $this->addSql('DROP TABLE activity_completion');
     }
 }

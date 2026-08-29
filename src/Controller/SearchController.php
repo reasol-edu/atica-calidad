@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Activity;
+use App\Entity\ActivityCategory;
 use App\Entity\Document;
 use App\Entity\DocumentSection;
 use App\Entity\Folder;
 use App\Entity\Teacher;
+use App\Repository\ActivityCategoryRepository;
+use App\Repository\ActivityRepository;
 use App\Repository\DocumentRepository;
 use App\Repository\DocumentSectionRepository;
 use App\Repository\FolderRepository;
@@ -32,6 +36,8 @@ class SearchController extends AbstractController
         private readonly DocumentRepository $documentRepository,
         private readonly DocumentSectionRepository $documentSectionRepository,
         private readonly FolderRepository $folderRepository,
+        private readonly ActivityCategoryRepository $activityCategoryRepository,
+        private readonly ActivityRepository $activityRepository,
         private readonly DocumentTreeAccessChecker $documentTreeAccess,
         private readonly TranslatorInterface $translator,
         #[Target('search')]
@@ -119,12 +125,37 @@ class SearchController extends AbstractController
                 $groups['documents'] = array_map(fn (Document $d) => [
                     'label'    => $d->getName(),
                     'sublabel' => $this->documentPath($d),
-                    'url'      => $this->generateUrl('app_document_tree', [
-                        'section'  => $d->getFolder()->getDocumentSection()->getId()->toRfc4122(),
-                        'folder'   => $d->getFolder()->getId()->toRfc4122(),
-                        'highlight' => $d->getId()->toRfc4122(),
-                    ]),
+                    'url'      => $this->documentSearchUrl($d),
                 ], $documents);
+            }
+
+            $categories = $this->activityCategoryRepository->searchByCentre($centre, $q, 5);
+            if ($categories !== []) {
+                $groups['activity_categories'] = array_map(fn (ActivityCategory $c) => [
+                    'label'    => $c->getName(),
+                    'sublabel' => $this->activityCategorySearchPath($c),
+                    'url'      => $this->generateUrl('app_activities', [
+                        'category' => $c->getId()->toRfc4122(),
+                    ]),
+                ], $categories);
+            }
+
+            $activities = [];
+            foreach ($this->activityRepository->searchByCentre($centre, $q, 5) as $activity) {
+                $folder = $activity->getFolder();
+                if ($folder === null || $this->documentTreeAccess->canViewFolder($user, $folder)) {
+                    $activities[] = $activity;
+                }
+            }
+            if ($activities !== []) {
+                $groups['activities'] = array_map(fn (Activity $a) => [
+                    'label'    => $a->getTitle(),
+                    'sublabel' => $this->activityCategoryTrail($a->getCategory()),
+                    'url'      => $this->generateUrl('app_activities', [
+                        'category' => $a->getCategory()->getId()->toRfc4122(),
+                        'activity' => $a->getId()->toRfc4122(),
+                    ]),
+                ], $activities);
             }
         }
 
@@ -164,5 +195,56 @@ class SearchController extends AbstractController
         $trail[] = $folder->getName();
 
         return implode(' › ', $trail);
+    }
+
+    /**
+     * A document whose folder backs an Activity is a submission — send its ⌘K result to
+     * Actividades (highlighted, same "pulse instead of forcing a panel open" treatment as a plain
+     * document) rather than the document tree, since that's where its "who has to deliver it"
+     * context lives.
+     */
+    private function documentSearchUrl(Document $document): string
+    {
+        $folder   = $document->getFolder();
+        $activity = $folder->getActivity();
+        if ($activity !== null) {
+            return $this->generateUrl('app_activities', [
+                'category'  => $activity->getCategory()->getId()->toRfc4122(),
+                'activity'  => $activity->getId()->toRfc4122(),
+                'highlight' => $document->getId()->toRfc4122(),
+            ]);
+        }
+
+        return $this->generateUrl('app_document_tree', [
+            'section'   => $folder->getDocumentSection()->getId()->toRfc4122(),
+            'folder'    => $folder->getId()->toRfc4122(),
+            'highlight' => $document->getId()->toRfc4122(),
+        ]);
+    }
+
+    /** @return list<string> root-first names of a category's ancestor trail, including the category itself */
+    private function activityCategoryTrailList(ActivityCategory $category): array
+    {
+        $trail = [];
+        for ($c = $category; $c !== null; $c = $c->getParent()) {
+            array_unshift($trail, $c->getName());
+        }
+
+        return $trail;
+    }
+
+    private function activityCategoryTrail(ActivityCategory $category): string
+    {
+        return implode(' › ', $this->activityCategoryTrailList($category));
+    }
+
+    private function activityCategorySearchPath(ActivityCategory $category): string
+    {
+        $parent = $category->getParent();
+        if ($parent === null) {
+            return $this->translator->trans('breadcrumb.root', [], 'activity_content');
+        }
+
+        return implode(' › ', $this->activityCategoryTrailList($parent));
     }
 }
