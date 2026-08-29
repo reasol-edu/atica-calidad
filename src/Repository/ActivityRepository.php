@@ -32,6 +32,19 @@ class ActivityRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /** @return list<Activity> every activity across every category of the centre, ordered by category then position. */
+    public function findAllByCentre(EducationalCentre $centre): array
+    {
+        return $this->createQueryBuilder('a')
+            ->join('a.category', 'c')
+            ->where('c.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('c.position', 'ASC')
+            ->addOrderBy('a.position', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     /** @return list<Activity> whose title matches $query anywhere in the centre's categories, ordered by title */
     public function searchByCentre(EducationalCentre $centre, string $query, int $limit = 30): array
     {

@@ -43,5 +43,9 @@
         </div>
     {% endif %}
 
+    {% if active_centre %}
+        <twig:DashboardActivitySummaryComponent :centre="active_centre" />
+    {% endif %}
+
 </div>
 {% endblock %}

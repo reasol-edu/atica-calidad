@@ -114,6 +114,42 @@ final class ActivitySearchTest extends RepositoryTestCase
         self::assertSame($inA->getId()->toRfc4122(), $results[0]->getId()->toRfc4122());
     }
 
+    public function testFindAllByCentreReturnsActivitiesAcrossEveryCategory(): void
+    {
+        $centre     = $this->centre();
+        $categoryA  = $this->category($centre, 'Categoría A');
+        $categoryB  = $this->category($centre, 'Categoría B');
+        $activityA  = $this->activity($categoryA, 'Actividad A');
+        $activityB  = $this->activity($categoryB, 'Actividad B');
+        $this->persist($centre, $categoryA, $categoryB, $activityA, $activityB);
+
+        /** @var ActivityRepository $activities */
+        $activities = self::getContainer()->get(ActivityRepository::class);
+
+        $results = $activities->findAllByCentre($centre);
+
+        self::assertCount(2, $results);
+    }
+
+    public function testFindAllByCentreIsScopedToTheCentre(): void
+    {
+        $centreA   = $this->centre('11111111');
+        $centreB   = $this->centre('22222222');
+        $categoryA = $this->category($centreA);
+        $categoryB = $this->category($centreB);
+        $inA       = $this->activity($categoryA, 'De A');
+        $inB       = $this->activity($categoryB, 'De B');
+        $this->persist($centreA, $centreB, $categoryA, $categoryB, $inA, $inB);
+
+        /** @var ActivityRepository $activities */
+        $activities = self::getContainer()->get(ActivityRepository::class);
+
+        $results = $activities->findAllByCentre($centreA);
+
+        self::assertCount(1, $results);
+        self::assertSame($inA->getId()->toRfc4122(), $results[0]->getId()->toRfc4122());
+    }
+
     public function testActivityRepositorySearchByCentreRespectsTheLimit(): void
     {
         $centre   = $this->centre();

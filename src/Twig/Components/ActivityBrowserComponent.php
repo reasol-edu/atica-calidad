@@ -6,7 +6,6 @@ namespace App\Twig\Components;
 
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
-use App\Entity\ActivityCompletion;
 use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
 use App\Entity\DocumentRevision;
@@ -19,7 +18,6 @@ use App\Entity\Teacher;
 use App\Model\ActivitySubmissionSlot;
 use App\Model\ProfileAssignmentRow;
 use App\Repository\ActivityCategoryRepository;
-use App\Repository\ActivityCompletionRepository;
 use App\Repository\ActivityRepository;
 use App\Repository\DocumentRepository;
 use App\Repository\DocumentRevisionRepository;
@@ -30,7 +28,7 @@ use App\Repository\TagRepository;
 use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Security\Voter\FolderVoter;
-use App\Service\ActivitySubmissionSlotBuilder;
+use App\Service\ActivityCompletionChecker;
 use App\Service\DocumentFileGarbageCollector;
 use App\Service\DocumentTreeAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
@@ -175,8 +173,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly DocumentRevisionRepository $revisions,
         private readonly TeacherRepository $teachers,
         private readonly DocumentTreeAccessChecker $access,
-        private readonly ActivitySubmissionSlotBuilder $slotBuilder,
-        private readonly ActivityCompletionRepository $completions,
+        private readonly ActivityCompletionChecker $completion,
         private readonly DocumentFileGarbageCollector $garbageCollector,
     ) {}
 
@@ -540,32 +537,18 @@ class ActivityBrowserComponent extends AbstractController
     /** @return ActivitySubmissionSlot[] every expected submission of $activity. */
     public function getAllSlots(Activity $activity): array
     {
-        return $this->slotBuilder->buildSlots($activity);
+        return $this->completion->getAllSlots($activity);
     }
 
     /** @return ActivitySubmissionSlot[] the slots the current teacher is personally responsible for. */
     public function getMySlots(Activity $activity): array
     {
-        $folder = $activity->getFolder();
-        if ($folder === null) {
-            return [];
-        }
-
-        $teacher   = $this->teacher();
-        $canManage = $this->access->canManageFolder($teacher, $folder);
-
-        return array_values(array_filter(
-            $this->getAllSlots($activity),
-            fn (ActivitySubmissionSlot $slot): bool => $canManage
-                || ($slot->teacher !== null
-                    ? $slot->teacher === $teacher
-                    : $this->access->holdsProfile($teacher, $slot->profile, $slot->listItem)),
-        ));
+        return $this->completion->getMySlots($this->teacher(), $activity);
     }
 
     public function resolveSlot(Activity $activity, ActivitySubmissionSlot $slot): ?Document
     {
-        return $this->slotBuilder->resolveSlot($activity, $slot);
+        return $this->completion->resolveSlot($activity, $slot);
     }
 
     /** @return ActivitySubmissionSlot[] every slot NOT already covered by getMySlots() — "the rest of the profiles'" deliveries. */
@@ -677,56 +660,25 @@ class ActivityBrowserComponent extends AbstractController
     /** Whether the current teacher's own completion is tracked as a single "me" owner (Individual scope, or no folder at all). */
     public function hasIndividualCompletionOwner(Activity $activity): bool
     {
-        return !$activity->requiresSubmissions() || $activity->getSubmissionScope() === ActivitySubmissionScope::Individual;
+        return $this->completion->hasIndividualCompletionOwner($activity);
     }
 
     /** @return array<int, array{profile: SpecificProfile, listItem: ?ListItem}> distinct upload rows the current teacher holds among this activity's slots (ByProfile scope only). */
     public function getMyCompletionOwners(Activity $activity): array
     {
-        if ($this->hasIndividualCompletionOwner($activity)) {
-            return [];
-        }
-
-        $seen   = [];
-        $owners = [];
-        foreach ($this->getMySlots($activity) as $slot) {
-            $key = ProfileAssignmentRow::keyFor($slot->profile, $slot->listItem);
-            if (isset($seen[$key])) {
-                continue;
-            }
-            $seen[$key] = true;
-            $owners[]   = ['profile' => $slot->profile, 'listItem' => $slot->listItem];
-        }
-
-        return $owners;
+        return $this->completion->getMyCompletionOwners($this->teacher(), $activity);
     }
 
     public function isCompletedFor(Activity $activity, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher): bool
     {
-        if ($activity->isAutoComplete()) {
-            foreach ($this->getAllSlots($activity) as $slot) {
-                $owns = $teacher !== null
-                    ? $slot->teacher === $teacher
-                    : ($slot->profile === $profile && $slot->listItem === $listItem && $slot->teacher === null);
-                if (!$owns) {
-                    continue;
-                }
-                if ($this->resolveSlot($activity, $slot)?->getActiveRevision() === null) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        return $this->completions->findOneForOwner($activity, $teacher, $profile, $listItem) !== null;
+        return $this->completion->isCompletedFor($activity, $profile, $listItem, $teacher);
     }
 
     #[LiveAction]
     public function markCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = ''): void
     {
         $activity = $this->activities->findById($activityId);
-        if ($activity === null || $activity->isAutoComplete()) {
+        if ($activity === null) {
             return;
         }
 
@@ -735,11 +687,10 @@ class ActivityBrowserComponent extends AbstractController
         $listItem      = $listItemId === '' ? null : $this->listItems->findByIdAndCentre($listItemId, $this->centre);
         $targetTeacher = $profile === null ? $teacher : null;
 
-        if ($this->completions->findOneForOwner($activity, $targetTeacher, $profile, $listItem) !== null) {
+        if (!$this->completion->markCompleted($activity, $targetTeacher, $profile, $listItem, $teacher)) {
             return;
         }
 
-        $this->em->persist(new ActivityCompletion($activity, $targetTeacher, $profile, $listItem, $teacher));
         $this->em->flush();
 
         $this->flashSuccess($this->t('activity.flash.completed'));

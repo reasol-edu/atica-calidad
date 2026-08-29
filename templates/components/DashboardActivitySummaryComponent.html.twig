@@ -1,0 +1,96 @@
+{% set summary = this.summary %}
+
+<div class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+    <div class="px-6 py-5 border-b border-gray-100">
+        <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900">
+            {{ ux_icon('heroicons:check-circle', {class: 'h-5 w-5 text-forest-600'}) }}
+            {{ 'activities.title'|trans({}, 'dashboard') }}
+        </h2>
+    </div>
+
+    <div class="px-6 py-5 space-y-5">
+        {% if summary.total > 0 %}
+            {# ── Estadísticas ────────────────────────────────────────────────── #}
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div class="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                    <p class="text-2xl font-bold text-gray-900">{{ summary.total }}</p>
+                    <p class="text-xs font-medium text-gray-500">{{ 'activities.stat.total'|trans({}, 'dashboard') }}</p>
+                </div>
+                <div class="rounded-xl border border-forest-100 bg-forest-50 px-4 py-3">
+                    <p class="text-2xl font-bold text-forest-700">{{ summary.completed }}</p>
+                    <p class="text-xs font-medium text-forest-600">{{ 'activities.stat.completed'|trans({}, 'dashboard') }}</p>
+                </div>
+                <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+                    <p class="text-2xl font-bold text-amber-700">{{ summary.pending }}</p>
+                    <p class="text-xs font-medium text-amber-600">{{ 'activities.stat.pending'|trans({}, 'dashboard') }}</p>
+                </div>
+                <div class="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+                    <p class="text-2xl font-bold text-red-700">{{ summary.overdue }}</p>
+                    <p class="text-xs font-medium text-red-600">{{ 'activities.stat.overdue'|trans({}, 'dashboard') }}</p>
+                </div>
+            </div>
+
+            {# ── Barra de progreso segmentada ────────────────────────────────── #}
+            <div>
+                <div class="flex h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                    <div class="bg-forest-500" style="width: {{ (summary.completed / summary.total * 100) }}%"></div>
+                    <div class="bg-red-400" style="width: {{ (summary.overdue / summary.total * 100) }}%"></div>
+                    <div class="bg-amber-400" style="width: {{ (summary.pending / summary.total * 100) }}%"></div>
+                </div>
+                <p class="mt-1.5 text-xs text-gray-500">{{ summary.completionPercentage }}% completado</p>
+            </div>
+
+            {% if summary.overdue > 0 %}
+                <div class="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                    {{ ux_icon('heroicons:exclamation-triangle', {class: 'h-5 w-5 shrink-0 text-red-500'}) }}
+                    <p class="text-sm font-medium text-red-800">
+                        {{ 'activities.overdue_alert'|trans({'%count%': summary.overdue}, 'dashboard') }}
+                    </p>
+                </div>
+            {% endif %}
+
+            {# ── Lista de pendientes/vencidas ────────────────────────────────── #}
+            {% if summary.items is not empty %}
+                <ul class="-mx-6 divide-y divide-gray-100">
+                    {% for item in summary.items %}
+                        {% set overdue = item.status.value == 'overdue' %}
+                        <li>
+                            <a href="{{ path('app_activities', {category: item.activity.category.id.toRfc4122, activity: item.activity.id.toRfc4122}) }}"
+                               class="flex items-start gap-3 px-6 py-3 transition-colors hover:bg-gray-50">
+                                <span class="mt-0.5 shrink-0 {{ overdue ? 'text-red-500' : 'text-amber-500' }}">
+                                    {{ ux_icon(overdue ? 'heroicons:exclamation-circle' : 'heroicons:clock', {class: 'h-5 w-5'}) }}
+                                </span>
+                                <span class="min-w-0 flex-1">
+                                    <span class="block truncate text-sm font-medium text-gray-900">
+                                        {{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}
+                                    </span>
+                                    <span class="block truncate text-xs text-gray-500">
+                                        {{ item.categoryPath }} ·
+                                        {{ (overdue ? 'activities.deadline_overdue' : 'activities.deadline_pending')|trans({'%date%': item.deadline|date('d/m/Y')}, 'dashboard') }}
+                                    </span>
+                                </span>
+                                <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium {{ overdue ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700' }}">
+                                    {{ (overdue ? 'activities.status.overdue' : 'activities.status.pending')|trans({}, 'dashboard') }}
+                                </span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                {% if (summary.pending + summary.overdue) > summary.items|length %}
+                    <a href="{{ path('app_activities') }}"
+                       class="block text-center text-sm font-medium text-forest-600 hover:text-forest-700">
+                        {{ 'activities.view_all'|trans({}, 'dashboard') }} →
+                    </a>
+                {% endif %}
+            {% else %}
+                <div class="rounded-xl border border-forest-100 bg-forest-50 px-4 py-6 text-center">
+                    {{ ux_icon('heroicons:check-badge', {class: 'mx-auto mb-2 h-8 w-8 text-forest-400'}) }}
+                    <p class="text-sm font-medium text-forest-700">{{ 'activities.empty'|trans({}, 'dashboard') }}</p>
+                </div>
+            {% endif %}
+        {% else %}
+            <p class="text-sm text-gray-500">{{ 'activities.empty'|trans({}, 'dashboard') }}</p>
+        {% endif %}
+    </div>
+</div>
