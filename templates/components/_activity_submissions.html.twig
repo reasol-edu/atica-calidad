@@ -5,6 +5,7 @@
 {% set stats = this.getStats(activity) %}
 {% set my_stats = this.getMySubmissionStats(activity) %}
 {% set all_expanded = aid in expandedAllSubmissions or my_slots is empty %}
+{% set upload_form_id = 'activity-submission-upload-' ~ aid %}
 
 <div class="border-t border-gray-100 pt-3 space-y-3">
     {# ── Mis entregas ─────────────────────────────────────────────────── #}
@@ -20,33 +21,33 @@
                 </p>
             {% endif %}
         </div>
-        {% set open_document = null %}
         {% if my_slots is empty %}
             <p class="text-xs italic text-gray-400">{{ 'submission.mine_empty'|trans({}, 'activity_content') }}</p>
         {% else %}
-            {# The revision panel (with its own approve/reject/new-revision <form> elements) is
-               rendered separately below, OUTSIDE this form — browsers don't support nested forms,
-               so an open panel here would silently submit through this form's action instead of
-               its own. #}
-            <form action="{{ path('app_activity_submission_upload', {activityId: aid}) }}" method="post" enctype="multipart/form-data"
-                  data-controller="activity-submissions">
+            {# The batch-upload <form> only holds the CSRF token — every row's own hidden/file
+               inputs live outside it, linked via the HTML `form` attribute instead of DOM
+               nesting, so an open revision panel (with its own approve/reject/new-revision
+               <form> elements) can render right after its own row without ending up nested
+               inside this form — browsers don't support nested forms. #}
+            <form id="{{ upload_form_id }}" action="{{ path('app_activity_submission_upload', {activityId: aid}) }}" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="_token" value="{{ csrf_token('activity_submission_upload_' ~ aid) }}">
+            </form>
+            <div data-controller="activity-submissions">
                 <div class="space-y-1.5">
                     {% for slot in my_slots %}
                         {% set document = this.resolveSlot(activity, slot) %}
-                        {% if document and document.id.toRfc4122 == revisionPanelDocumentId %}{% set open_document = document %}{% endif %}
-                        {% include 'components/_activity_submission_row.html.twig' with {activity: activity, folder: folder, slot: slot, document: document, index: loop.index0} %}
+                        {% include 'components/_activity_submission_row.html.twig' with {activity: activity, folder: folder, slot: slot, document: document, index: loop.index0, form_id: upload_form_id} %}
+                        {% if document and document.id.toRfc4122 == revisionPanelDocumentId %}
+                            {% include 'components/_activity_submission_panel.html.twig' with {activity: activity, folder: folder, document: document} %}
+                        {% endif %}
                     {% endfor %}
                 </div>
-                <button type="submit" data-activity-submissions-target="submit"
+                <button type="submit" form="{{ upload_form_id }}" data-activity-submissions-target="submit"
                         class="hidden mt-2 items-center gap-1.5 rounded-md bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700">
                     {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
                     {{ 'submission.submit'|trans({}, 'activity_content') }}
                 </button>
-            </form>
-        {% endif %}
-        {% if open_document is not null %}
-            {% include 'components/_activity_submission_panel.html.twig' with {activity: activity, folder: folder, document: open_document} %}
+            </div>
         {% endif %}
     </div>
 

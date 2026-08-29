@@ -736,6 +736,67 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertStringContainsString('Deshacer', $html);
     }
 
+    /**
+     * Regression: the batch-upload <form> used to wrap every "Mis entregas" row, so an open
+     * revision panel (which has its own approve/reject/new-revision <form> elements, which can't
+     * nest inside another form) could only be rendered once, AFTER the whole form — always at the
+     * end of the list, never next to the row that was actually toggled. Fixed by moving each row's
+     * hidden/file inputs outside the form (linked via the HTML `form` attribute) so the panel can
+     * render inline, right after its own row, like it already does under "Todas las entregas".
+     */
+    public function testTheRevisionPanelRendersRightAfterItsOwnRowNotAfterEveryOtherOne(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profileA = (new SpecificProfile())->setEducationalCentre($centre)->setName('Alfa');
+        $profileB = (new SpecificProfile())->setEducationalCentre($centre)->setName('Beta');
+        $folder->addUploadProfile($profileA);
+        $folder->addUploadProfile($profileB);
+        $activity = $this->activity($category)->setFolder($folder);
+
+        $admin = $this->admin();
+
+        $documentA = new Document($folder, 'Alfa');
+        $documentA->setUploadProfile($profileA, null);
+        $fileA     = new DocumentFile(hash('sha256', 'a'), 'a', 'text/plain', 'a.txt', 1);
+        $revisionA = new DocumentRevision($documentA, 1, $fileA, false, $admin);
+        $documentA->getRevisions()->add($revisionA);
+        $documentA->setActiveRevision($revisionA);
+
+        $documentB = new Document($folder, 'Beta');
+        $documentB->setUploadProfile($profileB, null);
+        $fileB     = new DocumentFile(hash('sha256', 'b'), 'b', 'text/plain', 'b.txt', 1);
+        $revisionB = new DocumentRevision($documentB, 1, $fileB, false, $admin);
+        $documentB->getRevisions()->add($revisionB);
+        $documentB->setActiveRevision($revisionB);
+
+        $this->persist(
+            $centre, $category, $folder->getDocumentSection(), $folder, $profileA, $profileB, $activity, $admin,
+            $documentA, $fileA, $revisionA, $documentB, $fileB, $revisionB,
+        );
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('toggleRevisionPanel', ['id' => $documentA->getId()->toRfc4122()]);
+
+        $html = (string) $component->render()->crawler()->html();
+
+        $panelMarker  = 'ml-4 space-y-1.5 border-l-2';
+        $panelPos     = strpos($html, $panelMarker);
+        $rowAPos      = strpos($html, 'Alfa');
+        $rowBPos      = strpos($html, 'Beta');
+
+        self::assertNotFalse($panelPos, 'the revision panel must render');
+        self::assertNotFalse($rowAPos);
+        self::assertNotFalse($rowBPos);
+        self::assertGreaterThan($rowAPos, $panelPos, 'the panel must come after the row it belongs to');
+        self::assertLessThan($rowBPos, $panelPos, 'the panel must come before the NEXT row, not after the whole list');
+    }
+
     public function testUnmarkCompletedIsANoOpForAnAutoCompleteActivity(): void
     {
         $centre   = $this->centre();

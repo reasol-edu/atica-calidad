@@ -12,8 +12,8 @@
     {% set highlighted = highlightedDocumentId == did %}
 
     {% if not read_only %}
-        <input type="hidden" name="items[{{ index }}][slotKey]" value="{{ slot.key }}">
-        <input type="file" name="files[{{ index }}]" class="sr-only" data-activity-submissions-target="input" data-action="change->activity-submissions#change">
+        <input type="hidden" name="items[{{ index }}][slotKey]" value="{{ slot.key }}" form="{{ form_id }}">
+        <input type="file" name="files[{{ index }}]" class="sr-only" form="{{ form_id }}" data-activity-submissions-target="input" data-action="change->activity-submissions#change">
     {% endif %}
 
     <div data-role="submission-row" {{ (highlighted ? 'data-controller="scroll-into-view"' : '')|raw }}
@@ -94,7 +94,7 @@
         <span class="shrink-0 text-xs italic text-gray-400">{{ 'status.no_revision'|trans({}, 'activity_content') }}</span>
     </div>
 {% else %}
-    <input type="hidden" name="items[{{ index }}][slotKey]" value="{{ slot.key }}">
+    <input type="hidden" name="items[{{ index }}][slotKey]" value="{{ slot.key }}" form="{{ form_id }}">
     <div data-role="submission-row"
          data-activity-submissions-target="dropzone"
          data-action="dragenter->activity-submissions#dragEnter dragover->activity-submissions#dragOver dragleave->activity-submissions#dragLeave drop->activity-submissions#drop click->activity-submissions#triggerBrowse"
@@ -107,6 +107,6 @@
             <span class="block truncate text-sm text-gray-600">{{ slot.displayName }}</span>
             <span data-activity-submissions-target="preview" class="block truncate text-xs text-gray-400">{{ 'submission.dropzone_hint'|trans({}, 'activity_content') }}</span>
         </div>
-        <input type="file" name="files[{{ index }}]" class="sr-only" data-activity-submissions-target="input" data-action="change->activity-submissions#change">
+        <input type="file" name="files[{{ index }}]" class="sr-only" form="{{ form_id }}" data-activity-submissions-target="input" data-action="change->activity-submissions#change">
     </div>
 {% endif %}
