@@ -6,8 +6,6 @@ namespace App\Tests\Integration;
 
 use App\Entity\AcademicYear;
 use App\Entity\EducationalCentre;
-use App\Entity\SettingDefinition;
-use App\Entity\SettingType;
 use App\Entity\Teacher;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -47,63 +45,17 @@ abstract class ControllerTestCase extends WebTestCase
         parent::tearDown();
     }
 
+    /**
+     * No-op for now: unlike the sibling project this test harness was adapted from,
+     * ÁTICA Calidad has no fixed catalog of SettingDefinition rows that pages depend on to
+     * render (confirmed — nothing under templates/ or src/EventSubscriber/ reads
+     * AppSettingsInterface unconditionally; only the PDF-template and settings-admin screens
+     * touch it, and each of those tests can seed exactly the definitions it needs). Kept as an
+     * empty hook, called from setUp() below, for whenever this project grows its own fixed
+     * settings catalog that controller tests should be able to rely on by default.
+     */
     private function seedDefaultSettings(): void
     {
-        // [key, type, default, globalScope, centreScope, teacherScope, minValue, maxValue, category, categoryOrder, position, choices]
-        $defs = [
-            ['page.size',                             SettingType::Integer, '20',   false, false, true,  5,    100,  'settings.category.display', 10, 10, null],
-            ['email.notifications',                   SettingType::Boolean, 'true', true,  true,  true,  null, null, 'settings.category.email',   20, 10, null],
-            ['email.notification.tutor_assigned',     SettingType::Boolean, 'true', true,  true,  true,  null, null, 'settings.category.email',   20, 20, null],
-            ['email.notification.positions_created',  SettingType::Boolean, 'true', true,  true,  true,  null, null, 'settings.category.email',   20, 30, null],
-            ['email.notification.signature_reminder', SettingType::Boolean, 'true', true,  true,  true,  null, null, 'settings.category.email',   20, 40, null],
-            ['board.today_seconds',                    SettingType::Integer, '60',   true,  true,  false, 0,    3600, 'settings.category.board',   30, 5,  null],
-            ['board.current_week_seconds',             SettingType::Integer, '10',   true,  true,  false, 0,    3600, 'settings.category.board',   30, 10, null],
-            ['board.next_week_seconds',                SettingType::Integer, '0',    true,  true,  false, 0,    3600, 'settings.category.board',   30, 20, null],
-            ['board.theme',                            SettingType::Choice,  'light', true,  true,  false, null, null, 'settings.category.board',   30, 30, 'light,dark,system'],
-            ['notifications.report_auto_prescribe_days', SettingType::Integer, '14',  true,  true,  false, 0,    365,  'settings.category.notifications', 40, 30, null],
-            ['notifications.report_prescription_warning_days', SettingType::Integer, '7', true,  true,  true,  0,    365,  'settings.category.notifications', 40, 40, null],
-            ['notifications.email_log_enabled',                SettingType::Boolean, 'true', true, true,  false, null, null, 'settings.category.notifications', 40, 50, null],
-            ['notifications.log_retention_days',               SettingType::Integer, '90',   true, false, false, 0,    3650, 'settings.category.notifications', 40, 60, null],
-            ['reports.incident_header_left',   SettingType::RichText, '<p><strong>{title}</strong></p>', true, true, false, 0,  5000, 'settings.category.reports', 60, 10, null],
-            ['reports.incident_header_right',  SettingType::RichText, '<p>{centre_name}</p>',            true, true, false, 0,  5000, 'settings.category.reports', 60, 20, null],
-            ['reports.incident_header_margin', SettingType::Integer,  '22',                              true, true, false, 10, 80,   'settings.category.reports', 60, 30, null],
-            ['reports.sanction_header_left',   SettingType::RichText, '<p><strong>{title}</strong></p>', true, true, false, 0,  5000, 'settings.category.reports', 60, 40, null],
-            ['reports.sanction_header_right',  SettingType::RichText, '<p>{centre_name}</p>',            true, true, false, 0,  5000, 'settings.category.reports', 60, 50, null],
-            ['reports.sanction_header_margin', SettingType::Integer,  '22',                              true, true, false, 10, 80,   'settings.category.reports', 60, 60, null],
-            ['notifications.email_report_attach_pdf',   SettingType::Boolean, 'false', true, true, false, null, null, 'settings.category.email_alerts', 50, 90,  null],
-            ['notifications.email_sanction_attach_pdf', SettingType::Boolean, 'false', true, true, false, null, null, 'settings.category.email_alerts', 50, 100, null],
-            ['reports.draft_watermark_enabled', SettingType::Boolean, 'false', true, true, false, null, null, 'settings.category.reports', 60, 70, null],
-            ['reports.group_stats_header_left',   SettingType::RichText, '<p><strong>{title}</strong></p>', true, true, false, 0,  5000, 'settings.category.reports', 60, 80,  null],
-            ['reports.group_stats_header_right',  SettingType::RichText, '<p>{centre_name}</p>',            true, true, false, 0,  5000, 'settings.category.reports', 60, 90,  null],
-            ['reports.group_stats_header_margin', SettingType::Integer,  '22',                              true, true, false, 10, 80,   'settings.category.reports', 60, 100, null],
-            ['reports.incident_footer', SettingType::RichText, '<p>En {city} a {current_day} de {current_month_name} de {current_year}</p>', true, true, false, 0, 5000, 'settings.category.reports', 60, 110, null],
-            ['reports.sanction_footer', SettingType::RichText, '<p>En {city} a {current_day} de {current_month_name} de {current_year}</p>', true, true, false, 0, 5000, 'settings.category.reports', 60, 120, null],
-            ['reports.pdf_template_portrait',    SettingType::Pdf, '', false, true, false, null, null, 'settings.category.report_templates', 65, 10, null],
-            ['reports.pdf_template_landscape',   SettingType::Pdf, '', false, true, false, null, null, 'settings.category.report_templates', 65, 20, null],
-            ['reports.incident_pdf_template',    SettingType::Pdf, '', false, true, false, null, null, 'settings.category.report_templates', 65, 30, null],
-            ['reports.sanction_pdf_template',    SettingType::Pdf, '', false, true, false, null, null, 'settings.category.report_templates', 65, 40, null],
-            ['reports.group_stats_pdf_template', SettingType::Pdf, '', false, true, false, null, null, 'settings.category.report_templates', 65, 50, null],
-            ['reports.guard_duty_pdf_template',  SettingType::Pdf, '', false, true, false, null, null, 'settings.category.report_templates', 65, 60, null],
-        ];
-
-        foreach ($defs as [$key, $type, $default, $global, $centre, $teacher, $min, $max, $category, $categoryOrder, $position, $choices]) {
-            $def = (new SettingDefinition())
-                ->setKey($key)
-                ->setType($type)
-                ->setDefaultValue($default)
-                ->setGlobalScope($global)
-                ->setCentreScope($centre)
-                ->setTeacherScope($teacher)
-                ->setMinValue($min)
-                ->setMaxValue($max)
-                ->setCategory($category)
-                ->setCategoryOrder($categoryOrder)
-                ->setPosition($position)
-                ->setChoices($choices);
-            $this->em->persist($def);
-        }
-
-        $this->em->flush();
     }
 
     protected function persist(object ...$entities): void

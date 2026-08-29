@@ -61,8 +61,13 @@ Common base for integration tests:
   `tearDown()` with `dropSchema()` — every test starts from a clean database. This
   is slow but deliberate: always use this base class for controller tests instead
   of building the schema by hand.
-- Seeds default settings (`seedDefaultSettings()`) so that pages reading
-  `AppSettingsInterface` don't fail for lack of a definition.
+- Calls `seedDefaultSettings()`, currently a **no-op**: unlike the sibling
+  project this harness was adapted from, ÁTICA Calidad has no fixed catalog of
+  `SettingDefinition` rows that pages depend on to render (nothing outside the
+  PDF-template/settings-admin screens reads `AppSettingsInterface`
+  unconditionally). The hook is kept for when that changes — seed exactly the
+  definitions a given test needs inside that test itself until then, don't
+  revive a project-wide default list speculatively.
 
 ## Known gotchas
 
