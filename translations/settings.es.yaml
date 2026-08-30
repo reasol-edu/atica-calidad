@@ -27,6 +27,12 @@ settings.key.notifications_email_log_enabled.description: 'Guarda un registro de
 settings.key.notifications_log_retention_days.label: 'Retención de los registros'
 settings.key.notifications_log_retention_days.description: 'Días que se conservan las entradas del registro de avisos por correo antes de eliminarse automáticamente. Un valor de 0 desactiva esta eliminación automática.'
 
+settings.key.notifications_email_notifications_enabled.label: 'Avisos por correo electrónico'
+settings.key.notifications_email_notifications_enabled.description: 'Activa el envío de avisos por correo electrónico a los profesores.'
+
+settings.key.notifications_pending_activity_reminder_enabled.label: 'Recordatorio de actividad pendiente de completar'
+settings.key.notifications_pending_activity_reminder_enabled.description: 'Envía un recordatorio cuando una actividad esté pendiente de completar.'
+
 settings.key.reports_pdf_template_portrait.label: 'Plantilla PDF general (vertical)'
 settings.key.reports_pdf_template_portrait.description: 'PDF de una sola página que se usa como fondo de cada página de los informes en orientación vertical que no tengan una plantilla propia. Si no se sube ninguna, esos informes se generan sin fondo.'
 
