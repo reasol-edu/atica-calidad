@@ -68,8 +68,13 @@
                                         {{ item.categoryPath }} ·
                                         {{ (overdue ? 'activities.deadline_overdue' : 'activities.deadline_pending')|trans({'%date%': item.deadline|date('d/m/Y')}, 'dashboard') }}
                                     </span>
+                                    {# Below sm, the pill moves to its own line here instead of sitting shrink-0 at the
+                                       end of the row, where it was squeezing the title/date text on narrow screens. #}
+                                    <span class="mt-1 inline-block sm:hidden rounded-full px-2 py-0.5 text-xs font-medium {{ overdue ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700' }}">
+                                        {{ (overdue ? 'activities.status.overdue' : 'activities.status.pending')|trans({}, 'dashboard') }}
+                                    </span>
                                 </span>
-                                <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium {{ overdue ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700' }}">
+                                <span class="hidden shrink-0 self-center rounded-full px-2 py-0.5 text-xs font-medium sm:block {{ overdue ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700' }}">
                                     {{ (overdue ? 'activities.status.overdue' : 'activities.status.pending')|trans({}, 'dashboard') }}
                                 </span>
                             </a>
