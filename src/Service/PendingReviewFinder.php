@@ -8,6 +8,7 @@ use App\Entity\DocumentRevision;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Repository\DocumentRevisionRepository;
+use App\Repository\FolderRepository;
 
 /**
  * Document revisions awaiting review that a given teacher can actually act on — mirrors
@@ -20,6 +21,7 @@ final class PendingReviewFinder
     public function __construct(
         private readonly DocumentRevisionRepository $revisions,
         private readonly DocumentTreeAccessChecker $access,
+        private readonly FolderRepository $folders,
     ) {}
 
     /** @return list<DocumentRevision> oldest pending first */
@@ -33,5 +35,21 @@ final class PendingReviewFinder
         }
 
         return $reviewable;
+    }
+
+    /**
+     * Whether the teacher can review at least one folder in the centre, regardless of whether
+     * anything is currently pending — distinguishes "nothing applies to me" from "I'm done" for the
+     * dashboard widget, since forTeacher() alone returning an empty list can mean either.
+     */
+    public function hasReviewAccess(Teacher $teacher, EducationalCentre $centre): bool
+    {
+        foreach ($this->folders->findAllByCentre($centre) as $folder) {
+            if ($this->access->canReviewFolder($teacher, $folder)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

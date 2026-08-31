@@ -11,6 +11,8 @@ use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Entity\PersonName;
+use App\Entity\SpecificProfile;
+use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
 use App\Service\PendingReviewFinder;
 use App\Tests\Integration\RepositoryTestCase;
@@ -88,5 +90,31 @@ final class PendingReviewFinderTest extends RepositoryTestCase
         $this->persist($centre, $manager, $uploader, $section, $folder, $document, $file, $revision);
 
         self::assertSame([], $this->finder()->forTeacher($manager, $centre));
+    }
+
+    public function testHasReviewAccessIsTrueForAFolderReviewerEvenWithNothingPending(): void
+    {
+        $centre   = $this->centre();
+        $reviewer = $this->teacher('revisor');
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Revisor')->setPosition(0);
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección')->setPosition(0);
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Carpeta')->setPosition(0);
+        $folder->addReviewProfile($profile, null);
+        $assignment = new SpecificProfileAssignment($profile, null, $reviewer);
+        $this->persist($centre, $reviewer, $profile, $section, $folder, $assignment);
+
+        self::assertTrue($this->finder()->hasReviewAccess($reviewer, $centre));
+        self::assertSame([], $this->finder()->forTeacher($reviewer, $centre));
+    }
+
+    public function testHasReviewAccessIsFalseForATeacherWithNoReviewProfileAnywhere(): void
+    {
+        $centre   = $this->centre();
+        $outsider = $this->teacher('sin-acceso');
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección')->setPosition(0);
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Carpeta')->setPosition(0);
+        $this->persist($centre, $outsider, $section, $folder);
+
+        self::assertFalse($this->finder()->hasReviewAccess($outsider, $centre));
     }
 }

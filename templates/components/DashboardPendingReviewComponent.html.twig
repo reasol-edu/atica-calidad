@@ -1,0 +1,65 @@
+{% set summary = this.summary %}
+
+{% if summary.hasAccess %}
+<div class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+    <div class="px-6 py-5 border-b border-gray-100">
+        <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900">
+            {{ ux_icon('heroicons:document-magnifying-glass', {class: 'h-5 w-5 text-forest-600'}) }}
+            {{ 'reviews.title'|trans({}, 'dashboard') }}
+        </h2>
+    </div>
+
+    <div class="px-6 py-5 space-y-5">
+        {% if summary.total > 0 %}
+            {# ── Estadística ──────────────────────────────────────────────────── #}
+            <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 inline-block">
+                <p class="text-2xl font-bold text-amber-700">{{ summary.total }}</p>
+                <p class="text-xs font-medium text-amber-600">{{ 'reviews.stat.pending'|trans({}, 'dashboard') }}</p>
+            </div>
+
+            {# ── Lista de pendientes ─────────────────────────────────────────── #}
+            <ul class="-mx-6 divide-y divide-gray-100">
+                {% for revision in summary.items %}
+                    {% set document = revision.document %}
+                    {% set folder   = document.folder %}
+                    <li>
+                        <a href="{{ path('app_document_tree', {
+                                section: folder.documentSection.id.toRfc4122,
+                                folder: folder.id.toRfc4122,
+                                document: document.id.toRfc4122,
+                            }) }}"
+                           class="flex items-start gap-3 px-6 py-3 transition-colors hover:bg-gray-50">
+                            <span class="mt-0.5 shrink-0 text-amber-500">
+                                {{ ux_icon('heroicons:document-magnifying-glass', {class: 'h-5 w-5'}) }}
+                            </span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate text-sm font-medium text-gray-900">
+                                    {{ document.name }}
+                                </span>
+                                <span class="block truncate text-xs text-gray-500">
+                                    {{ folder.name }} ·
+                                    {{ 'reviews.uploaded_by'|trans({
+                                        '%name%': revision.uploadedBy.name.firstName ~ ' ' ~ revision.uploadedBy.name.lastName,
+                                        '%date%': revision.revisedAt|date('format.date'|trans),
+                                    }, 'dashboard') }}
+                                </span>
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {% if summary.total > summary.items|length %}
+                <p class="text-center text-xs text-gray-400">
+                    {{ 'reviews.more_not_shown'|trans({'%count%': summary.total - summary.items|length}, 'dashboard') }}
+                </p>
+            {% endif %}
+        {% else %}
+            <div class="rounded-xl border border-forest-100 bg-forest-50 px-4 py-6 text-center">
+                {{ ux_icon('heroicons:check-badge', {class: 'mx-auto mb-2 h-8 w-8 text-forest-400'}) }}
+                <p class="text-sm font-medium text-forest-700">{{ 'reviews.empty'|trans({}, 'dashboard') }}</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
