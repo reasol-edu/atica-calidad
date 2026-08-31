@@ -127,7 +127,7 @@
             <div class="space-y-3">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <h2 class="text-sm font-semibold text-gray-700">{{ 'folders_title'|trans({}, 'document_content') }}</h2>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <form data-action="submit->live#action:prevent" class="relative">
                             {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400'}) }}
                             <input type="search" data-model="debounce(300)|localSearchQuery" value="{{ localSearchQuery }}"
@@ -142,12 +142,12 @@
                         </form>
                         {% if can_edit %}
                             <button type="button" data-action="live#action" data-live-action-param="toggleShowObsoleteFolders"
-                                    class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs {{ showObsoleteFolders ? 'text-amber-700 bg-amber-50' : 'text-gray-400 hover:text-gray-600' }}">
+                                    class="shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs {{ showObsoleteFolders ? 'text-amber-700 bg-amber-50' : 'text-gray-400 hover:text-gray-600' }}">
                                 {{ ux_icon(showObsoleteFolders ? 'heroicons:eye' : 'heroicons:eye-slash', {class: 'h-3.5 w-3.5'}) }}
                                 {{ 'toggle_obsolete'|trans({}, 'document_content') }}
                             </button>
                             <button type="button" data-action="live#action" data-live-action-param="startAddFolder"
-                                    class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
+                                    class="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
                                 {{ ux_icon('heroicons:plus', {class: 'h-3.5 w-3.5'}) }}
                                 {{ 'add_folder'|trans({}, 'document_content') }}
                             </button>

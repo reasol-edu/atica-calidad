@@ -19,10 +19,14 @@
                     {{ (overdue ? 'mine.item.overdue' : 'mine.item.pending')|trans({'%date%': item.deadline|date('d/m/Y')}, 'activity_content') }}
                 {% endif %}
             </span>
+            {# Below sm, the pill moves to its own line here instead of sitting shrink-0 at the end
+               of the row, where it was squeezing the title/date text on narrow screens. #}
+            <span class="mt-1 inline-block sm:hidden">
+                {% include 'components/_my_activity_status_pill.html.twig' %}
+            </span>
         </span>
-        <span class="shrink-0 self-center rounded-full px-2 py-0.5 text-xs font-medium
-                     {{ completed ? 'bg-forest-50 text-forest-700' : (overdue ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700') }}">
-            {{ (completed ? 'mine.status.completed' : (overdue ? 'mine.status.overdue' : 'mine.status.pending'))|trans({}, 'activity_content') }}
+        <span class="hidden shrink-0 self-center sm:block">
+            {% include 'components/_my_activity_status_pill.html.twig' %}
         </span>
     </a>
 </li>

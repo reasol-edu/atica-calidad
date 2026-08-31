@@ -1,0 +1,5 @@
+{# overdue, completed: bool — expected in scope from the including template #}
+<span class="rounded-full px-2 py-0.5 text-xs font-medium
+             {{ completed ? 'bg-forest-50 text-forest-700' : (overdue ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700') }}">
+    {{ (completed ? 'mine.status.completed' : (overdue ? 'mine.status.overdue' : 'mine.status.pending'))|trans({}, 'activity_content') }}
+</span>
