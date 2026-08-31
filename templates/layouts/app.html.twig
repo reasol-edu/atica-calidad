@@ -109,6 +109,15 @@
 
             <div class="my-3 h-px bg-white/8"></div>
 
+            {# Actividades #}
+            {{ _self.nav_item(
+                'activities'|trans({}, 'navigation'),
+                path('app_activities'),
+                'heroicons:check-circle',
+                current_route,
+                'app_activities'
+            ) }}
+
             {# Calendario #}
             {{ _self.nav_item(
                 'calendar'|trans({}, 'navigation'),
@@ -125,15 +134,6 @@
                 'heroicons:folder-open',
                 current_route,
                 'app_document_tree'
-            ) }}
-
-            {# Actividades #}
-            {{ _self.nav_item(
-                'activities'|trans({}, 'navigation'),
-                path('app_activities'),
-                'heroicons:check-circle',
-                current_route,
-                'app_activities'
             ) }}
 
             {# Informes — solo para equipo directivo y admins #}
