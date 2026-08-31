@@ -11,10 +11,13 @@ use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Entity\PersonName;
+use App\Entity\SettingDefinition;
+use App\Entity\SettingType;
 use App\Entity\SpecificProfile;
 use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
 use App\Repository\DocumentRepository;
+use App\Repository\EmailNotificationLogRepository;
 use App\Repository\FolderRepository;
 use App\Tests\Integration\ControllerTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -655,5 +658,102 @@ final class FolderControllerTest extends ControllerTestCase
         $location = $this->client->getResponse()->headers->get('Location');
         self::assertNotNull($location);
         self::assertStringNotContainsString('evil.example.com', $location);
+    }
+
+    // ── Review notifications ─────────────────────────────────────────────────
+
+    /** @return list<SettingDefinition> */
+    private function reviewNotificationSettingsEnabled(): array
+    {
+        return [
+            (new SettingDefinition())->setKey('notifications.pending_review_reminder_enabled')->setType(SettingType::Boolean)->setDefaultValue('true')->setTeacherScope(true),
+            (new SettingDefinition())->setKey('notifications.email_notifications_enabled')->setType(SettingType::Boolean)->setDefaultValue('true')->setTeacherScope(true),
+            (new SettingDefinition())->setKey('notifications.email_log_enabled')->setType(SettingType::Boolean)->setDefaultValue('true')->setCentreScope(true),
+        ];
+    }
+
+    public function testUploadNotifiesTheFoldersReviewersWhenTheFolderRequiresReview(): void
+    {
+        $centre  = $this->centre();
+        $folder  = $this->folder($centre);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Revisor');
+        $folder->addReviewProfile($profile);
+        $reviewer = $this->teacher('revisor')->setEmail('revisor@example.com');
+        $assign   = new SpecificProfileAssignment($profile, null, $reviewer);
+        $admin    = $this->admin();
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $reviewer, $assign, $admin, ...$this->reviewNotificationSettingsEnabled());
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('POST', "/arbol-documental/carpetas/{$folderId}/subir", [
+            '_token' => $this->csrfToken('folder_upload_' . $folderId),
+            'items'  => [0 => ['version' => '1']],
+        ], [
+            'files' => [0 => $this->uploadedFile('contenido')],
+        ]);
+
+        self::assertTrue($this->client->getResponse()->isRedirect());
+
+        /** @var EmailNotificationLogRepository $logs */
+        $logs = self::getContainer()->get(EmailNotificationLogRepository::class);
+        $logEntries = $logs->findAll();
+        self::assertCount(1, $logEntries);
+        self::assertSame('pending_review_reminder', $logEntries[0]->getEventKey());
+    }
+
+    public function testUploadRevisionNotifiesTheFoldersReviewers(): void
+    {
+        $centre  = $this->centre();
+        $folder  = $this->folder($centre);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Revisor');
+        $folder->addReviewProfile($profile);
+        $reviewer = $this->teacher('revisor')->setEmail('revisor@example.com');
+        $assign   = new SpecificProfileAssignment($profile, null, $reviewer);
+        $uploader = $this->teacher('subidor');
+        $document = $this->documentWithFirstRevision($folder, $uploader);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $reviewer, $assign, $uploader, $document, ...$this->reviewNotificationSettingsEnabled());
+        $folderId   = $folder->getId()->toRfc4122();
+        $documentId = $document->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request(
+            'POST',
+            "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones",
+            ['_token' => $this->csrfToken('folder_document_revision_' . $documentId)],
+            ['file' => $this->uploadedFile('v2')],
+        );
+
+        self::assertTrue($this->client->getResponse()->isRedirect());
+
+        /** @var EmailNotificationLogRepository $logs */
+        $logs = self::getContainer()->get(EmailNotificationLogRepository::class);
+        $logEntries = $logs->findAll();
+        self::assertCount(1, $logEntries);
+        self::assertSame('pending_review_reminder', $logEntries[0]->getEventKey());
+    }
+
+    public function testUploadDoesNotNotifyAnAdminWithoutTheReviewProfile(): void
+    {
+        $centre  = $this->centre();
+        $folder  = $this->folder($centre);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Revisor');
+        $folder->addReviewProfile($profile);
+        $admin = $this->admin();
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $admin, ...$this->reviewNotificationSettingsEnabled());
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('POST', "/arbol-documental/carpetas/{$folderId}/subir", [
+            '_token' => $this->csrfToken('folder_upload_' . $folderId),
+            'items'  => [0 => ['version' => '1']],
+        ], [
+            'files' => [0 => $this->uploadedFile('contenido')],
+        ]);
+
+        self::assertTrue($this->client->getResponse()->isRedirect());
+
+        /** @var EmailNotificationLogRepository $logs */
+        $logs = self::getContainer()->get(EmailNotificationLogRepository::class);
+        self::assertSame([], $logs->findAll());
     }
 }

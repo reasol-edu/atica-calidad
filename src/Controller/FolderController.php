@@ -17,6 +17,7 @@ use App\Repository\FolderRepository;
 use App\Security\Voter\FolderVoter;
 use App\Service\AttachmentDownloadResponder;
 use App\Service\DocumentCreationService;
+use App\Service\DocumentReviewNotifier;
 use App\Service\DocumentTreeAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -51,6 +52,7 @@ class FolderController extends AbstractController
         private readonly DocumentTreeAccessChecker $access,
         private readonly AttachmentDownloadResponder $downloadResponder,
         private readonly DocumentCreationService $documentCreation,
+        private readonly DocumentReviewNotifier $reviewNotifier,
     ) {}
 
     /**
@@ -88,7 +90,8 @@ class FolderController extends AbstractController
         /** @var array<int, array{version?: string, profileKey?: string}> $items */
         $items = $request->request->all('items');
 
-        $created = 0;
+        $created           = 0;
+        $pendingReviewDocs = [];
         foreach ($uploadedFiles as $i => $file) {
             if (!$file instanceof UploadedFile || !$file->isValid()) {
                 continue;
@@ -119,7 +122,10 @@ class FolderController extends AbstractController
                 }
             }
 
-            $this->documentCreation->createWithFirstRevision($folder, $name, $profile, $listItem, $file, $teacher, $version);
+            $document = $this->documentCreation->createWithFirstRevision($folder, $name, $profile, $listItem, $file, $teacher, $version);
+            if ($folder->requiresReview()) {
+                $pendingReviewDocs[] = $document;
+            }
 
             ++$created;
         }
@@ -132,6 +138,13 @@ class FolderController extends AbstractController
 
         $this->em->flush();
         $this->addFlash('success', $this->translator->trans('upload.flash.created', ['%count%' => $created], 'document_content'));
+
+        foreach ($pendingReviewDocs as $document) {
+            $revision = $document->getRevisions()->first();
+            if ($revision instanceof DocumentRevision) {
+                $this->reviewNotifier->notifyReviewers($revision);
+            }
+        }
 
         return $this->redirectToFolder($folder, $request);
     }
@@ -201,6 +214,10 @@ class FolderController extends AbstractController
         $this->em->flush();
 
         $this->addFlash('success', $this->t('revision.flash.uploaded'));
+
+        if ($pendingReview) {
+            $this->reviewNotifier->notifyReviewers($revision);
+        }
 
         return $this->redirectToFolder($folder, $request);
     }

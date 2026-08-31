@@ -40,6 +40,9 @@ settings.key.notifications_pending_activity_reminder_enabled.description: 'Enví
 settings.key.notifications_pending_activity_reminder_warning_days.label: 'Días de preaviso del recordatorio'
 settings.key.notifications_pending_activity_reminder_warning_days.description: 'Días de antelación sobre la fecha límite a partir de los cuales se avisa de una actividad pendiente de completar (además de las que ya estén fuera de plazo).'
 
+settings.key.notifications_pending_review_reminder_enabled.label: 'Aviso de documento pendiente de revisar'
+settings.key.notifications_pending_review_reminder_enabled.description: 'Avisa por correo a los perfiles de revisión de una carpeta cuando se suba una versión de un documento que necesite su revisión.'
+
 settings.key.reports_pdf_template_portrait.label: 'Plantilla PDF general (vertical)'
 settings.key.reports_pdf_template_portrait.description: 'PDF de una sola página que se usa como fondo de cada página de los informes en orientación vertical que no tengan una plantilla propia. Si no se sube ninguna, esos informes se generan sin fondo.'
 
