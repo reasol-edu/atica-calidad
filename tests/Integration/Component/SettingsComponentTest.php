@@ -249,4 +249,66 @@ final class SettingsComponentTest extends ControllerTestCase
 
         self::assertStringContainsString('reports.title', $html);
     }
+
+    /** First real exercise of SettingType::Choice through the component — renders as a <select> and saves like any other type. */
+    public function testTeacherScopeSavesAChoiceValue(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher('docente');
+        $def     = (new SettingDefinition())->setKey('notifications.pending_review_notification_mode')->setType(SettingType::Choice)
+            ->setDefaultValue('daily_digest')->setChoices('disabled,individual,daily_digest')->setTeacherScope(true);
+        $this->persist($centre, $teacher, $def);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('SettingsComponent', ['scope' => 'teacher'], $this->client);
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('<select', $html);
+
+        $component->call('save', ['key' => 'notifications.pending_review_notification_mode', 'value' => 'individual']);
+
+        $this->em->clear();
+        /** @var TeacherSettingValueRepository $teacherValues */
+        $teacherValues = self::getContainer()->get(TeacherSettingValueRepository::class);
+        /** @var SettingDefinitionRepository $definitions */
+        $definitions = self::getContainer()->get(SettingDefinitionRepository::class);
+        $reloadedDef = $definitions->findOneBy(['key' => 'notifications.pending_review_notification_mode']);
+        self::assertNotNull($reloadedDef);
+        /** @var \App\Repository\TeacherRepository $teachers */
+        $teachers = self::getContainer()->get(\App\Repository\TeacherRepository::class);
+        $reloadedTeacher = $teachers->findById($teacher->getId()->toRfc4122());
+        self::assertNotNull($reloadedTeacher);
+        $stored = $teacherValues->findByDefinitionAndTeacher($reloadedDef, $reloadedTeacher);
+        self::assertNotNull($stored);
+        self::assertSame('individual', $stored->getValue());
+    }
+
+    public function testChoiceTypeRejectsAValueOutsideItsChoices(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher('docente');
+        $def     = (new SettingDefinition())->setKey('notifications.pending_review_notification_mode')->setType(SettingType::Choice)
+            ->setDefaultValue('daily_digest')->setChoices('disabled,individual,daily_digest')->setTeacherScope(true);
+        $this->persist($centre, $teacher, $def);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('SettingsComponent', ['scope' => 'teacher'], $this->client);
+        $component->call('save', ['key' => 'notifications.pending_review_notification_mode', 'value' => 'weekly']);
+
+        $props = json_decode((string) $component->render()->crawler()->filter('[data-live-props-value]')->attr('data-live-props-value'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($props);
+        self::assertSame('notifications.pending_review_notification_mode', $props['lastError']);
+
+        $this->em->clear();
+        /** @var TeacherSettingValueRepository $teacherValues */
+        $teacherValues = self::getContainer()->get(TeacherSettingValueRepository::class);
+        /** @var SettingDefinitionRepository $definitions */
+        $definitions = self::getContainer()->get(SettingDefinitionRepository::class);
+        $reloadedDef = $definitions->findOneBy(['key' => 'notifications.pending_review_notification_mode']);
+        self::assertNotNull($reloadedDef);
+        /** @var \App\Repository\TeacherRepository $teachers */
+        $teachers = self::getContainer()->get(\App\Repository\TeacherRepository::class);
+        $reloadedTeacher = $teachers->findById($teacher->getId()->toRfc4122());
+        self::assertNotNull($reloadedTeacher);
+        self::assertNull($teacherValues->findByDefinitionAndTeacher($reloadedDef, $reloadedTeacher));
+    }
 }

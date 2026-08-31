@@ -1,0 +1,6 @@
+<p style="margin: 0;">
+    {{ 'emails.document_accepted.body'|trans({'%document%': document.name, '%folder%': folder.name}, 'emails') }}
+</p>
+{% if revision.reviewResult %}
+    <p style="margin: 8px 0 0; color: #6b7280;">{{ revision.reviewResult }}</p>
+{% endif %}

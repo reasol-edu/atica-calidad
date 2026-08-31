@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App;
 
 use App\Message\PurgeEmailNotificationLogMessage;
+use App\Message\SendDocumentReviewDigestMessage;
 use App\Message\SendPendingActivityReminderMessage;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
 use Symfony\Component\Scheduler\RecurringMessage;
@@ -31,6 +32,10 @@ class Schedule implements ScheduleProviderInterface
                 // of its declared non-working days (NonWorkingDayChecker), since holidays are
                 // centre/academic-year-specific and can't be expressed in a single cron expression.
                 RecurringMessage::cron('0 7 * * *', new SendPendingActivityReminderMessage()),
+            )
+            ->add(
+                // 15 min after the activity reminder — same daily cadence, own cron entry.
+                RecurringMessage::cron('15 7 * * *', new SendDocumentReviewDigestMessage()),
             )
             ->stateful($this->cache)
             ->processOnlyLastMissedRun(true)

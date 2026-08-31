@@ -1,0 +1,55 @@
+{% if pendingNew is not empty or pendingRest is not empty %}
+<p style="margin: 0 0 8px; font-weight: 600;">
+    {{ 'emails.document_review_digest.pending_review_heading'|trans({}, 'emails') }}
+</p>
+{% if pendingNew is not empty %}
+<p style="margin: 0 0 4px; color: #6b7280;">
+    {{ 'emails.document_review_digest.new_heading'|trans({}, 'emails') }}
+</p>
+<ul style="margin: 0 0 12px; padding-left: 20px;">
+    {% for revision in pendingNew %}
+        <li style="margin-bottom: 6px;">
+            {{ revision.document.name }} — {{ revision.document.folder.name }}
+        </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% if pendingRest is not empty %}
+<p style="margin: 0 0 4px; color: #6b7280;">
+    {{ 'emails.document_review_digest.rest_heading'|trans({}, 'emails') }}
+</p>
+<ul style="margin: 0 0 20px; padding-left: 20px;">
+    {% for revision in pendingRest %}
+        <li style="margin-bottom: 6px;">
+            {{ revision.document.name }} — {{ revision.document.folder.name }}
+        </li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endif %}
+
+{% if accepted is not empty %}
+<p style="margin: 0 0 8px; font-weight: 600; color: #15803d;">
+    {{ 'emails.document_review_digest.accepted_heading'|trans({}, 'emails') }}
+</p>
+<ul style="margin: 0 0 20px; padding-left: 20px;">
+    {% for revision in accepted %}
+        <li style="margin-bottom: 6px;">
+            {{ revision.document.name }} — {{ revision.document.folder.name }}
+        </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if rejected is not empty %}
+<p style="margin: 0 0 8px; font-weight: 600; color: #b91c1c;">
+    {{ 'emails.document_review_digest.rejected_heading'|trans({}, 'emails') }}
+</p>
+<ul style="margin: 0; padding-left: 20px;">
+    {% for revision in rejected %}
+        <li style="margin-bottom: 6px;">
+            {{ revision.document.name }} — {{ revision.document.folder.name }}
+        </li>
+    {% endfor %}
+</ul>
+{% endif %}

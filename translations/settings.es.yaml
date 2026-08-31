@@ -40,8 +40,23 @@ settings.key.notifications_pending_activity_reminder_enabled.description: 'Enví
 settings.key.notifications_pending_activity_reminder_warning_days.label: 'Días de preaviso del recordatorio'
 settings.key.notifications_pending_activity_reminder_warning_days.description: 'Días de antelación sobre la fecha límite a partir de los cuales se avisa de una actividad pendiente de completar (además de las que ya estén fuera de plazo).'
 
-settings.key.notifications_pending_review_reminder_enabled.label: 'Aviso de documento pendiente de revisar'
-settings.key.notifications_pending_review_reminder_enabled.description: 'Avisa por correo a los perfiles de revisión de una carpeta cuando se suba una versión de un documento que necesite su revisión.'
+settings.key.notifications_pending_review_notification_mode.label: 'Aviso de documento pendiente de revisar'
+settings.key.notifications_pending_review_notification_mode.description: 'Avisa a los perfiles de revisión de una carpeta cuando se suba una versión de un documento que necesite su revisión.'
+settings.key.notifications_pending_review_notification_mode.choice.disabled: 'Desactivado'
+settings.key.notifications_pending_review_notification_mode.choice.individual: 'Individual'
+settings.key.notifications_pending_review_notification_mode.choice.daily_digest: 'Resumen diario'
+
+settings.key.notifications_document_accepted_notification_mode.label: 'Aviso de documento aceptado'
+settings.key.notifications_document_accepted_notification_mode.description: 'Avisa a los perfiles de subida de una carpeta (o al docente que la subió, si la actividad es de ámbito individual) cuando se acepte una de sus revisiones.'
+settings.key.notifications_document_accepted_notification_mode.choice.disabled: 'Desactivado'
+settings.key.notifications_document_accepted_notification_mode.choice.individual: 'Individual'
+settings.key.notifications_document_accepted_notification_mode.choice.daily_digest: 'Resumen diario'
+
+settings.key.notifications_document_rejected_notification_mode.label: 'Aviso de documento rechazado'
+settings.key.notifications_document_rejected_notification_mode.description: 'Avisa a los perfiles de subida de una carpeta (o al docente que la subió, si la actividad es de ámbito individual) cuando se rechace una de sus revisiones.'
+settings.key.notifications_document_rejected_notification_mode.choice.disabled: 'Desactivado'
+settings.key.notifications_document_rejected_notification_mode.choice.individual: 'Individual'
+settings.key.notifications_document_rejected_notification_mode.choice.daily_digest: 'Resumen diario'
 
 settings.key.reports_pdf_template_portrait.label: 'Plantilla PDF general (vertical)'
 settings.key.reports_pdf_template_portrait.description: 'PDF de una sola página que se usa como fondo de cada página de los informes en orientación vertical que no tengan una plantilla propia. Si no se sube ninguna, esos informes se generan sin fondo.'

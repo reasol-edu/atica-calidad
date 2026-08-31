@@ -666,7 +666,7 @@ final class FolderControllerTest extends ControllerTestCase
     private function reviewNotificationSettingsEnabled(): array
     {
         return [
-            (new SettingDefinition())->setKey('notifications.pending_review_reminder_enabled')->setType(SettingType::Boolean)->setDefaultValue('true')->setTeacherScope(true),
+            (new SettingDefinition())->setKey('notifications.pending_review_notification_mode')->setType(SettingType::Choice)->setDefaultValue('individual')->setChoices('disabled,individual,daily_digest')->setTeacherScope(true),
             (new SettingDefinition())->setKey('notifications.email_notifications_enabled')->setType(SettingType::Boolean)->setDefaultValue('true')->setTeacherScope(true),
             (new SettingDefinition())->setKey('notifications.email_log_enabled')->setType(SettingType::Boolean)->setDefaultValue('true')->setCentreScope(true),
         ];

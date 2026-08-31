@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Attribute\CurrentCentre;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
+use App\Entity\DocumentReviewNotificationKind;
 use App\Entity\DocumentRevision;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
@@ -18,6 +19,7 @@ use App\Security\Voter\FolderVoter;
 use App\Service\AttachmentDownloadResponder;
 use App\Service\DocumentCreationService;
 use App\Service\DocumentReviewNotifier;
+use App\Service\DocumentReviewOutcomeNotifier;
 use App\Service\DocumentTreeAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -53,6 +55,7 @@ class FolderController extends AbstractController
         private readonly AttachmentDownloadResponder $downloadResponder,
         private readonly DocumentCreationService $documentCreation,
         private readonly DocumentReviewNotifier $reviewNotifier,
+        private readonly DocumentReviewOutcomeNotifier $outcomeNotifier,
     ) {}
 
     /**
@@ -268,6 +271,7 @@ class FolderController extends AbstractController
         $revision->approve($teacher, $result !== '' ? $result : null);
         $document->setActiveRevision($revision);
         $this->em->flush();
+        $this->outcomeNotifier->notifyOutcome($revision, DocumentReviewNotificationKind::Approved);
 
         $this->addFlash('success', $this->t('review.flash.approved'));
 
@@ -297,6 +301,7 @@ class FolderController extends AbstractController
             $document->setActiveRevision(null);
         }
         $this->em->flush();
+        $this->outcomeNotifier->notifyOutcome($revision, DocumentReviewNotificationKind::Rejected);
 
         $this->addFlash('success', $this->t('review.flash.rejected'));
 
