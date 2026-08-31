@@ -10,6 +10,7 @@ use App\Model\ProfileAssignmentRow;
 use App\Pagination\Paginator;
 use App\Repository\SchoolEventRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\AppSettingsInterface;
 use App\Service\ProfileAssignmentRowBuilder;
 use App\Service\TenantContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -36,6 +37,7 @@ class SchoolEventListComponent extends AbstractController
         private readonly SchoolEventRepository $events,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly TenantContext $tenantContext,
+        private readonly AppSettingsInterface $appSettings,
     ) {}
 
     public function mount(EducationalCentre $centre): void
@@ -55,7 +57,7 @@ class SchoolEventListComponent extends AbstractController
     {
         $year = $this->tenantContext->getViewYear($this->centre);
         if ($year === null) {
-            return Paginator::fromQuery($this->events->findNoneQuery(), 1, self::PAGE_SIZE);
+            return Paginator::fromQuery($this->events->findNoneQuery(), 1, $this->pageSize());
         }
 
         return $this->paginate(

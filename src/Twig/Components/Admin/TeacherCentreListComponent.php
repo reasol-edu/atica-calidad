@@ -9,6 +9,7 @@ use App\Entity\Teacher;
 use App\Pagination\Paginator;
 use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\AppSettingsInterface;
 use App\Service\TenantContext;
 use App\Twig\Components\PaginatedListTrait;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,6 +32,7 @@ class TeacherCentreListComponent extends AbstractController
     public function __construct(
         private readonly TeacherRepository $teachers,
         private readonly TenantContext $tenantContext,
+        private readonly AppSettingsInterface $appSettings,
     ) {}
 
     public function mount(EducationalCentre $centre): void
@@ -44,7 +46,7 @@ class TeacherCentreListComponent extends AbstractController
     {
         $year = $this->tenantContext->getViewYear($this->centre);
         if ($year === null) {
-            return Paginator::fromQuery($this->teachers->findNoneQuery(), 1, self::PAGE_SIZE);
+            return Paginator::fromQuery($this->teachers->findNoneQuery(), 1, $this->pageSize());
         }
 
         return $this->paginate(

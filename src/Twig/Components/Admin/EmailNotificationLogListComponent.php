@@ -8,6 +8,7 @@ use App\Entity\EducationalCentre;
 use App\Entity\EmailNotificationLog;
 use App\Pagination\Paginator;
 use App\Repository\EmailNotificationLogRepository;
+use App\Service\AppSettingsInterface;
 use App\Twig\Components\PaginatedListTrait;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Clock\ClockInterface;
@@ -44,6 +45,7 @@ class EmailNotificationLogListComponent extends AbstractController
     public function __construct(
         private readonly EmailNotificationLogRepository $logs,
         private readonly ClockInterface $clock,
+        private readonly AppSettingsInterface $appSettings,
     ) {}
 
     public function mount(EducationalCentre $centre): void

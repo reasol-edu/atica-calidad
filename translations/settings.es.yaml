@@ -17,10 +17,14 @@ settings.hub.help: 'Personaliza los ajustes predeterminados para este centro.'
 settings.hub.manage: 'Configurar'
 
 # ── Categorías de ajustes ────────────────────────────────────────────────────
+settings.category.display.label: 'Visualización'
 settings.category.email_alerts.label: 'Avisos por correo'
 settings.category.report_templates.label: 'Plantillas de informes'
 
 # ── Definiciones de ajustes ───────────────────────────────────────────────────
+settings.key.page_size.label: 'Resultados por página'
+settings.key.page_size.description: 'Número de elementos que se muestran en los listados.'
+
 settings.key.notifications_email_log_enabled.label: 'Registrar los avisos por correo'
 settings.key.notifications_email_log_enabled.description: 'Guarda un registro de cada aviso por correo enviado (destinatario, tipo de evento, asunto y resultado), visible en el hub de centro educativo.'
 

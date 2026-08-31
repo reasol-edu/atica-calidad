@@ -7,6 +7,7 @@ namespace App\Twig\Components\Admin;
 use App\Entity\EducationalCentre;
 use App\Pagination\Paginator;
 use App\Repository\EducationalCentreRepository;
+use App\Service\AppSettingsInterface;
 use App\Twig\Components\PaginatedListTrait;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -32,6 +33,7 @@ class EducationalCentreListComponent extends AbstractController
 
     public function __construct(
         private readonly EducationalCentreRepository $centres,
+        private readonly AppSettingsInterface $appSettings,
     ) {}
 
     public function mount(): void

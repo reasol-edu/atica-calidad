@@ -10,6 +10,7 @@ use App\Model\ProfileAssignmentRow;
 use App\Pagination\Paginator;
 use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\AppSettingsInterface;
 use App\Service\ProfileAssignmentRowBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,7 +35,7 @@ class SpecificProfileAssignmentsComponent extends AbstractController
     use DefaultActionTrait;
     use ComponentToolsTrait;
 
-    private const int PAGE_SIZE = 20;
+    private const int FALLBACK_PAGE_SIZE = 20;
 
     #[LiveProp]
     public EducationalCentre $centre;
@@ -82,12 +83,20 @@ class SpecificProfileAssignmentsComponent extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly TeacherRepository $teachers,
+        private readonly AppSettingsInterface $appSettings,
     ) {}
 
     public function mount(EducationalCentre $centre): void
     {
         $this->denyAccessUnlessGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre);
         $this->centre = $centre;
+    }
+
+    private function pageSize(): int
+    {
+        $configured = $this->appSettings->getInt('page.size');
+
+        return $configured > 0 ? $configured : self::FALLBACK_PAGE_SIZE;
     }
 
     /** Same rule as SpecificProfileTreeComponent: assignments need an active year to search candidate teachers against. */
@@ -156,10 +165,11 @@ class SpecificProfileAssignmentsComponent extends AbstractController
 
         usort($rows, static fn (ProfileAssignmentRow $a, ProfileAssignmentRow $b): int => $a->displayName <=> $b->displayName);
 
-        $page  = max(1, $this->profilePage);
-        $slice = array_slice($rows, ($page - 1) * self::PAGE_SIZE, self::PAGE_SIZE);
+        $page     = max(1, $this->profilePage);
+        $pageSize = $this->pageSize();
+        $slice    = array_slice($rows, ($page - 1) * $pageSize, $pageSize);
 
-        return Paginator::fromArray($slice, count($rows), $page, self::PAGE_SIZE);
+        return Paginator::fromArray($slice, count($rows), $page, $pageSize);
     }
 
     #[LiveAction]
@@ -358,10 +368,11 @@ class SpecificProfileAssignmentsComponent extends AbstractController
             return [$an->getLastName(), $an->getFirstName()] <=> [$bn->getLastName(), $bn->getFirstName()];
         });
 
-        $page  = max(1, $this->teacherPage);
-        $slice = array_slice($entries, ($page - 1) * self::PAGE_SIZE, self::PAGE_SIZE);
+        $page     = max(1, $this->teacherPage);
+        $pageSize = $this->pageSize();
+        $slice    = array_slice($entries, ($page - 1) * $pageSize, $pageSize);
 
-        return Paginator::fromArray($slice, count($entries), $page, self::PAGE_SIZE);
+        return Paginator::fromArray($slice, count($entries), $page, $pageSize);
     }
 
     #[LiveAction]

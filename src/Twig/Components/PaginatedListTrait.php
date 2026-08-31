@@ -11,11 +11,14 @@ use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 
 /**
- * Shared page-navigation state for *ListComponent Live Components.
+ * Shared page-navigation state for *ListComponent Live Components. Every class using this trait
+ * must inject AppSettingsInterface as $this->appSettings (constructor-promoted, like every other
+ * dependency here) — page size is the teacher-scoped 'page.size' setting, falling back to
+ * FALLBACK_PAGE_SIZE only if that setting can't be resolved (e.g. its definition isn't seeded yet).
  */
 trait PaginatedListTrait
 {
-    private const int PAGE_SIZE = 20;
+    private const int FALLBACK_PAGE_SIZE = 20;
 
     #[LiveProp(writable: true)]
     public int $page = 1;
@@ -39,6 +42,13 @@ trait PaginatedListTrait
      */
     private function paginate(Query $query): Paginator
     {
-        return Paginator::fromQuery($query, max(1, $this->page), self::PAGE_SIZE);
+        return Paginator::fromQuery($query, max(1, $this->page), $this->pageSize());
+    }
+
+    private function pageSize(): int
+    {
+        $configured = $this->appSettings->getInt('page.size');
+
+        return $configured > 0 ? $configured : self::FALLBACK_PAGE_SIZE;
     }
 }

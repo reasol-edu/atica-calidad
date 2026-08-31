@@ -7,6 +7,7 @@ namespace App\Twig\Components\Admin;
 use App\Entity\Teacher;
 use App\Pagination\Paginator;
 use App\Repository\TeacherRepository;
+use App\Service\AppSettingsInterface;
 use App\Twig\Components\PaginatedListTrait;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -24,6 +25,7 @@ class TeacherListComponent extends AbstractController
 
     public function __construct(
         private readonly TeacherRepository $teachers,
+        private readonly AppSettingsInterface $appSettings,
     ) {}
 
     public function mount(): void
