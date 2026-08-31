@@ -12,3 +12,11 @@ emails.email_verification.cta: 'Verificar dirección de correo'
 emails.email_verification.expiry_notice: 'Si no has solicitado este cambio, puedes ignorar este mensaje.'
 
 emails.notification.cta: 'Ver más'
+
+emails.pending_activity_reminder.subject: 'Actividades pendientes de completar'
+emails.pending_activity_reminder.heading: 'Tienes actividades pendientes de completar'
+emails.pending_activity_reminder.due_soon_heading: 'En plazo'
+emails.pending_activity_reminder.overdue_heading: 'Fuera de plazo'
+emails.pending_activity_reminder.due_date: 'vence el %date%'
+emails.pending_activity_reminder.overdue_since: 'venció el %date%'
+emails.pending_activity_reminder.cta: 'Ver mis actividades'

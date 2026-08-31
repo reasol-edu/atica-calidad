@@ -1,0 +1,29 @@
+{% if dueSoon is not empty %}
+<p style="margin: 0 0 8px; font-weight: 600;">
+    {{ 'emails.pending_activity_reminder.due_soon_heading'|trans({}, 'emails') }}
+</p>
+<ul style="margin: 0 0 20px; padding-left: 20px;">
+    {% for item in dueSoon %}
+        <li style="margin-bottom: 6px;">
+            {{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}
+            <span style="color: #6b7280;">
+                — {{ 'emails.pending_activity_reminder.due_date'|trans({'%date%': item.deadline|date('d/m/Y')}, 'emails') }}
+            </span>
+        </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if overdue is not empty %}
+<p style="margin: 0 0 8px; font-weight: 600; color: #b91c1c;">
+    {{ 'emails.pending_activity_reminder.overdue_heading'|trans({}, 'emails') }}
+</p>
+<ul style="margin: 0; padding-left: 20px; color: #b91c1c;">
+    {% for item in overdue %}
+        <li style="margin-bottom: 6px;">
+            <strong>{{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}</strong>
+            — {{ 'emails.pending_activity_reminder.overdue_since'|trans({'%date%': item.deadline|date('d/m/Y')}, 'emails') }}
+        </li>
+    {% endfor %}
+</ul>
+{% endif %}

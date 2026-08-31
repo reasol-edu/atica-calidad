@@ -52,4 +52,44 @@ final class ActivityDeadlineChecker
     {
         return $this->clock->now() > $this->currentCycleEndDate($activity);
     }
+
+    /** The real calendar date the activity's period opens on for the cycle "now" belongs to. */
+    public function currentCycleStartDate(Activity $activity): \DateTimeImmutable
+    {
+        return $this->cycleStartDateNear($activity, $this->clock->now());
+    }
+
+    /**
+     * The real calendar date the activity's period opens on for the cycle $reference belongs to —
+     * same anchoring/year-crossing logic as cycleEndDateNear(), mirrored for the start side: a
+     * wrapping range (e.g. Sep–Jun) whose reference sits in the "end" stretch (Jan–Jun) started
+     * back in the previous calendar year.
+     */
+    public function cycleStartDateNear(Activity $activity, \DateTimeImmutable $reference): \DateTimeImmutable
+    {
+        $start = new \DateTimeImmutable(\sprintf(
+            '%04d-%02d-%02d 00:00:00',
+            (int) $reference->format('Y'),
+            $activity->getStartMonth(),
+            $activity->getStartDay(),
+        ));
+
+        if ($activity->getStartMonth() > $activity->getEndMonth() && (int) $reference->format('n') < $activity->getStartMonth()) {
+            $start = $start->modify('-1 year');
+        }
+
+        return $start;
+    }
+
+    /** Whether the activity's current cycle has already opened — false while still waiting for its yearly start date. */
+    public function hasStarted(Activity $activity): bool
+    {
+        return $this->clock->now() >= $this->currentCycleStartDate($activity);
+    }
+
+    /** Whole days remaining until the current cycle's deadline. Meaningful only when not overdue — see isOverdue(). */
+    public function daysUntilDeadline(Activity $activity): int
+    {
+        return (int) $this->clock->now()->diff($this->currentCycleEndDate($activity))->days;
+    }
 }

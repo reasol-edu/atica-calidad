@@ -125,4 +125,76 @@ final class ActivityDeadlineCheckerTest extends TestCase
 
         self::assertSame('2030-09-30', $this->checker()->cycleEndDateNear($activity, $reference)->format('Y-m-d'));
     }
+
+    // ── hasStarted() / currentCycleStartDate() ──────────────────────────────
+
+    public function testNonWrappingRangeHasNotStartedBeforeItsStartDate(): void
+    {
+        self::mockTime('2025-08-31 23:59:59');
+        $activity = $this->activity(1, 9, 30, 9);
+
+        self::assertFalse($this->checker()->hasStarted($activity));
+    }
+
+    public function testNonWrappingRangeHasStartedOnItsStartDate(): void
+    {
+        self::mockTime('2025-09-01 00:00:00');
+        $activity = $this->activity(1, 9, 30, 9);
+
+        self::assertTrue($this->checker()->hasStarted($activity));
+    }
+
+    public function testWrappingRangeInTheStartStretchStartedThisCalendarYear(): void
+    {
+        // Sep–Jun range; "now" is October, in the "start" stretch — it started this September.
+        self::mockTime('2025-10-15 10:00:00');
+        $activity = $this->activity(1, 9, 30, 6);
+
+        self::assertSame('2025-09-01', $this->checker()->currentCycleStartDate($activity)->format('Y-m-d'));
+        self::assertTrue($this->checker()->hasStarted($activity));
+    }
+
+    public function testWrappingRangeInTheEndStretchStartedThePreviousCalendarYear(): void
+    {
+        // Sep–Jun range; "now" is March, in the "end" stretch — it started last September.
+        self::mockTime('2026-03-01 10:00:00');
+        $activity = $this->activity(1, 9, 30, 6);
+
+        self::assertSame('2025-09-01', $this->checker()->currentCycleStartDate($activity)->format('Y-m-d'));
+        self::assertTrue($this->checker()->hasStarted($activity));
+    }
+
+    /**
+     * Aug 31 sits outside both stretches of a Sep–Jun range: same as isOverdue()'s own anchoring
+     * (see testNonWrappingRangeIsNotOverdueBeforeItsNextYearlyOccurrenceStarts()), the checker
+     * still refers to the just-finished cycle (Sep last year–Jun this year) here, not the not-yet-
+     * open next one — so hasStarted() is (correctly, consistently) true, paired with isOverdue().
+     */
+    public function testWrappingRangeInTheGapBetweenCyclesRefersToTheJustFinishedCycle(): void
+    {
+        self::mockTime('2025-08-31 10:00:00');
+        $activity = $this->activity(1, 9, 30, 6);
+
+        self::assertTrue($this->checker()->hasStarted($activity));
+        self::assertTrue($this->checker()->isOverdue($activity));
+    }
+
+    // ── daysUntilDeadline() ──────────────────────────────────────────────────
+
+    public function testDaysUntilDeadlineCountsWholeDaysToTheEndOfTheEndDate(): void
+    {
+        self::mockTime('2025-09-25 10:00:00');
+        $activity = $this->activity(1, 9, 30, 9);
+
+        // 2025-09-30 23:59:59 minus 2025-09-25 10:00:00 is 5 days, 13h59m59s — 5 whole days.
+        self::assertSame(5, $this->checker()->daysUntilDeadline($activity));
+    }
+
+    public function testDaysUntilDeadlineIsZeroOnTheLastDay(): void
+    {
+        self::mockTime('2025-09-30 08:00:00');
+        $activity = $this->activity(1, 9, 30, 9);
+
+        self::assertSame(0, $this->checker()->daysUntilDeadline($activity));
+    }
 }
