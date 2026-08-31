@@ -1,0 +1,118 @@
+<div {{ attributes }} class="space-y-5">
+
+    {# ── Estadísticas ─────────────────────────────────────────────────── #}
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div class="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+            <p class="text-2xl font-bold text-gray-900">{{ this.total }}</p>
+            <p class="text-xs font-medium text-gray-500">{{ 'mine.stat.total'|trans({}, 'activity_content') }}</p>
+        </div>
+        <div class="rounded-xl border border-forest-100 bg-forest-50 px-4 py-3">
+            <p class="text-2xl font-bold text-forest-700">{{ this.completedCount }}</p>
+            <p class="text-xs font-medium text-forest-600">{{ 'mine.stat.completed'|trans({}, 'activity_content') }}</p>
+        </div>
+        <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+            <p class="text-2xl font-bold text-amber-700">{{ this.pendingCount }}</p>
+            <p class="text-xs font-medium text-amber-600">{{ 'mine.stat.pending'|trans({}, 'activity_content') }}</p>
+        </div>
+        <div class="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+            <p class="text-2xl font-bold text-red-700">{{ this.overdueCount }}</p>
+            <p class="text-xs font-medium text-red-600">{{ 'mine.stat.overdue'|trans({}, 'activity_content') }}</p>
+        </div>
+    </div>
+
+    {# ── Filtro y orden/agrupación ────────────────────────────────────── #}
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <form data-action="submit->live#action:prevent" class="relative sm:max-w-xs lg:max-w-2xl sm:flex-1">
+            {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400'}) }}
+            <input type="search" data-model="debounce(300)|searchQuery" value="{{ searchQuery }}"
+                   placeholder="{{ 'mine.search_placeholder'|trans({}, 'activity_content') }}"
+                   class="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 {{ searchQuery is not empty ? 'pr-9' : 'pr-3' }} text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+            {% if searchQuery is not empty %}
+                <button type="button" data-action="live#action" data-live-action-param="clearSearch"
+                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-600">
+                    {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                </button>
+            {% endif %}
+        </form>
+
+        <div class="flex flex-wrap items-center gap-3">
+            {# A real switch, not another pill: this is an independent on/off filter, not one more
+               option in the segmented ordenar/agrupar control right next to it — using the same
+               pill shape for both reads as "pick one of five", which it isn't. #}
+            <button type="button" role="switch" aria-checked="{{ onlyPending ? 'true' : 'false' }}"
+                    data-action="live#action" data-live-action-param="toggleOnlyPending"
+                    class="inline-flex shrink-0 items-center gap-2 text-xs font-medium text-gray-600">
+                <span class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors
+                             {{ onlyPending ? 'bg-forest-600' : 'bg-gray-200' }}">
+                    <span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform
+                                 {{ onlyPending ? 'translate-x-[18px]' : 'translate-x-1' }}"></span>
+                </span>
+                {{ 'mine.only_pending'|trans({}, 'activity_content') }}
+            </button>
+
+            <span class="hidden sm:block h-4 w-px bg-gray-200"></span>
+
+            <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="{{ 'mine.group.by_deadline'|trans({}, 'activity_content') }}">
+                {% for mode in [
+                    {key: 'deadline', label: 'mine.group.by_deadline', icon: 'heroicons:clock'},
+                    {key: 'profile',  label: 'mine.group.by_profile',  icon: 'heroicons:user'},
+                    {key: 'category', label: 'mine.group.by_category', icon: 'heroicons:folder'},
+                    {key: 'status',   label: 'mine.group.by_status',   icon: 'heroicons:check-circle'},
+                ] %}
+                    <button type="button" data-action="live#action" data-live-action-param="setGroupBy" data-live-mode-param="{{ mode.key }}"
+                            aria-pressed="{{ groupBy == mode.key ? 'true' : 'false' }}"
+                            class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors
+                                   {{ groupBy == mode.key ? 'bg-forest-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50' }}">
+                        {{ ux_icon(mode.icon, {class: 'h-3.5 w-3.5'}) }}
+                        {{ mode.label|trans({}, 'activity_content') }}
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {# ── Listado ──────────────────────────────────────────────────────── #}
+    {% if this.total == 0 %}
+        <div class="rounded-xl border border-forest-100 bg-forest-50 px-4 py-10 text-center">
+            {{ ux_icon('heroicons:check-badge', {class: 'mx-auto mb-2 h-9 w-9 text-forest-400'}) }}
+            <p class="text-sm font-medium text-forest-700">{{ 'mine.empty'|trans({}, 'activity_content') }}</p>
+        </div>
+    {% elseif groupBy == 'deadline' %}
+        {% set items = this.filteredItems %}
+        {% if items is empty %}
+            <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-8 text-center">
+                <p class="text-sm text-gray-500">{{ 'mine.no_results'|trans({}, 'activity_content') }}</p>
+            </div>
+        {% else %}
+            <ul class="divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden bg-white">
+                {% for item in items %}
+                    {% include 'components/_my_activity_row.html.twig' with {item: item} %}
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% else %}
+        {% set groups = this.groups %}
+        {% if groups is empty %}
+            <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-8 text-center">
+                <p class="text-sm text-gray-500">{{ 'mine.no_results'|trans({}, 'activity_content') }}</p>
+            </div>
+        {% else %}
+            <div class="space-y-5">
+                {% for group in groups %}
+                    <div>
+                        <h3 class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            {{ group.label }}
+                            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">{{ group.items|length }}</span>
+                        </h3>
+                        <ul class="divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden bg-white">
+                            {% for item in group.items %}
+                                {% include 'components/_my_activity_row.html.twig' with {item: item} %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}
+
+</div>

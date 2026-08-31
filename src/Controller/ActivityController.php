@@ -52,7 +52,18 @@ class ActivityController extends AbstractController
     {
         $canEdit      = $this->isGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre);
         $requestedTab = $request->query->getString('tab');
-        $tab          = $canEdit && $requestedTab === 'edit' ? 'edit' : 'view';
+        // A link carrying category/activity (the dashboard widget, the calendar, the notification
+        // bell, search results…) always means "open this specific activity in the tree", so it
+        // forces the "view" tab even without an explicit ?tab= — only a bare visit to /actividades
+        // defaults to "mine", the personal at-a-glance list most teachers actually want first.
+        $hasDeepLink  = $request->query->get('category') !== null || $request->query->get('activity') !== null;
+        $tab          = match (true) {
+            $canEdit && $requestedTab === 'edit' => 'edit',
+            $requestedTab === 'view' => 'view',
+            $requestedTab === 'mine' => 'mine',
+            $hasDeepLink => 'view',
+            default => 'mine',
+        };
 
         return $this->render('activity/index.html.twig', [
             'centre'  => $centre,

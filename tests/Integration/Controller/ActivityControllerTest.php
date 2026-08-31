@@ -83,7 +83,7 @@ final class ActivityControllerTest extends ControllerTestCase
 
     // ── index() tab gating ───────────────────────────────────────────────────
 
-    public function testEditTabIsForcedBackToViewWithoutResponsibilitiesPermission(): void
+    public function testEditTabIsForcedBackToMineWithoutResponsibilitiesPermission(): void
     {
         $centre  = $this->centre();
         $teacher = $this->teacher('docente');
@@ -94,7 +94,10 @@ final class ActivityControllerTest extends ControllerTestCase
 
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
         $body = (string) $this->client->getResponse()->getContent();
-        self::assertStringNotContainsString('Pestañas de Actividades', $body, 'a teacher without RESPONSIBILITIES must never see the tab bar at all');
+        // "Mis actividades"/"Ver" are open to every teacher, but "Editar categorías" — and the
+        // category tree it mounts — must never appear without RESPONSIBILITIES.
+        self::assertStringContainsString('Pestañas de Actividades', $body);
+        self::assertStringNotContainsString('Editar categorías', $body);
     }
 
     public function testEditTabIsAvailableToAnAdmin(): void
@@ -110,6 +113,42 @@ final class ActivityControllerTest extends ControllerTestCase
         $body = (string) $this->client->getResponse()->getContent();
         self::assertStringContainsString('Pestañas de Actividades', $body);
         self::assertStringContainsString('Categorías', $body, 'the edit tab must mount the category tree component');
+    }
+
+    public function testABareVisitDefaultsToTheMineTab(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher('docente');
+        $this->persist($centre, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $this->client->request('GET', '/actividades');
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        $body = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('aria-current="page"', $body);
+        self::assertMatchesRegularExpression('/tab=mine"\s*\n?\s*aria-current="page"/', $body);
+    }
+
+    /**
+     * A link carrying category/activity (dashboard widget, calendar, notification bell, search
+     * results…) always means "open this specific activity in the tree" — it must win over the new
+     * "mine" default even without an explicit ?tab=view.
+     */
+    public function testACategoryDeepLinkOpensTheViewTabEvenWithoutAnExplicitTabParam(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $teacher);
+        $categoryId = $category->getId()->toRfc4122();
+
+        $this->loginAs($teacher, $centre);
+        $this->client->request('GET', "/actividades?category={$categoryId}");
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        $body = (string) $this->client->getResponse()->getContent();
+        self::assertMatchesRegularExpression('/tab=view"\s*\n?\s*aria-current="page"/', $body);
     }
 
     // ── uploadSubmissions() ──────────────────────────────────────────────────

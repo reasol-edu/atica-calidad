@@ -1,0 +1,28 @@
+{# item: ActivityDashboardItem #}
+{% set overdue = item.status.value == 'overdue' %}
+{% set completed = item.status.value == 'completed' %}
+<li>
+    <a href="{{ path('app_activities', {tab: 'view', category: item.activity.category.id.toRfc4122, activity: item.activity.id.toRfc4122}) }}"
+       class="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-gray-50 {{ completed ? 'opacity-70' : '' }}">
+        <span class="mt-0.5 shrink-0 {{ completed ? 'text-forest-500' : (overdue ? 'text-red-500' : 'text-amber-500') }}">
+            {{ ux_icon(completed ? 'heroicons:check-circle' : (overdue ? 'heroicons:exclamation-circle' : 'heroicons:clock'), {class: 'h-5 w-5'}) }}
+        </span>
+        <span class="min-w-0 flex-1">
+            <span class="block truncate text-sm font-medium text-gray-900 {{ completed ? 'line-through decoration-gray-300' : '' }}">
+                {{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}
+            </span>
+            <span class="block truncate text-xs text-gray-500">
+                {{ item.categoryPath }} ·
+                {% if completed %}
+                    {{ 'mine.item.completed'|trans({}, 'activity_content') }}
+                {% else %}
+                    {{ (overdue ? 'mine.item.overdue' : 'mine.item.pending')|trans({'%date%': item.deadline|date('d/m/Y')}, 'activity_content') }}
+                {% endif %}
+            </span>
+        </span>
+        <span class="shrink-0 self-center rounded-full px-2 py-0.5 text-xs font-medium
+                     {{ completed ? 'bg-forest-50 text-forest-700' : (overdue ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700') }}">
+            {{ (completed ? 'mine.status.completed' : (overdue ? 'mine.status.overdue' : 'mine.status.pending'))|trans({}, 'activity_content') }}
+        </span>
+    </a>
+</li>

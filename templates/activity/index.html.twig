@@ -7,9 +7,15 @@
 
     <h1 class="text-2xl font-bold text-gray-900">{{ 'page_title'|trans({}, 'activity_content') }}</h1>
 
-    {% if canEdit %}
     {# ── Pestañas ─────────────────────────────────────────────────────── #}
     <nav class="flex gap-6 border-b border-gray-200" aria-label="{{ 'tabs.aria'|trans({}, 'activity_content') }}">
+        <a href="{{ path('app_activities', {tab: 'mine'}) }}"
+           {% if tab == 'mine' %}aria-current="page"{% endif %}
+           class="-mb-px inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors
+                  {{ tab == 'mine' ? 'border-forest-600 text-forest-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+            {{ ux_icon('heroicons:clipboard-document-check', {class: 'h-4 w-4'}) }}
+            {{ 'tabs.mine'|trans({}, 'activity_content') }}
+        </a>
         <a href="{{ path('app_activities', {tab: 'view'}) }}"
            {% if tab == 'view' %}aria-current="page"{% endif %}
            class="-mb-px inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors
@@ -17,6 +23,7 @@
             {{ ux_icon('heroicons:eye', {class: 'h-4 w-4'}) }}
             {{ 'tabs.view'|trans({}, 'activity_content') }}
         </a>
+        {% if canEdit %}
         <a href="{{ path('app_activities', {tab: 'edit'}) }}"
            {% if tab == 'edit' %}aria-current="page"{% endif %}
            class="-mb-px inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors
@@ -24,12 +31,16 @@
             {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4'}) }}
             {{ 'tabs.edit_categories'|trans({}, 'activity_content') }}
         </a>
+        {% endif %}
     </nav>
-    {% endif %}
 
     {% if tab == 'edit' and canEdit %}
         <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
             <twig:Admin:ActivityCategoryTreeComponent :centre="centre" />
+        </div>
+    {% elseif tab == 'mine' %}
+        <div class="rounded-2xl border border-gray-200 bg-white shadow-xs p-6">
+            <twig:MyActivitiesComponent :centre="centre" />
         </div>
     {% else %}
         <div class="rounded-2xl border border-gray-200 bg-white shadow-xs p-6">
