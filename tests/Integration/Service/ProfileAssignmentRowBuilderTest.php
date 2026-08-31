@@ -161,4 +161,39 @@ final class ProfileAssignmentRowBuilderTest extends RepositoryTestCase
         self::assertCount(1, $rows);
         self::assertSame('De A', $rows[0]->displayName);
     }
+
+    /**
+     * buildAllRows() memoizes its three underlying repository reads per centre/list-item — calling
+     * it repeatedly (as a caller looping over many activities/folders does, e.g. the "Mis
+     * actividades" tab) must keep returning the same, correct rows rather than an empty or partial
+     * result from a stale cache key collision between centres.
+     */
+    public function testBuildAllRowsReturnsConsistentResultsAcrossRepeatedCallsForDifferentCentres(): void
+    {
+        $centreA  = $this->centre();
+        $centreB  = (new EducationalCentre())->setCode('87654321')->setName('Otro')->setCity('Otra ciudad');
+        $profileA = (new SpecificProfile())->setEducationalCentre($centreA)->setName('De A');
+        $profileB = (new SpecificProfile())->setEducationalCentre($centreB)->setName('De B');
+        $this->persist($centreA, $centreB, $profileA, $profileB);
+
+        self::assertSame('De A', $this->rowBuilder->buildAllRows($centreA)[0]->displayName);
+        self::assertSame('De B', $this->rowBuilder->buildAllRows($centreB)[0]->displayName);
+        self::assertSame('De A', $this->rowBuilder->buildAllRows($centreA)[0]->displayName);
+    }
+
+    /** invalidate() (called explicitly by SpecificProfileAssignmentsComponent after a same-request mutation) must force a fresh read instead of returning the stale cached rows. */
+    public function testInvalidateForcesAFreshReadAfterANewAssignmentIsPersisted(): void
+    {
+        $centre  = $this->centre();
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $teacher = $this->teacher('docente');
+        $this->persist($centre, $profile, $teacher);
+
+        self::assertCount(0, $this->rowBuilder->buildAllRows($centre)[0]->teachers);
+
+        $this->persist(new SpecificProfileAssignment($profile, null, $teacher));
+        $this->rowBuilder->invalidate();
+
+        self::assertCount(1, $this->rowBuilder->buildAllRows($centre)[0]->teachers);
+    }
 }

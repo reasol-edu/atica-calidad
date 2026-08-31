@@ -30,6 +30,9 @@ use App\Repository\SpecificProfileAssignmentRepository;
  */
 final class DocumentTreeAccessChecker
 {
+    /** @var array<string, bool> memoizes holdsProfile() per (teacher, profile, list item) for this request — see its own docblock */
+    private array $holdsProfileCache = [];
+
     public function __construct(
         private readonly SpecificProfileAssignmentRepository $assignments,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
@@ -169,10 +172,20 @@ final class DocumentTreeAccessChecker
         return $this->assignments->isTeacherAssignedToAny($teacher, $pairs);
     }
 
-    /** Whether the teacher personally holds this exact profile/subperfil (used to constrain upload-as picker choices). */
+    /**
+     * Whether the teacher personally holds this exact profile/subperfil (used to constrain
+     * upload-as picker choices). Memoized per (teacher, profile, list item) for this request — a
+     * loop checking the same handful of profiles across many activities/documents (e.g. the
+     * "Mis actividades" tab) would otherwise re-run the identical query once per iteration. Safe
+     * without invalidation: nothing that changes a SpecificProfileAssignment (see
+     * ProfileAssignmentRowBuilder's own docblock for the full list) reads through this checker
+     * again in the same request.
+     */
     public function holdsProfile(Teacher $teacher, SpecificProfile $profile, ?ListItem $listItem): bool
     {
-        return $this->assignments->isTeacherAssignedToAny($teacher, [[$profile, $listItem]]);
+        $key = $teacher->getId()->toRfc4122() . '|' . $profile->getId()->toRfc4122() . '|' . ($listItem?->getId()->toRfc4122() ?? '');
+
+        return $this->holdsProfileCache[$key] ??= $this->assignments->isTeacherAssignedToAny($teacher, [[$profile, $listItem]]);
     }
 
     /**

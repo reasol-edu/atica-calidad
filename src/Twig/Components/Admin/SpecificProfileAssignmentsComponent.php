@@ -221,6 +221,7 @@ class SpecificProfileAssignmentsComponent extends AbstractController
         $row->profile->addAssignment($teacher, $row->listItem);
         $this->em->flush();
         $this->rowsCache = null;
+        $this->rowBuilder->invalidate();
         $this->flashSuccess($this->t('responsibilities.assignments.flash.teacher_assigned'));
     }
 
@@ -240,6 +241,7 @@ class SpecificProfileAssignmentsComponent extends AbstractController
         }
         $this->em->flush();
         $this->rowsCache = null;
+        $this->rowBuilder->invalidate();
         $this->flashSuccess($this->t('responsibilities.assignments.flash.teacher_removed'));
     }
 
@@ -293,6 +295,7 @@ class SpecificProfileAssignmentsComponent extends AbstractController
         }
         $this->em->flush();
         $this->rowsCache            = null;
+        $this->rowBuilder->invalidate();
         $this->confirmingBulkRemove = false;
         $this->flashSuccess($this->translator->trans('responsibilities.assignments.flash.bulk_removed', ['%count%' => $removed], 'admin'));
     }
@@ -450,6 +453,7 @@ class SpecificProfileAssignmentsComponent extends AbstractController
         $row->profile->addAssignment($entry['teacher'], $row->listItem);
         $this->em->flush();
         $this->rowsCache    = null;
+        $this->rowBuilder->invalidate();
         $this->pickerSearch = '';
         $this->flashSuccess($this->t('responsibilities.assignments.flash.teacher_assigned'));
     }
@@ -471,6 +475,7 @@ class SpecificProfileAssignmentsComponent extends AbstractController
         }
         $this->em->flush();
         $this->rowsCache = null;
+        $this->rowBuilder->invalidate();
         $this->flashSuccess($this->t('responsibilities.assignments.flash.teacher_removed'));
     }
 

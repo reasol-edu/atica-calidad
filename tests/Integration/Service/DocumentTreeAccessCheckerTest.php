@@ -325,6 +325,26 @@ final class DocumentTreeAccessCheckerTest extends RepositoryTestCase
         self::assertFalse($this->access->holdsProfile($teacher, $profile, null));
     }
 
+    /**
+     * holdsProfile() memoizes its result per (teacher, profile, list item) for the life of the
+     * service — calling it repeatedly (as a loop over many activities/documents does) must never
+     * mix up results between different teachers, even when checking the very same profile.
+     */
+    public function testHoldsProfileMemoizesRepeatedCallsWithoutMixingUpDifferentTeachers(): void
+    {
+        $centre     = $this->centre();
+        $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $holder     = $this->teacher('con-perfil');
+        $outsider   = $this->teacher('sin-perfil');
+        $assignment = new SpecificProfileAssignment($profile, null, $holder);
+        $this->persist($centre, $profile, $holder, $outsider, $assignment);
+
+        self::assertTrue($this->access->holdsProfile($holder, $profile, null));
+        self::assertTrue($this->access->holdsProfile($holder, $profile, null));
+        self::assertFalse($this->access->holdsProfile($outsider, $profile, null));
+        self::assertFalse($this->access->holdsProfile($outsider, $profile, null));
+    }
+
     // ── getFolderUploadRows: wildcard expansion into concrete subperfil rows ────
 
     public function testGetFolderUploadRowsExpandsAWildcardIntoEachConcreteLeaf(): void

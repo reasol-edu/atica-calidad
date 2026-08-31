@@ -8,15 +8,35 @@ use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * @extends ServiceEntityRepository<ListItem>
  */
-class ListItemRepository extends ServiceEntityRepository
+class ListItemRepository extends ServiceEntityRepository implements ResetInterface
 {
+    /**
+     * Per-centre children-by-parent map used by findLeafDescendants(), memoized for the life of
+     * the request. findLeafDescendants() re-fetches and re-groups the WHOLE centre's list-item
+     * tree every time it's called, regardless of which root it's asked about — a caller that walks
+     * many different roots of the same centre in one request (ProfileAssignmentRowBuilder over
+     * every list-associated profile, ActivitySubmissionSlotBuilder over every activity's folder
+     * rows) ends up re-running this identical, param-for-param query dozens of times. Caches
+     * ListItem entities, so — like ProfileAssignmentRowBuilder — implements ResetInterface to clear
+     * at the same point Doctrine resets its identity map, rather than risk a stale, detached entity.
+     *
+     * @var array<string, array<string, ListItem[]>>
+     */
+    private array $byParentCache = [];
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, ListItem::class);
+    }
+
+    public function reset(): void
+    {
+        $this->byParentCache = [];
     }
 
     /** @return ListItem[] */
@@ -131,6 +151,11 @@ class ListItemRepository extends ServiceEntityRepository
     /** @return array<string, ListItem[]> keyed by parent UUID (RFC4122), root items under '' */
     private function groupChildrenByParent(EducationalCentre $centre): array
     {
+        $key = $centre->getId()->toRfc4122();
+        if (isset($this->byParentCache[$key])) {
+            return $this->byParentCache[$key];
+        }
+
         $all = $this->createQueryBuilder('li')
             ->where('li.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
@@ -144,6 +169,6 @@ class ListItemRepository extends ServiceEntityRepository
             $map[$parentKey][] = $item;
         }
 
-        return $map;
+        return $this->byParentCache[$key] = $map;
     }
 }

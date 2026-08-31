@@ -9,6 +9,7 @@ use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
+use App\Model\ProfileAssignmentRow;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -57,7 +58,9 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
      * admin assignment screen needs, since there it must show/manage the specific assignment row
      * for that leaf), this answers "who can act as this row" — same wildcard-counts-as-any
      * convention as isTeacherAssignedToAny(). Used to expand a folder upload row into one
-     * submission slot per teacher for Activity::SCOPE_INDIVIDUAL.
+     * submission slot per teacher for Activity::SCOPE_INDIVIDUAL. See
+     * findTeachersHoldingProfileAndListItemForPairs() for the batched version, needed when a
+     * caller has to resolve many (profile, listItem) pairs in one go.
      *
      * @return Teacher[]
      */
@@ -93,6 +96,74 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
         }
 
         return $teachers;
+    }
+
+    /**
+     * Batched findTeachersHoldingProfileAndListItem(): fetches every assignment for the involved
+     * profiles in one query, then applies the same wildcard-counts-as-any matching in memory per
+     * pair. A caller resolving many pairs at once (e.g. every submission slot of an activity) would
+     * otherwise run the single-pair query once per pair, which is the same shape executed over and
+     * over with only the bound profile/listItem differing.
+     *
+     * @param  array<int, array{0: SpecificProfile, 1: ?ListItem}> $pairs
+     * @return array<string, Teacher[]> keyed by ProfileAssignmentRow::keyFor($profile, $listItem)
+     */
+    public function findTeachersHoldingProfileAndListItemForPairs(array $pairs): array
+    {
+        if ($pairs === []) {
+            return [];
+        }
+
+        $qb = $this->createQueryBuilder('a')
+            ->select('a', 't')
+            ->join('a.teacher', 't')
+            ->orderBy('t.name.lastName', 'ASC');
+
+        $profileIds   = [];
+        $placeholders = [];
+        foreach ($pairs as $pair) {
+            $profileIds[$pair[0]->getId()->toRfc4122()] = $pair[0]->getId();
+        }
+        foreach (array_values($profileIds) as $i => $profileId) {
+            $placeholders[] = ":profile{$i}";
+            $qb->setParameter("profile{$i}", $profileId, 'uuid');
+        }
+
+        /** @var SpecificProfileAssignment[] $rows */
+        $rows = $qb
+            ->where('a.specificProfile IN (' . implode(', ', $placeholders) . ')')
+            ->getQuery()
+            ->getResult();
+
+        /** @var array<string, SpecificProfileAssignment[]> $byProfile */
+        $byProfile = [];
+        foreach ($rows as $row) {
+            $byProfile[$row->getSpecificProfile()->getId()->toRfc4122()][] = $row;
+        }
+
+        $result = [];
+        foreach ($pairs as $pair) {
+            [$profile, $listItem] = $pair;
+            $teachers = [];
+            $seen     = [];
+            foreach ($byProfile[$profile->getId()->toRfc4122()] ?? [] as $row) {
+                $rowListItem = $row->getListItem();
+                $matches     = $listItem === null ? $rowListItem === null : ($rowListItem === null || $rowListItem === $listItem);
+                if (!$matches) {
+                    continue;
+                }
+                $teacher = $row->getTeacher();
+                $tKey    = $teacher->getId()->toRfc4122();
+                if (isset($seen[$tKey])) {
+                    continue;
+                }
+                $seen[$tKey] = true;
+                $teachers[]  = $teacher;
+            }
+            $result[ProfileAssignmentRow::keyFor($profile, $listItem)] = $teachers;
+        }
+
+        return $result;
     }
 
     /**
