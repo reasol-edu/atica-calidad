@@ -125,20 +125,66 @@ summary:focus-visible {
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-    /* Paleta de ÁTICA Calidad: de los tonos apagados azul-grisáceo y
-       malva-coral de la marca (100-500, tal cual) hacia un pizarra oscuro
-       (600-950, derivado) con contraste suficiente para texto y botones. */
-    --color-forest-50:  #f7f0ee;
-    --color-forest-100: #dbc7be;
-    --color-forest-200: #cbb3bf;
-    --color-forest-300: #ef959c;
-    --color-forest-400: #95adb6;
-    --color-forest-500: #8da1b9;
-    --color-forest-600: #5a7188;
-    --color-forest-700: #46596c;
-    --color-forest-800: #344253;
-    --color-forest-900: #23303f;
-    --color-forest-950: #141c26;
+    /* Paleta de ÁTICA Calidad — "Salvia": una sola familia verde cálida de
+       principio a fin (antes, forest-50/300 eran un crema/coral cálido
+       mientras forest-600+ eran un pizarra azulado frío — dos temperaturas
+       distintas conviviendo mal bajo el mismo nombre). El resto de la app
+       hereda esto automáticamente: la barra lateral, el estado activo de
+       navegación y cualquier botón/enlace en forest-* no necesitan tocarse. */
+    --color-forest-50:  #f3f6f0;
+    --color-forest-100: #e3ebdd;
+    --color-forest-200: #c7d8bc;
+    --color-forest-300: #aec094;
+    --color-forest-400: #8fab74;
+    --color-forest-500: #6e8c63;
+    --color-forest-600: #5a7550;
+    --color-forest-700: #46603d;
+    --color-forest-800: #374b2e;
+    --color-forest-900: #2e3b27;
+    --color-forest-950: #1a2415;
+
+    /* Neutro cálido ("Arena") en vez del gris frío por defecto de Tailwind —
+       mismo principio: un solo sitio, hereda todo lo que ya usa gray-* en la
+       app (texto, bordes, fondos secundarios). */
+    --color-gray-50:  #faf7f1;
+    --color-gray-100: #f1ead9;
+    --color-gray-200: #e3d8c1;
+    --color-gray-300: #cdbc9e;
+    --color-gray-400: #b3a186;
+    --color-gray-500: #93826a;
+    --color-gray-600: #776552;
+    --color-gray-700: #5e5044;
+    --color-gray-800: #453b32;
+    --color-gray-900: #2e2822;
+    --color-gray-950: #1c1814;
+
+    /* "Miel": mismo rol que el ámbar de Tailwind (pendiente/aviso), pero
+       apagado para no desentonar con el resto de la paleta cálida. */
+    --color-amber-50:  #fbf3e2;
+    --color-amber-100: #f7e7c4;
+    --color-amber-200: #efce8e;
+    --color-amber-300: #e4b15c;
+    --color-amber-400: #d69b3b;
+    --color-amber-500: #c9902e;
+    --color-amber-600: #ad7a24;
+    --color-amber-700: #8a5f1d;
+    --color-amber-800: #6b4a18;
+    --color-amber-900: #4f3711;
+    --color-amber-950: #33240a;
+
+    /* "Ciruela": sustituye al rojo de alarma para vencido/rechazado/eliminar
+       — sigue leyéndose como aviso serio, sin sonar a alarma. */
+    --color-red-50:  #f6e9ec;
+    --color-red-100: #ead1d7;
+    --color-red-200: #d8aeb6;
+    --color-red-300: #c08191;
+    --color-red-400: #a96578;
+    --color-red-500: #93495a;
+    --color-red-600: #7d3d4c;
+    --color-red-700: #6b3241;
+    --color-red-800: #562a35;
+    --color-red-900: #42202a;
+    --color-red-950: #2c151c;
 }
 
 /* ── TomSelect v2.6.1 base ────────────────────────────────────────────────────
@@ -390,7 +436,7 @@ input[type="search"]::-ms-clear { display: none; }
 :root .ts-wrapper .ts-control {
     border: 1px solid var(--color-forest-200);
     border-radius: 0.75rem;
-    background: #f9fafb; /* bg-gray-50 */
+    background: #faf7f1; /* bg-gray-50 */
     box-shadow: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -414,14 +460,14 @@ input[type="search"]::-ms-clear { display: none; }
 }
 
 :root .ts-wrapper.has-error .ts-control {
-    border-color: #fca5a5;
-    background: #fef2f2;
+    border-color: #c08191;
+    background: #f6e9ec;
 }
 
 :root .ts-wrapper.has-error.focus .ts-control,
 :root .ts-wrapper.has-error.dropdown-active .ts-control {
-    border-color: #f87171;
-    box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2);
+    border-color: #a96578;
+    box-shadow: 0 0 0 3px rgba(169, 101, 120, 0.2);
 }
 
 :root .ts-wrapper .ts-control > input {
@@ -514,12 +560,12 @@ input[type="search"]::-ms-clear { display: none; }
 
 /* Selector de grupos (edición de docente en centro) */
 .ts-group-option                        { padding: 0.125rem 0; line-height: 1.35; }
-.ts-group-option .ts-group-programme    { font-size: 0.8125rem; font-weight: 500; color: #111827; }
-.ts-group-option .ts-group-level        { font-size: 0.75rem; font-weight: 400; color: #9ca3af; }
-.ts-group-option .ts-group-name         { font-size: 0.75rem; color: #6b7280; margin-top: 0.1rem; }
+.ts-group-option .ts-group-programme    { font-size: 0.8125rem; font-weight: 500; color: #2e2822; }
+.ts-group-option .ts-group-level        { font-size: 0.75rem; font-weight: 400; color: #b3a186; }
+.ts-group-option .ts-group-name         { font-size: 0.75rem; color: #93826a; margin-top: 0.1rem; }
 .ts-group-item                          { display: flex; align-items: baseline; gap: 0; line-height: 1.4; }
 .ts-group-item .ts-group-item-programme { font-weight: 500; color: inherit; font-size: 0.8125rem; }
-.ts-group-item .ts-sep                  { color: #d1d5db; margin: 0 0.3rem; font-size: 0.8125rem; }
+.ts-group-item .ts-sep                  { color: #cdbc9e; margin: 0 0.3rem; font-size: 0.8125rem; }
 
 /* Quill rich-editor: adapta el look al tema forest y la altura a ~5 filas. */
 :root .ql-toolbar.ql-snow {

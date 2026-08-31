@@ -6,7 +6,7 @@
     {% for item in dueSoon %}
         <li style="margin-bottom: 6px;">
             {{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}
-            <span style="color: #6b7280;">
+            <span style="color: #93826a;">
                 — {{ 'emails.pending_activity_reminder.due_date'|trans({'%date%': item.deadline|date('d/m/Y')}, 'emails') }}
             </span>
         </li>
@@ -15,10 +15,10 @@
 {% endif %}
 
 {% if overdue is not empty %}
-<p style="margin: 0 0 8px; font-weight: 600; color: #b91c1c;">
+<p style="margin: 0 0 8px; font-weight: 600; color: #6b3241;">
     {{ 'emails.pending_activity_reminder.overdue_heading'|trans({}, 'emails') }}
 </p>
-<ul style="margin: 0; padding-left: 20px; color: #b91c1c;">
+<ul style="margin: 0; padding-left: 20px; color: #6b3241;">
     {% for item in overdue %}
         <li style="margin-bottom: 6px;">
             <strong>{{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}</strong>
