@@ -328,6 +328,218 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertNull($activities->findById($activityId));
     }
 
+    // ── Related documents ─────────────────────────────────────────────────────
+
+    private function documentWithActiveRevision(Folder $folder, string $name, Teacher $uploader): Document
+    {
+        $document = new Document($folder, $name);
+        $file     = new DocumentFile(hash('sha256', $name . random_int(1, PHP_INT_MAX)), $name, 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $uploader);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+        $this->em->persist($file);
+        $this->em->persist($revision);
+
+        return $document;
+    }
+
+    public function testSaveActivityAttachesDocumentsStagedInFormRelatedDocumentIds(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $admin    = $this->admin();
+        $document = $this->documentWithActiveRevision($folder, 'Norma de convivencia', $admin);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $admin, $document);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $component
+            ->set('formTitle', 'Actividad')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formRelatedDocumentIds', [$document->getId()->toRfc4122()])
+            ->call('saveActivity');
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities        = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedCategory  = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        $created = $activities->findByCategory($reloadedCategory);
+        self::assertCount(1, $created);
+        self::assertCount(1, $created[0]->getRelatedDocuments());
+        self::assertSame('Norma de convivencia', $created[0]->getRelatedDocuments()->first()->getName());
+    }
+
+    public function testSaveActivityRemovesRelatedDocumentsNoLongerStaged(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $admin    = $this->admin();
+        $document = $this->documentWithActiveRevision($folder, 'Norma de convivencia', $admin);
+        $activity = $this->activity($category)->addRelatedDocument($document);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $admin, $document, $activity);
+        $activityId = $activity->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('startEditActivity', ['id' => $activityId]);
+        $component
+            ->set('formRelatedDocumentIds', [])
+            ->call('saveActivity');
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloaded   = $activities->findById($activityId);
+        self::assertNotNull($reloaded);
+        self::assertCount(0, $reloaded->getRelatedDocuments());
+    }
+
+    public function testStartEditActivityPopulatesFormRelatedDocumentIds(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $admin    = $this->admin();
+        $document = $this->documentWithActiveRevision($folder, 'Norma de convivencia', $admin);
+        $activity = $this->activity($category)->addRelatedDocument($document);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $admin, $document, $activity);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()]);
+
+        self::assertSame([$document->getId()->toRfc4122()], $this->stringListProp($component, 'formRelatedDocumentIds'));
+    }
+
+    public function testRelatedDocumentSearchMatchesByFolderNameAndExcludesAlreadyStagedDocuments(): void
+    {
+        $centre    = $this->centre();
+        $category  = $this->category($centre);
+        $folder    = $this->folder($centre);
+        $folder->setName('Normativa de convivencia');
+        $admin     = $this->admin();
+        $matching  = $this->documentWithActiveRevision($folder, 'Documento sin relación por nombre', $admin);
+        $staged    = $this->documentWithActiveRevision($folder, 'Ya añadido', $admin);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $admin, $matching, $staged);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component
+            ->set('formRelatedDocumentIds', [$staged->getId()->toRfc4122()])
+            ->set('relatedDocumentSearchQuery', 'convivencia')
+            ->render();
+
+        /** @var ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        $results  = $instance->getRelatedDocumentSearchResults();
+
+        self::assertCount(1, $results, 'matches by folder name, and excludes the already-staged document');
+        self::assertSame('Documento sin relación por nombre', $results[0]['document']->getName());
+    }
+
+    public function testAddRelatedDocumentAppendsItAndClearsTheSearchQuery(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $admin    = $this->admin();
+        $document = $this->documentWithActiveRevision($folder, 'Norma de convivencia', $admin);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $admin, $document);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component
+            ->set('relatedDocumentSearchQuery', 'convivencia')
+            ->call('addRelatedDocument', ['id' => $document->getId()->toRfc4122()]);
+
+        self::assertSame([$document->getId()->toRfc4122()], $this->stringListProp($component, 'formRelatedDocumentIds'));
+        self::assertSame('', $this->stringProp($component, 'relatedDocumentSearchQuery'));
+    }
+
+    public function testRemoveRelatedDocumentRemovesItFromTheStagedIds(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component
+            ->set('formRelatedDocumentIds', ['one', 'two'])
+            ->call('removeRelatedDocument', ['id' => 'one']);
+
+        self::assertSame(['two'], $this->stringListProp($component, 'formRelatedDocumentIds'));
+    }
+
+    public function testActivityViewRendersADownloadLinkAndATreeLinkForARelatedDocumentWithARevision(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $admin    = $this->admin();
+        $document = $this->documentWithActiveRevision($folder, 'Norma de convivencia', $admin);
+        $activity = $this->activity($category)->setDescription('Descripción')->addRelatedDocument($document);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $admin, $document, $activity);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $html = (string) $component->render()->crawler()->html();
+
+        self::assertStringContainsString('Norma de convivencia', $html);
+        self::assertStringContainsString('/documentos/' . $document->getId()->toRfc4122() . '/revisiones/', $html);
+        self::assertStringContainsString('/arbol-documental?section=', $html);
+    }
+
+    public function testActivityViewHidesARelatedDocumentTheViewingTeacherCannotSee(): void
+    {
+        $centre    = $this->centre();
+        $category  = $this->category($centre);
+        $folder    = $this->folder($centre);
+        $restrictedProfile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Restringido');
+        $folder->addVisibilityProfile($restrictedProfile);
+        $admin    = $this->admin();
+        $document = $this->documentWithActiveRevision($folder, 'Documento restringido', $admin);
+        $activity = $this->activity($category)->addRelatedDocument($document);
+        $outsider = $this->teacher('sin-acceso');
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $restrictedProfile, $admin, $document, $activity, $outsider);
+
+        $this->loginAs($outsider, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $html = (string) $component->render()->crawler()->html();
+
+        self::assertStringNotContainsString('Documento restringido', $html);
+    }
+
     // ── toggleStats / toggleAllSubmissions ───────────────────────────────────
 
     public function testToggleStatsAddsAndRemovesTheActivityId(): void

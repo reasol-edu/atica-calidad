@@ -8,6 +8,7 @@ use App\Entity\AcademicYear;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\ActivitySubmissionScope;
+use App\Entity\Document;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
@@ -133,14 +134,23 @@ class LoadDemoDataCommand extends Command
         $folders = $this->createDocumentTree($centre, $profiles, $io);
 
         $io->section('Actividades');
-        $this->createActivity($centre, $folders['programaciones'], $materiaLeaves, $io);
+        $programacionesActivity = $this->createActivity($centre, $folders['programaciones'], $materiaLeaves, $io);
         $this->createIndividualActivity($centre, $folders['pat'], $io);
-        $this->createManualActivity($centre, $io);
+        $manualActivity = $this->createManualActivity($centre, $io);
 
         $io->section('Entregas de ejemplo');
         $this->seedSampleSubmissions($folders['programaciones'], $profiles, $departamentoLeaves, $materiaLeaves, $io);
         $this->seedPatSamples($folders['pat'], $profiles, $grupoLeaves, $io);
-        $this->seedEtcpSample($folders['etcp'], $io);
+        $etcpDocument     = $this->seedEtcpSample($folders['etcp'], $io);
+        $politicaDocument = $this->seedPoliticaSample($folders['politica'], $io);
+
+        // Demo data for the activity "related documents" picker: a cross-reference to an
+        // existing document elsewhere in the tree (the ETCP acta) and a standalone one created
+        // just for this (the quality policy, which the manual activity's own description already
+        // asks teachers to read).
+        $programacionesActivity->addRelatedDocument($etcpDocument);
+        $manualActivity->addRelatedDocument($politicaDocument);
+        $io->text('Documentos relacionados: acta del ETCP enlazada a "Programaciones didácticas", política de calidad enlazada a "Lectura y conformidad con la Política de Calidad".');
 
         $io->section('Calendario');
         $this->createCalendarEvents($academicYear, $year, $io);
@@ -446,7 +456,7 @@ class LoadDemoDataCommand extends Command
 
     /**
      * @param  array<string, SpecificProfile> $profiles
-     * @return array{programaciones: Folder, pat: Folder, etcp: Folder}
+     * @return array{programaciones: Folder, pat: Folder, etcp: Folder, politica: Folder}
      */
     private function createDocumentTree(EducationalCentre $centre, array $profiles, SymfonyStyle $io): array
     {
@@ -499,6 +509,7 @@ class LoadDemoDataCommand extends Command
         $programaciones = null;
         $pat         = null;
         $etcp        = null;
+        $politica    = null;
         $position    = 0;
         foreach ($chapters as $chapterName => $subclauses) {
             $chapter = new DocumentSection();
@@ -542,23 +553,30 @@ class LoadDemoDataCommand extends Command
                     }
                     $this->em->persist($etcp);
                 }
+
+                if ($subclauseName === '5.2 Política') {
+                    $politica = new Folder();
+                    $politica->setName('Política de Calidad y Objetivos')->setDocumentSection($subclause);
+                    $this->em->persist($politica);
+                }
             }
         }
 
         $io->text(\sprintf('%d secciones ISO 9001:2015 creadas (7 capítulos, %d apartados).', $sections, $sections - 7));
-        $io->text('Carpetas: "Programaciones didácticas" y "Planes de Acción Tutorial" en 8.1, "Actas del ETCP" (visible solo a equipo directivo y orientación) en 7.4.');
+        $io->text('Carpetas: "Programaciones didácticas" y "Planes de Acción Tutorial" en 8.1, "Actas del ETCP" (visible solo a equipo directivo y orientación) en 7.4, "Política de Calidad y Objetivos" en 5.2.');
 
         return [
             'programaciones' => $programaciones ?? throw new \LogicException('Programaciones didácticas folder was not created.'),
             'pat' => $pat ?? throw new \LogicException('Planes de Acción Tutorial folder was not created.'),
             'etcp' => $etcp ?? throw new \LogicException('Actas del ETCP folder was not created.'),
+            'politica' => $politica ?? throw new \LogicException('Política de Calidad folder was not created.'),
         ];
     }
 
     // ── Activity ──────────────────────────────────────────────────────────────
 
     /** @param array<string, ListItem> $materiaLeaves */
-    private function createActivity(EducationalCentre $centre, Folder $folder, array $materiaLeaves, SymfonyStyle $io): void
+    private function createActivity(EducationalCentre $centre, Folder $folder, array $materiaLeaves, SymfonyStyle $io): Activity
     {
         $category = new ActivityCategory();
         $category->setName('Sobre programaciones didácticas')->setEducationalCentre($centre);
@@ -580,6 +598,8 @@ class LoadDemoDataCommand extends Command
         $this->em->persist($activity);
 
         $io->text('Categoría "Sobre programaciones didácticas" y actividad "Programaciones didácticas" creadas (autocompletado activo).');
+
+        return $activity;
     }
 
     /** Individual scope: each tutor/a submits their own group's PAT, tracked separately even if two people ever share a group across the year. */
@@ -605,7 +625,7 @@ class LoadDemoDataCommand extends Command
     }
 
     /** No folder: a personal reminder every teacher checks off manually — never auto-completable (see Activity::setAutoComplete()). */
-    private function createManualActivity(EducationalCentre $centre, SymfonyStyle $io): void
+    private function createManualActivity(EducationalCentre $centre, SymfonyStyle $io): Activity
     {
         $category = new ActivityCategory();
         $category->setName('Sensibilización y compromiso')->setEducationalCentre($centre);
@@ -614,7 +634,7 @@ class LoadDemoDataCommand extends Command
         $activity = new Activity();
         $activity->setCategory($category)
             ->setTitle('Lectura y conformidad con la Política de Calidad')
-            ->setDescription('Lee la Política de Calidad del centro (apartado 5.2 del árbol documental) y marca esta actividad como completada.')
+            ->setDescription('Lee la Política de Calidad del centro y marca esta actividad como completada.')
             ->setStart(1, 9)
             ->setEnd(15, 9)
             ->setRequired(true);
@@ -622,6 +642,8 @@ class LoadDemoDataCommand extends Command
         $this->em->persist($activity);
 
         $io->text('Categoría "Sensibilización y compromiso" y actividad manual "Lectura y conformidad con la Política de Calidad" creadas (sin carpeta).');
+
+        return $activity;
     }
 
     // ── Sample submissions ──────────────────────────────────────────────────────
@@ -678,11 +700,23 @@ class LoadDemoDataCommand extends Command
         $io->text('2 PAT de ejemplo creados (1 aprobado, 1 pendiente) — el resto de grupos quedan sin entregar.');
     }
 
-    private function seedEtcpSample(Folder $folder, SymfonyStyle $io): void
+    private function seedEtcpSample(Folder $folder, SymfonyStyle $io): Document
     {
-        $this->uploadSample($folder, 'Acta ETCP nº1 — Inicio de curso', null, null, $this->teachers['direccion'], 'approved', null);
+        $document = $this->uploadSample($folder, 'Acta ETCP nº1 — Inicio de curso', null, null, $this->teachers['direccion'], 'approved', null);
 
         $io->text('1 acta de ejemplo creada en "Actas del ETCP".');
+
+        return $document;
+    }
+
+    /** Standalone reference document (no submission workflow) that the manual "Política de Calidad" activity links as a related document — demonstrates the feature with a document nothing else in the demo dataset already points to. */
+    private function seedPoliticaSample(Folder $folder, SymfonyStyle $io): Document
+    {
+        $document = $this->uploadSample($folder, 'Política de Calidad y Objetivos 2025-2026', null, null, $this->teachers['direccion'], 'approved', $this->teachers['calidad']);
+
+        $io->text('1 documento de ejemplo creado en "Política de Calidad y Objetivos".');
+
+        return $document;
     }
 
     private function uploadSample(
@@ -694,7 +728,7 @@ class LoadDemoDataCommand extends Command
         string $state,
         ?Teacher $reviewer,
         ?string $reviewResult = null,
-    ): void {
+    ): Document {
         $content = "{$name} — documento de demostración.";
         $path    = tempnam(sys_get_temp_dir(), 'demo_doc_');
         file_put_contents($path, $content);
@@ -714,6 +748,8 @@ class LoadDemoDataCommand extends Command
         }
 
         @unlink($path);
+
+        return $document;
     }
 
     // ── Calendar ─────────────────────────────────────────────────────────────

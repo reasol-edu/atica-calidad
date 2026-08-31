@@ -21,10 +21,24 @@ class ActivityRepository extends ServiceEntityRepository
         parent::__construct($registry, Activity::class);
     }
 
-    /** @return Activity[] */
+    /**
+     * Fetch-joins relatedDocuments (and just enough of each one — its active revision and its
+     * folder/section — to render a download link and a tree-location icon) so that rendering a
+     * category's activity list doesn't re-query per activity per related document.
+     *
+     * @return Activity[]
+     */
     public function findByCategory(ActivityCategory $category): array
     {
         return $this->createQueryBuilder('a')
+            ->leftJoin('a.relatedDocuments', 'rd')
+            ->addSelect('rd')
+            ->leftJoin('rd.activeRevision', 'rdr')
+            ->addSelect('rdr')
+            ->leftJoin('rd.folder', 'rdf')
+            ->addSelect('rdf')
+            ->leftJoin('rdf.documentSection', 'rdfs')
+            ->addSelect('rdfs')
             ->where('a.category = :category')
             ->setParameter('category', $category->getId(), 'uuid')
             ->orderBy('a.position', 'ASC')

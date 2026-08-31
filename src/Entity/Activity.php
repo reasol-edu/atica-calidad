@@ -66,6 +66,16 @@ class Activity
     #[ORM\JoinTable(name: 'activity_tag')]
     private Collection $tags;
 
+    /**
+     * Arbitrary tree documents the teacher should read alongside this activity — unrelated to
+     * $folder's submissions.
+     *
+     * @var Collection<int, Document>
+     */
+    #[ORM\ManyToMany(targetEntity: Document::class)]
+    #[ORM\JoinTable(name: 'activity_related_document')]
+    private Collection $relatedDocuments;
+
     #[ORM\Column]
     private bool $required = true;
 
@@ -80,7 +90,8 @@ class Activity
 
     public function __construct()
     {
-        $this->tags = new ArrayCollection();
+        $this->tags             = new ArrayCollection();
+        $this->relatedDocuments = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -215,6 +226,28 @@ class Activity
     public function removeTag(Tag $tag): static
     {
         $this->tags->removeElement($tag);
+
+        return $this;
+    }
+
+    /** @return Collection<int, Document> */
+    public function getRelatedDocuments(): Collection
+    {
+        return $this->relatedDocuments;
+    }
+
+    public function addRelatedDocument(Document $document): static
+    {
+        if (!$this->relatedDocuments->contains($document)) {
+            $this->relatedDocuments->add($document);
+        }
+
+        return $this;
+    }
+
+    public function removeRelatedDocument(Document $document): static
+    {
+        $this->relatedDocuments->removeElement($document);
 
         return $this;
     }

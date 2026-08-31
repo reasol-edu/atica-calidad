@@ -291,4 +291,63 @@ final class DocumentRepositoryTest extends RepositoryTestCase
         self::assertContains($docA->getId()->toRfc4122(), $ids);
         self::assertNotContains($docB->getId()->toRfc4122(), $ids);
     }
+
+    public function testSearchByCentreOrFolderNameMatchesByTheDocumentsOwnName(): void
+    {
+        $centre  = $this->centre();
+        $folder  = $this->folder($centre);
+        $teacher = $this->teacher('docente');
+        $matching = $this->document($folder, 'Norma de convivencia', $teacher);
+        $other    = $this->document($folder, 'Otra cosa', $teacher);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $teacher, $matching, $other);
+
+        $ids = array_map(
+            static fn (Document $d): string => $d->getId()->toRfc4122(),
+            $this->documents->searchByCentreOrFolderName($centre, 'convivencia'),
+        );
+
+        self::assertContains($matching->getId()->toRfc4122(), $ids);
+        self::assertNotContains($other->getId()->toRfc4122(), $ids);
+    }
+
+    public function testSearchByCentreOrFolderNameMatchesByTheFoldersName(): void
+    {
+        $centre = $this->centre();
+        $folder = $this->folder($centre);
+        $folder->setName('Normativa de convivencia');
+        $teacher  = $this->teacher('docente');
+        $document = $this->document($folder, 'Documento sin relación con la búsqueda', $teacher);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $teacher, $document);
+
+        $ids = array_map(
+            static fn (Document $d): string => $d->getId()->toRfc4122(),
+            $this->documents->searchByCentreOrFolderName($centre, 'convivencia'),
+        );
+
+        self::assertContains($document->getId()->toRfc4122(), $ids);
+    }
+
+    public function testSearchByCentreOrFolderNameIsScopedToTheCentre(): void
+    {
+        $centreA = $this->centre();
+        $centreB = (new EducationalCentre())->setCode('87654321')->setName('Otro centro')->setCity('Otra ciudad');
+        $folderA = $this->folder($centreA);
+        $folderB = $this->folder($centreB);
+        $teacher = $this->teacher('docente');
+        $docA    = $this->document($folderA, 'Documento compartido', $teacher);
+        $docB    = $this->document($folderB, 'Documento compartido', $teacher);
+        $this->persist(
+            $centreA, $folderA->getDocumentSection(), $folderA,
+            $centreB, $folderB->getDocumentSection(), $folderB,
+            $teacher, $docA, $docB,
+        );
+
+        $ids = array_map(
+            static fn (Document $d): string => $d->getId()->toRfc4122(),
+            $this->documents->searchByCentreOrFolderName($centreA, 'compartido'),
+        );
+
+        self::assertContains($docA->getId()->toRfc4122(), $ids);
+        self::assertNotContains($docB->getId()->toRfc4122(), $ids);
+    }
 }

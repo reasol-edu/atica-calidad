@@ -87,6 +87,51 @@
             </div>
 
             <div class="sm:col-span-2">
+                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.related_documents'|trans({}, 'admin') }}</label>
+                {% set staged_documents = this.getFormRelatedDocuments %}
+                {% if staged_documents is not empty %}
+                    <div class="mb-2 flex flex-wrap gap-1.5">
+                        {% for document in staged_documents %}
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-forest-50 py-1 pl-2.5 pr-1.5 text-xs font-medium text-forest-700">
+                                {{ ux_icon('heroicons:document', {class: 'h-3.5 w-3.5 shrink-0'}) }}
+                                <span class="max-w-[14rem] truncate">{{ document.name }}</span>
+                                <button type="button" data-action="live#action" data-live-action-param="removeRelatedDocument" data-live-id-param="{{ document.id.toRfc4122 }}"
+                                        class="rounded-full p-0.5 text-forest-400 hover:bg-forest-100 hover:text-forest-700">
+                                    {{ ux_icon('heroicons:x-mark', {class: 'h-3 w-3'}) }}
+                                </button>
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="relative">
+                    {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400'}) }}
+                    <input type="search" data-model="debounce(300)|relatedDocumentSearchQuery" value="{{ relatedDocumentSearchQuery }}"
+                           placeholder="{{ 'activity.field.related_documents_placeholder'|trans({}, 'admin') }}"
+                           class="block w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                </div>
+                {% if relatedDocumentSearchQuery|trim|length >= 2 %}
+                    {% set search_results = this.getRelatedDocumentSearchResults %}
+                    <div class="mt-1.5 space-y-1">
+                        {% if search_results is empty %}
+                            <p class="px-1 py-1.5 text-xs italic text-gray-400">{{ 'tom_select.no_results'|trans({}, 'admin') }}</p>
+                        {% else %}
+                            {% for result in search_results %}
+                                <button type="button" data-action="live#action" data-live-action-param="addRelatedDocument" data-live-id-param="{{ result.document.id.toRfc4122 }}"
+                                        class="flex w-full items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-left hover:bg-gray-50">
+                                    {{ ux_icon('heroicons:document', {class: 'h-4 w-4 shrink-0 text-gray-400'}) }}
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block truncate text-sm text-gray-800">{{ result.document.name }}</span>
+                                        <span class="block truncate text-xs text-gray-400">{{ result.path }}</span>
+                                    </span>
+                                </button>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+                <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.related_documents_help'|trans({}, 'admin') }}</p>
+            </div>
+
+            <div class="sm:col-span-2">
                 <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.required'|trans({}, 'admin') }}</span>
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <twig:Form:RadioCard name="activity_required" value="1"

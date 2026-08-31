@@ -92,6 +92,29 @@ class DocumentRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Documents matching $query by their own name or their folder's name — for the activity
+     * "related documents" picker, which the user explicitly wants searchable by either (unlike
+     * searchByCentre(), which only matches the document's own name/uploader/profile and backs
+     * unrelated global search UIs that shouldn't change behavior).
+     *
+     * @return Document[]
+     */
+    public function searchByCentreOrFolderName(EducationalCentre $centre, string $query, int $limit = 8): array
+    {
+        return $this->createQueryBuilder('d')
+            ->join('d.folder', 'f')
+            ->join('f.documentSection', 's')
+            ->where('s.educationalCentre = :centre')
+            ->andWhere('LOWER(d.name) LIKE LOWER(:query) OR LOWER(f.name) LIKE LOWER(:query)')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('query', '%' . $query . '%')
+            ->orderBy('d.name', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
     public function nextPosition(Folder $folder): int
     {
         return (int) $this->createQueryBuilder('d')

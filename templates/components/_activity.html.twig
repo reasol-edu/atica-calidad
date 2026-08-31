@@ -19,6 +19,33 @@
                     {% if activity.description %}
                         <p class="text-sm text-gray-600 whitespace-pre-line">{{ activity.description }}</p>
                     {% endif %}
+                    {% if activity.relatedDocuments is not empty %}
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            {% for document in activity.relatedDocuments %}
+                                {% if this.canViewRelatedDocument(document) %}
+                                    <span class="inline-flex items-center gap-1">
+                                        {% if document.activeRevision %}
+                                            <a href="{{ path('app_folder_document_revision_download', {folderId: document.folder.id.toRfc4122, documentId: document.id.toRfc4122, revisionId: document.activeRevision.id.toRfc4122}) }}"
+                                               class="inline-flex items-center gap-1 text-sm text-forest-700 hover:text-forest-800 hover:underline">
+                                                {{ ux_icon('heroicons:paper-clip', {class: 'h-3.5 w-3.5 shrink-0'}) }}
+                                                {{ document.name }}
+                                            </a>
+                                        {% else %}
+                                            <span title="{{ 'related_documents.no_revision'|trans({}, 'activity_content') }}"
+                                                  class="inline-flex items-center gap-1 text-sm text-gray-400">
+                                                {{ ux_icon('heroicons:paper-clip', {class: 'h-3.5 w-3.5 shrink-0'}) }}
+                                                {{ document.name }}
+                                            </span>
+                                        {% endif %}
+                                        <a href="{{ this.getDocumentTreeUrl(document) }}" title="{{ 'related_documents.view_in_tree'|trans({}, 'activity_content') }}"
+                                           class="text-gray-300 hover:text-gray-600">
+                                            {{ ux_icon('heroicons:folder-open', {class: 'h-3.5 w-3.5'}) }}
+                                        </a>
+                                    </span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                     <div class="flex flex-wrap items-center gap-1.5 pt-1">
                         <span title="{{ (activity.required ? 'activity.required' : 'activity.optional')|trans({}, 'activity_content') }}"
                               class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium {{ activity.required ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-500' }}">

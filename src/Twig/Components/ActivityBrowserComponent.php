@@ -110,6 +110,13 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public array $formTagIds = [];
 
+    /** @var string[] related document ids, in the order they were added */
+    #[LiveProp(writable: true)]
+    public array $formRelatedDocumentIds = [];
+
+    #[LiveProp(writable: true)]
+    public string $relatedDocumentSearchQuery = '';
+
     #[LiveProp(writable: true)]
     public bool $formRequired = true;
 
@@ -349,6 +356,81 @@ class ActivityBrowserComponent extends AbstractController
         return $this->tags->findByCentre($this->centre);
     }
 
+    /** @return Document[] currently staged related documents, in the order they were added. */
+    public function getFormRelatedDocuments(): array
+    {
+        $documents = [];
+        foreach ($this->formRelatedDocumentIds as $id) {
+            $document = $this->documents->findById($id);
+            if ($document !== null) {
+                $documents[] = $document;
+            }
+        }
+
+        return $documents;
+    }
+
+    /** @return array<int, array{document: Document, path: string}> search matches not already staged, for the related-document autocomplete. */
+    public function getRelatedDocumentSearchResults(): array
+    {
+        $query = trim($this->relatedDocumentSearchQuery);
+        if (mb_strlen($query) < 2) {
+            return [];
+        }
+
+        $teacher = $this->teacher();
+        $results = [];
+        foreach ($this->documents->searchByCentreOrFolderName($this->centre, $query) as $document) {
+            if (in_array($document->getId()->toRfc4122(), $this->formRelatedDocumentIds, true)) {
+                continue;
+            }
+            if (!$this->access->canViewDocument($teacher, $document)) {
+                continue;
+            }
+            $results[] = ['document' => $document, 'path' => $this->getFolderLabel($document->getFolder())];
+        }
+
+        return $results;
+    }
+
+    #[LiveAction]
+    public function addRelatedDocument(#[LiveArg] string $id): void
+    {
+        $this->requireEditPermission();
+        if (!in_array($id, $this->formRelatedDocumentIds, true)) {
+            $this->formRelatedDocumentIds[] = $id;
+        }
+        $this->relatedDocumentSearchQuery = '';
+    }
+
+    #[LiveAction]
+    public function removeRelatedDocument(#[LiveArg] string $id): void
+    {
+        $this->requireEditPermission();
+        $this->formRelatedDocumentIds = array_values(array_filter(
+            $this->formRelatedDocumentIds,
+            static fn (string $existing): bool => $existing !== $id,
+        ));
+    }
+
+    /** Whether the current teacher can see $document — a related document can point anywhere in the tree, so the viewer (not just the editor who added it) needs re-checking before its link is shown. */
+    public function canViewRelatedDocument(Document $document): bool
+    {
+        return $this->access->canViewDocument($this->teacher(), $document);
+    }
+
+    /** Deep link to $document's own location in the document tree (never the "Actividades" redirect getFolderUploadRows()/documentSearchUrl() use for a submission's folder) — a related document is an arbitrary tree document, not this activity's own submission. */
+    public function getDocumentTreeUrl(Document $document): string
+    {
+        $folder = $document->getFolder();
+
+        return $this->generateUrl('app_document_tree', [
+            'section'   => $folder->getDocumentSection()->getId()->toRfc4122(),
+            'folder'    => $folder->getId()->toRfc4122(),
+            'highlight' => $document->getId()->toRfc4122(),
+        ]);
+    }
+
     #[LiveAction]
     public function startAddActivity(): void
     {
@@ -363,6 +445,8 @@ class ActivityBrowserComponent extends AbstractController
         $this->formFolderId    = '';
         $this->formListItemId  = '';
         $this->formTagIds      = [];
+        $this->formRelatedDocumentIds     = [];
+        $this->relatedDocumentSearchQuery = '';
         $this->formRequired    = true;
         $this->formAutoComplete = false;
         $this->formScope       = 'by_profile';
@@ -389,6 +473,8 @@ class ActivityBrowserComponent extends AbstractController
         $this->formFolderId     = $activity->getFolder()?->getId()->toRfc4122() ?? '';
         $this->formListItemId   = $activity->getListItem()?->getId()->toRfc4122() ?? '';
         $this->formTagIds       = array_map(static fn (Tag $t): string => $t->getId()->toRfc4122(), $activity->getTags()->toArray());
+        $this->formRelatedDocumentIds     = array_map(static fn (Document $d): string => $d->getId()->toRfc4122(), $activity->getRelatedDocuments()->toArray());
+        $this->relatedDocumentSearchQuery = '';
         $this->formRequired     = $activity->isRequired();
         $this->formAutoComplete = $activity->isAutoComplete();
         $this->formScope        = $activity->getSubmissionScope()->value;
@@ -471,6 +557,18 @@ class ActivityBrowserComponent extends AbstractController
             }
         }
 
+        foreach (iterator_to_array($activity->getRelatedDocuments()) as $document) {
+            if (!in_array($document->getId()->toRfc4122(), $this->formRelatedDocumentIds, true)) {
+                $activity->removeRelatedDocument($document);
+            }
+        }
+        foreach ($this->formRelatedDocumentIds as $documentId) {
+            $document = $this->findViewableDocumentById($documentId);
+            if ($document !== null) {
+                $activity->addRelatedDocument($document);
+            }
+        }
+
         $this->em->flush();
 
         $this->activityFormOpen = false;
@@ -498,6 +596,17 @@ class ActivityBrowserComponent extends AbstractController
         }
 
         return null;
+    }
+
+    /** A related document must belong to this centre and stay within what the editing teacher can actually see — re-checked here since $formRelatedDocumentIds is client-controlled state. */
+    private function findViewableDocumentById(string $id): ?Document
+    {
+        $document = $this->documents->findById($id);
+        if ($document === null || $document->getFolder()->getDocumentSection()->getEducationalCentre() !== $this->centre) {
+            return null;
+        }
+
+        return $this->access->canViewDocument($this->teacher(), $document) ? $document : null;
     }
 
     #[LiveAction]
