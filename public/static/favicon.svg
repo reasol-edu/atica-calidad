@@ -1,11 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:creator>RealFaviconGenerator</dc:creator><dc:source>https://realfavicongenerator.net</dc:source></rdf:Description></rdf:RDF></metadata><defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+    <defs>
         <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#141c26;stop-opacity:1"></stop>
-            <stop offset="100%" style="stop-color:#8da1b9;stop-opacity:1"></stop>
+            <stop offset="0%" style="stop-color:#1a2415;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#46603d;stop-opacity:1" />
         </linearGradient>
         <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-            <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#141c26" flood-opacity="0.3"></feDropShadow>
+            <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1a2415" flood-opacity="0.3"/>
         </filter>
-    </defs><rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="url(#bgGrad)" filter="url(#shadow)"></rect><circle cx="256" cy="256" r="160" fill="#ef959c" opacity="0.15"></circle><rect x="136" y="120" width="240" height="272" rx="24" ry="24" fill="#f7f0ee"></rect><rect x="176" y="96" width="24" height="48" rx="12" ry="12" fill="#dbc7be"></rect><rect x="312" y="96" width="24" height="48" rx="12" ry="12" fill="#dbc7be"></rect><rect x="168" y="192" width="176" height="16" rx="8" ry="8" fill="#8da1b9" opacity="0.8"></rect><rect x="168" y="232" width="128" height="16" rx="8" ry="8" fill="#95adb6" opacity="0.9"></rect><rect x="168" y="272" width="160" height="16" rx="8" ry="8" fill="#95adb6" opacity="0.6"></rect><circle cx="340" cy="340" r="44" fill="#141c26"></circle><path d="M320 340 L336 356 L364 324" stroke="#f7f0ee" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><rect x="136" y="160" width="240" height="8" rx="4" ry="4" fill="#8da1b9" opacity="0.3"></rect><style>@media (prefers-color-scheme: light) { :root { filter: none; } }
-@media (prefers-color-scheme: dark) { :root { filter: none; } }
-</style></svg>
+    </defs>
+
+    <!-- Fondo cuadrado redondeado -->
+    <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="url(#bgGrad)" filter="url(#shadow)"/>
+
+    <!-- Hoja de salvia decorativa de fondo -->
+    <path d="M110,430 C146,250 236,106 416,70 C380,214 344,340 200,430 C308,412 380,340 416,232 M263,250 L182,304"
+          fill="none" stroke="#c7d8bc" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.16"/>
+
+    <!-- Documento asomando tras la carpeta -->
+    <g transform="rotate(-6 282 170)">
+        <rect x="192" y="104" width="180" height="132" rx="16" ry="16" fill="#e3ebdd"/>
+        <rect x="214" y="134" width="108" height="10" rx="5" ry="5" fill="#8fab74" opacity="0.7"/>
+        <rect x="214" y="156" width="76" height="10" rx="5" ry="5" fill="#8fab74" opacity="0.5"/>
+        <rect x="214" y="178" width="92" height="10" rx="5" ry="5" fill="#8fab74" opacity="0.35"/>
+    </g>
+
+    <!-- Pestaña y cuerpo de la carpeta -->
+    <rect x="150" y="178" width="110" height="34" rx="14" ry="14" fill="#c7d8bc"/>
+    <rect x="150" y="204" width="232" height="180" rx="20" ry="20" fill="#f3f6f0"/>
+    <rect x="150" y="228" width="232" height="6" rx="3" ry="3" fill="#c7d8bc" opacity="0.35"/>
+
+    <!-- Sello de calidad con cintas, en la esquina inferior derecha -->
+    <path d="M320,330 L296,414 L316,398 L332,414 L340,336 Z" fill="#6e8c63"/>
+    <path d="M372,330 L398,414 L378,398 L362,414 L352,336 Z" fill="#5a7550"/>
+    <circle cx="346" cy="336" r="46" fill="#1a2415"/>
+    <circle cx="346" cy="336" r="46" fill="none" stroke="#c7d8bc" stroke-width="3" opacity="0.4"/>
+    <path d="M326 336 L342 352 L370 320" stroke="#f3f6f0" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
