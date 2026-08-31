@@ -9,22 +9,34 @@
     <div class="hidden lg:flex lg:w-5/12 xl:w-2/5 relative overflow-hidden flex-col
                 bg-gradient-to-br from-forest-950 via-forest-900 to-forest-800">
 
-        {# Anillos decorativos #}
-        <div class="absolute -top-52 -right-52 w-[40rem] h-[40rem] rounded-full border-[3px] border-white/20"></div>
-        <div class="absolute -top-28 -right-28 w-[26rem] h-[26rem] rounded-full border-[3px] border-white/12"></div>
-        <div class="absolute top-1/2 -translate-y-1/2 -right-32 w-64 h-64 rounded-full border-[3px] border-forest-400/40 bg-forest-500/10"></div>
-        <div class="absolute -bottom-44 -left-44 w-[34rem] h-[34rem] rounded-full border-[3px] border-white/18"></div>
-        <div class="absolute bottom-1/3 -left-10 w-40 h-40 rounded-full border-[3px] border-forest-300/35"></div>
-        {# Rombos: grupo superior-derecha (3 solapados) #}
-        <div class="absolute top-14 right-14 w-20 h-20 rotate-45 bg-white/[0.06]"></div>
-        <div class="absolute top-24 right-24 w-12 h-12 rotate-45 bg-forest-400/[0.10]"></div>
-        <div class="absolute top-10 right-24 w-9  h-9  rotate-45 bg-white/[0.05]"></div>
-        {# Rombos: grupo inferior-derecha (2 solapados) #}
-        <div class="absolute bottom-12 right-10 w-16 h-16 rotate-45 bg-forest-400/[0.11]"></div>
-        <div class="absolute bottom-20 right-20 w-10 h-10 rotate-45 bg-white/[0.07]"></div>
-        {# Rombos: aislados #}
-        <div class="absolute top-1/2 -translate-y-1/2 left-8 w-7 h-7 rotate-45 bg-forest-300/[0.09]"></div>
-        <div class="absolute bottom-1/3 left-14 w-5 h-5 rotate-45 bg-white/[0.05]"></div>
+        {# Hojas de salvia decorativas: trazo orgánico suelto en vez de los anillos/rombos
+           genéricos de la plantilla original — juega con el nombre de la paleta ("Salvia") en
+           vez de una decoración geométrica que podría ser la de cualquier app. #}
+        {% set leaf_path = 'M0,40 C 4,20 14,4 34,0 C 30,16 26,30 10,40 C 22,38 30,30 34,18 M17,20 L 8,26' %}
+        <svg viewBox="0 0 34 40" class="absolute -top-16 -right-12 w-[26rem] h-[30rem] rotate-[-12deg] text-white opacity-[0.14]" aria-hidden="true">
+            <path d="{{ leaf_path }}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg viewBox="0 0 34 40" class="absolute top-24 right-24 w-[7.5rem] h-[8.75rem] rotate-[18deg] text-forest-300 opacity-[0.22]" aria-hidden="true">
+            <path d="{{ leaf_path }}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg viewBox="0 0 34 40" class="absolute top-[42%] -right-16 w-[13rem] h-[15rem] rotate-[-30deg] text-white opacity-[0.13]" aria-hidden="true">
+            <path d="{{ leaf_path }}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg viewBox="0 0 34 40" class="absolute top-[56%] right-[14%] w-[4rem] h-[4.5rem] rotate-[55deg] text-forest-300 opacity-[0.26]" aria-hidden="true">
+            <path d="{{ leaf_path }}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg viewBox="0 0 34 40" class="absolute -bottom-20 -left-16 w-[30rem] h-[35rem] rotate-[100deg] text-white opacity-[0.14]" aria-hidden="true">
+            <path d="{{ leaf_path }}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg viewBox="0 0 34 40" class="absolute bottom-16 left-8 w-[6rem] h-[7rem] rotate-[70deg] text-forest-300 opacity-[0.22]" aria-hidden="true">
+            <path d="{{ leaf_path }}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg viewBox="0 0 34 40" class="absolute top-[28%] -left-10 w-[8.5rem] h-[10rem] rotate-[-60deg] text-white opacity-[0.12]" aria-hidden="true">
+            <path d="{{ leaf_path }}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg viewBox="0 0 34 40" class="absolute bottom-[28%] left-[26%] w-[2.5rem] h-[2.75rem] rotate-[20deg] text-forest-400 opacity-[0.10]" aria-hidden="true">
+            <path d="{{ leaf_path }}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
 
         <div class="relative flex flex-col justify-between h-full p-12 z-10">
             {# Logo #}
