@@ -163,6 +163,19 @@ final class DocumentTreeAccessChecker
             return true;
         }
 
+        return $this->holdsReviewProfile($teacher, $folder);
+    }
+
+    /**
+     * Whether the teacher personally holds one of the folder's own review profiles — unlike
+     * canReviewFolder(), never broadened by canManageFolder()'s admin/quality-manager bypass. Used
+     * to build a teacher's *personal* "pending review" queue (notification bell, dashboard
+     * widget): an admin/quality manager who doesn't hold any review profile themselves is entitled
+     * to review anything, but that's a different question from what's personally theirs to act on
+     * — see PendingReviewFinder::allPendingForCentre() for the admin-facing "everything" view.
+     */
+    public function holdsReviewProfile(Teacher $teacher, Folder $folder): bool
+    {
         /** @var array<int, array{0: SpecificProfile, 1: ?ListItem}> $pairs */
         $pairs = array_map(
             static fn (FolderReviewProfile $r): array => [$r->getSpecificProfile(), $r->getListItem()],

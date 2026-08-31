@@ -231,6 +231,35 @@ final class DocumentTreeAccessCheckerTest extends RepositoryTestCase
         self::assertTrue($this->access->canReviewFolder($teacher, $folder));
     }
 
+    /**
+     * Unlike canReviewFolder(), holdsReviewProfile() is never widened by canManageFolder()'s
+     * admin/quality-manager bypass — it answers "is this personally assigned to me", which is what
+     * PendingReviewFinder needs for the notification bell and the dashboard's personal widget.
+     */
+    public function testHoldsReviewProfileIsNotGrantedByManagePrivilegeAlone(): void
+    {
+        $centre = $this->centre();
+        $folder = $this->folder($this->section($centre));
+        $qm     = $this->teacher('calidad');
+        $centre->getQualityManagers()->add($qm);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $qm);
+
+        self::assertFalse($this->access->holdsReviewProfile($qm, $folder));
+    }
+
+    public function testHoldsReviewProfileIsTrueForATeacherPersonallyAssignedTheReviewProfile(): void
+    {
+        $centre  = $this->centre();
+        $folder  = $this->folder($this->section($centre));
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Revisor');
+        $folder->addReviewProfile($profile, null);
+        $teacher    = $this->teacher('docente');
+        $assignment = new SpecificProfileAssignment($profile, null, $teacher);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $teacher, $assignment);
+
+        self::assertTrue($this->access->holdsReviewProfile($teacher, $folder));
+    }
+
     // ── canManageDocumentAsUploader ──────────────────────────────────────────
 
     public function testCanManageDocumentAsUploaderGrantedToActiveRevisionUploader(): void

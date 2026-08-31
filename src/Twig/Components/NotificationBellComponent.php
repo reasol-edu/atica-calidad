@@ -52,6 +52,39 @@ class NotificationBellComponent extends AbstractController
         return $this->total;
     }
 
+    /**
+     * Split out of getVisibleItems() so the dropdown can group activities and pending reviews
+     * under their own heading instead of a single interleaved list — the two are different kinds
+     * of "thing to do" (finish something yourself vs. review someone else's submission) and
+     * sharing one flat list made them hard to tell apart at a glance.
+     *
+     * @return list<array{type: 'activity', entity: ActivityDashboardItem, date: \DateTimeImmutable}>
+     */
+    public function getVisibleActivityItems(): array
+    {
+        $activities = [];
+        foreach ($this->getVisibleItems() as $item) {
+            if ($item['entity'] instanceof ActivityDashboardItem) {
+                $activities[] = ['type' => 'activity', 'entity' => $item['entity'], 'date' => $item['date']];
+            }
+        }
+
+        return $activities;
+    }
+
+    /** @return list<array{type: 'review', entity: DocumentRevision, date: \DateTimeImmutable}> */
+    public function getVisibleReviewItems(): array
+    {
+        $reviews = [];
+        foreach ($this->getVisibleItems() as $item) {
+            if ($item['entity'] instanceof DocumentRevision) {
+                $reviews[] = ['type' => 'review', 'entity' => $item['entity'], 'date' => $item['date']];
+            }
+        }
+
+        return $reviews;
+    }
+
     private function load(): void
     {
         if ($this->items !== null) {

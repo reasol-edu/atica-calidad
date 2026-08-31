@@ -29,49 +29,69 @@
                 <p class="text-sm text-gray-500">{{ 'bell.empty'|trans({}, 'notifications') }}</p>
             </div>
         {% else %}
-            <ul class="max-h-80 divide-y divide-gray-100 overflow-y-auto">
-                {% for item in this.visibleItems %}
-                    {% set entity = item.entity %}
-                    <li>
-                        {% if item.type == 'activity' %}
+            <div class="max-h-80 overflow-y-auto">
+                {% set activityItems = this.visibleActivityItems %}
+                {% set reviewItems   = this.visibleReviewItems %}
+
+                {% if activityItems is not empty %}
+                    <p class="bg-gray-50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                        {{ 'bell.section.activities'|trans({}, 'notifications') }}
+                    </p>
+                    <ul class="divide-y divide-gray-100">
+                        {% for item in activityItems %}
+                            {% set entity  = item.entity %}
                             {% set overdue = entity.status.value == 'overdue' %}
-                            <a href="{{ path('app_activities', {category: entity.activity.category.id.toRfc4122, activity: entity.activity.id.toRfc4122}) }}"
-                               class="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
-                                <span class="mt-0.5 shrink-0 {{ overdue ? 'text-red-500' : 'text-amber-500' }}">
-                                    {{ ux_icon(overdue ? 'heroicons:exclamation-circle' : 'heroicons:clock', {class: 'h-4 w-4'}) }}
-                                </span>
-                                <span class="min-w-0 flex-1">
-                                    <span class="block truncate text-sm text-gray-800">
-                                        {{ entity.activity.title }}{{ entity.ownerLabel ? ' · ' ~ entity.ownerLabel : '' }}
+                            <li>
+                                <a href="{{ path('app_activities', {category: entity.activity.category.id.toRfc4122, activity: entity.activity.id.toRfc4122}) }}"
+                                   class="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
+                                    <span class="mt-0.5 shrink-0 {{ overdue ? 'text-red-500' : 'text-amber-500' }}">
+                                        {{ ux_icon(overdue ? 'heroicons:exclamation-circle' : 'heroicons:clock', {class: 'h-4 w-4'}) }}
                                     </span>
-                                    <span class="mt-0.5 block truncate text-xs text-gray-400">
-                                        {{ (overdue ? 'bell.item.activity_overdue' : 'bell.item.activity_pending')|trans({'%date%': item.date|date('format.date'|trans)}, 'notifications') }}
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block truncate text-sm text-gray-800">
+                                            {{ entity.activity.title }}{{ entity.ownerLabel ? ' · ' ~ entity.ownerLabel : '' }}
+                                        </span>
+                                        <span class="mt-0.5 block truncate text-xs text-gray-400">
+                                            {{ (overdue ? 'bell.item.activity_overdue' : 'bell.item.activity_pending')|trans({'%date%': item.date|date('format.date'|trans)}, 'notifications') }}
+                                        </span>
                                     </span>
-                                </span>
-                            </a>
-                        {% else %}
-                            <a href="{{ path('app_document_tree', {
-                                    section: entity.document.folder.documentSection.id.toRfc4122,
-                                    folder: entity.document.folder.id.toRfc4122,
-                                    document: entity.document.id.toRfc4122,
-                                }) }}"
-                               class="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
-                                <span class="mt-0.5 shrink-0 text-amber-500">
-                                    {{ ux_icon('heroicons:document-magnifying-glass', {class: 'h-4 w-4'}) }}
-                                </span>
-                                <span class="min-w-0 flex-1">
-                                    <span class="block truncate text-sm text-gray-800">
-                                        {{ entity.document.name }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                {% if reviewItems is not empty %}
+                    <p class="bg-gray-50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                        {{ 'bell.section.reviews'|trans({}, 'notifications') }}
+                    </p>
+                    <ul class="divide-y divide-gray-100">
+                        {% for item in reviewItems %}
+                            {% set entity = item.entity %}
+                            <li>
+                                <a href="{{ path('app_document_tree', {
+                                        section: entity.document.folder.documentSection.id.toRfc4122,
+                                        folder: entity.document.folder.id.toRfc4122,
+                                        document: entity.document.id.toRfc4122,
+                                    }) }}"
+                                   class="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
+                                    <span class="mt-0.5 shrink-0 text-amber-500">
+                                        {{ ux_icon('heroicons:document-magnifying-glass', {class: 'h-4 w-4'}) }}
                                     </span>
-                                    <span class="mt-0.5 block truncate text-xs text-gray-400">
-                                        {{ 'bell.item.review_pending'|trans({'%folder%': entity.document.folder.name, '%date%': item.date|date('format.date'|trans)}, 'notifications') }}
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block truncate text-sm text-gray-800">
+                                            {{ entity.document.name }}
+                                        </span>
+                                        <span class="mt-0.5 block truncate text-xs text-gray-400">
+                                            {{ 'bell.item.review_pending'|trans({'%folder%': entity.document.folder.name, '%date%': item.date|date('format.date'|trans)}, 'notifications') }}
+                                        </span>
                                     </span>
-                                </span>
-                            </a>
-                        {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
         {% endif %}
     </div>
 </div>

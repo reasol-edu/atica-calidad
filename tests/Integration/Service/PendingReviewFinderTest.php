@@ -42,7 +42,14 @@ final class PendingReviewFinderTest extends RepositoryTestCase
         return $finder;
     }
 
-    public function testAQualityManagerSeesAPendingRevisionInAnyFolder(): void
+    /**
+     * forTeacher() is deliberately narrower than canReviewFolder(): a quality manager is entitled
+     * to review anything, but that broader right isn't what "personally pending on me" means — see
+     * this class's docblock. Without a review-profile assignment of their own, a manager sees
+     * nothing here (only allPendingForCentre() surfaces everything, for the admin-only dashboard
+     * section).
+     */
+    public function testAQualityManagerWithNoReviewProfileOfTheirOwnSeesNothingPersonally(): void
     {
         $centre    = $this->centre();
         $manager   = $this->teacher('gestor');
@@ -55,7 +62,45 @@ final class PendingReviewFinderTest extends RepositoryTestCase
         $revision = new DocumentRevision($document, 1, $file, true, $uploader);
         $this->persist($centre, $manager, $uploader, $section, $folder, $document, $file, $revision);
 
+        self::assertSame([], $this->finder()->forTeacher($manager, $centre));
+        self::assertFalse($this->finder()->hasReviewAccess($manager, $centre));
+    }
+
+    public function testAQualityManagerWhoAlsoHoldsAReviewProfileSeesItPersonally(): void
+    {
+        $centre   = $this->centre();
+        $manager  = $this->teacher('gestor');
+        $centre->addQualityManager($manager);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Revisor')->setPosition(0);
+        $uploader = $this->teacher('subidor');
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección')->setPosition(0);
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Carpeta')->setPosition(0);
+        $folder->addReviewProfile($profile, null);
+        $assignment = new SpecificProfileAssignment($profile, null, $manager);
+        $document   = new Document($folder, 'Acta');
+        $file       = $this->file();
+        $revision   = new DocumentRevision($document, 1, $file, true, $uploader);
+        $this->persist($centre, $manager, $profile, $assignment, $uploader, $section, $folder, $document, $file, $revision);
+
         $pending = $this->finder()->forTeacher($manager, $centre);
+
+        self::assertCount(1, $pending);
+        self::assertSame($revision->getId()->toRfc4122(), $pending[0]->getId()->toRfc4122());
+    }
+
+    /** allPendingForCentre() is the deliberate "everything, regardless of who's personally on the hook" escape hatch for the admin-only dashboard section — never used by the notification bell. */
+    public function testAllPendingForCentreIncludesARevisionNoOnePersonallyHolds(): void
+    {
+        $centre   = $this->centre();
+        $uploader = $this->teacher('subidor');
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección')->setPosition(0);
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Carpeta')->setPosition(0);
+        $document = new Document($folder, 'Acta');
+        $file     = $this->file();
+        $revision = new DocumentRevision($document, 1, $file, true, $uploader);
+        $this->persist($centre, $uploader, $section, $folder, $document, $file, $revision);
+
+        $pending = $this->finder()->allPendingForCentre($centre);
 
         self::assertCount(1, $pending);
         self::assertSame($revision->getId()->toRfc4122(), $pending[0]->getId()->toRfc4122());
