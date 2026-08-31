@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
 use App\Entity\DocumentRevision;
+use App\Entity\EducationalCentre;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -52,5 +53,26 @@ class DocumentRevisionRepository extends ServiceEntityRepository
     public function countByFile(DocumentFile $file): int
     {
         return $this->count(['file' => $file]);
+    }
+
+    /**
+     * Every revision awaiting review in the centre, oldest first — reviewer eligibility per folder
+     * is a service-level check (DocumentTreeAccessChecker::canReviewFolder()), not expressible here,
+     * so callers filter this list themselves. Feeds the notification bell's "pending review" items.
+     *
+     * @return list<DocumentRevision>
+     */
+    public function findPendingReviewByCentre(EducationalCentre $centre): array
+    {
+        return $this->createQueryBuilder('r')
+            ->join('r.document', 'd')
+            ->join('d.folder', 'f')
+            ->join('f.documentSection', 's')
+            ->where('r.pendingReview = true')
+            ->andWhere('s.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('r.revisedAt', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 }

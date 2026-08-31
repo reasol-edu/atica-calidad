@@ -1,0 +1,8 @@
+# ── Campana de notificaciones (cabecera) ────────────────────────────────────
+bell.aria: 'Notificaciones'
+bell.title: 'Pendientes'
+bell.empty: 'No tienes nada pendiente.'
+
+bell.item.activity_pending: 'Pendiente · vence el %date%'
+bell.item.activity_overdue: 'Vencida el %date%'
+bell.item.review_pending: 'Pendiente de revisar en «%folder%» · subido el %date%'

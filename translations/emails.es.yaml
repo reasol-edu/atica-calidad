@@ -10,3 +10,5 @@ emails.email_verification.subject: 'Verifica tu nueva dirección de correo'
 emails.email_verification.intro: 'Has solicitado cambiar tu dirección de correo electrónico. Haz clic en el botón para confirmar el cambio. El enlace es válido durante 24 horas.'
 emails.email_verification.cta: 'Verificar dirección de correo'
 emails.email_verification.expiry_notice: 'Si no has solicitado este cambio, puedes ignorar este mensaje.'
+
+emails.notification.cta: 'Ver más'

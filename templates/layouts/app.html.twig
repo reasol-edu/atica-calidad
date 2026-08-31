@@ -266,6 +266,7 @@
                             aria-label="{{ 'open'|trans({}, 'search') }}">
                         {{ ux_icon('heroicons:magnifying-glass', {class: 'h-4 w-4'}) }}
                     </button>
+                    <twig:NotificationBellComponent loading="defer" />
                 {% endif %}
             </div>
         </header>
