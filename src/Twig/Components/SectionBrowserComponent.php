@@ -84,6 +84,9 @@ class SectionBrowserComponent extends AbstractController
     public string $folderSettingsPanelId = '';
 
     #[LiveProp(writable: true)]
+    public string $editDescriptionValue = '';
+
+    #[LiveProp(writable: true)]
     public string $confirmingObsoleteFolderId = '';
 
     /** @var string[] */
@@ -574,6 +577,7 @@ class SectionBrowserComponent extends AbstractController
         $this->uploadProfileKeys      = $this->keysFor($folder->getUploadProfiles());
         $this->visibilityProfileKeys  = $this->keysFor($folder->getVisibilityProfiles());
         $this->reviewProfileKeys      = $this->keysFor($folder->getReviewProfiles());
+        $this->editDescriptionValue   = $folder->getDescription() ?? '';
     }
 
     /**
@@ -643,7 +647,7 @@ class SectionBrowserComponent extends AbstractController
         return $this->rowBuilder->buildActiveRowsWithWholeProfileOption($this->centre);
     }
 
-    /** Replaces a folder's four profile-restriction lists with whatever the pickers currently hold. */
+    /** Replaces a folder's four profile-restriction lists and description with whatever the settings panel currently holds. */
     #[LiveAction]
     public function saveFolderProfiles(#[LiveArg] string $id): void
     {
@@ -659,6 +663,9 @@ class SectionBrowserComponent extends AbstractController
         $this->syncUploadProfiles($folder, $this->uploadProfileKeys, $rowsByKey);
         $this->syncVisibilityProfiles($folder, $this->visibilityProfileKeys, $rowsByKey);
         $this->syncReviewProfiles($folder, $this->reviewProfileKeys, $rowsByKey);
+
+        $description = trim($this->editDescriptionValue);
+        $folder->setDescription($description === '' ? null : $description);
 
         $this->em->flush();
         $this->flashSuccess($this->t('folder.flash.profiles_saved'));

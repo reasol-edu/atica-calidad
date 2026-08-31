@@ -533,4 +533,102 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         $this->expectException(AccessDeniedException::class);
         $component->call('openSearchResult', ['documentId' => $documentId]);
     }
+
+    // ── Folder description ──────────────────────────────────────────────────
+
+    public function testToggleFolderSettingsPrefillsTheDescriptionField(): void
+    {
+        $centre  = $this->centre();
+        $manager = $this->teacher('gestor');
+        $centre->addQualityManager($manager);
+        $section = $this->section($centre);
+        $folder  = $this->folder($section)->setDescription('<p>Normativa vigente</p>');
+        $this->persist($centre, $manager, $section, $folder);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+        $component->call('toggleFolderSettings', ['id' => $folderId]);
+
+        self::assertSame('<p>Normativa vigente</p>', $this->stringProp($component, 'editDescriptionValue'));
+    }
+
+    public function testSaveFolderProfilesPersistsTheDescription(): void
+    {
+        $centre  = $this->centre();
+        $manager = $this->teacher('gestor');
+        $centre->addQualityManager($manager);
+        $section = $this->section($centre);
+        $folder  = $this->folder($section);
+        $this->persist($centre, $manager, $section, $folder);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+        $component->call('toggleFolderSettings', ['id' => $folderId]);
+        $component->set('editDescriptionValue', '<p>Consultar antes de subir</p>')->call('saveFolderProfiles', ['id' => $folderId]);
+
+        $this->em->clear();
+        $reloaded = $this->em->find(Folder::class, $folderId);
+        self::assertSame('<p>Consultar antes de subir</p>', $reloaded->getDescription());
+    }
+
+    public function testSaveFolderProfilesStoresABlankDescriptionAsNull(): void
+    {
+        $centre  = $this->centre();
+        $manager = $this->teacher('gestor');
+        $centre->addQualityManager($manager);
+        $section = $this->section($centre);
+        $folder  = $this->folder($section)->setDescription('<p>Vieja</p>');
+        $this->persist($centre, $manager, $section, $folder);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+        $component->call('toggleFolderSettings', ['id' => $folderId]);
+        $component->set('editDescriptionValue', '   ')->call('saveFolderProfiles', ['id' => $folderId]);
+
+        $this->em->clear();
+        $reloaded = $this->em->find(Folder::class, $folderId);
+        self::assertNull($reloaded->getDescription());
+    }
+
+    public function testExpandedFolderShowsTheSanitizedDescription(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher('docente');
+        $section = $this->section($centre);
+        $folder  = $this->folder($section)->setDescription('<p>Ver la <strong>normativa</strong></p><script>alert(1)</script>');
+        $this->persist($centre, $teacher, $section, $folder);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent(
+            'SectionBrowserComponent',
+            array_merge($this->inSection($section, $centre), ['initialFolderId' => $folder->getId()->toRfc4122()]),
+            $this->client,
+        );
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('Ver la <strong>normativa</strong>', $html);
+        self::assertStringNotContainsString('<script>', $html);
+    }
+
+    public function testAFolderWithNoDescriptionShowsNoDescriptionBlock(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher('docente');
+        $section = $this->section($centre);
+        $folder  = $this->folder($section);
+        $this->persist($centre, $teacher, $section, $folder);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent(
+            'SectionBrowserComponent',
+            array_merge($this->inSection($section, $centre), ['initialFolderId' => $folder->getId()->toRfc4122()]),
+            $this->client,
+        );
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringNotContainsString('prose', $html);
+    }
 }

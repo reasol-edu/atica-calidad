@@ -7,6 +7,7 @@ namespace App\Entity;
 use App\Repository\FolderRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
@@ -50,6 +51,15 @@ class Folder
     /** Hidden by default; only quality managers/admins can reveal it. */
     #[ORM\Column]
     private bool $obsolete = false;
+
+    /**
+     * Optional HTML description shown to anyone browsing the folder. Stored raw (edited via the
+     * Quill rich-text editor, same as a richtext-typed setting value); sanitize with
+     * sanitize_html('app.rich_text') at every render site, never on write — this mirrors the
+     * existing settings-value and PdfHeaderBuilder convention in this codebase.
+     */
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $description = null;
 
     /** @var Collection<int, FolderResponsibleProfile> */
     #[ORM\OneToMany(targetEntity: FolderResponsibleProfile::class, mappedBy: 'folder', cascade: ['persist'], orphanRemoval: true)]
@@ -167,6 +177,18 @@ class Folder
     public function setObsolete(bool $obsolete): static
     {
         $this->obsolete = $obsolete;
+
+        return $this;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): static
+    {
+        $this->description = $description;
 
         return $this;
     }

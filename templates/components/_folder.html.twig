@@ -139,6 +139,16 @@
                 </div>
             {% endif %}
 
+            <div>
+                <twig:Form:RichEditor
+                    id="folder-description-{{ fid }}"
+                    name="description"
+                    label="{{ 'folder.field.description'|trans({}, 'admin') }}"
+                    value="{{ editDescriptionValue }}"
+                    liveModel="norender|editDescriptionValue"
+                />
+            </div>
+
             {% if available_profile_rows is empty %}
                 <p class="text-xs italic text-gray-400">{{ 'folder.profiles.empty'|trans({}, 'admin') }}</p>
             {% else %}
@@ -164,12 +174,10 @@
             {% endif %}
 
             <div class="flex justify-end gap-2">
-                {% if available_profile_rows is not empty %}
-                    <button type="button" data-action="live#action" data-live-action-param="saveFolderProfiles" data-live-id-param="{{ fid }}"
-                            class="rounded-md bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700">
-                        {{ 'folder.profiles.save'|trans({}, 'admin') }}
-                    </button>
-                {% endif %}
+                <button type="button" data-action="live#action" data-live-action-param="saveFolderProfiles" data-live-id-param="{{ fid }}"
+                        class="rounded-md bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700">
+                    {{ 'folder.profiles.save'|trans({}, 'admin') }}
+                </button>
                 <button type="button" data-action="live#action" data-live-action-param="toggleFolderSettings" data-live-id-param="{{ fid }}"
                         class="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">
                     {{ 'folder.settings_close'|trans({}, 'admin') }}
@@ -180,6 +188,11 @@
 
     {% if expanded %}
         <div class="border-t border-gray-100">
+            {% if folder.description is not empty %}
+                <div class="prose prose-sm max-w-none border-b border-gray-100 px-4 py-3 text-gray-700">
+                    {{ folder.description|sanitize_html('app.rich_text') }}
+                </div>
+            {% endif %}
             {% include 'components/_folder_documents.html.twig' with {folder: folder, can_manage: can_manage, can_upload: can_upload} %}
         </div>
     {% endif %}
