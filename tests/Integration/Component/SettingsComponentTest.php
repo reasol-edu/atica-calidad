@@ -144,6 +144,69 @@ final class SettingsComponentTest extends ControllerTestCase
         self::assertNull($centreValues->findByDefinitionAndCentre($reloadedDef, $reloadedCentre));
     }
 
+    /**
+     * The Stimulus controller that drives this action from the browser (setting_save_controller.js)
+     * deliberately sends the boolean as the literal string "true"/"false" (String(element.value)) —
+     * this proves the LiveAction's own value/type handling accepts exactly that, matching the
+     * round trip the browser actually performs.
+     */
+    public function testTeacherScopeSavesABooleanValue(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher('docente');
+        $def     = (new SettingDefinition())->setKey('ui.compact')->setType(SettingType::Boolean)->setDefaultValue('false')->setTeacherScope(true);
+        $this->persist($centre, $teacher, $def);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('SettingsComponent', ['scope' => 'teacher'], $this->client);
+        $component->call('save', ['key' => 'ui.compact', 'value' => 'true']);
+
+        $this->em->clear();
+        /** @var TeacherSettingValueRepository $teacherValues */
+        $teacherValues = self::getContainer()->get(TeacherSettingValueRepository::class);
+        /** @var SettingDefinitionRepository $definitions */
+        $definitions = self::getContainer()->get(SettingDefinitionRepository::class);
+        $reloadedDef = $definitions->findOneBy(['key' => 'ui.compact']);
+        self::assertNotNull($reloadedDef);
+        /** @var \App\Repository\TeacherRepository $teachers */
+        $teachers = self::getContainer()->get(\App\Repository\TeacherRepository::class);
+        $reloadedTeacher = $teachers->findById($teacher->getId()->toRfc4122());
+        self::assertNotNull($reloadedTeacher);
+        $stored = $teacherValues->findByDefinitionAndTeacher($reloadedDef, $reloadedTeacher);
+        self::assertNotNull($stored);
+        self::assertSame('true', $stored->getValue());
+    }
+
+    public function testSaveWithAnInvalidBooleanValueSetsLastErrorWithoutPersisting(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $def = (new SettingDefinition())->setKey('ui.compact')->setType(SettingType::Boolean)->setDefaultValue('false')->setCentreScope(true);
+        $this->persist($centre, $admin, $def);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('SettingsComponent', ['scope' => 'centre'], $this->client);
+        $component->call('save', ['key' => 'ui.compact', 'value' => 'yes']);
+
+        $props = json_decode((string) $component->render()->crawler()->filter('[data-live-props-value]')->attr('data-live-props-value'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($props);
+        self::assertSame('ui.compact', $props['lastError']);
+
+        $this->em->clear();
+        /** @var CentreSettingValueRepository $centreValues */
+        $centreValues = self::getContainer()->get(CentreSettingValueRepository::class);
+        /** @var SettingDefinitionRepository $definitions */
+        $definitions = self::getContainer()->get(SettingDefinitionRepository::class);
+        $reloadedDef = $definitions->findOneBy(['key' => 'ui.compact']);
+        self::assertNotNull($reloadedDef);
+        /** @var EducationalCentreRepository $centres */
+        $centres = self::getContainer()->get(EducationalCentreRepository::class);
+        $reloadedCentre = $centres->findById($centre->getId()->toRfc4122());
+        self::assertNotNull($reloadedCentre);
+        self::assertNull($centreValues->findByDefinitionAndCentre($reloadedDef, $reloadedCentre));
+    }
+
     public function testToggleLockLocksTheCentreValue(): void
     {
         $centre = $this->centre();
