@@ -96,3 +96,30 @@ gestión de docentes, ajustes del centro...), sin necesidad de ser administrador
 **Ajuste bloqueado**
 : Valor de configuración fijado por un nivel superior (global o de centro) que los niveles
 inferiores no pueden sobrescribir.
+
+**Actividad**
+: Tarea o plazo periódico del sistema de gestión de la calidad, agrupada en una **categoría de
+actividades**, con fecha límite (día y mes, se repite cada curso). Puede llevar una carpeta del
+árbol documental vinculada (entonces se completa entregando un documento) o no (se completa a
+mano). Ver [Actividades](08-actividades.md).
+
+**Categoría de actividades**
+: Nodo que agrupa actividades, con la profundidad que se necesite — misma idea que las secciones
+del árbol documental. Se gestiona en **Actividades → Editar categorías**.
+
+**Entrega**
+: El documento que se sube para completar una actividad con carpeta vinculada — es, técnicamente,
+un documento más de esa carpeta. Su revisión (aprobar/rechazar) sigue las mismas reglas que
+cualquier otro documento del árbol documental.
+
+**Ámbito de entrega**
+: Si una actividad es **por perfil** (una entrega compartida por todos los que tienen ese
+perfil/subperfil) o **individual** (cada docente entrega la suya).
+
+**Completado automático**
+: Modo de una actividad con carpeta en el que no hay botón de completar: se considera hecha en
+cuanto el documento esperado está aprobado.
+
+**Resumen diario**
+: Modo de aviso por correo que agrupa lo pendiente de un día en un único correo, en vez de un aviso
+individual por cada evento — ver [Ajustes disponibles](09-administrar-la-plataforma.md#ajustes-disponibles).

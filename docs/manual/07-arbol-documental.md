@@ -87,6 +87,9 @@ ajustes de la carpeta (**⚙ Ajustes de la carpeta**):
   en vez de mostrarse todos juntos.
 - **Archivado automático** — interruptor reservado para una función todavía no implementada
   (mover documentos antiguos a un histórico automáticamente). Por ahora no tiene ningún efecto.
+- **Descripción** — texto con formato (negrita, listas, enlaces...) que se muestra sobre el
+  contenido de la carpeta a todo el que la vea. Útil para dejar instrucciones o contexto sin tener
+  que subirlos como un documento más.
 - **Carpeta obsoleta** — oculta la carpeta y todo su contenido para el resto del profesorado, sin
   borrar nada. Solo responsable de calidad/administración pueden volver a verla, activando
   **Mostrar obsoletas** en la cabecera de la sección, y solo ellos pueden revertir el estado. Útil
@@ -227,4 +230,4 @@ Hay tres formas de buscar, cada una para un caso distinto:
 
 ¹ Siempre que la sección/carpeta le sea visible.
 
-Volver a [Permisos de un vistazo](09-permisos-de-un-vistazo.md) para el resto de la aplicación.
+Volver a [Permisos de un vistazo](10-permisos-de-un-vistazo.md) para el resto de la aplicación.

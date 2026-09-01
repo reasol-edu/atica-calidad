@@ -19,9 +19,9 @@ section {
 }
 
 :root {
-  --nx-ink: #141c26;
-  --nx-accent: #5a7188;
-  --nx-accent-soft: #f7f0ee;
+  --nx-ink: #1a2415;
+  --nx-accent: #46603d;
+  --nx-accent-soft: #f3f6f0;
   --nx-muted: #6b7280;
 }
 
@@ -39,7 +39,7 @@ h1 {
   font-size: 30pt;
   line-height: 1.1;
   margin: 0 0 8mm;
-  border-bottom: 2px solid #cbb3bf;
+  border-bottom: 2px solid #c7d8bc;
   padding-bottom: 4mm;
 }
 
@@ -107,7 +107,7 @@ h1 {
   max-height: 62mm;
   max-width: 100%;
   width: auto;
-  border: 1px solid #cbb3bf;
+  border: 1px solid #c7d8bc;
   border-radius: 2mm;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
 }
@@ -133,7 +133,7 @@ h1 {
   display: block;
   width: 100%;
   margin-top: 4mm;
-  border: 1px solid #cbb3bf;
+  border: 1px solid #c7d8bc;
   border-radius: 2mm;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
 }

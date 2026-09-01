@@ -14,10 +14,10 @@ nuevas fichas a medida que crezca.
 ## Ficheros
 
 - `busqueda-rapida.md`, `instalar-app.md` — fichas [Marp](https://marp.app) por función, pensadas
-  para el móvil (todavía sin capturas — ver «Regenerar las capturas» más abajo).
+  para el móvil, con capturas generadas por `scripts/capture-cheatsheet-shots.mjs`.
 - `curso-nuevo.md`, `responsabilidades.md`, `arbol-documental.md` — fichas para el equipo
   directivo / responsable de calidad, pensadas para escritorio (a diferencia de las demás), usando
-  la clase `.captura-escritorio` de `theme.css`.
+  la clase `.captura-escritorio` de `theme.css` (todavía sin capturas).
 - Todas las fichas comparten el mismo mecanismo de versión/fecha que `docs/slides/atica-calidad.md`
   (marcadores `{{VERSION}}`/`{{PUB_DATE}}` sustituidos por `make cheatsheets`).
 - `theme.css` — tema Marp compartido por las fichas (página A4 vertical, paleta de marca).
@@ -41,8 +41,14 @@ instalarlo si falta. La versión y la fecha del pie se toman automáticamente de
 
 ## Regenerar las capturas
 
-Las fichas actuales no tienen capturas de pantalla todavía: la aplicación no cuenta con datos de
-demostración (fixtures) para generarlas de forma reproducible. Cuando existan, el patrón a seguir
-es un script Node/[Playwright](https://playwright.dev) por ficha (o grupo de fichas) en
-`scripts/capture-*.mjs`, ejecutado contra un servidor local con datos sembrados — nunca contra la
-base de datos real.
+Un script Node/[Playwright](https://playwright.dev) por ficha (o grupo de fichas), en
+`scripts/capture-*.mjs`, ejecutado contra un servidor local con datos sembrados por
+`php bin/console app:load-demo-data` — nunca contra la base de datos real. Por ejemplo:
+
+```bash
+SHOTS_BASE_URL=http://127.0.0.1:8744 node scripts/capture-cheatsheet-shots.mjs
+```
+
+`curso-nuevo.md`, `responsabilidades.md` y `arbol-documental.md` (capturas de escritorio) todavía
+no tienen un script — `scripts/capture-curso-nuevo-shots.mjs` existe pero necesita su propia base
+de datos desechable, al dejar el curso 2026-2027 como activo.

@@ -7,12 +7,12 @@
  */
 
 :root {
-  --nx-ink: #141c26;
-  --nx-accent: #5a7188;
-  --nx-accent-dark: #344253;
-  --nx-accent-soft: #f7f0ee;
+  --nx-ink: #1a2415;
+  --nx-accent: #46603d;
+  --nx-accent-dark: #2e3b27;
+  --nx-accent-soft: #f3f6f0;
   --nx-muted: #6b7280;
-  --nx-border: #cbb3bf;
+  --nx-border: #c7d8bc;
 }
 
 /* ----- Variables de Material for MkDocs: igualan la paleta azul (misma escala "forest" de assets/styles/app.css) ----- */
@@ -81,7 +81,7 @@ code {
 }
 
 pre {
-  background: #f7f0ee;
+  background: var(--nx-accent-soft);
   border: 1px solid var(--nx-border);
   border-radius: 6px;
   padding: 0.8em 1em;

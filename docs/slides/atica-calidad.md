@@ -8,9 +8,9 @@ header: 'ÁTICA Calidad'
 footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 style: |
   :root {
-    --nx-ink: #141c26;
-    --nx-accent: #5a7188;
-    --nx-accent-soft: #f7f0ee;
+    --nx-ink: #1a2415;
+    --nx-accent: #46603d;
+    --nx-accent-soft: #f3f6f0;
     --nx-muted: #6b7280;
   }
   section {
@@ -20,7 +20,7 @@ style: |
     padding: 56px 64px;
   }
   h1 { color: var(--nx-ink); font-size: 52px; }
-  h2 { color: var(--nx-accent); font-size: 38px; border-bottom: 2px solid #cbb3bf; padding-bottom: 8px; }
+  h2 { color: var(--nx-accent); font-size: 38px; border-bottom: 2px solid #c7d8bc; padding-bottom: 8px; }
   h3 { color: var(--nx-ink); font-size: 28px; }
   strong { color: var(--nx-accent); }
   table { font-size: 20px; }
@@ -28,6 +28,7 @@ style: |
   tr:nth-child(even) { background: var(--nx-accent-soft); }
   code { background: var(--nx-accent-soft); color: var(--nx-ink); }
   header { color: var(--nx-muted); font-size: 16px; }
+  section img { display: block; max-width: 100%; max-height: 380px; margin: 12px auto 0; border: 1px solid #c7d8bc; border-radius: 6px; box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
 ---
 
 # ÁTICA Calidad
@@ -49,9 +50,9 @@ por docente y por centro.
 
 ## Estado del proyecto
 
-La base técnica, el acceso, la administración del centro, el calendario, Responsabilidades y el
-**árbol documental** —el contenido central del SGC— ya están construidos. La aplicación se irá
-ampliando a partir de aquí (informes, plazos de entrega...).
+La base técnica, el acceso, la administración del centro, el calendario, Responsabilidades, el
+**árbol documental** —el contenido central del SGC— y **Actividades**, con sus avisos por correo,
+ya están construidos. La aplicación se irá ampliando a partir de aquí (empezando por Informes).
 
 ---
 
@@ -88,10 +89,8 @@ Mantiene el servidor y gestiona todos los centros alojados en él.
 
 El calendario muestra los días lectivos del curso académico, con los festivos y días no lectivos
 marcados. El equipo directivo puede programar **eventos** de centro, generales o restringidos a
-perfiles o subperfiles concretos de Responsabilidades.
-
-Más adelante, aquí se mostrarán también los **plazos de entrega de documentación** del sistema de
-gestión de la calidad.
+perfiles o subperfiles concretos de Responsabilidades. El detalle de cada día muestra también las
+**actividades** del docente cuyo plazo vence esa fecha.
 
 ---
 
@@ -158,11 +157,41 @@ docentes fuera del curso activo y borrado masivo de esas asignaciones.
 - **Documentos y revisiones** — cada documento guarda su historial completo de versiones; si la
   carpeta lo exige, una revisión nueva queda **pendiente** hasta que se aprueba o se rechaza.
 
+![](img/arbol-documental.png)
+
+---
+
 ## Búsqueda
 
 Tres formas de buscar según el contexto —global sobre todo el árbol, local dentro de una sección, o
 la paleta de comandos (**⌘K**) desde cualquier pantalla— con resultados resaltados y acceso directo
 a la sección, carpeta o documento que coincide.
+
+---
+
+# Actividades
+
+---
+
+## Plazos y entregas, por categoría
+
+- Categorías propias del centro — misma idea que las secciones del árbol documental.
+  Se editan en **Actividades → Editar categorías**.
+- Fecha límite (día y mes, se repite cada curso) y, opcionalmente, una **carpeta**
+  vinculada: entonces se completa **entregando un documento**, con el mismo flujo de
+  aprobar/rechazar del árbol documental. Sin carpeta, se completa a mano.
+- **Mis actividades** resume lo pendiente y lo vencido; el panel principal y el
+  calendario avisan también de los próximos plazos.
+
+![](img/actividades.png)
+
+---
+
+## Avisos por correo
+
+Documento pendiente de revisar, aceptado o rechazado, y actividad pendiente de
+completar: cada uno, configurable en **desactivado**, **individual** (al instante)
+o **resumen diario** — a nivel global, de centro o personal.
 
 ---
 

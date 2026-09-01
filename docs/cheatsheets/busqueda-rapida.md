@@ -18,6 +18,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
   <span class="num">1</span>
   <div class="text">
     <p>Toca la lupa del encabezado —o pulsa <strong>⌘K</strong> / <strong>Ctrl+K</strong> en el ordenador— desde cualquier pantalla.</p>
+    <img src="img/busqueda-rapida-2.png" alt="Paleta de comandos recién abierta">
   </div>
 </div>
 
@@ -32,6 +33,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
   <span class="num">3</span>
   <div class="text">
     <p>Escribe al menos 2 letras del nombre o el usuario de un docente del curso activo.</p>
+    <img src="img/busqueda-rapida-3.png" alt="Resultados de búsqueda agrupados por tipo">
   </div>
 </div>
 

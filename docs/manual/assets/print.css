@@ -41,14 +41,14 @@ html { font-size: 11pt; }
 
 #title-block-header .title {
   font-size: 34pt;
-  color: #5a7188;
+  color: #46603d;
   border: none;
   margin-bottom: 0.2em;
 }
 
 #title-block-header .subtitle {
   font-size: 16pt;
-  color: #344253;
+  color: #2e3b27;
   font-weight: normal;
 }
 
@@ -67,15 +67,15 @@ nav#TOC::before {
   content: "Índice";
   display: block;
   font-size: 20pt;
-  color: #5a7188;
-  border-bottom: 2px solid #cbb3bf;
+  color: #46603d;
+  border-bottom: 2px solid #c7d8bc;
   padding-bottom: 0.2em;
   margin-bottom: 0.6em;
 }
 
 nav#TOC ul { list-style: none; padding-left: 1em; }
 nav#TOC > ul { padding-left: 0; }
-nav#TOC a { text-decoration: none; color: #141c26; }
+nav#TOC a { text-decoration: none; color: #1a2415; }
 
 /* Número de página junto a cada entrada del índice (Paged.js). */
 nav#TOC a::after {
@@ -176,12 +176,12 @@ p { orphans: 3; widows: 3; }
 .admonition.question,
 .admonition.help,
 .admonition.faq {
-  border-color: #5a7188;
-  background:   #f7f0ee;
+  border-color: #46603d;
+  background:   #f3f6f0;
 }
 .admonition.question .admonition-title,
 .admonition.help .admonition-title,
-.admonition.faq .admonition-title { color: #344253; }
+.admonition.faq .admonition-title { color: #2e3b27; }
 .admonition.question .admonition-title::before,
 .admonition.help .admonition-title::before,
 .admonition.faq .admonition-title::before { content: '❓ '; }

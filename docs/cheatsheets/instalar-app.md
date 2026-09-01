@@ -42,6 +42,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
   <span class="num">3</span>
   <div class="text">
     <p>Así queda: pantalla completa, sin barra de direcciones ni menús del navegador, con su propio icono junto al resto de tus apps.</p>
+    <img src="img/instalar-app-1.png" alt="ÁTICA Calidad abierta como app, sin barra de direcciones">
   </div>
 </div>
 

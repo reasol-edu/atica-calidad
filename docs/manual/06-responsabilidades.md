@@ -19,7 +19,7 @@ Eso es lo que gestiona la sección **Responsabilidades**, con tres herramientas:
 para quien tenga alguno de estos papeles en el centro activo: **responsable de calidad**, **equipo
 directivo / administración del centro** o **administración de la plataforma**. El **auditor/a
 interno/a** y el resto del profesorado no la ven — a diferencia de los perfiles fijos (ver
-[Permisos de un vistazo](09-permisos-de-un-vistazo.md)), esta sección sí requiere uno de esos
+[Permisos de un vistazo](10-permisos-de-un-vistazo.md)), esta sección sí requiere uno de esos
 papeles para acceder, no solo para ser gestionada.
 
 ## Listas

@@ -17,5 +17,7 @@ fecha de entrega) desde la pestaña **Eventos** del calendario. Cada evento pued
 de [Responsabilidades](06-responsabilidades.md#perfiles-especificos) (solo lo ven quienes tengan
 asignado alguno de los perfiles o subperfiles seleccionados).
 
-Más adelante, esta sección mostrará también los plazos de entrega de documentación del sistema de
-gestión de la calidad.
+## Plazos de actividades
+
+El detalle de cada día muestra también las actividades del docente cuyo plazo vence esa fecha, con
+enlace directo a cada una — ver [Actividades](08-actividades.md#actividades-en-el-calendario).

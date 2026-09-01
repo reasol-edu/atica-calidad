@@ -11,8 +11,8 @@ async function hideToolbar() {
 }
 
 await page.goto(`${baseUrl}/login`);
-await page.fill('#username', 'admin');
-await page.fill('#password', 'admin');
+await page.fill('#username', 'direccion');
+await page.fill('#password', 'direccion');
 await page.click('button[type="submit"]');
 
 await page.waitForLoadState('networkidle');
@@ -26,6 +26,12 @@ await page.goto(`${baseUrl}/calendario`);
 await page.waitForLoadState('networkidle');
 await hideToolbar();
 await page.screenshot({ path: `${outDir}/calendario.png` });
+
+// Detail view of a day with pending activities (demo deadlines, Sep. 2026).
+await page.goto(`${baseUrl}/calendario/dia/2026-09-15`);
+await page.waitForLoadState('networkidle');
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/calendario-dia.png` });
 
 await browser.close();
 console.log('Screenshots saved to', outDir);

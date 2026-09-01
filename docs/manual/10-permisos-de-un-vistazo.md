@@ -4,6 +4,8 @@
 | --- | :-: | :-: | :-: | :-: | :-: |
 | Iniciar sesión y consultar el calendario del centro | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Acceder al árbol documental (contenido según perfiles y restricciones — ver [Árbol documental](07-arbol-documental.md#permisos-de-un-vistazo)) | ✅¹ | ✅ | ✅ | ✅ | ✅ |
+| Ver y completar/entregar sus propias actividades (ver [Actividades](08-actividades.md#permisos-de-un-vistazo)) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Crear o editar categorías y actividades | — | — | ✅ | ✅ | ✅ |
 | Gestionar Responsabilidades (listas y perfiles específicos) | — | — | ✅ | ✅ | ✅ |
 | Crear eventos en el calendario | — | — | — | ✅ | ✅ |
 | Administrar cursos académicos, docentes, días no lectivos y perfiles del centro | — | — | — | ✅ | ✅ |

@@ -45,9 +45,11 @@ correos quedan pendientes de entrega hasta que se arranque.
 
 ## Sistema de ajustes
 
-Los ajustes de la aplicación tienen hasta tres niveles: **global** (todo el servidor), **de centro**
-y, si aplica, **personal**. Un valor de un nivel más específico sobrescribe al de un nivel más
-general, salvo que este último esté **bloqueado**.
+Los ajustes de la aplicación tienen hasta tres niveles: **global** (todo el servidor, en
+**Administración → Ajustes**), **de centro** (**Centro educativo → Ajustes del centro**) y, si
+aplica, **personal** (**Mi perfil → Ajustes**, accesible a cualquier docente desde el menú
+lateral). Un valor de un nivel más específico sobrescribe al de un nivel más general, salvo que
+este último esté **bloqueado**.
 
 ### Bloqueo de ajustes
 
@@ -60,11 +62,30 @@ el profesorado, si el ajuste lo permite a nivel de centro.
 
 ### Avisos por correo
 
-- **Registrar los avisos por correo** — activa el
-  [registro de avisos por correo](05-administrar-el-centro.md#registro-de-avisos-por-correo) del
-  centro. Ajustable a nivel global o de centro.
-- **Retención de los registros** — días que se conservan las entradas de ese registro antes de
-  eliminarse automáticamente (0 desactiva la eliminación). Ajustable a nivel global.
+Cada uno de los tres avisos que se envían por correo (documento pendiente de revisar, documento
+aceptado, documento rechazado) puede configurarse de forma independiente en **Desactivado**,
+**Individual** (un correo al instante por cada aviso) o **Resumen diario** (un único correo, una
+vez al día, con todo lo pendiente desde el último) — este último es el valor por defecto de los
+tres, para no saturar el correo. Si a un docente le corresponden varios de estos avisos en modo
+resumen el mismo día, recibe un solo correo con una sección por cada uno, no varios correos
+seguidos.
+
+| Ajuste | Alcance | Descripción |
+| --- | :-: | --- |
+| Registrar los avisos por correo | Global, centro | Activa el [registro de avisos por correo](05-administrar-el-centro.md#registro-de-avisos-por-correo) del centro. |
+| Retención de los registros | Global | Días que se conservan las entradas de ese registro antes de eliminarse automáticamente (0 desactiva la eliminación). |
+| Avisos por correo electrónico | Global, centro, personal | Interruptor general: sin activar, no se envía ningún aviso al docente, sea cual sea el resto de ajustes. |
+| Recordatorio de actividad pendiente de completar | Global, centro, personal | Envía un aviso cuando una [actividad](08-actividades.md) esté pendiente de completar o vencida. |
+| Días de preaviso del recordatorio | Global, centro, personal | Antelación, en días sobre la fecha límite, a partir de la cual se avisa de una actividad pendiente (además de las ya vencidas). |
+| Aviso de documento pendiente de revisar | Global, centro, personal | Desactivado / Individual / Resumen diario — avisa a quien deba revisar una carpeta cuando se suba una versión nueva. |
+| Aviso de documento aceptado | Global, centro, personal | Desactivado / Individual / Resumen diario — avisa a quien subió una revisión cuando se acepta. |
+| Aviso de documento rechazado | Global, centro, personal | Desactivado / Individual / Resumen diario — avisa a quien subió una revisión cuando se rechaza. |
+
+### Visualización
+
+- **Resultados por página** — número de elementos que se muestran en los listados paginados de la
+  aplicación (entre 5 y 100; 20 por defecto). Ajustable solo a nivel personal, desde
+  **Mi perfil → Ajustes**.
 
 ### Plantillas de informes
 
