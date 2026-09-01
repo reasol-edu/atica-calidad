@@ -7,8 +7,41 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-01
+
 ### Added
 
+- **Actividades**, nueva sección en el menú lateral (por delante de Calendario), para los plazos y
+  tareas periódicas del sistema de calidad, agrupadas en categorías propias del centro:
+  - **Mis actividades**: lista personal con total/completadas/pendientes/vencidas, barra de
+    progreso, buscador y filtros por fecha límite, perfil, categoría y estado.
+  - **Ver**: navegación por categorías con migas de pan, con lo que corresponde al docente o,
+    opcionalmente, lo de todo el mundo.
+  - **Editar categorías** (mismo papel que Editar árbol): categorías anidables, y el formulario de
+    cada actividad — fecha límite (día y mes, se repite cada curso), carpeta del árbol documental
+    opcional (entonces se completa entregando un documento, con el mismo flujo de aprobar/rechazar
+    que una revisión), ámbito por perfil o individual, compleción automática o manual (con
+    confirmación previa y «deshacer» sin confirmar), y documentos relacionados del árbol
+    documental.
+  - Los plazos se muestran también en el detalle de cada día del calendario y se resumen en el
+    panel principal, junto con las revisiones de documentos pendientes del docente y, para
+    responsable de calidad/administración, todas las revisiones pendientes del centro.
+  - `php bin/console app:load-demo-data`: crea un centro de demostración completo («IES Ada
+    Lovelace») con árbol documental ISO 9001:2015, responsabilidades, actividades y calendario,
+    para poder probar la aplicación sin datos reales.
+- **Avisos por correo electrónico**, configurables a nivel global, de centro y personal: documento
+  pendiente de revisar, aceptado o rechazado, y actividad pendiente de completar — cada uno en
+  desactivado, individual (al instante) o resumen diario (el valor por defecto de los cuatro, para
+  no saturar el correo). Campana de notificaciones en la cabecera con lo pendiente del docente.
+  Requiere activar el envío de correo del servidor (ver Administrar la plataforma).
+- Ajuste personal **Resultados por página**, para los listados paginados de toda la aplicación.
+- Las carpetas del árbol documental admiten una **descripción con formato**, visible a quien la vea.
+- Los elementos de una lista de Responsabilidades pueden asociarse a un perfil específico (o a uno
+  de sus subperfiles) como referencia cruzada — por ejemplo, una materia con la jefatura de
+  departamento de la que depende.
+- Identidad visual propia: paleta de color cálida y acogedora («Salvia»), decoración de hojas en la
+  pantalla de acceso y logo/favicon nuevos, en sustitución de los heredados del proyecto del que se
+  hizo fork.
 - Nueva sección **Responsabilidades** en el menú lateral, accesible al responsable de calidad, al
   equipo directivo y a la administración, con tres herramientas:
   - **Listas**: jerarquías propias de nombres para el centro, con la profundidad que se necesite
@@ -32,7 +65,6 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   sección Informes (todavía vacía), y la administración del centro educativo: cursos académicos,
   docentes, perfiles de responsable de calidad y auditor/a interno/a, registro de avisos por correo
   y ajustes del centro.
-- Paleta de color propia (`#8da1b9`, `#95adb6`, `#cbb3bf`, `#dbc7be`, `#ef959c`).
 - Sistema de generación de manual de usuario (PDF y web), fichas de referencia rápida y
   presentación, adaptado del proyecto original.
 - **Árbol documental**, visible en el menú lateral para todo el profesorado (el contenido visible
@@ -72,12 +104,23 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 
-- Ajustado el uso del color coral de la paleta: ya no es el color de texto por defecto del menú
-  lateral ni de los paneles de las pantallas de acceso (podía leerse como aviso o error); ahora se
-  reserva como acento puntual (elemento activo del menú, decoración del panel de acceso).
+- El menú lateral pasa a mostrar Actividades justo antes de Calendario.
+- La pantalla de Actividades carga notablemente más rápido.
 
 ### Fixed
 
+- Al guardar un ajuste desde el navegador (global, de centro o personal) a veces no ocurría nada:
+  faltaba un fichero JavaScript en el proyecto.
+- El panel de revisión de una entrega, en «Mis entregas», aparecía al final de la lista en vez de
+  junto a su fila.
+- En pantallas pequeñas, la etiqueta de estado de una actividad podía desbordar la tarjeta en vez
+  de bajar a su propia línea (afectaba a «Mis actividades», al panel principal y a la cabecera del
+  árbol documental).
+- El envío de varias entregas a la vez podía guardar el fichero en la fila equivocada en
+  Safari/iOS, y subir una entrega «en nombre de» otro docente podía atribuírsela a quien pulsaba el
+  botón en vez de al docente de la fila.
+- El buscador de docentes en Asignar perfiles no devolvía resultados para responsables de calidad
+  que no fueran también administración del centro.
 - El buscador de docentes (al asignarlos a un perfil, o como administrador/a de un centro) ya no
   se queda mostrando la lista completa sin filtrar nada más que el resaltado de las letras
   escritas: hasta alcanzar el mínimo de caracteres configurado, no muestra ningún resultado, en
