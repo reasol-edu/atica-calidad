@@ -1,0 +1,198 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% set titleKey = 'responsibilities.lists.import_seneca.' ~ kind.value ~ '.title' %}
+
+{% block title %}{{ titleKey|trans({}, 'admin') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-3xl mx-auto space-y-8">
+
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_responsibilities_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">{{ 'responsibilities'|trans({}, 'navigation') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0'}) }}
+            <a href="{{ path('app_responsibilities_lists', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">{{ 'responsibilities.lists.title'|trans({}, 'admin') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ titleKey|trans({}, 'admin') }}</h1>
+    </div>
+
+    {% if plan is null %}
+
+        <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100">
+                <h2 class="text-base font-semibold text-gray-900">{{ titleKey|trans({}, 'admin') }}</h2>
+            </div>
+            <form method="post" enctype="multipart/form-data" class="px-6 py-6 space-y-6">
+                <input type="hidden" name="_token" value="{{ csrf_token('import_seneca_list_' ~ kind.value) }}">
+
+                <div class="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3.5 text-blue-700">
+                    <p class="text-sm font-medium">{{ 'responsibilities.lists.import_seneca.help.title'|trans({}, 'admin') }}</p>
+                    <ul class="mt-2 list-disc list-outside pl-4 space-y-2 text-xs text-blue-600 marker:text-blue-400">
+                        <li>{{ ('responsibilities.lists.import_seneca.' ~ kind.value ~ '.help.source')|trans({}, 'admin') }}</li>
+                        <li>{{ 'responsibilities.lists.import_seneca.help.encoding'|trans({}, 'admin') }}</li>
+                        <li>{{ ('responsibilities.lists.import_seneca.help.tree.' ~ kind.value)|trans({}, 'admin') }}</li>
+                        <li>{{ 'responsibilities.lists.import_seneca.help.preview'|trans({}, 'admin') }}</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <label for="root_name" class="block text-sm font-medium text-gray-700 mb-1">
+                        {{ 'responsibilities.lists.import_seneca.root_name.label'|trans({}, 'admin') }}
+                    </label>
+                    <input type="text" id="root_name" name="root_name" value="{{ rootName }}" required
+                           class="w-full rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm text-gray-900 focus:border-forest-500 focus:ring-1 focus:ring-forest-500 focus:outline-none">
+                    <p class="mt-1.5 text-xs text-gray-500">{{ 'responsibilities.lists.import_seneca.root_name.help'|trans({}, 'admin') }}</p>
+                </div>
+
+                <div>
+                    <label for="csv"
+                           class="flex flex-col items-center justify-center gap-3 w-full rounded-xl border-2 border-dashed
+                                  border-gray-300 bg-gray-50 px-6 py-8 cursor-pointer
+                                  hover:border-forest-400 hover:bg-forest-50/40 transition-colors group mt-4 mb-2">
+                        {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-8 w-8 text-gray-400 group-hover:text-forest-500 transition-colors'}) }}
+                        <span class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2
+                                     text-sm font-medium text-gray-700 shadow-xs group-hover:border-forest-300 group-hover:text-forest-700 transition-colors">
+                            {{ 'responsibilities.lists.import_seneca.choose_file'|trans({}, 'admin') }}
+                        </span>
+                        <span id="csv-filename" class="text-xs text-gray-400">
+                            {{ 'responsibilities.lists.import_seneca.no_file_chosen'|trans({}, 'admin') }}
+                        </span>
+                    </label>
+                    <input type="file" id="csv" name="csv" accept=".csv,text/csv" class="sr-only hidden"
+                           onchange="document.getElementById('csv-filename').textContent = this.files[0]?.name ?? '{{ 'responsibilities.lists.import_seneca.no_file_chosen'|trans({}, 'admin') }}'">
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <a href="{{ path('app_responsibilities_lists', {centreId: centre.id}) }}"
+                       class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                        {{ 'responsibilities.lists.import_seneca.cancel'|trans({}, 'admin') }}
+                    </a>
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-forest-700 transition-colors shadow-xs">
+                        {{ ux_icon('heroicons:eye', {class: 'h-4 w-4'}) }}
+                        {{ 'responsibilities.lists.import_seneca.preview'|trans({}, 'admin') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    {% else %}
+
+        <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100">
+                <h2 class="text-base font-semibold text-gray-900">{{ 'responsibilities.lists.import_seneca.preview.title'|trans({}, 'admin') }}</h2>
+                <p class="mt-1 text-sm text-gray-500">
+                    {% if plan.rootExists %}
+                        {{ 'responsibilities.lists.import_seneca.preview.root_existing'|trans({'%name%': plan.rootName}, 'admin') }}
+                    {% else %}
+                        {{ 'responsibilities.lists.import_seneca.preview.root_new'|trans({'%name%': plan.rootName}, 'admin') }}
+                    {% endif %}
+                </p>
+            </div>
+
+            <form method="post" class="px-6 py-6 space-y-6">
+                <input type="hidden" name="_token" value="{{ csrf_token('import_seneca_list_' ~ kind.value) }}">
+                <input type="hidden" name="root_name" value="{{ rootName }}">
+                <input type="hidden" name="csv_content" value="{{ csvBase64 }}">
+                <input type="hidden" name="confirm" value="1">
+
+                {% if plan.isEmpty %}
+                    <p class="text-sm text-gray-500">{{ 'responsibilities.lists.import_seneca.preview.no_changes'|trans({}, 'admin') }}</p>
+                {% else %}
+
+                    {% if plan.additions is not empty %}
+                        <div>
+                            <h3 class="flex items-center gap-1.5 text-sm font-semibold text-green-700">
+                                {{ ux_icon('heroicons:plus-circle', {class: 'h-4 w-4'}) }}
+                                {{ 'responsibilities.lists.import_seneca.preview.additions'|trans({'%count%': plan.additions|length}, 'admin') }}
+                            </h3>
+                            <ul class="mt-2 space-y-1 text-sm text-gray-700">
+                                {% for row in plan.additions %}
+                                    <li class="pl-5">{{ row.label }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if plan.reactivations is not empty %}
+                        <div>
+                            <h3 class="flex items-center gap-1.5 text-sm font-semibold text-forest-700">
+                                {{ ux_icon('heroicons:arrow-path', {class: 'h-4 w-4'}) }}
+                                {{ 'responsibilities.lists.import_seneca.preview.reactivations'|trans({'%count%': plan.reactivations|length}, 'admin') }}
+                            </h3>
+                            <ul class="mt-2 space-y-1 text-sm text-gray-700">
+                                {% for row in plan.reactivations %}
+                                    <li class="pl-5">{{ row.label }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if plan.deletions is not empty %}
+                        <div>
+                            <h3 class="flex items-center gap-1.5 text-sm font-semibold text-red-700">
+                                {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}
+                                {{ 'responsibilities.lists.import_seneca.preview.deletions'|trans({'%count%': plan.deletions|length}, 'admin') }}
+                            </h3>
+                            <p class="mt-1 text-xs text-gray-500">{{ 'responsibilities.lists.import_seneca.preview.deletions.help'|trans({}, 'admin') }}</p>
+                            <ul class="mt-2 space-y-1 text-sm text-gray-700">
+                                {% for row in plan.deletions %}
+                                    <li class="pl-5">{{ row.label }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if plan.deactivations is not empty %}
+                        <div>
+                            <h3 class="flex items-center gap-1.5 text-sm font-semibold text-amber-700">
+                                {{ ux_icon('heroicons:no-symbol', {class: 'h-4 w-4'}) }}
+                                {{ 'responsibilities.lists.import_seneca.preview.deactivations'|trans({'%count%': plan.deactivations|length}, 'admin') }}
+                            </h3>
+                            <p class="mt-1 text-xs text-gray-500">{{ 'responsibilities.lists.import_seneca.preview.deactivations.help'|trans({}, 'admin') }}</p>
+                            <ul class="mt-2 space-y-1 text-sm text-gray-700">
+                                {% for row in plan.deactivations %}
+                                    <li class="pl-5">{{ row.label }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {% if plan.deletions is not empty %}
+                        <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3.5">
+                            <p class="text-sm font-medium text-gray-700">{{ 'responsibilities.lists.import_seneca.unused_action.label'|trans({}, 'admin') }}</p>
+                            <div class="mt-2 space-y-2">
+                                <label class="flex items-center gap-2 text-sm text-gray-700">
+                                    <input type="radio" name="unused_action" value="delete" checked class="text-forest-600 focus:ring-forest-500">
+                                    {{ 'responsibilities.lists.import_seneca.unused_action.delete'|trans({}, 'admin') }}
+                                </label>
+                                <label class="flex items-center gap-2 text-sm text-gray-700">
+                                    <input type="radio" name="unused_action" value="deactivate" class="text-forest-600 focus:ring-forest-500">
+                                    {{ 'responsibilities.lists.import_seneca.unused_action.deactivate'|trans({}, 'admin') }}
+                                </label>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                {% endif %}
+
+                <div class="flex items-center justify-between pt-2">
+                    <a href="{{ path(kind.value == 'groups' ? 'app_responsibilities_lists_import_seneca_groups' : 'app_responsibilities_lists_import_seneca_subjects', {centreId: centre.id}) }}"
+                       class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                        {{ 'responsibilities.lists.import_seneca.back'|trans({}, 'admin') }}
+                    </a>
+                    <button type="submit" {{ plan.isEmpty ? 'disabled' : '' }}
+                            class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-forest-700 transition-colors shadow-xs disabled:opacity-50 disabled:cursor-not-allowed">
+                        {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
+                        {{ 'responsibilities.lists.import_seneca.confirm'|trans({}, 'admin') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    {% endif %}
+
+</div>
+{% endblock %}

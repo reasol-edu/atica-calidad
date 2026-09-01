@@ -79,6 +79,35 @@ Un elemento no se puede eliminar en dos casos:
 - **Si está en uso** — porque un perfil específico está asociado a él, o porque hay docentes
   asignados a través de él (ver [Perfiles específicos](#perfiles-especificos) más abajo).
 
+### Importar desde Séneca
+
+Dos botones en la parte superior de Listas — **Importar grupos desde Séneca** e **Importar
+materias desde Séneca** — construyen una lista automáticamente a partir de los ficheros CSV que
+exporta Séneca, en vez de crear cada elemento a mano:
+
+- **Grupos**: en Séneca, con perfil Dirección, ve a **Alumnado → Relación de unidades → Curso:
+  Cualquiera → Exportar datos**. Cada unidad del fichero se añade como un elemento dentro de la
+  raíz elegida.
+- **Materias**: en Séneca, con perfil Dirección, ve a **Personal → Personal del centro → Materias
+  y grupos → Unidad: Cualquiera → Exportar datos**. Cada grupo del fichero se añade dentro de la
+  raíz, y cada materia de ese grupo se añade dentro de su grupo.
+
+Al elegir el fichero se pide también el **nombre de la raíz** que va a contener lo importado —
+propone «Grupo» o «Materia» según el tipo, pero se puede escribir otro nombre; si ya existe una
+raíz con ese nombre (comparando sin distinguir mayúsculas), se actualiza en vez de crear una nueva.
+
+Antes de tocar nada se muestra una **previsualización**: qué elementos se añadirían, cuáles ya
+existen y se reactivarían (si estaban inactivos) y cuáles ya no aparecen en el fichero. Para estos
+últimos hay que elegir qué hacer:
+
+- **Eliminar** los que no estén en uso.
+- **Desactivar** en vez de eliminar — los que sí estén en uso (asociados a un perfil específico,
+  con docentes asignados a través de uno, o usados en algún documento entregado) siempre se
+  desactivan, nunca se eliminan, aunque se elija «Eliminar»; un elemento con hijos solo se puede
+  eliminar si todos sus hijos también se pueden eliminar.
+
+Nada se aplica hasta confirmar la previsualización.
+
 ### Etiquetas
 
 Cualquier elemento de una lista, esté al nivel que esté (no solo las hojas), puede llevar sus

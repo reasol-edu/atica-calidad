@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Responsabilidades → Listas**: «Importar grupos desde Séneca» e «Importar materias desde
+  Séneca» construyen una lista a partir del CSV correspondiente exportado de Séneca (grupos
+  anidados bajo la raíz elegida; materias, anidadas dentro de su grupo), con previsualización de
+  altas, bajas y reactivaciones antes de confirmar. Los elementos que ya no aparecen en el fichero
+  se pueden eliminar (si no están en uso) o desactivar (los que sí lo están, siempre se desactivan).
+
 ### Changed
 
 - Subir una nueva revisión o eliminar un documento entero ya no está limitado a quien lo subió en

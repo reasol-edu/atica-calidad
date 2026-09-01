@@ -15,7 +15,17 @@
             <h1 class="text-2xl font-bold text-gray-900">{{ 'responsibilities.lists.title'|trans({}, 'admin') }}</h1>
             <p class="mt-1 text-sm text-gray-500">{{ 'responsibilities.lists.help'|trans({}, 'admin') }}</p>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+            <a href="{{ path('app_responsibilities_lists_import_seneca_groups', {centreId: centre.id}) }}"
+               class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                {{ 'responsibilities.lists.import_seneca.groups.button'|trans({}, 'admin') }}
+            </a>
+            <a href="{{ path('app_responsibilities_lists_import_seneca_subjects', {centreId: centre.id}) }}"
+               class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                {{ 'responsibilities.lists.import_seneca.subjects.button'|trans({}, 'admin') }}
+            </a>
             <a href="{{ path('app_responsibilities_lists_export', {centreId: centre.id}) }}"
                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
                 {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-4 w-4'}) }}

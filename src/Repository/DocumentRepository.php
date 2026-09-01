@@ -126,6 +126,23 @@ class DocumentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Whether any document was ever tagged, at upload time, with this exact list item as its
+     * upload subprofile — used to decide whether a Responsabilidades › Listas item can be safely
+     * deleted (see SenecaListImporter) alongside SpecificProfileRepository::isListItemInUse() and
+     * SpecificProfileAssignmentRepository::isListItemAssigned().
+     */
+    public function isListItemUsedByDocument(ListItem $item): bool
+    {
+        return $this->createQueryBuilder('d')
+            ->select('1')
+            ->where('d.uploadListItem = :item')
+            ->setParameter('item', $item->getId(), 'uuid')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult() !== null;
+    }
+
+    /**
      * Resolves an activity submission slot (see ActivitySubmissionSlot) to its Document, if
      * anyone has already uploaded one — matched by identity, including NULL (a plain,
      * non-list-associated profile has $listItem === null, which must match exactly, not "any").
