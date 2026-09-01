@@ -7,6 +7,17 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- Subir una nueva revisión o eliminar un documento entero ya no está limitado a quien lo subió en
+  persona: cualquier docente que comparta el perfil con el que se etiquetó el documento puede
+  hacerlo también, aunque la versión activa no la subiera él — por ejemplo, para que un cambio de
+  jefatura de departamento no deje huérfanos los documentos del anterior. Se aplica también dentro
+  de una actividad de ámbito por perfil, cuya entrega ya es compartida por todo el perfil; la única
+  excepción es una actividad de ámbito individual, donde varios docentes pueden compartir perfil
+  sin compartir entrega, así que ahí se mantiene la regla anterior (solo quien la subió en
+  persona).
+
 ## [0.1.0] - 2026-09-01
 
 ### Added

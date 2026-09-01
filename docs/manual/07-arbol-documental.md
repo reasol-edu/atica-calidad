@@ -121,13 +121,29 @@ renombrar y mover documentos, elegir la revisión activa, editar o eliminar revi
 aprobar/rechazar. Responsable de calidad y administración del centro son responsables de **todas**
 las carpetas, siempre, aunque no aparezcan en ninguna de las listas.
 
-!!! info "La única excepción: quien sube la última revisión"
+!!! info "Las excepciones: quien sube la última revisión, y su perfil"
     Sin ser responsable de la carpeta, el **docente que subió la revisión activa** de un documento
     conserva dos permisos sobre ese documento concreto: subir una **nueva** revisión, o **eliminar
     el documento entero** (con todo su historial). No puede, en cambio, elegir qué revisión está
     activa, editar o eliminar una revisión suelta, ni ver el historial completo de versiones —
-    salvo que además tenga permiso de revisión (para aprobar/rechazar) o sea responsable. Este es el
-    único permiso sobre documentos que no depende de las listas de la carpeta.
+    salvo que además tenga permiso de revisión (para aprobar/rechazar) o sea responsable.
+
+    Estos dos permisos se extienden además a **cualquier docente que tenga el mismo perfil de
+    subida con el que se etiquetó el documento** — no hace falta ser quien lo subió en persona,
+    basta con compartir el perfil. Por ejemplo, si «Programación didáctica de Matemáticas» se
+    subió con el perfil «Jefatura de Departamento de Matemáticas», cualquier docente con ese
+    perfil puede sustituirla o eliminarla, no solo quien la subió la primera vez — útil para que
+    un cambio de jefatura de departamento no deje huérfanos los documentos del anterior. Se aplica
+    igual dentro de una [actividad](08-actividades.md) de ámbito **por perfil**, ya que su entrega
+    es igualmente compartida por todo el perfil.
+
+    La única excepción a esta ampliación es una actividad de ámbito **individual**: ahí varios
+    docentes pueden compartir perfil (p. ej. varios tutores con el perfil «Tutor/a») sin compartir
+    entrega — cada uno tiene la suya — así que compartir perfil deja de bastar; solo cuenta quien
+    subió la entrega en persona (ver
+    [Entregas y revisión](08-actividades.md#entregas-y-revision)).
+
+    Ninguno de los dos casos depende de las listas de la carpeta ni requiere ser su responsable.
 
 ## Documentos y revisiones
 
@@ -214,7 +230,7 @@ Hay tres formas de buscar, cada una para un caso distinto:
 
 ## Permisos, de un vistazo
 
-| Puede... | Docente sin perfil sobre la carpeta | Docente con perfil de subida | Docente que subió la última revisión | Perfil responsable de la carpeta / perfil de revisión (aprobar-rechazar) | Responsable de calidad / equipo directivo / admin. |
+| Puede... | Docente sin perfil sobre la carpeta | Docente con perfil de subida | Docente que subió la última revisión, o comparte su perfil de subida² | Perfil responsable de la carpeta / perfil de revisión (aprobar-rechazar) | Responsable de calidad / equipo directivo / admin. |
 | --- | :-: | :-: | :-: | :-: | :-: |
 | Ver la sección/carpeta (si no está restringida) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Ver la sección/carpeta (si está restringida a otros perfiles) | — | — | — | según corresponda | ✅ |
@@ -229,5 +245,8 @@ Hay tres formas de buscar, cada una para un caso distinto:
 | Crear/configurar carpetas, restringir secciones | — | — | — | — | ✅ |
 
 ¹ Siempre que la sección/carpeta le sea visible.
+
+² La ampliación a «quien comparte el perfil» no aplica en una actividad de ámbito individual — ver
+[Permisos sobre una carpeta](#permisos-sobre-una-carpeta) más arriba.
 
 Volver a [Permisos de un vistazo](10-permisos-de-un-vistazo.md) para el resto de la aplicación.

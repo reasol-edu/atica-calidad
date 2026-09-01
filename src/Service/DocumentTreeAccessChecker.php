@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Activity;
+use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
 use App\Entity\DocumentSection;
 use App\Entity\DocumentSectionProfile;
@@ -143,18 +144,37 @@ final class DocumentTreeAccessChecker
 
     /**
      * Whether the teacher may add a new revision to this specific document, or delete it outright
-     * (with all its revisions). A folder responsible always can; the sole exception for anyone
-     * else is the teacher who uploaded the document's current active revision — that alone does
-     * not let them view/manage the rest of its revision history, change which revision is active,
-     * or delete an individual revision (see canManageFolder(), canEditRevisionMetadata()).
+     * (with all its revisions). A folder responsible always can; that alone does not let them
+     * view/manage the rest of its revision history, change which revision is active, or delete an
+     * individual revision (see canManageFolder(), canEditRevisionMetadata()). Two other, narrower
+     * cases also grant it:
+     *
+     * - The teacher personally uploaded the document's current active revision.
+     * - A document tagged with a specific upload profile is treated as belonging to that whole
+     *   profile rather than to whoever happened to upload it: any teacher who currently holds the
+     *   same profile/subprofile qualifies too, active-revision uploader or not. The one case this
+     *   does NOT apply to is an Individual-scope activity's own submissions: there, several
+     *   teachers can share the same profile/subprofile while each still owning a separate,
+     *   personal slot (ActivitySubmissionSlotBuilder expands one row per teacher), so "shares the
+     *   profile" would no longer mean "co-owns this submission".
      */
     public function canManageDocumentAsUploader(Teacher $teacher, Document $document): bool
     {
-        if ($this->canManageFolder($teacher, $document->getFolder())) {
+        $folder = $document->getFolder();
+        if ($this->canManageFolder($teacher, $folder)) {
             return true;
         }
 
-        return $document->getActiveRevision()?->getUploadedBy() === $teacher;
+        if ($document->getActiveRevision()?->getUploadedBy() === $teacher) {
+            return true;
+        }
+
+        $profile = $document->getUploadProfile();
+        if ($profile === null || $folder->getActivity()?->getSubmissionScope() === ActivitySubmissionScope::Individual) {
+            return false;
+        }
+
+        return $this->holdsProfile($teacher, $profile, $document->getUploadListItem());
     }
 
     public function canReviewFolder(Teacher $teacher, Folder $folder): bool

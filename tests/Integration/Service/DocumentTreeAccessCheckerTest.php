@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Service;
 
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
+use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
 use App\Entity\DocumentRevision;
@@ -325,6 +326,130 @@ final class DocumentTreeAccessCheckerTest extends RepositoryTestCase
         $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $manager, $assignment, $uploader, $document, $file, $revision);
 
         self::assertTrue($this->access->canManageDocumentAsUploader($manager, $document));
+    }
+
+    public function testCanManageDocumentAsUploaderGrantedToAnyTeacherHoldingTheDocumentsUploadProfileWithoutAnActivity(): void
+    {
+        $centre     = $this->centre();
+        $folder     = $this->folder($this->section($centre));
+        $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Departamento');
+        $uploader   = $this->teacher('subidor');
+        $colleague  = $this->teacher('companero');
+        $stranger   = $this->teacher('otro');
+        $assignment1 = new SpecificProfileAssignment($profile, null, $uploader);
+        $assignment2 = new SpecificProfileAssignment($profile, null, $colleague);
+
+        $document = new Document($folder, 'Doc');
+        $document->setUploadProfile($profile);
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $uploader);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+
+        $this->persist(
+            $centre, $folder->getDocumentSection(), $folder, $profile,
+            $uploader, $colleague, $stranger, $assignment1, $assignment2,
+            $document, $file, $revision,
+        );
+
+        // No activity linked to the folder: any teacher holding the document's upload profile can
+        // manage it, not just whoever actually uploaded the active revision.
+        self::assertTrue($this->access->canManageDocumentAsUploader($colleague, $document));
+        self::assertFalse($this->access->canManageDocumentAsUploader($stranger, $document));
+    }
+
+    public function testCanManageDocumentAsUploaderExtendedByProfileForAByProfileScopeActivity(): void
+    {
+        $centre    = $this->centre();
+        $folder    = $this->folder($this->section($centre));
+        $category  = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity  = (new Activity())->setCategory($category)->setTitle('Actividad')->setStart(1, 9)->setEnd(30, 9)
+            ->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile);
+        $profile   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Departamento');
+        $uploader  = $this->teacher('subidor');
+        $colleague = $this->teacher('companero');
+        $assignment1 = new SpecificProfileAssignment($profile, null, $uploader);
+        $assignment2 = new SpecificProfileAssignment($profile, null, $colleague);
+
+        $document = new Document($folder, 'Doc');
+        $document->setUploadProfile($profile);
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $uploader);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+
+        $this->persist(
+            $centre, $folder->getDocumentSection(), $folder, $category, $activity, $profile,
+            $uploader, $colleague, $assignment1, $assignment2, $document, $file, $revision,
+        );
+        // Folder::$activity is the inverse side of Activity::$folder (mappedBy): setting the
+        // owning side above does not retroactively update the folder object already in memory,
+        // so it has to be reloaded for getActivity() to see it, same as any freshly-fetched entity
+        // would in a real request.
+        $this->em->refresh($folder);
+
+        // A by-profile activity's single shared submission genuinely belongs to the whole
+        // profile: the extension applies here too, same as a plain (non-activity) folder.
+        self::assertTrue($this->access->canManageDocumentAsUploader($colleague, $document));
+    }
+
+    public function testCanManageDocumentAsUploaderNotExtendedByProfileForAnIndividualScopeActivity(): void
+    {
+        $centre    = $this->centre();
+        $folder    = $this->folder($this->section($centre));
+        $category  = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity  = (new Activity())->setCategory($category)->setTitle('Actividad')->setStart(1, 9)->setEnd(30, 9)
+            ->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::Individual);
+        $profile   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Departamento');
+        $uploader  = $this->teacher('subidor');
+        $colleague = $this->teacher('companero');
+        $assignment1 = new SpecificProfileAssignment($profile, null, $uploader);
+        $assignment2 = new SpecificProfileAssignment($profile, null, $colleague);
+
+        $document = new Document($folder, 'Doc');
+        $document->setUploadProfile($profile);
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $uploader);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+
+        $this->persist(
+            $centre, $folder->getDocumentSection(), $folder, $category, $activity, $profile,
+            $uploader, $colleague, $assignment1, $assignment2, $document, $file, $revision,
+        );
+        $this->em->refresh($folder);
+
+        // Individual scope: several teachers can share the same profile/subprofile while each
+        // still owning a separate personal slot, so sharing the profile is not enough — only the
+        // literal uploader (or a folder manager) can manage the document.
+        self::assertTrue($this->access->canManageDocumentAsUploader($uploader, $document));
+        self::assertFalse($this->access->canManageDocumentAsUploader($colleague, $document));
+    }
+
+    public function testCanManageDocumentAsUploaderNotExtendedByProfileWhenDocumentHasNoUploadProfile(): void
+    {
+        $centre    = $this->centre();
+        $folder    = $this->folder($this->section($centre));
+        $profile   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Departamento');
+        $uploader  = $this->teacher('subidor');
+        $colleague = $this->teacher('companero');
+        $assignment1 = new SpecificProfileAssignment($profile, null, $uploader);
+        $assignment2 = new SpecificProfileAssignment($profile, null, $colleague);
+
+        $document = new Document($folder, 'Doc');
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $uploader);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+
+        $this->persist(
+            $centre, $folder->getDocumentSection(), $folder, $profile,
+            $uploader, $colleague, $assignment1, $assignment2, $document, $file, $revision,
+        );
+
+        // The document was never tagged with an upload profile (folder with no upload-profile
+        // restriction): sharing a profile with the uploader is not enough on its own.
+        self::assertFalse($this->access->canManageDocumentAsUploader($colleague, $document));
     }
 
     // ── holdsProfile ──────────────────────────────────────────────────────────
