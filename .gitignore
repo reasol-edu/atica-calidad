@@ -1,5 +1,5 @@
 
-###> gestconv-plus ###
+###> atica-calidad ###
 # Datos persistentes (DB, caché, logs). Se crea en tiempo de ejecución.
 /data/
 # Artefactos de documentación: los genera CI y se publican en el GitHub Release.
@@ -13,7 +13,7 @@
 /docs/slides/img/_orig/
 /docs/cheatsheets/ficha-*.pdf
 /docs/cheatsheets/_build.md
-###< gestconv-plus ###
+###< atica-calidad ###
 
 ###> symfony/framework-bundle ###
 /.env.local

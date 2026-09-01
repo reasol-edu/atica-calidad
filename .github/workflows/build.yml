@@ -138,7 +138,7 @@ jobs:
 
       - name: Ensamblar paquete
         env:
-          PKG: gestconv-plus-${{ steps.ver.outputs.version }}-${{ matrix.platform }}
+          PKG: atica-calidad-${{ steps.ver.outputs.version }}-${{ matrix.platform }}
         run: |
           mkdir -p "${PKG}/data"
           cp -r _app "${PKG}/app"
@@ -183,8 +183,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: gestconv-plus-${{ matrix.platform }}
-          path: gestconv-plus-*.${{ matrix.archive }}
+          name: atica-calidad-${{ matrix.platform }}
+          path: atica-calidad-*.${{ matrix.archive }}
 
 # ── Job 3: generar la documentación (manual, presentación y web) ─────────────
   docs:
@@ -251,18 +251,18 @@ jobs:
           VERSION: ${{ steps.ver.outputs.version }}
         run: |
           mkdir -p _docs-dist
-          cp docs/manual/gestconv-plus-manual.pdf "_docs-dist/gestconv-plus-manual-${VERSION}.pdf"
-          cp docs/slides/gestconv-plus.pdf        "_docs-dist/gestconv-plus-presentacion-${VERSION}.pdf"
-          (cd docs/manual-site && zip -r "../../_docs-dist/gestconv-plus-manual-web-${VERSION}.zip" .)
+          cp docs/manual/atica-calidad-manual.pdf "_docs-dist/atica-calidad-manual-${VERSION}.pdf"
+          cp docs/slides/atica-calidad.pdf        "_docs-dist/atica-calidad-presentacion-${VERSION}.pdf"
+          (cd docs/manual-site && zip -r "../../_docs-dist/atica-calidad-manual-web-${VERSION}.zip" .)
           for f in docs/cheatsheets/ficha-*.pdf; do
             name=$(basename "$f" .pdf)
-            cp "$f" "_docs-dist/gestconv-plus-${name}-${VERSION}.pdf"
+            cp "$f" "_docs-dist/atica-calidad-${name}-${VERSION}.pdf"
           done
-          (cd _docs-dist && zip "gestconv-plus-documentacion-${VERSION}.zip" ./*.pdf)
+          (cd _docs-dist && zip "atica-calidad-documentacion-${VERSION}.zip" ./*.pdf)
 
       - uses: actions/upload-artifact@v4
         with:
-          name: gestconv-plus-docs
+          name: atica-calidad-docs
           path: _docs-dist/*
 
       - name: Subir artefacto de Pages (solo última versión estable)
@@ -283,20 +283,20 @@ jobs:
       - name: Descargar todos los artefactos
         uses: actions/download-artifact@v4
         with:
-          pattern: gestconv-plus-*
+          pattern: atica-calidad-*
           merge-multiple: true
 
       - name: Publicar GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            gestconv-plus-*.tar.gz
-            gestconv-plus-*.zip
-            gestconv-plus-manual-*.pdf
-            gestconv-plus-presentacion-*.pdf
-            gestconv-plus-ficha-*.pdf
-            gestconv-plus-manual-web-*.zip
-            gestconv-plus-documentacion-*.zip
+            atica-calidad-*.tar.gz
+            atica-calidad-*.zip
+            atica-calidad-manual-*.pdf
+            atica-calidad-presentacion-*.pdf
+            atica-calidad-ficha-*.pdf
+            atica-calidad-manual-web-*.zip
+            atica-calidad-documentacion-*.zip
           # body: " " (un espacio, no "") es intencional: la acción calcula
           # `body = workflowBody || existingReleaseBody`, y en JS "" es
           # falsy, así que un body vacío seguía cayendo al body del release

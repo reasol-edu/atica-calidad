@@ -128,6 +128,6 @@ export default class extends Controller {
     }
 
     storageKey() {
-        return `gestconvplus:${this.keyValue}:${this.centreIdValue}`;
+        return `aticacalidad:${this.keyValue}:${this.centreIdValue}`;
     }
 }

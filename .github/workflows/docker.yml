@@ -29,7 +29,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: reasoledu/gestconv-plus
+          images: reasoledu/atica-calidad
           tags: |
             type=semver,pattern={{version}}
             type=raw,value=latest

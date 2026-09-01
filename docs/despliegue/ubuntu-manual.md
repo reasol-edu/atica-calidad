@@ -41,12 +41,12 @@ sudo chown aticacalidad:aticacalidad /opt/atica-calidad
 ## 4. Descargar el binario
 
 Desde la [página de Releases](https://github.com/TU-USUARIO/atica-calidad/releases), copia el enlace
-del archivo `atica-calidad-VERSION-linux-x86_64.tar.gz` (o `linux-aarch64` para ARM) y extráelo:
+del archivo `atica-calidad-vVERSION-linux-x86_64.tar.gz` (o `linux-aarch64` para ARM) y extráelo:
 
 ```bash
 VERSION=X.Y.Z   # reemplaza por la versión actual
 sudo -u aticacalidad bash -c "
-  curl -fsSL https://github.com/TU-USUARIO/atica-calidad/releases/download/v${VERSION}/atica-calidad-${VERSION}-linux-x86_64.tar.gz \
+  curl -fsSL https://github.com/TU-USUARIO/atica-calidad/releases/download/v${VERSION}/atica-calidad-v${VERSION}-linux-x86_64.tar.gz \
   | tar xzf - -C /opt/atica-calidad --strip-components=1
 "
 ```

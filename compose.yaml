@@ -43,7 +43,7 @@ services:
     environment:
       <<: *app-environment
       SERVER_NAME:                  "${SERVER_NAME:-:80}"
-      LOAD_FIXTURES:                "${LOAD_FIXTURES:-false}"
+      LOAD_DEMO_DATA:               "${LOAD_DEMO_DATA:-false}"
     volumes:
       # Datos persistentes de Symfony (caché, logs, sesiones) → ./data/var
       - ./data/var:/app/var
