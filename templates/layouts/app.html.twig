@@ -26,7 +26,7 @@
      data-confirm-close-value="{{ 'ui.close'|trans }}"
      class="h-full">
 
-    {# ── Backdrop móvil ──────────────────────────────────────────────────────── #}
+    {# ── Mobile backdrop ─────────────────────────────────────────────────────── #}
     <div data-sidebar-target="backdrop"
          data-action="click->sidebar#close"
          class="fixed inset-0 z-40 bg-black/60 hidden lg:hidden"></div>
@@ -36,7 +36,7 @@
            class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-forest-950
                   -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
 
-        {# Cabecera: logo #}
+        {# Header: logo #}
         <a href="{{ path('app_dashboard') }}"
            class="flex items-center gap-3 px-5 h-16 border-b border-white/8 shrink-0 hover:bg-forest-900 transition-colors duration-150">
             <img src="{{ asset('static/logo.svg') }}" alt="{{ app_name }}"
@@ -49,7 +49,7 @@
             </div>
         </a>
 
-        {# Centro y curso activo / visualizado #}
+        {# Active/viewed centre and academic year #}
         {% if active_centre %}
         <div class="shrink-0 border-b border-white/8 px-5 py-3">
             <div class="flex items-center gap-2">
@@ -84,7 +84,7 @@
         </div>
         {% endif %}
 
-        {# Navegación principal #}
+        {# Main navigation #}
         <nav class="flex-1 overflow-y-auto px-3 py-4">
 
             {% macro nav_item(label, route, icon, current_route, prefix) %}
@@ -98,7 +98,7 @@
                 </a>
             {% endmacro %}
 
-            {# Inicio #}
+            {# Home #}
             {{ _self.nav_item(
                 'dashboard'|trans({}, 'navigation'),
                 path('app_dashboard'),
@@ -109,7 +109,7 @@
 
             <div class="my-3 h-px bg-white/8"></div>
 
-            {# Actividades #}
+            {# Activities #}
             {{ _self.nav_item(
                 'activities'|trans({}, 'navigation'),
                 path('app_activities'),
@@ -118,7 +118,7 @@
                 'app_activities'
             ) }}
 
-            {# Calendario #}
+            {# Calendar #}
             {{ _self.nav_item(
                 'calendar'|trans({}, 'navigation'),
                 path('app_calendar'),
@@ -127,7 +127,7 @@
                 'app_calendar'
             ) }}
 
-            {# Árbol documental #}
+            {# Document Tree #}
             {{ _self.nav_item(
                 'document_tree'|trans({}, 'navigation'),
                 path('app_document_tree'),
@@ -136,7 +136,7 @@
                 'app_document_tree'
             ) }}
 
-            {# Informes — solo para equipo directivo y admins #}
+            {# Reports — management team and admins only #}
             {% if active_centre and is_granted('educational_centre.section', active_centre) %}
                 {% set reports_active = current_route starts with 'app_reports_' %}
                 <a href="{{ path('app_reports_index', {centreId: active_centre.id}) }}"
@@ -148,7 +148,7 @@
                 </a>
             {% endif %}
 
-            {# Responsabilidades — responsable de calidad, equipo directivo y admins #}
+            {# Responsibilities — quality officer, management team and admins #}
             {% if active_centre and is_granted('educational_centre.responsibilities', active_centre) %}
                 {% set responsibilities_active = current_route starts with 'app_responsibilities_' %}
                 <a href="{{ path('app_responsibilities_index', {centreId: active_centre.id}) }}"
@@ -160,7 +160,7 @@
                 </a>
             {% endif %}
 
-            {# Centro educativo — solo para equipo directivo y admins #}
+            {# Educational centre — management team and admins only #}
             {% if active_centre and is_granted('educational_centre.section', active_centre) %}
                 {% set centre_active = current_route starts with 'app_centre_' %}
                 <a href="{{ path('app_centre_index', {centreId: active_centre.id}) }}"
@@ -172,7 +172,7 @@
                 </a>
             {% endif %}
 
-            {# Administración — solo para admins #}
+            {# Administration — admins only #}
             {% if is_granted('ROLE_ADMIN') %}
                 <div class="my-3 h-px bg-white/8"></div>
                 {% set admin_active = current_route starts with 'app_admin' %}
@@ -187,10 +187,10 @@
 
         </nav>
 
-        {# Sección de usuario #}
+        {# User section #}
         <div class="shrink-0 border-t border-white/8 p-4 space-y-3">
 
-            {# Banner de suplantación #}
+            {# Impersonation banner #}
             {% if is_granted('IS_IMPERSONATOR') %}
                 <div class="rounded-lg bg-amber-500/15 border border-amber-400/25 px-3 py-2.5">
                     <div class="flex items-center gap-2 mb-2">
@@ -207,7 +207,7 @@
                 </div>
             {% endif %}
 
-            {# Datos del usuario #}
+            {# User details #}
             <div class="flex items-center gap-3 min-w-0">
                 <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-forest-700 text-sm font-semibold text-white select-none">
                     {{ app.user.name.firstName|first|upper }}
@@ -218,7 +218,7 @@
                 </div>
             </div>
 
-            {# Acciones del usuario #}
+            {# User actions #}
             <div class="space-y-0.5">
                 <a href="{{ path('app_profile') }}"
                    class="group flex items-center gap-2.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors
@@ -237,10 +237,10 @@
         </div>
     </aside>
 
-    {# ── Contenido principal ─────────────────────────────────────────────────── #}
+    {# ── Main content ────────────────────────────────────────────────────────── #}
     <div class="flex min-h-full flex-col lg:pl-64">
 
-        {# Cabecera #}
+        {# Header #}
         <header class="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-gray-200 bg-white px-4">
             <button type="button"
                     data-action="sidebar#toggle"
@@ -272,8 +272,8 @@
         </header>
 
         <main class="flex-1">
-            {# Flash messages — región live para lectores de pantalla. Los success
-               se anuncian con polite (no interrumpen); los error con assertive. #}
+            {# Flash messages — live region for screen readers. Success messages
+               are announced with polite (non-interrupting); error ones with assertive. #}
             {% set flashes = app.flashes(['success', 'error']) %}
             <div data-flash-container
                  class="px-6 pt-6 space-y-2 {{ flashes is empty ? 'hidden' : '' }}"
@@ -301,9 +301,9 @@
                 {% endfor %}
             </div>
 
-            {# Plantillas ocultas para que el JS de abajo pueda montar flashes
-               dinámicos (p. ej. tras una LiveAction) sin duplicar SVGs ni
-               cadenas traducidas fuera de Twig. #}
+            {# Hidden templates so the JS below can mount dynamic flashes
+               (e.g. after a LiveAction) without duplicating SVGs or
+               translated strings outside Twig. #}
             <template data-flash-icon-template="success">{{ ux_icon('heroicons:check-circle', {class: 'h-4.5 w-4.5 shrink-0'}) }}</template>
             <template data-flash-icon-template="error">{{ ux_icon('heroicons:exclamation-circle', {class: 'h-4.5 w-4.5 shrink-0'}) }}</template>
             <template data-flash-close-template>
@@ -315,7 +315,7 @@
                 </button>
             </template>
 
-            {# Banner de año histórico #}
+            {# Historical-year banner #}
             {% if viewing_past and vy %}
                 <div class="px-6 pt-4">
                     <div class="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm"

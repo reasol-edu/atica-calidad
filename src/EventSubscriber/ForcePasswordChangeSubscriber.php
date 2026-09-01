@@ -13,10 +13,10 @@ use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * Prioridad más baja que TenantContextSubscriber (4) y KioskModeSubscriber (5)
- * para que se ejecute la última entre los listeners de kernel.request: como
- * Symfony no detiene la propagación al llamar setResponse(), la redirección
- * de cambio de contraseña obligatorio debe prevalecer sobre cualquier otra.
+ * Lower priority than TenantContextSubscriber (4) and KioskModeSubscriber (5)
+ * so it runs last among kernel.request listeners: since Symfony doesn't stop
+ * propagation when setResponse() is called, the mandatory password change
+ * redirect must take precedence over any other.
  */
 #[AsEventListener(event: KernelEvents::REQUEST, method: 'onKernelRequest', priority: 1)]
 final class ForcePasswordChangeSubscriber

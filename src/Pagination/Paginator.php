@@ -8,8 +8,8 @@ use Doctrine\ORM\Query;
 use Doctrine\ORM\Tools\Pagination\Paginator as DoctrinePaginator;
 
 /**
- * Paginador ligero. Se construye a partir de una Query de Doctrine
- * (fromQuery) o de filas ya materializadas y recortadas (fromArray).
+ * Lightweight paginator. Built either from a Doctrine Query
+ * (fromQuery) or from already materialized and sliced rows (fromArray).
  *
  * @template T
  */
@@ -19,7 +19,7 @@ final class Paginator
     private ?array $materializedItems = null;
 
     /**
-     * @param iterable<array-key, T> $items elementos de la página actual
+     * @param iterable<array-key, T> $items current page's items
      */
     private function __construct(
         private readonly iterable $items,
@@ -54,7 +54,7 @@ final class Paginator
 
     /**
      * @template U
-     * @param list<U> $rows elementos de la página actual, ya recortados
+     * @param list<U> $rows current page's items, already sliced
      * @return self<U>
      */
     public static function fromArray(array $rows, int $totalItems, int $currentPage, int $pageSize): self
@@ -125,8 +125,8 @@ final class Paginator
     }
 
     /**
-     * Devuelve la secuencia de páginas a mostrar en la barra de navegación.
-     * Los valores null representan un separador "…".
+     * Returns the sequence of pages to show in the navigation bar.
+     * Null values represent an "…" separator.
      *
      * @return array<int, int|null>
      */
@@ -139,7 +139,7 @@ final class Paginator
             return [1];
         }
 
-        $delta = 2; // páginas a mostrar alrededor de la actual
+        $delta = 2; // pages to show around the current one
 
         /** @var list<int> $inner */
         $inner = [];

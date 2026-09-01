@@ -374,7 +374,7 @@ final class DocumentTreeAccessCheckerTest extends RepositoryTestCase
         self::assertFalse($this->access->holdsProfile($outsider, $profile, null));
     }
 
-    // ── getFolderUploadRows: wildcard expansion into concrete subperfil rows ────
+    // ── getFolderUploadRows: wildcard expansion into concrete subprofile rows ────
 
     public function testGetFolderUploadRowsExpandsAWildcardIntoEachConcreteLeaf(): void
     {
@@ -388,7 +388,7 @@ final class DocumentTreeAccessCheckerTest extends RepositoryTestCase
         $leafB->setParent($root);
 
         $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($root);
-        $folder->addUploadProfile($profile, null); // wildcard restriction: any subperfil of this profile
+        $folder->addUploadProfile($profile, null); // wildcard restriction: any subprofile of this profile
 
         $this->persist($centre, $folder->getDocumentSection(), $folder, $root, $leafA, $leafB, $profile);
 

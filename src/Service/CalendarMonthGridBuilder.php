@@ -54,7 +54,7 @@ final class CalendarMonthGridBuilder
             $days = [];
             $d    = $cursor;
             for ($i = 0; $i < 7; $i++) {
-                // No hay clase en sábado y domingo (N: 6 y 7): no se muestran en el calendario.
+                // No classes on Saturday and Sunday (N: 6 and 7): not shown on the calendar.
                 if ((int) $d->format('N') <= 5) {
                     $days[] = $d;
                 }

@@ -16,7 +16,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 /**
  * Home dashboard widget: for a teacher with review access to at least one folder, how many
  * document revisions are awaiting their review and a capped list of them — renders nothing for a
- * teacher with no review access at all. Read-only: each item links out to the Árbol documental
+ * teacher with no review access at all. Read-only: each item links out to the Document Tree
  * section (deep-linked to the exact section/folder/document) to act on it.
  */
 #[AsLiveComponent]

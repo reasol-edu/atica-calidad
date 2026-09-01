@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Service;
 
 /**
- * Asigna de forma determinista una combinación de colores a una clave (hoy, el perfil o
- * subperfil al que está restringido un evento), de modo que la misma clave obtenga siempre el
- * mismo color y las distintas claves se distingan visualmente entre sí en el calendario.
+ * Deterministically assigns a color combination to a key (today, the profile or
+ * subprofile an event is restricted to), so that the same key always gets the
+ * same color and different keys are visually distinguishable from each other on the calendar.
  */
 final class AssignmentColorPalette
 {

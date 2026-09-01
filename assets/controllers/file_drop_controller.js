@@ -14,11 +14,11 @@ function formatFileSize(bytes) {
     return `${value.toFixed(decimals).replace('.', ',')} ${SIZE_UNITS[exponent]}`;
 }
 
-// Zona de arrastrar y soltar para adjuntar ficheros. Sincroniza los ficheros
-// soltados o seleccionados con el <input type="file"> nativo mediante
-// DataTransfer (el input se conserva como alternativa accesible: clic o
-// teclado abren el selector nativo del sistema) y muestra una vista previa
-// donde se puede quitar cada fichero antes de enviar el formulario.
+// Drag-and-drop zone for attaching files. Syncs dropped or selected files
+// with the native <input type="file"> via DataTransfer (the input is kept
+// as an accessible fallback: click or keyboard open the system's native
+// picker) and shows a preview where each file can be removed before
+// submitting the form.
 export default class extends Controller {
     static targets = ['dropzone', 'input', 'list', 'itemTemplate', 'clientError', 'submit'];
     static values  = { maxSize: Number, tooLargeMessage: String, single: Boolean };
@@ -69,8 +69,8 @@ export default class extends Controller {
 
     addFiles(fileList) {
         if (this.singleValue) {
-            // Modo de un solo fichero (p. ej. plantillas PDF de ajustes): un nuevo
-            // fichero soltado o seleccionado sustituye al anterior, no se acumula.
+            // Single-file mode (e.g. PDF templates in settings): a newly
+            // dropped or selected file replaces the previous one, it does not accumulate.
             const [file] = fileList;
             if (file) {
                 this.assignFiles([file]);

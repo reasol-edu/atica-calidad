@@ -43,16 +43,16 @@ class ListItem
     private Collection $children;
 
     /**
-     * A loose cross-reference from this item to a profile or subperfil (e.g. a "Matemáticas" item
-     * associated with the "Jefatura de departamento" subperfil it falls under) — unrelated to the
+     * A loose cross-reference from this item to a profile or subprofile (e.g. a "Matemáticas" item
+     * associated with the "Jefatura de departamento" subprofile it falls under) — unrelated to the
      * parent/child hierarchy. Mirrors the (profile, listItem) pair used everywhere else in the app
-     * to identify "a profile, or one specific subperfil of it" (see ProfileAssignmentRow):
+     * to identify "a profile, or one specific subprofile of it" (see ProfileAssignmentRow):
      * $associatedProfileListItem is only ever set alongside a non-null $associatedProfile, and only
      * to one of that profile's own leaf descendants (see setAssociation()). Deleting either the
      * profile or the list item just clears the corresponding column back to null (ON DELETE SET
      * NULL) instead of blocking the deletion — but deleting the leaf alone would otherwise leave
      * $associatedProfile dangling on its own, pointing at a list-associated profile with no
-     * subperfil chosen, which is never a state setAssociation() allows in the first place; the
+     * subprofile chosen, which is never a state setAssociation() allows in the first place; the
      * getters below paper over that by treating it as no association at all (see
      * hasConsistentAssociation()).
      */
@@ -157,12 +157,12 @@ class ListItem
     }
 
     /**
-     * A list-associated profile's own subperfil leaf is a separate row (see
+     * A list-associated profile's own subprofile leaf is a separate row (see
      * $associatedProfileListItem), which the database only nulls on ITS OWN deletion — deleting
      * the leaf doesn't also touch $associatedProfile. Without this check, that would silently turn
-     * "associated with subperfil X of profile Y" into "associated with the whole of profile Y",
+     * "associated with subprofile X of profile Y" into "associated with the whole of profile Y",
      * which is never a valid state for a list-associated profile (setAssociation() never allows
-     * setting one without a subperfil) — so treat it as no association at all instead.
+     * setting one without a subprofile) — so treat it as no association at all instead.
      */
     private function hasConsistentAssociation(): bool
     {
@@ -178,7 +178,7 @@ class ListItem
         return $this->hasConsistentAssociation() ? $this->associatedProfile : null;
     }
 
-    /** The specific subperfil ("Jefatura de departamento" leaf) the association points to — null if unset, or if it points at a plain, non-list-associated profile. */
+    /** The specific subprofile ("Jefatura de departamento" leaf) the association points to — null if unset, or if it points at a plain, non-list-associated profile. */
     public function getAssociatedProfileListItem(): ?self
     {
         return $this->hasConsistentAssociation() ? $this->associatedProfileListItem : null;
@@ -191,7 +191,7 @@ class ListItem
 
     /**
      * Associates this item with a profile — either a plain one ($listItem left null) or, for a
-     * list-associated profile, one specific subperfil ($listItem, one of the profile's own leaf
+     * list-associated profile, one specific subprofile ($listItem, one of the profile's own leaf
      * descendants). Pass null to clear the association entirely.
      */
     public function setAssociation(?SpecificProfile $profile, ?ListItem $listItem = null): static

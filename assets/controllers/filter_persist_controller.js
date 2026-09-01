@@ -3,7 +3,7 @@ import { getComponent } from '@symfony/ux-live-component';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Defaults del StayListComponent (retrocompatibilidad cuando no se pasa 'defaults').
+// StayListComponent defaults (backwards compatibility when 'defaults' is not passed).
 const STAY_DEFAULTS = {
     search: '',
     familyId: '',
@@ -72,7 +72,7 @@ export default class extends Controller {
                 window.localStorage.setItem(this.storageKey(), JSON.stringify(state));
             }
         } catch {
-            // localStorage no disponible (modo privado, cuota...): se ignora
+            // localStorage not available (private mode, quota...): ignored
         }
     }
 

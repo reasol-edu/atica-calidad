@@ -14,7 +14,7 @@
 
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
-        {# ── Cursos académicos ── equipo directivo y admins #}
+        {# ── Academic years ── management team and admins #}
         {% if is_granted('educational_centre.section', centre) %}
             <a href="{{ path('app_centre_years_index', {centreId: centre.id}) }}"
                class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
@@ -38,7 +38,7 @@
             </a>
         {% endif %}
 
-        {# ── Docentes del curso ── equipo directivo y admins #}
+        {# ── Teachers for the year ── management team and admins #}
         {% if is_granted('educational_centre.section', centre) %}
             <a href="{{ centre.activeAcademicYear ? path('app_centre_teachers_index', {centreId: centre.id}) : '#' }}"
                class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
@@ -67,7 +67,7 @@
             </a>
         {% endif %}
 
-        {# ── Días no lectivos ── equipo directivo y admins #}
+        {# ── Non-working days ── management team and admins #}
         {% if is_granted('educational_centre.section', centre) %}
             <a href="{{ centre.activeAcademicYear ? path('app_centre_non_working_days_index', {centreId: centre.id}) : '#' }}"
                class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
@@ -96,7 +96,7 @@
             </a>
         {% endif %}
 
-        {# ── Perfiles ── equipo directivo y admins #}
+        {# ── Profiles ── management team and admins #}
         {% if is_granted('educational_centre.section', centre) %}
             <a href="{{ path('app_centre_profiles_index', {centreId: centre.id}) }}"
                class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
@@ -120,7 +120,7 @@
             </a>
         {% endif %}
 
-        {# ── Registro de avisos por correo ── equipo directivo y admins #}
+        {# ── Email notification log ── management team and admins #}
         {% if is_granted('educational_centre.section', centre) %}
             <a href="{{ path('app_centre_email_notification_log_index', {centreId: centre.id}) }}"
                class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
@@ -144,7 +144,7 @@
             </a>
         {% endif %}
 
-        {# ── Ajustes del centro ── equipo directivo y admins #}
+        {# ── Centre settings ── management team and admins #}
         {% if is_granted('educational_centre.section', centre) %}
             <a href="{{ path('app_centre_settings', {centreId: centre.id}) }}"
                class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col

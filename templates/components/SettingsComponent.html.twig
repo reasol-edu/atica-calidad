@@ -19,7 +19,7 @@
             {% set isError      = lastError == key %}
             {% set isLocked     = row.isLocked %}
             {% set parentLock   = row.parentLock %}
-            {# Cuando hay candado padre, el control muestra el valor heredado de arriba #}
+            {# When there is a parent lock, the control shows the value inherited from above #}
             {% set displayValue = parentLock is not null ? effective : stored %}
 
             {% if def.category != currentCategory %}
@@ -35,7 +35,7 @@
                     <ul class="divide-y divide-gray-100">
             {% endif %}
 
-            {# Los ajustes richtext y pdf se apilan en vertical: necesitan el ancho completo #}
+            {# The richtext and pdf settings stack vertically: they need the full width #}
             {% set isRichText = def.type.value == 'richtext' %}
             {% set isPdf      = def.type.value == 'pdf' %}
             <li class="flex flex-col gap-3 px-6 py-4 {{ (isRichText or isPdf) ? '' : 'sm:flex-row sm:items-center sm:gap-6' }}
@@ -56,10 +56,10 @@
                                     {{ ux_icon('heroicons:information-circle', {class: 'h-4 w-4'}) }}
                                 </button>
                                 <div data-dropdown-target="menu" class="hidden">
-                                    {# En móvil el popover se centra como panel fijo con fondo atenuado, en vez
-                                       de posicionarse relativo al icono: así nunca se sale de la pantalla si el
-                                       icono está cerca del borde. En pantallas más anchas mantiene el
-                                       desplegable pegado al icono, como antes. #}
+                                    {# On mobile the popover is centered as a fixed panel with a dimmed background, instead
+                                       of being positioned relative to the icon: this way it never runs off the screen if the
+                                       icon is near the edge. On wider screens it keeps the
+                                       dropdown anchored to the icon, as before. #}
                                     <div class="fixed inset-0 z-40 bg-black/40 sm:hidden"
                                          data-action="click->dropdown#close"></div>
                                     <div class="fixed inset-x-4 top-1/2 z-50 -translate-y-1/2 max-h-[80vh] overflow-y-auto
@@ -165,8 +165,8 @@
                                 {{ effective|sanitize_html('app.rich_text') }}
                             </div>
                         {% else %}
-                            {# data-live-ignore: Quill genera su propio DOM (barra de herramientas)
-                               y el morphing de LiveComponent lo destrozaría en cada re-render #}
+                            {# data-live-ignore: Quill generates its own DOM (toolbar)
+                               and LiveComponent's morphing would wreck it on every re-render #}
                             <div id="setting-richtext-{{ keySlug }}" class="w-full min-w-0" data-live-ignore data-controller="rich-editor">
                                 <div data-rich-editor-target="editor" class="bg-white text-sm"></div>
                                 <textarea data-rich-editor-target="input"
@@ -178,13 +178,13 @@
                         {% endif %}
 
                     {% elseif def.type.value == 'pdf' %}
-                        {# data-live-ignore: son formularios normales (subida multipart, no soportada por
-                           LiveAction) que no deben verse afectados por el morphing de LiveComponent en cada
-                           guardado de otra fila #}
+                        {# data-live-ignore: these are regular forms (multipart upload, not supported by
+                           LiveAction) that must not be affected by LiveComponent's morphing on every
+                           save of another row #}
                         <div class="w-full" data-live-ignore>
                             {% if row.storedFile is not null %}
-                                {# Con una plantilla ya subida, hay que eliminarla antes de poder subir otra:
-                                   así el dropzone nunca convive con un fichero ya guardado en la fila. #}
+                                {# With a template already uploaded, it must be removed before another can be uploaded:
+                                   this way the dropzone never coexists with a file already saved on the row. #}
                                 <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
                                     {{ ux_icon('heroicons:document', {class: 'h-4 w-4 shrink-0 text-gray-400'}) }}
                                     <span class="flex-1 min-w-0 truncate text-gray-700">{{ stored }}</span>

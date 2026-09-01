@@ -34,7 +34,7 @@ abstract class RepositoryTestCase extends KernelTestCase
         parent::tearDown();
     }
 
-    /** Persiste todas las entidades pasadas y hace flush. */
+    /** Persists all given entities and flushes. */
     protected function persist(object ...$entities): void
     {
         foreach ($entities as $entity) {
@@ -44,9 +44,9 @@ abstract class RepositoryTestCase extends KernelTestCase
     }
 
     /**
-     * Hace flush adicional.
-     * Útil para registrar cambios en colecciones ManyToMany después de que
-     * las entidades ya están gestionadas (PersistentCollection).
+     * Performs an additional flush.
+     * Useful for registering changes to ManyToMany collections after
+     * the entities are already managed (PersistentCollection).
      */
     protected function flush(): void
     {

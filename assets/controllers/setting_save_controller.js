@@ -6,8 +6,8 @@ export default class extends Controller {
         const root = this.element.closest('[data-controller~="live"]');
         const component = await getComponent(root);
 
-        // String() evita el typecast JSON de Stimulus: "true"/"false" llegarían
-        // al servidor como bool y PHP los coercionaría a "1"/"".
+        // String() avoids Stimulus's JSON typecast: "true"/"false" would arrive
+        // at the server as bool and PHP would coerce them to "1"/"".
         component.action('save', {
             key: this.element.dataset.settingKey,
             value: String(this.element.value),

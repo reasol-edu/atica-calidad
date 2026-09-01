@@ -6,7 +6,7 @@ namespace App\Service;
 
 use App\Entity\SettingFile;
 
-/** Fichero resuelto para un ajuste de tipo pdf, junto con su nombre de fichero mostrado en la interfaz. */
+/** Resolved file for a pdf-type setting, along with its filename as shown in the UI. */
 final readonly class ResolvedSettingFile
 {
     public function __construct(

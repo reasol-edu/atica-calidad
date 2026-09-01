@@ -1,8 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 import { getComponent } from '@symfony/ux-live-component';
 
-// Keeps the browser URL in sync with the section/folder/document being browsed in Árbol
-// documental, so reloading or hitting the back/forward button behaves as expected.
+// Keeps the browser URL in sync with the section/folder/document being browsed in the Document
+// Tree, so reloading or hitting the back/forward button behaves as expected.
 //
 // SectionBrowserComponent dispatches a "document-tree:location" event (bubbles, on this same
 // element) after each navigational action — opening a section, expanding a folder, opening a

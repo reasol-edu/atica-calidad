@@ -5,7 +5,7 @@
     {% set display_tags = this.displayTags %}
     {% set existing_tag_names = this.existingTagNames %}
 
-    {# ── Migas de pan ─────────────────────────────────────────────────── #}
+    {# ── Breadcrumbs ──────────────────────────────────────────────────── #}
     <nav class="flex flex-wrap items-center gap-1 text-sm">
         <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param=""
                 class="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium
@@ -23,7 +23,7 @@
         {% endfor %}
     </nav>
 
-    {# ── Nivel actual ─────────────────────────────────────────────────── #}
+    {# ── Current level ────────────────────────────────────────────────── #}
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
         <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
             {{ ux_icon('heroicons:rectangle-group', {class: 'h-4 w-4 text-gray-400'}) }}
@@ -100,7 +100,7 @@
         {% if errors.add is defined %}<p class="px-3 pb-2 text-xs text-red-600">{{ errors.add }}</p>{% endif %}
     </div>
 
-    {# ── Detalle del elemento seleccionado ────────────────────────────── #}
+    {# ── Detail of the selected item ──────────────────────────────────── #}
     {% if sel %}
         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
             <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
@@ -165,7 +165,7 @@
                     </div>
                 </form>
 
-                {# ── Asociado a un perfil/subperfil ─────────────────────── #}
+                {# ── Associated with a profile/subprofile ─────────────────── #}
                 {% set association_rows = this.associationRows %}
                 <div class="border-t border-gray-100 pt-4">
                     <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.lists.association.title'|trans({}, 'admin') }}</label>
@@ -194,7 +194,7 @@
                     {% endif %}
                 </div>
 
-                {# ── Etiquetas (fuera del form anterior: un <form> no puede anidar otro) ── #}
+                {# ── Tags (outside the previous form: a <form> can't nest another) ── #}
                 <div class="border-t border-gray-100 pt-4">
                     <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.lists.tags.title'|trans({}, 'admin') }}</label>
 
@@ -245,7 +245,7 @@
                     </form>
                 </div>
 
-                {# ── Guardar / eliminar ───────────────────────────────── #}
+                {# ── Save / delete ────────────────────────────────────── #}
                 <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4">
                     <span class="ml-auto"></span>
 

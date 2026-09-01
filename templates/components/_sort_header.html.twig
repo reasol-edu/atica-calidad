@@ -1,9 +1,9 @@
 {#
-   Cabecera de columna ordenable para listados Live.
-   - label: texto visible
-   - column: clave de la allowlist del repositorio (p. ej. 'name')
-   - currentSort / currentDir: estado actual del componente
-   - align: 'left' (def.) o 'right'
+   Sortable column header for Live listings.
+   - label: visible text
+   - column: key from the repository allowlist (e.g. 'name')
+   - currentSort / currentDir: the component's current state
+   - align: 'left' (default) or 'right'
 #}
 {% macro th(label, column, currentSort, currentDir, align = 'left') %}
     {% set active = currentSort == column %}

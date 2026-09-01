@@ -10,8 +10,8 @@ use App\Entity\ListItem;
 use App\Repository\DocumentSectionRepository;
 
 /**
- * Serialises a centre's document-section tree (Árbol documental) to a plain array, ready for
- * json_encode(): each node with its associated profiles/subperfiles referenced by name (not by
+ * Serialises a centre's document-section tree (Document Tree) to a plain array, ready for
+ * json_encode(): each node with its associated profiles/subprofiles referenced by name (not by
  * id, which would be meaningless when reimporting later or into a different centre) and its
  * children, nested.
  */

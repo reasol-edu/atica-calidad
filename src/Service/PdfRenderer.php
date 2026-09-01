@@ -108,10 +108,10 @@ class PdfRenderer
     }
 
     /**
-     * Resuelve la plantilla PDF aplicable, la escribe a un fichero temporal
-     * (SetDocTemplate necesita una ruta real) y la fija como fondo de cada
-     * página generada. Devuelve la ruta del temporal para su limpieza posterior,
-     * o null si no hay ninguna plantilla configurada.
+     * Resolves the applicable PDF template, writes it to a temporary file
+     * (SetDocTemplate needs a real path) and sets it as the background for every
+     * generated page. Returns the temp file's path for later cleanup,
+     * or null if no template is configured.
      *
      * @param 'incident'|'sanction'|'group_stats'|'guard_duty' $reportType
      */

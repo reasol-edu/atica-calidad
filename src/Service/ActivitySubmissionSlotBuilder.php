@@ -20,8 +20,8 @@ use Symfony\Contracts\Service\ResetInterface;
 /**
  * Builds the flat list of submissions an activity expects, and resolves each one to its Document
  * if anyone has already uploaded it. See DocumentTreeAccessChecker::getFolderUploadRows() for the
- * folder-side half of this (which profile/subperfil rows the folder accepts for upload) and
- * ListItem::getAssociatedProfile()/getAssociatedProfileListItem() for the list-item-to-subperfil
+ * folder-side half of this (which profile/subprofile rows the folder accepts for upload) and
+ * ListItem::getAssociatedProfile()/getAssociatedProfileListItem() for the list-item-to-subprofile
  * association that lets a row produce more than one named submission.
  *
  * Teachers-holding-a-profile/listItem lookups are memoized per (profile, listItem) for the life of
@@ -145,7 +145,7 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
 
     /**
      * Whether anyone has already uploaded $slot's submission — matched by folder + profile/
-     * subperfil + name(+ first uploader, in Individual scope). Null if the slot is still empty.
+     * subprofile + name(+ first uploader, in Individual scope). Null if the slot is still empty.
      */
     public function resolveSlot(Activity $activity, ActivitySubmissionSlot $slot): ?Document
     {

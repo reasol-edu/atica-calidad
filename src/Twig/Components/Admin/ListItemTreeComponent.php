@@ -58,7 +58,7 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $newTagName = '';
 
-    /** Key (see ProfileAssignmentRow::key()) of the profile/subperfil this item is associated with, or ''. */
+    /** Key (see ProfileAssignmentRow::key()) of the profile/subprofile this item is associated with, or ''. */
     #[LiveProp(writable: true)]
     public string $associationKey = '';
 
@@ -415,9 +415,9 @@ class ListItemTreeComponent extends AbstractController
         }
     }
 
-    // ── Association with a profile/subperfil ─────────────────────────────────
+    // ── Association with a profile/subprofile ─────────────────────────────────
 
-    /** @return ProfileAssignmentRow[] every active profile, plus one row per active subperfil, to pick an association from. */
+    /** @return ProfileAssignmentRow[] every active profile, plus one row per active subprofile, to pick an association from. */
     public function getAssociationRows(): array
     {
         return $this->rowBuilder->buildActiveRows($this->centre);

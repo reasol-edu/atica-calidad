@@ -5,16 +5,15 @@ declare(strict_types=1);
 namespace App\Service;
 
 /**
- * Distribuye eventos con rango de fechas (p. ej. sanciones) en columnas (días
- * visibles de la semana) y "carriles" (lanes) verticales, de modo que los
- * eventos solapados en el tiempo no se solapen visualmente al dibujarse como
- * barras horizontales.
+ * Distributes date-range events (e.g. sanctions) into columns (visible days
+ * of the week) and vertical "lanes", so that events overlapping in time
+ * don't overlap visually when drawn as horizontal bars.
  */
 final class CalendarSegmentBuilder
 {
     /**
      * @param list<array{id: string, start: \DateTimeImmutable, end: \DateTimeImmutable}> $events
-     * @param list<\DateTimeImmutable> $days días visibles de la semana, en orden (p. ej. solo lectivos)
+     * @param list<\DateTimeImmutable> $days visible days of the week, in order (e.g. school days only)
      * @return array{segments: list<array{id: string, startCol: int, span: int, lane: int}>, maxLane: int}
      */
     public function build(array $events, array $days): array

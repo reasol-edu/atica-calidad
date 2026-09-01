@@ -9,7 +9,7 @@ use App\Repository\NonWorkingDayRepository;
 
 final class NonWorkingDayChecker
 {
-    /** @var array<string, array<string, ?string>> curso académico (uuid) => [fecha ISO => descripción] */
+    /** @var array<string, array<string, ?string>> academic year (uuid) => [ISO date => description] */
     private array $mapCache = [];
 
     public function __construct(
@@ -66,8 +66,8 @@ final class NonWorkingDayChecker
     }
 
     /**
-     * Fechas ISO (Y-m-d) de los festivos declarados del curso, para inyectar en
-     * los controladores Stimulus que bloquean la selección de fechas no lectivas.
+     * ISO dates (Y-m-d) of the academic year's declared holidays, to inject into
+     * the Stimulus controllers that block selection of non-school dates.
      *
      * @return list<string>
      */
@@ -77,11 +77,11 @@ final class NonWorkingDayChecker
     }
 
     /**
-     * Fechas no lectivas registradas del curso, cargadas en una sola consulta y
-     * memoizadas por curso académico para el resto de la petición: evita el N+1
-     * que suponía consultar la base de datos por cada día visible del calendario.
+     * Non-working dates registered for the academic year, loaded in a single query and
+     * memoized per academic year for the rest of the request: avoids the N+1
+     * that querying the database for every visible calendar day would cause.
      *
-     * @return array<string, ?string> fecha ISO (Y-m-d) => descripción (o null)
+     * @return array<string, ?string> ISO date (Y-m-d) => description (or null)
      */
     private function nonWorkingDayMap(AcademicYear $year): array
     {

@@ -13,9 +13,9 @@ framework:
             sync: 'sync://'
 
         routing:
-            # Los emails (verificación de email, notificaciones de tutoría/firma) se
-            # envían en segundo plano. El reset de contraseña NO usa el bus: se envía
-            # de forma síncrona vía TransportInterface por ser urgente (token de 1 h).
+            # Emails (email verification, tutoring/signature notifications) are
+            # sent in the background. Password reset does NOT use the bus: it is sent
+            # synchronously via TransportInterface because it's urgent (1-hour token).
             'Symfony\Component\Mailer\Messenger\SendEmailMessage': async
 
 when@test:

@@ -48,7 +48,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * category/activity's own folder visibility is still always enforced underneath, see
  * DocumentTreeAccessChecker::isActivityRelevantToTeacher()). Activity CRUD is reserved to
  * EducationalCentreVoter::RESPONSIBILITIES, done inline here (not in the separate "Editar
- * categorías" tab) — mirrors exactly how Folder creation/editing lives in Árbol documental's "Ver"
+ * categorías" tab) — mirrors exactly how Folder creation/editing lives in Document Tree's "Ver"
  * tab, not its "Editar árbol" tab. Everything about a submission's underlying Document (new
  * revision, download, approve, reject) reuses FolderController's own routes unchanged; only the
  * revision-management LiveActions (edit/delete a revision, pick the active one) are duplicated here
@@ -696,7 +696,7 @@ class ActivityBrowserComponent extends AbstractController
     }
 
     /**
-     * Delivered/accepted counts grouped by upload profile/subperfil (ByProfile scope) or by
+     * Delivered/accepted counts grouped by upload profile/subprofile (ByProfile scope) or by
      * teacher (Individual scope) — never per individual named submission, matching the request's
      * own "4/8 (50%)" example, which counts rows of a *person or profile*, not of a leaf name.
      *
@@ -877,7 +877,7 @@ class ActivityBrowserComponent extends AbstractController
         return $this->access->isAdminOrQualityManager($this->teacher(), $this->centre);
     }
 
-    /** @return Teacher[] ordered by name, for the "editar docente" picker on a revision. */
+    /** @return Teacher[] ordered by name, for the "edit teacher" picker on a revision. */
     public function getCentreTeachers(): array
     {
         $year = $this->centre->getActiveAcademicYear();

@@ -12,7 +12,7 @@
 
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
-        {# ── Listas ── responsable de calidad, equipo directivo y admins #}
+        {# ── Lists ── quality officer, management team and admins #}
         {% if is_granted('educational_centre.responsibilities', centre) %}
             <a href="{{ path('app_responsibilities_lists', {centreId: centre.id}) }}"
                class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
@@ -36,7 +36,7 @@
             </a>
         {% endif %}
 
-        {# ── Perfiles específicos ── responsable de calidad, equipo directivo y admins #}
+        {# ── Specific profiles ── quality officer, management team and admins #}
         {% if is_granted('educational_centre.responsibilities', centre) %}
             <a href="{{ path('app_responsibilities_specific_profiles', {centreId: centre.id}) }}"
                class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
@@ -60,7 +60,7 @@
             </a>
         {% endif %}
 
-        {# ── Asignar perfiles ── responsable de calidad, equipo directivo y admins #}
+        {# ── Assign profiles ── quality officer, management team and admins #}
         {% if is_granted('educational_centre.responsibilities', centre) %}
             <a href="{{ path('app_responsibilities_assignments', {centreId: centre.id}) }}"
                class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col

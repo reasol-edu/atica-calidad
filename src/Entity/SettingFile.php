@@ -12,10 +12,10 @@ use Symfony\Component\Uid\Uuid;
 use function Symfony\Component\Clock\now;
 
 /**
- * Almacén genérico de ficheros binarios, deduplicado por hash de contenido.
- * Referenciado desde GlobalSettingValue/CentreSettingValue/TeacherSettingValue
- * para dar soporte a ajustes de tipo fichero (plantillas PDF, logotipos, etc.)
- * a cualquier nivel jerárquico.
+ * Generic binary file store, deduplicated by content hash.
+ * Referenced from GlobalSettingValue/CentreSettingValue/TeacherSettingValue
+ * to support file-type settings (PDF templates, logos, etc.)
+ * at any hierarchical level.
  */
 #[ORM\Entity(repositoryClass: SettingFileRepository::class)]
 #[ORM\UniqueConstraint(name: 'uq_setting_file_hash', columns: ['hash'])]

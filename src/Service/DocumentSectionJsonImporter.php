@@ -14,10 +14,10 @@ use App\Repository\SpecificProfileRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Replaces a centre's whole document-section tree (Árbol documental) from a previously exported
+ * Replaces a centre's whole document-section tree (Document Tree) from a previously exported
  * JSON payload (see DocumentSectionJsonExporter). This is a full replace, not a merge: every
  * existing section of the centre is deleted first (cascading onto its profile restrictions).
- * Profile/subperfil references are resolved by name against the centre's *current* specific
+ * Profile/subprofile references are resolved by name against the centre's *current* specific
  * profiles and list items — untouched by this import — so a name that no longer exists is simply
  * skipped and counted, without failing the rest of the import.
  */

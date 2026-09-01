@@ -20,7 +20,7 @@
         <h1 class="text-2xl font-bold text-gray-900">{{ teacher.name.lastName }}, {{ teacher.name.firstName }}</h1>
     </div>
 
-    {# ── Datos del docente ─────────────────────────────────────────────────────── #}
+    {# ── Teacher details ──────────────────────────────────────────────────────── #}
     <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100">
             <h2 class="text-base font-semibold text-gray-900">{{ 'teacher.edit.title'|trans({}, 'admin') }}</h2>
@@ -29,7 +29,7 @@
               data-controller="external-auth">
             <input type="hidden" name="_token" value="{{ csrf_token('edit_teacher_' ~ teacher.id) }}">
 
-            {# Nombre y apellidos #}
+            {# Full name #}
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
                     <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1.5">
@@ -64,7 +64,7 @@
                 </div>
             </div>
 
-            {# Usuario #}
+            {# Username #}
             <div>
                 <label for="username" class="block text-sm font-medium text-gray-700 mb-1.5">
                     {{ 'teacher.field.username'|trans({}, 'admin') }}
@@ -99,7 +99,7 @@
                 {% endif %}
             </div>
 
-            {# Modo de acceso #}
+            {# Access mode #}
             <div>
                 <span class="block text-sm font-medium text-gray-700 mb-2">{{ 'teacher.field.auth_method'|trans({}, 'admin') }}</span>
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -122,7 +122,7 @@
                 </div>
             </div>
 
-            {# Contraseña #}
+            {# Password #}
             <div data-external-auth-target="passwordBlock"
                  class="space-y-5 {{ flags.external ? 'hidden' : '' }}">
                 <div>
@@ -143,7 +143,7 @@
                     {% endif %}
                 </div>
 
-                {# Forzar cambio de contraseña #}
+                {# Force password change #}
                 <div>
                     <span class="block text-sm font-medium text-gray-700 mb-2">{{ 'teacher.field.force_password_change'|trans({}, 'admin') }}</span>
                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -165,7 +165,7 @@
                 </div>
             </div>
 
-            {# Rol #}
+            {# Role #}
             <div>
                 <span class="block text-sm font-medium text-gray-700 mb-2">{{ 'teacher.field.admin'|trans({}, 'admin') }}</span>
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -188,7 +188,7 @@
                 </div>
             </div>
 
-            {# Estado de la cuenta #}
+            {# Account status #}
             <div>
                 <span class="block text-sm font-medium text-gray-700 mb-2">{{ 'teacher.field.active'|trans({}, 'admin') }}</span>
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -227,7 +227,7 @@
         </form>
     </div>
 
-    {# ── Zona peligrosa ───────────────────────────────────────────────────────── #}
+    {# ── Danger zone ──────────────────────────────────────────────────────────── #}
     <div class="rounded-2xl border border-red-200 bg-white shadow-xs overflow-hidden">
         <div class="px-6 py-4 border-b border-red-100 bg-red-50">
             <h2 class="text-base font-semibold text-red-700">{{ 'teacher.delete_section'|trans({}, 'admin') }}</h2>

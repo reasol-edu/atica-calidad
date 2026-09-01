@@ -36,11 +36,11 @@ use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * The "Ver" tab of Árbol documental: browse the section tree (any teacher, respecting each
+ * The "Ver" tab of Document Tree: browse the section tree (any teacher, respecting each
  * section's own profile restrictions), and within a section manage its folders and browse/act on
  * their documents. Folder structural configuration (create/rename/reorder/delete, the three
- * switches, the four profile lists) is reserved to responsable de calidad/equipo
- * directivo/administración (EducationalCentreVoter::RESPONSIBILITIES) — once a folder exists, its
+ * switches, the four profile lists) is reserved to quality manager/management
+ * team/administration (EducationalCentreVoter::RESPONSIBILITIES) — once a folder exists, its
  * own responsible/upload/review profiles govern permissions over its *content* (documents and
  * revisions) via FolderVoter/DocumentTreeAccessChecker, available to any teacher who qualifies.
  */
@@ -288,13 +288,13 @@ class SectionBrowserComponent extends AbstractController
         return $this->access->allowedUploadProfileRows($this->teacher(), $folder);
     }
 
-    /** Narrower than canManageFolder(): only admin/responsable de calidad may rewrite who uploaded a revision and when — not every folder-level responsible. */
+    /** Narrower than canManageFolder(): only admin/quality manager may rewrite who uploaded a revision and when — not every folder-level responsible. */
     public function canEditRevisionMetadata(): bool
     {
         return $this->access->isAdminOrQualityManager($this->teacher(), $this->centre);
     }
 
-    /** @return Teacher[] ordered by name, for the "editar docente" picker on a revision. */
+    /** @return Teacher[] ordered by name, for the "edit teacher" picker on a revision. */
     public function getCentreTeachers(): array
     {
         $year = $this->centre->getActiveAcademicYear();
@@ -638,7 +638,7 @@ class SectionBrowserComponent extends AbstractController
 
     /**
      * Options for the folder profile-restriction pickers: a list-associated profile also gets one
-     * extra "whole profile" row (every subperfil counts) ahead of its per-subperfil rows.
+     * extra "whole profile" row (every subprofile counts) ahead of its per-subprofile rows.
      *
      * @return ProfileAssignmentRow[]
      */
@@ -755,8 +755,8 @@ class SectionBrowserComponent extends AbstractController
 
     /**
      * The folder's documents, grouped and ordered for display. Ungrouped folders: one implicit
-     * group, documents in position order. Grouped folders: one group per upload profile/subperfil
-     * actually in use, groups ordered alphabetically by profile name then subperfil name, documents
+     * group, documents in position order. Grouped folders: one group per upload profile/subprofile
+     * actually in use, groups ordered alphabetically by profile name then subprofile name, documents
      * within a group in position order — manual reordering only ever happens within a group.
      *
      * @return list<array{label: ?string, rowKey: ?string, documents: list<Document>}>
@@ -794,8 +794,8 @@ class SectionBrowserComponent extends AbstractController
 
     /**
      * Like getFolderDocumentGroups(), but each group's documents are narrowed down to whatever
-     * matches the section-scoped search box (name, upload profile/subperfil, active revision's
-     * uploader) — matching the profile or subperfil surfaces every document tagged with it, not
+     * matches the section-scoped search box (name, upload profile/subprofile, active revision's
+     * uploader) — matching the profile or subprofile surfaces every document tagged with it, not
      * just ones whose own name happens to contain the query.
      * Display-only — reorder/sort LiveActions always call getFolderDocumentGroups() directly so
      * they keep operating on the full, unfiltered set regardless of what's currently searched.
@@ -1004,7 +1004,7 @@ class SectionBrowserComponent extends AbstractController
         $document = $this->requireDocument($folder, $id);
         $this->denyAccessUnlessGranted(FolderVoter::MANAGE, $folder);
 
-        // Siblings are those in the same group (same upload profile/subperfil, or all of them when
+        // Siblings are those in the same group (same upload profile/subprofile, or all of them when
         // the folder isn't grouped) — reordering never crosses a group boundary.
         $siblings = null;
         foreach ($this->getFolderDocumentGroups($folder) as $group) {

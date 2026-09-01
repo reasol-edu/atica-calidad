@@ -13,7 +13,7 @@ use Symfony\Component\Uid\Uuid;
 
 /**
  * A folder inside a document-tree section, holding documents. Four independent
- * profile/subperfil restriction lists control who can do what:
+ * profile/subprofile restriction lists control who can do what:
  * responsible profiles (manage the folder's documents, upload with any upload
  * profile), upload profiles (upload only), visibility profiles (if non-empty,
  * only these can see the folder at all) and review profiles (if non-empty,

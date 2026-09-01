@@ -8,7 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Associates a folder with a specific profile or, when a list item is given, one subperfil of a
+ * Associates a folder with a specific profile or, when a list item is given, one subprofile of a
  * list-associated profile — one of the folder's "review" profiles: if the folder has any, newly
  * uploaded or replaced revisions stay pending until one of these (or a responsible) approves or
  * rejects them.

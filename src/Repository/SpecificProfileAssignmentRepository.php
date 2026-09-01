@@ -52,9 +52,9 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Teachers who currently hold this profile/subperfil combination — either a direct assignment
+     * Teachers who currently hold this profile/subprofile combination — either a direct assignment
      * to that leaf, or a whole-profile (wildcard, listItem IS NULL) assignment that covers every
-     * subperfil. Unlike findTeachersByProfileAndListItem() (the exact-match version the per-leaf
+     * subprofile. Unlike findTeachersByProfileAndListItem() (the exact-match version the per-leaf
      * admin assignment screen needs, since there it must show/manage the specific assignment row
      * for that leaf), this answers "who can act as this row" — same wildcard-counts-as-any
      * convention as isTeacherAssignedToAny(). Used to expand a folder upload row into one
@@ -277,11 +277,11 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Whether this teacher currently holds any of the given profile/subperfil pairs. A null list
+     * Whether this teacher currently holds any of the given profile/subprofile pairs. A null list
      * item in a pair means either of two things depending on the profile itself: for a profile
      * with no list association, it means the profile directly (the only way it's ever assigned);
      * for a profile that DOES have a list association, it's a "whole profile" selection meaning
-     * any of its subperfiles counts — used to let a restriction target every subperfil of a
+     * any of its subprofiles counts — used to let a restriction target every subprofile of a
      * profile at once without enumerating them. Used to check folder/section permissions against
      * a restriction list.
      *

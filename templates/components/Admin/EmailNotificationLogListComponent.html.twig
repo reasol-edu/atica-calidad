@@ -5,10 +5,10 @@
 
 <div {{ attributes }}>
 
-    {# ── Panel de filtros ──────────────────────────────────────────────────── #}
+    {# ── Filter panel ──────────────────────────────────────────────────────── #}
     <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
 
-        {# Fila 1: rango temporal + accesos rápidos #}
+        {# Row 1: date range + quick access #}
         <div class="flex flex-wrap items-end gap-3">
             <div class="flex flex-col gap-1 min-w-44">
                 <label class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.date_from'|trans({}, 'admin') }}</label>
@@ -45,7 +45,7 @@
             </div>
         </div>
 
-        {# Fila 2: búsqueda + evento + estado #}
+        {# Row 2: search + event + status #}
         <div class="flex flex-wrap items-end gap-3">
 
             <div class="relative flex-1 min-w-48">
@@ -108,7 +108,7 @@
         </div>
     </div>
 
-    {# ── Tabla / tarjetas ──────────────────────────────────────────────────── #}
+    {# ── Table / cards ─────────────────────────────────────────────────────── #}
     <div data-loading="addClass(opacity-50 pointer-events-none animate-pulse)" class="transition-opacity">
     {% if pagination.totalItems == 0 %}
         <div class="px-6 py-16 text-center">

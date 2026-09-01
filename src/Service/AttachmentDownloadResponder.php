@@ -26,9 +26,9 @@ class AttachmentDownloadResponder
     }
 
     /**
-     * makeDisposition() exige un nombre de reserva ASCII: el nombre original
-     * del adjunto proviene del archivo subido por el usuario y puede
-     * contener acentos u otros caracteres no ASCII.
+     * makeDisposition() requires an ASCII fallback name: the attachment's
+     * original name comes from the file uploaded by the user and may
+     * contain accents or other non-ASCII characters.
      */
     private function asciiFilenameFallback(string $filename): string
     {

@@ -79,7 +79,7 @@ class SchoolEventRepository extends ServiceEntityRepository
 
     /**
      * @param string $profileRowKey a ProfileAssignmentRow::key() — either a specific-profile UUID
-     *                              (direct profile) or "{profileId}:{listItemId}" (a subperfil)
+     *                              (direct profile) or "{profileId}:{listItemId}" (a subprofile)
      *
      * @return Query<null, SchoolEvent>
      */

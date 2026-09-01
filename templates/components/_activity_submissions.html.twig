@@ -8,7 +8,7 @@
 {% set upload_form_id = 'activity-submission-upload-' ~ aid %}
 
 <div class="border-t border-gray-100 pt-3 space-y-3">
-    {# ── Mis entregas ─────────────────────────────────────────────────── #}
+    {# ── My submissions ───────────────────────────────────────────────── #}
     <div>
         <div class="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3">
             <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">{{ 'submission.section_title'|trans({}, 'activity_content') }}</p>
@@ -51,7 +51,7 @@
         {% endif %}
     </div>
 
-    {# ── Compleción ───────────────────────────────────────────────────── #}
+    {# ── Completion ───────────────────────────────────────────────────── #}
     {% if this.hasIndividualCompletionOwner(activity) %}
         {% include 'components/_activity_completion.html.twig' with {activity: activity, profile: null, list_item: null, teacher_owned: true} %}
     {% else %}
@@ -62,7 +62,7 @@
         </div>
     {% endif %}
 
-    {# ── Todas las entregas ───────────────────────────────────────────── #}
+    {# ── All submissions ──────────────────────────────────────────────── #}
     {% if other_slots is not empty %}
         <div>
             <button type="button" data-action="live#action" data-live-action-param="toggleAllSubmissions" data-live-activity-id-param="{{ aid }}"
@@ -84,7 +84,7 @@
         </div>
     {% endif %}
 
-    {# ── Estadísticas ─────────────────────────────────────────────────── #}
+    {# ── Statistics ───────────────────────────────────────────────────── #}
     <div>
         <button type="button" data-action="live#action" data-live-action-param="toggleStats" data-live-activity-id-param="{{ aid }}"
                 class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700">

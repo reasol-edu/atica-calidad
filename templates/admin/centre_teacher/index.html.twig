@@ -30,7 +30,7 @@
         {% endif %}
     </div>
 
-    {# ── Formulario para añadir docente ────────────────────────────────────── #}
+    {# ── Form to add a teacher ───────────────────────────────────────────── #}
     {% if centre.activeAcademicYear and not is_viewing_past_year() %}
         <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100">
@@ -64,7 +64,7 @@
         </div>
     {% endif %}
 
-    {# ── Listado ───────────────────────────────────────────────────────────── #}
+    {# ── List ──────────────────────────────────────────────────────────────── #}
     <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
         <twig:Admin:TeacherCentreListComponent :centre="centre" />
     </div>

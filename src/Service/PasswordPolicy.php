@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Service;
 
 /**
- * Reglas mínimas que debe cumplir una contraseña al crearse o cambiarse.
- * Devuelve null si es válida, o una clave de traducción del dominio `messages`
- * si no lo es. Centralizar aquí permite que perfil y reset apliquen la misma
- * política sin duplicar reglas.
+ * Minimum rules a password must satisfy when created or changed.
+ * Returns null if valid, or a translation key from the `messages` domain
+ * if not. Centralizing this here lets profile and reset apply the same
+ * policy without duplicating rules.
  */
 final class PasswordPolicy
 {

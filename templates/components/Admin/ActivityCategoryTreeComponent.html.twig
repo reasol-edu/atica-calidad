@@ -2,7 +2,7 @@
     {% set visible    = this.visibleCategories %}
     {% set breadcrumb = this.breadcrumb %}
 
-    {# ── Migas de pan ─────────────────────────────────────────────────── #}
+    {# ── Breadcrumbs ──────────────────────────────────────────────────── #}
     <nav class="flex flex-wrap items-center gap-1 text-sm">
         <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param=""
                 class="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium
@@ -20,7 +20,7 @@
         {% endfor %}
     </nav>
 
-    {# ── Nivel actual ─────────────────────────────────────────────────── #}
+    {# ── Current level ────────────────────────────────────────────────── #}
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
         <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
             {{ ux_icon('heroicons:rectangle-group', {class: 'h-4 w-4 text-gray-400'}) }}

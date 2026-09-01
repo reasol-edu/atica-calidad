@@ -1,8 +1,8 @@
-// Utilidades de fechas no lectivas (fin de semana o festivo declarado) para
-// controladores Stimulus. Mismo contrato conceptual que el servicio PHP
-// App\Service\NonWorkingDayChecker, pero en JS puro y sin dependencias.
-// Las fechas se manejan siempre como cadenas ISO ('YYYY-MM-DD') y se parsean
-// en UTC para evitar desfases por zona horaria/horario de verano.
+// Non-working date (weekends or declared holidays) utilities for Stimulus
+// controllers. Same conceptual contract as the PHP service
+// App\Service\NonWorkingDayChecker, but in plain JS with no dependencies.
+// Dates are always handled as ISO strings ('YYYY-MM-DD') and parsed
+// in UTC to avoid offsets from timezone/daylight saving time.
 
 function parseISODate(iso) {
     const [y, m, d] = iso.split('-').map(Number);

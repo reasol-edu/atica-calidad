@@ -88,9 +88,9 @@ final class PdfHeaderBuilder
             return '';
         }
 
-        // Se sanea antes de sustituir: los tokens {x} sobreviven como texto
-        // plano y los valores sustituidos ya llegan escapados, de modo que
-        // nunca se inyecta HTML no permitido en el encabezado.
+        // Sanitized before substitution: the {x} tokens survive as plain
+        // text and the substituted values already arrive escaped, so that
+        // no disallowed HTML is ever injected into the header.
         return strtr($this->sanitizer->sanitize($raw), $replacements);
     }
 }

@@ -113,7 +113,7 @@ final class ProfileAssignmentRowBuilderTest extends RepositoryTestCase
         self::assertSame('Tutor/a Activa', $rows[0]->displayName);
     }
 
-    /** The "(todos)" wildcard row is only added for list-associated profiles, right before their own per-subperfil rows. */
+    /** The "(todos)" wildcard row is only added for list-associated profiles, right before their own per-subprofile rows. */
     public function testBuildActiveRowsWithWholeProfileOptionAddsAWildcardRowOnlyForListAssociatedProfiles(): void
     {
         $centre = $this->centre();

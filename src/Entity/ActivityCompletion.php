@@ -12,7 +12,7 @@ use function Symfony\Component\Clock\now;
 
 /**
  * A manual "marked as completed" record for one owner of an activity's submission scope — either a
- * single teacher (Activity::submissionScope Individual) or a profile/subperfil shared by everyone
+ * single teacher (Activity::submissionScope Individual) or a profile/subprofile shared by everyone
  * holding it (ByProfile), never both at once. Only ever created for manual activities: an
  * auto-complete activity's completion state is computed on the fly instead (see
  * ActivitySubmissionSlotBuilder), nothing to persist.

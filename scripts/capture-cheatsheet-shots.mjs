@@ -1,9 +1,9 @@
 /**
- * Captura las capturas móviles de las fichas rápidas (docs/cheatsheets/img/).
+ * Captures the mobile screenshots for the cheatsheets (docs/cheatsheets/img/).
  *
- * Usa el viewport móvil de Playwright (devices['iPhone 13']) — la app es una PWA pensada
- * también para el móvil. Requiere un servidor ya arrancado en SHOTS_BASE_URL con datos
- * sembrados (fixtures).
+ * Uses Playwright's mobile viewport (devices['iPhone 13']) — the app is a PWA also
+ * designed for mobile. Requires a server already running at SHOTS_BASE_URL with
+ * data seeded (fixtures).
  */
 import { chromium, devices } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -34,7 +34,7 @@ async function login(page, username, password) {
     await hideToolbar(page);
 }
 
-// ── Añadir la app a la pantalla de inicio ────────────────────────────────────
+// ── Add the app to the home screen ──────────────────────────────────────────
 {
     const page = await browser.newPage({ ...iphone, locale: 'es-ES' });
     await login(page, 'admin', 'admin');
@@ -47,7 +47,7 @@ async function login(page, username, password) {
     await page.close();
 }
 
-// ── Buscar con la paleta de comandos ─────────────────────────────────────────
+// ── Search with the command palette ─────────────────────────────────────────
 {
     const page = await browser.newPage({ ...iphone, locale: 'es-ES' });
     await login(page, 'admin', 'admin');

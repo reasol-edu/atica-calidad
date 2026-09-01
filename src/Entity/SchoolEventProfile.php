@@ -8,9 +8,9 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * One profile/subperfil a calendar event is restricted to — either the profile directly
+ * One profile/subprofile a calendar event is restricted to — either the profile directly
  * ($listItem === null) or one specific leaf of the profile's associated list element (a "virtual
- * subperfil"). Mirrors SpecificProfileAssignment's shape so the two can be matched directly:
+ * subprofile"). Mirrors SpecificProfileAssignment's shape so the two can be matched directly:
  * a restricted event is visible to a teacher who has a SpecificProfileAssignment for the same
  * (specificProfile, listItem) pair as one of the event's SchoolEventProfile rows.
  */

@@ -15,7 +15,7 @@ use App\Repository\SpecificProfileRepository;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * Builds the flat "profile or subperfil" row list for a centre: one row per profile with no list
+ * Builds the flat "profile or subprofile" row list for a centre: one row per profile with no list
  * association, plus one row per leaf descendant of every list-associated profile, each carrying
  * its currently assigned teachers. Shared between the "Asignar perfiles" screen and the
  * calendar's profile-restricted-event picker, so the flattening logic lives in one place.
@@ -122,7 +122,7 @@ final class ProfileAssignmentRowBuilder implements ResetInterface
         return $this->leafDescendantsCache[$listItem->getId()->toRfc4122()] ??= $this->listItems->findLeafDescendants($listItem);
     }
 
-    /** @return ProfileAssignmentRow[] only rows currently eligible for a new use (active profile/subperfil) */
+    /** @return ProfileAssignmentRow[] only rows currently eligible for a new use (active profile/subprofile) */
     public function buildActiveRows(EducationalCentre $centre): array
     {
         return array_values(array_filter(
@@ -133,11 +133,11 @@ final class ProfileAssignmentRowBuilder implements ResetInterface
 
     /**
      * Like buildActiveRows(), but a list-associated profile also gets one extra row for itself
-     * (no specific leaf) right before its per-subperfil rows — a "whole profile" pick meaning
-     * every subperfil counts, for pickers where enumerating each one isn't required (e.g.
-     * restricting a folder to a profile without pinning it to one particular subperfil). Rows are
+     * (no specific leaf) right before its per-subprofile rows — a "whole profile" pick meaning
+     * every subprofile counts, for pickers where enumerating each one isn't required (e.g.
+     * restricting a folder to a profile without pinning it to one particular subprofile). Rows are
      * grouped by profile, groups ordered alphabetically by profile name, so a picker listing them
-     * reads as: generic option first, then its subperfiles in list order, then the next profile.
+     * reads as: generic option first, then its subprofiles in list order, then the next profile.
      *
      * @return ProfileAssignmentRow[]
      */

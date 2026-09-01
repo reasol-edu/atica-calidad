@@ -1,17 +1,17 @@
 {#
-  Componente de paginación reutilizable.
+  Reusable pagination component.
 
   Variables:
-    pagination  (App\Pagination\Paginator)  — objeto paginador
-    route       (string)                    — nombre de la ruta de la página actual
-    route_params (array, opcional)          — parámetros base de la ruta
+    pagination  (App\Pagination\Paginator)  — paginator object
+    route       (string)                    — route name of the current page
+    route_params (array, optional)          — base route parameters
 #}
 {% set base_params = route_params|default({}) %}
 
 {% if pagination.totalPages > 1 %}
 <div class="flex items-center justify-between border-t border-gray-100 px-6 py-3 gap-4 flex-wrap">
 
-    {# Resumen #}
+    {# Summary #}
     <p class="text-xs text-gray-500 shrink-0">
         {{ 'pagination.summary'|trans({
             '%from%':  pagination.firstItemIndex,
@@ -20,10 +20,10 @@
         }) }}
     </p>
 
-    {# Botones de página #}
+    {# Page buttons #}
     <nav class="flex items-center gap-1" aria-label="{{ 'pagination.nav_label'|trans }}">
 
-        {# Anterior #}
+        {# Previous #}
         {% if pagination.hasPreviousPage %}
             <a href="{{ path(route, base_params|merge({page: pagination.previousPage})) }}"
                class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-200 text-gray-500
@@ -37,7 +37,7 @@
             </span>
         {% endif %}
 
-        {# Números de página #}
+        {# Page numbers #}
         {% for page in pagination.pageRange %}
             {% if page is null %}
                 <span class="inline-flex items-center justify-center h-8 px-1 text-xs text-gray-400 select-none">…</span>
@@ -56,7 +56,7 @@
             {% endif %}
         {% endfor %}
 
-        {# Siguiente #}
+        {# Next #}
         {% if pagination.hasNextPage %}
             <a href="{{ path(route, base_params|merge({page: pagination.nextPage})) }}"
                class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-gray-200 text-gray-500

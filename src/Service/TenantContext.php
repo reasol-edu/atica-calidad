@@ -18,14 +18,14 @@ final class TenantContext implements TenantContextInterface, ResetInterface
     private const SESSION_KEY      = 'tenant.centre_id';
     private const SESSION_YEAR_KEY = 'tenant.year_id';
 
-    // Memoiza el centro resuelto durante la petición: getSelectedCentre() se
-    // invoca muchas veces por request (subscriber, controladores, extensiones
-    // Twig) y cada llamada repetía la consulta con JOIN además de un refresh()
-    // condicional. $centreResolved distingue "aún no resuelto" de "resuelto a
-    // null" (sesión con un id que ya no existe). reset() vacía el caché por si
-    // el proceso PHP llegara a reutilizarse entre peticiones (p.ej. FrankenPHP
-    // en modo worker); con el despliegue actual (php_server sin worker) cada
-    // petición ya reconstruye el contenedor, así que es una red de seguridad.
+    // Memoizes the resolved centre for the duration of the request: getSelectedCentre()
+    // is invoked many times per request (subscriber, controllers, Twig
+    // extensions) and each call used to repeat the query with a JOIN plus a
+    // conditional refresh(). $centreResolved distinguishes "not yet resolved" from
+    // "resolved to null" (session with an id that no longer exists). reset() clears the
+    // cache in case the PHP process ends up being reused between requests (e.g. FrankenPHP
+    // in worker mode); with the current deployment (php_server without worker) each
+    // request already rebuilds the container, so this is a safety net.
     private bool $centreResolved = false;
     private ?EducationalCentre $resolvedCentre = null;
 

@@ -86,10 +86,10 @@ class ProfileMailer
     }
 
     /**
-     * Envía el email de forma síncrona (sin pasar por el bus de mensajes),
-     * renderizando la plantilla antes de entregarlo al transporte. Se usa para
-     * el reset de contraseña: el token caduca en 1 h y el fallo debe poder
-     * reportarse en la misma petición.
+     * Sends the email synchronously (without going through the message bus),
+     * rendering the template before handing it off to the transport. Used for
+     * password reset: the token expires in 1 h and failure must be reportable
+     * within the same request.
      */
     private function sendSync(TemplatedEmail $email): void
     {

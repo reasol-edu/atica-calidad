@@ -10,11 +10,11 @@ use App\Entity\Teacher;
 
 /**
  * One row over a centre's specific profiles: either a profile with no list
- * association ($listItem === null), or one leaf ("subperfil") of a
+ * association ($listItem === null), or one leaf ("subprofile") of a
  * list-associated profile. Not persisted — built on the fly from
  * SpecificProfile/ListItem/SpecificProfileAssignment by ProfileAssignmentRowBuilder to give a
  * uniform, flat unit to filter/paginate over (the "Asignar perfiles" screen) or to pick from
- * (restricting a calendar event to specific profiles/subperfiles).
+ * (restricting a calendar event to specific profiles/subprofiles).
  */
 final readonly class ProfileAssignmentRow
 {

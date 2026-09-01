@@ -14,7 +14,7 @@ use Symfony\Component\Uid\Uuid;
  * A node in a centre's document tree (e.g. "Calidad" → "Procedimientos" → "PR-01"), of arbitrary
  * depth — there is no separate "tree" container entity: a root section (no parent) and its
  * descendants together form what the user thinks of as "a section of the tree". Optionally
- * associated with one or more specific profiles/subperfiles (see DocumentSectionProfile); what
+ * associated with one or more specific profiles/subprofiles (see DocumentSectionProfile); what
  * that association means for read access is resolved elsewhere, once browsing is built — this
  * entity only captures the association.
  */

@@ -7,14 +7,14 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
-    # Versión de la aplicación
+    # Application version
     app.name:                   "ÁTICA Calidad"
     app.version:                "0.1.0"
     app.pub_date:               "2026-08-26"
-    # Tiempo mínimo (en microsegundos) que tarda la rama POST de la solicitud
-    # de restablecimiento de contraseña. Iguala las dos ramas (usuario existe /
-    # no existe) para que el envío síncrono del correo no permita enumerar
-    # cuentas por timing. En el entorno de tests se anula (services_test.yaml).
+    # Minimum time (in microseconds) the POST branch of the password-reset
+    # request takes. Equalizes the two branches (user exists / does not
+    # exist) so that the synchronous email send doesn't allow account
+    # enumeration by timing. Overridden in the test environment (services_test.yaml).
     app.password_reset.request_min_duration_us: 900000
 
 services:

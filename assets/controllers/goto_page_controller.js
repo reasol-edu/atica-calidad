@@ -2,9 +2,9 @@ import { Controller } from '@hotwired/stimulus';
 import { getComponent } from '@symfony/ux-live-component';
 
 /*
- * Campo «ir a página» de la paginación de los Live Components. Lee el número
- * introducido, lo acota a [1, max] y dispara la acción Live `setPage` sobre el
- * componente que envuelve este control.
+ * "Go to page" field for Live Components pagination. Reads the entered
+ * number, clamps it to [1, max] and dispatches the Live `setPage` action on
+ * the component wrapping this control.
  */
 /* stimulusFetch: 'lazy' */
 export default class extends Controller {

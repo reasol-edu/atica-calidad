@@ -1,6 +1,6 @@
-{# Grid del calendario mensual (navegación, cabecera de días, semanas y segmentos),
-   incluido por CalendarComponent para poder llamar a this.isToday()/this.isCurrentMonth()/etc.
-   del componente. #}
+{# Monthly calendar grid (navigation, day-of-week header, weeks and segments),
+   included by CalendarComponent so it can call the component's
+   this.isToday()/this.isCurrentMonth()/etc. #}
 <div {{ attributes.defaults({class: 'rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden'}) }}>
 
     {# ── Navigation ───────────────────────────────────────────────────────── #}
@@ -24,7 +24,7 @@
         </button>
     </div>
 
-    {# ── Day-of-week headers (solo lectivos: sin sábado ni domingo) ─────────── #}
+    {# ── Day-of-week headers (school days only: no Saturday or Sunday) ──────── #}
     <div class="grid grid-cols-5 border-b border-gray-100 bg-gray-50">
         {% for key in ['lun', 'mar', 'mie', 'jue', 'vie'] %}
             <div class="py-2 text-center text-xs font-medium text-gray-500">
@@ -45,7 +45,7 @@
                         {{ loop.index is even ? 'bg-gray-50' : 'bg-white' }}
                         hover:bg-forest-50">
 
-                {# Full-height column separator lines, con resalte de la columna del día actual #}
+                {# Full-height column separator lines, with a highlight on today's column #}
                 <div class="absolute inset-0 grid grid-cols-5 divide-x divide-gray-100 pointer-events-none z-0"
                      aria-hidden="true">
                     {% for day in week.days %}
@@ -53,9 +53,9 @@
                     {% endfor %}
                 </div>
 
-                {# Celda completa clicable: cubre toda la columna del día para poder abrir su
-                   detalle desde cualquier punto vacío, por debajo del número de día (su propio
-                   enlace) y de los segmentos (que conservan su title al pasar el ratón). #}
+                {# Full clickable cell: covers the whole day column so its detail can be
+                   opened from any empty spot, below the day number (its own link)
+                   and the segments (which keep their title on hover). #}
                 <div class="absolute inset-0 grid grid-cols-5 z-[5]" aria-hidden="true">
                     {% for day in week.days %}
                         <a href="{{ path('app_calendar_day', {date: day.format('Y-m-d')}) }}"

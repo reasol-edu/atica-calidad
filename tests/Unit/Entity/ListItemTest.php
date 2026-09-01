@@ -133,8 +133,8 @@ final class ListItemTest extends TestCase
     }
 
     /**
-     * A list-associated profile's own subperfil leaf is nulled independently on ITS OWN deletion
-     * (ON DELETE SET NULL) without touching $associatedProfile — leaving "associated with subperfil
+     * A list-associated profile's own subprofile leaf is nulled independently on ITS OWN deletion
+     * (ON DELETE SET NULL) without touching $associatedProfile — leaving "associated with subprofile
      * X of profile Y" looking like "associated with the whole of profile Y", a state
      * setAssociation() itself never allows. The getters must treat that inconsistent state as no
      * association at all rather than silently upgrading it.

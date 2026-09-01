@@ -7,7 +7,7 @@
 
     <h1 class="text-2xl font-bold text-gray-900">{{ 'page_title'|trans({}, 'activity_content') }}</h1>
 
-    {# ── Pestañas ─────────────────────────────────────────────────────── #}
+    {# ── Tabs ─────────────────────────────────────────────────────────── #}
     <nav class="flex gap-6 border-b border-gray-200" aria-label="{{ 'tabs.aria'|trans({}, 'activity_content') }}">
         <a href="{{ path('app_activities', {tab: 'mine'}) }}"
            {% if tab == 'mine' %}aria-current="page"{% endif %}

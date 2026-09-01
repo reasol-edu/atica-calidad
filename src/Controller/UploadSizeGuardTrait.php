@@ -7,11 +7,11 @@ namespace App\Controller;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Cuando el cuerpo de un envío con ficheros adjuntos supera post_max_size,
- * PHP descarta el cuerpo entero (POST y ficheros, incluido el token CSRF)
- * sin registrar ningún error de validación propio de la aplicación. Sin esta
- * comprobación, eso se traduce en un 403 confuso ajeno al tamaño de los
- * adjuntos en vez de un aviso claro de que el envío era demasiado grande.
+ * When the body of a submission with file attachments exceeds post_max_size,
+ * PHP discards the entire body (POST and files, including the CSRF token)
+ * without logging any validation error of its own. Without this check,
+ * that results in a confusing 403 unrelated to the attachment size instead
+ * of a clear notice that the submission was too large.
  */
 trait UploadSizeGuardTrait
 {

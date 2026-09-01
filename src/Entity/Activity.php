@@ -55,7 +55,7 @@ class Activity
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL', unique: true)]
     private ?Folder $folder = null;
 
-    /** Optional root whose leaf descendants (matched to a submission row's profile/subperfil via
+    /** Optional root whose leaf descendants (matched to a submission row's profile/subprofile via
      *  ListItem::getAssociatedProfile()/getAssociatedProfileListItem()) name each submission. */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]

@@ -131,7 +131,7 @@ class DocumentRepository extends ServiceEntityRepository
      * non-list-associated profile has $listItem === null, which must match exactly, not "any").
      * $firstUploader, when given (Individual submission scope), additionally requires the
      * document's own first (version 1) revision to have been uploaded by that exact teacher — two
-     * different teachers submitting under the same profile/subperfil/name are two different
+     * different teachers submitting under the same profile/subprofile/name are two different
      * Documents, distinguished only by who created each one first.
      */
     public function findOneByFolderProfileListItemNameAndFirstUploader(

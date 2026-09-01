@@ -150,7 +150,7 @@ final class FolderVoterTest extends RepositoryTestCase
         $folder     = $this->folder($centre);
         $subperfil  = (new ListItem())->setEducationalCentre($centre)->setName('Subperfil');
         $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subperfil);
-        $folder->addVisibilityProfile($profile, null); // "(todos)" wildcard, matches any subperfil holder
+        $folder->addVisibilityProfile($profile, null); // "(todos)" wildcard, matches any subprofile holder
         $teacher    = $this->teacher('docente');
         $assignment = new SpecificProfileAssignment($profile, $subperfil, $teacher);
         $this->persist($centre, $folder->getDocumentSection(), $folder, $subperfil, $profile, $teacher, $assignment);

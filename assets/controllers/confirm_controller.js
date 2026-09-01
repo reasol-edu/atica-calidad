@@ -1,13 +1,13 @@
 import { Controller } from '@hotwired/stimulus';
 
 /*
- * Diálogo de confirmación accesible para acciones destructivas (borrar).
- * Sustituye al panel posicionado por JS: usa role="dialog", aria-modal,
- * atrapa el foco, se cierra con Escape o clic en el backdrop y devuelve el
- * foco al disparador. Escucha de forma delegada los clics en
- * «.js-confirm-trigger» dentro de un «.js-confirm-form» con «data-confirm».
+ * Accessible confirmation dialog for destructive actions (delete).
+ * Replaces the JS-positioned panel: uses role="dialog", aria-modal,
+ * traps focus, closes with Escape or a click on the backdrop, and returns
+ * focus to the trigger. Listens via delegation for clicks on
+ * ".js-confirm-trigger" inside a ".js-confirm-form" with "data-confirm".
  *
- * Los textos se inyectan desde la plantilla vía values.
+ * The texts are injected from the template via values.
  */
 /* stimulusFetch: 'lazy' */
 export default class extends Controller {
@@ -36,11 +36,11 @@ export default class extends Controller {
         if (!form) {
             return;
         }
-        // Los formularios con acción Live los gestiona el script del propio
-        // componente (StayDetailComponent), que detiene la propagación del clic
-        // antes de que llegue hasta aquí. Aquí solo tratamos formularios POST
-        // normales (incluidos los de listados Live como centros o docentes, que
-        // no tienen script propio y antes se enviaban sin confirmar).
+        // Forms with a Live action are handled by the component's own script
+        // (StayDetailComponent), which stops the click's propagation before it
+        // reaches here. Here we only handle regular POST forms (including
+        // Live listings such as centres or teachers, which have no script of
+        // their own and used to be submitted without confirmation).
         if (form.dataset.liveAction) {
             return;
         }

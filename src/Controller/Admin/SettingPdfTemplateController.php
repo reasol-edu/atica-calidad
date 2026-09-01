@@ -37,7 +37,7 @@ class SettingPdfTemplateController extends AbstractController
 
     private const MAX_TEMPLATE_SIZE = 10 * 1024 * 1024;
 
-    /** Ajustes cuya orientación esperada es apaisada; el resto se validan como verticales. */
+    /** Settings whose expected orientation is landscape; the rest are validated as portrait. */
     private const LANDSCAPE_KEYS = ['reports.pdf_template_landscape'];
 
     public function __construct(

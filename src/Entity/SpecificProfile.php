@@ -13,7 +13,7 @@ use Symfony\Component\Uid\Uuid;
 /**
  * A centre-defined profile (e.g. "Tutor/a"). Optionally associated with a
  * list element: when it is, every leaf descendant of that element is a
- * "virtual subperfil" (e.g. "Tutor/a 1º ESO-A") with its own independent
+ * "virtual subprofile" (e.g. "Tutor/a 1º ESO-A") with its own independent
  * teacher assignments; when it isn't, teachers are assigned to the profile
  * directly. See SpecificProfileAssignment for how both cases share one
  * storage mechanism.

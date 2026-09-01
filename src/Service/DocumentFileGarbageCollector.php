@@ -9,9 +9,9 @@ use App\Repository\DocumentRevisionRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Borra un DocumentFile si ya no está referenciado por ninguna revisión. Debe invocarse después de
- * haber flusheado el cambio que dejó de apuntar al fichero (reemplazo o borrado de la revisión),
- * para que el recuento refleje el estado ya actualizado — mismo patrón que
+ * Deletes a DocumentFile if it's no longer referenced by any revision. Must be called after
+ * flushing the change that stopped pointing to the file (replacement or deletion of the revision),
+ * so that the count reflects the already-updated state — same pattern as
  * SettingFileGarbageCollector (src/Service/SettingFileGarbageCollector.php).
  */
 final class DocumentFileGarbageCollector

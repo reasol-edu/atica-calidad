@@ -34,15 +34,15 @@ export default class extends Controller {
         this.quill.on('text-change', (delta, oldDelta, source) => {
             const html = this.quill.root.innerHTML;
             this.inputTarget.value = html === '<p><br></p>' ? '' : html;
-            // La normalización inicial de Quill (source 'api') no cuenta como
-            // edición: solo los cambios del usuario deben disparar 'change'.
+            // Quill's initial normalization (source 'api') does not count as an
+            // edit: only user changes should trigger 'change'.
             if (source !== 'user') {
                 this.lastDispatched = this.inputTarget.value;
             }
         });
 
-        // Al perder el foco, el textarea oculto se comporta como un input
-        // nativo: emite 'change' si el usuario modificó el contenido.
+        // On blur, the hidden textarea behaves like a native input: it emits
+        // 'change' if the user modified the content.
         this.quill.on('selection-change', (range) => {
             if (range === null && this.inputTarget.value !== this.lastDispatched) {
                 this.lastDispatched = this.inputTarget.value;

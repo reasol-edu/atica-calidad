@@ -145,9 +145,9 @@ class TeacherRepository extends ServiceEntityRepository implements PasswordUpgra
     }
 
     /**
-     * ¿Está ya este correo asignado o pendiente de verificar por otro docente?
-     * Coincidencia insensible a mayúsculas; se excluye al propio docente cuando
-     * se pasa, para que el editor de perfil pueda «refrescar» su propio correo.
+     * Is this email already assigned to, or pending verification by, another teacher?
+     * Case-insensitive match; the teacher themself is excluded when passed,
+     * so the profile editor can "refresh" their own email.
      */
     public function isEmailTakenByAnother(string $email, ?Teacher $exclude = null): bool
     {

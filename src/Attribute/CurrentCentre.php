@@ -8,12 +8,12 @@ use App\ValueResolver\CurrentCentreResolver;
 use Symfony\Component\HttpKernel\Attribute\ValueResolver;
 
 /**
- * Inyecta el centro educativo seleccionado en sesión como argumento del
- * controlador; si no hay centro seleccionado se redirige a la selección
- * de centro (ver CurrentCentreResolver y NoCentreSelectedSubscriber).
+ * Injects the educational centre selected in session as a controller
+ * argument; if no centre is selected, redirects to centre selection
+ * (see CurrentCentreResolver and NoCentreSelectedSubscriber).
  *
- * Extiende ValueResolver para fijar el resolutor y evitar que el
- * EntityValueResolver de Doctrine intente cargar el centro desde la ruta.
+ * Extends ValueResolver to pin the resolver and prevent Doctrine's
+ * EntityValueResolver from trying to load the centre from the route.
  */
 #[\Attribute(\Attribute::TARGET_PARAMETER)]
 final class CurrentCentre extends ValueResolver

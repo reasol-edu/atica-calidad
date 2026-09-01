@@ -1,10 +1,10 @@
 import { Controller } from '@hotwired/stimulus';
 import TomSelect from 'tom-select';
 
-// Convierte un <select> (simple o múltiple) en un desplegable con autocompletar: al hacer clic se
-// despliegan todas las opciones sin necesidad de escribir nada, y escribir filtra la lista. Las
-// opciones salen del propio <select> (sus <option>), no se piden por red — ver el tema "forest"
-// para TomSelect en assets/styles/app.css.
+// Turns a <select> (single or multiple) into a dropdown with autocomplete: clicking it opens
+// all the options without needing to type anything, and typing filters the list. The options
+// come from the <select> itself (its <option> elements), not fetched over the network — see the
+// "forest" theme for TomSelect in assets/styles/app.css.
 export default class extends Controller {
     static values = { placeholder: String, noResults: String };
 

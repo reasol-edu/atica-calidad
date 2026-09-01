@@ -84,7 +84,7 @@ class EducationalCentreRepository extends ServiceEntityRepository
         return $this->createAllWithActiveYearFilteredQuery();
     }
 
-    /** Columnas ordenables: clave pública => campo DQL (allowlist contra inyección). */
+    /** Sortable columns: public key => DQL field (allowlist against injection). */
     private const SORTABLE = [
         'code' => 'ec.code',
         'name' => 'ec.name',

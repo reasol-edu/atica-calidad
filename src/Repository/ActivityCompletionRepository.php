@@ -24,7 +24,7 @@ class ActivityCompletionRepository extends ServiceEntityRepository
 
     /**
      * Whether $activity has already been marked completed for this exact owner — either a teacher
-     * (Individual scope) or a profile/subperfil (ByProfile scope), matched by identity including
+     * (Individual scope) or a profile/subprofile (ByProfile scope), matched by identity including
      * NULL (a plain, non-list profile has $listItem === null, which must match exactly, not "any").
      */
     public function findOneForOwner(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem): ?ActivityCompletion

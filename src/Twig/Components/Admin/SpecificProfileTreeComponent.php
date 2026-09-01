@@ -27,7 +27,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * Inline editor for a centre's flat list of "specific profiles" (e.g.
  * "Tutor/a"). Each profile is optionally associated with a list element
  * (see ListItem): when it is, every leaf descendant of that element is a
- * "virtual subperfil" (e.g. "Tutor/a 1º ESO-A") with its own independent
+ * "virtual subprofile" (e.g. "Tutor/a 1º ESO-A") with its own independent
  * teacher assignments, browsed and edited here; when it isn't, teachers are
  * assigned to the profile directly. List items themselves are managed on
  * the separate "Listas" screen — this component only picks among them.
@@ -67,7 +67,7 @@ class SpecificProfileTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $pickerParentId = '';
 
-    /** Which leaf ("subperfil") of the associated list element is currently being edited. */
+    /** Which leaf ("subprofile") of the associated list element is currently being edited. */
     #[LiveProp(writable: true)]
     public string $selectedLeafId = '';
 
@@ -372,7 +372,7 @@ class SpecificProfileTreeComponent extends AbstractController
         $this->em->flush();
     }
 
-    // ── Leaves ("subperfiles") of an associated list element ────────────────
+    // ── Leaves ("subprofiles") of an associated list element ────────────────
 
     /** @return ListItem[] */
     public function getLeaves(): array

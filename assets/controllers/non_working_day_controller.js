@@ -1,15 +1,15 @@
 import { Controller } from '@hotwired/stimulus';
 import { isNonWorkingDate } from '../utils/non_working_days.js';
 
-// Bloquea la selección de fechas no lectivas (fin de semana o festivo
-// declarado) en uno o varios <input type="date">: revierte al último valor
-// válido y muestra un aviso junto al campo. Los targets "input" y "warning"
-// se emparejan por posición en el DOM (el enésimo "warning" corresponde al
-// enésimo "input"). Uso: data-controller="non-working-day" en un contenedor
-// con, para cada fecha, un <input data-non-working-day-target="input"
-// data-action="change->non-working-day#check"> seguido de un
-// <p data-non-working-day-target="warning">, y
-// data-non-working-day-dates-value="[...]" (fechas ISO de festivos del curso).
+// Blocks selection of non-working dates (weekends or declared holidays) on
+// one or more <input type="date">: reverts to the last valid value and shows
+// a notice next to the field. The "input" and "warning" targets are paired
+// by position in the DOM (the nth "warning" corresponds to the nth "input").
+// Usage: data-controller="non-working-day" on a container with, for each
+// date, an <input data-non-working-day-target="input"
+// data-action="change->non-working-day#check"> followed by a
+// <p data-non-working-day-target="warning">, and
+// data-non-working-day-dates-value="[...]" (ISO dates of the academic year's holidays).
 export default class extends Controller {
     static targets = ['input', 'warning'];
     static values  = { dates: Array, blockedMessage: String };

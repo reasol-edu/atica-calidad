@@ -116,8 +116,8 @@ final class DocumentRepositoryTest extends RepositoryTestCase
         $tagged = $this->document($folder, 'Entrega', $teacher, $profile, $item);
         $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $item, $teacher, $tagged);
 
-        // Same profile, but querying for the "(todos)"/no-subperfil case must not match a
-        // document tagged with a specific subperfil.
+        // Same profile, but querying for the "(todos)"/no-subprofile case must not match a
+        // document tagged with a specific subprofile.
         $found = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Entrega', null);
 
         self::assertNull($found);
@@ -141,7 +141,7 @@ final class DocumentRepositoryTest extends RepositoryTestCase
     }
 
     /**
-     * Individual submission scope: two teachers holding the exact same profile/subperfil each get
+     * Individual submission scope: two teachers holding the exact same profile/subprofile each get
      * their own Document for the same expected-name slot, distinguished only by who created the
      * first (version 1) revision — resolveSlot() must find the right one per teacher.
      */

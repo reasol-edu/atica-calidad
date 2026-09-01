@@ -1,6 +1,6 @@
 <div {{ attributes }} class="space-y-5">
 
-    {# ── Estadísticas ─────────────────────────────────────────────────── #}
+    {# ── Statistics ───────────────────────────────────────────────────── #}
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div class="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
             <p class="text-2xl font-bold text-gray-900">{{ this.total }}</p>
@@ -20,7 +20,7 @@
         </div>
     </div>
 
-    {# ── Filtro y orden/agrupación ────────────────────────────────────── #}
+    {# ── Filter and sort/group ────────────────────────────────────────── #}
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <form data-action="submit->live#action:prevent" class="relative sm:max-w-xs lg:max-w-2xl sm:flex-1">
             {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400'}) }}
@@ -71,7 +71,7 @@
         </div>
     </div>
 
-    {# ── Listado ──────────────────────────────────────────────────────── #}
+    {# ── List ─────────────────────────────────────────────────────────── #}
     {% if this.total == 0 %}
         <div class="rounded-xl border border-forest-100 bg-forest-50 px-4 py-10 text-center">
             {{ ux_icon('heroicons:check-badge', {class: 'mx-auto mb-2 h-9 w-9 text-forest-400'}) }}

@@ -22,9 +22,9 @@ use App\Repository\SpecificProfileAssignmentRepository;
 
 /**
  * Centralises the profile-based access rules shared by document-section navigation and folder
- * permissions: admin/responsable de calidad can do anything; auditor/a interno/a can always read,
+ * permissions: admin/quality manager can do anything; internal auditor can always read,
  * even what's restricted or obsolete; otherwise access depends on whether the teacher currently
- * holds one of the entity's associated profiles/subperfiles (no restriction at all = open to
+ * holds one of the entity's associated profiles/subprofiles (no restriction at all = open to
  * everyone). Restrictions never cascade from a section to its subsections or folders — each node
  * is evaluated on its own.
  */
@@ -186,7 +186,7 @@ final class DocumentTreeAccessChecker
     }
 
     /**
-     * Whether the teacher personally holds this exact profile/subperfil (used to constrain
+     * Whether the teacher personally holds this exact profile/subprofile (used to constrain
      * upload-as picker choices). Memoized per (teacher, profile, list item) for this request — a
      * loop checking the same handful of profiles across many activities/documents (e.g. the
      * "Mis actividades" tab) would otherwise re-run the identical query once per iteration. Safe
@@ -205,12 +205,12 @@ final class DocumentTreeAccessChecker
      * Which of a folder's own upload-profile rows this teacher may tag a document with when
      * uploading: all of them for a folder responsible/quality-manager/admin, only the ones the
      * teacher personally holds otherwise — see the folder's own definition of "responsible" (can
-     * pick freely) vs a plain uploader (can only tag with their own subperfil).
+     * pick freely) vs a plain uploader (can only tag with their own subprofile).
      *
-     * Uses buildActiveRowsWithWholeProfileOption() (not the plain per-subperfil buildActiveRows())
+     * Uses buildActiveRowsWithWholeProfileOption() (not the plain per-subprofile buildActiveRows())
      * because a folder's upload restriction can itself be the "(todos)" wildcard — a profile
-     * picked without pinning it to one subperfil (see Folder settings / ProfileAssignmentRowBuilder).
-     * folderAcceptsUploadRow() understands that wildcard: it matches every subperfil of that
+     * picked without pinning it to one subprofile (see Folder settings / ProfileAssignmentRowBuilder).
+     * folderAcceptsUploadRow() understands that wildcard: it matches every subprofile of that
      * profile, plus the profile-wide "(todos)" tag itself.
      *
      * @return ProfileAssignmentRow[]
@@ -234,7 +234,7 @@ final class DocumentTreeAccessChecker
 
     /**
      * A row is offerable for tagging an upload when the folder restricts uploads to it exactly, or
-     * — for a subperfil row — when the folder instead restricts uploads to "any subperfil" of that
+     * — for a subprofile row — when the folder instead restricts uploads to "any subprofile" of that
      * same profile (the wildcard/"(todos)" pick, stored as (profile, null)).
      */
     private function folderAcceptsUploadRow(Folder $folder, ProfileAssignmentRow $row): bool
@@ -247,10 +247,10 @@ final class DocumentTreeAccessChecker
     }
 
     /**
-     * Every concrete upload-profile/subperfil row this folder accepts, regardless of any
+     * Every concrete upload-profile/subprofile row this folder accepts, regardless of any
      * particular teacher — unlike allowedUploadProfileRows(), this never includes the profile-wide
      * "(todos)" wildcard row itself: a wildcard restriction is expanded here into each of its
-     * concrete subperfil rows instead (via folderAcceptsUploadRow()'s own understanding of the
+     * concrete subprofile rows instead (via folderAcceptsUploadRow()'s own understanding of the
      * wildcard), since this is meant for grouping by who could actually hold each row — nobody
      * holds "(todos)" itself. Used by ActivitySubmissionSlotBuilder to enumerate an activity's
      * expected submissions.

@@ -8,7 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Associates a folder with a specific profile or, when a list item is given, one subperfil of a
+ * Associates a folder with a specific profile or, when a list item is given, one subprofile of a
  * list-associated profile — one of the folder's "visibility" profiles: if the folder has any, only
  * teachers holding one of them (plus admins/quality managers/internal auditors) can see it at all.
  */

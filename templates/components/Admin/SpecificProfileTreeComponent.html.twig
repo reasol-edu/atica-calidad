@@ -15,7 +15,7 @@
 
         <div data-loading="addClass(opacity-50 pointer-events-none)" class="transition-opacity space-y-3">
 
-            {# ── Lista de perfiles ─────────────────────────────────────── #}
+            {# ── List of profiles ──────────────────────────────────────── #}
             <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
                 <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
                     {{ ux_icon('heroicons:rectangle-group', {class: 'h-4 w-4 text-gray-400'}) }}
@@ -92,7 +92,7 @@
                 {% endif %}
             </div>
 
-            {# ── Detalle del perfil seleccionado ──────────────────────── #}
+            {# ── Detail of the selected profile ────────────────────────── #}
             {% if sel %}
                 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
                     <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
@@ -155,7 +155,7 @@
                             </form>
                         {% endif %}
 
-                        {# ── Elemento de lista asociado ───────────────────── #}
+                        {# ── Associated list item ─────────────────────────── #}
                         <div class="border-t border-gray-100 pt-4">
                             <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.specific_profiles.list_association.title'|trans({}, 'admin') }}</label>
                             <p class="mb-2 text-xs text-gray-400">{{ 'responsibilities.specific_profiles.list_association.help'|trans({}, 'admin') }}</p>
@@ -241,7 +241,7 @@
                             {% endif %}
                         </div>
 
-                        {# ── Subperfiles o asignación directa ─────────────── #}
+                        {# ── Subprofiles or direct assignment ─────────────── #}
                         {% if sel.listItem %}
                             {% set leaves      = this.leaves %}
                             {% set leaf_counts = this.leafTeacherCounts %}
@@ -321,7 +321,7 @@
                             <p class="border-t border-gray-100 pt-4 text-xs text-gray-500">{{ 'responsibilities.specific_profiles.subprofiles.select_hint'|trans({}, 'admin') }}</p>
                         {% endif %}
 
-                        {# ── Eliminar ──────────────────────────────────────── #}
+                        {# ── Delete ────────────────────────────────────────── #}
                         {% if can_write %}
                             <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4">
                                 <span class="ml-auto"></span>

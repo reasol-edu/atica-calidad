@@ -33,7 +33,7 @@
             {% if slot.teacher %}
                 {# Individual scope: several rows can share the exact same displayName (e.g. two
                    teachers both holding "Tutor/a 1º DAW"), so the teacher is what actually tells
-                   them apart — lead with it, not the profile/subperfil label. #}
+                   them apart — lead with it, not the profile/subprofile label. #}
                 <p class="truncate text-sm font-medium text-gray-800">{{ slot.teacher.name.lastName }}, {{ slot.teacher.name.firstName }}</p>
             {% endif %}
             <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">

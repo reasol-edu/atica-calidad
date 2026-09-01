@@ -7,8 +7,8 @@ namespace App\Controller;
 use App\Entity\EducationalCentre;
 
 /**
- * Requiere que la clase extienda AbstractController e inyecte
- * App\Service\TenantContext como propiedad $tenantContext.
+ * Requires the class to extend AbstractController and inject
+ * App\Service\TenantContext as the $tenantContext property.
  */
 trait PastYearGuardTrait
 {

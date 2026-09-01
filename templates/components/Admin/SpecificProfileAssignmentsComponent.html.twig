@@ -9,7 +9,7 @@
     {% else %}
         {% set can_write = this.canWrite %}
 
-        {# ── Pestañas ──────────────────────────────────────────────────────── #}
+        {# ── Tabs ─────────────────────────────────────────────────────────── #}
         <div class="mb-4 border-b border-gray-200">
             <nav class="-mb-px flex gap-6">
                 <button type="button" data-action="live#action" data-live-action-param="selectTab" data-live-tab-param="profiles"
@@ -31,7 +31,7 @@
                 {% set sel_row    = this.selectedRow %}
                 {% set off_year_count = this.offYearAssignmentCount %}
 
-                {# ── Filtros ──────────────────────────────────────────────── #}
+                {# ── Filters ──────────────────────────────────────────────── #}
                 <div class="flex flex-wrap items-end gap-3">
                     <div class="relative flex-1 min-w-48">
                         <div class="relative">
@@ -86,7 +86,7 @@
                     </div>
                 {% endif %}
 
-                {# ── Tabla de perfiles ────────────────────────────────────── #}
+                {# ── Profiles table ───────────────────────────────────────── #}
                 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
                     {% if pagination.totalItems == 0 %}
                         <div class="px-6 py-16 text-center">
@@ -148,7 +148,7 @@
                     {% endif %}
                 </div>
 
-                {# ── Detalle del perfil/subperfil seleccionado ───────────── #}
+                {# ── Detail of the selected profile/subprofile ────────────── #}
                 {% if sel_row %}
                     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
                         <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
@@ -212,7 +212,7 @@
                 {% set sel_entry    = this.selectedTeacherEntry %}
                 {% set assignable   = this.assignableRowsForTeacher %}
 
-                {# ── Filtros ──────────────────────────────────────────────── #}
+                {# ── Filters ──────────────────────────────────────────────── #}
                 <div class="flex flex-wrap items-end gap-3">
                     <div class="relative flex-1 min-w-48">
                         <div class="relative">
@@ -238,7 +238,7 @@
                     </button>
                 </div>
 
-                {# ── Tabla de docentes ────────────────────────────────────── #}
+                {# ── Teachers table ───────────────────────────────────────── #}
                 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
                     {% if t_pagination.totalItems == 0 %}
                         <div class="px-6 py-16 text-center">
@@ -300,7 +300,7 @@
                     {% endif %}
                 </div>
 
-                {# ── Detalle del docente seleccionado ────────────────────── #}
+                {# ── Detail of the selected teacher ───────────────────────── #}
                 {% if sel_entry %}
                     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
                         <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">

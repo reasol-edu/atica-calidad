@@ -9,7 +9,7 @@ use Symfony\Component\Uid\Uuid;
 
 /**
  * Associates a document section with a specific profile or, when a list item is given, one
- * subperfil of a list-associated profile.
+ * subprofile of a list-associated profile.
  */
 #[ORM\Entity]
 #[ORM\UniqueConstraint(name: 'uq_document_section_profile', columns: ['document_section_id', 'specific_profile_id', 'list_item_id'])]

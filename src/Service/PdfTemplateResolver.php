@@ -7,9 +7,9 @@ namespace App\Service;
 use App\Entity\EducationalCentre;
 
 /**
- * Resuelve qué plantilla PDF de fondo debe usarse para un informe concreto:
- * la plantilla específica de ese tipo de informe si existe, o si no la
- * plantilla general de la orientación que ese informe necesita.
+ * Resolves which background PDF template should be used for a specific report:
+ * the specific template for that report type if it exists, otherwise the
+ * general template for the orientation that report needs.
  */
 final class PdfTemplateResolver
 {

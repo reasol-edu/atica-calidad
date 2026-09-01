@@ -31,12 +31,12 @@ class EducationalCentre
     #[ORM\ManyToOne]
     private ?AcademicYear $activeAcademicYear = null;
 
-    // Sin EXTRA_LAZY a propósito: contains() se llama muchas veces por petición
-    // (voters, repositorios, TenantContextExtension) sobre el mismo centro/docente;
-    // con EXTRA_LAZY cada llamada dispara su propia consulta, mientras que con la
-    // carga lazy normal la primera llamada hidrata la colección entera (pequeña,
-    // acotada al personal con rol especial del centro) y el resto se resuelve en
-    // memoria.
+    // Not EXTRA_LAZY on purpose: contains() is called many times per request
+    // (voters, repositories, TenantContextExtension) on the same centre/teacher;
+    // with EXTRA_LAZY each call would trigger its own query, whereas with normal
+    // lazy loading the first call hydrates the whole collection (small, limited
+    // to the centre's staff with a special role) and the rest is resolved in
+    // memory.
     /** @var Collection<int, Teacher> */
     #[ORM\ManyToMany(targetEntity: Teacher::class)]
     #[ORM\JoinTable(name: 'educational_centre_admins')]

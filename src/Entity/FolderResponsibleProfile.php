@@ -8,7 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Associates a folder with a specific profile or, when a list item is given, one subperfil of a
+ * Associates a folder with a specific profile or, when a list item is given, one subprofile of a
  * list-associated profile — one of the folder's "responsible" profiles: can manage the folder's
  * documents and upload with any of the folder's upload profiles.
  */

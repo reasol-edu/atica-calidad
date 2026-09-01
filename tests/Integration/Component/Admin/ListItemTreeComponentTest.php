@@ -129,7 +129,7 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertNotNull($items->findByIdAndCentre($parentId, $centre));
     }
 
-    /** A profile's own root list-item (profile.listItem) is "in use" — deleting it would orphan the profile's whole subperfil source. */
+    /** A profile's own root list-item (profile.listItem) is "in use" — deleting it would orphan the profile's whole subprofile source. */
     public function testDeleteSelectedBlockedWhenItIsAProfilesRootListItem(): void
     {
         $centre  = $this->centre();

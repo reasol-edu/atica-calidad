@@ -11,10 +11,10 @@ use App\Repository\TeacherSettingValueRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Borra un SettingFile si ya no está referenciado por ninguna fila de valor de
- * ajuste (global, de centro o de docente). Debe invocarse después de haber
- * flusheado el cambio que dejó de apuntar al fichero (reemplazo o borrado de
- * la referencia), para que el recuento refleje el estado ya actualizado.
+ * Deletes a SettingFile if it's no longer referenced by any setting value row
+ * (global, centre, or teacher). Must be called after flushing the change that
+ * stopped pointing to the file (replacement or deletion of the reference), so
+ * that the count reflects the already-updated state.
  */
 final class SettingFileGarbageCollector
 {

@@ -37,13 +37,13 @@ final class SpecificProfileAssignmentRepositoryTest extends RepositoryTestCase
         self::assertTrue($repo->isTeacherAssignedToAny($teacher, [[$tutor, $item]]));
         self::assertTrue(
             $repo->isTeacherAssignedToAny($teacher, [[$tutor, null]]),
-            'a "whole profile" pair (null subperfil) on a list-associated profile matches any subperfil holder',
+            'a "whole profile" pair (null subprofile) on a list-associated profile matches any subprofile holder',
         );
         self::assertFalse($repo->isTeacherAssignedToAny($teacher, [[$auditor, null]]));
         self::assertFalse($repo->isTeacherAssignedToAny($other, [[$tutor, $item]]));
         self::assertFalse(
             $repo->isTeacherAssignedToAny($other, [[$tutor, null]]),
-            'the wildcard still only matches teachers actually assigned to one of its subperfiles',
+            'the wildcard still only matches teachers actually assigned to one of its subprofiles',
         );
         self::assertFalse($repo->isTeacherAssignedToAny($teacher, []));
         self::assertTrue($repo->isTeacherAssignedToAny($teacher, [[$auditor, null], [$tutor, $item]]), 'any pair matching is enough');
@@ -84,7 +84,7 @@ final class SpecificProfileAssignmentRepositoryTest extends RepositoryTestCase
      * Covers the wildcard-inclusive lookup ActivitySubmissionSlotBuilder relies on to expand an
      * Individual-scope submission row into one slot per teacher: unlike
      * findTeachersByProfileAndListItem() (used by the exact per-leaf admin assignment screen), this
-     * must also surface teachers assigned to any OTHER subperfil of the same profile when the
+     * must also surface teachers assigned to any OTHER subprofile of the same profile when the
      * caller queries with a specific leaf, and must never return the same teacher twice.
      */
     public function testFindTeachersHoldingProfileAndListItemIncludesWildcardHoldersAndDeduplicates(): void
@@ -106,7 +106,7 @@ final class SpecificProfileAssignmentRepositoryTest extends RepositoryTestCase
 
         $directAssignment    = new SpecificProfileAssignment($tutor, $leafA, $directHolder);
         // A "whole profile" assignment (listItem === null) on a list-associated profile is the
-        // wildcard: it must count as holding EVERY one of that profile's subperfiles.
+        // wildcard: it must count as holding EVERY one of that profile's subprofiles.
         $wildcardAssignment  = new SpecificProfileAssignment($tutor, null, $wildcardHolder);
         $otherLeafAssignment = new SpecificProfileAssignment($tutor, $leafB, $otherLeafHolder);
         $unrelatedAssignment = new SpecificProfileAssignment($other, null, $unrelated);

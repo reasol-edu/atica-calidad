@@ -144,8 +144,8 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
     /**
      * Matching is by identity of (row->profile, row->listItem) against the leaf's own
      * (getAssociatedProfile(), getAssociatedProfileListItem()) — a leaf associated with a
-     * DIFFERENT subperfil of a list-associated profile must not produce a slot for a row that
-     * expects a different subperfil.
+     * DIFFERENT subprofile of a list-associated profile must not produce a slot for a row that
+     * expects a different subprofile.
      */
     public function testLeafAssociatedWithADifferentSubperfilDoesNotMatch(): void
     {
@@ -160,7 +160,7 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         $lenguaDpto->setParent($departamentos);
 
         $jefatura = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($departamentos);
-        $folder->addUploadProfile($jefatura, $matematicasDpto); // folder only accepts the Matemáticas subperfil
+        $folder->addUploadProfile($jefatura, $matematicasDpto); // folder only accepts the Matemáticas subprofile
 
         $materias = (new ListItem())->setEducationalCentre($centre)->setName('Materias');
         $matematicasMateria = (new ListItem())->setEducationalCentre($centre)->setName('Matemáticas');
@@ -168,7 +168,7 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         $matematicasMateria->setParent($materias);
         $lenguaMateria->setParent($materias);
         $matematicasMateria->setAssociation($jefatura, $matematicasDpto);
-        $lenguaMateria->setAssociation($jefatura, $lenguaDpto); // associated with the OTHER subperfil
+        $lenguaMateria->setAssociation($jefatura, $lenguaDpto); // associated with the OTHER subprofile
 
         $activity = $this->activity($category)->setFolder($folder)->setListItem($materias);
 
@@ -292,9 +292,9 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
 
     /**
      * Regression: Individual scope must expand a wildcard folder-upload row into every teacher
-     * currently holding ANY subperfil of that list-associated profile — using
+     * currently holding ANY subprofile of that list-associated profile — using
      * findTeachersHoldingProfileAndListItem(), not the exact-match lookup, or a teacher assigned
-     * to just one subperfil of a wildcard-accepting folder would be silently excluded.
+     * to just one subprofile of a wildcard-accepting folder would be silently excluded.
      */
     public function testIndividualScopeExpandsWildcardRowToTeachersOfAnySubperfil(): void
     {
@@ -309,7 +309,7 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         $leafB->setParent($root);
 
         $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a')->setListItem($root);
-        $folder->addUploadProfile($profile, null); // wildcard: accepts any subperfil of Tutor/a
+        $folder->addUploadProfile($profile, null); // wildcard: accepts any subprofile of Tutor/a
 
         $teacherA = $this->teacher('sergio');
         $teacherB = $this->teacher('javier');

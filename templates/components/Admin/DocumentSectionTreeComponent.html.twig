@@ -2,7 +2,7 @@
     {% set tree           = this.tree %}
     {% set available_rows = this.availableProfileRows %}
 
-    {# ── Escritorio (>= lg): árbol completo, arrastrar y soltar ──────────── #}
+    {# ── Desktop (>= lg): full tree, drag and drop ────────────────────────── #}
     <div class="hidden lg:block p-4">
         <div class="mb-3 flex items-center justify-between">
             <h2 class="text-sm font-semibold text-gray-700">{{ 'document_section.title'|trans({}, 'admin') }}</h2>
@@ -38,7 +38,7 @@
         </div>
     </div>
 
-    {# ── Móvil (< lg): migas de pan, sin arrastrar ────────────────────────── #}
+    {# ── Mobile (< lg): breadcrumbs, no dragging ───────────────────────────── #}
     <div class="lg:hidden p-4 space-y-3">
         {% set visible    = this.visibleSections %}
         {% set breadcrumb = this.breadcrumb %}

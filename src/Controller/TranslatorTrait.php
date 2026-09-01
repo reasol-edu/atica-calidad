@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 /**
- * Requiere que la clase inyecte Symfony\Contracts\Translation\TranslatorInterface
- * como propiedad $translator.
+ * Requires the class to inject Symfony\Contracts\Translation\TranslatorInterface
+ * as the $translator property.
  */
 trait TranslatorTrait
 {

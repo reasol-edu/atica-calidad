@@ -1,6 +1,6 @@
-{# Tabla de marcadores disponibles en los campos de texto enriquecido de personalización de informes.
-   Se usa desde el popover de ayuda (icono ⓘ) en SettingsComponent y debe reflejar los marcadores
-   que resuelve App\Service\PdfHeaderBuilder. #}
+{# Table of markers available in the rich-text fields for report customization.
+   Used from the help popover (ⓘ icon) in SettingsComponent, and must reflect the markers
+   resolved by App\Service\PdfHeaderBuilder. #}
 {% set placeholderRows = [
     {marker: '{title}', description: 'settings.placeholder_help.marker.title', scope: 'settings.placeholder_help.scope.all'},
     {marker: '{report_nr}', description: 'settings.placeholder_help.marker.report_nr', scope: 'settings.placeholder_help.scope.reports_only'},
@@ -25,8 +25,8 @@
         {{ 'settings.placeholder_help.intro'|trans({}, 'settings') }}
     </p>
 
-    {# overflow-x-auto: red de seguridad si el marcador más largo ({date_from} / {date_to})
-       no cabe ni permitiendo que la columna de ámbito envuelva en pantallas estrechas #}
+    {# overflow-x-auto: safety net in case the longest marker ({date_from} / {date_to})
+       doesn't fit even when the scope column is allowed to wrap on narrow screens #}
     <div class="overflow-x-auto">
         <table class="w-full text-xs">
             <thead>

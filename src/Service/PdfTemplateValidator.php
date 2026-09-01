@@ -8,10 +8,10 @@ use Mpdf\Mpdf;
 use setasign\Fpdi\FpdiException;
 
 /**
- * Valida que un PDF subido sea apto para usarse como plantilla de fondo de
- * los informes: debe ser un PDF legible de una sola página (SetDocTemplate
- * repite la plantilla en cada página generada, así que varias páginas darían
- * un resultado confuso) cuya orientación coincida con la ranura de destino.
+ * Validates that an uploaded PDF is suitable for use as a background template for
+ * reports: it must be a readable single-page PDF (SetDocTemplate repeats the
+ * template on every generated page, so multiple pages would give a confusing
+ * result) whose orientation matches the destination slot.
  */
 final class PdfTemplateValidator
 {

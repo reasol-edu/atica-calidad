@@ -24,10 +24,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 
 /**
- * Calendario mensual: eventos de centro (según visibilidad — generales para todos, restringidos
- * según perfil o subperfil asignado) más, para cada docente, el plazo de sus propias actividades
- * (aquellas en las que ostenta un perfil de subida — nunca "todas las del centro", ni aunque sea
- * admin: ver ActivityCompletionChecker::getMyOwnedObligations()) en una cuadrícula mensual.
+ * Monthly calendar: centre events (by visibility — general for everyone, restricted
+ * by assigned profile or subprofile) plus, for each teacher, their own activity deadlines
+ * (those where they hold an upload profile — never "all of the centre's", not even as an
+ * admin: see ActivityCompletionChecker::getMyOwnedObligations()) in a monthly grid.
  */
 #[AsLiveComponent]
 class CalendarComponent extends AbstractCalendarComponent

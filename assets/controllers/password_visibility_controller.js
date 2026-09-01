@@ -8,7 +8,7 @@ export default class extends Controller {
         this.inputTarget.type = isPassword ? 'text' : 'password';
         this.eyeOpenTarget.classList.toggle('hidden', isPassword);
         this.eyeClosedTarget.classList.toggle('hidden', !isPassword);
-        // Mantener aria-pressed sincronizado con el estado visible.
+        // Keep aria-pressed in sync with the visible state.
         if (event && event.currentTarget && event.currentTarget.hasAttribute('aria-pressed')) {
             event.currentTarget.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
         }

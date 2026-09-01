@@ -24,7 +24,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
  * Cross-cutting view over a centre's specific-profile assignments, from two angles: every
- * profile/subperfil and who's assigned to it ("Perfiles"), or every teacher and what they're
+ * profile/subprofile and who's assigned to it ("Perfiles"), or every teacher and what they're
  * assigned to ("Docentes"). Doesn't create/edit/delete profiles or lists — that stays in
  * SpecificProfileTreeComponent/ListItemTreeComponent; this is a working view over assignments that
  * already exist, built to spot stale ones (teachers no longer in the active academic year).

@@ -211,9 +211,9 @@ class Teacher implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * Hash determinista (no de contraseñas) para poder localizar por igualdad
-     * en BD el registro cuyo token en claro llega por URL, sin guardar nunca
-     * el token utilizable en claro.
+     * Deterministic hash (not for passwords) so we can look up by equality
+     * in the DB the record whose plain token arrives via URL, without ever
+     * storing the usable token in plain text.
      */
     public static function hashToken(string $token): string
     {

@@ -36,10 +36,10 @@ class PasswordResetController extends AbstractController
     ) {}
 
     /**
-     * Tiempo mínimo (microsegundos) que tarda la rama POST de la solicitud, para
-     * que el envío síncrono del correo no permita distinguir por tiempo si el
-     * usuario existe o no. El correo real suele tardar 300–800 ms; rellenamos
-     * hasta 900 ms y aceptamos esa latencia para una acción puntual.
+     * Minimum time (microseconds) the POST branch of the request takes, so that
+     * the synchronous email sending doesn't allow distinguishing by timing whether
+     * the user exists or not. Sending the actual email usually takes 300-800 ms; we
+     * pad up to 900 ms and accept that latency for an infrequent action.
      */
     private const REQUEST_MIN_DURATION_US = 900_000;
 

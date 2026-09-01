@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-/* Fuente Inter servida localmente (sin depender de Google Fonts): evita una
-   petición externa que expondría la IP del profesorado a un tercero y hace
-   que la aplicación no dependa de tener salida a internet para verse bien. */
+/* Inter font served locally (without relying on Google Fonts): avoids an
+   external request that would expose teachers' IP addresses to a third party
+   and means the app doesn't depend on internet access to look right. */
 @font-face {
     font-family: 'Inter';
     font-style: normal;
@@ -20,23 +20,23 @@
     unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-/* Variante `dark:` basada en clase (no en prefers-color-scheme), para poder
-   forzar claro/oscuro en el modo tablón independientemente del sistema. */
+/* Class-based `dark:` variant (not prefers-color-scheme), so light/dark can be
+   forced in tablet-board mode independently of the system setting. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @source inline("bg-green-500 bg-green-700 bg-blue-700 bg-gray-600");
 
 @media (prefers-reduced-motion: reduce) {
-    /* El pulso de carga de los listados no debe animarse si se pide menos
-       movimiento; el atenuado (opacity) sigue indicando el estado de carga. */
+    /* The loading pulse on listings should not animate if reduced motion is
+       requested; the dimming (opacity) still indicates the loading state. */
     .animate-pulse {
         animation: none;
     }
 }
 
-/* Foco visible consistente para navegación con teclado (solo :focus-visible, no
-   en clic de ratón). Enlaces y botones que no declaran su propio focus:ring
-   reciben este anillo forest; los inputs/selects mantienen el suyo. */
+/* Consistent visible focus for keyboard navigation (:focus-visible only, not
+   on mouse click). Links and buttons that don't declare their own focus:ring
+   get this forest ring; inputs/selects keep their own. */
 a:focus-visible,
 button:focus-visible,
 [role="button"]:focus-visible,
@@ -46,10 +46,10 @@ summary:focus-visible {
     outline-offset: 2px;
 }
 
-/* Tabla adaptable a tarjetas: en móvil (<640px) cada fila se apila como tarjeta
-   y cada celda muestra su etiqueta (atributo data-label), evitando el scroll
-   horizontal. En escritorio se comporta como una tabla normal. Las celdas sin
-   data-label (p. ej. la columna de acciones) se apilan al pie de la tarjeta. */
+/* Card-adaptive table: on mobile (<640px) each row stacks as a card and each
+   cell shows its label (data-label attribute), avoiding horizontal scroll.
+   On desktop it behaves like a normal table. Cells without data-label
+   (e.g. the actions column) stack at the bottom of the card. */
 @media (max-width: 639px) {
     table.table-cards thead {
         position: absolute;
@@ -82,7 +82,7 @@ summary:focus-visible {
         box-sizing: border-box;
     }
 
-    /* Etiqueta encima, en pequeño y gris */
+    /* Label on top, small and gray */
     table.table-cards tbody td::before {
         content: attr(data-label);
         display: block;
@@ -99,14 +99,14 @@ summary:focus-visible {
         content: none;
     }
 
-    /* La columna de acciones se alinea a la derecha al pie de la tarjeta. */
+    /* The actions column is right-aligned at the bottom of the card. */
     table.table-cards tbody td:not([data-label]) {
         text-align: right;
         padding-top: 0.5rem !important;
     }
 
-    /* Filas separadoras de grupo (dentro de tablas-tarjetas): sin borde ni
-       redondeado, para diferenciarse visualmente de las filas de datos. */
+    /* Group-separator rows (within card-tables): no border or rounding,
+       so they're visually distinct from data rows. */
     table.table-cards tbody tr.table-group-header {
         border: none;
         border-radius: 0;
@@ -125,12 +125,12 @@ summary:focus-visible {
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-    /* Paleta de ÁTICA Calidad — "Salvia": una sola familia verde cálida de
-       principio a fin (antes, forest-50/300 eran un crema/coral cálido
-       mientras forest-600+ eran un pizarra azulado frío — dos temperaturas
-       distintas conviviendo mal bajo el mismo nombre). El resto de la app
-       hereda esto automáticamente: la barra lateral, el estado activo de
-       navegación y cualquier botón/enlace en forest-* no necesitan tocarse. */
+    /* ÁTICA Calidad palette — "Sage": a single warm green family from
+       start to finish (previously, forest-50/300 were a warm cream/coral
+       while forest-600+ were a cool bluish slate — two different
+       temperatures coexisting poorly under the same name). The rest of the
+       app inherits this automatically: the sidebar, the active navigation
+       state, and any button/link on forest-* don't need to be touched. */
     --color-forest-50:  #f3f6f0;
     --color-forest-100: #e3ebdd;
     --color-forest-200: #c7d8bc;
@@ -143,9 +143,9 @@ summary:focus-visible {
     --color-forest-900: #2e3b27;
     --color-forest-950: #1a2415;
 
-    /* Neutro cálido ("Arena") en vez del gris frío por defecto de Tailwind —
-       mismo principio: un solo sitio, hereda todo lo que ya usa gray-* en la
-       app (texto, bordes, fondos secundarios). */
+    /* Warm neutral ("Sand") instead of Tailwind's default cool gray —
+       same principle: a single place, inherited by everything already
+       using gray-* in the app (text, borders, secondary backgrounds). */
     --color-gray-50:  #faf7f1;
     --color-gray-100: #f1ead9;
     --color-gray-200: #e3d8c1;
@@ -158,8 +158,8 @@ summary:focus-visible {
     --color-gray-900: #2e2822;
     --color-gray-950: #1c1814;
 
-    /* "Miel": mismo rol que el ámbar de Tailwind (pendiente/aviso), pero
-       apagado para no desentonar con el resto de la paleta cálida. */
+    /* "Honey": same role as Tailwind's amber (pending/notice), but
+       muted so it doesn't clash with the rest of the warm palette. */
     --color-amber-50:  #fbf3e2;
     --color-amber-100: #f7e7c4;
     --color-amber-200: #efce8e;
@@ -172,8 +172,8 @@ summary:focus-visible {
     --color-amber-900: #4f3711;
     --color-amber-950: #33240a;
 
-    /* "Ciruela": sustituye al rojo de alarma para vencido/rechazado/eliminar
-       — sigue leyéndose como aviso serio, sin sonar a alarma. */
+    /* "Plum": replaces alarm-red for overdue/rejected/delete
+       — still reads as a serious notice, without sounding like an alarm. */
     --color-red-50:  #f6e9ec;
     --color-red-100: #ead1d7;
     --color-red-200: #d8aeb6;
@@ -188,10 +188,10 @@ summary:focus-visible {
 }
 
 /* ── TomSelect v2.6.1 base ────────────────────────────────────────────────────
-   Embebido aquí en lugar de cargarlo vía autoimport porque la versión 2.6.1
-   usa color-mix() con sintaxis pre-spec inválida (sin "in srgb") que los
-   navegadores no interpretan. Los cuatro valores afectados se han sustituido
-   por sus equivalentes hex. */
+   Embedded here instead of loading it via autoimport because version 2.6.1
+   uses color-mix() with pre-spec invalid syntax (missing "in srgb") that
+   browsers don't parse. The four affected values have been replaced
+   with their hex equivalents. */
 .ts-control {
   border: 1px solid #d0d0d0;
   padding: 8px 8px;
@@ -328,7 +328,7 @@ input[type="search"]::-ms-clear { display: none; }
   position: relative;
   padding: 10px 8px;
   border-bottom: 1px solid #d0d0d0;
-  background: #f8f8f8; /* era: color-mix(#fff, #d0d0d0, 85%) — sintaxis inválida */
+  background: #f8f8f8; /* was: color-mix(#fff, #d0d0d0, 85%) — invalid syntax */
   border-radius: 3px 3px 0 0;
 }
 .ts-wrapper .dropdown-header-close {
@@ -404,13 +404,13 @@ input[type="search"]::-ms-clear { display: none; }
 .ts-wrapper.multi .ts-control [data-value] {
   text-shadow: 0 1px 0 rgba(0, 51, 83, 0.3);
   border-radius: 3px;
-  background-color: #1b9dec; /* era: color-mix(#1da7ee, #178ee9, 60%) — sintaxis inválida */
+  background-color: #1b9dec; /* was: color-mix(#1da7ee, #178ee9, 60%) — invalid syntax */
   background-image: linear-gradient(to bottom, #1da7ee, #178ee9);
   background-repeat: repeat-x;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.03);
 }
 .ts-wrapper.multi .ts-control [data-value].active {
-  background-color: #0085d4; /* era: color-mix(#008fd8, #0075cf, 60%) — sintaxis inválida */
+  background-color: #0085d4; /* was: color-mix(#008fd8, #0075cf, 60%) — invalid syntax */
   background-image: linear-gradient(to bottom, #008fd8, #0075cf);
   background-repeat: repeat-x;
 }
@@ -420,7 +420,7 @@ input[type="search"]::-ms-clear { display: none; }
 .ts-wrapper.multi.disabled .ts-control [data-value] .remove { background: none; }
 .ts-wrapper.single .ts-control {
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  background-color: #f9f9f9; /* era: color-mix(#fefefe, #f2f2f2, 60%) — sintaxis inválida */
+  background-color: #f9f9f9; /* was: color-mix(#fefefe, #f2f2f2, 60%) — invalid syntax */
   background-image: linear-gradient(to bottom, #fefefe, #f2f2f2);
   background-repeat: repeat-x;
 }
@@ -431,8 +431,8 @@ input[type="search"]::-ms-clear { display: none; }
 .ts-dropdown .optgroup:first-child { border-top: 0 none; }
 /* ── fin TomSelect base ───────────────────────────────────────────────────── */
 
-/* TomSelect — overrides del tema forest.
-   Se usa :root como prefijo para aumentar la especificidad. */
+/* TomSelect — forest theme overrides.
+   :root is used as a prefix to increase specificity. */
 :root .ts-wrapper .ts-control {
     border: 1px solid var(--color-forest-200);
     border-radius: 0.75rem;
@@ -441,7 +441,7 @@ input[type="search"]::-ms-clear { display: none; }
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Variante de control ajustada para selects locales (formulario de estancia) */
+/* Control variant adjusted for local selects (stay form) */
 :root .ts-wrapper.ts-local .ts-control {
     padding: 0.5rem 0.875rem;
     min-height: unset;
@@ -478,7 +478,7 @@ input[type="search"]::-ms-clear { display: none; }
     color: var(--color-forest-400);
 }
 
-/* Tags en selección múltiple */
+/* Tags in multi-selection */
 :root .ts-wrapper.multi .ts-control > div {
     background: var(--color-forest-100);
     color: var(--color-forest-900);
@@ -532,13 +532,13 @@ input[type="search"]::-ms-clear { display: none; }
     text-transform: uppercase;
 }
 
-/* Estado deshabilitado */
+/* Disabled state */
 :root .disabled .ts-control {
     background: var(--color-forest-50);
     border-color: var(--color-forest-200);
 }
 
-/* Spinner de carga */
+/* Loading spinner */
 :root .ts-dropdown .spinner::after {
     border-color: var(--color-forest-300) transparent var(--color-forest-300) transparent;
 }
@@ -558,7 +558,7 @@ input[type="search"]::-ms-clear { display: none; }
     border-color: var(--color-forest-400);
 }
 
-/* Selector de grupos (edición de docente en centro) */
+/* Group selector (editing a teacher at a centre) */
 .ts-group-option                        { padding: 0.125rem 0; line-height: 1.35; }
 .ts-group-option .ts-group-programme    { font-size: 0.8125rem; font-weight: 500; color: #2e2822; }
 .ts-group-option .ts-group-level        { font-size: 0.75rem; font-weight: 400; color: #b3a186; }
@@ -567,7 +567,7 @@ input[type="search"]::-ms-clear { display: none; }
 .ts-group-item .ts-group-item-programme { font-weight: 500; color: inherit; font-size: 0.8125rem; }
 .ts-group-item .ts-sep                  { color: #cdbc9e; margin: 0 0.3rem; font-size: 0.8125rem; }
 
-/* Quill rich-editor: adapta el look al tema forest y la altura a ~5 filas. */
+/* Quill rich-editor: adapts the look to the forest theme and the height to ~5 rows. */
 :root .ql-toolbar.ql-snow {
     border: 1px solid var(--color-forest-200);
     border-bottom: none;

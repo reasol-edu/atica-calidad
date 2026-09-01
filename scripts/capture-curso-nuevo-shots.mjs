@@ -1,21 +1,21 @@
 /**
- * Captura las capturas de escritorio de la ficha «Configurar un curso académico nuevo»
- * (docs/cheatsheets/curso-nuevo.md), dirigida al equipo directivo.
+ * Captures the desktop screenshots for the "Set up a new academic year" cheatsheet
+ * (docs/cheatsheets/curso-nuevo.md), aimed at the management team.
  *
- * A diferencia de scripts/capture-cheatsheet-shots.mjs (viewport móvil, datos ya sembrados),
- * este script usa el viewport de escritorio 1280×900 (la app se administra desde escritorio) y
- * ejecuta él mismo, de principio a fin, el flujo real de puesta a punto de un curso académico:
- * crea y activa el curso 2026-2027, importa profesorado desde un CSV de Séneca, crea la oferta
- * formativa (cursos y grupos) e importa los días no lectivos desde un .ics de muestra, y asigna
- * los perfiles de responsable de calidad y auditor/a interno/a.
+ * Unlike scripts/capture-cheatsheet-shots.mjs (mobile viewport, data already seeded),
+ * this script uses the 1280x900 desktop viewport (the app is administered from desktop) and
+ * itself runs, start to finish, the real setup flow for an academic year: it creates and
+ * activates the 2026-2027 academic year, imports teaching staff from a Séneca CSV, creates the
+ * course offering (courses and groups) and imports non-working days from a sample .ics file, and
+ * assigns the quality-manager and internal-auditor profiles.
  *
- * Requiere una BASE DE DATOS DESECHABLE PROPIA para esta ejecución: este script deja el curso
- * 2026-2027 como curso activo del centro, lo que cambiaría el curso de referencia que dan por
- * hecho el resto de capturas si se reutilizara la misma pasada.
+ * Requires its own DISPOSABLE DATABASE for this run: this script leaves the 2026-2027 academic
+ * year as the centre's active year, which would change the reference year the rest of the
+ * screenshots assume if the same run were reused.
  *
- * Los ficheros de muestra referenciados abajo (src/DataFixtures/data/) no existen todavía: la
- * aplicación aún no tiene datos de demostración (fixtures). Añádelos antes de ejecutar este
- * script, o adapta las rutas a los tuyos propios.
+ * The sample files referenced below (src/DataFixtures/data/) do not exist yet: the
+ * application does not yet have demo data (fixtures). Add them before running this
+ * script, or adapt the paths to your own.
  */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -49,15 +49,15 @@ async function login(page, username, password) {
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, locale: 'es-ES' });
 await login(page, 'admin', 'admin');
 
-// ── 1. Crear y activar el curso académico ───────────────────────────────────
+// ── 1. Create and activate the academic year ─────────────────────────────────
 await page.goto(`${baseUrl}/centro/${centreId}/cursos`);
 await page.waitForLoadState('networkidle');
 await hideToolbar(page);
 
 await page.fill('input[name="name"]', '2026-2027');
-// Ojo: la página tiene varios "button[type=submit]" (el de añadir curso y uno por cada curso
-// existente para eliminarlo); hay que acotar al formulario de alta o se puede pulsar el botón
-// equivocado.
+// Note: the page has several "button[type=submit]" elements (the one to add a course and one
+// per existing course to delete it); we need to scope to the creation form or we might click
+// the wrong button.
 await page.locator('form[action*="/nuevo"] button[type="submit"]').click();
 await page.waitForLoadState('networkidle');
 await hideToolbar(page);
@@ -69,7 +69,7 @@ await page.waitForLoadState('networkidle');
 await hideToolbar(page);
 await page.screenshot({ path: `${root}/curso-nuevo-1-activado.png` });
 
-// ── 2. Añadir el profesorado ─────────────────────────────────────────────────
+// ── 2. Add the teaching staff ────────────────────────────────────────────────
 await page.goto(`${baseUrl}/centro/${centreId}/docentes-curso/importar`);
 await page.waitForLoadState('networkidle');
 await hideToolbar(page);
@@ -80,7 +80,7 @@ await page.waitForLoadState('networkidle');
 await hideToolbar(page);
 await page.screenshot({ path: `${root}/curso-nuevo-2-docentes-listado.png` });
 
-// ── 3. Definir la oferta formativa ───────────────────────────────────────────
+// ── 3. Define the course offering ────────────────────────────────────────────
 await page.goto(`${baseUrl}/centro/${centreId}/offer`);
 await page.waitForLoadState('networkidle');
 await hideToolbar(page);
@@ -96,7 +96,7 @@ await page.waitForLoadState('networkidle');
 await hideToolbar(page);
 await page.screenshot({ path: `${root}/curso-nuevo-3-oferta-formativa.png` });
 
-// Asignaciones docente-grupo-materia también importables desde CSV de Séneca:
+// Teacher-group-subject assignments can also be imported from a Séneca CSV:
 await page.goto(`${baseUrl}/centro/${centreId}/docentes-curso/importar-asignaciones`);
 await page.waitForLoadState('networkidle');
 await hideToolbar(page);
@@ -107,7 +107,7 @@ await page.waitForLoadState('networkidle');
 await hideToolbar(page);
 await page.screenshot({ path: `${root}/curso-nuevo-4-asignaciones-listado.png` });
 
-// ── 4. Definir los días no lectivos ──────────────────────────────────────────
+// ── 4. Define the non-working days ───────────────────────────────────────────
 await page.goto(`${baseUrl}/centro/${centreId}/dias-no-lectivos/importar`);
 await page.waitForLoadState('networkidle');
 await hideToolbar(page);
@@ -118,13 +118,13 @@ await page.waitForLoadState('networkidle');
 await hideToolbar(page);
 await page.screenshot({ path: `${root}/curso-nuevo-5-dias-no-lectivos.png` });
 
-// ── 5. Asignar los perfiles de calidad ───────────────────────────────────────
+// ── 5. Assign the quality profiles ───────────────────────────────────────────
 await page.goto(`${baseUrl}/centro/${centreId}/perfiles`);
 await page.waitForLoadState('networkidle');
 await hideToolbar(page);
 await page.screenshot({ path: `${root}/curso-nuevo-6-perfiles.png` });
 
-// ── Resultado: el centro, listo para trabajar ────────────────────────────────
+// ── Result: the centre, ready to work ────────────────────────────────────────
 await page.goto(`${baseUrl}/centro/${centreId}`);
 await page.waitForLoadState('networkidle');
 await hideToolbar(page);
