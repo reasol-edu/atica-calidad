@@ -155,24 +155,24 @@ final class ListItemTreeComponentTest extends ControllerTestCase
     public function testDeleteSelectedBlockedWhenAssignedToATeacher(): void
     {
         $centre    = $this->centre();
-        $subperfil = (new ListItem())->setEducationalCentre($centre)->setName('Subperfil');
-        $profile   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subperfil);
+        $subprofile = (new ListItem())->setEducationalCentre($centre)->setName('Subprofile');
+        $profile   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subprofile);
         $teacher   = $this->teacher('docente');
-        $assignment = new \App\Entity\SpecificProfileAssignment($profile, $subperfil, $teacher);
+        $assignment = new \App\Entity\SpecificProfileAssignment($profile, $subprofile, $teacher);
         $admin = $this->admin();
         $centre->getAdmins()->add($admin);
-        $this->persist($centre, $subperfil, $profile, $teacher, $assignment, $admin);
-        $subperfilId = $subperfil->getId()->toRfc4122();
+        $this->persist($centre, $subprofile, $profile, $teacher, $assignment, $admin);
+        $subprofileId = $subprofile->getId()->toRfc4122();
 
         $this->loginAs($admin, $centre);
         $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
-        $component->call('selectItem', ['id' => $subperfilId]);
+        $component->call('selectItem', ['id' => $subprofileId]);
         $component->call('deleteSelected');
 
         $this->em->clear();
         /** @var ListItemRepository $items */
         $items = self::getContainer()->get(ListItemRepository::class);
-        self::assertNotNull($items->findByIdAndCentre($subperfilId, $centre), 'a list item assigned to a teacher must never be deletable');
+        self::assertNotNull($items->findByIdAndCentre($subprofileId, $centre), 'a list item assigned to a teacher must never be deletable');
     }
 
     public function testDeleteSelectedRemovesALeafItem(): void

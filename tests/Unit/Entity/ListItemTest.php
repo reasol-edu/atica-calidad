@@ -80,7 +80,7 @@ final class ListItemTest extends TestCase
     {
         $centre     = $this->centre();
         $item       = $this->item($centre);
-        $listItem   = $this->item($centre, 'Subperfil');
+        $listItem   = $this->item($centre, 'Subprofile');
 
         $this->expectException(\LogicException::class);
         $item->setAssociation(null, $listItem);
@@ -144,10 +144,10 @@ final class ListItemTest extends TestCase
         $centre       = $this->centre();
         $listAnchor   = $this->item($centre, 'Ancla');
         $profile      = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($listAnchor);
-        $subperfil    = $this->item($centre, 'Subperfil leaf');
+        $subprofile   = $this->item($centre, 'Subprofile leaf');
         $item         = $this->item($centre);
 
-        $item->setAssociation($profile, $subperfil);
+        $item->setAssociation($profile, $subprofile);
         self::assertSame($profile, $item->getAssociatedProfile());
 
         // Simulate the leaf being deleted out from under the association (ON DELETE SET NULL) by

@@ -148,12 +148,12 @@ final class FolderVoterTest extends RepositoryTestCase
     {
         $centre     = $this->centre();
         $folder     = $this->folder($centre);
-        $subperfil  = (new ListItem())->setEducationalCentre($centre)->setName('Subperfil');
-        $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subperfil);
+        $subprofile = (new ListItem())->setEducationalCentre($centre)->setName('Subprofile');
+        $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subprofile);
         $folder->addVisibilityProfile($profile, null); // "(todos)" wildcard, matches any subprofile holder
         $teacher    = $this->teacher('docente');
-        $assignment = new SpecificProfileAssignment($profile, $subperfil, $teacher);
-        $this->persist($centre, $folder->getDocumentSection(), $folder, $subperfil, $profile, $teacher, $assignment);
+        $assignment = new SpecificProfileAssignment($profile, $subprofile, $teacher);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $subprofile, $profile, $teacher, $assignment);
 
         self::assertSame(VoterInterface::ACCESS_GRANTED, $this->vote($teacher, FolderVoter::VIEW, $folder));
     }
@@ -191,12 +191,12 @@ final class FolderVoterTest extends RepositoryTestCase
     {
         $centre     = $this->centre();
         $folder     = $this->folder($centre);
-        $subperfil  = (new ListItem())->setEducationalCentre($centre)->setName('Subperfil');
-        $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subperfil);
+        $subprofile = (new ListItem())->setEducationalCentre($centre)->setName('Subprofile');
+        $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subprofile);
         $folder->addResponsibleProfile($profile, null);
         $teacher    = $this->teacher('docente');
-        $assignment = new SpecificProfileAssignment($profile, $subperfil, $teacher);
-        $this->persist($centre, $folder->getDocumentSection(), $folder, $subperfil, $profile, $teacher, $assignment);
+        $assignment = new SpecificProfileAssignment($profile, $subprofile, $teacher);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $subprofile, $profile, $teacher, $assignment);
 
         self::assertSame(VoterInterface::ACCESS_GRANTED, $this->vote($teacher, FolderVoter::MANAGE, $folder));
     }
@@ -233,12 +233,12 @@ final class FolderVoterTest extends RepositoryTestCase
     {
         $centre     = $this->centre();
         $folder     = $this->folder($centre);
-        $subperfil  = (new ListItem())->setEducationalCentre($centre)->setName('Subperfil');
-        $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subperfil);
+        $subprofile = (new ListItem())->setEducationalCentre($centre)->setName('Subprofile');
+        $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subprofile);
         $folder->addUploadProfile($profile, null);
         $teacher    = $this->teacher('docente');
-        $assignment = new SpecificProfileAssignment($profile, $subperfil, $teacher);
-        $this->persist($centre, $folder->getDocumentSection(), $folder, $subperfil, $profile, $teacher, $assignment);
+        $assignment = new SpecificProfileAssignment($profile, $subprofile, $teacher);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $subprofile, $profile, $teacher, $assignment);
 
         self::assertSame(VoterInterface::ACCESS_GRANTED, $this->vote($teacher, FolderVoter::UPLOAD, $folder));
     }
@@ -273,12 +273,12 @@ final class FolderVoterTest extends RepositoryTestCase
     {
         $centre     = $this->centre();
         $folder     = $this->folder($centre);
-        $subperfil  = (new ListItem())->setEducationalCentre($centre)->setName('Subperfil');
-        $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subperfil);
+        $subprofile = (new ListItem())->setEducationalCentre($centre)->setName('Subprofile');
+        $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subprofile);
         $folder->addReviewProfile($profile, null);
         $teacher    = $this->teacher('docente');
-        $assignment = new SpecificProfileAssignment($profile, $subperfil, $teacher);
-        $this->persist($centre, $folder->getDocumentSection(), $folder, $subperfil, $profile, $teacher, $assignment);
+        $assignment = new SpecificProfileAssignment($profile, $subprofile, $teacher);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $subprofile, $profile, $teacher, $assignment);
 
         self::assertSame(VoterInterface::ACCESS_GRANTED, $this->vote($teacher, FolderVoter::REVIEW, $folder));
     }

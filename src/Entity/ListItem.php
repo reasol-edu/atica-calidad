@@ -197,7 +197,7 @@ class ListItem
     public function setAssociation(?SpecificProfile $profile, ?ListItem $listItem = null): static
     {
         if ($profile === null && $listItem !== null) {
-            throw new \LogicException('A subperfil cannot be set without its profile.');
+            throw new \LogicException('A subprofile cannot be set without its profile.');
         }
 
         if ($profile !== null && $profile->getEducationalCentre() !== $this->educationalCentre) {
@@ -205,7 +205,7 @@ class ListItem
         }
 
         if ($listItem !== null && $listItem->getEducationalCentre() !== $this->educationalCentre) {
-            throw new \LogicException('A list item cannot be associated with a subperfil from another centre.');
+            throw new \LogicException('A list item cannot be associated with a subprofile from another centre.');
         }
 
         $this->associatedProfile         = $profile;

@@ -65,7 +65,7 @@ final class DocumentSectionJsonExportImportTest extends RepositoryTestCase
         self::assertTrue($children[0]->isRestricted());
     }
 
-    public function testRoundTripPreservesAListAssociatedSubperfilRestrictionByPath(): void
+    public function testRoundTripPreservesAListAssociatedSubprofileRestrictionByPath(): void
     {
         $centre    = $this->centre();
         $section   = (new \App\Entity\DocumentSection())->setEducationalCentre($centre)->setName('Sección');

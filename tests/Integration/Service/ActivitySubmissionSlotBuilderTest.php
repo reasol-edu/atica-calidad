@@ -147,7 +147,7 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
      * DIFFERENT subprofile of a list-associated profile must not produce a slot for a row that
      * expects a different subprofile.
      */
-    public function testLeafAssociatedWithADifferentSubperfilDoesNotMatch(): void
+    public function testLeafAssociatedWithADifferentSubprofileDoesNotMatch(): void
     {
         $centre = $this->centre();
         $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
@@ -296,7 +296,7 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
      * findTeachersHoldingProfileAndListItem(), not the exact-match lookup, or a teacher assigned
      * to just one subprofile of a wildcard-accepting folder would be silently excluded.
      */
-    public function testIndividualScopeExpandsWildcardRowToTeachersOfAnySubperfil(): void
+    public function testIndividualScopeExpandsWildcardRowToTeachersOfAnySubprofile(): void
     {
         $centre = $this->centre();
         $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');

@@ -94,7 +94,7 @@ class PdfRenderer
         }
 
         if (!is_string($content)) {
-            throw new \RuntimeException('mPDF no devolvió el contenido del PDF esperado.');
+            throw new \RuntimeException('mPDF did not return the expected PDF content.');
         }
 
         $response = new Response($content);

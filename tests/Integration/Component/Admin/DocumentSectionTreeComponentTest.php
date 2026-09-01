@@ -200,16 +200,16 @@ final class DocumentSectionTreeComponentTest extends ControllerTestCase
         self::assertFalse($reloaded->isRestricted());
     }
 
-    public function testToggleProfileRestrictionWithAListItemSubperfil(): void
+    public function testToggleProfileRestrictionWithAListItemSubprofile(): void
     {
         $centre    = $this->centre();
         $section   = $this->section($centre);
-        $subperfil = (new ListItem())->setEducationalCentre($centre)->setName('Subperfil');
-        $profile   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subperfil);
+        $subprofile = (new ListItem())->setEducationalCentre($centre)->setName('Subprofile');
+        $profile   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subprofile);
         $admin     = $this->admin();
-        $this->persist($centre, $section, $subperfil, $profile, $admin);
+        $this->persist($centre, $section, $subprofile, $profile, $admin);
         $sectionId = $section->getId()->toRfc4122();
-        $rowKey    = $profile->getId()->toRfc4122() . ':' . $subperfil->getId()->toRfc4122();
+        $rowKey    = $profile->getId()->toRfc4122() . ':' . $subprofile->getId()->toRfc4122();
 
         $this->loginAs($admin, $centre);
         $component = $this->createLiveComponent('Admin:DocumentSectionTreeComponent', ['centre' => $centre], $this->client);
@@ -228,7 +228,7 @@ final class DocumentSectionTreeComponentTest extends ControllerTestCase
         self::assertSame($profile->getId()->toRfc4122(), $restriction->getSpecificProfile()->getId()->toRfc4122());
         $restrictedListItem = $restriction->getListItem();
         self::assertNotNull($restrictedListItem);
-        self::assertSame($subperfil->getId()->toRfc4122(), $restrictedListItem->getId()->toRfc4122());
+        self::assertSame($subprofile->getId()->toRfc4122(), $restrictedListItem->getId()->toRfc4122());
     }
 
     // ── Reordering ────────────────────────────────────────────────────────────

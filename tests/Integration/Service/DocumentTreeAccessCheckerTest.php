@@ -329,18 +329,18 @@ final class DocumentTreeAccessCheckerTest extends RepositoryTestCase
 
     // ── holdsProfile ──────────────────────────────────────────────────────────
 
-    public function testHoldsProfileDistinguishesDifferentSubperfilesOfTheSameProfile(): void
+    public function testHoldsProfileDistinguishesDifferentSubprofilesOfTheSameProfile(): void
     {
         $centre    = $this->centre();
-        $subperfil = (new ListItem())->setEducationalCentre($centre)->setName('Subperfil');
+        $subprofile = (new ListItem())->setEducationalCentre($centre)->setName('Subprofile');
         $otherLeaf = (new ListItem())->setEducationalCentre($centre)->setName('Otra hoja');
-        $profile   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subperfil);
+        $profile   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subprofile);
         $teacher   = $this->teacher('docente');
-        $assignment = new SpecificProfileAssignment($profile, $subperfil, $teacher);
+        $assignment = new SpecificProfileAssignment($profile, $subprofile, $teacher);
 
-        $this->persist($centre, $subperfil, $otherLeaf, $profile, $teacher, $assignment);
+        $this->persist($centre, $subprofile, $otherLeaf, $profile, $teacher, $assignment);
 
-        self::assertTrue($this->access->holdsProfile($teacher, $profile, $subperfil));
+        self::assertTrue($this->access->holdsProfile($teacher, $profile, $subprofile));
         self::assertFalse($this->access->holdsProfile($teacher, $profile, $otherLeaf));
     }
 
