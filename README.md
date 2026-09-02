@@ -33,10 +33,34 @@ Es **multi-centro**: un mismo servidor puede alojar varios centros educativos co
 separados. Cada docente accede únicamente a los datos del centro que tiene asignado, y los
 administradores globales pueden gestionar todos los centros desde la sección **Administración**.
 
-> **Estado del proyecto:** esqueleto inicial. La base técnica (acceso, multi-centro, calendario,
-> administración del centro, motor de ajustes, generación de PDF) ya está construida; la gestión
-> documental de la calidad propiamente dicha se irá añadiendo a partir de aquí. Ver
-> [CHANGELOG.md](CHANGELOG.md).
+### Funcionalidades
+
+- **Árbol documental** — estructura de secciones anidables con carpetas restringibles por
+  perfil (responsables, subida, visibilidad y revisión). Documentos con historial de revisiones
+  numeradas, flujo opcional de visto bueno (aprobar/rechazar antes de que una revisión pase a
+  activa), subida por arrastrar y soltar, y búsqueda en tres niveles (global, por sección y
+  paleta de comandos **⌘K**). Exportación e importación completa del árbol en JSON.
+- **Responsabilidades** — listas jerárquicas de nombres propias del centro (grupos, departamentos,
+  materias…) con etiquetas heredables; **perfiles específicos** (tutorías, jefaturas…) que generan
+  un **subperfil** automático por cada elemento de una lista; y una vista transversal para asignar
+  docentes a perfiles. Importación de grupos y materias desde **Séneca** (CSV) con previsualización
+  de altas, bajas y reactivaciones.
+- **Actividades** — plazos y tareas periódicas del sistema de calidad, agrupados en categorías del
+  centro, con lista personal (progreso, filtros y buscador), ámbito por perfil o individual, y
+  compleción manual o mediante la entrega de un documento del árbol con el mismo flujo de
+  aprobación que una revisión.
+- **Calendario** — eventos de centro (generales o restringidos a perfiles/subperfiles) y días no
+  lectivos, con los plazos de las actividades integrados en el detalle de cada día.
+- **Avisos por correo electrónico** — configurables a nivel global, de centro y personal (documento
+  pendiente de revisar, aceptado o rechazado, actividad pendiente), en modo individual o resumen
+  diario, con campana de notificaciones en la cabecera.
+- **Panel principal** — resumen de las revisiones y actividades pendientes de cada docente y, para
+  responsable de calidad y administración, de todo el centro.
+- **Administración** — cursos académicos, docentes, perfiles de responsable de calidad y auditor/a
+  interno/a, motor de ajustes (global/centro/personal), registro de avisos y copias de seguridad.
+
+La sección **Informes** todavía está vacía; el resto de la aplicación está operativa. Ver
+[CHANGELOG.md](CHANGELOG.md) para el detalle de cada versión.
 
 Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para la guía de contribución, [CHANGELOG.md](CHANGELOG.md)
 para el historial de cambios y [SECURITY.md](SECURITY.md) para reportar vulnerabilidades.
@@ -71,10 +95,12 @@ Capítulos:
 | Introducción | Qué es ÁTICA Calidad y cómo usar el manual |
 | Instalación y puesta en marcha | Modos de despliegue y requisitos |
 | Preparar el curso académico | Configurar el centro y el curso académico |
-| Calendario | Navegación, eventos de centro |
+| Calendario | Navegación, eventos de centro y días no lectivos |
 | Informes | (todavía sin contenido) |
 | Administrar el centro educativo | Referencia de cada sección del hub de centro |
-| Responsabilidades | Listas jerárquicas, etiquetas y perfiles específicos con subperfiles |
+| Responsabilidades | Listas jerárquicas, etiquetas, perfiles específicos con subperfiles e importación desde Séneca |
+| Árbol documental | Secciones, carpetas, documentos, revisiones y flujo de visto bueno |
+| Actividades | Plazos y tareas periódicas, entregas y compleción |
 | Administrar la plataforma | Administración global, ajustes, correo, copias de seguridad |
 | Permisos de un vistazo | Perfiles y tabla de permisos |
 | Resolución de problemas | Soluciones a las dudas más habituales |
