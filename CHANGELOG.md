@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-02
+
 ### Added
 
 - **Responsabilidades → Listas**: «Importar grupos desde Séneca» e «Importar materias desde
