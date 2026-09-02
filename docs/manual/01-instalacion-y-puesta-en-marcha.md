@@ -90,7 +90,9 @@ php bin/console app:setup
 
 ### app:create-educational-centre
 
-Crea un nuevo centro educativo con su primer curso académico.
+Crea un nuevo centro educativo con su primer curso académico, junto con las tres raíces por
+defecto de Responsabilidades → Listas (Departamento, Grupo, Materia — ver
+[Administrar la plataforma](09-administrar-la-plataforma.md#centros-educativos)).
 
 ```bash
 php bin/console app:create-educational-centre <código> <nombre> <localidad>

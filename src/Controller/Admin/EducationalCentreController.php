@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Controller\TranslatorTrait;
-use App\Entity\AcademicYear;
-use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Pagination\Paginator;
 use App\Repository\AcademicYearRepository;
 use App\Repository\EducationalCentreRepository;
 use App\Repository\TeacherRepository;
+use App\Service\CentreProvisioner;
 use App\Service\TenantContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -37,6 +36,7 @@ class EducationalCentreController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly TenantContext $tenantContext,
         private readonly ClockInterface $clock,
+        private readonly CentreProvisioner $centreProvisioner,
     ) {}
 
     #[Route('', name: 'app_admin_centres_index')]
@@ -69,20 +69,9 @@ class EducationalCentreController extends AbstractController
             }
 
             if (empty($errors)) {
-                $centre = (new EducationalCentre())
-                    ->setCode($values['code'])
-                    ->setName($values['name'])
-                    ->setCity($values['city']);
-
-                $year = (int) $this->clock->now()->format('Y');
-                $academicYear = (new AcademicYear())
-                    ->setName($year . '-' . ($year + 1))
-                    ->setEducationalCentre($centre);
-                $centre->setActiveAcademicYear($academicYear);
-
-                $this->em->persist($centre);
-                $this->em->persist($academicYear);
-                $this->em->flush();
+                $year     = (int) $this->clock->now()->format('Y');
+                $yearName = $year . '-' . ($year + 1);
+                $centre   = $this->centreProvisioner->provision($values['code'], $values['name'], $values['city'], $yearName);
 
                 if (!$this->tenantContext->isSelected()) {
                     $this->tenantContext->selectCentre($centre);

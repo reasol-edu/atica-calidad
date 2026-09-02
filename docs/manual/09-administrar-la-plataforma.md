@@ -11,6 +11,13 @@ sección **Administración**, con gestión de todos los centros alojados en el s
 centros nuevos, se edita su código/nombre/localidad y se asigna su equipo directivo (docentes con
 acceso a la administración de ese centro concreto, sin necesidad de ser administradores globales).
 
+Al crear un centro (desde aquí o con `app:create-educational-centre`/`app:load-demo-data` por
+consola) se le crean automáticamente tres raíces vacías en [Responsabilidades →
+Listas](06-responsabilidades.md#listas): **Departamento**, **Grupo** y **Materia**, listas para
+rellenar. Sus nombres salen de una única traducción (`responsibilities.lists.default_roots`, en
+`translations/admin.es.yaml`) separada por punto y coma, así que se pueden añadir, quitar o
+renombrar sin tocar código.
+
 ### Docentes
 
 **Administración → Docentes** gestiona el listado global de docentes del servidor: alta, edición,

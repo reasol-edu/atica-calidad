@@ -323,6 +323,9 @@ responsibilities.lists.title: 'Listas'
 responsibilities.lists.hub_help: 'Crea jerarquías propias de nombres para el centro (grupos, departamentos...) y etiquétalas.'
 responsibilities.lists.manage: 'Gestionar listas'
 responsibilities.lists.help: 'Crea jerarquías de elementos con la profundidad que necesites (por ejemplo, «Grupo» → «1º ESO» → «1º ESO-A»). Cada elemento puede llevar sus propias etiquetas, que heredan también sus descendientes.'
+# Nombres de las raíces que se crean automáticamente al dar de alta un centro, separados por
+# punto y coma — se pueden añadir, quitar o renombrar (ver CentreProvisioner).
+responsibilities.lists.default_roots: 'Departamento;Grupo;Materia'
 
 responsibilities.lists.root: 'Raíz'
 responsibilities.lists.col.roots: 'Listas'

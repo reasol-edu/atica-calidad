@@ -18,6 +18,7 @@ use App\Entity\SchoolEvent;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Repository\EducationalCentreRepository;
+use App\Repository\ListItemRepository;
 use App\Repository\TeacherRepository;
 use App\Service\CentreProvisioner;
 use App\Service\DocumentCreationService;
@@ -74,6 +75,7 @@ class LoadDemoDataCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly EducationalCentreRepository $centres,
+        private readonly ListItemRepository $items,
         private readonly TeacherRepository $teacherRepository,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly CentreProvisioner $centreProvisioner,
@@ -328,14 +330,22 @@ class LoadDemoDataCommand extends Command
     }
 
     /**
+     * Reuses the root CentreProvisioner already created for $rootName (see
+     * responsibilities.lists.default_roots) instead of creating a duplicate — falls back to
+     * creating one only if that translation was customized away from this demo data's expected
+     * "Departamento;Grupo;Materia" names.
+     *
      * @param  string[] $items
      * @return array<string, ListItem> name => leaf
      */
     private function createFlatList(string $rootName, array $items, EducationalCentre $centre): array
     {
-        $root = new ListItem();
-        $root->setName($rootName)->setEducationalCentre($centre)->setPosition(0);
-        $this->em->persist($root);
+        $root = $this->findRootByName($centre, $rootName);
+        if ($root === null) {
+            $root = new ListItem();
+            $root->setName($rootName)->setEducationalCentre($centre)->setPosition($this->items->nextRootPosition($centre));
+            $this->em->persist($root);
+        }
 
         $leaves = [];
         foreach ($items as $i => $name) {
@@ -346,6 +356,17 @@ class LoadDemoDataCommand extends Command
         }
 
         return $leaves;
+    }
+
+    private function findRootByName(EducationalCentre $centre, string $name): ?ListItem
+    {
+        foreach ($this->items->findRootsByCentre($centre) as $root) {
+            if ($root->getName() === $name) {
+                return $root;
+            }
+        }
+
+        return null;
     }
 
     // ── Profiles ──────────────────────────────────────────────────────────────

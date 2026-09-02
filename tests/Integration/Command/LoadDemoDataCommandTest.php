@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Command;
 
 use App\Entity\EducationalCentre;
+use App\Entity\ListItem;
 use App\Entity\PersonName;
 use App\Entity\Teacher;
 use App\Repository\ActivityRepository;
 use App\Repository\DocumentSectionRepository;
 use App\Repository\EducationalCentreRepository;
+use App\Repository\ListItemRepository;
 use App\Repository\TeacherRepository;
 use App\Tests\Integration\RepositoryTestCase;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
@@ -61,6 +63,12 @@ final class LoadDemoDataCommandTest extends RepositoryTestCase
         /** @var ActivityRepository $activities */
         $activities = self::getContainer()->get(ActivityRepository::class);
         self::assertCount(3, $activities->findAll());
+
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        $roots = $items->findRootsByCentre($centre);
+        self::assertCount(3, $roots, 'the Departamento/Grupo/Materia roots CentreProvisioner creates must be reused, not duplicated, by the demo data');
+        self::assertSame(['Departamento', 'Grupo', 'Materia'], array_map(static fn (ListItem $r): string => $r->getName(), $roots));
     }
 
     public function testFailsWhenTheDemoCentreAlreadyExists(): void

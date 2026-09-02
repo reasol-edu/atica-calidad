@@ -7,6 +7,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- Al crear un centro educativo (por consola o desde Administración → Centros educativos) se le
+  crean automáticamente tres raíces vacías en Responsabilidades → Listas: **Departamento**,
+  **Grupo** y **Materia**, listas para rellenar.
+
 ## [0.2.0] - 2026-09-02
 
 ### Added

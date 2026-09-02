@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Controller\Admin;
 
 use App\Entity\EducationalCentre;
+use App\Entity\ListItem;
 use App\Entity\PersonName;
 use App\Entity\Teacher;
 use App\Repository\EducationalCentreRepository;
+use App\Repository\ListItemRepository;
 use App\Tests\Integration\ControllerTestCase;
 
 final class EducationalCentreControllerTest extends ControllerTestCase
@@ -80,6 +82,15 @@ final class EducationalCentreControllerTest extends ControllerTestCase
         $reloaded = $centres->findByCode('87654321');
         self::assertNotNull($reloaded);
         self::assertSame('IES Nuevo', $reloaded->getName());
+
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        $roots = $items->findRootsByCentre($reloaded);
+        self::assertSame(
+            ['Departamento', 'Grupo', 'Materia'],
+            array_map(static fn (ListItem $root): string => $root->getName(), $roots),
+            'creating a centre from the web form must also get the default Responsabilidades › Listas roots, same as the CLI',
+        );
     }
 
     public function testNewRejectsADuplicateCode(): void
