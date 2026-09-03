@@ -5,6 +5,14 @@
 <div class="divide-y divide-gray-100">
     {% if groups is empty %}
         <p class="px-4 py-6 text-center text-sm text-gray-400">{{ 'empty'|trans({}, 'document_content') }}</p>
+    {% else %}
+        <div class="flex justify-end px-4 pt-3 -mb-1">
+            <a href="{{ path('app_folder_download_zip', {folderId: fid}) }}"
+               class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-forest-600 transition-colors">
+                {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-3.5 w-3.5'}) }}
+                {{ 'folder.download_zip'|trans({}, 'document_content') }}
+            </a>
+        </div>
     {% endif %}
 
     {% for group in groups %}

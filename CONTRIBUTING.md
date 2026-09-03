@@ -104,13 +104,16 @@ Transversales: no pertenecen a un dominio concreto, sino a un tipo de código o 
 
 Las distintas áreas funcionales de ÁTICA Calidad, alineadas con sus controladores y entidades principales.
 
-| Ámbito         | Cubre commits que afectan a... |
-|----------------|----------------------------------|
-| `calendar`     | Calendario, eventos de centro y días no lectivos |
-| `reports`      | Informes del sistema de gestión de la calidad |
-| `centre`       | Centro educativo: cursos académicos, docentes, perfiles y ajustes del centro |
-| `admin`        | Administración global multi-centro (no confundir con el namespace `Admin` del código, que también incluye pantallas de gestión de un solo centro) |
-| `security`     | Autenticación, autorización y control de acceso |
+| Ámbito             | Cubre commits que afectan a... |
+|--------------------|----------------------------------|
+| `calendar`         | Calendario, eventos de centro y días no lectivos |
+| `reports`          | Informes del sistema de gestión de la calidad |
+| `centre`           | Centro educativo: cursos académicos, docentes, perfiles y ajustes del centro |
+| `admin`            | Administración global multi-centro (no confundir con el namespace `Admin` del código, que también incluye pantallas de gestión de un solo centro) |
+| `security`         | Autenticación, autorización y control de acceso |
+| `responsibilities` | Responsabilidades: listas jerárquicas, etiquetas, perfiles específicos y subperfiles, y asignación de docentes |
+| `document-tree`    | Árbol documental: secciones, carpetas, documentos, revisiones y su flujo de visto bueno |
+| `activities`       | Actividades: plazos y tareas periódicas, categorías, entregas y compleción |
 
 ### Referencias a incidencias
 

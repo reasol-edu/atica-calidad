@@ -21,6 +21,7 @@ use App\Service\DocumentCreationService;
 use App\Service\DocumentReviewNotifier;
 use App\Service\DocumentReviewOutcomeNotifier;
 use App\Service\DocumentTreeAccessChecker;
+use App\Service\FolderZipExporter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -56,6 +57,7 @@ class FolderController extends AbstractController
         private readonly DocumentCreationService $documentCreation,
         private readonly DocumentReviewNotifier $reviewNotifier,
         private readonly DocumentReviewOutcomeNotifier $outcomeNotifier,
+        private readonly FolderZipExporter $folderZipExporter,
     ) {}
 
     /**
@@ -248,6 +250,21 @@ class FolderController extends AbstractController
         $extension = pathinfo($file->getOriginalFilename(), PATHINFO_EXTENSION);
 
         return $extension === '' ? $document->getName() : $document->getName() . '.' . $extension;
+    }
+
+    /**
+     * Downloads the whole folder as a ZIP — one file per document (its active revision). A folder
+     * organised by upload profile puts each profile's documents in a subdirectory named after the
+     * profile; see FolderZipExporter. Gated by plain folder visibility, exactly like the
+     * single-revision download above.
+     */
+    #[Route('/descargar-zip', name: 'app_folder_download_zip', methods: ['GET'])]
+    public function downloadZip(string $folderId, #[CurrentCentre] EducationalCentre $centre): Response
+    {
+        $folder = $this->requireFolder($folderId, $centre);
+        $this->denyAccessUnlessGranted(FolderVoter::VIEW, $folder);
+
+        return $this->folderZipExporter->export($folder);
     }
 
     #[Route('/documentos/{documentId}/revisiones/{revisionId}/aprobar', name: 'app_folder_document_revision_approve', methods: ['POST'])]

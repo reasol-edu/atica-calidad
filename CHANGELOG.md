@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Árbol documental**: cada carpeta se puede descargar entera en un archivo ZIP (opción
+  «Descargar la carpeta (ZIP)» dentro de la carpeta). Si la carpeta está organizada por perfil de
+  subida, cada perfil pasa a ser una subcarpeta del ZIP con su nombre (sustituyendo los caracteres
+  que no son válidos en un nombre de fichero); los documentos sin perfil van en la raíz del
+  archivo. Se incluye la revisión activa de cada documento.
+
 ## [0.3.0] - 2026-09-02
 
 ### Added

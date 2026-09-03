@@ -2,6 +2,7 @@ breadcrumb.root: 'Raíz'
 
 folder.activity_hint: 'Esta carpeta está asociada a la actividad "%title%": las entregas se gestionan desde Actividades.'
 folder.activity_link: 'Ir a la actividad'
+folder.download_zip: 'Descargar la carpeta (ZIP)'
 
 folders_title: 'Carpetas'
 folders_empty: 'Todavía no hay ninguna carpeta en esta sección.'

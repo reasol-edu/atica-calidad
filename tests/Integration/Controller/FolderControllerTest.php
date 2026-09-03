@@ -462,6 +462,164 @@ final class FolderControllerTest extends ControllerTestCase
         self::assertSame(404, $this->client->getResponse()->getStatusCode());
     }
 
+    // ── downloadZip() ────────────────────────────────────────────────────────
+
+    /** @return array<string, string> entry path => content */
+    private function readZipResponse(): array
+    {
+        $path = tempnam(sys_get_temp_dir(), 'folder_zip_test_');
+        self::assertNotFalse($path);
+        file_put_contents($path, $this->getStreamedContent());
+
+        $zip = new \ZipArchive();
+        self::assertTrue($zip->open($path));
+        $out = [];
+        for ($i = 0; $i < $zip->numFiles; ++$i) {
+            $out[(string) $zip->getNameIndex($i)] = (string) $zip->getFromIndex($i);
+        }
+        $zip->close();
+        unlink($path);
+
+        return $out;
+    }
+
+    public function testDownloadZipBundlesEachDocumentsActiveRevision(): void
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($centre);
+        $uploader = $this->teacher('subidor');
+        $doc1     = $this->documentWithFirstRevision($folder, $uploader, 'Manual de calidad');
+        $doc2     = $this->documentWithFirstRevision($folder, $uploader, 'Política');
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $uploader, $doc1, $doc2);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip");
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertSame('application/zip', $this->client->getResponse()->headers->get('Content-Type'));
+
+        $files = $this->readZipResponse();
+        ksort($files);
+        self::assertSame(['Manual de calidad.txt' => 'v1', 'Política.txt' => 'v1'], $files);
+    }
+
+    public function testDownloadZipSkipsDocumentsWithoutAnActiveRevision(): void
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($centre);
+        $uploader = $this->teacher('subidor');
+        $published = $this->documentWithFirstRevision($folder, $uploader, 'Aprobado');
+
+        $pending  = new Document($folder, 'Pendiente');
+        $file     = new DocumentFile(hash('sha256', 'pendiente'), 'p', 'text/plain', 'p.txt', 1);
+        $revision = new DocumentRevision($pending, 1, $file, true, $uploader);
+        $pending->getRevisions()->add($revision);
+        $this->em->persist($file);
+        $this->em->persist($pending);
+        $this->em->persist($revision);
+
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $uploader, $published);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip");
+
+        self::assertSame(['Aprobado.txt' => 'v1'], $this->readZipResponse());
+    }
+
+    public function testDownloadZipPutsEachUploadProfileInItsOwnSubdirectoryWhenGrouped(): void
+    {
+        $centre = $this->centre();
+        $folder = $this->folder($centre);
+        $folder->setGroupByProfile(true);
+        $profileA = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretaría');
+        $profileB = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura de estudios');
+        $uploader = $this->teacher('subidor');
+
+        $docA = $this->documentWithFirstRevision($folder, $uploader, 'Acta');
+        $docA->setUploadProfile($profileA);
+        $docB = $this->documentWithFirstRevision($folder, $uploader, 'Horario');
+        $docB->setUploadProfile($profileB);
+        $docNone = $this->documentWithFirstRevision($folder, $uploader, 'Sin perfil');
+
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $profileA, $profileB, $uploader, $docA, $docB, $docNone);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip");
+
+        $files = $this->readZipResponse();
+        ksort($files);
+        self::assertSame([
+            'Jefatura de estudios/Horario.txt' => 'v1',
+            'Secretaría/Acta.txt'              => 'v1',
+            'Sin perfil.txt'                   => 'v1',
+        ], $files);
+    }
+
+    public function testDownloadZipIgnoresProfileGroupingWhenTheFolderIsNotGroupedByProfile(): void
+    {
+        $centre  = $this->centre();
+        $folder  = $this->folder($centre);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretaría');
+        $uploader = $this->teacher('subidor');
+
+        $doc = $this->documentWithFirstRevision($folder, $uploader, 'Acta');
+        $doc->setUploadProfile($profile);
+
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $uploader, $doc);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip");
+
+        self::assertSame(['Acta.txt' => 'v1'], $this->readZipResponse());
+    }
+
+    public function testDownloadZipReplacesDangerousCharactersInTheProfileSubdirectoryName(): void
+    {
+        $centre = $this->centre();
+        $folder = $this->folder($centre);
+        $folder->setGroupByProfile(true);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura/Depto: "Mates"');
+        $uploader = $this->teacher('subidor');
+
+        $doc = $this->documentWithFirstRevision($folder, $uploader, 'Programación');
+        $doc->setUploadProfile($profile);
+
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $uploader, $doc);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip");
+
+        $names = array_keys($this->readZipResponse());
+        self::assertCount(1, $names);
+        self::assertSame(1, substr_count($names[0], '/'), 'only the subdirectory separator may remain');
+        self::assertStringNotContainsString(':', $names[0]);
+        self::assertStringNotContainsString('"', $names[0]);
+        self::assertStringStartsWith('Jefatura_Depto_ _Mates_/', $names[0]);
+    }
+
+    public function testDownloadZipDeniedWhenFolderVisibilityRestrictsTheTeacher(): void
+    {
+        $centre            = $this->centre();
+        $folder            = $this->folder($centre);
+        $visibilityProfile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Visible');
+        $folder->addVisibilityProfile($visibilityProfile);
+        $uploader = $this->teacher('subidor');
+        $document = $this->documentWithFirstRevision($folder, $uploader, 'Doc');
+        $stranger = $this->teacher('ajeno');
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $visibilityProfile, $uploader, $stranger, $document);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($stranger, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip");
+
+        self::assertSame(403, $this->client->getResponse()->getStatusCode());
+    }
+
     // ── approve() / reject() ─────────────────────────────────────────────────
 
     public function testApproveActivatesThePendingRevision(): void

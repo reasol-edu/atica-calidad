@@ -189,6 +189,12 @@ ninguna (primera versión aún pendiente), el documento se muestra como «Pendie
 fichero descargado usa el **nombre del documento**, no el del fichero original que se subió —
 conservando su extensión.
 
+El enlace **«Descargar la carpeta (ZIP)»**, encima de la lista de documentos, empaqueta de una vez
+la revisión activa de todos los documentos de la carpeta (los que aún no tienen revisión activa
+quedan fuera). Si la carpeta está **organizada por perfil de subida**, dentro del ZIP cada perfil
+es una subcarpeta con su nombre —los caracteres que no valen en un nombre de fichero se
+sustituyen por `_`—, y los documentos sin perfil van en la raíz del archivo.
+
 Quien es responsable de la carpeta (o tiene permiso de revisión, para poder aprobar con
 conocimiento del histórico) puede abrir el **historial completo de revisiones**: fecha, quién la
 subió, su estado (activa / pendiente / aprobada / rechazada) y acciones para elegir cuál es la
@@ -235,6 +241,7 @@ Hay tres formas de buscar, cada una para un caso distinto:
 | Ver la sección/carpeta (si no está restringida) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Ver la sección/carpeta (si está restringida a otros perfiles) | — | — | — | según corresponda | ✅ |
 | Descargar la revisión activa | ✅¹ | ✅¹ | ✅¹ | ✅ | ✅ |
+| Descargar la carpeta entera en ZIP | ✅¹ | ✅¹ | ✅¹ | ✅ | ✅ |
 | Subir un documento nuevo | — | ✅ (con su propio perfil) | — | ✅ (con cualquier perfil) | ✅ |
 | Subir una nueva revisión de un documento existente | — | — | ✅ | ✅ | ✅ |
 | Eliminar el documento completo | — | — | ✅ | ✅ | ✅ |
