@@ -25,10 +25,14 @@ use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * Breadcrumb drill-down editor for a centre's custom lists: one level of
- * items visible at a time (root items, or the children of whichever item
- * the breadcrumb currently points at), unbounded depth. Tags are attached
- * directly to any item and inherited by its descendants (see ListItem).
+ * Editor for a centre's custom lists: a full nested drag-and-drop tree for desktop, and a
+ * breadcrumb drill-down fallback (one level at a time, up/down reordering instead of dragging)
+ * for small screens — same state and LiveActions, two renderings picked by CSS breakpoint (see
+ * the component's template), mirroring DocumentSectionTreeComponent's own split. Selecting an
+ * item (from either view) opens the single detail panel below, shared by both views, where
+ * renaming, activation, its profile association and its tags are edited — dragging only ever
+ * reorders/reparents, it never opens that panel. Tags are attached directly to any item and
+ * inherited by its descendants (see ListItem).
  */
 #[AsLiveComponent]
 class ListItemTreeComponent extends AbstractController
@@ -36,10 +40,17 @@ class ListItemTreeComponent extends AbstractController
     use DefaultActionTrait;
     use ComponentToolsTrait;
 
+    /**
+     * Marks the desktop tree's root "add" box as open in $addingParentId — distinct from '' (no
+     * box open) and from a real item id. Never passed as the actual parent id to addItem(): a
+     * root item is created with parentId === ''.
+     */
+    private const ROOT_SENTINEL = '@root';
+
     #[LiveProp]
     public EducationalCentre $centre;
 
-    /** '' means the root level. */
+    /** '' means the root level. Drives the mobile breadcrumb drill-down only. */
     #[LiveProp(writable: true)]
     public string $currentParentId = '';
 
@@ -48,6 +59,10 @@ class ListItemTreeComponent extends AbstractController
 
     #[LiveProp(writable: true)]
     public string $addName = '';
+
+    /** '' = no add box open, self::ROOT_SENTINEL = the desktop tree's root add box, otherwise an item id. Desktop tree only — the mobile view's add box is always open, tied to currentParentId instead. */
+    #[LiveProp(writable: true)]
+    public string $addingParentId = '';
 
     #[LiveProp(writable: true)]
     public string $editName = '';
@@ -69,6 +84,28 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public bool $confirmingDelete = false;
 
+    /**
+     * Whether checkboxes are showing instead of the normal select/rename controls, to assign one
+     * profile/subprofile to several items in a single action instead of one at a time. Deliberately
+     * NOT scoped to "the current level"/"the current branch" — a checked item stays checked while
+     * navigating (either view), so a selection can span siblings across different parents too.
+     */
+    #[LiveProp(writable: true)]
+    public bool $bulkSelectMode = false;
+
+    /**
+     * Ids of the items currently checked in bulk-select mode. Deliberately NOT `norender`: the
+     * "N seleccionados" count and the action bar's visibility need to update as items are (un)checked.
+     *
+     * @var string[]
+     */
+    #[LiveProp(writable: true)]
+    public array $bulkSelectedIds = [];
+
+    /** Same key format as $associationKey, but for the bulk action bar's own picker — kept separate so the two never interfere with each other. */
+    #[LiveProp(writable: true)]
+    public string $bulkAssociationKey = '';
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
@@ -85,7 +122,48 @@ class ListItemTreeComponent extends AbstractController
         $this->centre = $centre;
     }
 
-    // ── Navigation data ──────────────────────────────────────────────────────
+    public function getRootSentinel(): string
+    {
+        return self::ROOT_SENTINEL;
+    }
+
+    // ── Desktop: full nested tree ────────────────────────────────────────────
+
+    /**
+     * The whole centre's list-item tree, nested, for the desktop drag-and-drop editor.
+     *
+     * @return array<int, array{item: ListItem, children: array<mixed>}>
+     */
+    public function getTree(): array
+    {
+        $byParent = [];
+        foreach ($this->items->findAllByCentre($this->centre) as $item) {
+            $key              = $item->getParent()?->getId()->toRfc4122() ?? '';
+            $byParent[$key][] = $item;
+        }
+
+        return $this->buildNodes('', $byParent);
+    }
+
+    /**
+     * @param array<string, ListItem[]> $byParent
+     *
+     * @return array<int, array{item: ListItem, children: array<mixed>}>
+     */
+    private function buildNodes(string $parentKey, array $byParent): array
+    {
+        $nodes = [];
+        foreach ($byParent[$parentKey] ?? [] as $item) {
+            $nodes[] = [
+                'item'     => $item,
+                'children' => $this->buildNodes($item->getId()->toRfc4122(), $byParent),
+            ];
+        }
+
+        return $nodes;
+    }
+
+    // ── Mobile: breadcrumb drill-down ────────────────────────────────────────
 
     public function getCurrentParent(): ?ListItem
     {
@@ -204,8 +282,22 @@ class ListItemTreeComponent extends AbstractController
 
     // ── Add / save / delete ──────────────────────────────────────────────────
 
+    /** Desktop tree only: toggles the inline add-box under $parentId (or the root box, for self::ROOT_SENTINEL). */
     #[LiveAction]
-    public function addItem(): void
+    public function toggleAdd(#[LiveArg] string $parentId): void
+    {
+        $this->addingParentId = $this->addingParentId === $parentId ? '' : $parentId;
+        $this->addName        = '';
+        $this->errors         = [];
+    }
+
+    /**
+     * $parentId is '' for a root item — passed explicitly by both views: the mobile add box
+     * always targets $currentParentId (whichever level is being browsed), the desktop tree's
+     * per-node add box targets that node.
+     */
+    #[LiveAction]
+    public function addItem(#[LiveArg] string $parentId = ''): void
     {
         $name = trim($this->addName);
         if ($name === '') {
@@ -214,8 +306,12 @@ class ListItemTreeComponent extends AbstractController
             return;
         }
 
-        $parent = $this->getCurrentParent();
-        $item   = (new ListItem())
+        $parent = $parentId === '' ? null : $this->items->findByIdAndCentre($parentId, $this->centre);
+        if ($parentId !== '' && $parent === null) {
+            return;
+        }
+
+        $item = (new ListItem())
             ->setEducationalCentre($this->centre)
             ->setName($name)
             ->setPosition($parent === null ? $this->items->nextRootPosition($this->centre) : $this->items->nextChildPosition($parent));
@@ -224,7 +320,8 @@ class ListItemTreeComponent extends AbstractController
         $this->em->persist($item);
         $this->em->flush();
 
-        $this->addName = '';
+        $this->addName        = '';
+        $this->addingParentId = '';
         $this->selectItem($item->getId()->toRfc4122());
     }
 
@@ -344,6 +441,60 @@ class ListItemTreeComponent extends AbstractController
         $this->em->flush();
     }
 
+    /**
+     * Desktop drag-and-drop: called once per drop with the id of the dragged item, the id of the
+     * list it was dropped into ('' for the root list) and the full ordered list of item ids now
+     * in that destination list (including the dragged one), read straight from the DOM by the
+     * SortableJS wrapper. Handles same-level reordering and reparenting in one call — mirrors
+     * DocumentSectionTreeComponent::moveSection().
+     *
+     * @param string[] $orderedIds
+     */
+    #[LiveAction]
+    public function moveListItem(#[LiveArg] string $id, #[LiveArg] string $newParentId, #[LiveArg] array $orderedIds): void
+    {
+        $target = $this->items->findByIdAndCentre($id, $this->centre);
+        if ($target === null) {
+            return;
+        }
+
+        $newParent = $newParentId === '' ? null : $this->items->findByIdAndCentre($newParentId, $this->centre);
+        if ($newParentId !== '' && $newParent === null) {
+            return;
+        }
+
+        $oldParent   = $target->getParent();
+        $oldParentId = $oldParent?->getId()->toRfc4122() ?? '';
+
+        try {
+            $target->setParent($newParent);
+        } catch (\LogicException) {
+            return;
+        }
+
+        foreach ($orderedIds as $position => $siblingId) {
+            $sibling = $siblingId === $id ? $target : $this->items->findByIdAndCentre((string) $siblingId, $this->centre);
+            $sibling?->setPosition($position);
+        }
+
+        if ($oldParentId !== $newParentId) {
+            $remaining = $oldParent === null
+                ? $this->items->findRootsByCentre($this->centre)
+                : $this->items->findChildrenByParent($oldParent);
+
+            $position = 0;
+            foreach ($remaining as $sibling) {
+                if ($sibling === $target) {
+                    continue;
+                }
+                $sibling->setPosition($position);
+                ++$position;
+            }
+        }
+
+        $this->em->flush();
+    }
+
     #[LiveAction]
     public function sortAlphabetically(): void
     {
@@ -452,6 +603,62 @@ class ListItemTreeComponent extends AbstractController
         $selected->setAssociation($row->profile, $row->listItem);
         $this->em->flush();
         $this->flashSuccess($this->t('responsibilities.lists.association.flash.saved'));
+    }
+
+    // ── Bulk association ─────────────────────────────────────────────────────
+
+    #[LiveAction]
+    public function toggleBulkSelectMode(): void
+    {
+        $this->bulkSelectMode    = !$this->bulkSelectMode;
+        $this->bulkSelectedIds   = [];
+        $this->bulkAssociationKey = '';
+        $this->errors            = [];
+        // Editing one item's own detail panel while bulk-selecting several others would be a
+        // confusing overlap — close it.
+        $this->selectedId        = '';
+    }
+
+    /**
+     * Applies $bulkAssociationKey to every checked item at once (or clears their association, if
+     * left on "Sin asociar") — the same underlying ListItem::setAssociation() a single-item save
+     * uses, just looped and flushed once instead of once per item.
+     */
+    #[LiveAction]
+    public function bulkSaveAssociation(): void
+    {
+        if ($this->bulkSelectedIds === []) {
+            return;
+        }
+
+        $row = null;
+        if ($this->bulkAssociationKey !== '') {
+            $rowsByKey = [];
+            foreach ($this->getAssociationRows() as $candidate) {
+                $rowsByKey[$candidate->key()] = $candidate;
+            }
+
+            $row = $rowsByKey[$this->bulkAssociationKey] ?? null;
+            if ($row === null) {
+                return;
+            }
+        }
+
+        $count = 0;
+        foreach ($this->bulkSelectedIds as $id) {
+            $item = $this->items->findByIdAndCentre((string) $id, $this->centre);
+            if ($item === null) {
+                continue;
+            }
+
+            $item->setAssociation($row?->profile, $row?->listItem);
+            ++$count;
+        }
+
+        $this->em->flush();
+        $this->bulkSelectedIds    = [];
+        $this->bulkAssociationKey = '';
+        $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.flash.saved', ['%count%' => $count], 'admin'));
     }
 
     private function t(string $key): string

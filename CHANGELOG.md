@@ -17,6 +17,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   revisión y a las entregas de una actividad. Cuando hay restricción y se puede subir algo, un
   aviso «Formatos aceptados: ...» lo indica antes del listado de documentos (o de «Mis entregas»,
   en una actividad).
+- **Responsabilidades → Listas**: en pantallas grandes se muestra el árbol completo del centro y
+  cada elemento se reordena o se mueve a otro padre **arrastrándolo**, igual que en el árbol
+  documental. Las migas de pan quedan como alternativa (sin arrastrar) para pantallas pequeñas.
+- **Responsabilidades → Listas**: **Seleccionar varios** marca varios elementos con casillas (en
+  cualquier rama, no solo hermanos) y les asigna a todos el mismo perfil o subperfil —o se lo
+  quita a todos a la vez— en una sola acción, en vez de uno por uno.
 
 ### Changed
 

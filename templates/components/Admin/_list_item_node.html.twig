@@ -1,0 +1,62 @@
+{# node: {item: ListItem, children: [...]}, depth: int — inherits the parent component's context (this, selectedId, addingParentId, addName, errors...) #}
+{% set item = node.item %}
+{% set lid = item.id.toRfc4122 %}
+{% set is_sel = selectedId == lid %}
+<li class="js-list-item-node" data-list-item-id="{{ lid }}">
+    <div class="group flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors {{ is_sel ? 'bg-forest-50 ring-1 ring-inset ring-forest-200' : 'hover:bg-gray-50' }}"
+         style="padding-left: {{ depth * 1.25 }}rem">
+        <span class="js-drag-handle shrink-0 cursor-grab text-gray-300 hover:text-gray-500"
+              title="{{ 'responsibilities.lists.drag'|trans({}, 'admin') }}">
+            {{ ux_icon('heroicons:bars-2', {class: 'h-4 w-4'}) }}
+        </span>
+
+        {% if bulkSelectMode %}
+            <label class="flex flex-1 min-w-0 items-center gap-2 cursor-pointer">
+                <input type="checkbox" value="{{ lid }}" data-model="bulkSelectedIds"
+                       class="h-4 w-4 shrink-0 rounded border-gray-300 text-violet-600 focus:ring-violet-500">
+                <span class="min-w-0 truncate text-sm text-gray-800">{{ item.name }}</span>
+            </label>
+        {% else %}
+            <button type="button" data-action="live#action" data-live-action-param="selectItem" data-live-id-param="{{ lid }}"
+                    class="flex-1 min-w-0 truncate text-left text-sm {{ is_sel ? 'font-semibold text-forest-800' : 'text-gray-800 hover:text-forest-700' }}">
+                {{ item.name }}
+            </button>
+        {% endif %}
+
+        {% if not item.active %}
+            <span title="{{ 'responsibilities.lists.inactive'|trans({}, 'admin') }}" class="shrink-0 text-gray-300">
+                {{ ux_icon('heroicons:eye-slash', {class: 'h-3.5 w-3.5'}) }}
+            </span>
+        {% endif %}
+        {% if item.associatedProfile %}
+            <span title="{{ 'responsibilities.lists.association.title'|trans({}, 'admin') }}" class="shrink-0 text-violet-400">
+                {{ ux_icon('heroicons:link', {class: 'h-3.5 w-3.5'}) }}
+            </span>
+        {% endif %}
+
+        <button type="button" data-action="live#action" data-live-action-param="toggleAdd" data-live-parent-id-param="{{ lid }}"
+                title="{{ 'responsibilities.lists.add_child'|trans({}, 'admin') }}"
+                class="shrink-0 inline-flex items-center justify-center rounded-full p-1 text-gray-300 opacity-0 group-hover:opacity-100 hover:text-forest-600 hover:bg-forest-50 transition-opacity">
+            {{ ux_icon('heroicons:plus', {class: 'h-3.5 w-3.5'}) }}
+        </button>
+    </div>
+
+    {% if addingParentId == lid %}
+        <form data-action="submit->live#action:prevent" data-live-action-param="addItem" data-live-parent-id-param="{{ lid }}"
+              class="ml-8 mb-2 flex items-center gap-2">
+            <input type="text" data-model="norender|addName" value="{{ addName }}" autofocus
+                   placeholder="{{ 'responsibilities.lists.field.name_placeholder'|trans({}, 'admin') }}"
+                   class="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+            <button type="submit" class="shrink-0 rounded-md bg-forest-600 px-2 py-1 text-white hover:bg-forest-700">
+                {{ ux_icon('heroicons:plus', {class: 'h-3.5 w-3.5'}) }}
+            </button>
+        </form>
+        {% if errors.add is defined %}<p class="ml-8 mb-2 text-xs text-red-600">{{ errors.add }}</p>{% endif %}
+    {% endif %}
+
+    <ul class="js-list-item-list" data-parent-id="{{ lid }}" style="min-height: 0.5rem;">
+        {% for child in node.children %}
+            {% include 'components/Admin/_list_item_node.html.twig' with {node: child, depth: depth + 1} %}
+        {% endfor %}
+    </ul>
+</li>

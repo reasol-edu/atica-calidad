@@ -58,10 +58,38 @@ no se repiten cada curso académico.
 
 ### Navegar y crear elementos
 
-Desde **Responsabilidades → Listas** se navega con migas de pan: empiezas en la raíz (todas las
-listas del centro) y tocas el icono de flecha de un elemento para entrar en sus hijos. Un formulario
-en la parte inferior de cada nivel añade elementos nuevos ahí mismo. El botón de ordenar (icono de
-flechas) reordena alfabéticamente todos los elementos del nivel actual de una vez.
+En pantallas grandes, **Responsabilidades → Listas** muestra el árbol completo del centro: cada
+elemento se renombra, reordena o mueve a otro padre **arrastrándolo** (icono ⣿ a su izquierda),
+igual que las secciones del árbol documental. El botón **+** junto al título añade un elemento
+raíz; el que aparece al pasar por encima de un elemento añade un hijo ahí mismo. Un icono de
+enlace violeta junto al nombre indica que ese elemento ya tiene un perfil o subperfil asociado (ver
+[Asociar un elemento con un perfil](#asociar-un-elemento-con-un-perfil) más abajo).
+
+En pantallas pequeñas se navega con migas de pan en su lugar: empiezas en la raíz (todas las
+listas del centro) y tocas el icono de flecha de un elemento para entrar en sus hijos, sin
+arrastrar — se reordena con las flechas ↑/↓ del panel de edición. Un formulario en la parte
+inferior de cada nivel añade elementos nuevos ahí mismo. El botón de ordenar (icono de flechas)
+reordena alfabéticamente todos los elementos del nivel actual de una vez.
+
+En ambos tamaños, tocar el nombre de un elemento abre el mismo panel de edición debajo (nombre,
+estado, asociación a un perfil, etiquetas) — arrastrar nunca abre el panel, solo reordena o mueve.
+
+### Asociar un elemento con un perfil
+
+Cada elemento puede vincularse, opcionalmente, a un perfil o subperfil de Responsabilidades — por
+ejemplo, una materia con la jefatura de departamento de la que depende. Es una referencia suelta,
+sin relación con la jerarquía de la lista, distinta de [asociar un perfil a una lista para generar
+subperfiles](#asociar-un-perfil-a-una-lista-subperfiles): esta usa
+[Actividades](08-actividades.md#campos-de-una-actividad) para decidir a qué perfil corresponde la
+entrega nombrada por cada hoja de una lista.
+
+Para un elemento a la vez, se hace desde su panel de edición (**Asociado a**, con el mismo
+buscador de perfil/subperfil que en el resto de la aplicación). Para varios a la vez, **Seleccionar
+varios** —junto al título en pantallas grandes, o junto al contador de elementos en pequeñas—
+sustituye el botón de cada elemento por una casilla; con uno o más marcados aparece una barra con
+el mismo buscador y un botón **Asignar** que aplica el mismo perfil/subperfil a todos los marcados
+de una vez (o se lo quita a todos, si se deja en «Sin asociar»). La selección no se limita a los
+hijos de un mismo elemento: se puede marcar en varias ramas distintas antes de asignar.
 
 ### Elementos activos e inactivos
 

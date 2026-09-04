@@ -13,6 +13,7 @@ use App\Repository\ListItemRepository;
 use App\Tests\Integration\ControllerTestCase;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
+use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 
 final class ListItemTreeComponentTest extends ControllerTestCase
 {
@@ -293,6 +294,107 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertNull($reloaded->getAssociatedProfile());
     }
 
+    // ── Bulk association ─────────────────────────────────────────────────────
+
+    public function testToggleBulkSelectModeClearsAnyExistingSelectionAndChecks(): void
+    {
+        $centre = $this->centre();
+        $item   = (new ListItem())->setEducationalCentre($centre)->setName('Item');
+        $admin  = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $item, $admin);
+        $itemId = $item->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('selectItem', ['id' => $itemId]);
+        $component->set('bulkSelectedIds', [$itemId])->call('toggleBulkSelectMode');
+
+        self::assertTrue((bool) $this->props($component)['bulkSelectMode']);
+        self::assertSame('', $this->stringProp($component, 'selectedId'), 'entering bulk mode closes the single-item detail panel');
+        self::assertSame([], $this->props($component)['bulkSelectedIds'], 'toggling starts the selection fresh');
+    }
+
+    public function testBulkSaveAssociationAssignsTheSameProfileToEveryCheckedItem(): void
+    {
+        $centre  = $this->centre();
+        $itemA   = (new ListItem())->setEducationalCentre($centre)->setName('Física');
+        $itemB   = (new ListItem())->setEducationalCentre($centre)->setName('Química');
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura de Ciencias');
+        $admin   = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $itemA, $itemB, $profile, $admin);
+        $idA = $itemA->getId()->toRfc4122();
+        $idB = $itemB->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component
+            ->set('bulkSelectedIds', [$idA, $idB])
+            ->set('bulkAssociationKey', $profile->getId()->toRfc4122())
+            ->call('bulkSaveAssociation');
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items          = self::getContainer()->get(ListItemRepository::class);
+        $reloadedA      = $items->findByIdAndCentre($idA, $centre);
+        $reloadedB      = $items->findByIdAndCentre($idB, $centre);
+        self::assertNotNull($reloadedA);
+        self::assertNotNull($reloadedB);
+        self::assertNotNull($reloadedA->getAssociatedProfile());
+        self::assertNotNull($reloadedB->getAssociatedProfile());
+        self::assertSame($profile->getId()->toRfc4122(), $reloadedA->getAssociatedProfile()->getId()->toRfc4122());
+        self::assertSame($profile->getId()->toRfc4122(), $reloadedB->getAssociatedProfile()->getId()->toRfc4122());
+    }
+
+    public function testBulkSaveAssociationWithAnEmptyKeyClearsEveryCheckedItemsAssociation(): void
+    {
+        $centre  = $this->centre();
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $itemA   = (new ListItem())->setEducationalCentre($centre)->setName('Física');
+        $itemA->setAssociation($profile);
+        $itemB = (new ListItem())->setEducationalCentre($centre)->setName('Química');
+        $itemB->setAssociation($profile);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $itemA, $itemB, $profile, $admin);
+        $idA = $itemA->getId()->toRfc4122();
+        $idB = $itemB->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component->set('bulkSelectedIds', [$idA, $idB])->call('bulkSaveAssociation');
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        self::assertNull($items->findByIdAndCentre($idA, $centre)?->getAssociatedProfile());
+        self::assertNull($items->findByIdAndCentre($idB, $centre)?->getAssociatedProfile());
+    }
+
+    public function testBulkSaveAssociationIsANoOpWithNothingChecked(): void
+    {
+        $centre  = $this->centre();
+        $item    = (new ListItem())->setEducationalCentre($centre)->setName('Física');
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $admin   = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $item, $profile, $admin);
+        $itemId = $item->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component->set('bulkAssociationKey', $profile->getId()->toRfc4122())->call('bulkSaveAssociation');
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        self::assertNull($items->findByIdAndCentre($itemId, $centre)?->getAssociatedProfile());
+    }
+
     /**
      * Regression: the association picker (a TomSelect) must be re-keyed per selected item — its
      * wrapper id carries the selected item's id — so switching selection tears the widget down and
@@ -356,5 +458,152 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertNotNull($reloadedSecond);
         self::assertSame(1, $reloadedFirst->getPosition());
         self::assertSame(0, $reloadedSecond->getPosition());
+    }
+
+    // ── Desktop tree: drag-and-drop, per-node add ────────────────────────────
+
+    public function testMoveListItemReparentsAndReordersTheDestinationList(): void
+    {
+        $centre        = $this->centre();
+        $oldParent     = (new ListItem())->setEducationalCentre($centre)->setName('Antiguo padre');
+        $newParent     = (new ListItem())->setEducationalCentre($centre)->setName('Nuevo padre');
+        $moved         = (new ListItem())->setEducationalCentre($centre)->setName('Movido');
+        $moved->setParent($oldParent);
+        $existingChild = (new ListItem())->setEducationalCentre($centre)->setName('Ya estaba aquí');
+        $existingChild->setParent($newParent)->setPosition(0);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $oldParent, $newParent, $moved, $existingChild, $admin);
+        $movedId     = $moved->getId()->toRfc4122();
+        $newParentId = $newParent->getId()->toRfc4122();
+        $existingId  = $existingChild->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('moveListItem', [
+            'id'          => $movedId,
+            'newParentId' => $newParentId,
+            'orderedIds'  => [$existingId, $movedId],
+        ]);
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items         = self::getContainer()->get(ListItemRepository::class);
+        $reloadedMoved = $items->findByIdAndCentre($movedId, $centre);
+        self::assertNotNull($reloadedMoved);
+        $movedParent = $reloadedMoved->getParent();
+        self::assertNotNull($movedParent);
+        self::assertSame($newParentId, $movedParent->getId()->toRfc4122());
+        self::assertSame(1, $reloadedMoved->getPosition());
+    }
+
+    /** setParent()'s own cycle guard must stop an item becoming its own descendant, silently no-op'ing the move. */
+    public function testMoveListItemIntoItsOwnDescendantIsRejected(): void
+    {
+        $centre = $this->centre();
+        $parent = (new ListItem())->setEducationalCentre($centre)->setName('Padre');
+        $child  = (new ListItem())->setEducationalCentre($centre)->setName('Hijo');
+        $child->setParent($parent);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $parent, $child, $admin);
+        $parentId = $parent->getId()->toRfc4122();
+        $childId  = $child->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('moveListItem', [
+            'id'          => $parentId,
+            'newParentId' => $childId,
+            'orderedIds'  => [$parentId],
+        ]);
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items          = self::getContainer()->get(ListItemRepository::class);
+        $reloadedParent = $items->findByIdAndCentre($parentId, $centre);
+        self::assertNotNull($reloadedParent);
+        self::assertNull($reloadedParent->getParent(), 'the cyclic move must be rejected, leaving the item a root still');
+    }
+
+    public function testAddItemWithAnExplicitParentIdAddsAChildThere(): void
+    {
+        $centre = $this->centre();
+        $parent = (new ListItem())->setEducationalCentre($centre)->setName('Materias');
+        $admin  = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $parent, $admin);
+        $parentId = $parent->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->set('addName', 'Física')->call('addItem', ['parentId' => $parentId]);
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items    = self::getContainer()->get(ListItemRepository::class);
+        $reloaded = $items->findByIdAndCentre($parentId, $centre);
+        self::assertNotNull($reloaded);
+        $children = $items->findChildrenByParent($reloaded);
+        self::assertCount(1, $children);
+        self::assertSame('Física', $children[0]->getName());
+    }
+
+    public function testToggleAddOpensAndClosesTheAddBoxForAGivenParent(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+
+        $component->call('toggleAdd', ['parentId' => '@root']);
+        self::assertSame('@root', $this->stringProp($component, 'addingParentId'));
+
+        $component->call('toggleAdd', ['parentId' => '@root']);
+        self::assertSame('', $this->stringProp($component, 'addingParentId'));
+    }
+
+    /** @return array<string, mixed> */
+    private function props(TestLiveComponent $component): array
+    {
+        $value = $component->render()->crawler()->filter('[data-live-props-value]')->attr('data-live-props-value');
+        self::assertNotNull($value);
+
+        /** @var array<string, mixed> $props */
+        $props = json_decode($value, true, flags: JSON_THROW_ON_ERROR);
+
+        return $props;
+    }
+
+    private function stringProp(TestLiveComponent $component, string $key): string
+    {
+        $value = $this->props($component)[$key];
+        self::assertIsString($value);
+
+        return $value;
+    }
+
+    public function testDesktopTreeRendersNestedItemsAndFlagsAnAssociatedOne(): void
+    {
+        $centre  = $this->centre();
+        $root    = (new ListItem())->setEducationalCentre($centre)->setName('Materias');
+        $leaf    = (new ListItem())->setEducationalCentre($centre)->setName('Física');
+        $leaf->setParent($root);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $leaf->setAssociation($profile);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $root, $leaf, $profile, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $html      = (string) $component->render()->crawler()->html();
+
+        self::assertStringContainsString('data-list-item-id="' . $root->getId()->toRfc4122() . '"', $html);
+        self::assertStringContainsString('data-list-item-id="' . $leaf->getId()->toRfc4122() . '"', $html);
+        self::assertStringContainsString('Física', $html);
     }
 }

@@ -1,4 +1,8 @@
-<div {{ attributes.defaults(stimulus_controller('document-tree-sortable')) }} class="js-document-section-tree">
+<div {{ attributes.defaults(stimulus_controller('nested-sortable', {
+    idAttr: 'sectionId',
+    moveAction: 'moveSection',
+    group: 'document-sections',
+})) }} class="js-document-section-tree">
     {% set tree           = this.tree %}
     {% set available_rows = this.availableProfileRows %}
 

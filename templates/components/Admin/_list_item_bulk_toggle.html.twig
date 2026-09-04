@@ -1,0 +1,7 @@
+{# Toggles bulk-select mode — shared between the desktop and mobile headers so both drive the same bulkSelectMode. #}
+<button type="button" data-action="live#action" data-live-action-param="toggleBulkSelectMode"
+        class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors
+               {{ bulkSelectMode ? 'bg-violet-600 text-white hover:bg-violet-700' : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50' }}">
+    {{ ux_icon('heroicons:check-circle', {class: 'h-3.5 w-3.5'}) }}
+    {{ (bulkSelectMode ? 'responsibilities.lists.bulk.cancel' : 'responsibilities.lists.bulk.toggle')|trans({}, 'admin') }}
+</button>
