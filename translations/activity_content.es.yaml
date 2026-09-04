@@ -53,6 +53,7 @@ related_documents.no_revision: 'Sin ninguna revisión subida todavía.'
 related_documents.view_in_tree: 'Ver en el árbol documental'
 
 submission.section_title: 'Mis entregas'
+submission.allowed_formats_notice: 'Formatos aceptados: %formats%.'
 submission.mine_empty: 'No tienes ninguna entrega propia en esta actividad.'
 submission.my_stats.delivered: 'Entregadas %delivered%/%total%'
 submission.my_stats.accepted: 'aceptadas %accepted%/%total%'

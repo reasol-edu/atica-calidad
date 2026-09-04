@@ -85,7 +85,15 @@ corresponde al docente, con zona de arrastrar-y-soltar) y, para quien gestiona o
 fila abre el mismo panel de versiones que en el árbol documental, con **Aprobar**/**Rechazar** para
 quien tenga permiso de revisión — ver
 [Revisar una versión pendiente](07-arbol-documental.md#revisar-una-version-pendiente), que se
-aplica aquí sin cambios: una entrega **es** un documento de esa carpeta.
+aplica aquí sin cambios: una entrega **es** un documento de esa carpeta. Si la carpeta tiene
+[formatos de fichero aceptados](07-arbol-documental.md#carpetas-pestana-ver) configurados y al
+docente todavía le queda alguna entrega propia por hacer, un aviso **«Formatos aceptados: ...»**
+aparece encima de «Mis entregas».
+
+Junto al plazo aparece **«Ir a la carpeta»**, que abre esa carpeta directamente en el árbol
+documental — salvo que la carpeta en concreto no sea visible para el docente (por sus
+restricciones propias o las de alguna de las secciones que la contienen), en cuyo caso el enlace
+no se muestra, igual que con los [documentos relacionados](#campos-de-una-actividad).
 
 Junto al plazo aparece **«Ir a la carpeta»**, que abre esa carpeta directamente en el árbol
 documental — salvo que la carpeta en concreto no sea visible para el docente (por sus

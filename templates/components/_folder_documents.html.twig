@@ -1,8 +1,19 @@
 {# folder: Folder, can_manage: bool, can_upload: bool — inherits the parent component's context #}
 {% set fid = folder.id.toRfc4122 %}
 {% set groups = this.getVisibleFolderDocumentGroups(folder) %}
+{# The direct-upload dropzone below only ever shows when the folder has no activity of its own
+   (see the {% if folder.activity %} branch further down) — the notice mirrors that condition, or
+   it would promise a restriction on a dropzone that isn't actually there. #}
+{% set format_restricted = not folder.activity and can_upload and folder.isFormatRestricted %}
 
 <div class="divide-y divide-gray-100">
+    {% if format_restricted %}
+        <p class="flex items-start gap-1.5 px-4 pt-3 text-xs text-gray-500">
+            {{ ux_icon('heroicons:information-circle', {class: 'h-3.5 w-3.5 shrink-0 text-gray-400 mt-px'}) }}
+            {{ 'folder.allowed_formats_notice'|trans({'%formats%': this.getAllowedFormatsLabel(folder)}, 'document_content') }}
+        </p>
+    {% endif %}
+
     {% if groups is empty %}
         <p class="px-4 py-6 text-center text-sm text-gray-400">{{ 'empty'|trans({}, 'document_content') }}</p>
     {% else %}

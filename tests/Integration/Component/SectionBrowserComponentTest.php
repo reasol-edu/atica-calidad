@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Component;
 
+use App\Entity\Activity;
+use App\Entity\ActivityCategory;
 use App\Entity\AllowedFileFormat;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
@@ -696,6 +698,101 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         /** @var Folder $reloaded */
         $reloaded = $this->em->find(Folder::class, $folderId);
         self::assertSame([AllowedFileFormat::Image], $reloaded->getAllowedFormats());
+    }
+
+    public function testFormatRestrictedFolderShowsTheNoticeBeforeTheListingWhenTheTeacherCanUpload(): void
+    {
+        $centre  = $this->centre();
+        $section = $this->section($centre);
+        $folder  = $this->folder($section)->setAllowedFormats([AllowedFileFormat::Image, AllowedFileFormat::NonEditableDocument]);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        $teacher    = $this->teacher('secretario');
+        $assignment = new SpecificProfileAssignment($profile, null, $teacher);
+        $this->persist($centre, $section, $folder, $profile, $teacher, $assignment);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent(
+            'SectionBrowserComponent',
+            array_merge($this->inSection($section, $centre), ['initialFolderId' => $folder->getId()->toRfc4122()]),
+            $this->client,
+        );
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('Formatos aceptados:', $html);
+        self::assertStringContainsString('Documento no editable', $html);
+        self::assertStringContainsString('Imágenes', $html);
+    }
+
+    public function testUnrestrictedFolderShowsNoFormatNotice(): void
+    {
+        $centre  = $this->centre();
+        $section = $this->section($centre);
+        $folder  = $this->folder($section);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        $teacher    = $this->teacher('secretario');
+        $assignment = new SpecificProfileAssignment($profile, null, $teacher);
+        $this->persist($centre, $section, $folder, $profile, $teacher, $assignment);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent(
+            'SectionBrowserComponent',
+            array_merge($this->inSection($section, $centre), ['initialFolderId' => $folder->getId()->toRfc4122()]),
+            $this->client,
+        );
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringNotContainsString('Formatos aceptados:', $html);
+    }
+
+    public function testFormatRestrictedFolderHidesTheNoticeFromATeacherWhoCannotUpload(): void
+    {
+        $centre  = $this->centre();
+        $section = $this->section($centre);
+        $folder  = $this->folder($section)->setAllowedFormats([AllowedFileFormat::Image]);
+        $teacher = $this->teacher('sin-permiso'); // no upload profile, no responsible profile
+        $this->persist($centre, $section, $folder, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent(
+            'SectionBrowserComponent',
+            array_merge($this->inSection($section, $centre), ['initialFolderId' => $folder->getId()->toRfc4122()]),
+            $this->client,
+        );
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringNotContainsString('Formatos aceptados:', $html);
+    }
+
+    /**
+     * A folder backing an activity never shows the direct-upload dropzone itself (uploads go
+     * through Actividades instead — see the {% if folder.activity %} branch) — the format notice
+     * must not appear there either, or it would promise a restriction on a control that isn't
+     * actually on screen.
+     */
+    public function testFormatRestrictedFolderLinkedToAnActivityHidesTheNoticeHere(): void
+    {
+        $centre   = $this->centre();
+        $section  = $this->section($centre);
+        $folder   = $this->folder($section)->setAllowedFormats([AllowedFileFormat::Image]);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new Activity())->setCategory($category)->setTitle('Actividad')->setStart(1, 9)->setEnd(30, 6)->setFolder($folder);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        $teacher    = $this->teacher('secretario');
+        $assignment = new SpecificProfileAssignment($profile, null, $teacher);
+        $this->persist($centre, $section, $folder, $category, $activity, $profile, $teacher, $assignment);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent(
+            'SectionBrowserComponent',
+            array_merge($this->inSection($section, $centre), ['initialFolderId' => $folder->getId()->toRfc4122()]),
+            $this->client,
+        );
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringNotContainsString('Formatos aceptados:', $html);
     }
 
     public function testExpandedFolderShowsTheSanitizedDescription(): void

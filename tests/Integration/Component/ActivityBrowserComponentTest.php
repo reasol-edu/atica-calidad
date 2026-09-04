@@ -7,6 +7,7 @@ namespace App\Tests\Integration\Component;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\ActivityCompletion;
+use App\Entity\AllowedFileFormat;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
 use App\Entity\DocumentRevision;
@@ -591,6 +592,85 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
 
         self::assertStringContainsString($activity->getTitle(), $html, 'the activity itself is still relevant — the teacher can upload to it');
         self::assertStringNotContainsString('Ir a la carpeta', $html);
+    }
+
+    public function testActivityViewShowsTheFormatNoticeBeforeMySubmissionsWhenRestrictedWithAnOpenSlot(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $folder->setAllowedFormats([AllowedFileFormat::Image, AllowedFileFormat::NonEditableDocument]);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $folder->addUploadProfile($profile);
+        $activity   = $this->activity($category)->setFolder($folder);
+        $teacher    = $this->teacher('docente');
+        $assignment = new SpecificProfileAssignment($profile, null, $teacher);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, $assignment);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $html = (string) $component->render()->crawler()->html();
+
+        self::assertStringContainsString('Formatos aceptados:', $html);
+        self::assertStringContainsString('Documento no editable', $html);
+        self::assertStringContainsString('Imágenes', $html);
+    }
+
+    public function testActivityViewHidesTheFormatNoticeWhenTheFolderIsNotRestricted(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $folder->addUploadProfile($profile);
+        $activity   = $this->activity($category)->setFolder($folder);
+        $teacher    = $this->teacher('docente');
+        $assignment = new SpecificProfileAssignment($profile, null, $teacher);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, $assignment);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $html = (string) $component->render()->crawler()->html();
+
+        self::assertStringNotContainsString('Formatos aceptados:', $html);
+    }
+
+    /** No dropzone is offered once every one of the teacher's own slots is already filled, so the restriction isn't relevant to show right now. */
+    public function testActivityViewHidesTheFormatNoticeWhenAllOfMySlotsAreAlreadyFilled(): void
+    {
+        $centre  = $this->centre();
+        $category = $this->category($centre);
+        $folder  = $this->folder($centre);
+        $folder->setAllowedFormats([AllowedFileFormat::Image]);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $folder->addUploadProfile($profile);
+        $activity   = $this->activity($category)->setFolder($folder);
+        $teacher    = $this->teacher('docente');
+        $assignment = new SpecificProfileAssignment($profile, null, $teacher);
+
+        $document = new Document($folder, 'Perfil');
+        $document->setUploadProfile($profile, null);
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'image/jpeg', 'f.jpg', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $teacher);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, $assignment, $document, $file, $revision);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $html = (string) $component->render()->crawler()->html();
+
+        self::assertStringNotContainsString('Formatos aceptados:', $html);
     }
 
     // ── toggleStats / toggleAllSubmissions ───────────────────────────────────

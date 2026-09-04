@@ -14,7 +14,9 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   cálculo, imágenes o ficheros de texto — desde sus ajustes. Sin ninguno marcado, se acepta
   cualquier formato, como hasta ahora. Se comprueba por extensión o por tipo MIME, así que basta
   con que uno de los dos encaje; se aplica a la subida de un documento nuevo, de una nueva
-  revisión y a las entregas de una actividad.
+  revisión y a las entregas de una actividad. Cuando hay restricción y se puede subir algo, un
+  aviso «Formatos aceptados: ...» lo indica antes del listado de documentos (o de «Mis entregas»,
+  en una actividad).
 
 ### Changed
 

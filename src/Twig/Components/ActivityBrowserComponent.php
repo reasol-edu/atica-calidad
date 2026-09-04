@@ -7,6 +7,7 @@ namespace App\Twig\Components;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\ActivitySubmissionScope;
+use App\Entity\AllowedFileFormat;
 use App\Entity\Document;
 use App\Entity\DocumentRevision;
 use App\Entity\EducationalCentre;
@@ -453,6 +454,19 @@ class ActivityBrowserComponent extends AbstractController
         ]);
     }
 
+    /**
+     * Comma-joined, translated labels of $folder's allowed formats — mirrors
+     * SectionBrowserComponent::getAllowedFormatsLabel() for the same notice, shown above "Mis
+     * entregas" here instead of above the document tree's own listing.
+     */
+    public function getAllowedFormatsLabel(Folder $folder): string
+    {
+        return implode(', ', array_map(
+            fn (AllowedFileFormat $format): string => $this->translator->trans($format->labelKey(), [], 'admin'),
+            $folder->getAllowedFormats(),
+        ));
+    }
+
     #[LiveAction]
     public function startAddActivity(): void
     {
@@ -684,6 +698,23 @@ class ActivityBrowserComponent extends AbstractController
     public function resolveSlot(Activity $activity, ActivitySubmissionSlot $slot): ?Document
     {
         return $this->completion->resolveSlot($activity, $slot);
+    }
+
+    /**
+     * Whether the current teacher has at least one of their own slots still without a document —
+     * i.e. "Mis entregas" actually offers a dropzone right now, as opposed to every one of their
+     * slots already being filled. Used to decide whether the folder's format restriction (if any)
+     * is even relevant to show them.
+     */
+    public function hasAnOpenSubmissionSlot(Activity $activity): bool
+    {
+        foreach ($this->getMySlots($activity) as $slot) {
+            if ($this->resolveSlot($activity, $slot) === null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return ActivitySubmissionSlot[] every slot NOT already covered by getMySlots() — "the rest of the profiles'" deliveries. */

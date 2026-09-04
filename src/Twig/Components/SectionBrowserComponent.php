@@ -667,6 +667,19 @@ class SectionBrowserComponent extends AbstractController
         return AllowedFileFormat::cases();
     }
 
+    /**
+     * Comma-joined, translated labels of $folder's allowed formats (e.g. "Documento no editable,
+     * Imágenes") — for the notice shown above the document listing when uploads are restricted.
+     * '' when the folder isn't restricted; callers gate on Folder::isFormatRestricted() first.
+     */
+    public function getAllowedFormatsLabel(Folder $folder): string
+    {
+        return implode(', ', array_map(
+            fn (AllowedFileFormat $format): string => $this->translator->trans($format->labelKey(), [], 'admin'),
+            $folder->getAllowedFormats(),
+        ));
+    }
+
     /** Replaces a folder's four profile-restriction lists, allowed formats and description with whatever the settings panel currently holds. */
     #[LiveAction]
     public function saveFolderProfiles(#[LiveArg] string $id): void

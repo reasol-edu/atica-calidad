@@ -159,7 +159,9 @@ las carpetas, siempre, aunque no aparezcan en ninguna de las listas.
 Con permiso de subida en una carpeta (responsable o perfil de subida), aparece una zona para
 arrastrar ficheros o hacer clic para seleccionarlos (tamaño máximo: 20 MB por fichero; el tipo es
 libre salvo que la carpeta tenga configurados **formatos de fichero aceptados**, en cuyo caso se
-rechaza cualquier fichero que no encaje en ninguno). Tras soltarlos, se confirma un nombre y,
+rechaza cualquier fichero que no encaje en ninguno). Si la carpeta tiene esa restricción, un aviso
+**«Formatos aceptados: ...»** aparece encima del listado de documentos, antes de intentar subir
+nada. Tras soltarlos, se confirma un nombre y,
 si la carpeta tiene **perfiles de subida** configurados, con qué perfil se etiqueta cada uno: quien
 es responsable de la carpeta puede elegir libremente entre todos ellos; quien solo tiene permiso de
 subida solo puede etiquetar con su propio perfil o subperfil.

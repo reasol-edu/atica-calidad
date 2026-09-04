@@ -8,6 +8,13 @@
 {% set upload_form_id = 'activity-submission-upload-' ~ aid %}
 
 <div class="border-t border-gray-100 pt-3 space-y-3">
+    {% if folder.isFormatRestricted and this.hasAnOpenSubmissionSlot(activity) %}
+        <p class="flex items-start gap-1.5 text-xs text-gray-500">
+            {{ ux_icon('heroicons:information-circle', {class: 'h-3.5 w-3.5 shrink-0 text-gray-400 mt-px'}) }}
+            {{ 'submission.allowed_formats_notice'|trans({'%formats%': this.getAllowedFormatsLabel(folder)}, 'activity_content') }}
+        </p>
+    {% endif %}
+
     {# ── My submissions ───────────────────────────────────────────────── #}
     <div>
         <div class="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3">
