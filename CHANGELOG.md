@@ -7,6 +7,17 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Actividades**: cuando una actividad usa un elemento de lista para nombrar sus entregas, ahora
+  cuenta **toda hoja que cuelga de ese elemento** (a cualquier profundidad), no solo las
+  asociadas a un perfil/subperfil de subida. Si la carpeta tiene un único perfil de subida, la
+  hoja se atribuye a él aunque no esté asociada; si tiene varios, la hoja sigue necesitando estar
+  asociada a uno de ellos. El nombre de cada entrega pasa a ser la **ruta completa** hasta la
+  hoja, contada desde debajo del elemento elegido (p. ej. «Ciencias › Física» en vez de solo
+  «Física»). Las entregas ya subidas con el nombre anterior habrá que renombrarlas para que
+  vuelvan a casar con su fila.
+
 ## [0.4.0] - 2026-09-03
 
 ### Added

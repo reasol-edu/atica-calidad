@@ -69,7 +69,7 @@ igual que las secciones del árbol documental; dentro de cada una se crean y edi
 | Título / Descripción | Texto libre. |
 | Fecha de inicio / Fecha de fin | Solo **día y mes** (sin año): la actividad se repite automáticamente cada curso académico en esas fechas. |
 | Carpeta | Opcional. Si se elige una, la actividad pasa a tener entregas (ver [Entregas y revisión](#entregas-y-revision)); si se deja vacía, se completa a mano. |
-| Lista para nombrar entregas | Opcional. Un elemento de [Listas](06-responsabilidades.md#listas) (p. ej. «Materia») cuyas hojas nombran cada entrega esperada. |
+| Lista para nombrar entregas | Opcional. Un elemento de [Listas](06-responsabilidades.md#listas) (p. ej. «Materia», o una rama concreta): **cada hoja que cuelga de él** —a cualquier profundidad— es una entrega esperada, con nombre igual a su **ruta bajo el elemento elegido** (p. ej. «Ciencias › Física»). Si la carpeta tiene un único perfil de subida, todas las hojas cuentan; si tiene varios, solo cuentan las hojas asociadas (en Listas) a uno de ellos, que además determina a quién le corresponde. |
 | Documentos relacionados | Documentos del árbol documental enlazados como lectura de apoyo, independientes de la carpeta de entregas. |
 | Obligatoria / Opcional | Solo informativo: se muestra como etiqueta, no cambia ningún permiso. |
 | Ámbito de entrega | **Por perfil** (una entrega compartida por todo el que tenga el perfil/subperfil) o **Individual** (cada docente con ese perfil entrega la suya). |

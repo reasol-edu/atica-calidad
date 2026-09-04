@@ -59,12 +59,12 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
             return [];
         }
 
-        $rowSlots = [];
-        foreach ($this->access->getFolderUploadRows($folder) as $row) {
-            foreach ($this->slotsForRow($activity, $row) as $slot) {
-                $rowSlots[] = $slot;
-            }
-        }
+        $uploadRows = $this->access->getFolderUploadRows($folder);
+        $listItem   = $activity->getListItem();
+
+        $rowSlots = $listItem === null
+            ? $this->plainRowSlots($uploadRows)
+            : $this->listItemRowSlots($activity, $listItem, $uploadRows);
 
         if ($activity->getSubmissionScope() !== ActivitySubmissionScope::Individual) {
             return $rowSlots;
@@ -103,27 +103,96 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
         }
     }
 
-    /** @return ActivitySubmissionSlot[] the slot(s) a single folder upload row contributes, before any per-teacher (Individual) expansion. */
-    private function slotsForRow(Activity $activity, ProfileAssignmentRow $row): array
+    /**
+     * One shared slot per folder upload row, named after the row's profile/subprofile — the shape
+     * an activity's submissions take when it isn't pinned to a list element.
+     *
+     * @param  ProfileAssignmentRow[] $uploadRows
+     * @return ActivitySubmissionSlot[]
+     */
+    private function plainRowSlots(array $uploadRows): array
     {
-        $listItem = $activity->getListItem();
-        if ($listItem === null) {
-            return [new ActivitySubmissionSlot($row->profile, $row->listItem, null, $row->displayName, null)];
-        }
-
-        $tags  = $activity->getTags();
         $slots = [];
-        foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
-            if ($leaf->getAssociatedProfile() !== $row->profile || $leaf->getAssociatedProfileListItem() !== $row->listItem) {
-                continue;
-            }
-            if (!$this->hasAllTags($leaf, $tags->toArray())) {
-                continue;
-            }
-            $slots[] = new ActivitySubmissionSlot($row->profile, $row->listItem, $leaf, $leaf->getName(), null);
+        foreach ($uploadRows as $row) {
+            $slots[] = new ActivitySubmissionSlot($row->profile, $row->listItem, null, $row->displayName, null);
         }
 
         return $slots;
+    }
+
+    /**
+     * One slot per leaf descendant of the activity's selected list element (so selecting a branch
+     * pulls in every leaf under it), each named with its path below that element. A leaf is
+     * attributed to the folder upload row its own profile/subprofile association points at; a leaf
+     * with no association falls back to the folder's single upload row, and yields nothing when
+     * the folder has several (no way to tell which one owns it) or when its association isn't
+     * among the rows the folder accepts. The activity's tag filter still applies per leaf
+     * (inherited ancestor tags included).
+     *
+     * @param  ProfileAssignmentRow[] $uploadRows
+     * @return ActivitySubmissionSlot[]
+     */
+    private function listItemRowSlots(Activity $activity, ListItem $listItem, array $uploadRows): array
+    {
+        $tags = $activity->getTags()->toArray();
+
+        $slots = [];
+        foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
+            if (!$this->hasAllTags($leaf, $tags)) {
+                continue;
+            }
+
+            $row = $this->uploadRowForLeaf($leaf, $uploadRows);
+            if ($row === null) {
+                continue;
+            }
+
+            $slots[] = new ActivitySubmissionSlot($row->profile, $row->listItem, $leaf, $this->submissionName($listItem, $leaf), null);
+        }
+
+        return $slots;
+    }
+
+    /**
+     * The folder upload row a leaf's submission belongs to: the one matching the leaf's own
+     * (associated profile, associated subprofile) when it has an association; otherwise the
+     * folder's single upload row, but only when there is exactly one. Null when an associated
+     * leaf's target isn't among the folder's rows, or an unassociated leaf can't be pinned to a
+     * single row.
+     *
+     * @param ProfileAssignmentRow[] $uploadRows
+     */
+    private function uploadRowForLeaf(ListItem $leaf, array $uploadRows): ?ProfileAssignmentRow
+    {
+        $profile = $leaf->getAssociatedProfile();
+        if ($profile === null) {
+            return count($uploadRows) === 1 ? current($uploadRows) : null;
+        }
+
+        $subprofile = $leaf->getAssociatedProfileListItem();
+        foreach ($uploadRows as $row) {
+            if ($row->profile === $profile && $row->listItem === $subprofile) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * A submission's name: the list path from just under the activity's selected element down to
+     * the leaf, joined with " › " (e.g. selecting "Materias" names a leaf "Ciencias › Física").
+     * A leaf directly under the selected element — or the selected element itself, when a leaf was
+     * picked — is just its own name.
+     */
+    private function submissionName(ListItem $selected, ListItem $leaf): string
+    {
+        $trail = [];
+        for ($node = $leaf; $node !== null && $node !== $selected; $node = $node->getParent()) {
+            array_unshift($trail, $node->getName());
+        }
+
+        return $trail === [] ? $leaf->getName() : implode(' › ', $trail);
     }
 
     /** @param Tag[] $requiredTags */

@@ -89,7 +89,7 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         self::assertSame('Secretario/a', $slots[0]->displayName);
     }
 
-    public function testUploadRowWithoutAnyAssociatedLeafProducesNoSlotWhenActivityHasAListItem(): void
+    public function testUnassociatedLeafFallsBackToTheFoldersSoleUploadRow(): void
     {
         $centre   = $this->centre();
         $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
@@ -100,13 +100,68 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         $root = (new ListItem())->setEducationalCentre($centre)->setName('Materia');
         $leaf = (new ListItem())->setEducationalCentre($centre)->setName('Matemáticas');
         $leaf->setParent($root);
-        // Deliberately NOT associating $leaf with $profile — no submission row should come from it.
+        // No association at all: with a single folder upload row, the leaf is still a submission,
+        // attributed to that row.
 
         $activity = $this->activity($category)->setFolder($folder)->setListItem($root);
 
         $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $root, $leaf, $activity);
 
-        self::assertSame([], $this->builder->buildSlots($activity));
+        $slots = $this->builder->buildSlots($activity);
+
+        self::assertCount(1, $slots);
+        self::assertSame($profile, $slots[0]->profile);
+        self::assertNull($slots[0]->listItem);
+        self::assertSame($leaf, $slots[0]->nameListItem);
+        self::assertSame('Matemáticas', $slots[0]->displayName);
+    }
+
+    public function testUnassociatedLeafProducesNoSlotWhenTheFolderHasSeveralUploadRows(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $jefatura  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $secretaria = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretaría');
+        $folder->addUploadProfile($jefatura);
+        $folder->addUploadProfile($secretaria);
+
+        $root = (new ListItem())->setEducationalCentre($centre)->setName('Materia');
+        $leaf = (new ListItem())->setEducationalCentre($centre)->setName('Matemáticas');
+        $leaf->setParent($root);
+
+        $activity = $this->activity($category)->setFolder($folder)->setListItem($root);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $jefatura, $secretaria, $root, $leaf, $activity);
+
+        self::assertSame([], $this->builder->buildSlots($activity), 'an unassociated leaf cannot be pinned to one of several upload rows');
+    }
+
+    public function testSubmissionNameIsThePathBelowTheSelectedElement(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $folder->addUploadProfile($profile);
+
+        $materias = (new ListItem())->setEducationalCentre($centre)->setName('Materias');
+        $ciencias = (new ListItem())->setEducationalCentre($centre)->setName('Ciencias');
+        $rama     = (new ListItem())->setEducationalCentre($centre)->setName('Experimentales');
+        $fisica   = (new ListItem())->setEducationalCentre($centre)->setName('Física');
+        $ciencias->setParent($materias);
+        $rama->setParent($ciencias);
+        $fisica->setParent($rama);
+
+        // The activity is pinned to the intermediate node, not the root.
+        $activity = $this->activity($category)->setFolder($folder)->setListItem($ciencias);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $materias, $ciencias, $rama, $fisica, $activity);
+
+        $slots = $this->builder->buildSlots($activity);
+
+        self::assertCount(1, $slots);
+        self::assertSame('Experimentales › Física', $slots[0]->displayName, 'path runs from just below the selected element down to the leaf');
     }
 
     public function testListItemExpandsToOneSlotPerMatchingLeaf(): void
@@ -241,7 +296,7 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         $slots = $this->builder->buildSlots($activity);
 
         self::assertCount(1, $slots);
-        self::assertSame('Física', $slots[0]->displayName);
+        self::assertSame('Ciencias › Física', $slots[0]->displayName);
     }
 
     public function testByProfileScopeKeepsSlotsSharedWithNoTeacher(): void
