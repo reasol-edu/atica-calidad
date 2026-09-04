@@ -47,6 +47,9 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - **Responsabilidades → Listas**: el desplegable para asociar un elemento a un perfil/subperfil
   dejaba de funcionar tras seleccionar el primer elemento de un nivel: al cambiar a otro elemento,
   el control quedaba invisible o inerte y solo se podía editar la asociación del primero.
+- **Actividades → Ver**: navegar por las categorías no dejaba rastro en el historial del
+  navegador, así que atrás/adelante no volvían a la categoría anterior. Ahora cada categoría que
+  se abre actualiza la URL, igual que ya hacía el árbol documental.
 
 ## [0.4.0] - 2026-09-03
 

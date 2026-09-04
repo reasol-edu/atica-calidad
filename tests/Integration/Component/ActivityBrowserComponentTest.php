@@ -173,6 +173,70 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertSame($category->getId()->toRfc4122(), $this->stringProp($component, 'currentCategoryId'));
     }
 
+    // ── Browser history (back/forward through categories) ───────────────────
+
+    public function testSyncCategoryFromUrlRestoresACategoryFromTheBrowsersBackForwardButtons(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre, 'Programaciones');
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('syncCategoryFromUrl', ['category' => $category->getId()->toRfc4122()]);
+
+        self::assertSame($category->getId()->toRfc4122(), $this->stringProp($component, 'currentCategoryId'));
+    }
+
+    public function testSyncCategoryFromUrlWithAnEmptyValueGoesBackToTheRoot(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre, 'Programaciones');
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('syncCategoryFromUrl', ['category' => '']);
+
+        self::assertSame('', $this->stringProp($component, 'currentCategoryId'));
+    }
+
+    /** A stale or tampered category id in the URL (e.g. from another centre, or since deleted) falls back to the root instead of erroring. */
+    public function testSyncCategoryFromUrlWithAnUnknownIdFallsBackToTheRoot(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->admin();
+        $this->persist($centre, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('syncCategoryFromUrl', ['category' => '00000000-0000-0000-0000-000000000000']);
+
+        self::assertSame('', $this->stringProp($component, 'currentCategoryId'));
+    }
+
+    public function testSyncCategoryFromUrlResetsTransientStateLikeOpenLevelDoes(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre, 'Programaciones');
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('startAddActivity');
+        self::assertTrue((bool) $this->props($component)['activityFormOpen']);
+
+        $component->call('syncCategoryFromUrl', ['category' => $category->getId()->toRfc4122()]);
+
+        self::assertFalse((bool) $this->props($component)['activityFormOpen']);
+    }
+
     // ── Activity CRUD ─────────────────────────────────────────────────────────
 
     public function testSaveActivityCreatesANewActivityWithinTheCurrentCategory(): void

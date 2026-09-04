@@ -266,6 +266,31 @@ class ActivityBrowserComponent extends AbstractController
     {
         $this->currentCategoryId = $id;
         $this->resetTransientState();
+        $this->dispatchCategoryLocation();
+    }
+
+    /**
+     * Restores $currentCategoryId from the URL after the user hits the browser's back/forward
+     * button — the counterpart to dispatchCategoryLocation()'s pushState on the JS side. Mirrors
+     * SectionBrowserComponent::syncFromUrl(), scoped to just category navigation (not the rest of
+     * the screen's transient state, which the URL never tracks here). Never dispatches the
+     * location event itself, or every back/forward press would push a new (forward) history entry.
+     */
+    #[LiveAction]
+    public function syncCategoryFromUrl(#[LiveArg] string $category = ''): void
+    {
+        $this->currentCategoryId = $category !== '' && $this->categories->findByIdAndCentre($category, $this->centre) !== null
+            ? $category
+            : '';
+        $this->resetTransientState();
+    }
+
+    /** Tells the activity-category-url Stimulus controller to reflect the current category in the URL (pushState). */
+    private function dispatchCategoryLocation(): void
+    {
+        $this->dispatchBrowserEvent('activity-category:location', [
+            'category' => $this->currentCategoryId,
+        ]);
     }
 
     #[LiveAction]
