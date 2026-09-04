@@ -431,6 +431,28 @@ class ActivityBrowserComponent extends AbstractController
         ]);
     }
 
+    /**
+     * Whether the current teacher could actually browse to $folder — same reachability rule as a
+     * related document's own link (canViewRelatedDocument()): the folder's own visibility
+     * restriction AND every ancestor section's. An activity's own submissions folder can be
+     * unreachable even to a teacher who holds the activity's profile (a section further up the
+     * tree can restrict to a different, unrelated set of profiles), so the "go to folder" link
+     * needs this re-check rather than assuming relevance implies visibility.
+     */
+    public function canReachFolder(Folder $folder): bool
+    {
+        return $this->access->canReachFolder($this->teacher(), $folder);
+    }
+
+    /** Deep link to $folder itself in the document tree — no document highlighted. */
+    public function getFolderTreeUrl(Folder $folder): string
+    {
+        return $this->generateUrl('app_document_tree', [
+            'section' => $folder->getDocumentSection()->getId()->toRfc4122(),
+            'folder'  => $folder->getId()->toRfc4122(),
+        ]);
+    }
+
     #[LiveAction]
     public function startAddActivity(): void
     {

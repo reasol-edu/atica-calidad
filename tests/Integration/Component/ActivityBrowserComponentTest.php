@@ -540,6 +540,59 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertStringNotContainsString('Documento restringido', $html);
     }
 
+    public function testActivityViewRendersATreeLinkToItsOwnFolderWhenVisible(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $admin    = $this->admin();
+        $activity = $this->activity($category)->setFolder($folder);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $admin, $activity);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $html = (string) $component->render()->crawler()->html();
+
+        self::assertStringContainsString('Ir a la carpeta', $html);
+        // The rendered href HTML-escapes "&" to "&amp;" between query parameters — check each
+        // param on its own rather than the literal query string.
+        self::assertStringContainsString('/arbol-documental?section=' . $folder->getDocumentSection()->getId()->toRfc4122(), $html);
+        self::assertStringContainsString('folder=' . $folder->getId()->toRfc4122(), $html);
+    }
+
+    /**
+     * The activity is still relevant to the teacher (they can upload to the folder), but a
+     * visibility restriction unrelated to the upload profile blocks the folder itself — the "go
+     * to folder" link must not offer a destination the teacher can't actually reach.
+     */
+    public function testActivityViewHidesTheFolderLinkWhenTheFolderIsNotVisibleToTheViewer(): void
+    {
+        $centre     = $this->centre();
+        $category   = $this->category($centre);
+        $folder     = $this->folder($centre);
+        $tutor      = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $restricted = (new SpecificProfile())->setEducationalCentre($centre)->setName('Restringido');
+        $folder->addUploadProfile($tutor);
+        $folder->addVisibilityProfile($restricted);
+        $activity   = $this->activity($category)->setFolder($folder);
+        $teacher    = $this->teacher('tutor');
+        $assignment = new SpecificProfileAssignment($tutor, null, $teacher);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $tutor, $restricted, $activity, $teacher, $assignment);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $html = (string) $component->render()->crawler()->html();
+
+        self::assertStringContainsString($activity->getTitle(), $html, 'the activity itself is still relevant — the teacher can upload to it');
+        self::assertStringNotContainsString('Ir a la carpeta', $html);
+    }
+
     // ── toggleStats / toggleAllSubmissions ───────────────────────────────────
 
     public function testToggleStatsAddsAndRemovesTheActivityId(): void

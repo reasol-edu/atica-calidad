@@ -90,14 +90,18 @@ final class DocumentTreeAccessChecker
     }
 
     /**
-     * Whether the teacher could reach this document by browsing the tree — the folder's own
-     * visibility restrictions AND every ancestor section's own restrictions (checked
-     * independently, since restrictions never cascade: a document isn't surfaced by search unless
-     * each level on the way to it would itself let the teacher through).
+     * Whether the teacher could reach $folder by browsing the tree — its own visibility
+     * restriction AND every ancestor section's own restriction (checked independently, since
+     * restrictions never cascade: a folder isn't reachable unless each level on the way to it
+     * would itself let the teacher through). canViewFolder() alone only answers the first half —
+     * it's the narrower check FolderVoter::VIEW uses for direct action on an already-known folder
+     * (upload, download…), where the surrounding section's own restriction is irrelevant. Use this
+     * one instead whenever a link into the tree — a search result, a related document, an
+     * activity's own submissions folder — needs to decide whether it would actually be visible if
+     * followed.
      */
-    public function canViewDocument(Teacher $teacher, Document $document): bool
+    public function canReachFolder(Teacher $teacher, Folder $folder): bool
     {
-        $folder = $document->getFolder();
         if (!$this->canViewFolder($teacher, $folder)) {
             return false;
         }
@@ -109,6 +113,12 @@ final class DocumentTreeAccessChecker
         }
 
         return true;
+    }
+
+    /** Whether the teacher could reach this document by browsing the tree — see canReachFolder(). */
+    public function canViewDocument(Teacher $teacher, Document $document): bool
+    {
+        return $this->canReachFolder($teacher, $document->getFolder());
     }
 
     public function canManageFolder(Teacher $teacher, Folder $folder): bool

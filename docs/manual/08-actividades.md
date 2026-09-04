@@ -87,6 +87,11 @@ quien tenga permiso de revisión — ver
 [Revisar una versión pendiente](07-arbol-documental.md#revisar-una-version-pendiente), que se
 aplica aquí sin cambios: una entrega **es** un documento de esa carpeta.
 
+Junto al plazo aparece **«Ir a la carpeta»**, que abre esa carpeta directamente en el árbol
+documental — salvo que la carpeta en concreto no sea visible para el docente (por sus
+restricciones propias o las de alguna de las secciones que la contienen), en cuyo caso el enlace
+no se muestra, igual que con los [documentos relacionados](#campos-de-una-actividad).
+
 ## Completar una actividad manual {#completar-una-actividad-manual}
 
 ![Confirmación al marcar como completada una actividad sin carpeta](img/actividades-completar.png)

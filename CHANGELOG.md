@@ -17,6 +17,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   hoja, contada desde debajo del elemento elegido (p. ej. «Ciencias › Física» en vez de solo
   «Física»). Las entregas ya subidas con el nombre anterior habrá que renombrarlas para que
   vuelvan a casar con su fila.
+- **Actividades**: junto al plazo de una actividad con entregas aparece «Ir a la carpeta», que
+  lleva directamente a su carpeta en el árbol documental — el enlace no se muestra si esa carpeta
+  en concreto no es visible para el docente (por sus propias restricciones o las de alguna
+  sección que la contiene).
 
 ### Fixed
 

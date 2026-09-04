@@ -47,6 +47,8 @@ activity.manual: 'Manual'
 activity.deadline: 'Plazo: %start% – %end%'
 activity.no_folder_hint: 'Esta actividad no tiene entregas asociadas.'
 
+folder.link: 'Ir a la carpeta'
+
 related_documents.no_revision: 'Sin ninguna revisión subida todavía.'
 related_documents.view_in_tree: 'Ver en el árbol documental'
 

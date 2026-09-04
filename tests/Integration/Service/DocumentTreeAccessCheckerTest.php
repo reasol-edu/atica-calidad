@@ -187,6 +187,29 @@ final class DocumentTreeAccessCheckerTest extends RepositoryTestCase
         self::assertTrue($this->access->canViewDocument($teacher, $document));
     }
 
+    /**
+     * canReachFolder() is the same ancestor-walk canViewDocument() delegates to, exposed directly
+     * for callers that need a folder's reachability without a specific document in hand (e.g. an
+     * activity's "go to folder" link).
+     */
+    public function testCanReachFolderDeniedWhenAnyAncestorSectionIsRestricted(): void
+    {
+        $centre      = $this->centre();
+        $grandparent = $this->section($centre, 'Grandparent');
+        $parent      = $this->section($centre, 'Parent');
+        $parent->setParent($grandparent);
+        $folder = $this->folder($parent);
+
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $grandparent->addProfileRestriction($profile);
+        $teacher = $this->teacher('docente');
+
+        $this->persist($centre, $grandparent, $parent, $folder, $profile, $teacher);
+
+        self::assertTrue($this->access->canViewFolder($teacher, $folder), 'the folder has no restriction of its own');
+        self::assertFalse($this->access->canReachFolder($teacher, $folder), 'but the grandparent section restriction still blocks it');
+    }
+
     // ── canManageFolder / canUploadToFolder / canReviewFolder ───────────────────
 
     public function testCanManageFolderGrantedByAdminOrQualityManagerOnly(): void

@@ -16,6 +16,13 @@
                             '%end%': '%02d/%02d'|format(activity.endDay, activity.endMonth),
                         }, 'activity_content') }}
                     </p>
+                    {% if has_submissions and this.canReachFolder(folder) %}
+                        <a href="{{ this.getFolderTreeUrl(folder) }}"
+                           class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-forest-600">
+                            {{ ux_icon('heroicons:folder-open', {class: 'h-3.5 w-3.5 shrink-0'}) }}
+                            {{ 'folder.link'|trans({}, 'activity_content') }}
+                        </a>
+                    {% endif %}
                     {% if activity.description %}
                         <p class="text-sm text-gray-600 whitespace-pre-line">{{ activity.description }}</p>
                     {% endif %}
