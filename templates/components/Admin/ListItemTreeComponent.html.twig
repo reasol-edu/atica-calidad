@@ -176,16 +176,25 @@
                     {% else %}
                         <form data-action="submit->live#action:prevent" data-live-action-param="saveAssociation"
                               class="flex flex-wrap items-center gap-2">
-                            <select data-controller="tom-select"
-                                    data-tom-select-placeholder-value="{{ 'responsibilities.lists.association.picker_placeholder'|trans({}, 'admin') }}"
-                                    data-tom-select-no-results-value="{{ 'responsibilities.lists.association.picker_no_results'|trans({}, 'admin') }}"
-                                    data-model="norender|associationKey"
-                                    class="min-w-0 flex-1 text-sm ts-local">
-                                <option value="">{{ 'responsibilities.lists.association.none_option'|trans({}, 'admin') }}</option>
-                                {% for row in association_rows %}
-                                    <option value="{{ row.key }}" {{ row.key == associationKey ? 'selected' : '' }}>{{ row.displayName }}</option>
-                                {% endfor %}
-                            </select>
+                            {# TomSelect builds its own sibling DOM (.ts-wrapper) next to this <select>. The
+                               LiveComponent re-render that follows every selectItem morphs this panel in place and
+                               strips that sibling — after the first item, the picker becomes an invisible, dead
+                               control (only the first item stays editable). data-live-ignore keeps the widget intact
+                               across same-item re-renders; the id keyed on sel.id forces a real teardown/rebuild
+                               (Stimulus disconnect -> TomSelect.destroy, then connect) whenever a different item is
+                               selected, so its own options/value load fresh. #}
+                            <div id="assoc-picker-{{ sel.id.toRfc4122 }}" data-live-ignore class="min-w-0 flex-1">
+                                <select data-controller="tom-select"
+                                        data-tom-select-placeholder-value="{{ 'responsibilities.lists.association.picker_placeholder'|trans({}, 'admin') }}"
+                                        data-tom-select-no-results-value="{{ 'responsibilities.lists.association.picker_no_results'|trans({}, 'admin') }}"
+                                        data-model="norender|associationKey"
+                                        class="w-full text-sm ts-local">
+                                    <option value="">{{ 'responsibilities.lists.association.none_option'|trans({}, 'admin') }}</option>
+                                    {% for row in association_rows %}
+                                        <option value="{{ row.key }}" {{ row.key == associationKey ? 'selected' : '' }}>{{ row.displayName }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                             <button type="submit"
                                     class="shrink-0 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
                                 {{ 'responsibilities.lists.association.save'|trans({}, 'admin') }}

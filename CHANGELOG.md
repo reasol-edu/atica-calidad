@@ -18,6 +18,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   «Física»). Las entregas ya subidas con el nombre anterior habrá que renombrarlas para que
   vuelvan a casar con su fila.
 
+### Fixed
+
+- **Responsabilidades → Listas**: el desplegable para asociar un elemento a un perfil/subperfil
+  dejaba de funcionar tras seleccionar el primer elemento de un nivel: al cambiar a otro elemento,
+  el control quedaba invisible o inerte y solo se podía editar la asociación del primero.
+
 ## [0.4.0] - 2026-09-03
 
 ### Added

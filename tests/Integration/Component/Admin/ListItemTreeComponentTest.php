@@ -293,6 +293,45 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertNull($reloaded->getAssociatedProfile());
     }
 
+    /**
+     * Regression: the association picker (a TomSelect) must be re-keyed per selected item — its
+     * wrapper id carries the selected item's id — so switching selection tears the widget down and
+     * rebuilds it instead of leaving a frozen control that could only ever edit the first item.
+     */
+    public function testAssociationPickerIsKeyedToTheCurrentlySelectedItem(): void
+    {
+        $centre  = $this->centre();
+        $first   = (new ListItem())->setEducationalCentre($centre)->setName('Primero');
+        $second  = (new ListItem())->setEducationalCentre($centre)->setName('Segundo');
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $admin   = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $first, $second, $profile, $admin);
+        $firstId  = $first->getId()->toRfc4122();
+        $secondId = $second->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+
+        $component->call('selectItem', ['id' => $firstId]);
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('id="assoc-picker-' . $firstId . '"', $html);
+
+        $component->call('selectItem', ['id' => $secondId]);
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('id="assoc-picker-' . $secondId . '"', $html);
+        self::assertStringNotContainsString('id="assoc-picker-' . $firstId . '"', $html);
+
+        // The save still targets whichever item is selected, not the first one.
+        $component->set('associationKey', $profile->getId()->toRfc4122())->call('saveAssociation');
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        self::assertNotNull($items->findByIdAndCentre($secondId, $centre)?->getAssociatedProfile());
+        self::assertNull($items->findByIdAndCentre($firstId, $centre)?->getAssociatedProfile());
+    }
+
     public function testMoveUpAndMoveDownSwapSiblingPositions(): void
     {
         $centre = $this->centre();
