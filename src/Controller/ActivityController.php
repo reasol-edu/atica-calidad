@@ -132,6 +132,13 @@ class ActivityController extends AbstractController
 
                 return $this->redirectToActivity($activity);
             }
+            if (!$folder->acceptsFile($file->getClientOriginalName(), $file->getMimeType() ?? '')) {
+                $this->addFlash('error', $this->translator->trans('upload.error.file_format_not_allowed', [
+                    '%filename%' => $file->getClientOriginalName(),
+                ], 'activity_content'));
+
+                return $this->redirectToActivity($activity);
+            }
 
             $slotKey = (string) ($items[$i]['slotKey'] ?? '');
             $slot    = $slotsByKey[$slotKey] ?? null;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Twig\Components;
 
+use App\Entity\AllowedFileFormat;
 use App\Entity\Document;
 use App\Entity\DocumentRevision;
 use App\Entity\DocumentSection;
@@ -104,6 +105,14 @@ class SectionBrowserComponent extends AbstractController
     /** @var string[] */
     #[LiveProp(writable: true)]
     public array $reviewProfileKeys = [];
+
+    /**
+     * AllowedFileFormat::value strings currently checked in the settings panel.
+     *
+     * @var string[]
+     */
+    #[LiveProp(writable: true)]
+    public array $allowedFormatKeys = [];
 
     // ── Document content ──────────────────────────────────────────────────
 
@@ -577,6 +586,7 @@ class SectionBrowserComponent extends AbstractController
         $this->uploadProfileKeys      = $this->keysFor($folder->getUploadProfiles());
         $this->visibilityProfileKeys  = $this->keysFor($folder->getVisibilityProfiles());
         $this->reviewProfileKeys      = $this->keysFor($folder->getReviewProfiles());
+        $this->allowedFormatKeys      = array_map(static fn (AllowedFileFormat $f): string => $f->value, $folder->getAllowedFormats());
         $this->editDescriptionValue   = $folder->getDescription() ?? '';
     }
 
@@ -647,7 +657,17 @@ class SectionBrowserComponent extends AbstractController
         return $this->rowBuilder->buildActiveRowsWithWholeProfileOption($this->centre);
     }
 
-    /** Replaces a folder's four profile-restriction lists and description with whatever the settings panel currently holds. */
+    /**
+     * The fixed set of file-format restriction options, for the settings panel's checkbox group.
+     *
+     * @return AllowedFileFormat[]
+     */
+    public function getAvailableFormats(): array
+    {
+        return AllowedFileFormat::cases();
+    }
+
+    /** Replaces a folder's four profile-restriction lists, allowed formats and description with whatever the settings panel currently holds. */
     #[LiveAction]
     public function saveFolderProfiles(#[LiveArg] string $id): void
     {
@@ -663,6 +683,13 @@ class SectionBrowserComponent extends AbstractController
         $this->syncUploadProfiles($folder, $this->uploadProfileKeys, $rowsByKey);
         $this->syncVisibilityProfiles($folder, $this->visibilityProfileKeys, $rowsByKey);
         $this->syncReviewProfiles($folder, $this->reviewProfileKeys, $rowsByKey);
+        // tryFrom(), not from(): allowedFormatKeys comes straight from client checkbox values —
+        // an unrecognised one (stale/tampered request) is silently dropped rather than a 500,
+        // same defensive stance as the profile-key lookups above.
+        $folder->setAllowedFormats(array_values(array_filter(array_map(
+            static fn (string $key): ?AllowedFileFormat => AllowedFileFormat::tryFrom($key),
+            $this->allowedFormatKeys,
+        ))));
 
         $description = trim($this->editDescriptionValue);
         $folder->setDescription($description === '' ? null : $description);

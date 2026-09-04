@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Controller;
 
+use App\Entity\AllowedFileFormat;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
 use App\Entity\DocumentRevision;
@@ -152,6 +153,56 @@ final class FolderControllerTest extends ControllerTestCase
         self::assertSame(403, $this->client->getResponse()->getStatusCode());
     }
 
+    public function testUploadRejectedWhenTheFormatIsNotAllowed(): void
+    {
+        $centre = $this->centre();
+        $folder = $this->folder($centre);
+        $folder->setAllowedFormats([AllowedFileFormat::Image]);
+        $admin = $this->admin();
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $admin);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('POST', "/arbol-documental/carpetas/{$folderId}/subir", [
+            '_token' => $this->csrfToken('folder_upload_' . $folderId),
+            'items'  => [0 => ['version' => '1']],
+        ], [
+            'files' => [0 => $this->uploadedFile('contenido')], // a PDF (see uploadedFile()), not an image
+        ]);
+
+        self::assertTrue($this->client->getResponse()->isRedirect());
+
+        $this->em->clear();
+        /** @var DocumentRepository $documents */
+        $documents = self::getContainer()->get(DocumentRepository::class);
+        self::assertCount(0, $documents->findByFolder($folder));
+    }
+
+    public function testUploadAcceptedWhenTheFormatIsAllowed(): void
+    {
+        $centre = $this->centre();
+        $folder = $this->folder($centre);
+        $folder->setAllowedFormats([AllowedFileFormat::NonEditableDocument]);
+        $admin = $this->admin();
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $admin);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('POST', "/arbol-documental/carpetas/{$folderId}/subir", [
+            '_token' => $this->csrfToken('folder_upload_' . $folderId),
+            'items'  => [0 => ['version' => '1']],
+        ], [
+            'files' => [0 => $this->uploadedFile('contenido')], // a PDF, matching NonEditableDocument
+        ]);
+
+        self::assertTrue($this->client->getResponse()->isRedirect());
+
+        $this->em->clear();
+        /** @var DocumentRepository $documents */
+        $documents = self::getContainer()->get(DocumentRepository::class);
+        self::assertCount(1, $documents->findByFolder($folder));
+    }
+
     public function testUploadWithNoFilesRedirectsWithoutCreatingAnything(): void
     {
         $centre = $this->centre();
@@ -294,6 +345,35 @@ final class FolderControllerTest extends ControllerTestCase
         $reloaded  = $documents->findById($documentId);
         self::assertNotNull($reloaded);
         self::assertTrue($reloaded->hasVersion(2));
+    }
+
+    public function testUploadRevisionRejectedWhenTheFormatIsNotAllowed(): void
+    {
+        $centre = $this->centre();
+        $folder = $this->folder($centre);
+        $folder->setAllowedFormats([AllowedFileFormat::Image]);
+        $uploader = $this->teacher('subidor');
+        $document = $this->documentWithFirstRevision($folder, $uploader);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $uploader, $document);
+        $folderId   = $folder->getId()->toRfc4122();
+        $documentId = $document->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request(
+            'POST',
+            "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones",
+            ['_token' => $this->csrfToken('folder_document_revision_' . $documentId)],
+            ['file' => $this->uploadedFile('v2')], // a PDF, not an image
+        );
+
+        self::assertTrue($this->client->getResponse()->isRedirect());
+
+        $this->em->clear();
+        /** @var DocumentRepository $documents */
+        $documents = self::getContainer()->get(DocumentRepository::class);
+        $reloaded  = $documents->findById($documentId);
+        self::assertNotNull($reloaded);
+        self::assertFalse($reloaded->hasVersion(2));
     }
 
     public function testUploadRevisionDeniedToAStrangerWhoIsNeitherManagerNorUploader(): void

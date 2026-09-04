@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Entity;
 
+use App\Entity\AllowedFileFormat;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
@@ -148,5 +149,73 @@ final class FolderTest extends TestCase
         $folder = $this->folder($this->centre());
 
         self::assertNull($folder->getActivity());
+    }
+
+    // ── Allowed formats ──────────────────────────────────────────────────────
+
+    public function testUnrestrictedFolderAcceptsAnyFile(): void
+    {
+        $folder = $this->folder($this->centre());
+
+        self::assertFalse($folder->isFormatRestricted());
+        self::assertSame([], $folder->getAllowedFormats());
+        self::assertTrue($folder->acceptsFile('cualquiera.exe', 'application/octet-stream'));
+    }
+
+    public function testSetAllowedFormatsRestrictsToTheChosenFormats(): void
+    {
+        $folder = $this->folder($this->centre());
+
+        $folder->setAllowedFormats([AllowedFileFormat::Image, AllowedFileFormat::NonEditableDocument]);
+
+        self::assertTrue($folder->isFormatRestricted());
+        self::assertSame([AllowedFileFormat::Image, AllowedFileFormat::NonEditableDocument], $folder->getAllowedFormats());
+        self::assertTrue($folder->acceptsFile('foto.jpg', 'image/jpeg'));
+        self::assertTrue($folder->acceptsFile('memoria.pdf', 'application/pdf'));
+        self::assertFalse($folder->acceptsFile('datos.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));
+    }
+
+    public function testSetAllowedFormatsWithAnEmptyArrayClearsTheRestriction(): void
+    {
+        $folder = $this->folder($this->centre());
+        $folder->setAllowedFormats([AllowedFileFormat::Image]);
+
+        $folder->setAllowedFormats([]);
+
+        self::assertFalse($folder->isFormatRestricted());
+        self::assertTrue($folder->acceptsFile('script.exe', 'application/octet-stream'));
+    }
+
+    public function testSetAllowedFormatsDeduplicatesRepeatedFormats(): void
+    {
+        $folder = $this->folder($this->centre());
+
+        $folder->setAllowedFormats([AllowedFileFormat::Image, AllowedFileFormat::Image]);
+
+        self::assertSame([AllowedFileFormat::Image], $folder->getAllowedFormats());
+    }
+
+    public function testAcceptsFileMatchesByExtensionEvenWithAGenericMimeType(): void
+    {
+        $folder = $this->folder($this->centre());
+        $folder->setAllowedFormats([AllowedFileFormat::Text]);
+
+        self::assertTrue($folder->acceptsFile('notas.TXT', 'application/octet-stream'), 'extension match is case-insensitive');
+    }
+
+    public function testAcceptsFileMatchesByMimeTypeEvenWithAnUnexpectedExtension(): void
+    {
+        $folder = $this->folder($this->centre());
+        $folder->setAllowedFormats([AllowedFileFormat::Image]);
+
+        self::assertTrue($folder->acceptsFile('foto.jpeg_renamed', 'image/jpeg'));
+    }
+
+    public function testAcceptsFileRejectsWhatNoAllowedFormatCovers(): void
+    {
+        $folder = $this->folder($this->centre());
+        $folder->setAllowedFormats([AllowedFileFormat::Spreadsheet]);
+
+        self::assertFalse($folder->acceptsFile('instalador.exe', 'application/x-msdownload'));
     }
 }

@@ -173,6 +173,20 @@
                 {% endfor %}
             {% endif %}
 
+            <div>
+                <p class="mb-1.5 text-xs font-medium text-gray-600">{{ 'folder.field.allowed_formats'|trans({}, 'admin') }}</p>
+                <p class="mb-2 text-xs text-gray-400">{{ 'folder.field.allowed_formats_help'|trans({}, 'admin') }}</p>
+                <div class="flex flex-wrap gap-2">
+                    {% for format in this.getAvailableFormats %}
+                        <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600 transition-colors has-[:checked]:border-forest-600 has-[:checked]:bg-forest-600 has-[:checked]:text-white">
+                            <input type="checkbox" value="{{ format.value }}" data-model="norender|allowedFormatKeys"
+                                   {{ format.value in allowedFormatKeys ? 'checked' : '' }} class="sr-only">
+                            {{ format.labelKey|trans({}, 'admin') }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
             <div class="flex justify-end gap-2">
                 <button type="button" data-action="live#action" data-live-action-param="saveFolderProfiles" data-live-id-param="{{ fid }}"
                         class="rounded-md bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700">

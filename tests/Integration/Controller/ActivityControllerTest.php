@@ -7,6 +7,7 @@ namespace App\Tests\Integration\Controller;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\ActivitySubmissionScope;
+use App\Entity\AllowedFileFormat;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
@@ -206,6 +207,38 @@ final class ActivityControllerTest extends ControllerTestCase
         $activeRevision = $docs[0]->getActiveRevision();
         self::assertNotNull($activeRevision);
         self::assertSame('secretario', $activeRevision->getUploadedBy()->getUsername());
+    }
+
+    public function testUploadSubmissionsRejectedWhenTheFormatIsNotAllowed(): void
+    {
+        $centre  = $this->centre();
+        $category = $this->category($centre);
+        $folder  = $this->folder($centre);
+        $folder->setAllowedFormats([AllowedFileFormat::Image]);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        $activity   = $this->activity($category)->setFolder($folder);
+        $teacher    = $this->teacher('secretario');
+        $assignment = new SpecificProfileAssignment($profile, null, $teacher);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, $assignment);
+        $activityId = $activity->getId()->toRfc4122();
+        $slotKey    = $profile->getId()->toRfc4122() . ':::';
+
+        $this->loginAs($teacher, $centre);
+        $this->client->request('POST', "/actividades/{$activityId}/entregas/subir", [
+            '_token' => $this->csrfToken('activity_submission_upload_' . $activityId),
+            'items'  => [0 => ['slotKey' => $slotKey]],
+        ], [
+            'files' => [0 => $this->uploadedFile('contenido')], // a PDF, not an image
+        ]);
+
+        self::assertTrue($this->client->getResponse()->isRedirect());
+
+        $this->em->clear();
+        /** @var DocumentRepository $documents */
+        $documents = self::getContainer()->get(DocumentRepository::class);
+        self::assertCount(0, $documents->findByFolder($folder));
     }
 
     public function testUploadSubmissionsRejectedWithInvalidCsrfToken(): void

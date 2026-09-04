@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Component;
 
+use App\Entity\AllowedFileFormat;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
 use App\Entity\DocumentRevision;
@@ -77,6 +78,21 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         self::assertIsString($value);
 
         return $value;
+    }
+
+    /** @return list<string> */
+    private function stringListProp(TestLiveComponent $component, string $key): array
+    {
+        $value = $this->props($component)[$key];
+        self::assertIsArray($value);
+
+        $strings = [];
+        foreach ($value as $item) {
+            self::assertIsString($item);
+            $strings[] = $item;
+        }
+
+        return $strings;
     }
 
     /** @return array{centre: EducationalCentre, initialSectionId: string} */
@@ -591,6 +607,95 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         $this->em->clear();
         $reloaded = $this->em->find(Folder::class, $folderId);
         self::assertNull($reloaded->getDescription());
+    }
+
+    // ── Allowed file formats ──────────────────────────────────────────────────
+
+    public function testToggleFolderSettingsPrefillsTheAllowedFormats(): void
+    {
+        $centre  = $this->centre();
+        $manager = $this->teacher('gestor');
+        $centre->addQualityManager($manager);
+        $section = $this->section($centre);
+        $folder  = $this->folder($section)->setAllowedFormats([AllowedFileFormat::Image, AllowedFileFormat::NonEditableDocument]);
+        $this->persist($centre, $manager, $section, $folder);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+        $component->call('toggleFolderSettings', ['id' => $folderId]);
+
+        $keys = $this->stringListProp($component, 'allowedFormatKeys');
+        sort($keys);
+        self::assertSame(['image', 'non_editable_document'], $keys);
+    }
+
+    public function testSaveFolderProfilesPersistsTheAllowedFormats(): void
+    {
+        $centre  = $this->centre();
+        $manager = $this->teacher('gestor');
+        $centre->addQualityManager($manager);
+        $section = $this->section($centre);
+        $folder  = $this->folder($section);
+        $this->persist($centre, $manager, $section, $folder);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+        $component->call('toggleFolderSettings', ['id' => $folderId]);
+        $component->set('allowedFormatKeys', ['spreadsheet', 'text'])->call('saveFolderProfiles', ['id' => $folderId]);
+
+        $this->em->clear();
+        /** @var Folder $reloaded */
+        $reloaded = $this->em->find(Folder::class, $folderId);
+        self::assertSame([AllowedFileFormat::Spreadsheet, AllowedFileFormat::Text], $reloaded->getAllowedFormats());
+    }
+
+    public function testSaveFolderProfilesClearsTheAllowedFormatsWhenNoneAreChecked(): void
+    {
+        $centre  = $this->centre();
+        $manager = $this->teacher('gestor');
+        $centre->addQualityManager($manager);
+        $section = $this->section($centre);
+        $folder  = $this->folder($section)->setAllowedFormats([AllowedFileFormat::Image]);
+        $this->persist($centre, $manager, $section, $folder);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+        $component->call('toggleFolderSettings', ['id' => $folderId]);
+        $component->set('allowedFormatKeys', [])->call('saveFolderProfiles', ['id' => $folderId]);
+
+        $this->em->clear();
+        /** @var Folder $reloaded */
+        $reloaded = $this->em->find(Folder::class, $folderId);
+        self::assertFalse($reloaded->isFormatRestricted());
+    }
+
+    /**
+     * saveFolderProfiles() must not blow up on a stale/tampered request whose allowedFormatKeys
+     * includes a value outside AllowedFileFormat's fixed set — it should just be dropped, the same
+     * defensive stance as an unrecognised profile key.
+     */
+    public function testSaveFolderProfilesIgnoresAnUnrecognisedFormatKey(): void
+    {
+        $centre  = $this->centre();
+        $manager = $this->teacher('gestor');
+        $centre->addQualityManager($manager);
+        $section = $this->section($centre);
+        $folder  = $this->folder($section);
+        $this->persist($centre, $manager, $section, $folder);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+        $component->call('toggleFolderSettings', ['id' => $folderId]);
+        $component->set('allowedFormatKeys', ['image', 'no-existe'])->call('saveFolderProfiles', ['id' => $folderId]);
+
+        $this->em->clear();
+        /** @var Folder $reloaded */
+        $reloaded = $this->em->find(Folder::class, $folderId);
+        self::assertSame([AllowedFileFormat::Image], $reloaded->getAllowedFormats());
     }
 
     public function testExpandedFolderShowsTheSanitizedDescription(): void

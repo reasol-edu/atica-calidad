@@ -77,8 +77,8 @@ antes de una reorganización grande.
 ## Carpetas (pestaña «Ver»)
 
 Dentro de cada sección, quien tiene permiso de administración ve un botón **Añadir carpeta**. Cada
-carpeta tiene un nombre y cuatro interruptores/listas independientes que controlan quién puede
-hacer qué con ella — el desglose completo está en
+carpeta tiene un nombre y varios interruptores/listas independientes que controlan quién puede
+hacer qué con ella y qué se puede subir — el desglose de los permisos está en
 [Permisos sobre una carpeta](#permisos-sobre-una-carpeta) más abajo. Se abren desde el icono de
 ajustes de la carpeta (**⚙ Ajustes de la carpeta**):
 
@@ -96,6 +96,11 @@ ajustes de la carpeta (**⚙ Ajustes de la carpeta**):
   para retirar documentación superada sin perder su histórico.
 - **Perfiles responsables / de subida / de visibilidad / de revisión** — las cuatro listas que
   determinan los permisos sobre el contenido de la carpeta (ver la siguiente sección).
+- **Formatos de fichero aceptados** — restringe lo que se puede subir a la carpeta a uno o varios
+  de un conjunto fijo: documento editable (Word, ODT, RTF...), documento no editable (PDF),
+  presentación, hoja de cálculo, imágenes o ficheros de texto. Sin ninguno marcado, se acepta
+  cualquier formato. Se comprueba por la extensión del fichero o por su tipo, así que basta con
+  que uno de los dos encaje.
 
 ![Ajustes de una carpeta: interruptores y las cuatro listas de perfiles](img/arbol-carpeta-ajustes.png)
 
@@ -152,8 +157,9 @@ las carpetas, siempre, aunque no aparezcan en ninguna de las listas.
 ### Subir un documento
 
 Con permiso de subida en una carpeta (responsable o perfil de subida), aparece una zona para
-arrastrar ficheros o hacer clic para seleccionarlos (tamaño máximo: 20 MB por fichero, sin
-restricción de tipo — PDF, Word, Excel, imágenes...). Tras soltarlos, se confirma un nombre y,
+arrastrar ficheros o hacer clic para seleccionarlos (tamaño máximo: 20 MB por fichero; el tipo es
+libre salvo que la carpeta tenga configurados **formatos de fichero aceptados**, en cuyo caso se
+rechaza cualquier fichero que no encaje en ninguno). Tras soltarlos, se confirma un nombre y,
 si la carpeta tiene **perfiles de subida** configurados, con qué perfil se etiqueta cada uno: quien
 es responsable de la carpeta puede elegir libremente entre todos ellos; quien solo tiene permiso de
 subida solo puede etiquetar con su propio perfil o subperfil.

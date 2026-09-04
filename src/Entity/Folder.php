@@ -18,6 +18,9 @@ use Symfony\Component\Uid\Uuid;
  * profile), upload profiles (upload only), visibility profiles (if non-empty,
  * only these can see the folder at all) and review profiles (if non-empty,
  * uploaded revisions need one of these to approve/reject before publishing).
+ * A fifth, independent restriction — $allowedFormats — controls WHAT can be uploaded rather than
+ * who: when non-empty, an upload is rejected unless it matches one of a fixed set of file formats
+ * (see AllowedFileFormat).
  * The folder's own configuration (this entity's fields) is edited separately
  * from its content — see FolderVoter vs EducationalCentreVoter::RESPONSIBILITIES.
  */
@@ -60,6 +63,20 @@ class Folder
      */
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
+
+    /**
+     * Comma-separated AllowedFileFormat::value strings uploads are restricted to — null/empty
+     * means no restriction (any format accepted). A plain nullable string column rather than
+     * Doctrine's built-in SIMPLE_ARRAY type: the fixed, closed set of possible values (see
+     * AllowedFileFormat) never contains a comma, so a manual split/join is exactly as safe and
+     * keeps the mapped property a plain nullable string instead of an array whose own conversion
+     * rules (SimpleArrayType::convertToDatabaseValue() turns an empty array into SQL NULL) make
+     * "array, but the column allows NULL" impossible to express cleanly. Use
+     * getAllowedFormats()/setAllowedFormats() for the typed enum API — nothing outside this class
+     * reads the raw string.
+     */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $allowedFormats = null;
 
     /** @var Collection<int, FolderResponsibleProfile> */
     #[ORM\OneToMany(targetEntity: FolderResponsibleProfile::class, mappedBy: 'folder', cascade: ['persist'], orphanRemoval: true)]
@@ -191,6 +208,62 @@ class Folder
         $this->description = $description;
 
         return $this;
+    }
+
+    public function isFormatRestricted(): bool
+    {
+        return $this->allowedFormats !== null && $this->allowedFormats !== '';
+    }
+
+    /** @return list<AllowedFileFormat> */
+    public function getAllowedFormats(): array
+    {
+        if (!$this->isFormatRestricted()) {
+            return [];
+        }
+
+        return array_map(
+            static fn (string $value): AllowedFileFormat => AllowedFileFormat::from($value),
+            explode(',', (string) $this->allowedFormats),
+        );
+    }
+
+    /** @param list<AllowedFileFormat> $formats */
+    public function setAllowedFormats(array $formats): static
+    {
+        $values = array_values(array_unique(array_map(
+            static fn (AllowedFileFormat $format): string => $format->value,
+            $formats,
+        )));
+
+        $this->allowedFormats = $values === [] ? null : implode(',', $values);
+
+        return $this;
+    }
+
+    /**
+     * Whether a file named $filename, reported as $mimeType, would be accepted for upload —
+     * always true when the folder has no format restriction. Matches by extension OR by MIME
+     * type (not both): a browser's reported MIME type is sometimes a generic fallback like
+     * application/octet-stream even for a well-formed file, so requiring both would reject valid
+     * uploads the extension alone already identifies correctly.
+     */
+    public function acceptsFile(string $filename, string $mimeType): bool
+    {
+        if (!$this->isFormatRestricted()) {
+            return true;
+        }
+
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $mimeType  = strtolower($mimeType);
+
+        foreach ($this->getAllowedFormats() as $format) {
+            if (in_array($extension, $format->extensions(), true) || in_array($mimeType, $format->mimeTypes(), true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return Collection<int, Document> */

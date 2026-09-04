@@ -108,6 +108,13 @@ class FolderController extends AbstractController
 
                 return $this->redirectToFolder($folder, $request);
             }
+            if (!$folder->acceptsFile($file->getClientOriginalName(), $file->getMimeType() ?? '')) {
+                $this->addFlash('error', $this->translator->trans('upload.error.file_format_not_allowed', [
+                    '%filename%' => $file->getClientOriginalName(),
+                ], 'document_content'));
+
+                return $this->redirectToFolder($folder, $request);
+            }
 
             $item    = $items[$i] ?? [];
             $name    = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
@@ -182,6 +189,13 @@ class FolderController extends AbstractController
         }
         if ($file->getSize() > self::MAX_DOCUMENT_SIZE) {
             $this->addFlash('error', $this->t('upload.error.too_large'));
+
+            return $this->redirectToFolder($folder, $request);
+        }
+        if (!$folder->acceptsFile($file->getClientOriginalName(), $file->getMimeType() ?? '')) {
+            $this->addFlash('error', $this->translator->trans('upload.error.file_format_not_allowed', [
+                '%filename%' => $file->getClientOriginalName(),
+            ], 'document_content'));
 
             return $this->redirectToFolder($folder, $request);
         }

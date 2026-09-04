@@ -7,6 +7,15 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Árbol documental**: cada carpeta puede restringir los formatos de fichero que acepta a uno o
+  varios de un conjunto fijo — documento editable, documento no editable, presentación, hoja de
+  cálculo, imágenes o ficheros de texto — desde sus ajustes. Sin ninguno marcado, se acepta
+  cualquier formato, como hasta ahora. Se comprueba por extensión o por tipo MIME, así que basta
+  con que uno de los dos encaje; se aplica a la subida de un documento nuevo, de una nueva
+  revisión y a las entregas de una actividad.
+
 ### Changed
 
 - **Actividades**: cuando una actividad usa un elemento de lista para nombrar sus entregas, ahora
