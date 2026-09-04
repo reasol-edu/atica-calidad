@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-05
+
 ### Added
 
 - **Árbol documental**: cada carpeta puede restringir los formatos de fichero que acepta a uno o

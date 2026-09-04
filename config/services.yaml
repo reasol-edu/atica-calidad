@@ -9,8 +9,8 @@
 parameters:
     # Application version
     app.name:                   "ÁTICA Calidad"
-    app.version:                "0.4.0"
-    app.pub_date:               "2026-09-03"
+    app.version:                "0.5.0"
+    app.pub_date:               "2026-09-05"
     # Minimum time (in microseconds) the POST branch of the password-reset
     # request takes. Equalizes the two branches (user exists / does not
     # exist) so that the synchronous email send doesn't allow account
