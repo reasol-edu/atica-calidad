@@ -21,6 +21,9 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   lleva directamente a su carpeta en el árbol documental — el enlace no se muestra si esa carpeta
   en concreto no es visible para el docente (por sus propias restricciones o las de alguna
   sección que la contiene).
+- **Árbol documental**: al descargar una carpeta en ZIP, si el nombre de un documento incluye el
+  separador de ruta «›» (entregas nombradas por un elemento de lista profundo, ver más arriba), el
+  fichero dentro del ZIP lo sustituye por «_» en vez de conservarlo.
 
 ### Fixed
 

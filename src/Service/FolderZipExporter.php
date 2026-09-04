@@ -55,10 +55,22 @@ final class FolderZipExporter
     /** The document's own name, keeping the extension of the file that was actually uploaded. */
     private function entryFilename(Document $document, string $originalFilename): string
     {
-        $stem      = $this->sanitizeSegment($document->getName());
+        $stem      = $this->sanitizeSegment($this->flattenPathSeparators($document->getName()));
         $extension = pathinfo($originalFilename, PATHINFO_EXTENSION);
 
         return $extension === '' ? $stem : $stem . '.' . $this->sanitizeSegment($extension);
+    }
+
+    /**
+     * A document's own name can itself carry a " › " path separator when an activity names its
+     * submissions after a deep list element (see
+     * ActivitySubmissionSlotBuilder::submissionName()) — fine on screen and in a single
+     * revision's own Content-Disposition (UTF-8-aware), but a ZIP entry name is better kept to
+     * characters every extraction tool treats the same way, so it collapses to "_" here instead.
+     */
+    private function flattenPathSeparators(string $name): string
+    {
+        return preg_replace('/\s*›\s*/u', '_', $name) ?? $name;
     }
 
     /**

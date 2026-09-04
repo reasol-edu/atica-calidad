@@ -504,6 +504,27 @@ final class FolderControllerTest extends ControllerTestCase
         self::assertSame(['Manual de calidad.txt' => 'v1', 'Política.txt' => 'v1'], $files);
     }
 
+    /**
+     * A submission named after a deep list element (see
+     * ActivitySubmissionSlotBuilder::submissionName()) carries a " › " path separator in the
+     * document's own name — fine on screen, but the ZIP entry collapses it to "_" instead, since
+     * not every extraction tool handles that character the same way.
+     */
+    public function testDownloadZipReplacesTheListPathSeparatorInADocumentNameWithAnUnderscore(): void
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($centre);
+        $uploader = $this->teacher('subidor');
+        $doc      = $this->documentWithFirstRevision($folder, $uploader, 'Ciencias › Física');
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $uploader, $doc);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip");
+
+        self::assertSame(['Ciencias_Física.txt' => 'v1'], $this->readZipResponse());
+    }
+
     public function testDownloadZipSkipsDocumentsWithoutAnActiveRevision(): void
     {
         $centre   = $this->centre();
