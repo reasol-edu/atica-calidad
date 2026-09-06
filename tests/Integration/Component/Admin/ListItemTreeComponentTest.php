@@ -606,4 +606,34 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertStringContainsString('data-list-item-id="' . $leaf->getId()->toRfc4122() . '"', $html);
         self::assertStringContainsString('Física', $html);
     }
+
+    /**
+     * The full DOM contract nested_sortable_controller.js relies on to make drag-and-drop work:
+     * the controller wired with its three values, a `data-parent-id` list at the root and one per
+     * node, a `data-list-item-id` on every draggable <li>, and a `js-drag-handle` grip. If any of
+     * these drifts, dropping an item silently does nothing.
+     */
+    public function testDesktopTreeEmitsTheDragAndDropDomContract(): void
+    {
+        $centre = $this->centre();
+        $root   = (new ListItem())->setEducationalCentre($centre)->setName('Materias');
+        $leaf   = (new ListItem())->setEducationalCentre($centre)->setName('Física');
+        $leaf->setParent($root);
+        $admin  = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $root, $leaf, $admin);
+        $rootId = $root->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $html      = (string) $component->render()->crawler()->html();
+
+        self::assertMatchesRegularExpression('/data-controller="[^"]*\bnested-sortable\b[^"]*"/', $html, 'the root element loads the shared sortable controller (alongside the "live" one)');
+        self::assertStringContainsString('data-nested-sortable-id-attr-value="listItemId"', $html);
+        self::assertStringContainsString('data-nested-sortable-move-action-value="moveListItem"', $html);
+        self::assertStringContainsString('data-nested-sortable-group-value="list-items"', $html);
+        self::assertStringContainsString('data-parent-id=""', $html, 'the root sortable list');
+        self::assertStringContainsString('data-parent-id="' . $rootId . '"', $html, 'each node carries its own child sortable list');
+        self::assertStringContainsString('js-drag-handle', $html);
+    }
 }

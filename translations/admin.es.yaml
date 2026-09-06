@@ -386,8 +386,8 @@ responsibilities.lists.bulk.flash.saved: 'Asociación aplicada a %count% element
 responsibilities.lists.flash.saved: 'Elemento guardado correctamente.'
 responsibilities.lists.flash.deleted: 'Elemento eliminado correctamente.'
 
-responsibilities.lists.export: 'Exportar'
-responsibilities.lists.import.title: 'Importar'
+responsibilities.lists.export: 'Exportar todo'
+responsibilities.lists.import.title: 'Importar todo'
 responsibilities.lists.import.help.title: 'Esto sustituye toda la lista actual'
 responsibilities.lists.import.help.replace: 'Se borrarán todos los elementos y etiquetas actuales del centro y se crearán los que traiga el fichero. No se puede deshacer.'
 responsibilities.lists.import.help.in_use: 'Si algún elemento actual está en uso (asociado a un perfil o con docentes asignados a través de uno), la importación se cancela sin cambiar nada.'

@@ -321,4 +321,33 @@ final class DocumentSectionTreeComponentTest extends ControllerTestCase
         self::assertNotNull($reloadedParent);
         self::assertNull($reloadedParent->getParent(), 'the cyclic move must be rejected, leaving the section a root still');
     }
+
+    /**
+     * Regression: after nested_sortable_controller.js was made generic (Stimulus values instead of
+     * hardcoded names), the desktop tree must still emit exactly the DOM contract it reads —
+     * dropped sections would silently stop moving otherwise.
+     */
+    public function testDesktopTreeEmitsTheDragAndDropDomContract(): void
+    {
+        $centre = $this->centre();
+        $root   = $this->section($centre, 'Calidad');
+        $child  = $this->section($centre, 'Actas');
+        $child->setParent($root);
+        $admin  = $this->admin();
+        $this->persist($centre, $root, $child, $admin);
+        $rootId = $root->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:DocumentSectionTreeComponent', ['centre' => $centre], $this->client);
+        $html      = (string) $component->render()->crawler()->html();
+
+        self::assertMatchesRegularExpression('/data-controller="[^"]*\bnested-sortable\b[^"]*"/', $html, 'the root element loads the shared sortable controller (alongside the "live" one)');
+        self::assertStringContainsString('data-nested-sortable-id-attr-value="sectionId"', $html);
+        self::assertStringContainsString('data-nested-sortable-move-action-value="moveSection"', $html);
+        self::assertStringContainsString('data-nested-sortable-group-value="document-sections"', $html);
+        self::assertStringContainsString('data-parent-id=""', $html);
+        self::assertStringContainsString('data-parent-id="' . $rootId . '"', $html);
+        self::assertStringContainsString('data-section-id="' . $rootId . '"', $html);
+        self::assertStringContainsString('js-drag-handle', $html);
+    }
 }
