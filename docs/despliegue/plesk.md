@@ -24,13 +24,13 @@ variables de entorno.
 > **fuera de `httpdocs/`** (por ejemplo `~/apps/atica-calidad/`):
 >
 > ```bash
-> git clone https://github.com/TU-USUARIO/atica-calidad.git ~/apps/atica-calidad
+> git clone https://github.com/reasol-edu/atica-calidad.git ~/apps/atica-calidad
 > ```
 >
 > Así, actualizar a una nueva versión se reduce a un `git pull` y tres comandos.
 
 Si prefieres no usar Git, descarga el código fuente desde la
-[página de Releases](https://github.com/TU-USUARIO/atica-calidad/releases) en **Assets → Source code (zip)**
+[página de Releases](https://github.com/reasol-edu/atica-calidad/releases) en **Assets → Source code (zip)**
 y descomprímelo en el servidor.
 
 ## 2. Configurar el dominio en Plesk

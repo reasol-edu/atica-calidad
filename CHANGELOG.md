@@ -7,6 +7,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Despliegue**: el manual documenta el proceso de actualización a la última versión publicada
+  para cada forma de despliegue (Docker, Plesk y binario nativo en Ubuntu Server). Para Ubuntu
+  Server se referencia el script `dist/update-ubuntu.sh`, incluido el comando
+  `curl -fsSL … | sudo bash` que lo ejecuta directamente desde el repositorio.
+
 ## [0.5.0] - 2026-09-05
 
 ### Added

@@ -1,6 +1,6 @@
 # Cómo contribuir a ÁTICA Calidad
 
-El repositorio oficial se encuentra en `https://github.com/TU-USUARIO/atica-calidad`
+El repositorio oficial se encuentra en `https://github.com/reasol-edu/atica-calidad`
 (sustituye por la URL real una vez publicado).
 
 ## Reportar un problema o proponer una mejora

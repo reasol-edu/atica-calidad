@@ -125,9 +125,14 @@ un despliegue con binario nativo, se gestiona como un servicio systemd independi
 ## Actualización
 
 Cada nueva versión se anuncia con sus cambios en el
-[registro de cambios](https://github.com/TU-USUARIO/atica-calidad/blob/main/CHANGELOG.md) del
+[registro de cambios](https://github.com/reasol-edu/atica-calidad/blob/main/CHANGELOG.md) del
 repositorio. Antes de actualizar, revisa si incluye cambios que requieran una intervención manual
 (poco frecuentes, siempre indicados explícitamente) y haz una copia de seguridad.
+
+Los pasos concretos dependen de cómo esté desplegada la aplicación (Docker, Plesk o binario nativo
+en Ubuntu Server) y están descritos en
+[Actualizar a la última versión publicada](01-instalacion-y-puesta-en-marcha.md#actualizar). En
+todos los casos se aplican las migraciones de base de datos pendientes:
 
 ```bash
 php bin/console doctrine:migrations:migrate --no-interaction

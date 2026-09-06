@@ -1,7 +1,7 @@
 site_name: Manual de usuario de ÁTICA Calidad
 site_description: Gestión documental de apoyo al sistema de gestión de la calidad
 # Sustituye por la URL real una vez publicada la web del manual.
-site_url: https://TU-USUARIO.github.io/atica-calidad/
+site_url: https://reasol-edu.github.io/atica-calidad/
 # Versión y fecha del release en el pie de la web. Fuente única: config/services.yaml.
 # El target "docs-web" del Makefile exporta MANUAL_COPYRIGHT con app.version y
 # app.pub_date; al construir directamente con mkdocs (sin la variable) se usa el valor por defecto.
@@ -9,7 +9,7 @@ copyright: !ENV [MANUAL_COPYRIGHT, "Manual de usuario de ÁTICA Calidad"]
 docs_dir: .
 site_dir: ../manual-site
 use_directory_urls: false
-repo_url: https://github.com/TU-USUARIO/atica-calidad
+repo_url: https://github.com/reasol-edu/atica-calidad
 
 exclude_docs: |
   README.md

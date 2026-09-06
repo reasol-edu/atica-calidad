@@ -18,25 +18,28 @@ servicios, descarga y extrae el paquete nuevo, y los vuelve a arrancar. Si ya es
 versión no hace nada y termina en `0`, así que es seguro invocarlo repetidamente desde un timer o
 un webhook.
 
-Descárgalo a la instalación:
+Para una **actualización puntual**, sin automatizar nada, se puede ejecutar directamente desde
+GitHub:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/TU-USUARIO/atica-calidad/main/dist/update-ubuntu.sh \
-  -o /opt/atica-calidad/atica-calidad-update.sh
-sudo chmod +x /opt/atica-calidad/atica-calidad-update.sh
-```
-
-Para una actualización puntual, sin automatizar nada, basta con ejecutarlo directamente:
-
-```bash
-sudo bash /opt/atica-calidad/atica-calidad-update.sh
+curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/update-ubuntu.sh | sudo bash
 ```
 
 Admite `--force` para reinstalar aunque la versión publicada parezca igual a la instalada (por
 ejemplo, tras una re-release que mueve la misma etiqueta a otro commit):
 
 ```bash
-sudo bash /opt/atica-calidad/atica-calidad-update.sh --force
+curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/update-ubuntu.sh | sudo bash -s -- --force
+```
+
+Si prefieres dejar el script guardado en la instalación (lo que hacen también las dos opciones
+automatizadas de abajo):
+
+```bash
+sudo curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/update-ubuntu.sh \
+  -o /opt/atica-calidad/atica-calidad-update.sh
+sudo chmod +x /opt/atica-calidad/atica-calidad-update.sh
+sudo bash /opt/atica-calidad/atica-calidad-update.sh          # o: … --force
 ```
 
 ## Opción A — Sondeo periódico con systemd timer
@@ -50,7 +53,7 @@ El script `dist/setup-update-timer.sh` del repositorio hace todo esto: descarga
 última versión):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TU-USUARIO/atica-calidad/main/dist/setup-update-timer.sh \
+curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/setup-update-timer.sh \
   | sudo bash
 ```
 

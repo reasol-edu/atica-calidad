@@ -43,6 +43,64 @@ binario nativo con systemd en un VPS o servidor dedicado, incluida la actualizac
 [automatizada](../despliegue/despliegue-continuo.md) y la exposición sin abrir puertos con
 [Cloudflare Tunnel](../despliegue/cloudflare-tunnel.md).
 
+## Actualizar a la última versión publicada {#actualizar}
+
+Cada versión se anuncia con sus cambios en el
+[registro de cambios](https://github.com/reasol-edu/atica-calidad/blob/main/CHANGELOG.md). Antes de
+actualizar, revisa si incluye algún cambio que requiera **intervención manual** (poco frecuente,
+siempre indicado de forma explícita) y **haz una copia de seguridad** de la base de datos y de
+`.env.local` (ver [Copias de seguridad](09-administrar-la-plataforma.md#copias-de-seguridad)). Las
+migraciones de base de datos son seguras de re-ejecutar: si la versión no cambia el esquema,
+`doctrine:migrations:migrate` termina en segundos sin tocar nada.
+
+### Docker
+
+Con el `compose.yaml` del repositorio, que compila la imagen en el propio servidor:
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Si has cambiado la imagen por la publicada `reasoledu/atica-calidad` en lugar de compilarla:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+En ambos casos, el contenedor `app` aplica las migraciones pendientes y regenera la caché al
+arrancar. El directorio `./data` (base de datos si usas SQLite, ficheros subidos, secreto) no forma
+parte de la imagen y se conserva intacto.
+
+### Plesk
+
+Ver [Actualizar a una nueva versión](../despliegue/plesk.md#actualizar-a-una-nueva-version) en la
+guía de Plesk. En resumen: `git pull`, `composer install --no-dev --optimize-autoloader`,
+recompilar los assets (`tailwind:build` + `asset-map:compile`), `doctrine:migrations:migrate` y
+regenerar la caché de `prod`.
+
+### Ubuntu Server (binario nativo)
+
+El repositorio incluye `dist/update-ubuntu.sh`, que compara la versión instalada con la última
+publicada en GitHub Releases y, si difieren, para los servicios, descarga y extrae el paquete
+nuevo (sin tocar `data/` ni `.env.local`) y los vuelve a arrancar. Si ya está en la última versión
+no hace nada. Para una actualización puntual, ejecútalo directamente desde GitHub:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/update-ubuntu.sh | sudo bash
+```
+
+Añade `--force` para reinstalar aunque la versión parezca la misma (p. ej. tras mover una etiqueta
+a otro commit):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/update-ubuntu.sh | sudo bash -s -- --force
+```
+
+Para dejarlo **automatizado** (sondeo con un timer de systemd, o webhook desde GitHub), ver la guía
+de [despliegue continuo](../despliegue/despliegue-continuo.md).
+
 ## Variables de entorno {#variables-de-entorno-opcionales}
 
 Todas las variables admitidas están documentadas, con su valor por defecto, en `.env.example` en la
