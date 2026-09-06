@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-06
+
 ### Added
 
 - **Despliegue**: el manual documenta el proceso de actualización a la última versión publicada
