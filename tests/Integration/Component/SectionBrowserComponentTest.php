@@ -238,6 +238,51 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         self::assertSame(0, $reloadedSecond->getPosition());
     }
 
+    /**
+     * Documents uploaded before positions were assigned all sit at position 0. A raw position
+     * swap between two of them is a no-op; reorderDocument() must normalise them to 0..n first so
+     * the up/down buttons actually change the order.
+     */
+    public function testMoveDocumentWorksWhenEveryDocumentSharesPositionZero(): void
+    {
+        $centre  = $this->centre();
+        $section = $this->section($centre);
+        $folder  = $this->folder($section);
+        $manager = $this->teacher('responsable');
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Responsable');
+        $folder->addResponsibleProfile($profile);
+        $assignment = new SpecificProfileAssignment($profile, null, $manager);
+
+        $a = $this->documentWithApprovedRevision($folder, $manager, 'A');
+        $b = $this->documentWithApprovedRevision($folder, $manager, 'B');
+        $c = $this->documentWithApprovedRevision($folder, $manager, 'C');
+        foreach ([$a, $b, $c] as $doc) {
+            $doc->setPosition(0);
+        }
+
+        $this->persist($centre, $section, $folder, $profile, $manager, $assignment, $a, $b, $c);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+
+        /** @var DocumentRepository $documents */
+        $documents = self::getContainer()->get(DocumentRepository::class);
+        $names     = static fn (Folder $f): array => array_map(
+            static fn (Document $d): string => $d->getName(),
+            $documents->findByFolder($f),
+        );
+
+        $before  = $names($folder);
+        $firstId = $documents->findByFolder($folder)[0]->getId()->toRfc4122();
+
+        // Move the first document down: order must actually change (before the fix it did not).
+        $component->call('moveDocumentDown', ['folderId' => $folderId, 'id' => $firstId]);
+        $this->em->clear();
+
+        self::assertSame([$before[1], $before[0], $before[2]], $names($folder));
+    }
+
     public function testSortDocumentsAlphabeticallyReordersByName(): void
     {
         $centre  = $this->centre();

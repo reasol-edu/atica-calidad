@@ -1058,23 +1058,23 @@ class SectionBrowserComponent extends AbstractController
             return;
         }
 
-        $index = null;
+        // Normalise to a clean 0..n sequence in the current display order first: documents
+        // uploaded before positions were assigned all share position 0, so a raw position swap
+        // between two of them would be a silent no-op.
         foreach ($siblings as $i => $sibling) {
-            if ($sibling === $document) {
-                $index = $i;
-
-                break;
-            }
+            $sibling->setPosition($i);
         }
 
-        $swapWith = $index === null ? null : ($siblings[$index + $direction] ?? null);
+        $index    = (int) array_search($document, $siblings, true);
+        $swapWith = $siblings[$index + $direction] ?? null;
         if ($swapWith === null) {
+            $this->em->flush();
+
             return;
         }
 
-        $position = $document->getPosition();
         $document->setPosition($swapWith->getPosition());
-        $swapWith->setPosition($position);
+        $swapWith->setPosition($index);
         $this->em->flush();
     }
 

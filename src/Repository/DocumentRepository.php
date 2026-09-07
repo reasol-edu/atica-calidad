@@ -30,8 +30,24 @@ class DocumentRepository extends ServiceEntityRepository
             ->where('d.folder = :folder')
             ->setParameter('folder', $folder->getId(), 'uuid')
             ->orderBy('d.position', 'ASC')
+            // Stable tiebreak: without it, documents sharing a position (every document created
+            // before positions were assigned on upload, all at 0) come back in an undefined
+            // order that can differ between the render and a reorder action.
+            ->addOrderBy('d.uploadedAt', 'ASC')
+            ->addOrderBy('d.id', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    /** Position for a document about to be added to $folder: it goes after every existing one. */
+    public function nextPositionInFolder(Folder $folder): int
+    {
+        return (int) $this->createQueryBuilder('d')
+            ->select('COUNT(d.id)')
+            ->where('d.folder = :folder')
+            ->setParameter('folder', $folder->getId(), 'uuid')
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     public function findByIdAndFolder(string $id, Folder $folder): ?Document

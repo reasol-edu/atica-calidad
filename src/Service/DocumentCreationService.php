@@ -12,6 +12,7 @@ use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Repository\DocumentFileRepository;
+use App\Repository\DocumentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -27,6 +28,7 @@ final class DocumentCreationService
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly DocumentFileRepository $documentFiles,
+        private readonly DocumentRepository $documents,
     ) {}
 
     /** Deduplicates by SHA-256 content hash: reuses an existing DocumentFile if one already matches. */
@@ -64,6 +66,7 @@ final class DocumentCreationService
 
         $document = new Document($folder, $name);
         $document->setUploadProfile($profile, $listItem);
+        $document->setPosition($this->documents->nextPositionInFolder($folder));
         $this->em->persist($document);
 
         $pendingReview = $folder->requiresReview();
