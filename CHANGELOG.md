@@ -7,6 +7,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Actividades**: al desplegar las estadísticas de una actividad que no tiene entregas previstas
+  (su carpeta no define perfiles de subida), en vez de una tabla vacía se muestra un mensaje
+  indicando que no hay estadísticas que mostrar.
+
 ## [0.6.0] - 2026-09-07
 
 ### Added

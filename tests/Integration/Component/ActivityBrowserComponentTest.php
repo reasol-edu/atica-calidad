@@ -757,6 +757,28 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertNotContains($activityId, $this->stringListProp($component, 'statsShown'));
     }
 
+    /** An activity whose folder has no upload profiles produces no stat groups: show a message, not an empty table. */
+    public function testStatsPanelShowsAMessageWhenThereIsNothingToShow(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $activity = $this->activity($category)->setFolder($folder);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $activity, $admin);
+        $activityId = $activity->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $html = (string) $component->call('toggleStats', ['activityId' => $activityId])->render()->crawler()->html();
+
+        self::assertStringContainsString('no hay estadísticas que mostrar', $html);
+    }
+
     public function testToggleAllSubmissionsAddsAndRemovesTheActivityId(): void
     {
         $centre   = $this->centre();
