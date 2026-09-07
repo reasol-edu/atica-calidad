@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Árbol documental**: abrir el editor de secciones («Editar el árbol») lanzaba una consulta por
+  cada sección para leer sus restricciones de perfil y otra por cada sección raíz para contar sus
+  hijas — más de 50 consultas en árboles medianos. Ahora el árbol se carga entero de una vez con
+  esas restricciones incluidas y los recuentos se derivan en memoria (de 52 a 9 consultas en el
+  caso de prueba).
+
 ## [0.5.1] - 2026-09-06
 
 ### Added

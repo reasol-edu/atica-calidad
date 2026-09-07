@@ -95,11 +95,19 @@ class DocumentSectionRepository extends ServiceEntityRepository
      * rebuilt in memory (siblings sorted by position) — needed to render the full drag-and-drop
      * editor at once. Avoids recursive SQL, which isn't portable across PostgreSQL/MySQL/SQLite.
      *
+     * Each section's profileRestrictions collection (with its specificProfile and listItem) is
+     * fetch-joined and hydrated up front: every caller reads that restriction state for every
+     * section (to render the editor, or to serialise the tree), so without the join rendering
+     * fired one extra query per section.
+     *
      * @return DocumentSection[]
      */
     public function findAllByCentre(EducationalCentre $centre): array
     {
         return $this->createQueryBuilder('ds')
+            ->leftJoin('ds.profileRestrictions', 'pr')->addSelect('pr')
+            ->leftJoin('pr.specificProfile', 'sp')->addSelect('sp')
+            ->leftJoin('pr.listItem', 'li')->addSelect('li')
             ->where('ds.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->orderBy('ds.position', 'ASC')

@@ -12,6 +12,7 @@ use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Repository\DocumentSectionRepository;
 use App\Tests\Integration\ControllerTestCase;
+use Doctrine\ORM\PersistentCollection;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
@@ -349,5 +350,47 @@ final class DocumentSectionTreeComponentTest extends ControllerTestCase
         self::assertStringContainsString('data-parent-id="' . $rootId . '"', $html);
         self::assertStringContainsString('data-section-id="' . $rootId . '"', $html);
         self::assertStringContainsString('js-drag-handle', $html);
+    }
+
+    /**
+     * Rendering the editor reads every section's restriction state (badge, count, checkboxes).
+     * The tree load fetch-joins those collections so that reading them never triggers a query
+     * per section — the whole screen used to fire one SELECT on document_section_profile for
+     * each node.
+     */
+    public function testFindAllByCentreHydratesEverySectionsRestrictionsUpFront(): void
+    {
+        $centre     = $this->centre();
+        $root       = $this->section($centre, 'Calidad');
+        $restricted = $this->section($centre, 'Actas');
+        $restricted->setParent($root);
+        $plain   = $this->section($centre, 'Documentos');
+        $plain->setParent($root);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $restricted->addProfileRestriction($profile);
+        $admin = $this->admin();
+        $this->persist($centre, $root, $restricted, $plain, $profile, $admin);
+        $this->em->clear();
+
+        /** @var DocumentSectionRepository $sections */
+        $sections = self::getContainer()->get(DocumentSectionRepository::class);
+        $loaded   = $sections->findAllByCentre($centre);
+        self::assertCount(3, $loaded);
+
+        $byName = [];
+        foreach ($loaded as $section) {
+            $restrictions = $section->getProfileRestrictions();
+            self::assertInstanceOf(PersistentCollection::class, $restrictions);
+            self::assertTrue(
+                $restrictions->isInitialized(),
+                sprintf('"%s" restrictions were not hydrated by the tree load — would N+1 on render', $section->getName()),
+            );
+            $byName[$section->getName()] = $section;
+        }
+
+        // the data is still correct, not just eagerly empty
+        self::assertTrue($byName['Actas']->isRestricted());
+        self::assertFalse($byName['Documentos']->isRestricted());
+        self::assertFalse($byName['Calidad']->isRestricted());
     }
 }

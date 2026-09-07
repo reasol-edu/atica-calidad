@@ -74,6 +74,9 @@ class DocumentSectionTreeComponent extends AbstractController
     #[LiveProp]
     public array $errors = [];
 
+    /** @var DocumentSection[]|null memoised per render — see allSections() */
+    private ?array $sectionsCache = null;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
@@ -94,6 +97,19 @@ class DocumentSectionTreeComponent extends AbstractController
         return self::ROOT_SENTINEL;
     }
 
+    /**
+     * Every section of the centre, loaded once per render (with its profile restrictions
+     * fetch-joined). Both renderings — the desktop tree and the mobile drill-down — plus the
+     * breadcrumb and the child counts are derived from this single list in memory, so opening the
+     * editor is one query for the whole tree instead of one per section.
+     *
+     * @return DocumentSection[]
+     */
+    private function allSections(): array
+    {
+        return $this->sectionsCache ??= $this->sections->findAllByCentre($this->centre);
+    }
+
     // ── Desktop: full nested tree ───────────────────────────────────────────
 
     /**
@@ -104,12 +120,31 @@ class DocumentSectionTreeComponent extends AbstractController
     public function getTree(): array
     {
         $byParent = [];
-        foreach ($this->sections->findAllByCentre($this->centre) as $section) {
+        foreach ($this->allSections() as $section) {
             $key              = $section->getParent()?->getId()->toRfc4122() ?? '';
             $byParent[$key][] = $section;
         }
 
         return $this->buildNodes('', $byParent);
+    }
+
+    /**
+     * Direct-child count per section id, from the single full-tree load — lets the mobile
+     * drill-down show "how many below" without initialising each section's children collection.
+     *
+     * @return array<string, int>
+     */
+    public function getChildCounts(): array
+    {
+        $counts = [];
+        foreach ($this->allSections() as $section) {
+            $parentId = $section->getParent()?->getId()->toRfc4122();
+            if ($parentId !== null) {
+                $counts[$parentId] = ($counts[$parentId] ?? 0) + 1;
+            }
+        }
+
+        return $counts;
     }
 
     /**
@@ -138,17 +173,25 @@ class DocumentSectionTreeComponent extends AbstractController
             return null;
         }
 
-        return $this->sections->findByIdAndCentre($this->currentParentId, $this->centre);
+        foreach ($this->allSections() as $section) {
+            if ($section->getId()->toRfc4122() === $this->currentParentId) {
+                return $section;
+            }
+        }
+
+        return null;
     }
 
     /** @return DocumentSection[] */
     public function getVisibleSections(): array
     {
-        $parent = $this->getCurrentParent();
+        $parentKey = $this->getCurrentParent()?->getId()->toRfc4122() ?? '';
 
-        return $parent === null
-            ? $this->sections->findRootsByCentre($this->centre)
-            : $this->sections->findChildrenByParent($parent);
+        return array_values(array_filter(
+            $this->allSections(),
+            static fn (DocumentSection $section): bool =>
+                ($section->getParent()?->getId()->toRfc4122() ?? '') === $parentKey,
+        ));
     }
 
     /** @return DocumentSection[] root-first path of ancestors down to (and including) the current parent */

@@ -44,8 +44,9 @@
 
     {# ── Mobile (< lg): breadcrumbs, no dragging ───────────────────────────── #}
     <div class="lg:hidden p-4 space-y-3">
-        {% set visible    = this.visibleSections %}
-        {% set breadcrumb = this.breadcrumb %}
+        {% set visible      = this.visibleSections %}
+        {% set breadcrumb   = this.breadcrumb %}
+        {% set child_counts = this.childCounts %}
 
         <nav class="flex flex-wrap items-center gap-1 text-sm">
             <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param=""
@@ -116,8 +117,9 @@
                                         title="{{ 'document_section.action.open'|trans({}, 'admin') }}"
                                         class="shrink-0 inline-flex items-center justify-center p-1 text-gray-300 hover:text-forest-500">
                                     {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
-                                    {% if section.children|length > 0 %}
-                                        <span class="ml-0.5 text-xs text-gray-400">{{ section.children|length }}</span>
+                                    {% set child_count = child_counts[sid] ?? 0 %}
+                                    {% if child_count > 0 %}
+                                        <span class="ml-0.5 text-xs text-gray-400">{{ child_count }}</span>
                                     {% endif %}
                                 </button>
 
