@@ -16,6 +16,7 @@ use App\Repository\DocumentRepository;
 use App\Repository\DocumentRevisionRepository;
 use App\Repository\FolderRepository;
 use App\Security\Voter\FolderVoter;
+use App\Service\ActivityLogger;
 use App\Service\AttachmentDownloadResponder;
 use App\Service\DocumentCreationService;
 use App\Service\DocumentReviewNotifier;
@@ -58,6 +59,7 @@ class FolderController extends AbstractController
         private readonly DocumentReviewNotifier $reviewNotifier,
         private readonly DocumentReviewOutcomeNotifier $outcomeNotifier,
         private readonly FolderZipExporter $folderZipExporter,
+        private readonly ActivityLogger $activityLogger,
     ) {}
 
     /**
@@ -149,6 +151,10 @@ class FolderController extends AbstractController
         }
 
         $this->em->flush();
+        $this->activityLogger->record('document.upload', [
+            'folder' => $folder->getName(),
+            'count'  => $created,
+        ], $centre);
         $this->addFlash('success', $this->translator->trans('upload.flash.created', ['%count%' => $created], 'document_content'));
 
         foreach ($pendingReviewDocs as $document) {
@@ -231,6 +237,11 @@ class FolderController extends AbstractController
         }
 
         $this->em->flush();
+        $this->activityLogger->record('document.revision_upload', [
+            'folder'   => $folder->getName(),
+            'document' => $document->getName(),
+            'version'  => $version,
+        ], $centre);
 
         $this->addFlash('success', $this->t('revision.flash.uploaded'));
 
@@ -255,6 +266,12 @@ class FolderController extends AbstractController
 
         $file = $revision->getFile();
 
+        $this->activityLogger->record('document.download', [
+            'folder'   => $folder->getName(),
+            'document' => $document->getName(),
+            'version'  => $revision->getVersion(),
+        ], $centre);
+
         return $this->downloadResponder->respond($file->getContent(), $file->getMimeType(), $this->downloadFilename($document, $file));
     }
 
@@ -277,6 +294,8 @@ class FolderController extends AbstractController
     {
         $folder = $this->requireFolder($folderId, $centre);
         $this->denyAccessUnlessGranted(FolderVoter::VIEW, $folder);
+
+        $this->activityLogger->record('folder.download_zip', ['folder' => $folder->getName()], $centre);
 
         return $this->folderZipExporter->export($folder);
     }
@@ -302,6 +321,11 @@ class FolderController extends AbstractController
         $revision->approve($teacher, $result !== '' ? $result : null);
         $document->setActiveRevision($revision);
         $this->em->flush();
+        $this->activityLogger->record('document.revision_approve', [
+            'folder'   => $folder->getName(),
+            'document' => $document->getName(),
+            'version'  => $revision->getVersion(),
+        ], $centre);
         $this->outcomeNotifier->notifyOutcome($revision, DocumentReviewNotificationKind::Approved);
 
         $this->addFlash('success', $this->t('review.flash.approved'));
@@ -332,6 +356,11 @@ class FolderController extends AbstractController
             $document->setActiveRevision(null);
         }
         $this->em->flush();
+        $this->activityLogger->record('document.revision_reject', [
+            'folder'   => $folder->getName(),
+            'document' => $document->getName(),
+            'version'  => $revision->getVersion(),
+        ], $centre);
         $this->outcomeNotifier->notifyOutcome($revision, DocumentReviewNotificationKind::Rejected);
 
         $this->addFlash('success', $this->t('review.flash.rejected'));

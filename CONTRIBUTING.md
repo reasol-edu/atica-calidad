@@ -114,6 +114,7 @@ Las distintas áreas funcionales de ÁTICA Calidad, alineadas con sus controlado
 | `responsibilities` | Responsabilidades: listas jerárquicas, etiquetas, perfiles específicos y subperfiles, y asignación de docentes |
 | `document-tree`    | Árbol documental: secciones, carpetas, documentos, revisiones y su flujo de visto bueno |
 | `activities`       | Actividades: plazos y tareas periódicas, categorías, entregas y compleción |
+| `audit`            | Registro de actividad: traza de auditoría de acciones de usuario, su captura, retención y consulta |
 
 ### Referencias a incidencias
 

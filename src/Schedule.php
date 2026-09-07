@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App;
 
+use App\Message\PurgeActivityLogMessage;
 use App\Message\PurgeEmailNotificationLogMessage;
 use App\Message\SendDocumentReviewDigestMessage;
 use App\Message\SendPendingActivityReminderMessage;
@@ -26,6 +27,9 @@ class Schedule implements ScheduleProviderInterface
         return (new SymfonySchedule())
             ->add(
                 RecurringMessage::cron('30 3 * * 0', new PurgeEmailNotificationLogMessage()),
+            )
+            ->add(
+                RecurringMessage::cron('45 3 * * 0', new PurgeActivityLogMessage()),
             )
             ->add(
                 // Runs every day; the handler itself skips a centre entirely on a weekend or one

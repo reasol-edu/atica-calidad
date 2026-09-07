@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Attribute\CurrentCentre;
 use App\Entity\EducationalCentre;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\ActivityLogger;
 use App\Service\DocumentSectionJsonExporter;
 use App\Service\DocumentSectionJsonImporter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +26,7 @@ class DocumentTreeController extends AbstractController
         private readonly DocumentSectionJsonExporter $exporter,
         private readonly DocumentSectionJsonImporter $importer,
         private readonly TranslatorInterface $translator,
+        private readonly ActivityLogger $activityLogger,
     ) {}
 
     #[Route('/arbol-documental', name: 'app_document_tree')]
@@ -45,6 +47,8 @@ class DocumentTreeController extends AbstractController
     public function export(#[CurrentCentre] EducationalCentre $centre): Response
     {
         $this->denyAccessUnlessGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre);
+
+        $this->activityLogger->record('document_tree.export', [], $centre);
 
         $json = json_encode($this->exporter->export($centre), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 

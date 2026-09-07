@@ -13,6 +13,7 @@
 | Configurar los ajustes del centro | — | — | — | ✅ | ✅ |
 | Gestionar todos los centros del servidor y el profesorado global | — | — | — | — | ✅ |
 | Bloquear ajustes a nivel global | — | — | — | — | ✅ |
+| Consultar el [registro de actividad](09-administrar-la-plataforma.md#registro-de-actividad) (auditoría) | — | — | — | — | ✅ |
 
 ¹ Cualquier docente ve el árbol documental, pero solo el contenido no restringido más el que le
 corresponda por sus perfiles/subperfiles de Responsabilidades — ver el desglose completo en

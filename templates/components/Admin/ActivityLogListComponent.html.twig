@@ -1,0 +1,181 @@
+{% import 'components/_pagination_live.html.twig' as pager %}
+
+{% set pagination = this.pagination %}
+{% set hasFilters = this.hasActiveFilters %}
+
+{% macro sort_header(label, column, sort, sortDir) %}
+    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <button type="button" data-action="live#action" data-live-action-param="sortBy" data-live-column-param="{{ column }}"
+                class="inline-flex items-center gap-1 hover:text-gray-700 transition-colors">
+            {{ label }}
+            {% if sort == column %}
+                {{ ux_icon(sortDir == 'asc' ? 'heroicons:chevron-up' : 'heroicons:chevron-down', {class: 'h-3 w-3'}) }}
+            {% endif %}
+        </button>
+    </th>
+{% endmacro %}
+
+<div {{ attributes }}>
+
+    {# ── Filter panel ──────────────────────────────────────────────────────── #}
+    <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
+
+        <div class="flex flex-wrap items-end gap-3">
+            <div class="flex flex-col gap-1 min-w-44">
+                <label class="text-xs font-medium text-gray-500">{{ 'activity_log.list.date_from'|trans({}, 'admin') }}</label>
+                <input type="datetime-local" data-model="dateFrom" value="{{ dateFrom }}"
+                       class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
+                              focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
+            </div>
+            <div class="flex flex-col gap-1 min-w-44">
+                <label class="text-xs font-medium text-gray-500">{{ 'activity_log.list.date_to'|trans({}, 'admin') }}</label>
+                <input type="datetime-local" data-model="dateTo" value="{{ dateTo }}"
+                       class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
+                              focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
+            </div>
+            <div class="flex flex-wrap gap-1.5 pb-0.5">
+                {% for range in ['last_hour', 'last_24h', 'last_week', 'last_month'] %}
+                    <button type="button" data-action="live#action" data-live-action-param="quickRange" data-live-range-param="{{ range }}"
+                            class="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600
+                                   hover:bg-forest-50 hover:border-forest-200 hover:text-forest-700 transition-colors">
+                        {{ ('activity_log.list.quick_range.' ~ range)|trans({}, 'admin') }}
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-end gap-3">
+            <div class="relative flex-1 min-w-48">
+                <label class="text-xs font-medium text-gray-500 block mb-1">{{ 'activity_log.list.user_label'|trans({}, 'admin') }}</label>
+                <div class="relative">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        {{ ux_icon('heroicons:magnifying-glass', {class: 'h-4 w-4 text-gray-400'}) }}
+                    </div>
+                    <input type="search" data-model="norender|userQuery" data-action="input->live#action" data-live-action-param="resetPage"
+                           placeholder="{{ 'activity_log.list.user_placeholder'|trans({}, 'admin') }}" value="{{ userQuery }}"
+                           class="block w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm
+                                  text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none
+                                  focus:ring-3 focus:ring-forest-500/20 transition-colors">
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-1 min-w-52">
+                <label class="text-xs font-medium text-gray-500">{{ 'activity_log.list.col.centre'|trans({}, 'admin') }}</label>
+                <select data-model="centreId"
+                        class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
+                               focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
+                    <option value="">{{ 'activity_log.list.centre_all'|trans({}, 'admin') }}</option>
+                    {% for c in this.centres %}
+                        <option value="{{ c.id.toRfc4122 }}" {{ centreId == c.id.toRfc4122 ? 'selected' }}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1 min-w-52">
+                <label class="text-xs font-medium text-gray-500">{{ 'activity_log.list.col.action'|trans({}, 'admin') }}</label>
+                <select data-model="actionType"
+                        class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
+                               focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
+                    <option value="">{{ 'activity_log.list.action_all'|trans({}, 'admin') }}</option>
+                    {% for key in this.distinctActionTypes %}
+                        <option value="{{ key }}" {{ actionType == key ? 'selected' }}>
+                            {{ ('activity_log.action.' ~ key)|trans({}, 'admin') }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2 pb-0.5">
+                <svg data-loading class="hidden h-4 w-4 text-forest-500 animate-spin shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                </svg>
+                {% if hasFilters %}
+                    <button type="button" data-action="live#action" data-live-action-param="clearFilters"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs
+                                   font-medium text-gray-600 hover:bg-gray-100 transition-colors shrink-0">
+                        {{ ux_icon('heroicons:x-mark', {class: 'h-3.5 w-3.5'}) }}
+                        {{ 'activity_log.list.clear_filters'|trans({}, 'admin') }}
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ── Table / cards ─────────────────────────────────────────────────────── #}
+    <div data-loading="addClass(opacity-50 pointer-events-none animate-pulse)" class="transition-opacity">
+    {% if pagination.totalItems == 0 %}
+        <div class="px-6 py-16 text-center">
+            {{ ux_icon('heroicons:shield-check', {class: 'mx-auto h-10 w-10 text-gray-300 mb-3'}) }}
+            <p class="text-sm text-gray-500">
+                {{ (hasFilters ? 'activity_log.list.search_empty' : 'activity_log.list.empty')|trans({}, 'admin') }}
+            </p>
+        </div>
+    {% else %}
+        <div class="overflow-x-auto">
+            <table class="table-cards w-full text-sm">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        {{ _self.sort_header('activity_log.list.col.date'|trans({}, 'admin'), 'createdAt', sort, sortDir) }}
+                        {{ _self.sort_header('activity_log.list.col.ip'|trans({}, 'admin'), 'ip', sort, sortDir) }}
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'activity_log.list.col.user'|trans({}, 'admin') }}</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'activity_log.list.col.centre'|trans({}, 'admin') }}</th>
+                        {{ _self.sort_header('activity_log.list.col.action'|trans({}, 'admin'), 'actionType', sort, sortDir) }}
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'activity_log.list.col.detail'|trans({}, 'admin') }}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for log in pagination.items %}
+                        <tr class="hover:bg-gray-50 transition-colors align-top">
+                            <td data-label="{{ 'activity_log.list.col.date'|trans({}, 'admin')|e('html_attr') }}"
+                                class="px-6 py-3 text-gray-500 whitespace-nowrap">{{ log.createdAt|date('format.datetime'|trans) }}</td>
+                            <td data-label="{{ 'activity_log.list.col.ip'|trans({}, 'admin')|e('html_attr') }}"
+                                class="px-6 py-3 text-gray-500 whitespace-nowrap font-mono text-xs">{{ log.ip }}</td>
+                            <td data-label="{{ 'activity_log.list.col.user'|trans({}, 'admin')|e('html_attr') }}"
+                                class="px-6 py-3 text-gray-800 whitespace-nowrap">
+                                {% if log.activeUser %}
+                                    {{ log.activeUser.name.lastName }}, {{ log.activeUser.name.firstName }}
+                                    <span class="text-gray-400 text-xs">({{ log.activeUser.username }})</span>
+                                    {% if log.realUser and log.realUser.id != log.activeUser.id %}
+                                        <span class="block text-xs text-amber-600">
+                                            {{ 'activity_log.impersonated_by'|trans({'%user%': log.realUser.username}, 'admin') }}
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-gray-400">{{ 'activity_log.no_user'|trans({}, 'admin') }}</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="{{ 'activity_log.list.col.centre'|trans({}, 'admin')|e('html_attr') }}"
+                                class="px-6 py-3 text-gray-600 whitespace-nowrap">
+                                {{ log.educationalCentre ? log.educationalCentre.name : 'activity_log.no_centre'|trans({}, 'admin') }}
+                            </td>
+                            <td data-label="{{ 'activity_log.list.col.action'|trans({}, 'admin')|e('html_attr') }}"
+                                class="px-6 py-3 text-gray-700 whitespace-nowrap">
+                                {{ ('activity_log.action.' ~ log.actionType)|trans({}, 'admin') }}
+                                <span class="block font-mono text-[11px] text-gray-400">{{ log.actionType }}</span>
+                            </td>
+                            <td data-label="{{ 'activity_log.list.col.detail'|trans({}, 'admin')|e('html_attr') }}"
+                                class="px-6 py-3 text-gray-500 text-xs max-w-md">
+                                {% if log.route %}<span class="text-gray-400">{{ log.method }} {{ log.route }}{% if log.statusCode %} · {{ log.statusCode }}{% endif %}</span>{% endif %}
+                                {% set detail_data = (log.data ?? {})|filter((v, k) => k not in ['method', 'status', 'path']) %}
+                                {% if detail_data is not empty %}
+                                    <dl class="mt-0.5 space-y-0.5">
+                                        {% for k, v in detail_data %}
+                                            <div class="flex gap-1">
+                                                <dt class="text-gray-400">{{ k }}:</dt>
+                                                <dd class="text-gray-600 truncate">{{ v is iterable ? v|join(', ') : v }}</dd>
+                                            </div>
+                                        {% endfor %}
+                                    </dl>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {{ pager.nav(pagination) }}
+    {% endif %}
+    </div>
+</div>

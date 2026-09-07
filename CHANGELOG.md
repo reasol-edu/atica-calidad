@@ -7,6 +7,21 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Registro de actividad**: nuevo registro de auditoría de seguridad en **Administración →
+  Registro de actividad** (solo administradores de la plataforma). Anota, por usuario y dirección
+  IP, los inicios y cierres de sesión (y las suplantaciones), los accesos de lectura (abrir una
+  sección, una carpeta o un documento, descargas, exportaciones e informes) y las escrituras
+  (altas, cambios y bajas de carpetas, secciones, listas, actividades, perfiles, docentes y
+  centros; subida de documentos y revisiones; aceptar/rechazar; completar una actividad; cambios
+  de ajustes). Se escribe después de enviar la respuesta, sin penalizar el rendimiento. Cada
+  centro puede activarlo o desactivarlo con el ajuste «Registrar la actividad de los usuarios»;
+  la retención se configura con «Retención del registro de actividad» (limpieza semanal) y
+  `APP_LOG=false` lo desactiva por completo en el servidor. La documentación incluye cómo
+  configurar los proxies de confianza (`SYMFONY_TRUSTED_PROXIES`) para registrar la IP real
+  cuando la aplicación va detrás de un proxy inverso.
+
 ### Fixed
 
 - **Árbol documental**: abrir el editor de secciones («Editar el árbol») lanzaba una consulta por

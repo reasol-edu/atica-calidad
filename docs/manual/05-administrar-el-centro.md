@@ -15,6 +15,11 @@ avisos por correo»** está activado (ver [Ajustes disponibles](09-administrar-l
 y sus entradas se eliminan automáticamente pasado el número de días configurado en
 **«Retención de los registros»**.
 
+De forma análoga, el equipo directivo puede activar o desactivar para su centro el
+[registro de actividad](09-administrar-la-plataforma.md#registro-de-actividad) (auditoría de
+seguridad) con el ajuste **«Registrar la actividad de los usuarios»** en **Centro educativo →
+Ajustes del centro**. El registro en sí solo lo consultan los administradores de la plataforma.
+
 ## Varios centros en un mismo servidor
 
 Un mismo servidor puede alojar varios centros educativos con datos completamente separados. Quien

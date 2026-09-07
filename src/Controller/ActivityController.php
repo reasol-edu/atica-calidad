@@ -10,6 +10,7 @@ use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Repository\ActivityRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\ActivityLogger;
 use App\Service\ActivitySubmissionSlotBuilder;
 use App\Service\DocumentCreationService;
 use App\Service\DocumentTreeAccessChecker;
@@ -45,6 +46,7 @@ class ActivityController extends AbstractController
         private readonly DocumentTreeAccessChecker $access,
         private readonly ActivitySubmissionSlotBuilder $slotBuilder,
         private readonly DocumentCreationService $documentCreation,
+        private readonly ActivityLogger $activityLogger,
     ) {}
 
     #[Route('', name: 'app_activities')]
@@ -177,6 +179,10 @@ class ActivityController extends AbstractController
         }
 
         $this->em->flush();
+        $this->activityLogger->record('activity.submission_upload', [
+            'activity' => $activity->getTitle(),
+            'count'    => $created,
+        ], $centre);
         $this->addFlash('success', $this->translator->trans('submission.flash.uploaded', ['%count%' => $created], 'activity_content'));
 
         return $this->redirectToActivity($activity);

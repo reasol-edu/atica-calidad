@@ -123,3 +123,14 @@ cuanto el documento esperado está aprobado.
 **Resumen diario**
 : Modo de aviso por correo que agrupa lo pendiente de un día en un único correo, en vez de un aviso
 individual por cada evento — ver [Ajustes disponibles](09-administrar-la-plataforma.md#ajustes-disponibles).
+
+**Registro de actividad**
+: Registro de auditoría de seguridad con lo que hace cada usuario (accesos, altas, cambios,
+descargas, subidas) y desde qué dirección IP. Lo consultan solo los administradores de la
+plataforma, en **Administración → Registro de actividad** — ver
+[Registro de actividad](09-administrar-la-plataforma.md#registro-de-actividad).
+
+**Proxy de confianza**
+: Dirección IP de un proxy inverso, balanceador o túnel del que la aplicación acepta la cabecera
+`X-Forwarded-For` para conocer la IP real del usuario. Se declara con `SYMFONY_TRUSTED_PROXIES` —
+ver [IP del usuario y proxies de confianza](09-administrar-la-plataforma.md#registro-de-actividad).

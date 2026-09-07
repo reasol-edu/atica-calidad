@@ -20,6 +20,7 @@ settings.hub.manage: 'Configurar'
 settings.category.display.label: 'Visualización'
 settings.category.email_alerts.label: 'Avisos por correo'
 settings.category.report_templates.label: 'Plantillas de informes'
+settings.category.audit.label: 'Registro de actividad'
 
 # ── Definiciones de ajustes ───────────────────────────────────────────────────
 settings.key.page_size.label: 'Resultados por página'
@@ -30,6 +31,12 @@ settings.key.notifications_email_log_enabled.description: 'Guarda un registro de
 
 settings.key.notifications_log_retention_days.label: 'Retención de los registros'
 settings.key.notifications_log_retention_days.description: 'Días que se conservan las entradas del registro de avisos por correo antes de eliminarse automáticamente. Un valor de 0 desactiva esta eliminación automática.'
+
+settings.key.audit_log_enabled.label: 'Registrar la actividad de los usuarios'
+settings.key.audit_log_enabled.description: 'Guarda un registro de auditoría de lo que hace cada usuario de este centro (a qué accede, qué crea, modifica, descarga, sube o marca como completado) y desde qué IP. El registro completo se consulta en Administración → Registro de actividad. Los eventos sin centro (inicios y cierres de sesión) se rigen por el valor global de este ajuste.'
+
+settings.key.audit_log_retention_days.label: 'Retención del registro de actividad'
+settings.key.audit_log_retention_days.description: 'Días que se conservan las entradas del registro de actividad antes de eliminarse automáticamente. Un valor de 0 desactiva esta eliminación automática.'
 
 settings.key.notifications_email_notifications_enabled.label: 'Avisos por correo electrónico'
 settings.key.notifications_email_notifications_enabled.description: 'Activa el envío de avisos por correo electrónico a los profesores.'

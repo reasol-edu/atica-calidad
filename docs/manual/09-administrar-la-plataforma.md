@@ -87,6 +87,8 @@ seguidos.
 | Aviso de documento pendiente de revisar | Global, centro, personal | Desactivado / Individual / Resumen diario — avisa a quien deba revisar una carpeta cuando se suba una versión nueva. |
 | Aviso de documento aceptado | Global, centro, personal | Desactivado / Individual / Resumen diario — avisa a quien subió una revisión cuando se acepta. |
 | Aviso de documento rechazado | Global, centro, personal | Desactivado / Individual / Resumen diario — avisa a quien subió una revisión cuando se rechaza. |
+| Registrar la actividad de los usuarios | Global, centro | Activa el [registro de actividad](#registro-de-actividad) del centro. Los eventos sin centro (inicios y cierres de sesión) se rigen por el valor global. |
+| Retención del registro de actividad | Global | Días que se conservan las entradas del registro de actividad antes de eliminarse automáticamente (0 desactiva la eliminación). |
 
 ### Visualización
 
@@ -99,6 +101,17 @@ seguidos.
 - **Plantilla PDF general (vertical / apaisada)** — un PDF de una sola página que se usa como fondo
   (membrete) de los informes que se generen en cada orientación, cuando existan. Ajustable a nivel
   de centro, desde **Centro educativo → Ajustes del centro**.
+
+### Registro de actividad
+
+- **Registrar la actividad de los usuarios** — activa o desactiva el [registro de
+  actividad](#registro-de-actividad) para un centro. Ajustable a nivel global y de centro: cada
+  equipo directivo puede activarlo o desactivarlo para su propio centro desde **Centro educativo →
+  Ajustes del centro**, salvo que un administrador global haya bloqueado el ajuste. Con `APP_LOG`
+  a `false` en la configuración del servidor el registro queda desactivado en todos los centros,
+  independientemente de este ajuste.
+- **Retención del registro de actividad** — días que se conservan las entradas antes de eliminarse
+  automáticamente en la limpieza semanal (0 desactiva esa eliminación). Solo a nivel global.
 
 ## Copias de seguridad
 
@@ -138,9 +151,60 @@ todos los casos se aplican las migraciones de base de datos pendientes:
 php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
+## Registro de actividad {#registro-de-actividad}
+
+ÁTICA Calidad puede guardar un **registro de auditoría** de lo que hace cada usuario, para poder
+investigar un incidente de seguridad a posteriori. Se consulta en **Administración → Registro de
+actividad** y solo pueden verlo los administradores globales.
+
+Cada entrada guarda la fecha y hora, la **dirección IP**, el usuario que realizó la acción (y el
+usuario real, si estaba [suplantando](#docentes) a otro), el centro al que corresponde la acción,
+el tipo de acción y algunos datos de contexto. Se registran, entre otras cosas:
+
+- **Sesión**: inicios y cierres de sesión, intentos fallidos, inicio y fin de una suplantación.
+- **Lectura**: abrir una sección del árbol, abrir una carpeta o un documento, descargar una
+  revisión, descargar una carpeta en ZIP, exportar el árbol o generar un informe.
+- **Escritura**: crear, renombrar, mover o eliminar carpetas, secciones, listas, categorías,
+  actividades o perfiles; subir un documento o una revisión; aceptar o rechazar una revisión;
+  marcar una actividad como completada manualmente; subir entregas; cambiar ajustes; altas, bajas
+  y modificaciones de docentes y centros.
+
+La escritura del registro se hace **después de enviar la respuesta al navegador**, así que no
+añade retardo a ninguna acción. El registro se puede activar o desactivar por centro y su
+retención se configura desde [Ajustes](#ajustes-disponibles) (ver «Registro de actividad» más
+arriba). Con `APP_LOG=false` en la configuración del servidor el registro queda completamente
+inactivo.
+
+### IP del usuario y proxies de confianza
+
+Para que la IP registrada sea la del usuario y no la de un intermediario, hay que configurar los
+**proxies de confianza** cuando la aplicación se ejecuta detrás de un proxy inverso, un
+balanceador de carga o un túnel (nginx, Caddy, Traefik, Cloudflare Tunnel, el balanceador de un
+proveedor de nube…). En ese caso todas las peticiones llegan a la aplicación desde la IP del
+proxy, y la IP real del cliente viaja en la cabecera `X-Forwarded-For`, que solo debe creerse si
+la petición viene de un proxy conocido.
+
+Se configura con la variable de entorno **`SYMFONY_TRUSTED_PROXIES`**, con una o varias IPs o
+rangos CIDR separados por comas:
+
+| Despliegue | Dónde se define |
+| --- | --- |
+| Binario nativo / Plesk | `SYMFONY_TRUSTED_PROXIES` en `.env.local` |
+| Docker | variable de entorno del servicio `app` en `compose.yaml` (o en un `compose.override.yaml`) |
+| Docker + Cloudflare Tunnel | ya la fija `compose.cloudflare.yaml` con el rango de la red interna; no hay que tocar nada — ver [Cloudflare Tunnel](../despliegue/cloudflare-tunnel.md) |
+
+Ejemplos de valor: `127.0.0.1` (proxy en la misma máquina), `10.0.0.0/8` (rango de una red
+interna), `127.0.0.1,10.0.0.1` (varios). Sin proxy inverso, deja la variable sin definir.
+
+Para comprobar que está bien configurado, revisa la columna **IP** del registro de actividad (o el
+panel *Request* del `_profiler` en el entorno de desarrollo): debe mostrar la IP real del cliente,
+no `127.0.0.1` ni la IP del proxy.
+
 ## Protección de datos (RGPD)
 
 ÁTICA Calidad almacena datos personales del profesorado (nombre, usuario, correo electrónico) con
 la finalidad de dar acceso a la aplicación y a la documentación del sistema de gestión de la
 calidad del centro. El centro educativo es responsable del tratamiento de estos datos; la
 aplicación no los comparte con terceros ni los usa con fines distintos a su propio funcionamiento.
+El registro de actividad conserva la dirección IP y la actividad de cada usuario durante el
+periodo de retención configurado, con la única finalidad de permitir auditorías de seguridad.
