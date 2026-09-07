@@ -21,6 +21,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   `APP_LOG=false` lo desactiva por completo en el servidor. La documentación incluye cómo
   configurar los proxies de confianza (`SYMFONY_TRUSTED_PROXIES`) para registrar la IP real
   cuando la aplicación va detrás de un proxy inverso.
+- **Despliegue en Ubuntu Server**: `dist/install-ubuntu.sh` ahora pregunta el modo de acceso y
+  añade la opción **«detrás de un proxy inverso propio»** (nginx, Apache, HAProxy, Traefik…):
+  FrankenPHP sirve HTTP plano en un puerto local, sin Let's Encrypt, y el script pide el puerto y
+  la IP del proxy para fijar `SYMFONY_TRUSTED_PROXIES` y ajustar el cortafuegos. La guía de
+  despliegue manual incluye la variante con ejemplos de configuración de nginx y Apache.
 
 ### Fixed
 

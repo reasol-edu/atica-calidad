@@ -14,24 +14,30 @@
 #
 # Qué instala este script:
 #   1. PostgreSQL (paquete oficial de Ubuntu) + base de datos y usuario
-#   2. Cortafuegos UFW con los puertos mínimos abiertos (SSH, y HTTP/HTTPS salvo
-#      que se use Cloudflare Tunnel, ver más abajo)
+#   2. Cortafuegos UFW con los puertos mínimos abiertos según el modo de acceso
 #   3. Usuario del sistema «aticacalidad» y directorio /opt/atica-calidad
 #   4. Binario de ÁTICA Calidad (última versión publicada en GitHub Releases)
 #   5. Fichero de configuración (.env.local)
-#   6. Si el servidor está detrás de un NAT/cortafuegos sin puertos abiertos:
-#      Cloudflare Tunnel (cloudflared), en vez de exponer 80/443 directamente
+#   6. Si se elige Cloudflare Tunnel: cloudflared, en vez de exponer 80/443
 #   7. Scripts de arranque del servidor y del worker de mensajería
 #   8. Servicios systemd atica-calidad y atica-calidad-worker (arranque automático)
+#
+# Modos de acceso que ofrece el script:
+#   a) HTTPS directo (Let's Encrypt): FrankenPHP obtiene el certificado TLS solo.
+#      Necesita un dominio apuntando al servidor y los puertos 80/443 abiertos.
+#   b) Proxy inverso propio (nginx, Apache, HAProxy, Traefik, balanceador…):
+#      FrankenPHP sirve HTTP plano en un puerto local, sin Let's Encrypt; el TLS
+#      lo termina el proxy. El script pregunta el puerto y la IP del proxy, que
+#      se guarda en SYMFONY_TRUSTED_PROXIES para registrar la IP real del usuario.
+#   c) Cloudflare Tunnel: para servidores detrás de un NAT/cortafuegos sin
+#      puertos abiertos. Hace falta un token de túnel ya creado
+#      (ver docs/despliegue/cloudflare-tunnel.md).
 #
 # Requisitos previos:
 #   - Ubuntu Server 26.04 LTS (o posterior) con acceso a Internet
 #   - Ejecutar como root o con: sudo bash install-ubuntu.sh
-#   - Un nombre de dominio (p. ej. atica.tucentro.es) apuntando a este servidor,
-#     necesario para que FrankenPHP/Caddy obtenga el certificado TLS automático —
-#     salvo que el servidor esté detrás de un NAT/cortafuegos sin puertos abiertos,
-#     en cuyo caso el script puede configurar Cloudflare Tunnel en su lugar (hace
-#     falta un token de túnel ya creado, ver docs/despliegue/cloudflare-tunnel.md)
+#   - Un nombre de dominio (p. ej. atica.tucentro.es) para la URL pública. En el
+#     modo (a) además debe apuntar a este servidor con 80/443 abiertos.
 # =============================================================================
 set -euo pipefail
 
@@ -72,8 +78,8 @@ ${BOLD}╔═══════════════════════�
 ╚══════════════════════════════════════════════════════╝${NC}
 
 Este script instalará ÁTICA Calidad con:
-  •  FrankenPHP como servidor web (HTTPS automático vía Let's Encrypt,
-     o Cloudflare Tunnel si el servidor está detrás de un NAT/cortafuegos)
+  •  FrankenPHP como servidor web. TLS: HTTPS automático (Let's Encrypt),
+     tu propio proxy inverso, o Cloudflare Tunnel — se elige más abajo
   •  PostgreSQL como base de datos
   •  Dos o tres servicios systemd con arranque automático al reiniciar
 "
@@ -105,33 +111,77 @@ read -rp "   Dirección de correo remitente [no-responder@${DOMAIN}]: " MAIL_FRO
 MAIL_FROM="${MAIL_FROM:-no-responder@${DOMAIN}}"
 
 echo -e "
-   Si este servidor está detrás de un NAT o de un cortafuegos sobre el que no
-   tienes control (no puedes pedir la apertura de los puertos 80/443), puedes
-   usar Cloudflare Tunnel: el servidor abre una conexión saliente hacia
-   Cloudflare y no hace falta abrir ningún puerto entrante. Hace falta tener
-   ya creado el túnel en el dashboard de Cloudflare (Zero Trust → Networks →
-   Tunnels → Create a tunnel → Cloudflared) y el token que se muestra en el
-   comando 'cloudflared service install <token>'. Más detalles en
-   docs/despliegue/cloudflare-tunnel.md.
+   ${BOLD}¿Cómo se accederá a la plataforma desde Internet?${NC}
+
+     1) HTTPS directo — FrankenPHP obtiene el certificado TLS automáticamente
+        (Let's Encrypt). El dominio debe apuntar a este servidor y los puertos
+        80 y 443 tienen que estar abiertos. Es la opción recomendada.
+
+     2) Detrás de un proxy inverso propio (nginx, Apache, HAProxy, Traefik, el
+        balanceador de un proveedor de nube…). FrankenPHP servirá HTTP plano en
+        un puerto local, SIN Let's Encrypt; el TLS lo termina tu proxy. Se
+        preguntará el puerto local y la IP del proxy.
+
+     3) Cloudflare Tunnel — para servidores detrás de un NAT/cortafuegos sin
+        puertos abiertos: el servidor abre una conexión saliente hacia
+        Cloudflare. Hace falta un túnel ya creado y su token
+        (ver docs/despliegue/cloudflare-tunnel.md).
 "
-read -rp "   ¿Usar Cloudflare Tunnel en vez de exponer 80/443 directamente? [s/N] " USE_TUNNEL_RAW </dev/tty
-if [[ "${USE_TUNNEL_RAW:-N}" =~ ^[Ss]$ ]]; then
-    USE_TUNNEL=true
+USE_TUNNEL=false
+USE_PROXY=false
+ACCESS_MODE=""
+while true; do
+    read -rp "   Elige una opción [1/2/3] (1): " ACCESS_CHOICE </dev/tty
+    case "${ACCESS_CHOICE:-1}" in
+        1) ACCESS_MODE="direct" ; break ;;
+        2) ACCESS_MODE="proxy"  ; USE_PROXY=true  ; break ;;
+        3) ACCESS_MODE="tunnel" ; USE_TUNNEL=true ; break ;;
+        *) warn "Opción no válida. Escribe 1, 2 o 3." ;;
+    esac
+done
+
+if [[ "$USE_PROXY" == true ]]; then
+    while true; do
+        read -rp "   Puerto HTTP local para FrankenPHP (1024-65535) [8080]: " HTTP_PORT </dev/tty
+        HTTP_PORT="${HTTP_PORT:-8080}"
+        [[ "$HTTP_PORT" =~ ^[0-9]+$ && "$HTTP_PORT" -ge 1024 && "$HTTP_PORT" -le 65535 ]] && break
+        warn "Puerto no válido: un número entre 1024 y 65535."
+    done
+    read -rp "   ¿El proxy inverso corre en este mismo servidor? [S/n] " PROXY_LOCAL_RAW </dev/tty
+    if [[ "${PROXY_LOCAL_RAW:-S}" =~ ^[Ss]?$ ]]; then
+        PROXY_LOCAL=true
+        PROXY_IP="127.0.0.1"
+        echo "   El proxy es local: FrankenPHP escuchará en 127.0.0.1:${HTTP_PORT} y la IP de confianza será 127.0.0.1."
+    else
+        PROXY_LOCAL=false
+        while true; do
+            read -rp "   IP (o rango CIDR) del proxy inverso, p.ej. 10.0.0.5 o 10.0.0.0/24: " PROXY_IP </dev/tty
+            [[ -n "$PROXY_IP" && "$PROXY_IP" != *" "* ]] && break
+            warn "La IP del proxy no puede estar vacía ni contener espacios."
+        done
+    fi
+fi
+
+if [[ "$USE_TUNNEL" == true ]]; then
     while true; do
         read -rsp "   Token del túnel de Cloudflare: " TUNNEL_TOKEN </dev/tty
         echo
         [[ -n "$TUNNEL_TOKEN" ]] && break
         warn "El token no puede estar vacío."
     done
-else
-    USE_TUNNEL=false
 fi
+
+case "$ACCESS_MODE" in
+    direct) ACCESS_SUMMARY="HTTPS directo (Let's Encrypt)" ;;
+    proxy)  ACCESS_SUMMARY="Proxy inverso — HTTP en $([[ "$PROXY_LOCAL" == true ]] && echo "127.0.0.1" || echo "0.0.0.0"):${HTTP_PORT}; TLS lo termina tu proxy (${PROXY_IP})" ;;
+    tunnel) ACCESS_SUMMARY="Cloudflare Tunnel" ;;
+esac
 
 echo -e "
    ${BOLD}Dominio:${NC}   ${DOMAIN}
    ${BOLD}Base BD:${NC}   atica  (usuario: atica)
    ${BOLD}Correo:${NC}    ${MAIL_FROM}
-   ${BOLD}Acceso:${NC}    $([[ "$USE_TUNNEL" == true ]] && echo "Cloudflare Tunnel" || echo "HTTPS directo (Let's Encrypt)")
+   ${BOLD}Acceso:${NC}    ${ACCESS_SUMMARY}
 "
 read -rp "   ¿Empezar la instalación? [S/n] " CONFIRM </dev/tty
 [[ "${CONFIRM:-S}" =~ ^[Ss]?$ ]] || { echo "Instalación cancelada."; exit 0; }
@@ -167,6 +217,19 @@ if [[ "$USE_TUNNEL" == true ]]; then
     # abrir ningún puerto entrante más que SSH.
     ufw --force enable > /dev/null
     ok "UFW activo: solo SSH abierto (Cloudflare Tunnel no necesita 80/443)"
+elif [[ "$USE_PROXY" == true ]]; then
+    if [[ "$PROXY_LOCAL" == true ]]; then
+        # El proxy está en este mismo servidor y habla con FrankenPHP por
+        # loopback: no hace falta abrir ningún puerto entrante más que SSH.
+        ufw --force enable > /dev/null
+        ok "UFW activo: solo SSH abierto (el proxy inverso local habla por 127.0.0.1:${HTTP_PORT})"
+    else
+        # El proxy está en otra máquina: se abre el puerto HTTP de FrankenPHP
+        # solo para la IP/rango del proxy, no para todo Internet.
+        ufw allow from "${PROXY_IP}" to any port "${HTTP_PORT}" proto tcp > /dev/null
+        ufw --force enable > /dev/null
+        ok "UFW activo: SSH abierto; puerto ${HTTP_PORT}/tcp abierto solo desde ${PROXY_IP}"
+    fi
 else
     ufw allow 80/tcp   > /dev/null
     ufw allow 443/tcp  > /dev/null
@@ -208,6 +271,18 @@ if [[ "$USE_TUNNEL" == true ]]; then
     # reenvía como cabeceras X-Forwarded-* a través de Caddy en localhost.
     SERVER_ADDR_VALUE="127.0.0.1:8080"
     TRUSTED_PROXIES_LINE='SYMFONY_TRUSTED_PROXIES="127.0.0.1"'
+elif [[ "$USE_PROXY" == true ]]; then
+    # FrankenPHP sirve HTTP plano; el TLS y Let's Encrypt los gestiona el proxy
+    # inverso. Un SERVER_ADDR con puerto pero sin nombre de dominio desactiva
+    # el HTTPS automático de Caddy. SYMFONY_TRUSTED_PROXIES = IP del proxy: sin
+    # ella la aplicación registraría la IP del proxy en vez de la del usuario
+    # y no reconocería el esquema https:// de las cabeceras X-Forwarded-*.
+    if [[ "$PROXY_LOCAL" == true ]]; then
+        SERVER_ADDR_VALUE="127.0.0.1:${HTTP_PORT}"
+    else
+        SERVER_ADDR_VALUE=":${HTTP_PORT}"
+    fi
+    TRUSTED_PROXIES_LINE="SYMFONY_TRUSTED_PROXIES=\"${PROXY_IP}\""
 else
     SERVER_ADDR_VALUE="${DOMAIN}"
     TRUSTED_PROXIES_LINE=""
@@ -456,6 +531,18 @@ if [[ "$USE_TUNNEL" == true ]]; then
      dashboard de Cloudflare (${DOMAIN} → HTTP → localhost:8080); sin eso el
      dominio no responderá aunque el servicio esté activo.${NC}"
     STATUS_CMD="sudo systemctl status atica-calidad atica-calidad-worker cloudflared"
+elif [[ "$USE_PROXY" == true ]]; then
+    TUNNEL_NOTE="
+  ${YELLOW}⚠  FrankenPHP sirve HTTP plano en $([[ "$PROXY_LOCAL" == true ]] && echo "127.0.0.1" || echo "0.0.0.0"):${HTTP_PORT}.
+     No hay HTTPS ni Let's Encrypt en este servidor: configura tu proxy inverso
+     para que:
+       • termine el TLS del dominio ${DOMAIN} (su propio certificado);
+       • reenvíe las peticiones a http://$([[ "$PROXY_LOCAL" == true ]] && echo "127.0.0.1" || echo "<IP-de-este-servidor>"):${HTTP_PORT};
+       • añada las cabeceras X-Forwarded-For, X-Forwarded-Proto y X-Forwarded-Host.
+     La IP del proxy (${PROXY_IP}) ya está en SYMFONY_TRUSTED_PROXIES; si cambia,
+     edítala en /opt/atica-calidad/.env.local y reinicia el servicio.
+     Ejemplos de configuración del proxy en docs/despliegue/ubuntu-manual.md.${NC}"
+    STATUS_CMD="sudo systemctl status atica-calidad atica-calidad-worker"
 else
     TUNNEL_NOTE="
   ${YELLOW}⚠  En el primer arranque FrankenPHP solicita el certificado TLS.

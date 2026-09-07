@@ -196,9 +196,8 @@ rangos CIDR separados por comas:
 Ejemplos de valor: `127.0.0.1` (proxy en la misma máquina), `10.0.0.0/8` (rango de una red
 interna), `127.0.0.1,10.0.0.1` (varios). Sin proxy inverso, deja la variable sin definir.
 
-Para comprobar que está bien configurado, revisa la columna **IP** del registro de actividad (o el
-panel *Request* del `_profiler` en el entorno de desarrollo): debe mostrar la IP real del cliente,
-no `127.0.0.1` ni la IP del proxy.
+Para comprobar que está bien configurado, revisa la columna **IP** del registro de actividad: debe
+mostrar la IP real del cliente, no `127.0.0.1` ni la IP del proxy.
 
 ## Protección de datos (RGPD)
 

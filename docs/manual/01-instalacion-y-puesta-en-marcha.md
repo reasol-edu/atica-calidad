@@ -40,8 +40,20 @@ binario nativo en un panel de hosting compartido, sin Docker.
 
 Ver la [guía de despliegue en Ubuntu Server](../despliegue/ubuntu-manual.md) para instalar el
 binario nativo con systemd en un VPS o servidor dedicado, incluida la actualización
-[automatizada](../despliegue/despliegue-continuo.md) y la exposición sin abrir puertos con
-[Cloudflare Tunnel](../despliegue/cloudflare-tunnel.md).
+[automatizada](../despliegue/despliegue-continuo.md).
+
+El script `dist/install-ubuntu.sh` pregunta **cómo se accederá a la plataforma** y ofrece tres
+modos:
+
+1. **HTTPS directo** — FrankenPHP obtiene el certificado TLS solo (Let's Encrypt); necesita el
+   dominio apuntando al servidor y los puertos 80/443 abiertos.
+2. **Detrás de un proxy inverso propio** (nginx, Apache, HAProxy, Traefik, un balanceador…) —
+   FrankenPHP sirve HTTP plano en un puerto local, sin Let's Encrypt; el TLS lo termina el proxy.
+   El script pregunta el puerto y la IP del proxy, que guarda en `SYMFONY_TRUSTED_PROXIES` para
+   registrar la IP real del usuario. Ver
+   [Variante: detrás de un proxy inverso](../despliegue/ubuntu-manual.md#5b-variante-detras-de-un-proxy-inverso).
+3. **[Cloudflare Tunnel](../despliegue/cloudflare-tunnel.md)** — exposición sin abrir puertos,
+   para servidores detrás de un NAT o cortafuegos.
 
 ## Actualizar a la última versión publicada {#actualizar}
 
