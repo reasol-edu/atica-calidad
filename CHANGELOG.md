@@ -7,11 +7,22 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-08
+
 ### Changed
 
 - **Actividades**: al desplegar las estadísticas de una actividad que no tiene entregas previstas
   (su carpeta no define perfiles de subida), en vez de una tabla vacía se muestra un mensaje
   indicando que no hay estadísticas que mostrar.
+
+### Fixed
+
+- **Árbol documental**: los botones de subir y bajar un documento dentro de una carpeta no tenían
+  efecto. Los documentos no recibían una posición al subirse, así que todos compartían la posición
+  0 y el intercambio no cambiaba nada. Ahora cada documento nuevo se coloca al final de su carpeta,
+  el listado tiene un orden estable y al reordenar se normalizan las posiciones del grupo antes de
+  intercambiar, de modo que las carpetas ya existentes se corrigen solas la primera vez que se
+  reordena o se ordena alfabéticamente.
 
 ## [0.6.0] - 2026-09-07
 
