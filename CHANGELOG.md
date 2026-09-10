@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-11
+
 ### Added
 
 - **Copias de seguridad**: nuevo comando de consola `app:backup` que vuelca toda la base de datos
@@ -50,7 +52,6 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - **Datos de demostración**: `app:load-demo-data` añade la categoría «Seguimiento del SGC» con
   cuatro actividades de ejemplo, una por estado (sin empezar, en plazo, vencida, completada), para
   que el código de color se aprecie desde el primer momento.
-
 - **Registro de actividad**: las acciones de las pantallas interactivas (árbol documental,
   actividades, listas, perfiles, ajustes) se registran ahora con un tipo semántico traducido
   («Carpeta creada», «Sección reordenada», «Asignación de perfil modificada»…) en vez de la clave
