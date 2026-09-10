@@ -126,7 +126,7 @@ Haz copia de seguridad con regularidad de:
 ### El comando `app:backup`
 
 ```bash
-php bin/console app:backup [carpeta-o-fichero.zip]
+php bin/console app:backup [carpeta-o-fichero.zip] [--password[=CONTRASEÑA]]
 ```
 
 Vuelca toda la base de datos a un único fichero ZIP. Sin argumento lo deja en `var/backups/` con
@@ -136,8 +136,14 @@ valores binarios en base64 y un `manifest.json` con la versión de la aplicació
 número de filas de cada tabla), de modo que una copia hecha con SQLite se puede leer con
 PostgreSQL y al revés. La cola de correos y tareas (`messenger_messages`) se excluye a propósito.
 
-> La copia **no está cifrada**: contiene los documentos de todos los centros y los hashes de
-> contraseña de los docentes. Guárdala en un lugar seguro.
+**Cifrado (opcional).** Con `--password=CONTRASEÑA` el ZIP se cifra entero con AES-256; con
+`--password` sin valor la contraseña se pide por consola y se confirma. El archivo cifrado se abre
+con cualquier herramienta compatible con AES de WinZip (7-Zip, keka, WinRAR) o, más adelante, con
+el comando de restauración. **Si pierdes la contraseña, la copia es irrecuperable**: guárdala en
+un gestor de contraseñas.
+
+> Sin `--password` la copia **no está cifrada**: contiene los documentos de todos los centros y
+> los hashes de contraseña de los docentes. En ningún caso incluye el `APP_SECRET`.
 
 ## Correos en cola (Messenger) {#correos-en-cola-messenger}
 

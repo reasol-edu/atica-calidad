@@ -13,8 +13,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   —incluidos los ficheros subidos, que se guardan dentro de ella— a un único ZIP en `var/backups`
   (o en la carpeta o el fichero `.zip` que se indique). El volcado es lógico e independiente del
   motor (una tabla por fichero NDJSON, valores binarios en base64), así que una copia hecha en
-  SQLite se puede inspeccionar en PostgreSQL y viceversa. La cola de Messenger queda excluida. La
-  copia **no está cifrada** y no incluye el `APP_SECRET`.
+  SQLite se puede inspeccionar en PostgreSQL y viceversa. La cola de Messenger queda excluida.
+  Opcionalmente cifra el ZIP con AES-256 pasando `--password=…`, o `--password` sin valor para que
+  se pida por consola (con confirmación). Sin contraseña la copia no va cifrada; en ningún caso
+  incluye el `APP_SECRET`.
 - **Actividades**: cada actividad puede exigir que se respete su plazo. En «Plazos» del
   formulario, dos casillas independientes impiden hacer la primera entrega y marcar como
   completada (si es manual) **antes de la fecha de inicio** o **después de la fecha de fin**. Al

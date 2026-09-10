@@ -117,6 +117,80 @@ final class BackupCommandTest extends RepositoryTestCase
         self::assertFileExists($target);
     }
 
+    public function testIsNotEncryptedByDefault(): void
+    {
+        $this->tester->execute(['destination' => $this->outputDir]);
+
+        $zip = $this->openTheArchive();
+        self::assertFalse($this->manifestOf($zip)['encrypted']);
+        self::assertSame(\ZipArchive::EM_NONE, $zip->statName('manifest.json')['encryption_method']);
+    }
+
+    public function testEncryptsEveryEntryWhenAPasswordIsPassed(): void
+    {
+        $this->persist($this->settingFile('secret'));
+
+        $this->tester->execute([
+            'destination' => $this->outputDir,
+            '--password'  => 's3cr3t-passphrase',
+        ]);
+
+        self::assertSame(0, $this->tester->getStatusCode());
+
+        $zip = $this->openTheArchive();
+
+        // Every entry carries AES-256, manifest and table dumps alike.
+        self::assertSame(\ZipArchive::EM_AES_256, $zip->statName('manifest.json')['encryption_method']);
+        self::assertSame(\ZipArchive::EM_AES_256, $zip->statName('tables/setting_file.ndjson')['encryption_method']);
+
+        // Only the right password decrypts, and the manifest records the fact.
+        $zip->setPassword('s3cr3t-passphrase');
+        $manifest = json_decode((string) $zip->getFromName('manifest.json'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertTrue($manifest['encrypted']);
+        self::assertSame(1, $manifest['tables']['setting_file']);
+        self::assertIsString($zip->getFromName('tables/setting_file.ndjson'));
+    }
+
+    public function testPromptsForThePasswordWhenTheOptionCarriesNoValue(): void
+    {
+        $this->tester->setInputs(['prompted-pass', 'prompted-pass']);
+        $this->tester->execute([
+            'destination' => $this->outputDir,
+            '--password'  => null,
+        ]);
+
+        self::assertSame(0, $this->tester->getStatusCode());
+
+        $zip = $this->openTheArchive();
+        self::assertSame(\ZipArchive::EM_AES_256, $zip->statName('manifest.json')['encryption_method']);
+        $zip->setPassword('prompted-pass');
+        self::assertTrue(json_decode((string) $zip->getFromName('manifest.json'), true, flags: JSON_THROW_ON_ERROR)['encrypted']);
+    }
+
+    public function testFailsWhenThePromptedPasswordsDoNotMatch(): void
+    {
+        $this->tester->setInputs(['one', 'two']);
+        $this->tester->execute([
+            'destination' => $this->outputDir,
+            '--password'  => null,
+        ]);
+
+        self::assertSame(2, $this->tester->getStatusCode());
+        self::assertStringContainsString('no coinciden', $this->tester->getDisplay());
+        self::assertSame([], glob($this->outputDir . '/*.zip') ?: []);
+    }
+
+    public function testFailsWhenAskedToPromptNonInteractively(): void
+    {
+        $this->tester->execute(
+            ['destination' => $this->outputDir, '--password' => null],
+            ['interactive' => false],
+        );
+
+        self::assertSame(2, $this->tester->getStatusCode());
+        self::assertSame([], glob($this->outputDir . '/*.zip') ?: []);
+    }
+
     private function settingFile(string $seed, ?string $content = null): SettingFile
     {
         $content ??= 'contents-' . $seed;

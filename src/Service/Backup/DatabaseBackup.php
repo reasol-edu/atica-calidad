@@ -15,6 +15,7 @@ final readonly class DatabaseBackup
         public string $path,
         public int $bytes,
         public array $tableRowCounts,
+        public bool $encrypted = false,
     ) {}
 
     public function tableCount(): int

@@ -9,6 +9,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -32,7 +33,8 @@ class BackupCommand extends Command
 
         $this
             ->setDescription($t('backup.description'))
-            ->addArgument('destination', InputArgument::OPTIONAL, $t('backup.argument.destination'));
+            ->addArgument('destination', InputArgument::OPTIONAL, $t('backup.argument.destination'))
+            ->addOption('password', 'p', InputOption::VALUE_OPTIONAL, $t('backup.option.password'), false);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -48,7 +50,15 @@ class BackupCommand extends Command
         [$directory, $filename] = $this->resolveTarget($destination);
 
         try {
-            $backup = $this->backupService->create($directory, $filename);
+            $password = $this->resolvePassword($input, $io, $t);
+        } catch (\RuntimeException $e) {
+            $io->error($e->getMessage());
+
+            return Command::INVALID;
+        }
+
+        try {
+            $backup = $this->backupService->create($directory, $filename, $password);
         } catch (\Throwable $e) {
             $io->error($t('backup.error.failed', ['%reason%' => $e->getMessage()]));
 
@@ -62,9 +72,51 @@ class BackupCommand extends Command
             '%size%'   => $this->humanBytes($backup->bytes),
         ]));
         $io->newLine();
-        $io->note($t('backup.notice.unencrypted'));
+        $io->note($t($backup->encrypted ? 'backup.notice.encrypted' : 'backup.notice.unencrypted'));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Tri-state `--password`: absent (default `false`) → no encryption; given without a value
+     * (`null`) → ask on the console, twice, and require a match; given with a value → use it.
+     *
+     * @param \Closure(string, array<string, mixed>=): string $t
+     *
+     * @throws \RuntimeException on an empty, mismatched, or non-interactively-missing password
+     */
+    private function resolvePassword(InputInterface $input, SymfonyStyle $io, \Closure $t): ?string
+    {
+        $option = $input->getOption('password');
+
+        if ($option === false) {
+            return null;
+        }
+
+        if (\is_string($option)) {
+            if ($option === '') {
+                throw new \RuntimeException($t('backup.error.password_empty'));
+            }
+
+            return $option;
+        }
+
+        // `--password` with no value: prompt for it.
+        if (!$input->isInteractive()) {
+            throw new \RuntimeException($t('backup.error.password_required_non_interactive'));
+        }
+
+        $first   = $io->askHidden($t('backup.ask.password'));
+        $confirm = $io->askHidden($t('backup.ask.password_confirm'));
+
+        if (!\is_string($first) || $first === '') {
+            throw new \RuntimeException($t('backup.error.password_empty'));
+        }
+        if ($first !== $confirm) {
+            throw new \RuntimeException($t('backup.error.password_mismatch'));
+        }
+
+        return $first;
     }
 
     /**

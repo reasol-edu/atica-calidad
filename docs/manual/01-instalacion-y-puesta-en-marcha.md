@@ -179,9 +179,10 @@ php bin/console app:create-admin <usuario> <contraseña>
 ### app:backup
 
 Crea una copia de seguridad completa de la base de datos en un único fichero ZIP. Sin argumento la
-deja en `var/backups/`; también acepta una carpeta de destino o la ruta de un `.zip`. Ver
+deja en `var/backups/`; también acepta una carpeta de destino o la ruta de un `.zip`. Con
+`--password=…` (o `--password` sin valor, que la pide por consola) el ZIP se cifra con AES-256. Ver
 [Administrar la plataforma → Copias de seguridad](09-administrar-la-plataforma.md#copias-de-seguridad).
 
 ```bash
-php bin/console app:backup [carpeta-o-fichero.zip]
+php bin/console app:backup [carpeta-o-fichero.zip] [--password[=CONTRASEÑA]]
 ```

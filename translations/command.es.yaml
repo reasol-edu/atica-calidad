@@ -29,9 +29,16 @@ load_demo_data.success: 'Centro de demostración "%name%" (%code%) creado con el
 
 backup.description: 'Crea una copia de seguridad completa de la base de datos en un único fichero ZIP'
 backup.argument.destination: 'Carpeta de destino o ruta de un fichero .zip (por defecto: var/backups)'
+backup.option.password: 'Cifra la copia con esta contraseña (AES-256). Usa la opción sin valor para que se pida por consola.'
+backup.ask.password: 'Contraseña para cifrar la copia'
+backup.ask.password_confirm: 'Repite la contraseña'
 backup.success: 'Copia de seguridad creada en %path%'
 backup.summary: '%tables% tablas · %rows% filas · %size%'
 backup.notice.unencrypted: 'La copia no está cifrada: contiene los documentos de todos los centros y los hashes de contraseña de los docentes. Guárdala en un lugar seguro. No incluye el APP_SECRET.'
+backup.notice.encrypted: 'La copia está cifrada con AES-256. Sin la contraseña no se puede restaurar: guárdala en un gestor de contraseñas. No incluye el APP_SECRET.'
 backup.error.failed: 'No se pudo crear la copia de seguridad: %reason%'
+backup.error.password_empty: 'La contraseña no puede estar vacía.'
+backup.error.password_mismatch: 'Las contraseñas no coinciden.'
+backup.error.password_required_non_interactive: 'En modo no interactivo, indica la contraseña con --password=…'
 
 field.required: 'Este campo es obligatorio.'

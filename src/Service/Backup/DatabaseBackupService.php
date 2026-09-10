@@ -25,8 +25,10 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * PostgreSQL and vice versa. Any value that is not valid UTF-8 (BLOB columns on every engine,
  * BINARY(16) UUID columns on MySQL/SQLite) is wrapped as `{"@b64": "<base64>"}`.
  *
- * Not encrypted: the archive holds every centre's documents and every teacher's password hash in
- * the clear. Callers must store it accordingly.
+ * Encryption is optional: with no password the archive holds every centre's documents and every
+ * teacher's password hash in the clear, so callers must store it accordingly; with a password
+ * every entry (manifest included) is encrypted with WinZip AES-256. `APP_SECRET` lives outside
+ * the database and is never part of the backup either way.
  */
 final class DatabaseBackupService
 {
@@ -53,10 +55,14 @@ final class DatabaseBackupService
     /**
      * @param string      $directory where to drop the archive; created if missing
      * @param string|null $filename  archive name; defaults to a timestamped one
+     * @param string|null $password  when set, every entry is encrypted with WinZip AES-256 —
+     *                               the archive then only opens with an AES-aware tool (7-Zip,
+     *                               keka, WinRAR) or a future `app:restore`, and never without
+     *                               this password
      *
      * @throws \RuntimeException if the destination is unusable or the archive cannot be written
      */
-    public function create(string $directory, ?string $filename = null): DatabaseBackup
+    public function create(string $directory, ?string $filename = null, ?string $password = null): DatabaseBackup
     {
         $directory = rtrim($directory, '/');
         if ($directory === '') {
@@ -81,20 +87,20 @@ final class DatabaseBackupService
         try {
             $tableRowCounts = $this->dumpTables($work);
 
-            $manifest = $this->buildManifest($now, $tableRowCounts);
+            $manifest = $this->buildManifest($now, $tableRowCounts, $password !== null);
             file_put_contents(
                 $work . '/manifest.json',
                 json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n",
             );
 
-            $this->zip($work, $target, array_keys($tableRowCounts));
+            $this->zip($work, $target, array_keys($tableRowCounts), $password);
         } finally {
             $this->deleteDirectory($work);
         }
 
         $bytes = filesize($target);
 
-        return new DatabaseBackup($target, $bytes === false ? 0 : $bytes, $tableRowCounts);
+        return new DatabaseBackup($target, $bytes === false ? 0 : $bytes, $tableRowCounts, $password !== null);
     }
 
     /**
@@ -222,7 +228,7 @@ final class DatabaseBackupService
      *
      * @return array<string, mixed>
      */
-    private function buildManifest(\DateTimeImmutable $now, array $tableRowCounts): array
+    private function buildManifest(\DateTimeImmutable $now, array $tableRowCounts, bool $encrypted): array
     {
         return [
             'format'           => self::FORMAT,
@@ -232,7 +238,7 @@ final class DatabaseBackupService
             'createdAt'        => $now->format(\DateTimeInterface::ATOM),
             'databasePlatform' => $this->connection->getDatabasePlatform()::class,
             'schemaVersion'    => $this->latestMigration(),
-            'encrypted'        => false,
+            'encrypted'        => $encrypted,
             'tables'           => $tableRowCounts,
         ];
     }
@@ -259,16 +265,31 @@ final class DatabaseBackupService
     /**
      * @param list<string> $tables
      */
-    private function zip(string $work, string $target, array $tables): void
+    private function zip(string $work, string $target, array $tables, ?string $password): void
     {
         $zip = new \ZipArchive();
         if ($zip->open($target, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
             throw new \RuntimeException(\sprintf('Could not create the backup archive "%s".', $target));
         }
 
-        $zip->addFile($work . '/manifest.json', 'manifest.json');
+        if ($password !== null) {
+            $zip->setPassword($password);
+        }
+
+        $entries = ['manifest.json'];
         foreach ($tables as $table) {
-            $zip->addFile($work . '/tables/' . $table . '.ndjson', 'tables/' . $table . '.ndjson');
+            $entries[] = 'tables/' . $table . '.ndjson';
+        }
+
+        foreach ($entries as $entry) {
+            $zip->addFile($work . '/' . $entry, $entry);
+            if ($password !== null && !$zip->setEncryptionName($entry, \ZipArchive::EM_AES_256)) {
+                $zip->unchangeAll();
+                $zip->close();
+                @unlink($target);
+
+                throw new \RuntimeException('This build cannot write AES-256 encrypted archives (libzip without a crypto backend).');
+            }
         }
 
         // addFile() defers the actual read until close(), so the working files must still be
