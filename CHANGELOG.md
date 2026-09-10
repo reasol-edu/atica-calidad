@@ -17,6 +17,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   Opcionalmente cifra el ZIP con AES-256 pasando `--password=…`, o `--password` sin valor para que
   se pida por consola (con confirmación). Sin contraseña la copia no va cifrada; en ningún caso
   incluye el `APP_SECRET`.
+- **Copias de seguridad**: comando `app:restore` que reemplaza todos los datos actuales por los de
+  una copia de `app:backup`. Antes de tocar nada muestra la fecha, la versión y el contenido de la
+  copia y pide confirmación (`--force` la omite); si el esquema de la copia no coincide con el de
+  la base de datos se niega salvo `--force`. La carga es transaccional, con las comprobaciones de
+  clave ajena suspendidas mientras dura (en PostgreSQL requiere un rol con privilegios). Acepta
+  `--password` para copias cifradas.
 - **Actividades**: cada actividad puede exigir que se respete su plazo. En «Plazos» del
   formulario, dos casillas independientes impiden hacer la primera entrega y marcar como
   completada (si es manual) **antes de la fecha de inicio** o **después de la fecha de fin**. Al

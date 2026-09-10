@@ -138,12 +138,31 @@ PostgreSQL y al revés. La cola de correos y tareas (`messenger_messages`) se ex
 
 **Cifrado (opcional).** Con `--password=CONTRASEÑA` el ZIP se cifra entero con AES-256; con
 `--password` sin valor la contraseña se pide por consola y se confirma. El archivo cifrado se abre
-con cualquier herramienta compatible con AES de WinZip (7-Zip, keka, WinRAR) o, más adelante, con
-el comando de restauración. **Si pierdes la contraseña, la copia es irrecuperable**: guárdala en
-un gestor de contraseñas.
+con cualquier herramienta compatible con AES de WinZip (7-Zip, keka, WinRAR) o con `app:restore`.
+**Si pierdes la contraseña, la copia es irrecuperable**: guárdala en un gestor de contraseñas.
 
 > Sin `--password` la copia **no está cifrada**: contiene los documentos de todos los centros y
 > los hashes de contraseña de los docentes. En ningún caso incluye el `APP_SECRET`.
+
+### El comando `app:restore`
+
+```bash
+php bin/console app:restore <copia.zip> [--password[=CONTRASEÑA]] [--force]
+```
+
+Reemplaza **todos** los datos actuales por los de la copia indicada. Antes de tocar nada muestra
+la fecha, la versión de la aplicación y el contenido de la copia, y pide confirmación; `--force`
+la omite (obligatorio en modo no interactivo). Si el esquema con el que se hizo la copia no
+coincide con el de la base de datos actual —hay migraciones pendientes o de más—, se niega salvo
+que se añada `--force`.
+
+La carga es **transaccional**: si algo falla, la base de datos queda como estaba. Mientras dura,
+se suspenden las comprobaciones de clave ajena; en **PostgreSQL** esto requiere conectarse con un
+rol con privilegios (el propietario de la base de datos o un superusuario), igual que
+`pg_restore --disable-triggers`. En SQLite y MySQL no hace falta nada especial.
+
+Tras restaurar, **reinicia los procesos de la aplicación** (incluido el worker de Messenger) para
+descartar cualquier dato en caché.
 
 ## Correos en cola (Messenger) {#correos-en-cola-messenger}
 

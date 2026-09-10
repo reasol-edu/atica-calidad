@@ -186,3 +186,14 @@ deja en `var/backups/`; también acepta una carpeta de destino o la ruta de un `
 ```bash
 php bin/console app:backup [carpeta-o-fichero.zip] [--password[=CONTRASEÑA]]
 ```
+
+### app:restore
+
+Restaura una copia creada con `app:backup`, **reemplazando todos los datos actuales**. Pide
+confirmación (salvo `--force`) y se niega si el esquema no coincide con el de la copia (salvo
+`--force`). En PostgreSQL necesita un rol con privilegios. Ver
+[Administrar la plataforma → Copias de seguridad](09-administrar-la-plataforma.md#copias-de-seguridad).
+
+```bash
+php bin/console app:restore <copia.zip> [--password[=CONTRASEÑA]] [--force]
+```
