@@ -23,29 +23,62 @@
                           class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">{{ formDescription }}</textarea>
             </div>
 
-            <div>
-                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.start'|trans({}, 'admin') }}</label>
-                <div class="flex items-center gap-2">
-                    <input type="number" min="1" max="31" placeholder="{{ 'activity.field.day'|trans({}, 'admin') }}"
-                           data-model="norender|formStartDay" value="{{ formStartDay }}"
-                           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
-                    <input type="number" min="1" max="12" placeholder="{{ 'activity.field.month'|trans({}, 'admin') }}"
-                           data-model="norender|formStartMonth" value="{{ formStartMonth }}"
-                           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+            <div class="sm:col-span-2 rounded-lg border border-gray-200 p-3 space-y-3">
+                <span class="block text-xs font-semibold uppercase tracking-wider text-gray-500">{{ 'activity.field.deadlines'|trans({}, 'admin') }}</span>
+
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.deadline_start'|trans({}, 'admin') }}</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" min="1" max="31" placeholder="{{ 'activity.field.day'|trans({}, 'admin') }}"
+                                   data-model="norender|formStartDay" value="{{ formStartDay }}"
+                                   class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                            <input type="number" min="1" max="12" placeholder="{{ 'activity.field.month'|trans({}, 'admin') }}"
+                                   data-model="norender|formStartMonth" value="{{ formStartMonth }}"
+                                   class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.deadline_end'|trans({}, 'admin') }}</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" min="1" max="31" placeholder="{{ 'activity.field.day'|trans({}, 'admin') }}"
+                                   data-model="norender|formEndDay" value="{{ formEndDay }}"
+                                   class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                            <input type="number" min="1" max="12" placeholder="{{ 'activity.field.month'|trans({}, 'admin') }}"
+                                   data-model="norender|formEndMonth" value="{{ formEndMonth }}"
+                                   class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                        </div>
+                    </div>
+                </div>
+                {% if errors.dates is defined %}<p class="text-xs text-red-600">{{ errors.dates }}</p>{% endif %}
+
+                <div class="space-y-2 border-t border-gray-100 pt-3">
+                    <label class="flex items-start gap-2 text-xs text-gray-600">
+                        <input type="checkbox" data-model="formStartDateEnforced" {{ formStartDateEnforced ? 'checked' : '' }}
+                               class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-forest-600 focus:ring-forest-500/30">
+                        <span>{{ 'activity.field.enforce_start'|trans({}, 'admin') }}</span>
+                    </label>
+                    <label class="flex items-start gap-2 text-xs text-gray-600">
+                        <input type="checkbox" data-model="formEndDateEnforced" {{ formEndDateEnforced ? 'checked' : '' }}
+                               class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-forest-600 focus:ring-forest-500/30">
+                        <span>{{ 'activity.field.enforce_end'|trans({}, 'admin') }}</span>
+                    </label>
+
+                    {% if formEndDateEnforced %}
+                        <div class="ml-6 flex flex-wrap items-center gap-2">
+                            <label class="text-xs font-medium text-gray-600" for="activity-grace-days">{{ 'activity.field.grace_days'|trans({}, 'admin') }}</label>
+                            <input id="activity-grace-days" type="number" min="0" data-model="norender|formEndDateGraceDays" value="{{ formEndDateGraceDays }}"
+                                   class="w-20 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                        </div>
+                        <p class="ml-6 text-xs text-gray-400">{{ 'activity.field.grace_days_help'|trans({}, 'admin') }}</p>
+                    {% endif %}
+
+                    <p class="flex items-start gap-1.5 text-xs text-gray-400">
+                        {{ ux_icon('heroicons:information-circle', {class: 'h-3.5 w-3.5 shrink-0 mt-px'}) }}
+                        <span>{{ 'activity.field.enforce_help'|trans({}, 'admin') }}</span>
+                    </p>
                 </div>
             </div>
-            <div>
-                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.end'|trans({}, 'admin') }}</label>
-                <div class="flex items-center gap-2">
-                    <input type="number" min="1" max="31" placeholder="{{ 'activity.field.day'|trans({}, 'admin') }}"
-                           data-model="norender|formEndDay" value="{{ formEndDay }}"
-                           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
-                    <input type="number" min="1" max="12" placeholder="{{ 'activity.field.month'|trans({}, 'admin') }}"
-                           data-model="norender|formEndMonth" value="{{ formEndMonth }}"
-                           class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
-                </div>
-            </div>
-            {% if errors.dates is defined %}<p class="sm:col-span-2 text-xs text-red-600">{{ errors.dates }}</p>{% endif %}
 
             <div>
                 <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.folder'|trans({}, 'admin') }}</label>

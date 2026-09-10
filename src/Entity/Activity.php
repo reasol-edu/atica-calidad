@@ -82,6 +82,21 @@ class Activity
     #[ORM\Column]
     private bool $autoComplete = false;
 
+    /** When true, submissions and manual completion are refused before the yearly start date. */
+    #[ORM\Column]
+    private bool $startDateEnforced = false;
+
+    /** When true, submissions and manual completion are refused after the yearly end date (plus any grace days). */
+    #[ORM\Column]
+    private bool $endDateEnforced = false;
+
+    /**
+     * Days after the end date during which submissions/completion are still allowed once
+     * $endDateEnforced is on — recorded and shown as "late". 0 means no grace period.
+     */
+    #[ORM\Column]
+    private int $endDateGraceDays = 0;
+
     #[ORM\Column(enumType: ActivitySubmissionScope::class)]
     private ActivitySubmissionScope $submissionScope = ActivitySubmissionScope::ByProfile;
 
@@ -277,6 +292,46 @@ class Activity
         }
 
         $this->autoComplete = $autoComplete;
+
+        return $this;
+    }
+
+    public function isStartDateEnforced(): bool
+    {
+        return $this->startDateEnforced;
+    }
+
+    public function setStartDateEnforced(bool $startDateEnforced): static
+    {
+        $this->startDateEnforced = $startDateEnforced;
+
+        return $this;
+    }
+
+    public function isEndDateEnforced(): bool
+    {
+        return $this->endDateEnforced;
+    }
+
+    public function setEndDateEnforced(bool $endDateEnforced): static
+    {
+        $this->endDateEnforced = $endDateEnforced;
+        if (!$endDateEnforced) {
+            $this->endDateGraceDays = 0;
+        }
+
+        return $this;
+    }
+
+    public function getEndDateGraceDays(): int
+    {
+        return $this->endDateGraceDays;
+    }
+
+    /** Grace days only mean something with the end date enforced; ignored (kept at 0) otherwise. */
+    public function setEndDateGraceDays(int $endDateGraceDays): static
+    {
+        $this->endDateGraceDays = $this->endDateEnforced ? max(0, $endDateGraceDays) : 0;
 
         return $this;
     }

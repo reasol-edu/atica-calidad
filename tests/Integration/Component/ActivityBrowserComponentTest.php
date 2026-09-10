@@ -20,6 +20,7 @@ use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
 use App\Tests\Integration\ControllerTestCase;
 use App\Twig\Components\ActivityBrowserComponent;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
@@ -27,6 +28,7 @@ use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 final class ActivityBrowserComponentTest extends ControllerTestCase
 {
     use InteractsWithLiveComponents;
+    use ClockSensitiveTrait;
 
     private function centre(): EducationalCentre
     {
@@ -1426,5 +1428,178 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component->call('clearSearch');
 
         self::assertSame('', $this->stringProp($component, 'searchQuery'));
+    }
+
+    // ── Enforced deadlines ───────────────────────────────────────────────────
+
+    /** Folderless (always manual) activity 1/3 – 30/6 with the enforcement flags applied. */
+    private function strictActivity(ActivityCategory $category, bool $start, bool $end, int $grace = 0): Activity
+    {
+        $activity = (new Activity())->setCategory($category)->setTitle('Actividad')->setStart(1, 3)->setEnd(30, 6);
+        $activity->setStartDateEnforced($start)->setEndDateEnforced($end)->setEndDateGraceDays($grace);
+
+        return $activity;
+    }
+
+    public function testMarkCompletedIsBlockedBeforeTheEnforcedStartDate(): void
+    {
+        self::mockTime('2026-02-01 12:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->strictActivity($category, start: true, end: false);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $activity, $teacher);
+        $activityId = $activity->getId()->toRfc4122();
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('markCompleted', ['activityId' => $activityId]);
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityCompletionRepository $completions */
+        $completions = self::getContainer()->get(\App\Repository\ActivityCompletionRepository::class);
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        self::assertCount(0, $completions->findBy(['activity' => $activities->findById($activityId)]));
+    }
+
+    public function testMarkCompletedIsAllowedForAQualityManagerOutOfPeriod(): void
+    {
+        self::mockTime('2026-02-01 12:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->strictActivity($category, start: true, end: false);
+        $qm       = $this->teacher('calidad');
+        $centre->addQualityManager($qm);
+        $this->persist($centre, $category, $activity, $qm);
+        $activityId = $activity->getId()->toRfc4122();
+
+        $this->loginAs($qm, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('markCompleted', ['activityId' => $activityId]);
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityCompletionRepository $completions */
+        $completions = self::getContainer()->get(\App\Repository\ActivityCompletionRepository::class);
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        self::assertCount(1, $completions->findBy(['activity' => $activities->findById($activityId)]));
+    }
+
+    public function testSaveActivityStoresTheEnforcementFields(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $component
+            ->set('formTitle', 'Con plazos')
+            ->set('formStartDay', '1')->set('formStartMonth', '3')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formStartDateEnforced', true)
+            ->set('formEndDateEnforced', true)
+            ->set('formEndDateGraceDays', '5')
+            ->call('saveActivity');
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities        = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedCategory  = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        $created = $activities->findByCategory($reloadedCategory)[0];
+        self::assertTrue($created->isStartDateEnforced());
+        self::assertTrue($created->isEndDateEnforced());
+        self::assertSame(5, $created->getEndDateGraceDays());
+    }
+
+    public function testStartEditActivityLoadsTheEnforcementFields(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->strictActivity($category, start: true, end: true, grace: 3);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $activity, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()]);
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertTrue($instance->formStartDateEnforced);
+        self::assertTrue($instance->formEndDateEnforced);
+        self::assertSame('3', $instance->formEndDateGraceDays);
+    }
+
+    public function testGraceDaysFieldOnlyShowsWhileTheEndDateIsEnforced(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('startAddActivity');
+
+        self::assertStringNotContainsString('activity-grace-days', (string) $component->render()->crawler()->html());
+
+        $withEnd = (string) $component->set('formEndDateEnforced', true)->render()->crawler()->html();
+        self::assertStringContainsString('activity-grace-days', $withEnd);
+
+        $withoutEnd = (string) $component->set('formEndDateEnforced', false)->render()->crawler()->html();
+        self::assertStringNotContainsString('activity-grace-days', $withoutEnd);
+    }
+
+    public function testActivityViewShowsWhenTheActivityOpensIfItsCycleHasNotStarted(): void
+    {
+        self::mockTime('2026-01-15 12:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        // 1/3 – 30/6, no enforcement — the "opens on" note is purely informational.
+        $activity = $this->strictActivity($category, start: false, end: false);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $activity, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        self::assertStringContainsString('Se abre el 01/03/2026', (string) $component->render()->crawler()->html());
+    }
+
+    public function testActivityViewShowsTheDeadlineNoticeAndHidesTheDropzoneWhenBlocked(): void
+    {
+        self::mockTime('2026-02-01 12:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $folder->addUploadProfile($profile);
+        $activity = $this->strictActivity($category, start: true, end: false)->setFolder($folder);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, new SpecificProfileAssignment($profile, null, $teacher));
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $html = (string) $component->render()->crawler()->html();
+
+        self::assertStringContainsString('no admite entregas hasta el', $html);
+        self::assertStringNotContainsString('activity-submissions#drop', $html, 'the dropzone must not render while blocked');
     }
 }

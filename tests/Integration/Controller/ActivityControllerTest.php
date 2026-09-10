@@ -17,10 +17,13 @@ use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
 use App\Repository\DocumentRepository;
 use App\Tests\Integration\ControllerTestCase;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class ActivityControllerTest extends ControllerTestCase
 {
+    use ClockSensitiveTrait;
+
     private function centre(): EducationalCentre
     {
         return (new EducationalCentre())->setCode('12345678')->setName('Centro')->setCity('Ciudad');
@@ -525,5 +528,106 @@ final class ActivityControllerTest extends ControllerTestCase
         /** @var DocumentRepository $documents */
         $documents = self::getContainer()->get(DocumentRepository::class);
         self::assertCount(1, $documents->findByFolder($folder), 'a duplicate submission to an already-filled slot must never create a second document');
+    }
+
+    // ── Enforced deadlines ───────────────────────────────────────────────────
+
+    /**
+     * @return array{0: Activity, 1: SpecificProfile, 2: Teacher, 3: EducationalCentre}
+     */
+    private function strictSubmissionSetup(bool $start, bool $end, int $grace = 0): array
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        // Non-wrapping range 1/3 – 30/6 so "before start" / "after end" is unambiguous under mockTime.
+        $activity   = (new Activity())->setCategory($category)->setTitle('Actividad')->setStart(1, 3)->setEnd(30, 6);
+        $activity->setFolder($folder)->setStartDateEnforced($start)->setEndDateEnforced($end)->setEndDateGraceDays($grace);
+        $teacher    = $this->teacher('secretario');
+        $assignment = new SpecificProfileAssignment($profile, null, $teacher);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, $assignment);
+
+        return [$activity, $profile, $teacher, $centre];
+    }
+
+    private function submit(Activity $activity, SpecificProfile $profile): void
+    {
+        $activityId = $activity->getId()->toRfc4122();
+        $this->client->request('POST', "/actividades/{$activityId}/entregas/subir", [
+            '_token' => $this->csrfToken('activity_submission_upload_' . $activityId),
+            'items'  => [0 => ['slotKey' => $profile->getId()->toRfc4122() . ':::']],
+        ], ['files' => [0 => $this->uploadedFile('contenido')]]);
+    }
+
+    private function folderDocsCount(Activity $activity): int
+    {
+        $this->em->clear();
+        /** @var DocumentRepository $documents */
+        $documents = self::getContainer()->get(DocumentRepository::class);
+        $folder    = $activity->getFolder();
+        self::assertNotNull($folder);
+
+        return count($documents->findByFolder($folder));
+    }
+
+    public function testUploadSubmissionsBlockedBeforeTheEnforcedStartDate(): void
+    {
+        self::mockTime('2026-02-01 12:00:00');
+        [$activity, $profile, $teacher, $centre] = $this->strictSubmissionSetup(start: true, end: true);
+
+        $this->loginAs($teacher, $centre);
+        $this->submit($activity, $profile);
+
+        self::assertTrue($this->client->getResponse()->isRedirect());
+        self::assertSame(0, $this->folderDocsCount($activity));
+    }
+
+    public function testUploadSubmissionsAllowedInsideTheGracePeriod(): void
+    {
+        self::mockTime('2026-07-03 12:00:00'); // deadline 30/6 + 7 grace days
+        [$activity, $profile, $teacher, $centre] = $this->strictSubmissionSetup(start: true, end: true, grace: 7);
+
+        $this->loginAs($teacher, $centre);
+        $this->submit($activity, $profile);
+
+        self::assertSame(1, $this->folderDocsCount($activity));
+    }
+
+    public function testUploadSubmissionsBlockedAfterTheGracePeriodExpires(): void
+    {
+        self::mockTime('2026-07-15 12:00:00');
+        [$activity, $profile, $teacher, $centre] = $this->strictSubmissionSetup(start: true, end: true, grace: 7);
+
+        $this->loginAs($teacher, $centre);
+        $this->submit($activity, $profile);
+
+        self::assertSame(0, $this->folderDocsCount($activity));
+    }
+
+    public function testUploadSubmissionsAllowedForAFolderResponsibleOutOfPeriod(): void
+    {
+        self::mockTime('2026-02-01 12:00:00');
+        [$activity, $profile, $teacher, $centre] = $this->strictSubmissionSetup(start: true, end: true);
+        $activity->getFolder()?->addResponsibleProfile($profile); // $teacher already holds $profile
+        $this->flush();
+
+        $this->loginAs($teacher, $centre);
+        $this->submit($activity, $profile);
+
+        self::assertSame(1, $this->folderDocsCount($activity));
+    }
+
+    public function testUploadSubmissionsUnrestrictedWhenTheEnforceFlagsAreOff(): void
+    {
+        self::mockTime('2026-02-01 12:00:00');
+        [$activity, $profile, $teacher, $centre] = $this->strictSubmissionSetup(start: false, end: false);
+
+        $this->loginAs($teacher, $centre);
+        $this->submit($activity, $profile);
+
+        self::assertSame(1, $this->folderDocsCount($activity));
     }
 }

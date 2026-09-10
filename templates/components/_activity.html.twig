@@ -16,6 +16,13 @@
                             '%end%': '%02d/%02d'|format(activity.endDay, activity.endMonth),
                         }, 'activity_content') }}
                     </p>
+                    {% set activity_window = this.getActivityWindow(activity) %}
+                    {% if activity_window.notStarted %}
+                        <p class="flex items-center gap-1 text-xs text-amber-600">
+                            {{ ux_icon('heroicons:calendar-days', {class: 'h-3.5 w-3.5 shrink-0'}) }}
+                            {{ 'activity.opens_on'|trans({'%date%': activity_window.startDate|date('d/m/Y')}, 'activity_content') }}
+                        </p>
+                    {% endif %}
                     {% if has_submissions and this.canReachFolder(folder) %}
                         <a href="{{ this.getFolderTreeUrl(folder) }}"
                            class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-forest-600">
@@ -64,6 +71,13 @@
                                   class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
                                 {{ ux_icon(activity.autoComplete ? 'heroicons:bolt' : 'heroicons:hand-raised', {class: 'h-3.5 w-3.5'}) }}
                                 {{ (activity.autoComplete ? 'activity.auto_complete' : 'activity.manual')|trans({}, 'activity_content') }}
+                            </span>
+                        {% endif %}
+                        {% if activity.startDateEnforced or activity.endDateEnforced %}
+                            <span title="{{ 'activity.deadline_enforced_help'|trans({}, 'activity_content') }}"
+                                  class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                                {{ ux_icon('heroicons:lock-closed', {class: 'h-3.5 w-3.5'}) }}
+                                {{ 'activity.deadline_enforced'|trans({}, 'activity_content') }}
                             </span>
                         {% endif %}
                     </div>

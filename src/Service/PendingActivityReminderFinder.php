@@ -71,6 +71,8 @@ final class PendingActivityReminderFinder
             $this->categoryPath($activity->getCategory()),
             $ownerLabel,
             $this->deadline->currentCycleEndDate($activity),
+            $this->deadline->currentCycleStartDate($activity),
+            !$this->deadline->hasStarted($activity),
         );
     }
 

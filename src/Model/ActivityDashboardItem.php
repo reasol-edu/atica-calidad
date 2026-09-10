@@ -22,5 +22,9 @@ final readonly class ActivityDashboardItem
         public string $categoryPath,
         public ?string $ownerLabel,
         public \DateTimeImmutable $deadline,
+        /** The real date this activity's current cycle opens on. */
+        public \DateTimeImmutable $startsAt,
+        /** "Now" is still before $startsAt — the activity isn't actionable yet. */
+        public bool $notStarted,
     ) {}
 }

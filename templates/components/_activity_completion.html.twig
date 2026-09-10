@@ -3,12 +3,20 @@
 {% set owner_teacher = teacher_owned ? app.user : null %}
 {% set completed = this.isCompletedFor(activity, profile, list_item, owner_teacher) %}
 {% set completion_key = activity.id.toRfc4122 ~ ':' ~ profile_id ~ ':' ~ list_item_id %}
+{% set window = this.getActivityWindow(activity) %}
 
 <div class="flex items-center gap-2">
     {% if not teacher_owned %}
         <span class="text-xs text-gray-500">{{ profile.name }}{{ list_item ? ' ' ~ list_item.name : '' }}:</span>
     {% endif %}
-    {% if completed %}
+    {% if not completed and not activity.autoComplete and window.blocked %}
+        <span class="inline-flex items-center gap-1 text-xs italic text-gray-400">
+            {{ ux_icon('heroicons:lock-closed', {class: 'h-3.5 w-3.5'}) }}
+            {{ (window.reason.value == 'before_start'
+                ? 'completion.window.blocked_before'|trans({'%date%': window.startDate|date('d/m/Y')}, 'activity_content')
+                : 'completion.window.blocked_after'|trans({'%date%': window.graceUntil|date('d/m/Y')}, 'activity_content')) }}
+        </span>
+    {% elseif completed %}
         <span class="inline-flex items-center gap-1 rounded-full bg-forest-50 px-2.5 py-1 text-xs font-medium text-forest-700">
             {{ ux_icon('heroicons:check-circle', {class: 'h-4 w-4'}) }}
             {{ 'completion.done'|trans({}, 'activity_content') }}
@@ -46,6 +54,12 @@
                 {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
                 {{ 'completion.mark_done'|trans({}, 'activity_content') }}
             </button>
+            {% if window.late %}
+                <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    {{ ux_icon('heroicons:clock', {class: 'h-3 w-3'}) }}
+                    {{ 'completion.window.late_hint'|trans({}, 'activity_content') }}
+                </span>
+            {% endif %}
         {% endif %}
     {% else %}
         <span class="text-xs italic text-gray-400">{{ 'activity.auto_complete'|trans({}, 'activity_content') }}</span>

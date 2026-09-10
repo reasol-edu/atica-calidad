@@ -8,10 +8,12 @@ use App\Attribute\CurrentCentre;
 use App\Entity\Activity;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
+use App\Model\ActivityWindowBlock;
 use App\Repository\ActivityRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Service\ActivityLogger;
 use App\Service\ActivitySubmissionSlotBuilder;
+use App\Service\ActivityWindowChecker;
 use App\Service\DocumentCreationService;
 use App\Service\DocumentTreeAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
@@ -47,6 +49,7 @@ class ActivityController extends AbstractController
         private readonly ActivitySubmissionSlotBuilder $slotBuilder,
         private readonly DocumentCreationService $documentCreation,
         private readonly ActivityLogger $activityLogger,
+        private readonly ActivityWindowChecker $windowChecker,
     ) {}
 
     #[Route('', name: 'app_activities')]
@@ -99,6 +102,15 @@ class ActivityController extends AbstractController
 
         if (!$this->isCsrfTokenValid('activity_submission_upload_' . $activityId, $request->request->getString('_token'))) {
             throw $this->createAccessDeniedException();
+        }
+
+        $window = $this->windowChecker->for($activity, $teacher);
+        if ($window->blocked) {
+            $this->addFlash('error', $this->t($window->reason === ActivityWindowBlock::BeforeStart
+                ? 'submission.error.before_start'
+                : 'submission.error.after_end'));
+
+            return $this->redirectToActivity($activity);
         }
 
         // Both files[N] and items[N][slotKey] use the SAME explicit N (see
@@ -179,10 +191,11 @@ class ActivityController extends AbstractController
         }
 
         $this->em->flush();
-        $this->activityLogger->record('activity.submission_upload', [
-            'activity' => $activity->getTitle(),
-            'count'    => $created,
-        ], $centre);
+        $logData = ['activity' => $activity->getTitle(), 'count' => $created];
+        if ($window->late) {
+            $logData['late'] = true;
+        }
+        $this->activityLogger->record('activity.submission_upload', $logData, $centre);
         $this->addFlash('success', $this->translator->trans('submission.flash.uploaded', ['%count%' => $created], 'activity_content'));
 
         return $this->redirectToActivity($activity);

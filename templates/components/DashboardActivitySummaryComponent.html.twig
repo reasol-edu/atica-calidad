@@ -54,11 +54,12 @@
                 <ul class="-mx-6 divide-y divide-gray-100">
                     {% for item in summary.items %}
                         {% set overdue = item.status.value == 'overdue' %}
+                        {% set not_started = not overdue and item.notStarted %}
                         <li>
                             <a href="{{ path('app_activities', {category: item.activity.category.id.toRfc4122, activity: item.activity.id.toRfc4122}) }}"
                                class="flex items-start gap-3 px-6 py-3 transition-colors hover:bg-gray-50">
                                 <span class="mt-0.5 shrink-0 {{ overdue ? 'text-red-500' : 'text-amber-500' }}">
-                                    {{ ux_icon(overdue ? 'heroicons:exclamation-circle' : 'heroicons:clock', {class: 'h-5 w-5'}) }}
+                                    {{ ux_icon(overdue ? 'heroicons:exclamation-circle' : (not_started ? 'heroicons:calendar-days' : 'heroicons:clock'), {class: 'h-5 w-5'}) }}
                                 </span>
                                 <span class="min-w-0 flex-1">
                                     <span class="block truncate text-sm font-medium text-gray-900">
@@ -66,7 +67,11 @@
                                     </span>
                                     <span class="block truncate text-xs text-gray-500">
                                         {{ item.categoryPath }} ·
-                                        {{ (overdue ? 'activities.deadline_overdue' : 'activities.deadline_pending')|trans({'%date%': item.deadline|date('d/m/Y')}, 'dashboard') }}
+                                        {% if not_started %}
+                                            {{ 'activities.deadline_not_started'|trans({'%start%': item.startsAt|date('d/m/Y'), '%end%': item.deadline|date('d/m/Y')}, 'dashboard') }}
+                                        {% else %}
+                                            {{ (overdue ? 'activities.deadline_overdue' : 'activities.deadline_pending')|trans({'%date%': item.deadline|date('d/m/Y')}, 'dashboard') }}
+                                        {% endif %}
                                     </span>
                                     {# Below sm, the pill moves to its own line here instead of sitting shrink-0 at the
                                        end of the row, where it was squeezing the title/date text on narrow screens. #}

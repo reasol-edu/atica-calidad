@@ -59,6 +59,8 @@ final class ActivityDashboardSummaryBuilder
                     $this->categoryPath($activity->getCategory()),
                     $owner['label'],
                     $this->deadline->currentCycleEndDate($activity),
+                    $this->deadline->currentCycleStartDate($activity),
+                    !$this->deadline->hasStarted($activity),
                 );
             }
         }

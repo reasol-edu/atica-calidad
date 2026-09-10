@@ -204,4 +204,22 @@ final class MyActivitiesComponentTest extends ControllerTestCase
         self::assertSame(3, $instance->getTotal());
         self::assertSame(1, $instance->getCompletedCount());
     }
+
+    public function testARowThatHasNotOpenedYetShowsWhenItOpens(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $future   = $this->activity($category, 'Aún no abierta')->setStart(1, 11)->setEnd(30, 11);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $future, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('MyActivitiesComponent', ['centre' => $centre], $this->client);
+        $html      = (string) $component->render()->crawler()->html();
+
+        self::assertStringContainsString('Se abre el 01/11/2025', $html);
+        self::assertStringContainsString('vence el 30/11/2025', $html);
+    }
 }

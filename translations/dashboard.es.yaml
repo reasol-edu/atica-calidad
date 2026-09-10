@@ -20,6 +20,7 @@ activities.status.overdue: 'Vencida'
 activities.status.pending: 'Pendiente'
 activities.deadline_pending: 'Vence el %date%'
 activities.deadline_overdue: 'Venció el %date%'
+activities.deadline_not_started: 'Se abre el %start% · vence el %end%'
 
 reviews.title: 'Revisiones pendientes'
 reviews.stat.pending: 'Pendientes'

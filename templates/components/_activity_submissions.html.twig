@@ -6,9 +6,27 @@
 {% set my_stats = this.getMySubmissionStats(activity) %}
 {% set all_expanded = aid in expandedAllSubmissions or my_slots is empty %}
 {% set upload_form_id = 'activity-submission-upload-' ~ aid %}
+{% set window = this.getActivityWindow(activity) %}
 
 <div class="border-t border-gray-100 pt-3 space-y-3">
-    {% if folder.isFormatRestricted and this.hasAnOpenSubmissionSlot(activity) %}
+    {% if window.blocked %}
+        <p class="flex items-start gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+            {{ ux_icon('heroicons:lock-closed', {class: 'h-4 w-4 shrink-0 mt-px'}) }}
+            <span>{{ (window.reason.value == 'before_start'
+                ? 'submission.window.before_start'|trans({'%date%': window.startDate|date('d/m/Y')}, 'activity_content')
+                : 'submission.window.after_end'|trans({'%date%': window.graceUntil|date('d/m/Y')}, 'activity_content')) }}</span>
+        </p>
+    {% elseif window.late %}
+        <p class="flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            {{ ux_icon('heroicons:clock', {class: 'h-4 w-4 shrink-0 mt-px'}) }}
+            <span>
+                {{ 'submission.window.late'|trans({'%date%': window.graceUntil|date('d/m/Y')}, 'activity_content') }}
+                {%- if window.bypassing %} {{ 'submission.window.bypass_note'|trans({}, 'activity_content') }}{% endif -%}
+            </span>
+        </p>
+    {% endif %}
+
+    {% if folder.isFormatRestricted and not window.blocked and this.hasAnOpenSubmissionSlot(activity) %}
         <p class="flex items-start gap-1.5 text-xs text-gray-500">
             {{ ux_icon('heroicons:information-circle', {class: 'h-3.5 w-3.5 shrink-0 text-gray-400 mt-px'}) }}
             {{ 'submission.allowed_formats_notice'|trans({'%formats%': this.getAllowedFormatsLabel(folder)}, 'activity_content') }}
@@ -43,17 +61,19 @@
                 <div class="space-y-1.5">
                     {% for slot in my_slots %}
                         {% set document = this.resolveSlot(activity, slot) %}
-                        {% include 'components/_activity_submission_row.html.twig' with {activity: activity, folder: folder, slot: slot, document: document, index: loop.index0, form_id: upload_form_id} %}
+                        {% include 'components/_activity_submission_row.html.twig' with {activity: activity, folder: folder, slot: slot, document: document, index: loop.index0, form_id: upload_form_id, read_only: window.blocked} %}
                         {% if document and document.id.toRfc4122 == revisionPanelDocumentId %}
                             {% include 'components/_activity_submission_panel.html.twig' with {activity: activity, folder: folder, document: document} %}
                         {% endif %}
                     {% endfor %}
                 </div>
-                <button type="submit" form="{{ upload_form_id }}" data-activity-submissions-target="submit"
-                        class="hidden mt-2 items-center gap-1.5 rounded-md bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700">
-                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
-                    {{ 'submission.submit'|trans({}, 'activity_content') }}
-                </button>
+                {% if not window.blocked %}
+                    <button type="submit" form="{{ upload_form_id }}" data-activity-submissions-target="submit"
+                            class="hidden mt-2 items-center gap-1.5 rounded-md bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700">
+                        {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                        {{ 'submission.submit'|trans({}, 'activity_content') }}
+                    </button>
+                {% endif %}
             </div>
         {% endif %}
     </div>

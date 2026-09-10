@@ -17,6 +17,7 @@ use App\Entity\SpecificProfile;
 use App\Entity\Tag;
 use App\Entity\Teacher;
 use App\Model\ActivitySubmissionSlot;
+use App\Model\ActivityWindow;
 use App\Model\ProfileAssignmentRow;
 use App\Repository\ActivityCategoryRepository;
 use App\Repository\ActivityRepository;
@@ -30,6 +31,8 @@ use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Security\Voter\FolderVoter;
 use App\Service\ActivityCompletionChecker;
+use App\Service\ActivityLogger;
+use App\Service\ActivityWindowChecker;
 use App\Service\DocumentFileGarbageCollector;
 use App\Service\DocumentTreeAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
@@ -125,6 +128,16 @@ class ActivityBrowserComponent extends AbstractController
     public bool $formAutoComplete = false;
 
     #[LiveProp(writable: true)]
+    public bool $formStartDateEnforced = false;
+
+    /** Not `norender`: toggling it must reveal/hide the grace-days field. */
+    #[LiveProp(writable: true)]
+    public bool $formEndDateEnforced = false;
+
+    #[LiveProp(writable: true)]
+    public string $formEndDateGraceDays = '0';
+
+    #[LiveProp(writable: true)]
     public string $formScope = 'by_profile';
 
     #[LiveProp(writable: true)]
@@ -186,6 +199,8 @@ class ActivityBrowserComponent extends AbstractController
         private readonly TeacherRepository $teachers,
         private readonly DocumentTreeAccessChecker $access,
         private readonly ActivityCompletionChecker $completion,
+        private readonly ActivityWindowChecker $windowChecker,
+        private readonly ActivityLogger $activityLogger,
         private readonly DocumentFileGarbageCollector $garbageCollector,
     ) {}
 
@@ -510,6 +525,9 @@ class ActivityBrowserComponent extends AbstractController
         $this->relatedDocumentSearchQuery = '';
         $this->formRequired    = true;
         $this->formAutoComplete = false;
+        $this->formStartDateEnforced = false;
+        $this->formEndDateEnforced   = false;
+        $this->formEndDateGraceDays  = '0';
         $this->formScope       = 'by_profile';
         $this->activityFormOpen = true;
         $this->errors           = [];
@@ -538,6 +556,9 @@ class ActivityBrowserComponent extends AbstractController
         $this->relatedDocumentSearchQuery = '';
         $this->formRequired     = $activity->isRequired();
         $this->formAutoComplete = $activity->isAutoComplete();
+        $this->formStartDateEnforced = $activity->isStartDateEnforced();
+        $this->formEndDateEnforced   = $activity->isEndDateEnforced();
+        $this->formEndDateGraceDays  = (string) $activity->getEndDateGraceDays();
         $this->formScope        = $activity->getSubmissionScope()->value;
         $this->activityFormOpen = true;
         $this->errors           = [];
@@ -601,6 +622,10 @@ class ActivityBrowserComponent extends AbstractController
         $activity->setListItem($listItem);
         $activity->setRequired($this->formRequired);
         $activity->setSubmissionScope($scope);
+        $activity->setStartDateEnforced($this->formStartDateEnforced);
+        $activity->setEndDateEnforced($this->formEndDateEnforced);
+        // setEndDateGraceDays() zeroes itself when the end date isn't enforced.
+        $activity->setEndDateGraceDays(max(0, (int) $this->formEndDateGraceDays));
         $activity->setFolder($folder);
         // Safe unconditionally: the guard above already ensures $folder isn't null whenever
         // $this->formAutoComplete is true, and setAutoComplete(false) never throws either way.
@@ -865,6 +890,12 @@ class ActivityBrowserComponent extends AbstractController
         return $this->completion->isCompletedFor($activity, $profile, $listItem, $teacher);
     }
 
+    /** Submission/completion window state for the current teacher — drives the deadline notices. */
+    public function getActivityWindow(Activity $activity): ActivityWindow
+    {
+        return $this->windowChecker->for($activity, $this->teacher());
+    }
+
     #[LiveAction]
     public function askMarkCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = ''): void
     {
@@ -892,11 +923,26 @@ class ActivityBrowserComponent extends AbstractController
         $targetTeacher               = $profile === null ? $teacher : null;
         $this->confirmingCompleteKey = '';
 
+        $window = $this->windowChecker->for($activity, $teacher);
+        if ($window->blocked) {
+            $this->flashError($this->t('completion.error.out_of_window'));
+
+            return;
+        }
+
         if (!$this->completion->markCompleted($activity, $targetTeacher, $profile, $listItem, $teacher)) {
             return;
         }
 
         $this->em->flush();
+
+        // Explicit log entry (with the "late" flag) — this fixes _activity_log_explicit, so the
+        // subscriber's generic component.* capture is suppressed and there is no duplicate.
+        $logData = ['activity' => $activity->getTitle()];
+        if ($window->late) {
+            $logData['late'] = true;
+        }
+        $this->activityLogger->record('activity.mark_complete', $logData, $this->centre);
 
         $this->flashSuccess($this->t('activity.flash.completed'));
     }
@@ -1354,5 +1400,10 @@ class ActivityBrowserComponent extends AbstractController
     private function flashSuccess(string $message): void
     {
         $this->dispatchBrowserEvent('flash:show', ['type' => 'success', 'message' => $message]);
+    }
+
+    private function flashError(string $message): void
+    {
+        $this->dispatchBrowserEvent('flash:show', ['type' => 'error', 'message' => $message]);
     }
 }

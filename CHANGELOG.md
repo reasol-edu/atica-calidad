@@ -7,6 +7,20 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Actividades**: cada actividad puede exigir que se respete su plazo. En «Plazos» del
+  formulario, dos casillas independientes impiden hacer la primera entrega y marcar como
+  completada (si es manual) **antes de la fecha de inicio** o **después de la fecha de fin**. Al
+  activar el bloqueo por fecha de fin aparece un campo **«Extensión de plazo (días)»**: durante
+  esos días tras el vencimiento las entregas y la compleción siguen permitidas, pero se registran
+  y se muestran **con retraso**. Los coordinadores de calidad, los responsables de la carpeta y
+  los administradores pueden entregar y marcar en cualquier momento aunque esté fuera de plazo. La
+  actividad muestra avisos cuando la ventana está cerrada o cuando se actúa con retraso.
+- **Actividades**: cuando una actividad todavía no ha abierto su plazo, la ficha, la lista «Mis
+  actividades» y el resumen del panel de inicio indican la fecha en que se abre («Se abre el …»)
+  en lugar de solo la de vencimiento.
+
 ### Changed
 
 - **Registro de actividad**: las acciones de las pantallas interactivas (árbol documental,
