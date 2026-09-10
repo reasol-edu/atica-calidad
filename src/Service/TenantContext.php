@@ -11,6 +11,7 @@ use App\Repository\AcademicYearRepository;
 use App\Repository\EducationalCentreRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\Service\ResetInterface;
 
 final class TenantContext implements TenantContextInterface, ResetInterface
@@ -48,7 +49,10 @@ final class TenantContext implements TenantContextInterface, ResetInterface
         }
 
         $id = $this->requestStack->getSession()->get(self::SESSION_KEY);
-        if (!\is_string($id)) {
+        // A malformed value (an old cookie from a previous build, a truncated session) must
+        // resolve to "no centre" — never reach the repository, where the uuid DBAL type would
+        // throw on conversion and turn a stale session into a 500.
+        if (!\is_string($id) || !Uuid::isValid($id)) {
             return null;
         }
 
@@ -77,7 +81,7 @@ final class TenantContext implements TenantContextInterface, ResetInterface
     public function getViewYear(EducationalCentre $centre): ?AcademicYear
     {
         $id = $this->requestStack->getSession()->get(self::SESSION_YEAR_KEY);
-        if (!\is_string($id)) {
+        if (!\is_string($id) || !Uuid::isValid($id)) {
             return $centre->getActiveAcademicYear();
         }
 

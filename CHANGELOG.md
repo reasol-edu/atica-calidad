@@ -39,6 +39,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   registrarse. Todas las etiquetas siguen un mismo estilo y toda acción registrable tiene
   traducción.
 
+### Fixed
+
+- **Selección de centro**: un identificador de centro no válido en la sesión (una cookie de una
+  versión anterior, una sesión truncada) devolvía un error 500 en vez de llevar a la pantalla de
+  selección de centro. Ahora un valor mal formado —tanto de centro como de curso académico— se
+  trata como «sin seleccionar» y redirige limpiamente.
+
 ## [0.6.1] - 2026-09-08
 
 ### Changed
