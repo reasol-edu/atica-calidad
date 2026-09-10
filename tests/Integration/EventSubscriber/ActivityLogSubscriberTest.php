@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration\EventSubscriber;
 
 use App\Entity\ActivityLog;
+use App\Entity\EducationalCentre;
 use App\Entity\PersonName;
 use App\Entity\Teacher;
 use App\Repository\ActivityLogRepository;
@@ -18,9 +19,12 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 use Symfony\Component\Security\Http\Event\LoginFailureEvent;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
+use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 final class ActivityLogSubscriberTest extends ControllerTestCase
 {
+    use InteractsWithLiveComponents;
+
     private string $previousAppLog = 'false';
 
     protected function setUp(): void
@@ -39,6 +43,16 @@ final class ActivityLogSubscriberTest extends ControllerTestCase
     private function teacher(string $username): Teacher
     {
         return (new Teacher(new PersonName('Nombre', ucfirst($username))))->setUsername($username);
+    }
+
+    private function admin(string $username = 'root'): Teacher
+    {
+        return $this->teacher($username)->setAdmin(true);
+    }
+
+    private function centre(): EducationalCentre
+    {
+        return (new EducationalCentre())->setCode('12345678')->setName('Centro')->setCity('Ciudad');
     }
 
     private function dispatcher(): EventDispatcherInterface
@@ -156,5 +170,34 @@ final class ActivityLogSubscriberTest extends ControllerTestCase
         self::assertSame('POST', $generic[0]->getMethod());
         self::assertNotNull($generic[0]->getStatusCode());
         self::assertSame('docente', $generic[0]->getActiveUser()?->getUsername());
+    }
+
+    public function testMapsAMappedLiveComponentActionToItsSemanticType(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->admin();
+        $this->persist($centre, $admin);
+        $this->loginAs($admin, $centre);
+
+        $component = $this->createLiveComponent('Admin:DocumentSectionTreeComponent', ['centre' => $centre], $this->client);
+        $component->set('addValue', 'Calidad')->call('addSection', ['parentId' => '']);
+
+        $types = $this->actionTypes($this->logs());
+        self::assertContains('document_section.created', $types);
+        self::assertNotContains('component.Admin:DocumentSectionTreeComponent.addSection', $types);
+    }
+
+    public function testDoesNotRecordAnUnmappedLiveComponentAction(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->admin();
+        $this->persist($centre, $admin);
+        $this->loginAs($admin, $centre);
+
+        $component = $this->createLiveComponent('Admin:DocumentSectionTreeComponent', ['centre' => $centre], $this->client);
+        // Navigating an admin tree (openLevel) is not in COMPONENT_ACTIONS: nothing is recorded.
+        $component->call('openLevel', ['id' => '']);
+
+        self::assertSame([], $this->actionTypes($this->logs()));
     }
 }

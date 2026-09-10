@@ -7,6 +7,16 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Registro de actividad**: las acciones de las pantallas interactivas (árbol documental,
+  actividades, listas, perfiles, ajustes) se registran ahora con un tipo semántico traducido
+  («Carpeta creada», «Sección reordenada», «Asignación de perfil modificada»…) en vez de la clave
+  técnica `component.<Componente>.<acción>`. Se auditan solo las acciones con valor para una
+  auditoría; el resto (abrir cuadros de confirmación, paginar, filtrar, seleccionar filas) deja de
+  registrarse. Todas las etiquetas siguen un mismo estilo y toda acción registrable tiene
+  traducción.
+
 ## [0.6.1] - 2026-09-08
 
 ### Changed

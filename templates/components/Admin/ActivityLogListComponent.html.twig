@@ -151,8 +151,11 @@
                             </td>
                             <td data-label="{{ 'activity_log.list.col.action'|trans({}, 'admin')|e('html_attr') }}"
                                 class="px-6 py-3 text-gray-700 whitespace-nowrap">
-                                {{ ('activity_log.action.' ~ log.actionType)|trans({}, 'admin') }}
-                                <span class="block font-mono text-[11px] text-gray-400">{{ log.actionType }}</span>
+                                {% set action_label = ('activity_log.action.' ~ log.actionType)|trans({}, 'admin') %}
+                                {{ action_label }}
+                                {% if action_label != log.actionType %}
+                                    <span class="block font-mono text-[11px] text-gray-400">{{ log.actionType }}</span>
+                                {% endif %}
                             </td>
                             <td data-label="{{ 'activity_log.list.col.detail'|trans({}, 'admin')|e('html_attr') }}"
                                 class="px-6 py-3 text-gray-500 text-xs max-w-md">
