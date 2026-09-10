@@ -9,6 +9,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Added
 
+- **Copias de seguridad**: nuevo comando de consola `app:backup` que vuelca toda la base de datos
+  —incluidos los ficheros subidos, que se guardan dentro de ella— a un único ZIP en `var/backups`
+  (o en la carpeta o el fichero `.zip` que se indique). El volcado es lógico e independiente del
+  motor (una tabla por fichero NDJSON, valores binarios en base64), así que una copia hecha en
+  SQLite se puede inspeccionar en PostgreSQL y viceversa. La cola de Messenger queda excluida. La
+  copia **no está cifrada** y no incluye el `APP_SECRET`.
 - **Actividades**: cada actividad puede exigir que se respete su plazo. En «Plazos» del
   formulario, dos casillas independientes impiden hacer la primera entrega y marcar como
   completada (si es manual) **antes de la fecha de inicio** o **después de la fecha de fin**. Al

@@ -175,3 +175,13 @@ Crea una cuenta de docente con privilegios de administrador global.
 ```bash
 php bin/console app:create-admin <usuario> <contraseña>
 ```
+
+### app:backup
+
+Crea una copia de seguridad completa de la base de datos en un único fichero ZIP. Sin argumento la
+deja en `var/backups/`; también acepta una carpeta de destino o la ruta de un `.zip`. Ver
+[Administrar la plataforma → Copias de seguridad](09-administrar-la-plataforma.md#copias-de-seguridad).
+
+```bash
+php bin/console app:backup [carpeta-o-fichero.zip]
+```

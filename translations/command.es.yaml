@@ -27,4 +27,11 @@ load_demo_data.error.existing: 'Ya existe un centro "%name%" (%code%). Elimínal
 load_demo_data.error.usernames_taken: 'Ya existen docentes con estos nombres de usuario: %usernames%. Elimínalos primero si quieres volver a generar los datos de demostración.'
 load_demo_data.success: 'Centro de demostración "%name%" (%code%) creado con el curso académico "%year%".'
 
+backup.description: 'Crea una copia de seguridad completa de la base de datos en un único fichero ZIP'
+backup.argument.destination: 'Carpeta de destino o ruta de un fichero .zip (por defecto: var/backups)'
+backup.success: 'Copia de seguridad creada en %path%'
+backup.summary: '%tables% tablas · %rows% filas · %size%'
+backup.notice.unencrypted: 'La copia no está cifrada: contiene los documentos de todos los centros y los hashes de contraseña de los docentes. Guárdala en un lugar seguro. No incluye el APP_SECRET.'
+backup.error.failed: 'No se pudo crear la copia de seguridad: %reason%'
+
 field.required: 'Este campo es obligatorio.'

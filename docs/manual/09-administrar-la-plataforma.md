@@ -117,9 +117,27 @@ seguidos.
 
 Haz copia de seguridad con regularidad de:
 
-- La base de datos (volcado de PostgreSQL/MySQL, o el fichero SQLite si usas ese motor).
+- La base de datos (volcado de PostgreSQL/MySQL, o el fichero SQLite si usas ese motor). Todo lo
+  que guarda la aplicación —incluidos los ficheros subidos, como las plantillas PDF de los
+  ajustes— vive en la base de datos, así que su volcado es la copia completa de los datos.
 - El secreto de la aplicación (`APP_SECRET` en `.env.local`, o `data/.secret` en el binario nativo).
-- Los ficheros subidos (plantillas PDF de los ajustes), almacenados en la propia base de datos.
+  No lo genera la copia del comando `app:backup`; guárdalo aparte.
+
+### El comando `app:backup`
+
+```bash
+php bin/console app:backup [carpeta-o-fichero.zip]
+```
+
+Vuelca toda la base de datos a un único fichero ZIP. Sin argumento lo deja en `var/backups/` con
+un nombre con la fecha y la hora; también acepta una carpeta de destino o la ruta completa de un
+`.zip`. El volcado es lógico e independiente del motor (una tabla por fichero NDJSON, con los
+valores binarios en base64 y un `manifest.json` con la versión de la aplicación, el motor y el
+número de filas de cada tabla), de modo que una copia hecha con SQLite se puede leer con
+PostgreSQL y al revés. La cola de correos y tareas (`messenger_messages`) se excluye a propósito.
+
+> La copia **no está cifrada**: contiene los documentos de todos los centros y los hashes de
+> contraseña de los docentes. Guárdala en un lugar seguro.
 
 ## Correos en cola (Messenger) {#correos-en-cola-messenger}
 
