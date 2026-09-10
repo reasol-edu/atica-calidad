@@ -32,13 +32,13 @@ Una sección es un nodo del árbol, con la profundidad que se necesite — igual
 documentación en vez de nombres. Por ejemplo:
 
 ```
-Capítulo 1
-├── 1.1. Misión
 Calidad
 ├── Documentación general
 │   ├── Política de calidad
 │   └── Archivo histórico
 └── Procesos
+    ├── Gestión documental
+    └── Auditorías internas
 ```
 
 ![La pestaña «Editar árbol», con la estructura de secciones del centro](img/arbol-editar.png)
@@ -240,7 +240,7 @@ Hay tres formas de buscar, cada una para un caso distinto:
   propio nombre.
 - **Paleta de comandos** (**⌘K** / **Ctrl+K**, desde cualquier pantalla) — la misma búsqueda global,
   accesible sin estar ya en el árbol documental. Ver
-  [Buscar con la paleta de comandos](../cheatsheets/busqueda-rapida.md).
+  [Buscar con la paleta de comandos](https://github.com/reasol-edu/atica-calidad/blob/main/docs/cheatsheets/busqueda-rapida.md).
 
 ## Permisos, de un vistazo
 

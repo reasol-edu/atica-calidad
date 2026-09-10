@@ -28,7 +28,7 @@ style: |
   tr:nth-child(even) { background: var(--nx-accent-soft); }
   code { background: var(--nx-accent-soft); color: var(--nx-ink); }
   header { color: var(--nx-muted); font-size: 16px; }
-  section img { display: block; max-width: 100%; max-height: 380px; margin: 12px auto 0; border: 1px solid #c7d8bc; border-radius: 6px; box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
+  section img { display: block; max-width: 100%; max-height: 280px; margin: 12px auto 0; border: 1px solid #c7d8bc; border-radius: 6px; box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
 ---
 
 # ÁTICA Calidad
@@ -69,6 +69,8 @@ Accede a la aplicación con su usuario y consulta el **calendario** del centro.
 Perfiles asignables a docentes concretos, con acceso completo al árbol documental del centro para
 coordinar y auditar su sistema de gestión de la calidad. El responsable de calidad, además,
 gestiona **Responsabilidades** (siguiente sección).
+
+---
 
 ## Equipo directivo / Administración del centro
 
@@ -124,17 +126,20 @@ Departamento → FP → Informática y Comunicaciones, Sanidad
 Cada elemento puede llevar **etiquetas**, creadas sobre la marcha y heredadas por sus
 descendientes. Los elementos inactivos o en uso no se pierden ni se pueden borrar por accidente.
 
+---
+
 ## Perfiles específicos → subperfiles
 
 Cada centro crea sus propias responsabilidades (tutorías, jefaturas...) y les asigna docentes,
 directamente o **asociadas a una lista**: entonces cada hoja genera un subperfil automático.
 
 - «Tutor/a» + lista «Grupo» → *Tutor/a 1º ESO-A*, *Tutor/a 1º ESO-B*...
-- «Jefatura de Familia Profesional» + «FP» → *Jefatura... Informática y Comunicaciones*, *Jefatura...
-  Sanidad*
+- «Jefatura de Familia Profesional» + «FP» → *Jefatura... Informática*, *Jefatura... Sanidad*
 
 Estos mismos perfiles y subperfiles también sirven para restringir eventos del calendario a quien
 corresponda.
+
+---
 
 ## Asignar perfiles
 
@@ -152,8 +157,7 @@ docentes fuera del curso activo y borrado masivo de esas asignaciones.
 - **Secciones** — la estructura del árbol (como el índice de una carpeta física), restringible por
   perfil de Responsabilidades. Se editan en la pestaña **Editar árbol**.
 - **Carpetas** — dentro de cada sección, con cuatro listas de perfiles independientes: quién la
-  **gestiona**, quién puede **subir**, a quién se le **muestra** y quién debe dar el **visto
-  bueno**. Se crean y configuran en la pestaña **Ver**.
+  **gestiona**, quién puede **subir**, a quién se le **muestra** y quién da el **visto bueno**.
 - **Documentos y revisiones** — cada documento guarda su historial completo de versiones; si la
   carpeta lo exige, una revisión nueva queda **pendiente** hasta que se aprueba o se rechaza.
 
@@ -163,9 +167,7 @@ docentes fuera del curso activo y borrado masivo de esas asignaciones.
 
 ## Búsqueda
 
-Tres formas de buscar según el contexto —global sobre todo el árbol, local dentro de una sección, o
-la paleta de comandos (**⌘K**) desde cualquier pantalla— con resultados resaltados y acceso directo
-a la sección, carpeta o documento que coincide.
+Tres formas de buscar según el contexto —global sobre todo el árbol, local dentro de una sección, o la paleta de comandos (**⌘K**) desde cualquier pantalla— con resultados resaltados y acceso directo a la sección, carpeta o documento que coincide.
 
 ---
 
@@ -178,8 +180,8 @@ a la sección, carpeta o documento que coincide.
 - Categorías propias del centro — misma idea que las secciones del árbol documental.
   Se editan en **Actividades → Editar categorías**.
 - Fecha límite (día y mes, se repite cada curso) y, opcionalmente, una **carpeta**
-  vinculada: entonces se completa **entregando un documento**, con el mismo flujo de
-  aprobar/rechazar del árbol documental. Sin carpeta, se completa a mano.
+  vinculada: entonces se completa **entregando un documento** (mismo flujo de
+  aprobar/rechazar); sin carpeta, se completa a mano.
 - **Mis actividades** resume lo pendiente y lo vencido; el panel principal y el
   calendario avisan también de los próximos plazos.
 

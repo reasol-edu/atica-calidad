@@ -33,14 +33,14 @@ arrancar al inicio del sistema (`systemctl enable docker`).
 
 ## Despliegue en Plesk
 
-Ver la [guía de despliegue en Plesk](../despliegue/plesk.md) para instalar la aplicación como
+Ver la [guía de despliegue en Plesk](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/plesk.md) para instalar la aplicación como
 binario nativo en un panel de hosting compartido, sin Docker.
 
 ## Despliegue en Ubuntu Server 26.04
 
-Ver la [guía de despliegue en Ubuntu Server](../despliegue/ubuntu-manual.md) para instalar el
+Ver la [guía de despliegue en Ubuntu Server](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/ubuntu-manual.md) para instalar el
 binario nativo con systemd en un VPS o servidor dedicado, incluida la actualización
-[automatizada](../despliegue/despliegue-continuo.md).
+[automatizada](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/despliegue-continuo.md).
 
 El script `dist/install-ubuntu.sh` pregunta **cómo se accederá a la plataforma** y ofrece tres
 modos:
@@ -51,8 +51,8 @@ modos:
    FrankenPHP sirve HTTP plano en un puerto local, sin Let's Encrypt; el TLS lo termina el proxy.
    El script pregunta el puerto y la IP del proxy, que guarda en `SYMFONY_TRUSTED_PROXIES` para
    registrar la IP real del usuario. Ver
-   [Variante: detrás de un proxy inverso](../despliegue/ubuntu-manual.md#5b-variante-detras-de-un-proxy-inverso).
-3. **[Cloudflare Tunnel](../despliegue/cloudflare-tunnel.md)** — exposición sin abrir puertos,
+   [Variante: detrás de un proxy inverso](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/ubuntu-manual.md).
+3. **[Cloudflare Tunnel](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/cloudflare-tunnel.md)** — exposición sin abrir puertos,
    para servidores detrás de un NAT o cortafuegos.
 
 ## Actualizar a la última versión publicada {#actualizar}
@@ -87,7 +87,7 @@ parte de la imagen y se conserva intacto.
 
 ### Plesk
 
-Ver [Actualizar a una nueva versión](../despliegue/plesk.md#actualizar-a-una-nueva-version) en la
+Ver [Actualizar a una nueva versión](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/plesk.md) en la
 guía de Plesk. En resumen: `git pull`, `composer install --no-dev --optimize-autoloader`,
 recompilar los assets (`tailwind:build` + `asset-map:compile`), `doctrine:migrations:migrate` y
 regenerar la caché de `prod`.
@@ -111,7 +111,7 @@ curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/
 ```
 
 Para dejarlo **automatizado** (sondeo con un timer de systemd, o webhook desde GitHub), ver la guía
-de [despliegue continuo](../despliegue/despliegue-continuo.md).
+de [despliegue continuo](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/despliegue-continuo.md).
 
 ## Variables de entorno {#variables-de-entorno-opcionales}
 

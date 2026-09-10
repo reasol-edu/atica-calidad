@@ -102,7 +102,7 @@ seguidos.
   (membrete) de los informes que se generen en cada orientación, cuando existan. Ajustable a nivel
   de centro, desde **Centro educativo → Ajustes del centro**.
 
-### Registro de actividad
+### Ajustes del registro de actividad
 
 - **Registrar la actividad de los usuarios** — activa o desactiva el [registro de
   actividad](#registro-de-actividad) para un centro. Ajustable a nivel global y de centro: cada
@@ -176,7 +176,7 @@ php bin/console messenger:consume async scheduler_default --time-limit=3540 --me
 
 En un despliegue con Docker, el worker ya se levanta como un servicio aparte (`compose.yaml`). En
 un despliegue con binario nativo, se gestiona como un servicio systemd independiente — ver las
-[guías de despliegue](../despliegue/).
+[guías de despliegue](https://github.com/reasol-edu/atica-calidad/tree/main/docs/despliegue).
 
 ## Actualización
 
@@ -234,7 +234,7 @@ rangos CIDR separados por comas:
 | --- | --- |
 | Binario nativo / Plesk | `SYMFONY_TRUSTED_PROXIES` en `.env.local` |
 | Docker | variable de entorno del servicio `app` en `compose.yaml` (o en un `compose.override.yaml`) |
-| Docker + Cloudflare Tunnel | ya la fija `compose.cloudflare.yaml` con el rango de la red interna; no hay que tocar nada — ver [Cloudflare Tunnel](../despliegue/cloudflare-tunnel.md) |
+| Docker + Cloudflare Tunnel | ya la fija `compose.cloudflare.yaml` con el rango de la red interna; no hay que tocar nada — ver [Cloudflare Tunnel](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/cloudflare-tunnel.md) |
 
 Ejemplos de valor: `127.0.0.1` (proxy en la misma máquina), `10.0.0.0/8` (rango de una red
 interna), `127.0.0.1,10.0.0.1` (varios). Sin proxy inverso, deja la variable sin definir.
