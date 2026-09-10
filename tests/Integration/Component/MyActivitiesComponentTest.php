@@ -222,4 +222,28 @@ final class MyActivitiesComponentTest extends ControllerTestCase
         self::assertStringContainsString('Se abre el 01/11/2025', $html);
         self::assertStringContainsString('vence el 30/11/2025', $html);
     }
+
+    public function testEachRowCarriesItsStatusBackgroundColour(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre    = $this->centre();
+        $category  = $this->category($centre);
+        $overdue   = $this->activity($category, 'Vencida')->setStart(1, 9)->setEnd(30, 9);
+        $active    = $this->activity($category, 'En plazo')->setStart(1, 10)->setEnd(31, 10);
+        $future    = $this->activity($category, 'Sin empezar')->setStart(1, 11)->setEnd(30, 11);
+        $completed = $this->activity($category, 'Hecha')->setStart(1, 9)->setEnd(30, 9);
+        $teacher   = $this->teacher('docente');
+        $this->persist($centre, $category, $overdue, $active, $future, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher));
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('MyActivitiesComponent', ['centre' => $centre], $this->client);
+        $html      = (string) $component->render()->crawler()->html();
+
+        // The hover-* tints are produced only by the row-background macro, not by the stat cards
+        // at the top (which use the plain bg-*-50 classes).
+        self::assertStringContainsString('hover:bg-red-100', $html);    // overdue
+        self::assertStringContainsString('hover:bg-amber-100', $html);  // active
+        self::assertStringContainsString('hover:bg-forest-100', $html); // completed
+    }
 }

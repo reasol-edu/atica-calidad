@@ -34,8 +34,16 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - **Actividades**: cuando una actividad todavía no ha abierto su plazo, la ficha, la lista «Mis
   actividades» y el resumen del panel de inicio indican la fecha en que se abre («Se abre el …»)
   en lugar de solo la de vencimiento.
+- **Actividades**: código de color de fondo por estado en el panel de inicio, la pestaña «Mis
+  actividades» y la pestaña «Ver categorías» — sin color si aún no ha empezado, ámbar si está en
+  plazo sin completar, rojo si el plazo ya venció sin completar, verde si está completada.
 
 ### Changed
+
+- **Calendario**: una actividad con un rango real (fecha de inicio y de fin distintas) aparece
+  como una banda que cubre todos los días de ese periodo, en la cuadrícula del mes y en el detalle
+  de cada día. Una actividad de fecha única (inicio y fin coinciden) se sigue mostrando como una
+  sola marca en esa fecha.
 
 - **Registro de actividad**: las acciones de las pantallas interactivas (árbol documental,
   actividades, listas, perfiles, ajustes) se registran ahora con un tipo semántico traducido

@@ -236,6 +236,44 @@ final class CalendarComponentTest extends ControllerTestCase
         self::assertStringContainsString('Jefatura Informática', $html);
     }
 
+    public function testAnActivityWithARealRangeSpansEveryMonthItCovers(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        // Sept → June: a real range whose deadline day (30 June) is nowhere near January.
+        $activity = (new Activity())->setCategory($category)->setTitle('Ventana anual de entregas')->setStart(1, 9)->setEnd(30, 6);
+        $teacher  = $this->teacher('docente');
+
+        $this->persist($centre, $year, $category, $activity, $teacher);
+        $this->loginAs($teacher, $centre);
+
+        // January sits in the middle of the Sept–June span — the old "deadline day only" behaviour
+        // would not have shown it here.
+        $component = $this->createLiveComponent('CalendarComponent', ['year' => 2026, 'month' => 1], $this->client);
+        self::assertStringContainsString('Ventana anual de entregas', (string) $component->render()->crawler()->html());
+    }
+
+    public function testASingleDateActivityIsNotShownOnNeighbouringMonths(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new Activity())->setCategory($category)->setTitle('Recordatorio de octubre')->setStart(15, 10)->setEnd(15, 10);
+        $teacher  = $this->teacher('docente');
+
+        $this->persist($centre, $year, $category, $activity, $teacher);
+        $this->loginAs($teacher, $centre);
+
+        $october = $this->createLiveComponent('CalendarComponent', ['year' => 2025, 'month' => 10], $this->client);
+        self::assertStringContainsString('Recordatorio de octubre', (string) $october->render()->crawler()->html());
+
+        $november = $this->createLiveComponent('CalendarComponent', ['year' => 2025, 'month' => 11], $this->client);
+        self::assertStringNotContainsString('Recordatorio de octubre', (string) $november->render()->crawler()->html());
+    }
+
     public function testNextMonthAcrossAYearBoundaryRollsOverTheYear(): void
     {
         $centre = $this->centre();

@@ -46,6 +46,21 @@ buscador, un interruptor **Mostrar solo lo pendiente** y filtros por fecha lími
 categoría y estado. Es la vista pensada para el día a día: «¿qué me queda por hacer?», sin tener
 que navegar por la estructura de categorías.
 
+### Código de color
+
+Tanto en esta lista como en el panel principal y en la pestaña **Ver**, cada actividad lleva un
+color de fondo según su estado para el docente:
+
+| Color | Estado |
+| --- | --- |
+| Sin color | **Aún no ha empezado** — su plazo de este curso todavía no se ha abierto. |
+| Ámbar | **En plazo** — abierta y sin completar, con la fecha de fin todavía por delante. |
+| Rojo | **Vencida** — la fecha de fin ya ha pasado y sigue sin completar. |
+| Verde | **Completada** — en la pestaña «Ver» solo se pinta en verde si el docente tiene alguna obligación en esa actividad y la ha completado toda. |
+
+Es el mismo código que ya usaban las tarjetas de recuento (Total / Completadas / Pendientes /
+Vencidas) de la parte superior.
+
 ## Ver (categorías)
 
 ![Pestaña «Ver», con las categorías de actividades del centro](img/actividades-ver.png)
@@ -114,8 +129,14 @@ cada perfil/subperfil que tenga el docente.
 
 ![Detalle de un día del calendario, con una actividad cuyo plazo vence ese día](img/calendario-dia.png)
 
-El [calendario](03-calendario.md) muestra, en el detalle de cada día, las actividades cuyo plazo
-vence esa fecha —las propias del docente, con un enlace directo a la actividad—.
+El [calendario](03-calendario.md) muestra las actividades propias del docente, con enlace directo
+a cada una:
+
+- **Actividad con un rango real** (la fecha de inicio y la de fin son distintas): aparece como una
+  banda que cubre **todos los días** desde su fecha de inicio hasta su fecha de fin, tanto en la
+  cuadrícula mensual como en el detalle de cada día de ese periodo.
+- **Actividad de fecha única** (inicio y fin coinciden): se mantiene como una sola marca en esa
+  fecha.
 
 ## Avisos
 

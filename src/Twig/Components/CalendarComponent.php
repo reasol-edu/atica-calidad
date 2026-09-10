@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Twig\Components;
 
 use App\Entity\AcademicYear;
+use App\Entity\Activity;
 use App\Entity\EducationalCentre;
 use App\Entity\SchoolEvent;
 use App\Entity\Teacher;
@@ -76,8 +77,8 @@ class CalendarComponent extends AbstractCalendarComponent
             static fn (SchoolEvent|ActivityDeadlineOccurrence $item): array => $item instanceof ActivityDeadlineOccurrence
                 ? [
                     'id'    => 'activity-' . $item->activity->getId()->toRfc4122() . ($item->ownerKey !== '' ? '-' . $item->ownerKey : ''),
-                    'start' => $item->date,
-                    'end'   => $item->date,
+                    'start' => $item->startDate,
+                    'end'   => $item->endDate,
                 ]
                 : [
                     'id'    => 'event-' . $item->getId()->toRfc4122(),
@@ -147,13 +148,25 @@ class CalendarComponent extends AbstractCalendarComponent
 
         $items = [];
         foreach ($this->activityRepository->findAllByCentre($centre) as $activity) {
+            $end   = $this->activityDeadline->cycleEndDateNear($activity, $reference);
+            // A real start–end range fills every day between the two; an activity whose start and
+            // end day/month are the same pair keeps its single-date marker (on that one date).
+            $start = $this->isSingleDate($activity)
+                ? $end
+                : $this->activityDeadline->cycleStartDateNear($activity, $reference);
+
             foreach ($this->activityCompletion->getMyOwnedObligations($user, $activity) as $owner) {
-                $date      = $this->activityDeadline->cycleEndDateNear($activity, $reference);
                 $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher']);
-                $items[]   = new ActivityDeadlineOccurrence($activity, $date, $owner['label'], $owner['key'], $completed);
+                $items[]   = new ActivityDeadlineOccurrence($activity, $start, $end, $owner['label'], $owner['key'], $completed);
             }
         }
 
         return $items;
+    }
+
+    private function isSingleDate(Activity $activity): bool
+    {
+        return $activity->getStartDay() === $activity->getEndDay()
+            && $activity->getStartMonth() === $activity->getEndMonth();
     }
 }

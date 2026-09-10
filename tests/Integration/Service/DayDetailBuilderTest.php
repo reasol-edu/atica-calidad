@@ -159,11 +159,11 @@ final class DayDetailBuilderTest extends RepositoryTestCase
         self::assertFalse($report->activityDeadlines[0]->completed);
     }
 
-    public function testAnActivityDeadlineDoesNotAppearOnAnUnrelatedDate(): void
+    public function testAnActivityDoesNotAppearOnADateOutsideItsPeriod(): void
     {
         $centre   = $this->centre();
         $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
-        $date     = new \DateTimeImmutable('2025-09-08');
+        $date     = new \DateTimeImmutable('2025-11-08'); // outside the Sept 1–30 range
         $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
         $folder   = $this->folder($centre);
         $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
@@ -177,6 +177,38 @@ final class DayDetailBuilderTest extends RepositoryTestCase
         $report = $this->builder->build($year, $centre, $teacher, false, $date);
 
         self::assertSame([], $report->activityDeadlines);
+    }
+
+    public function testAnActivityWithARealRangeAppearsOnEveryDayItCovers(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new Activity())->setCategory($category)->setTitle('Ventana de entregas')->setStart(1, 9)->setEnd(30, 9);
+        $teacher  = $this->teacher('docente');
+
+        $this->persist($centre, $year, $category, $activity, $teacher);
+
+        // A day in the middle of the range, neither the start nor the end.
+        $report = $this->builder->build($year, $centre, $teacher, false, new \DateTimeImmutable('2025-09-15'));
+
+        self::assertCount(1, $report->activityDeadlines);
+        self::assertSame('Ventana de entregas', $report->activityDeadlines[0]->activity->getTitle());
+    }
+
+    public function testASingleDateActivityAppearsOnlyOnThatDate(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new Activity())->setCategory($category)->setTitle('Recordatorio puntual')->setStart(15, 9)->setEnd(15, 9);
+        $teacher  = $this->teacher('docente');
+
+        $this->persist($centre, $year, $category, $activity, $teacher);
+
+        self::assertCount(1, $this->builder->build($year, $centre, $teacher, false, new \DateTimeImmutable('2025-09-15'))->activityDeadlines);
+        self::assertSame([], $this->builder->build($year, $centre, $teacher, false, new \DateTimeImmutable('2025-09-14'))->activityDeadlines);
+        self::assertSame([], $this->builder->build($year, $centre, $teacher, false, new \DateTimeImmutable('2025-09-16'))->activityDeadlines);
     }
 
     public function testACompletedActivityDeadlineReflectsItsCompletionState(): void

@@ -1,0 +1,39 @@
+{#
+   Visual status of an activity for the current teacher, and the background tint that goes with it,
+   shared by the dashboard summary, the "Mis actividades" list and the "Ver categorías" cards.
+
+   Four states:
+     not_started  — the cycle hasn't opened yet            → no tint (plain background)
+     active       — open, not completed, deadline not past  → amber
+     overdue      — deadline past, not completed            → red
+     completed    — done                                    → green
+#}
+
+{# From an ActivityDashboardItem's status ('completed'|'pending'|'overdue') plus its notStarted flag. #}
+{% macro key(status_value, not_started) -%}
+    {%- if status_value == 'completed' -%}completed
+    {%- elseif status_value == 'overdue' -%}overdue
+    {%- elseif not_started -%}not_started
+    {%- else -%}active
+    {%- endif -%}
+{%- endmacro %}
+
+{# Row background (list rows): tint + a matching hover. #}
+{% macro row_bg(key) -%}
+    {{- {
+        'completed':   'bg-forest-50 hover:bg-forest-100',
+        'active':      'bg-amber-50 hover:bg-amber-100',
+        'overdue':     'bg-red-50 hover:bg-red-100',
+        'not_started': 'hover:bg-gray-50',
+    }[key] ?? 'hover:bg-gray-50' -}}
+{%- endmacro %}
+
+{# Card background + border (the larger "Ver categorías" cards): keep it lighter than a row. #}
+{% macro card_bg(key) -%}
+    {{- {
+        'completed':   'bg-forest-50/60 border-forest-200',
+        'active':      'bg-amber-50/60 border-amber-200',
+        'overdue':     'bg-red-50/60 border-red-200',
+        'not_started': 'bg-white border-gray-200',
+    }[key] ?? 'bg-white border-gray-200' -}}
+{%- endmacro %}

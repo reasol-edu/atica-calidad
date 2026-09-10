@@ -19,5 +19,8 @@ asignado alguno de los perfiles o subperfiles seleccionados).
 
 ## Plazos de actividades
 
-El detalle de cada día muestra también las actividades del docente cuyo plazo vence esa fecha, con
-enlace directo a cada una — ver [Actividades](08-actividades.md#actividades-en-el-calendario).
+El calendario muestra también las actividades del docente, con enlace directo a cada una. Una
+actividad con un rango real (fecha de inicio y de fin distintas) aparece como una banda que cubre
+**todos los días** de ese periodo, tanto en la cuadrícula del mes como en el detalle de cada día;
+una actividad de fecha única (inicio y fin coinciden) se muestra como una sola marca en esa fecha.
+Ver [Actividades](08-actividades.md#actividades-en-el-calendario).

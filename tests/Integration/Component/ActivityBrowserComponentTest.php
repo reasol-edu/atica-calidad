@@ -1602,4 +1602,37 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertStringContainsString('no admite entregas hasta el', $html);
         self::assertStringNotContainsString('activity-submissions#drop', $html, 'the dropzone must not render while blocked');
     }
+
+    public function testGetActivityStatusReflectsCycleAndPersonalCompletion(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre    = $this->centre();
+        $category  = $this->category($centre);
+        $overdue   = $this->activity($category, 'Vencida')->setStart(1, 9)->setEnd(30, 9);
+        $active    = $this->activity($category, 'En plazo')->setStart(1, 10)->setEnd(31, 10);
+        $future    = $this->activity($category, 'Sin empezar')->setStart(1, 11)->setEnd(30, 11);
+        $completed = $this->activity($category, 'Hecha')->setStart(1, 10)->setEnd(31, 10);
+        $teacher   = $this->teacher('docente');
+        $this->persist($centre, $category, $overdue, $active, $future, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher));
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+
+        self::assertSame('overdue', $instance->getActivityStatus($overdue));
+        self::assertSame('active', $instance->getActivityStatus($active));
+        self::assertSame('not_started', $instance->getActivityStatus($future));
+        self::assertSame('completed', $instance->getActivityStatus($completed));
+
+        // ...and the card in the "Ver" tab carries the matching background/border.
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('border-red-200', $html);
+        self::assertStringContainsString('border-amber-200', $html);
+        self::assertStringContainsString('border-forest-200', $html);
+    }
 }

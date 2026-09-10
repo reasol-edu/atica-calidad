@@ -31,6 +31,7 @@ use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Security\Voter\FolderVoter;
 use App\Service\ActivityCompletionChecker;
+use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivityLogger;
 use App\Service\ActivityWindowChecker;
 use App\Service\DocumentFileGarbageCollector;
@@ -199,6 +200,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly TeacherRepository $teachers,
         private readonly DocumentTreeAccessChecker $access,
         private readonly ActivityCompletionChecker $completion,
+        private readonly ActivityDeadlineChecker $deadline,
         private readonly ActivityWindowChecker $windowChecker,
         private readonly ActivityLogger $activityLogger,
         private readonly DocumentFileGarbageCollector $garbageCollector,
@@ -894,6 +896,39 @@ class ActivityBrowserComponent extends AbstractController
     public function getActivityWindow(Activity $activity): ActivityWindow
     {
         return $this->windowChecker->for($activity, $this->teacher());
+    }
+
+    /**
+     * Colour-coded status of the activity for the current teacher, matching the dashboard and the
+     * "Mis actividades" list: 'completed' (the teacher owns obligations for it and every one is
+     * done), else 'not_started' (its yearly cycle hasn't opened), 'overdue' (deadline past) or
+     * 'active'. A teacher with no obligation for the activity never gets 'completed' — it's judged
+     * purely by its cycle then.
+     */
+    public function getActivityStatus(Activity $activity): string
+    {
+        $teacher     = $this->teacher();
+        $obligations = $this->completion->getMyOwnedObligations($teacher, $activity);
+
+        if ($obligations !== []) {
+            $allDone = true;
+            foreach ($obligations as $owner) {
+                if (!$this->completion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'])) {
+                    $allDone = false;
+
+                    break;
+                }
+            }
+            if ($allDone) {
+                return 'completed';
+            }
+        }
+
+        if (!$this->deadline->hasStarted($activity)) {
+            return 'not_started';
+        }
+
+        return $this->deadline->isOverdue($activity) ? 'overdue' : 'active';
     }
 
     #[LiveAction]

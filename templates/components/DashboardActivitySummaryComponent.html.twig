@@ -1,3 +1,4 @@
+{% import 'components/_activity_status.html.twig' as activity_status %}
 {% set summary = this.summary %}
 
 <div class="rounded-2xl border border-gray-200 bg-white shadow-xs">
@@ -55,9 +56,10 @@
                     {% for item in summary.items %}
                         {% set overdue = item.status.value == 'overdue' %}
                         {% set not_started = not overdue and item.notStarted %}
+                        {% set status_key = activity_status.key(item.status.value, item.notStarted) %}
                         <li>
                             <a href="{{ path('app_activities', {category: item.activity.category.id.toRfc4122, activity: item.activity.id.toRfc4122}) }}"
-                               class="flex items-start gap-3 px-6 py-3 transition-colors hover:bg-gray-50">
+                               class="flex items-start gap-3 px-6 py-3 transition-colors {{ activity_status.row_bg(status_key) }}">
                                 <span class="mt-0.5 shrink-0 {{ overdue ? 'text-red-500' : 'text-amber-500' }}">
                                     {{ ux_icon(overdue ? 'heroicons:exclamation-circle' : (not_started ? 'heroicons:calendar-days' : 'heroicons:clock'), {class: 'h-5 w-5'}) }}
                                 </span>
