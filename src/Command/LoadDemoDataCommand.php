@@ -7,6 +7,7 @@ namespace App\Command;
 use App\Entity\AcademicYear;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
+use App\Entity\ActivityCompletion;
 use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
 use App\Entity\DocumentSection;
@@ -139,6 +140,7 @@ class LoadDemoDataCommand extends Command
         $programacionesActivity = $this->createActivity($centre, $folders['programaciones'], $materiaLeaves, $io);
         $this->createIndividualActivity($centre, $folders['pat'], $io);
         $manualActivity = $this->createManualActivity($centre, $io);
+        $this->createStatusShowcaseActivities($centre, $io);
 
         $io->section('Entregas de ejemplo');
         $this->seedSampleSubmissions($folders['programaciones'], $profiles, $departamentoLeaves, $materiaLeaves, $io);
@@ -665,6 +667,76 @@ class LoadDemoDataCommand extends Command
         $io->text('Categoría "Sensibilización y compromiso" y actividad manual "Lectura y conformidad con la Política de Calidad" creadas (sin carpeta).');
 
         return $activity;
+    }
+
+    /**
+     * Four no-folder activities — one per colour state of the activity lists — so the demo shows
+     * the status colouring straight away for every teacher: sin empezar / en plazo / vencida /
+     * completada. Their windows are relative to "now" (day+month only, so, like every activity,
+     * they repeat each course); near the turn of the year the "vencida" one may fall outside its
+     * cycle and read as pending instead, an accepted quirk of the year-less deadline model.
+     */
+    private function createStatusShowcaseActivities(EducationalCentre $centre, SymfonyStyle $io): void
+    {
+        $category = new ActivityCategory();
+        $category->setName('Seguimiento del SGC')->setEducationalCentre($centre);
+        $this->em->persist($category);
+
+        $now = $this->clock->now();
+        /** @return array{0: int, 1: int} day, month of "now" shifted by $modifier */
+        $dm = static function (string $modifier) use ($now): array {
+            $d = $now->modify($modifier);
+
+            return [(int) $d->format('j'), (int) $d->format('n')];
+        };
+
+        [$overdueStartD, $overdueStartM] = $dm('-2 months');
+        [$overdueEndD, $overdueEndM]     = $dm('-3 weeks');
+        $overdue = (new Activity())
+            ->setCategory($category)
+            ->setTitle('Revisión por la dirección (acta)')
+            ->setDescription('Ejemplo de actividad cuyo plazo ya venció sin completar.')
+            ->setStart($overdueStartD, $overdueStartM)
+            ->setEnd($overdueEndD, $overdueEndM)
+            ->setRequired(true);
+        $this->em->persist($overdue);
+
+        [$openStartD, $openStartM] = $dm('-1 week');
+        [$openEndD, $openEndM]     = $dm('+3 weeks');
+        $active = (new Activity())
+            ->setCategory($category)
+            ->setTitle('Encuesta de satisfacción del profesorado')
+            ->setDescription('Ejemplo de actividad en plazo, todavía sin completar.')
+            ->setStart($openStartD, $openStartM)
+            ->setEnd($openEndD, $openEndM)
+            ->setRequired(true);
+        $this->em->persist($active);
+
+        $completed = (new Activity())
+            ->setCategory($category)
+            ->setTitle('Difusión de los objetivos de calidad')
+            ->setDescription('Ejemplo de actividad ya completada.')
+            ->setStart($openStartD, $openStartM)
+            ->setEnd($openEndD, $openEndM)
+            ->setRequired(true);
+        $this->em->persist($completed);
+        foreach (['direccion', 'calidad', 'admin'] as $username) {
+            $teacher = $this->teachers[$username];
+            $this->em->persist(new ActivityCompletion($completed, $teacher, null, null, $teacher));
+        }
+
+        [$futureStartD, $futureStartM] = $dm('+3 weeks');
+        [$futureEndD, $futureEndM]     = $dm('+6 weeks');
+        $notStarted = (new Activity())
+            ->setCategory($category)
+            ->setTitle('Auditoría interna (planificación)')
+            ->setDescription('Ejemplo de actividad cuyo plazo aún no se ha abierto.')
+            ->setStart($futureStartD, $futureStartM)
+            ->setEnd($futureEndD, $futureEndM)
+            ->setRequired(true);
+        $this->em->persist($notStarted);
+
+        $io->text('Categoría "Seguimiento del SGC" con cuatro actividades de ejemplo, una por estado (sin empezar, en plazo, vencida, completada).');
     }
 
     // ── Sample submissions ──────────────────────────────────────────────────────

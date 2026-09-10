@@ -50,7 +50,16 @@ await page.waitForLoadState('networkidle');
 await hideToolbar();
 await page.screenshot({ path: `${outDir}/actividades-ver.png` });
 
+// ── 3b. Inside a category: the activity cards, colour-coded by status ────────
+await page.locator('button:has-text("Seguimiento del SGC")').first().click();
+await page.locator('h3:has-text("Revisión por la dirección")').first().waitFor();
+await page.waitForTimeout(300);
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/actividades-ver-colores.png` });
+
 // ── 4. Submissions with Approve/Reject visible ───────────────────────────────
+await page.goto(`${baseUrl}/actividades?tab=view`);
+await page.waitForLoadState('networkidle');
 await page.click('text=Sobre planes de acción tutorial');
 await page.waitForSelector('text=Plan de Acción Tutorial (PAT)');
 await page.click('text=Plan de Acción Tutorial (PAT)');

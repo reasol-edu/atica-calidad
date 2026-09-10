@@ -24,7 +24,7 @@ final class CalendarMonthGridBuilder
      *
      * @param list<T> $items
      * @param callable(T): (array{id: string, start: \DateTimeImmutable, end: \DateTimeImmutable}|null) $toRange returns null to skip an item (e.g. missing dates)
-     * @param callable(T): array{label: string, details: string, color: array{bg: string, text: string, border: string}, icon?: string, muted?: bool} $toSegment
+     * @param callable(T): array{label: string, details: string, color: array{bg: string, text: string, border: string, accent?: string}, icon?: string, muted?: bool} $toSegment
      *
      * @return list<array{days: list<\DateTimeImmutable>, segments: list<array<string, mixed>>, maxLane: int}>
      */

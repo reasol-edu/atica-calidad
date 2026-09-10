@@ -62,7 +62,11 @@ final class LoadDemoDataCommandTest extends RepositoryTestCase
 
         /** @var ActivityRepository $activities */
         $activities = self::getContainer()->get(ActivityRepository::class);
-        self::assertCount(3, $activities->findAll());
+        // 3 core demo activities + 4 in "Seguimiento del SGC", one per status colour.
+        self::assertCount(7, $activities->findAll());
+        $titles = array_map(static fn ($a): string => $a->getTitle(), $activities->findAll());
+        self::assertContains('Difusión de los objetivos de calidad', $titles);
+        self::assertContains('Auditoría interna (planificación)', $titles);
 
         /** @var ListItemRepository $items */
         $items = self::getContainer()->get(ListItemRepository::class);

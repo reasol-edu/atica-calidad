@@ -39,7 +39,7 @@ Al entrar, el **Inicio** de la aplicación resume lo que hay pendiente:
 
 ## Mis actividades
 
-![Pestaña «Mis actividades», con el resumen personal y la lista de pendientes](img/actividades-mias.png)
+![Pestaña «Mis actividades»: el resumen personal y la lista, con una actividad de cada estado y su color de fondo](img/actividades-mias.png)
 
 Lista plana de todas las actividades que le corresponden al docente, en cualquier categoría, con
 buscador, un interruptor **Mostrar solo lo pendiente** y filtros por fecha límite, perfil,
@@ -59,7 +59,10 @@ color de fondo según su estado para el docente:
 | Verde | **Completada** — en la pestaña «Ver» solo se pinta en verde si el docente tiene alguna obligación en esa actividad y la ha completado toda. |
 
 Es el mismo código que ya usaban las tarjetas de recuento (Total / Completadas / Pendientes /
-Vencidas) de la parte superior.
+Vencidas) de la parte superior. En la pestaña **Ver**, dentro de una categoría, las tarjetas de
+actividad llevan el mismo código en un tono más suave:
+
+![Tarjetas de actividad en la pestaña «Ver», con el borde y el fondo teñidos según el estado](img/actividades-ver-colores.png)
 
 ## Ver (categorías)
 
@@ -137,6 +140,10 @@ a cada una:
   cuadrícula mensual como en el detalle de cada día de ese periodo.
 - **Actividad de fecha única** (inicio y fin coinciden): se mantiene como una sola marca en esa
   fecha.
+
+En la cuadrícula mensual cada actividad se colorea según su **categoría** —con una franja de color
+a la izquierda—, de modo que las actividades de la misma categoría se agrupan visualmente. Las
+actividades ya completadas se muestran atenuadas y tachadas.
 
 ## Avisos
 

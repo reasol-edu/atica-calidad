@@ -44,6 +44,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   como una banda que cubre todos los días de ese periodo, en la cuadrícula del mes y en el detalle
   de cada día. Una actividad de fecha única (inicio y fin coinciden) se sigue mostrando como una
   sola marca en esa fecha.
+- **Calendario**: las actividades se colorean por **categoría** (mismo color = misma categoría), y
+  las barras de la cuadrícula usan tonos más suaves con una franja de color a la izquierda, para
+  que varias actividades apiladas en un día se lean como un grupo y no como un bloque saturado.
+- **Datos de demostración**: `app:load-demo-data` añade la categoría «Seguimiento del SGC» con
+  cuatro actividades de ejemplo, una por estado (sin empezar, en plazo, vencida, completada), para
+  que el código de color se aprecie desde el primer momento.
 
 - **Registro de actividad**: las acciones de las pantallas interactivas (árbol documental,
   actividades, listas, perfiles, ajustes) se registran ahora con un tipo semántico traducido

@@ -33,8 +33,7 @@ use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 #[AsLiveComponent]
 class CalendarComponent extends AbstractCalendarComponent
 {
-    private const array GENERAL_EVENT_COLOR = ['bg' => 'bg-sky-100', 'text' => 'text-sky-800', 'border' => 'border-sky-300'];
-    private const array PERSONAL_ACTIVITY_COLOR = ['bg' => 'bg-violet-100', 'text' => 'text-violet-800', 'border' => 'border-violet-300'];
+    private const array GENERAL_EVENT_COLOR = ['bg' => 'bg-sky-50', 'text' => 'text-sky-800', 'border' => 'border-sky-200', 'accent' => 'border-l-sky-500'];
 
     /** @var list<SchoolEvent>|null */
     private ?array $itemsCache = null;
@@ -90,7 +89,9 @@ class CalendarComponent extends AbstractCalendarComponent
                     return [
                         'label'   => $item->activity->getTitle() . ($item->ownerLabel !== null ? ' · ' . $item->ownerLabel : ''),
                         'details' => '',
-                        'color'   => $item->ownerKey !== '' ? $this->colorPalette->colorFor($item->ownerKey) : self::PERSONAL_ACTIVITY_COLOR,
+                        // Colour by category, so every activity of the same category shares a hue
+                        // and reads as a group across the month (the owner, if any, is in the label).
+                        'color'   => $this->colorPalette->colorFor('activity-category:' . $item->activity->getCategory()->getId()->toRfc4122()),
                         'icon'    => $item->completed ? 'heroicons:check-circle' : 'heroicons:clipboard-document-check',
                         'muted'   => $item->completed,
                     ];
