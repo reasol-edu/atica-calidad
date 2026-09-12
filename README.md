@@ -47,7 +47,7 @@ administradores globales pueden gestionar todos los centros desde la sección **
   de altas, bajas y reactivaciones.
 - **Actividades** — plazos y tareas periódicas del sistema de calidad, agrupados en categorías del
   centro, con lista personal (progreso, filtros y buscador), ámbito por perfil o individual, y
-  compleción manual o mediante la entrega de un documento del árbol con el mismo flujo de
+  completado manual o mediante la entrega de un documento del árbol con el mismo flujo de
   aprobación que una revisión.
 - **Calendario** — eventos de centro (generales o restringidos a perfiles/subperfiles) y días no
   lectivos, con los plazos de las actividades integrados en el detalle de cada día.
@@ -100,7 +100,7 @@ Capítulos:
 | Administrar el centro educativo | Referencia de cada sección del hub de centro |
 | Responsabilidades | Listas jerárquicas, etiquetas, perfiles específicos con subperfiles e importación desde Séneca |
 | Árbol documental | Secciones, carpetas, documentos, revisiones y flujo de visto bueno |
-| Actividades | Plazos y tareas periódicas, entregas y compleción |
+| Actividades | Plazos y tareas periódicas, entregas y completado |
 | Administrar la plataforma | Administración global, ajustes, correo, copias de seguridad |
 | Permisos de un vistazo | Perfiles y tabla de permisos |
 | Resolución de problemas | Soluciones a las dudas más habituales |

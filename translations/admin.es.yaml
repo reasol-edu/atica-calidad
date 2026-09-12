@@ -812,7 +812,7 @@ activity.field.related_documents_help: 'Documentos del árbol documental que se 
 activity.field.required: 'Obligatoriedad'
 activity.field.required_yes: 'Obligatoria'
 activity.field.required_no: 'Opcional'
-activity.field.auto_complete: 'Compleción'
+activity.field.auto_complete: 'Completado'
 activity.field.auto_complete_yes: 'Automática'
 activity.field.auto_complete_yes_help: 'Se marca sola cuando se publican todos los documentos que hay que entregar.'
 activity.field.auto_complete_no: 'Manual'

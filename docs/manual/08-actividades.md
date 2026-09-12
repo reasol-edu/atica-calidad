@@ -169,7 +169,7 @@ avisos por correo —al instante o en un resumen diario— se configura en
 | Verla en «Mis actividades», el panel principal y el calendario | — | ✅ | según corresponda | ✅ |
 | Entregar (con carpeta) / marcar como completada (sin carpeta) | — | ✅ | ✅ | ✅ |
 | Retirar o sustituir su propia entrega, mientras esté pendiente o rechazada | — | ✅ (la propia) | ✅ | ✅ |
-| Deshacer una compleción manual | — | ✅ (la propia) | ✅ | ✅ |
+| Deshacer un completado manual | — | ✅ (la propia) | ✅ | ✅ |
 | Aprobar o rechazar una entrega pendiente | — | — | ✅ (con perfil de revisión) | ✅ |
 | Crear/editar categorías y actividades | — | — | — | ✅ |
 

@@ -40,7 +40,7 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   formulario, dos casillas independientes impiden hacer la primera entrega y marcar como
   completada (si es manual) **antes de la fecha de inicio** o **después de la fecha de fin**. Al
   activar el bloqueo por fecha de fin aparece un campo **«Extensión de plazo (días)»**: durante
-  esos días tras el vencimiento las entregas y la compleción siguen permitidas, pero se registran
+  esos días tras el vencimiento las entregas y el completado siguen permitidos, pero se registran
   y se muestran **con retraso**. Los coordinadores de calidad, los responsables de la carpeta y
   los administradores pueden entregar y marcar en cualquier momento aunque esté fuera de plazo. La
   actividad muestra avisos cuando la ventana está cerrada o cuando se actúa con retraso.
@@ -232,7 +232,7 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   - **Editar categorías** (mismo papel que Editar árbol): categorías anidables, y el formulario de
     cada actividad — fecha límite (día y mes, se repite cada curso), carpeta del árbol documental
     opcional (entonces se completa entregando un documento, con el mismo flujo de aprobar/rechazar
-    que una revisión), ámbito por perfil o individual, compleción automática o manual (con
+    que una revisión), ámbito por perfil o individual, completado automático o manual (con
     confirmación previa y «deshacer» sin confirmar), y documentos relacionados del árbol
     documental.
   - Los plazos se muestran también en el detalle de cada día del calendario y se resumen en el
