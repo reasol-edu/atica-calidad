@@ -7,6 +7,19 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-09-13
+
+### Fixed
+
+- **Búsqueda global**: la paleta de comandos (⌘K) ya no ofrece «Cambiar de curso» a quien no es
+  administrador de la plataforma o del centro, que no tiene permiso para hacerlo. Al ser hoy la
+  única acción del grupo, el grupo «Acciones» deja de mostrarse cuando no aplica.
+
+### Changed
+
+- Documentación y traducciones: se sustituye el anglicismo «compleción» por «completado», el
+  término que ya usaba el glosario del manual para el mismo concepto.
+
 ## [1.0.1] - 2026-09-13
 
 ### Added
