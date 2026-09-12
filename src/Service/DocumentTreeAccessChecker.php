@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\Activity;
 use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
+use App\Entity\DocumentRevision;
 use App\Entity\DocumentSection;
 use App\Entity\DocumentSectionProfile;
 use App\Entity\EducationalCentre;
@@ -185,6 +186,36 @@ final class DocumentTreeAccessChecker
         }
 
         return $this->holdsProfile($teacher, $profile, $document->getUploadListItem());
+    }
+
+    /**
+     * Whether $teacher may withdraw this document entirely — delete it outright, which (for an
+     * activity submission slot, whose document is looked up by identity, not stored by reference —
+     * see ActivitySubmissionSlotBuilder::resolveSlot()) frees the slot for a new attempt as soon as
+     * nothing is left to resolve to. Deliberately narrower than canManageDocumentAsUploader(): it
+     * never depends on folder responsibility, a shared upload profile, or an already-approved
+     * active revision — none of those apply while nothing has been decided yet, and none should be
+     * required. It's a decision that only concerns the one revision this teacher personally
+     * created, so it applies only while the document is still entirely their own doing: exactly
+     * one revision, uploaded by $teacher, not approved (still pending review, or already
+     * rejected — either way nobody has signed off on it). The moment a second revision appears —
+     * which only someone with canManageDocumentAsUploader() can add — or one gets approved, this
+     * stops applying and the usual, broader permission takes over.
+     */
+    public function canWithdrawOwnUnreviewedUpload(Teacher $teacher, Document $document): bool
+    {
+        if ($document->getActiveRevision() !== null) {
+            return false;
+        }
+
+        $revisions = $document->getRevisions();
+        if (count($revisions) !== 1) {
+            return false;
+        }
+
+        $only = $revisions->first();
+
+        return $only instanceof DocumentRevision && $only->getUploadedBy() === $teacher;
     }
 
     public function canReviewFolder(Teacher $teacher, Folder $folder): bool

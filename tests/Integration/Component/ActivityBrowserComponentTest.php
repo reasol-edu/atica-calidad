@@ -7,6 +7,7 @@ namespace App\Tests\Integration\Component;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\ActivityCompletion;
+use App\Entity\ActivitySubmissionScope;
 use App\Entity\AllowedFileFormat;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
@@ -21,6 +22,7 @@ use App\Entity\Teacher;
 use App\Tests\Integration\ControllerTestCase;
 use App\Twig\Components\ActivityBrowserComponent;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
@@ -63,6 +65,32 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $teacher->setAdmin(true);
 
         return $teacher;
+    }
+
+    /** See FolderControllerTest for why this push/save dance is needed between KernelBrowser requests. */
+    private function csrfToken(string $id): string
+    {
+        /** @var \Symfony\Component\HttpFoundation\RequestStack $requestStack */
+        $requestStack = self::getContainer()->get('request_stack');
+        $request      = $this->client->getRequest();
+        $requestStack->push($request);
+        try {
+            $token = self::getContainer()->get('security.csrf.token_manager')->getToken($id)->getValue();
+            $request->getSession()->save();
+
+            return $token;
+        } finally {
+            $requestStack->pop();
+        }
+    }
+
+    private function uploadedFile(string $content, string $originalName = 'archivo.pdf'): UploadedFile
+    {
+        $path = tempnam(sys_get_temp_dir(), 'activity_browser_component_test_');
+        self::assertNotFalse($path);
+        file_put_contents($path, $content);
+
+        return new UploadedFile($path, $originalName, 'application/pdf', null, true);
     }
 
     /** @return array<string, mixed> */
@@ -1634,5 +1662,158 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertStringContainsString('border-red-200', $html);
         self::assertStringContainsString('border-amber-200', $html);
         self::assertStringContainsString('border-forest-200', $html);
+    }
+
+    // ── withdrawing an own pending/rejected submission ───────────────────────
+
+    /** @return array{0: Activity, 1: SpecificProfile, 2: Teacher, 3: Teacher, 4: Folder, 5: EducationalCentre} */
+    private function individualReviewSetup(): array
+    {
+        $centre          = $this->centre();
+        $category        = $this->category($centre);
+        $folder          = $this->folder($centre);
+        $profile         = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $reviewerProfile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Revisor/a');
+        $folder->addUploadProfile($profile);
+        $folder->addReviewProfile($reviewerProfile);
+        $activity = $this->activity($category)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::Individual);
+        $uploader = $this->teacher('docente');
+        $reviewer = $this->teacher('revisor');
+        $assignUploader = new SpecificProfileAssignment($profile, null, $uploader);
+        $assignReviewer = new SpecificProfileAssignment($reviewerProfile, null, $reviewer);
+
+        $this->persist(
+            $centre, $category, $folder->getDocumentSection(), $folder, $profile, $reviewerProfile,
+            $activity, $uploader, $reviewer, $assignUploader, $assignReviewer,
+        );
+
+        return [$activity, $profile, $uploader, $reviewer, $folder, $centre];
+    }
+
+    private function submitIndividual(Activity $activity, SpecificProfile $profile, Teacher $teacher): void
+    {
+        $activityId = $activity->getId()->toRfc4122();
+        $this->client->request('POST', "/actividades/{$activityId}/entregas/subir", [
+            '_token' => $this->csrfToken('activity_submission_upload_' . $activityId),
+            'items'  => [0 => ['slotKey' => $profile->getId()->toRfc4122() . ':::' . $teacher->getId()->toRfc4122()]],
+        ], ['files' => [0 => $this->uploadedFile('contenido')]]);
+        self::assertSame(302, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+        $this->em->clear();
+    }
+
+    public function testUploaderCanWithdrawTheirOwnPendingIndividualSubmission(): void
+    {
+        [$activity, $profile, $uploader, , $folder, $centre] = $this->individualReviewSetup();
+
+        $this->loginAs($uploader, $centre);
+        $this->submitIndividual($activity, $profile, $uploader);
+
+        $document = $this->em->getRepository(Document::class)->findOneBy(['folder' => $folder]);
+        self::assertNotNull($document);
+        self::assertNotNull($document->getPendingRevision());
+        $documentId = $document->getId()->toRfc4122();
+
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $activity->getCategory()->getId()->toRfc4122(),
+        ], $this->client);
+
+        // Neither folder-responsible, reviewer, nor (Individual scope) profile-sharing — the only
+        // reason this succeeds is that the pending revision is their own.
+        $component->call('askDeleteDocument', ['id' => $documentId]);
+        $component->call('deleteDocument', ['id' => $documentId]);
+
+        $this->em->clear();
+        self::assertNull($this->em->getRepository(Document::class)->find($documentId));
+
+        // The slot resolves to nothing now, so it renders as an open dropzone again instead of the
+        // deleted row — "replacing" the submission needs no separate action or permission.
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('activity-submissions#drop', $html);
+    }
+
+    public function testUploaderCanWithdrawARejectedSubmission(): void
+    {
+        [$activity, $profile, $uploader, $reviewer, $folder, $centre] = $this->individualReviewSetup();
+
+        $this->loginAs($uploader, $centre);
+        $this->submitIndividual($activity, $profile, $uploader);
+
+        $document = $this->em->getRepository(Document::class)->findOneBy(['folder' => $folder]);
+        self::assertNotNull($document);
+        $revision = $document->getPendingRevision();
+        self::assertNotNull($revision);
+
+        $this->loginAs($reviewer, $centre);
+        $this->client->request(
+            'POST',
+            "/arbol-documental/carpetas/{$folder->getId()->toRfc4122()}/documentos/{$document->getId()->toRfc4122()}/revisiones/{$revision->getId()->toRfc4122()}/rechazar",
+            ['_token' => $this->csrfToken('folder_document_revision_review_' . $revision->getId()->toRfc4122()), 'reviewResult' => 'Falta la firma'],
+        );
+        self::assertSame(302, $this->client->getResponse()->getStatusCode());
+        $this->em->clear();
+
+        $document = $this->em->getRepository(Document::class)->find($document->getId());
+        self::assertNotNull($document);
+        self::assertNull($document->getActiveRevision());
+        self::assertNull($document->getPendingRevision()); // rejected, not pending anymore
+
+        $this->loginAs($uploader, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('deleteDocument', ['id' => $document->getId()->toRfc4122()]);
+
+        $this->em->clear();
+        self::assertNull($this->em->getRepository(Document::class)->find($document->getId()));
+    }
+
+    public function testStrangerCannotWithdrawSomeoneElsesPendingSubmission(): void
+    {
+        [$activity, $profile, $uploader, , $folder, $centre] = $this->individualReviewSetup();
+        $stranger = $this->teacher('ajeno');
+        $this->persist($stranger);
+
+        $this->loginAs($uploader, $centre);
+        $this->submitIndividual($activity, $profile, $uploader);
+
+        $document = $this->em->getRepository(Document::class)->findOneBy(['folder' => $folder]);
+        self::assertNotNull($document);
+
+        $this->loginAs($stranger, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+
+        $this->expectException(AccessDeniedException::class);
+        $component->call('deleteDocument', ['id' => $document->getId()->toRfc4122()]);
+    }
+
+    public function testWithdrawingAPendingSubmissionWhileBlockedLeavesTheSlotReadOnlyInstead(): void
+    {
+        self::mockTime('2026-10-05 10:00:00');
+        [$activity, $profile, $uploader, , $folder, $centre] = $this->individualReviewSetup();
+        // Deadline already passed and strictly enforced, with no grace period: a genuinely new
+        // submission would be refused by the controller, so the pending document is seeded
+        // directly rather than through the (already covered) upload endpoint.
+        $activity->setStart(1, 9)->setEnd(1, 10)->setEndDateEnforced(true);
+        $this->flush();
+
+        $document = new Document($folder, 'Tutor/a');
+        $document->setUploadProfile($profile, null);
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, true, $uploader);
+        $document->getRevisions()->add($revision);
+        $this->persist($document, $file, $revision);
+
+        $this->loginAs($uploader, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $activity->getCategory()->getId()->toRfc4122(),
+        ], $this->client);
+
+        $component->call('deleteDocument', ['id' => $document->getId()->toRfc4122()]);
+
+        // Deleted, but the window is still blocked — no dropzone appears in its place, only the
+        // read-only "no revision" placeholder and the deadline notice.
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringNotContainsString('activity-submissions#drop', $html);
+        self::assertStringContainsString('terminó el', $html);
     }
 }

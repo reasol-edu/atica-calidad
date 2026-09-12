@@ -1030,6 +1030,29 @@ class ActivityBrowserComponent extends AbstractController
         return $this->access->canManageDocumentAsUploader($this->teacher(), $document);
     }
 
+    /**
+     * Whether the current teacher may withdraw (delete) this document because it's still entirely
+     * their own doing — see DocumentTreeAccessChecker::canWithdrawOwnUnreviewedUpload(). Drives the
+     * delete button on a submission row for a teacher who is neither the folder's manager/reviewer
+     * nor otherwise covered by canManageDocumentAsUploader(): deleting frees the slot, and the row
+     * then shows a fresh dropzone in its place if — and only if — the activity's window still
+     * allows submitting (the row already renders read-only otherwise, see
+     * _activity_submissions.html.twig), so "replace" needs no separate action or permission.
+     */
+    public function canWithdrawOwnSubmission(Document $document): bool
+    {
+        return $this->access->canWithdrawOwnUnreviewedUpload($this->teacher(), $document);
+    }
+
+    /** Either reason a document can be deleted from here: full uploader management, or withdrawing one's own not-yet-reviewed submission. */
+    private function canDeleteDocument(Document $document): bool
+    {
+        $teacher = $this->teacher();
+
+        return $this->access->canManageDocumentAsUploader($teacher, $document)
+            || $this->access->canWithdrawOwnUnreviewedUpload($teacher, $document);
+    }
+
     /** Narrower than canManageFolder(): only admin/responsable de calidad may rewrite who uploaded a revision and when, or delete one outright. */
     public function canEditRevisionMetadata(): bool
     {
@@ -1060,7 +1083,7 @@ class ActivityBrowserComponent extends AbstractController
     public function askDeleteDocument(#[LiveArg] string $id): void
     {
         $document = $this->documents->findById($id);
-        if ($document === null || !$this->access->canManageDocumentAsUploader($this->teacher(), $document)) {
+        if ($document === null || !$this->canDeleteDocument($document)) {
             throw $this->createAccessDeniedException();
         }
 
@@ -1077,7 +1100,7 @@ class ActivityBrowserComponent extends AbstractController
     public function deleteDocument(#[LiveArg] string $id): void
     {
         $document = $this->documents->findById($id);
-        if ($document === null || !$this->access->canManageDocumentAsUploader($this->teacher(), $document)) {
+        if ($document === null || !$this->canDeleteDocument($document)) {
             throw $this->createAccessDeniedException();
         }
 

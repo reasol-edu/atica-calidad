@@ -108,10 +108,17 @@ aplica aquí sin cambios: una entrega **es** un documento de esa carpeta. Si la 
 docente todavía le queda alguna entrega propia por hacer, un aviso **«Formatos aceptados: ...»**
 aparece encima de «Mis entregas».
 
-Junto al plazo aparece **«Ir a la carpeta»**, que abre esa carpeta directamente en el árbol
-documental — salvo que la carpeta en concreto no sea visible para el docente (por sus
-restricciones propias o las de alguna de las secciones que la contienen), en cuyo caso el enlace
-no se muestra, igual que con los [documentos relacionados](#campos-de-una-actividad).
+### Retirar o sustituir una entrega propia
+
+Mientras nadie haya revisado todavía la entrega —está **pendiente de visto bueno**, o ya se
+**rechazó**—, el docente que la subió puede eliminarla con el icono de papelera de su fila, sin
+necesidad de ningún permiso sobre la carpeta: es su única entrega y nadie ha dicho la última
+palabra sobre ella todavía. En cuanto se elimina, la fila vuelve a mostrar la zona de
+arrastrar-y-soltar en su lugar —lista para subir otra— siempre que el plazo de la actividad siga
+abierto; si el plazo ya se cerró, la fila queda vacía y de solo lectura, igual que si nunca se
+hubiera llegado a entregar nada. En cuanto una entrega queda **aceptada**, este permiso deja de
+aplicarse: a partir de ahí, sustituirla requiere ser responsable de la carpeta (ver
+[Permisos sobre una carpeta](07-arbol-documental.md#permisos-sobre-una-carpeta)).
 
 Junto al plazo aparece **«Ir a la carpeta»**, que abre esa carpeta directamente en el árbol
 documental — salvo que la carpeta en concreto no sea visible para el docente (por sus
@@ -161,6 +168,7 @@ avisos por correo —al instante o en un resumen diario— se configura en
 | Ver la actividad en «Ver» (atenuada, con «Mostrar lo de todos los perfiles») | ✅ | ✅ | ✅ | ✅ |
 | Verla en «Mis actividades», el panel principal y el calendario | — | ✅ | según corresponda | ✅ |
 | Entregar (con carpeta) / marcar como completada (sin carpeta) | — | ✅ | ✅ | ✅ |
+| Retirar o sustituir su propia entrega, mientras esté pendiente o rechazada | — | ✅ (la propia) | ✅ | ✅ |
 | Deshacer una compleción manual | — | ✅ (la propia) | ✅ | ✅ |
 | Aprobar o rechazar una entrega pendiente | — | — | ✅ (con perfil de revisión) | ✅ |
 | Crear/editar categorías y actividades | — | — | — | ✅ |

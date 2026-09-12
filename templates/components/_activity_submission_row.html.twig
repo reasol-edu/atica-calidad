@@ -9,6 +9,10 @@
     {% set active = document.activeRevision %}
     {% set pending = document.pendingRevision %}
     {% set can_manage_as_uploader = this.canManageDocumentAsUploader(document) %}
+    {# Narrower than can_manage_as_uploader: lets the teacher who submitted this — and nobody
+       else — take it back (or, by re-opening the slot, replace it) while nothing has been
+       decided on it yet. See ActivityBrowserComponent::canWithdrawOwnSubmission(). #}
+    {% set can_withdraw = this.canWithdrawOwnSubmission(document) %}
     {% set highlighted = highlightedDocumentId == did %}
 
     {% if not read_only %}
@@ -65,7 +69,9 @@
                     title="{{ 'revision.manage'|trans({}, 'activity_content') }}">
                 {{ ux_icon('heroicons:clock', {class: 'h-4 w-4'}) }}
             </button>
+        {% endif %}
 
+        {% if can_manage or can_manage_as_uploader or can_review or can_withdraw %}
             {% if confirmingDeleteDocumentId == did %}
                 <span class="shrink-0 inline-flex items-center gap-1">
                     <button type="button" data-action="live#action" data-live-action-param="deleteDocument" data-live-id-param="{{ did }}"
@@ -74,8 +80,12 @@
                             class="rounded-md border border-gray-200 px-1.5 py-0.5 text-xs text-gray-600">{{ 'cancel'|trans({}, 'activity_content') }}</button>
                 </span>
             {% else %}
+                {# A teacher who can only withdraw their own submission (no folder permission at
+                   all) gets a tooltip that actually explains what the trash icon does here,
+                   instead of the generic "delete" a folder manager already knows the meaning of. #}
                 <button type="button" data-action="live#action" data-live-action-param="askDeleteDocument" data-live-id-param="{{ did }}"
-                        class="shrink-0 text-gray-300 hover:text-red-600 transition-colors" title="{{ 'delete'|trans({}, 'activity_content') }}">
+                        class="shrink-0 text-gray-300 hover:text-red-600 transition-colors"
+                        title="{{ ((can_manage or can_manage_as_uploader or can_review) ? 'delete'|trans({}, 'activity_content') : 'submission.withdraw_hint'|trans({}, 'activity_content')) }}">
                     {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}
                 </button>
             {% endif %}

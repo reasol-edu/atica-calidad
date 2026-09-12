@@ -475,6 +475,90 @@ final class DocumentTreeAccessCheckerTest extends RepositoryTestCase
         self::assertFalse($this->access->canManageDocumentAsUploader($colleague, $document));
     }
 
+    // ── canWithdrawOwnUnreviewedUpload ───────────────────────────────────────
+
+    public function testCanWithdrawOwnUnreviewedUploadGrantedWhilePending(): void
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($this->section($centre));
+        $uploader = $this->teacher('subidor');
+        $stranger = $this->teacher('otro');
+
+        $document = new Document($folder, 'Doc');
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, true, $uploader);
+        $document->getRevisions()->add($revision);
+
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $uploader, $stranger, $document, $file, $revision);
+
+        self::assertTrue($this->access->canWithdrawOwnUnreviewedUpload($uploader, $document));
+        self::assertFalse($this->access->canWithdrawOwnUnreviewedUpload($stranger, $document));
+    }
+
+    public function testCanWithdrawOwnUnreviewedUploadGrantedAfterRejection(): void
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($this->section($centre));
+        $uploader = $this->teacher('subidor');
+        $reviewer = $this->teacher('revisor');
+
+        $document = new Document($folder, 'Doc');
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, true, $uploader);
+        $revision->reject($reviewer, 'Falta la firma');
+        $document->getRevisions()->add($revision);
+
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $uploader, $reviewer, $document, $file, $revision);
+
+        // Nobody has approved anything on this document — a rejection leaves it just as much
+        // "only mine to fix" as a still-pending revision does.
+        self::assertTrue($this->access->canWithdrawOwnUnreviewedUpload($uploader, $document));
+    }
+
+    public function testCanWithdrawOwnUnreviewedUploadFalseOnceARevisionIsApproved(): void
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($this->section($centre));
+        $uploader = $this->teacher('subidor');
+        $reviewer = $this->teacher('revisor');
+
+        $document = new Document($folder, 'Doc');
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, true, $uploader);
+        $revision->approve($reviewer, null);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $uploader, $reviewer, $document, $file, $revision);
+
+        // Once approved, canManageDocumentAsUploader() already covers the uploader (see above) —
+        // this narrower permission steps back rather than duplicating that decision.
+        self::assertFalse($this->access->canWithdrawOwnUnreviewedUpload($uploader, $document));
+    }
+
+    public function testCanWithdrawOwnUnreviewedUploadFalseWithMoreThanOneRevision(): void
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($this->section($centre));
+        $uploader = $this->teacher('subidor');
+
+        $document = new Document($folder, 'Doc');
+        $file1    = new DocumentFile(hash('sha256', '1'), '1', 'text/plain', 'f1.txt', 1);
+        $rev1     = new DocumentRevision($document, 1, $file1, false, $uploader);
+        $rev1->reject($uploader, null);
+        $document->getRevisions()->add($rev1);
+
+        $file2 = new DocumentFile(hash('sha256', '2'), '2', 'text/plain', 'f2.txt', 1);
+        $rev2  = new DocumentRevision($document, 2, $file2, true, $uploader);
+        $document->getRevisions()->add($rev2);
+
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $uploader, $document, $file1, $rev1, $file2, $rev2);
+
+        // A second revision can only exist because someone with canManageDocumentAsUploader()
+        // added it — from here on, that's the permission that governs the document, not this one.
+        self::assertFalse($this->access->canWithdrawOwnUnreviewedUpload($uploader, $document));
+    }
+
     // ── holdsProfile ──────────────────────────────────────────────────────────
 
     public function testHoldsProfileDistinguishesDifferentSubprofilesOfTheSameProfile(): void

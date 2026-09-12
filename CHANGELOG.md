@@ -7,6 +7,15 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Actividades**: mientras nadie haya revisado todavía una entrega propia —pendiente de visto
+  bueno, o ya rechazada—, quien la subió puede eliminarla sin necesidad de ningún permiso sobre la
+  carpeta. Al eliminarla, la fila vuelve a mostrar la zona de arrastrar-y-soltar en su lugar,
+  lista para sustituirla por otra, siempre que el plazo de la actividad siga abierto; si el plazo
+  ya se cerró, la fila queda vacía y de solo lectura en su lugar. En cuanto la entrega queda
+  aceptada, este permiso deja de aplicarse.
+
 ## [1.0.0] - 2026-09-11
 
 ### Added
