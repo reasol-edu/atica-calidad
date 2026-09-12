@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-09-13
+
 ### Added
 
 - **Actividades**: mientras nadie haya revisado todavía una entrega propia —pendiente de visto
