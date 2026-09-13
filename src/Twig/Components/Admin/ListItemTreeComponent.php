@@ -360,6 +360,13 @@ class ListItemTreeComponent extends AbstractController
         $this->confirmingDelete = false;
     }
 
+    /**
+     * Deletes the selected item, along with its whole subtree if it has children — a list item is
+     * just a node in a tree the centre defines for itself, so "delete this branch" is a normal,
+     * expected operation, not something that should force clearing out every child by hand first.
+     * Blocked only if the item itself or ANY descendant is still in use (a profile's list source, or
+     * a teacher's assignment to it) — deleting through that would silently orphan it.
+     */
     #[LiveAction]
     public function deleteSelected(): void
     {
@@ -369,22 +376,28 @@ class ListItemTreeComponent extends AbstractController
             return;
         }
 
-        if (!$selected->isLeaf()) {
-            $this->errors = ['delete' => $this->t('responsibilities.lists.error.delete_has_children')];
+        $subtree = $this->items->findSubtree($selected);
 
-            return;
+        foreach ($subtree as $node) {
+            if ($this->profiles->isListItemInUse($node) || $this->assignments->isListItemAssigned($node)) {
+                $this->errors = ['delete' => $this->t('responsibilities.lists.error.delete_in_use')];
+
+                return;
+            }
         }
 
-        if ($this->profiles->isListItemInUse($selected) || $this->assignments->isListItemAssigned($selected)) {
-            $this->errors = ['delete' => $this->t('responsibilities.lists.error.delete_in_use')];
-
-            return;
+        $ownTags = [];
+        foreach ($subtree as $node) {
+            array_push($ownTags, ...$node->getTags()->toArray());
         }
+        $parent = $selected->getParent();
 
-        $ownTags = $selected->getTags()->toArray();
-        $parent  = $selected->getParent();
-
-        $this->em->remove($selected);
+        // Remove deepest descendants first: findSubtree() walks pre-order (parent before its
+        // children), so reversing it guarantees every node is removed only after all of its own
+        // descendants already are.
+        foreach (array_reverse($subtree) as $node) {
+            $this->em->remove($node);
+        }
         $this->em->flush();
         $this->pruneOrphanedTags($ownTags);
 

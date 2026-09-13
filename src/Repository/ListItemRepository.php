@@ -148,6 +148,36 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
         }
     }
 
+    /**
+     * $root and every descendant, in a pre-order walk (root first, then each child's own subtree,
+     * siblings ordered by position) — the whole branch a caller deletes as one unit when removing an
+     * item that has children, not just a leaf. Single query for the whole centre, then an in-memory
+     * tree walk, like findLeafDescendants().
+     *
+     * @return ListItem[]
+     */
+    public function findSubtree(ListItem $root): array
+    {
+        $byParent = $this->groupChildrenByParent($root->getEducationalCentre());
+
+        $subtree = [];
+        $this->collectSubtree($root, $byParent, $subtree);
+
+        return $subtree;
+    }
+
+    /**
+     * @param array<string, ListItem[]> $byParent
+     * @param ListItem[]                $subtree
+     */
+    private function collectSubtree(ListItem $node, array $byParent, array &$subtree): void
+    {
+        $subtree[] = $node;
+        foreach ($byParent[$node->getId()->toRfc4122()] ?? [] as $child) {
+            $this->collectSubtree($child, $byParent, $subtree);
+        }
+    }
+
     /** @return array<string, ListItem[]> keyed by parent UUID (RFC4122), root items under '' */
     private function groupChildrenByParent(EducationalCentre $centre): array
     {

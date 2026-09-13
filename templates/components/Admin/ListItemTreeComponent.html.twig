@@ -361,7 +361,7 @@
                     {% if errors.delete is defined %}
                         <span class="text-xs text-red-600">{{ errors.delete }}</span>
                     {% elseif confirmingDelete %}
-                        <span class="text-xs text-gray-600">{{ 'responsibilities.lists.delete_confirm'|trans({}, 'admin') }}</span>
+                        <span class="text-xs text-gray-600">{{ (sel.leaf ? 'responsibilities.lists.delete_confirm' : 'responsibilities.lists.delete_confirm_with_children')|trans({}, 'admin') }}</span>
                         <button type="button" data-action="live#action" data-live-action-param="deleteSelected"
                                 class="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors">
                             {{ 'responsibilities.lists.detail.confirm_yes'|trans({}, 'admin') }}

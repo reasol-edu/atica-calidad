@@ -7,6 +7,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Responsabilidades**: en las listas, eliminar un elemento con elementos hijos ya no se bloquea.
+  Se elimina la rama completa (el elemento y todos sus descendientes) de una vez, salvo que él
+  mismo o alguno de sus descendientes siga en uso (asociado a un perfil o con docentes asignados a
+  través de uno), en cuyo caso se bloquea igual que antes.
+
 ## [1.0.2] - 2026-09-13
 
 ### Fixed

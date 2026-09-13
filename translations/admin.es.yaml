@@ -355,10 +355,10 @@ responsibilities.lists.detail.delete: 'Eliminar'
 responsibilities.lists.detail.confirm_yes: 'Sí, eliminar'
 responsibilities.lists.detail.cancel: 'Cancelar'
 responsibilities.lists.delete_confirm: '¿Eliminar este elemento?'
+responsibilities.lists.delete_confirm_with_children: '¿Eliminar este elemento? Se eliminarán también todos sus elementos hijos.'
 
 responsibilities.lists.error.name_required: 'El nombre es obligatorio.'
-responsibilities.lists.error.delete_has_children: 'No se puede eliminar: tiene elementos hijos. Elimínalos primero.'
-responsibilities.lists.error.delete_in_use: 'No se puede eliminar: está en uso (asociado a un perfil o con docentes asignados a través de uno).'
+responsibilities.lists.error.delete_in_use: 'No se puede eliminar: él, o alguno de sus elementos hijos, está en uso (asociado a un perfil o con docentes asignados a través de uno).'
 
 responsibilities.lists.tags.title: 'Etiquetas'
 responsibilities.lists.tags.empty: 'Este elemento no tiene etiquetas.'

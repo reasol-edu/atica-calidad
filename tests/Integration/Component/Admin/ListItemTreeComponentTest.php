@@ -108,16 +108,21 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertFalse($reloaded->isActive());
     }
 
-    public function testDeleteSelectedBlockedWhenItHasChildren(): void
+    /** Deleting a branch deletes the whole subtree in one go — no need to clear out children by hand first. */
+    public function testDeleteSelectedRemovesAnItemAndItsWholeSubtree(): void
     {
-        $centre = $this->centre();
-        $parent = (new ListItem())->setEducationalCentre($centre)->setName('Padre');
-        $child  = (new ListItem())->setEducationalCentre($centre)->setName('Hijo');
+        $centre     = $this->centre();
+        $parent     = (new ListItem())->setEducationalCentre($centre)->setName('Padre');
+        $child      = (new ListItem())->setEducationalCentre($centre)->setName('Hijo');
+        $grandchild = (new ListItem())->setEducationalCentre($centre)->setName('Nieto');
         $child->setParent($parent);
+        $grandchild->setParent($child);
         $admin = $this->admin();
         $centre->getAdmins()->add($admin);
-        $this->persist($centre, $parent, $child, $admin);
-        $parentId = $parent->getId()->toRfc4122();
+        $this->persist($centre, $parent, $child, $grandchild, $admin);
+        $parentId     = $parent->getId()->toRfc4122();
+        $childId      = $child->getId()->toRfc4122();
+        $grandchildId = $grandchild->getId()->toRfc4122();
 
         $this->loginAs($admin, $centre);
         $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
@@ -127,7 +132,9 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         $this->em->clear();
         /** @var ListItemRepository $items */
         $items = self::getContainer()->get(ListItemRepository::class);
-        self::assertNotNull($items->findByIdAndCentre($parentId, $centre));
+        self::assertNull($items->findByIdAndCentre($parentId, $centre));
+        self::assertNull($items->findByIdAndCentre($childId, $centre), 'children must be deleted along with their parent');
+        self::assertNull($items->findByIdAndCentre($grandchildId, $centre), 'the whole subtree, not just direct children, must be deleted');
     }
 
     /** A profile's own root list-item (profile.listItem) is "in use" — deleting it would orphan the profile's whole subprofile source. */
@@ -152,6 +159,36 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertNotNull($items->findByIdAndCentre($itemId, $centre), "a list item backing a profile's list association must never be deletable");
     }
 
+    /**
+     * The same protection must reach into the subtree: deleting a branch is blocked as soon as ANY
+     * descendant is still in use, not just the item that was actually selected — otherwise deleting
+     * the branch would silently orphan whatever descendant was in use.
+     */
+    public function testDeleteSelectedBlockedWhenADescendantIsAProfilesRootListItem(): void
+    {
+        $centre  = $this->centre();
+        $parent  = (new ListItem())->setEducationalCentre($centre)->setName('Padre');
+        $child   = (new ListItem())->setEducationalCentre($centre)->setName('En uso');
+        $child->setParent($parent);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil')->setListItem($child);
+        $admin   = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $parent, $child, $profile, $admin);
+        $parentId = $parent->getId()->toRfc4122();
+        $childId  = $child->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('selectItem', ['id' => $parentId]);
+        $component->call('deleteSelected');
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        self::assertNotNull($items->findByIdAndCentre($parentId, $centre), 'a branch with an in-use descendant must never be deletable');
+        self::assertNotNull($items->findByIdAndCentre($childId, $centre));
+    }
+
     /** An item a teacher is directly assigned to (via SpecificProfileAssignment) must also be protected. */
     public function testDeleteSelectedBlockedWhenAssignedToATeacher(): void
     {
@@ -174,6 +211,57 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         /** @var ListItemRepository $items */
         $items = self::getContainer()->get(ListItemRepository::class);
         self::assertNotNull($items->findByIdAndCentre($subprofileId, $centre), 'a list item assigned to a teacher must never be deletable');
+    }
+
+    /** Same subtree-wide protection as for a profile's root list-item, but for a teacher assignment. */
+    public function testDeleteSelectedBlockedWhenADescendantIsAssignedToATeacher(): void
+    {
+        $centre     = $this->centre();
+        $parent     = (new ListItem())->setEducationalCentre($centre)->setName('Padre');
+        $subprofile = (new ListItem())->setEducationalCentre($centre)->setName('Subprofile');
+        $subprofile->setParent($parent);
+        $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($subprofile);
+        $teacher    = $this->teacher('docente');
+        $assignment = new \App\Entity\SpecificProfileAssignment($profile, $subprofile, $teacher);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $parent, $subprofile, $profile, $teacher, $assignment, $admin);
+        $parentId = $parent->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('selectItem', ['id' => $parentId]);
+        $component->call('deleteSelected');
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        self::assertNotNull($items->findByIdAndCentre($parentId, $centre), 'a branch with a descendant assigned to a teacher must never be deletable');
+    }
+
+    /** Tags belonging to any deleted descendant, not just the selected item itself, are pruned too. */
+    public function testDeleteSelectedPrunesOrphanedTagsFromTheWholeSubtree(): void
+    {
+        $centre = $this->centre();
+        $parent = (new ListItem())->setEducationalCentre($centre)->setName('Padre');
+        $child  = (new ListItem())->setEducationalCentre($centre)->setName('Hijo');
+        $child->setParent($parent);
+        $tag = (new \App\Entity\Tag())->setEducationalCentre($centre)->setName('Solo en el hijo');
+        $child->addTag($tag);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $parent, $child, $tag, $admin);
+        $parentId = $parent->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('selectItem', ['id' => $parentId]);
+        $component->call('deleteSelected');
+
+        $this->em->clear();
+        /** @var \App\Repository\TagRepository $tags */
+        $tags = self::getContainer()->get(\App\Repository\TagRepository::class);
+        self::assertCount(0, $tags->findByCentre($centre), "a descendant's own tag must be pruned once its whole branch is deleted");
     }
 
     public function testDeleteSelectedRemovesALeafItem(): void
