@@ -483,6 +483,131 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertNull($items->findByIdAndCentre($itemId, $centre)?->getAssociatedProfile());
     }
 
+    // ── Bulk delete ─────────────────────────────────────────────────────────
+
+    public function testAskBulkDeleteIsANoOpWithNothingChecked(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component->call('askBulkDelete');
+
+        self::assertFalse((bool) $this->props($component)['confirmingBulkDelete']);
+    }
+
+    public function testBulkDeleteSelectedRemovesEveryCheckedItemAndItsWholeSubtree(): void
+    {
+        $centre = $this->centre();
+        $itemA  = (new ListItem())->setEducationalCentre($centre)->setName('Física');
+        $itemB  = (new ListItem())->setEducationalCentre($centre)->setName('Química');
+        $childB = (new ListItem())->setEducationalCentre($centre)->setName('Orgánica');
+        $childB->setParent($itemB);
+        $untouched = (new ListItem())->setEducationalCentre($centre)->setName('Sin tocar');
+        $admin     = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $itemA, $itemB, $childB, $untouched, $admin);
+        $idA         = $itemA->getId()->toRfc4122();
+        $idB         = $itemB->getId()->toRfc4122();
+        $childBId    = $childB->getId()->toRfc4122();
+        $untouchedId = $untouched->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component->set('bulkSelectedIds', [$idA, $idB])->call('askBulkDelete');
+        $component->call('bulkDeleteSelected');
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        self::assertNull($items->findByIdAndCentre($idA, $centre));
+        self::assertNull($items->findByIdAndCentre($idB, $centre));
+        self::assertNull($items->findByIdAndCentre($childBId, $centre), "a checked item's own children must be deleted too");
+        self::assertNotNull($items->findByIdAndCentre($untouchedId, $centre), 'an item never checked must survive');
+    }
+
+    /** Checking a branch and one of its own descendants must not attempt to delete the same row twice. */
+    public function testBulkDeleteSelectedHandlesABranchAndItsOwnDescendantBeingBothChecked(): void
+    {
+        $centre = $this->centre();
+        $parent = (new ListItem())->setEducationalCentre($centre)->setName('Padre');
+        $child  = (new ListItem())->setEducationalCentre($centre)->setName('Hijo');
+        $child->setParent($parent);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $parent, $child, $admin);
+        $parentId = $parent->getId()->toRfc4122();
+        $childId  = $child->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component->set('bulkSelectedIds', [$parentId, $childId])->call('bulkDeleteSelected');
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        self::assertNull($items->findByIdAndCentre($parentId, $centre));
+        self::assertNull($items->findByIdAndCentre($childId, $centre));
+    }
+
+    /** Blocked as a whole, with nothing removed, if ANY checked item (or one of its descendants) is still in use. */
+    public function testBulkDeleteSelectedBlockedWhenAnyCheckedItemOrDescendantIsInUse(): void
+    {
+        $centre    = $this->centre();
+        $free      = (new ListItem())->setEducationalCentre($centre)->setName('Libre');
+        $branch    = (new ListItem())->setEducationalCentre($centre)->setName('Rama');
+        $inUse     = (new ListItem())->setEducationalCentre($centre)->setName('En uso');
+        $inUse->setParent($branch);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil')->setListItem($inUse);
+        $admin   = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $free, $branch, $inUse, $profile, $admin);
+        $freeId   = $free->getId()->toRfc4122();
+        $branchId = $branch->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component->set('bulkSelectedIds', [$freeId, $branchId])->call('bulkDeleteSelected');
+
+        self::assertArrayHasKey('bulkDelete', $this->props($component)['errors']);
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        self::assertNotNull($items->findByIdAndCentre($freeId, $centre), 'nothing must be deleted when any part of the selection is blocked');
+        self::assertNotNull($items->findByIdAndCentre($branchId, $centre));
+    }
+
+    /** Tags of a deleted branch's descendants are pruned too, same as a single-item delete. */
+    public function testBulkDeleteSelectedPrunesOrphanedTags(): void
+    {
+        $centre = $this->centre();
+        $item   = (new ListItem())->setEducationalCentre($centre)->setName('Item');
+        $tag    = (new \App\Entity\Tag())->setEducationalCentre($centre)->setName('Solo aquí');
+        $item->addTag($tag);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $item, $tag, $admin);
+        $itemId = $item->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component->set('bulkSelectedIds', [$itemId])->call('bulkDeleteSelected');
+
+        $this->em->clear();
+        /** @var \App\Repository\TagRepository $tags */
+        $tags = self::getContainer()->get(\App\Repository\TagRepository::class);
+        self::assertCount(0, $tags->findByCentre($centre));
+    }
+
     /**
      * Regression: the association picker (a TomSelect) must be re-keyed per selected item — its
      * wrapper id carries the selected item's id — so switching selection tears the widget down and

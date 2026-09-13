@@ -195,6 +195,34 @@
                         {{ 'responsibilities.lists.bulk.assign'|trans({}, 'admin') }}
                     </button>
                 {% endif %}
+
+                <span class="ml-auto"></span>
+
+                {% if confirmingBulkDelete %}
+                    <span class="text-xs text-violet-800">
+                        {{ 'responsibilities.lists.bulk.delete_confirm'|trans({'%count%': bulkSelectedIds|length}, 'admin') }}
+                    </span>
+                    <button type="button" data-action="live#action" data-live-action-param="bulkDeleteSelected"
+                            class="shrink-0 inline-flex items-center rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors">
+                        {{ 'responsibilities.lists.detail.confirm_yes'|trans({}, 'admin') }}
+                    </button>
+                    <button type="button" data-action="live#action" data-live-action-param="cancelBulkDelete"
+                            class="shrink-0 inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                        {{ 'responsibilities.lists.detail.cancel'|trans({}, 'admin') }}
+                    </button>
+                {% else %}
+                    {# Kept next to the trigger, not instead of it: unlike the single-item panel,
+                       losing this selection to dismiss the error would cost a lot of re-checking. #}
+                    {% if errors.bulkDelete is defined %}
+                        <span class="text-xs text-red-600">{{ errors.bulkDelete }}</span>
+                    {% endif %}
+                    <button type="button" data-action="live#action" data-live-action-param="askBulkDelete"
+                            {{ bulkSelectedIds is empty ? 'disabled' : '' }}
+                            class="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
+                        {{ ux_icon('heroicons:trash', {class: 'h-3.5 w-3.5'}) }}
+                        {{ 'responsibilities.lists.bulk.delete'|trans({}, 'admin') }}
+                    </button>
+                {% endif %}
             </div>
             <p class="mt-1.5 text-xs text-violet-600">{{ 'responsibilities.lists.bulk.hint'|trans({}, 'admin') }}</p>
         </div>

@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Responsabilidades**: en las listas, con «Seleccionar varios» activado, un nuevo botón
+  **«Eliminar seleccionados»** borra de una vez todos los elementos marcados (junto con sus
+  elementos hijos), tras pedir confirmación. Se bloquea, sin borrar nada, si algún elemento
+  marcado o alguno de sus hijos sigue en uso (asociado a un perfil o con docentes asignados a
+  través de uno).
+
 ## [1.0.3] - 2026-09-13
 
 ### Fixed

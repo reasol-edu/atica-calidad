@@ -106,6 +106,9 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $bulkAssociationKey = '';
 
+    #[LiveProp(writable: true)]
+    public bool $confirmingBulkDelete = false;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
@@ -623,13 +626,14 @@ class ListItemTreeComponent extends AbstractController
     #[LiveAction]
     public function toggleBulkSelectMode(): void
     {
-        $this->bulkSelectMode    = !$this->bulkSelectMode;
-        $this->bulkSelectedIds   = [];
-        $this->bulkAssociationKey = '';
-        $this->errors            = [];
+        $this->bulkSelectMode      = !$this->bulkSelectMode;
+        $this->bulkSelectedIds     = [];
+        $this->bulkAssociationKey  = '';
+        $this->confirmingBulkDelete = false;
+        $this->errors              = [];
         // Editing one item's own detail panel while bulk-selecting several others would be a
         // confusing overlap — close it.
-        $this->selectedId        = '';
+        $this->selectedId          = '';
     }
 
     /**
@@ -672,6 +676,107 @@ class ListItemTreeComponent extends AbstractController
         $this->bulkSelectedIds    = [];
         $this->bulkAssociationKey = '';
         $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.flash.saved', ['%count%' => $count], 'admin'));
+    }
+
+    #[LiveAction]
+    public function askBulkDelete(): void
+    {
+        if ($this->bulkSelectedIds === []) {
+            return;
+        }
+        $this->confirmingBulkDelete = true;
+        $this->errors               = [];
+    }
+
+    #[LiveAction]
+    public function cancelBulkDelete(): void
+    {
+        $this->confirmingBulkDelete = false;
+    }
+
+    /**
+     * Deletes every checked item at once, each along with its own subtree (see deleteSelected()) —
+     * same "delete the whole branch" semantics, just for several branches in one action. Checking
+     * both a branch and one of its own descendants is fine: only the ancestor is actually removed
+     * (removing it already takes the descendant with it), so nothing is double-deleted.
+     *
+     * Blocked as a whole, with nothing removed, if the item or descendant is in use anywhere in
+     * the combined set of branches — a partial bulk delete would leave the survivors' selection
+     * state confusing to recover from.
+     */
+    #[LiveAction]
+    public function bulkDeleteSelected(): void
+    {
+        $this->confirmingBulkDelete = false;
+        $roots = $this->topLevelSelectedItems();
+        if ($roots === []) {
+            $this->bulkSelectedIds = [];
+
+            return;
+        }
+
+        $subtree = [];
+        foreach ($roots as $root) {
+            foreach ($this->items->findSubtree($root) as $node) {
+                $subtree[$node->getId()->toRfc4122()] = $node;
+            }
+        }
+
+        foreach ($subtree as $node) {
+            if ($this->profiles->isListItemInUse($node) || $this->assignments->isListItemAssigned($node)) {
+                $this->errors = ['bulkDelete' => $this->t('responsibilities.lists.bulk.error.delete_in_use')];
+
+                return;
+            }
+        }
+
+        $ownTags = [];
+        foreach ($subtree as $node) {
+            array_push($ownTags, ...$node->getTags()->toArray());
+        }
+
+        // Remove deepest descendants first, same reasoning as deleteSelected(): $subtree is built
+        // one root's whole (pre-order) findSubtree() at a time, and roots never overlap (see
+        // topLevelSelectedItems()), so reversing the combined list still removes every node only
+        // after all of its own descendants already are.
+        foreach (array_reverse($subtree) as $node) {
+            $this->em->remove($node);
+        }
+        $this->em->flush();
+        $this->pruneOrphanedTags($ownTags);
+
+        $count                 = count($roots);
+        $this->bulkSelectedIds = [];
+        $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.flash.deleted', ['%count%' => $count], 'admin'));
+    }
+
+    /**
+     * The checked items themselves, minus any that is a descendant of another checked item —
+     * deleting the ancestor already deletes its whole subtree, so keeping both would try to remove
+     * the same row twice and would break the disjoint-subtrees assumption bulkDeleteSelected()
+     * relies on to reverse-order its combined removal list correctly.
+     *
+     * @return array<string, ListItem> keyed by id
+     */
+    private function topLevelSelectedItems(): array
+    {
+        $checked = [];
+        foreach ($this->bulkSelectedIds as $id) {
+            $item = $this->items->findByIdAndCentre((string) $id, $this->centre);
+            if ($item !== null) {
+                $checked[$item->getId()->toRfc4122()] = $item;
+            }
+        }
+
+        return array_filter($checked, static function (ListItem $item) use ($checked): bool {
+            for ($ancestor = $item->getParent(); $ancestor !== null; $ancestor = $ancestor->getParent()) {
+                if (isset($checked[$ancestor->getId()->toRfc4122()])) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
     }
 
     private function t(string $key): string
