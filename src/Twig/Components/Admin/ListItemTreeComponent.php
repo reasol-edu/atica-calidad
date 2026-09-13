@@ -109,6 +109,10 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public bool $confirmingBulkDelete = false;
 
+    /** '' = root level (no parent). Destination picker for bulk moving — the bulk action bar's own tree dropdown. */
+    #[LiveProp(writable: true)]
+    public string $bulkMoveTargetId = '';
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
@@ -626,14 +630,15 @@ class ListItemTreeComponent extends AbstractController
     #[LiveAction]
     public function toggleBulkSelectMode(): void
     {
-        $this->bulkSelectMode      = !$this->bulkSelectMode;
-        $this->bulkSelectedIds     = [];
-        $this->bulkAssociationKey  = '';
+        $this->bulkSelectMode       = !$this->bulkSelectMode;
+        $this->bulkSelectedIds      = [];
+        $this->bulkAssociationKey   = '';
         $this->confirmingBulkDelete = false;
-        $this->errors              = [];
+        $this->bulkMoveTargetId     = '';
+        $this->errors               = [];
         // Editing one item's own detail panel while bulk-selecting several others would be a
         // confusing overlap — close it.
-        $this->selectedId          = '';
+        $this->selectedId           = '';
     }
 
     /**
@@ -777,6 +782,107 @@ class ListItemTreeComponent extends AbstractController
 
             return true;
         });
+    }
+
+    // ── Bulk move (reparent) ────────────────────────────────────────────────
+
+    /**
+     * The whole centre's tree, flattened depth-first for the bulk-move destination picker, minus
+     * every checked item's own subtree — moving a branch into itself, or into one of its own
+     * descendants, is never valid, so those options are never even offered (setParent() would also
+     * reject it, but hiding it from the dropdown is the friendlier failure mode).
+     *
+     * @return array<int, array{id: string, label: string}>
+     */
+    public function getBulkMoveTargetOptions(): array
+    {
+        $excluded = [];
+        foreach ($this->topLevelSelectedItems() as $root) {
+            foreach ($this->items->findSubtree($root) as $node) {
+                $excluded[$node->getId()->toRfc4122()] = true;
+            }
+        }
+
+        // Own $byParent map rather than reusing getTree()'s nested structure: PHPStan can express
+        // "a flat map of siblings, keyed by parent id" (see buildNodes()) but not a genuinely
+        // self-referential tree shape, and flattening a nested structure back out would need one
+        // anyway.
+        $byParent = [];
+        foreach ($this->items->findAllByCentre($this->centre) as $item) {
+            $key              = $item->getParent()?->getId()->toRfc4122() ?? '';
+            $byParent[$key][] = $item;
+        }
+
+        $options = [];
+        $this->collectMoveOptions('', 0, $byParent, $excluded, $options);
+
+        return $options;
+    }
+
+    /**
+     * @param array<string, ListItem[]>                     $byParent
+     * @param array<string, true>                           $excluded
+     * @param array<int, array{id: string, label: string}>  $options
+     */
+    private function collectMoveOptions(string $parentKey, int $depth, array $byParent, array $excluded, array &$options): void
+    {
+        foreach ($byParent[$parentKey] ?? [] as $item) {
+            $id = $item->getId()->toRfc4122();
+            if (isset($excluded[$id])) {
+                continue;
+            }
+
+            $options[] = ['id' => $id, 'label' => str_repeat('— ', $depth) . $item->getName()];
+            $this->collectMoveOptions($id, $depth + 1, $byParent, $excluded, $options);
+        }
+    }
+
+    /**
+     * Moves every checked item at once into $bulkMoveTargetId ('' = root level), keeping the
+     * hierarchy each one already has: only the top-level checked items (see
+     * topLevelSelectedItems()) are actually reparented — a checked descendant of another checked
+     * item just travels along with its own parent, exactly like it would with a single drag-and-drop
+     * move. Relative order among the moved items (by their current position) is preserved; they're
+     * appended after the destination's existing children.
+     */
+    #[LiveAction]
+    public function bulkMoveSelected(): void
+    {
+        $roots = $this->topLevelSelectedItems();
+        if ($roots === []) {
+            return;
+        }
+
+        $target = $this->bulkMoveTargetId === '' ? null : $this->items->findByIdAndCentre($this->bulkMoveTargetId, $this->centre);
+        if ($this->bulkMoveTargetId !== '' && $target === null) {
+            return;
+        }
+
+        $ordered = array_values($roots);
+        usort($ordered, static fn (ListItem $a, ListItem $b): int => $a->getPosition() <=> $b->getPosition());
+
+        foreach ($ordered as $item) {
+            try {
+                $item->setParent($target);
+            } catch (\LogicException) {
+                $this->errors = ['bulkMove' => $this->t('responsibilities.lists.bulk.error.move_invalid')];
+
+                return;
+            }
+        }
+
+        $position = $target === null ? $this->items->nextRootPosition($this->centre) : $this->items->nextChildPosition($target);
+        foreach ($ordered as $item) {
+            $item->setPosition($position);
+            ++$position;
+        }
+
+        $this->em->flush();
+
+        $count                  = count($ordered);
+        $this->bulkSelectedIds  = [];
+        $this->bulkMoveTargetId = '';
+        $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.flash.moved', ['%count%' => $count], 'admin'));
     }
 
     private function t(string $key): string

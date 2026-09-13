@@ -608,6 +608,165 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertCount(0, $tags->findByCentre($centre));
     }
 
+    // ── Bulk move ────────────────────────────────────────────────────────────
+
+    public function testBulkMoveSelectedReparentsEveryCheckedItemUnderTheChosenTarget(): void
+    {
+        $centre = $this->centre();
+        $target = (new ListItem())->setEducationalCentre($centre)->setName('Destino');
+        $itemA  = (new ListItem())->setEducationalCentre($centre)->setName('Física');
+        $itemB  = (new ListItem())->setEducationalCentre($centre)->setName('Química');
+        $admin  = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $target, $itemA, $itemB, $admin);
+        $targetId = $target->getId()->toRfc4122();
+        $idA      = $itemA->getId()->toRfc4122();
+        $idB      = $itemB->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component
+            ->set('bulkSelectedIds', [$idA, $idB])
+            ->set('bulkMoveTargetId', $targetId)
+            ->call('bulkMoveSelected');
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items     = self::getContainer()->get(ListItemRepository::class);
+        $reloadedA = $items->findByIdAndCentre($idA, $centre);
+        $reloadedB = $items->findByIdAndCentre($idB, $centre);
+        self::assertNotNull($reloadedA);
+        self::assertNotNull($reloadedB);
+        self::assertNotNull($reloadedA->getParent());
+        self::assertNotNull($reloadedB->getParent());
+        self::assertSame($targetId, $reloadedA->getParent()->getId()->toRfc4122());
+        self::assertSame($targetId, $reloadedB->getParent()->getId()->toRfc4122());
+    }
+
+    public function testBulkMoveSelectedWithAnEmptyTargetMovesToRootLevel(): void
+    {
+        $centre = $this->centre();
+        $parent = (new ListItem())->setEducationalCentre($centre)->setName('Padre');
+        $item   = (new ListItem())->setEducationalCentre($centre)->setName('Hijo');
+        $item->setParent($parent);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $parent, $item, $admin);
+        $itemId = $item->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component->set('bulkSelectedIds', [$itemId])->call('bulkMoveSelected');
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items    = self::getContainer()->get(ListItemRepository::class);
+        $reloaded = $items->findByIdAndCentre($itemId, $centre);
+        self::assertNotNull($reloaded);
+        self::assertNull($reloaded->getParent());
+    }
+
+    /** Checking a branch and one of its own descendants moves only the branch, keeping the hierarchy — the descendant travels along with it, not separately to the target. */
+    public function testBulkMoveSelectedKeepsTheHierarchyWhenABranchAndItsDescendantAreBothChecked(): void
+    {
+        $centre = $this->centre();
+        $target = (new ListItem())->setEducationalCentre($centre)->setName('Destino');
+        $branch = (new ListItem())->setEducationalCentre($centre)->setName('Rama');
+        $child  = (new ListItem())->setEducationalCentre($centre)->setName('Hijo');
+        $child->setParent($branch);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $target, $branch, $child, $admin);
+        $targetId = $target->getId()->toRfc4122();
+        $branchId = $branch->getId()->toRfc4122();
+        $childId  = $child->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component
+            ->set('bulkSelectedIds', [$branchId, $childId])
+            ->set('bulkMoveTargetId', $targetId)
+            ->call('bulkMoveSelected');
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items          = self::getContainer()->get(ListItemRepository::class);
+        $reloadedBranch = $items->findByIdAndCentre($branchId, $centre);
+        $reloadedChild  = $items->findByIdAndCentre($childId, $centre);
+        self::assertNotNull($reloadedBranch);
+        self::assertNotNull($reloadedChild);
+        self::assertNotNull($reloadedBranch->getParent());
+        self::assertSame($targetId, $reloadedBranch->getParent()->getId()->toRfc4122(), 'the branch itself moves to the chosen target');
+        self::assertNotNull($reloadedChild->getParent());
+        self::assertSame($branchId, $reloadedChild->getParent()->getId()->toRfc4122(), 'the child must stay under its own parent, not jump to the target directly');
+    }
+
+    /**
+     * Regression: even if the UI never offers it, a request naming a target inside the moved
+     * branch itself must be rejected server-side, and nothing partially moved.
+     */
+    public function testBulkMoveSelectedBlockedWhenTheTargetIsInsideTheMovedBranch(): void
+    {
+        $centre = $this->centre();
+        $branch = (new ListItem())->setEducationalCentre($centre)->setName('Rama');
+        $child  = (new ListItem())->setEducationalCentre($centre)->setName('Hijo');
+        $child->setParent($branch);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $branch, $child, $admin);
+        $branchId = $branch->getId()->toRfc4122();
+        $childId  = $child->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component
+            ->set('bulkSelectedIds', [$branchId])
+            ->set('bulkMoveTargetId', $childId)
+            ->call('bulkMoveSelected');
+
+        self::assertArrayHasKey('bulkMove', $this->props($component)['errors']);
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items          = self::getContainer()->get(ListItemRepository::class);
+        $reloadedBranch = $items->findByIdAndCentre($branchId, $centre);
+        self::assertNotNull($reloadedBranch);
+        self::assertNull($reloadedBranch->getParent(), 'the branch must stay put when the requested target is invalid');
+    }
+
+    /** The destination picker must never offer a checked branch, or any of its own descendants, as a valid target. */
+    public function testBulkMoveTargetOptionsExcludeTheCheckedBranchAndItsDescendants(): void
+    {
+        $centre   = $this->centre();
+        $branch   = (new ListItem())->setEducationalCentre($centre)->setName('Rama Elegida');
+        $child    = (new ListItem())->setEducationalCentre($centre)->setName('Hijo De La Rama');
+        $child->setParent($branch);
+        $elsewhere = (new ListItem())->setEducationalCentre($centre)->setName('Otro Elemento');
+        $admin     = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $branch, $child, $elsewhere, $admin);
+        $branchId = $branch->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component->set('bulkSelectedIds', [$branchId]);
+
+        // Scoped to the move picker's own <select>, not the whole page: the checked branch's name
+        // legitimately still appears elsewhere (its own checkbox row in the item list).
+        $optionLabels = $component->render()->crawler()
+            ->filter('select[data-model="norender|bulkMoveTargetId"] option')
+            ->each(static fn ($node) => trim($node->text()));
+
+        self::assertNotContains('Rama Elegida', $optionLabels);
+        self::assertNotContains('Hijo De La Rama', $optionLabels);
+        self::assertContains('Otro Elemento', $optionLabels);
+    }
+
     /**
      * Regression: the association picker (a TomSelect) must be re-keyed per selected item — its
      * wrapper id carries the selected item's id — so switching selection tears the widget down and

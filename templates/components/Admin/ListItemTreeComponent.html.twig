@@ -196,6 +196,33 @@
                     </button>
                 {% endif %}
 
+                {% set move_options = this.bulkMoveTargetOptions %}
+                {# Keyed by the current selection (not a stable id like #bulk-association-picker):
+                   the option list itself depends on which items are checked (a checked branch and
+                   its own descendants are never valid destinations), so it must be torn down and
+                   rebuilt with fresh options whenever the selection changes, not just preserved
+                   across re-renders. #}
+                <div id="bulk-move-picker-{{ bulkSelectedIds|join('_') }}" data-live-ignore class="min-w-0 flex-1">
+                    <select data-controller="tom-select"
+                            data-tom-select-placeholder-value="{{ 'responsibilities.lists.bulk.move_picker_placeholder'|trans({}, 'admin') }}"
+                            data-tom-select-no-results-value="{{ 'responsibilities.lists.association.picker_no_results'|trans({}, 'admin') }}"
+                            data-model="norender|bulkMoveTargetId"
+                            class="w-full text-sm ts-local">
+                        <option value="">{{ 'responsibilities.lists.bulk.move_root_option'|trans({}, 'admin') }}</option>
+                        {% for option in move_options %}
+                            <option value="{{ option.id }}" {{ option.id == bulkMoveTargetId ? 'selected' : '' }}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="button" data-action="live#action" data-live-action-param="bulkMoveSelected"
+                        {{ bulkSelectedIds is empty ? 'disabled' : '' }}
+                        class="shrink-0 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
+                    {{ 'responsibilities.lists.bulk.move'|trans({}, 'admin') }}
+                </button>
+                {% if errors.bulkMove is defined %}
+                    <span class="text-xs text-red-600">{{ errors.bulkMove }}</span>
+                {% endif %}
+
                 <span class="ml-auto"></span>
 
                 {% if confirmingBulkDelete %}

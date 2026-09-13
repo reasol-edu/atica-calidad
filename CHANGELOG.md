@@ -14,6 +14,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   elementos hijos), tras pedir confirmación. Se bloquea, sin borrar nada, si algún elemento
   marcado o alguno de sus hijos sigue en uso (asociado a un perfil o con docentes asignados a
   través de uno).
+- **Responsabilidades**: en las listas, con «Seleccionar varios» activado, un nuevo desplegable con
+  el árbol completo permite **mover** todos los elementos marcados dentro de otro de una sola vez
+  (o al nivel raíz), manteniendo la jerarquía que ya tuvieran entre sí. El propio elemento marcado
+  y sus descendientes nunca aparecen como destino posible.
 
 ## [1.0.3] - 2026-09-13
 
