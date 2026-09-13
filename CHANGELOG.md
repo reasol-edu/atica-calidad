@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-09-13
+
 ### Fixed
 
 - **Responsabilidades**: en las listas, eliminar un elemento con elementos hijos ya no se bloquea.
