@@ -65,6 +65,9 @@ settings.key.notifications_document_rejected_notification_mode.choice.disabled: 
 settings.key.notifications_document_rejected_notification_mode.choice.individual: 'Individual'
 settings.key.notifications_document_rejected_notification_mode.choice.daily_digest: 'Resumen diario'
 
+settings.key.notifications_email_subject_prefix.label: 'Prefijo del asunto'
+settings.key.notifications_email_subject_prefix.description: 'Texto que se antepone al asunto de cada aviso por correo electrónico, seguido automáticamente de un espacio (p. ej. «[ÁTICA]» da como resultado «[ÁTICA] Asunto original»). Vacío por defecto: no se añade ningún prefijo.'
+
 settings.key.reports_pdf_template_portrait.label: 'Plantilla PDF general (vertical)'
 settings.key.reports_pdf_template_portrait.description: 'PDF de una sola página que se usa como fondo de cada página de los informes en orientación vertical que no tengan una plantilla propia. Si no se sube ninguna, esos informes se generan sin fondo.'
 

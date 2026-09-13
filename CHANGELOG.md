@@ -7,6 +7,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Administración**: nuevo ajuste **«Prefijo del asunto»** (Administración → Ajustes, global y de
+  centro) que antepone un texto fijo, seguido de un espacio, al asunto de cada aviso por correo
+  electrónico. Vacío por defecto: no cambia nada hasta que se configura.
+
 ## [1.1.0] - 2026-09-13
 
 ### Added

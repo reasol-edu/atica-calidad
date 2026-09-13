@@ -34,6 +34,11 @@ final class NotificationMailerTest extends RepositoryTestCase
         return (new SettingDefinition())->setKey($key)->setType(SettingType::Boolean)->setDefaultValue($default);
     }
 
+    private function stringDefinition(string $key, string $default): SettingDefinition
+    {
+        return (new SettingDefinition())->setKey($key)->setType(SettingType::String)->setDefaultValue($default);
+    }
+
     private function logs(): EmailNotificationLogRepository
     {
         /** @var EmailNotificationLogRepository $logs */
@@ -107,6 +112,52 @@ final class NotificationMailerTest extends RepositoryTestCase
             ->send($teacher, $centre, 'activity_reminder', 'Asunto', 'Título', '<p>Cuerpo</p>');
 
         self::assertCount(0, $this->logs()->findAll());
+    }
+
+    public function testPrependsTheConfiguredPrefixFollowedByASpace(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher();
+        $enabled = $this->booleanDefinition('notifications.email_notifications_enabled', 'true');
+        $logged  = $this->booleanDefinition('notifications.email_log_enabled', 'true');
+        $prefixDef = $this->stringDefinition('notifications.email_subject_prefix', '');
+        $this->persist($centre, $teacher, $enabled, $logged, $prefixDef);
+        $this->em->persist((new \App\Entity\CentreSettingValue())->setDefinition($prefixDef)->setCentre($centre)->setValue('[ÁTICA]'));
+        $this->em->flush();
+
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects(self::once())->method('send')
+            ->with(self::callback(static fn ($email): bool => $email->getSubject() === '[ÁTICA] Asunto'));
+
+        $this->notifier($mailer, $this->createStub(LoggerInterface::class))
+            ->send($teacher, $centre, 'activity_reminder', 'Asunto', 'Título', '<p>Cuerpo</p>');
+
+        $this->em->clear();
+        $logEntries = $this->logs()->findAll();
+        self::assertCount(1, $logEntries);
+        self::assertSame('[ÁTICA] Asunto', $logEntries[0]->getSubject(), 'the logged subject must be the one actually sent, prefix included');
+    }
+
+    public function testAddsNoSeparatorWhenNoPrefixIsConfigured(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher();
+        $enabled = $this->booleanDefinition('notifications.email_notifications_enabled', 'true');
+        $logged  = $this->booleanDefinition('notifications.email_log_enabled', 'true');
+        // Definition exists (default ''), but nothing overrides it at any scope — this is the
+        // out-of-the-box state, and it must not add a stray leading space of its own.
+        $prefixDef = $this->stringDefinition('notifications.email_subject_prefix', '');
+        $this->persist($centre, $teacher, $enabled, $logged, $prefixDef);
+
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects(self::once())->method('send')
+            ->with(self::callback(static fn ($email): bool => $email->getSubject() === 'Asunto'));
+
+        $this->notifier($mailer, $this->createStub(LoggerInterface::class))
+            ->send($teacher, $centre, 'activity_reminder', 'Asunto', 'Título', '<p>Cuerpo</p>');
+
+        $this->em->clear();
+        self::assertSame('Asunto', $this->logs()->findAll()[0]->getSubject());
     }
 
     public function testLogsAFailedSendWithTheTransportErrorMessage(): void

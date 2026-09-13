@@ -56,10 +56,17 @@ final class NotificationMailer
 
         $fullName = $recipient->getName()->getFirstName() . ' ' . $recipient->getName()->getLastName();
 
+        // A space is inserted automatically between the prefix and the original subject — but only
+        // when a prefix is actually set, so an unconfigured (empty, the default) prefix never adds
+        // a stray leading space of its own.
+        $rawPrefix   = $this->settings->getForCentre('notifications.email_subject_prefix', $centre);
+        $prefix      = is_string($rawPrefix) ? $rawPrefix : '';
+        $fullSubject = $prefix === '' ? $subject : $prefix . ' ' . $subject;
+
         $email = (new TemplatedEmail())
             ->from(new Address($this->fromAddress, $this->appName))
             ->to(new Address((string) $recipient->getEmail(), $fullName))
-            ->subject($subject)
+            ->subject($fullSubject)
             ->htmlTemplate('email/notification.html.twig')
             ->context([
                 'heading'     => $heading,
@@ -77,12 +84,12 @@ final class NotificationMailer
             $success      = false;
             $errorMessage = $e->getMessage();
             $this->logger->error('No se pudo enviar el aviso "{subject}": {error}', [
-                'subject' => $subject,
+                'subject' => $fullSubject,
                 'error'   => $errorMessage,
             ]);
         }
 
-        $this->logNotification($centre, $recipient, $fullName, $eventKey, $subject, $success, $errorMessage);
+        $this->logNotification($centre, $recipient, $fullName, $eventKey, $fullSubject, $success, $errorMessage);
     }
 
     private function logNotification(

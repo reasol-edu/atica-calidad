@@ -87,6 +87,7 @@ seguidos.
 | Aviso de documento pendiente de revisar | Global, centro, personal | Desactivado / Individual / Resumen diario — avisa a quien deba revisar una carpeta cuando se suba una versión nueva. |
 | Aviso de documento aceptado | Global, centro, personal | Desactivado / Individual / Resumen diario — avisa a quien subió una revisión cuando se acepta. |
 | Aviso de documento rechazado | Global, centro, personal | Desactivado / Individual / Resumen diario — avisa a quien subió una revisión cuando se rechaza. |
+| Prefijo del asunto | Global, centro | Texto que se antepone al asunto de cada aviso por correo, seguido automáticamente de un espacio (p. ej. «[ÁTICA]» da como resultado «[ÁTICA] Asunto original»). Vacío por defecto: no se añade ningún prefijo. |
 | Registrar la actividad de los usuarios | Global, centro | Activa el [registro de actividad](#registro-de-actividad) del centro. Los eventos sin centro (inicios y cierres de sesión) se rigen por el valor global. |
 | Retención del registro de actividad | Global | Días que se conservan las entradas del registro de actividad antes de eliminarse automáticamente (0 desactiva la eliminación). |
 
