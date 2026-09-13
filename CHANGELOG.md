@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-13
+
 ### Added
 
 - **Administración**: nuevo ajuste **«Prefijo del asunto»** (Administración → Ajustes, global y de
