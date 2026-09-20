@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-09-20
+
 ### Fixed
 
 - **Actividades**: al descargar en ZIP la carpeta de una actividad de ámbito **individual**, cada
