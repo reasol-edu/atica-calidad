@@ -15,6 +15,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   «Programación didáctica - Tutor/a - García, Ana.pdf»). Un documento del árbol sin actividad
   detrás conserva su nombre tal cual, como hasta ahora.
 
+### Added
+
+- **Actividades**: nuevo campo opcional **«Prefijo de entrega»** en el formulario de una actividad
+  (junto a «Lista para nombrar entregas»). Si se indica, sustituye al título como lo primero que
+  lleva el nombre del fichero al descargar una entrega — útil para usar una forma más corta que el
+  título completo. Vacío por defecto: se sigue usando el título. Un guion («-») a solas quita el
+  prefijo del todo, dejando el nombre del fichero empezar directamente por el de la entrega.
+
 ## [1.3.1] - 2026-09-20
 
 ### Fixed

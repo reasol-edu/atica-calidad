@@ -107,6 +107,14 @@
             </div>
 
             <div class="sm:col-span-2">
+                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.submission_prefix'|trans({}, 'admin') }}</label>
+                <input type="text" data-model="norender|formSubmissionPrefix" value="{{ formSubmissionPrefix }}"
+                       placeholder="{{ formTitle }}"
+                       class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.submission_prefix_help'|trans({}, 'admin') }}</p>
+            </div>
+
+            <div class="sm:col-span-2">
                 <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.tags'|trans({}, 'admin') }}</label>
                 <select multiple data-controller="tom-select"
                         data-tom-select-placeholder-value="{{ 'activity.field.tags_placeholder'|trans({}, 'admin') }}"

@@ -92,6 +92,7 @@ igual que las secciones del árbol documental; dentro de cada una se crean y edi
 | Obligatoria / Opcional | Solo informativo: se muestra como etiqueta, no cambia ningún permiso. |
 | Ámbito de entrega | **Por perfil** (una entrega compartida por todo el que tenga el perfil/subperfil) o **Individual** (cada docente con ese perfil entrega la suya). |
 | Completado automático | Solo si hay carpeta: la actividad se da por completada en cuanto el documento esperado está aprobado, sin botón de completar manual. |
+| Prefijo de entrega | Opcional. Sustituye al título como lo primero que lleva el nombre del fichero al descargar una entrega — ver [Nombre del fichero descargado](#nombre-del-fichero-descargado). Vacío por defecto: se usa el título. Un guion («-») a solas quita el prefijo del todo. |
 
 ## Entregas y revisión {#entregas-y-revision}
 
@@ -110,14 +111,19 @@ aparece encima de «Mis entregas».
 
 ### Nombre del fichero descargado {#nombre-del-fichero-descargado}
 
-Al descargar una entrega, el nombre del fichero antepone el título de la actividad al
+Al descargar una entrega, el nombre del fichero antepone el título de la actividad —o su
+**prefijo de entrega**, si la actividad tiene uno configurado (ver
+[Campos de una actividad](#campos-de-una-actividad))— al
 [nombre del documento](07-arbol-documental.md#revision-activa-historial-y-descarga), separados por
-« - » — p. ej. **«Programación didáctica - Tutor/a.pdf»**. Si la actividad es de ámbito
-**individual**, añade también el nombre de quien la subió al final:
-**«Programación didáctica - Tutor/a - García, Ana.pdf»** — al ser una entrega personal, y no
-compartida por todo el que tenga el perfil, identifica de un vistazo de quién es cada fichero
-descargado. Un documento del árbol que no sea la entrega de ninguna actividad sigue llevando solo
-su propio nombre, sin cambios.
+« - » — p. ej. **«Programación didáctica - Tutor/a.pdf»**, o **«PD - Tutor/a.pdf»** con el prefijo
+«PD». Escribir un guion («-») a solas como prefijo de entrega quita el prefijo del todo —ni el
+título ni ningún otro texto—, dejando el nombre del fichero empezar directamente por el del
+documento: **«Tutor/a.pdf»**. Si la actividad es de ámbito **individual**, añade también el nombre
+de quien la subió al final: **«Programación didáctica - Tutor/a - García, Ana.pdf»** (o
+**«Tutor/a - García, Ana.pdf»**, con el guion) — al ser una entrega personal, y no compartida por
+todo el que tenga el perfil, identifica de un vistazo de quién es cada fichero descargado. Un
+documento del árbol que no sea la entrega de ninguna actividad sigue llevando solo su propio
+nombre, sin cambios.
 
 ### Retirar o sustituir una entrega propia
 

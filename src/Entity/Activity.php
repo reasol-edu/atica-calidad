@@ -37,6 +37,13 @@ class Activity
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
+    /**
+     * Overrides the activity's own title as the prefix a submission's downloaded filename leads
+     * with — see FolderController::downloadNameParts(). Null (the default) means "use the title".
+     */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $submissionPrefix = null;
+
     /** Deadline is a day/month pair, not a date — it repeats every academic year, with no year of its own. */
     #[ORM\Column]
     private int $startDay;
@@ -146,6 +153,18 @@ class Activity
     public function setDescription(?string $description): static
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    public function getSubmissionPrefix(): ?string
+    {
+        return $this->submissionPrefix;
+    }
+
+    public function setSubmissionPrefix(?string $submissionPrefix): static
+    {
+        $this->submissionPrefix = $submissionPrefix;
 
         return $this;
     }

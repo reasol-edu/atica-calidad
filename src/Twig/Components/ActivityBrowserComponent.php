@@ -93,6 +93,10 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $formDescription = '';
 
+    /** Overrides the activity's own title as the prefix a submission's downloaded filename leads with — see FolderController::downloadNameParts(). Empty means "use the title", the default. */
+    #[LiveProp(writable: true)]
+    public string $formSubmissionPrefix = '';
+
     #[LiveProp(writable: true)]
     public string $formStartDay = '';
 
@@ -516,6 +520,7 @@ class ActivityBrowserComponent extends AbstractController
         $this->formActivityId  = '';
         $this->formTitle       = '';
         $this->formDescription = '';
+        $this->formSubmissionPrefix = '';
         $this->formStartDay    = '';
         $this->formStartMonth  = '';
         $this->formEndDay      = '';
@@ -547,6 +552,7 @@ class ActivityBrowserComponent extends AbstractController
         $this->formActivityId   = $id;
         $this->formTitle        = $activity->getTitle();
         $this->formDescription  = $activity->getDescription() ?? '';
+        $this->formSubmissionPrefix = $activity->getSubmissionPrefix() ?? '';
         $this->formStartDay     = (string) $activity->getStartDay();
         $this->formStartMonth   = (string) $activity->getStartMonth();
         $this->formEndDay       = (string) $activity->getEndDay();
@@ -619,6 +625,8 @@ class ActivityBrowserComponent extends AbstractController
 
         $activity->setTitle($title);
         $activity->setDescription($this->formDescription !== '' ? $this->formDescription : null);
+        $submissionPrefix = trim($this->formSubmissionPrefix);
+        $activity->setSubmissionPrefix($submissionPrefix !== '' ? $submissionPrefix : null);
         $activity->setStart($startDay, $startMonth);
         $activity->setEnd($endDay, $endMonth);
         $activity->setListItem($listItem);

@@ -48,6 +48,13 @@ class FolderController extends AbstractController
 
     private const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024;
 
+    /**
+     * The activity's own "submission prefix" setting, set to exactly this, means "no prefix at
+     * all" — not even the title — rather than a literal one-character prefix. See
+     * downloadNameParts() and Activity::getSubmissionPrefix().
+     */
+    private const NO_PREFIX_SENTINEL = '-';
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
@@ -278,11 +285,12 @@ class FolderController extends AbstractController
 
     /**
      * The document's own name, keeping the extension of the file that was actually uploaded — for
-     * an activity's own submission, prefixed with the activity's title and, when it's an
-     * Individual-scope activity (so this document belongs to one specific teacher, not shared by
-     * everyone holding a profile), suffixed with that teacher's name: an otherwise anonymous
-     * "Tutor/a.pdf" downloads as "Programación didáctica - Tutor/a - García, Ana.pdf". A plain
-     * document-tree file (no activity) keeps just its own name, as before.
+     * an activity's own submission, prefixed with the activity's own "submission prefix" setting if
+     * it has one, its title otherwise (unless the prefix is exactly "-", meaning no prefix at all),
+     * and, when it's an Individual-scope activity (so this document belongs to one specific
+     * teacher, not shared by everyone holding a profile), suffixed with that teacher's name: an
+     * otherwise anonymous "Tutor/a.pdf" downloads as "Programación didáctica - Tutor/a - García,
+     * Ana.pdf". A plain document-tree file (no activity) keeps just its own name, as before.
      */
     private function downloadFilename(Document $document, DocumentFile $file): string
     {
@@ -300,7 +308,12 @@ class FolderController extends AbstractController
             return [$document->getName()];
         }
 
-        $parts = [$activity->getTitle(), $document->getName()];
+        $parts  = [];
+        $prefix = $activity->getSubmissionPrefix();
+        if ($prefix !== self::NO_PREFIX_SENTINEL) {
+            $parts[] = $prefix !== null && $prefix !== '' ? $prefix : $activity->getTitle();
+        }
+        $parts[] = $document->getName();
 
         if ($activity->getSubmissionScope() === ActivitySubmissionScope::Individual) {
             $uploader = $document->getFirstRevision()?->getUploadedBy();

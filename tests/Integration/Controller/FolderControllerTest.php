@@ -639,6 +639,72 @@ final class FolderControllerTest extends ControllerTestCase
         self::assertSame('Programación didáctica - Tutor_a - García, Ana.pdf', $this->downloadedUtf8Filename());
     }
 
+    /** The activity's own "submission prefix" setting, when set, replaces the title as the leading part of the downloaded filename. */
+    public function testDownloadFilenameUsesTheActivitysOwnSubmissionPrefixWhenSet(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $folder->addUploadProfile($profile);
+        $activity = $this->activity($category, 'Programación didáctica 2026-2027')
+            ->setFolder($folder)
+            ->setSubmissionScope(ActivitySubmissionScope::Individual)
+            ->setSubmissionPrefix('PD');
+        $uploader   = (new Teacher(new PersonName('Ana', 'García')))->setUsername('agarcia');
+        $assignment = new SpecificProfileAssignment($profile, null, $uploader);
+
+        $document = new Document($folder, 'Tutor/a');
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'programacion.pdf', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $uploader);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $uploader, $assignment, $document, $file, $revision);
+        $folderId   = $folder->getId()->toRfc4122();
+        $documentId = $document->getId()->toRfc4122();
+        $revisionId = $revision->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones/{$revisionId}/descargar");
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertSame('PD - Tutor_a - García, Ana.pdf', $this->downloadedUtf8Filename());
+    }
+
+    /** A submission prefix of exactly "-" means no prefix at all — not even the title — leading the filename straight with the document's own name (and, for Individual scope, the uploader's). */
+    public function testDownloadFilenameOmitsThePrefixEntirelyWhenSetToASingleHyphen(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $folder->addUploadProfile($profile);
+        $activity = $this->activity($category, 'Programación didáctica')
+            ->setFolder($folder)
+            ->setSubmissionScope(ActivitySubmissionScope::Individual)
+            ->setSubmissionPrefix('-');
+        $uploader   = (new Teacher(new PersonName('Ana', 'García')))->setUsername('agarcia');
+        $assignment = new SpecificProfileAssignment($profile, null, $uploader);
+
+        $document = new Document($folder, 'Tutor/a');
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'programacion.pdf', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $uploader);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $uploader, $assignment, $document, $file, $revision);
+        $folderId   = $folder->getId()->toRfc4122();
+        $documentId = $document->getId()->toRfc4122();
+        $revisionId = $revision->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones/{$revisionId}/descargar");
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertSame('Tutor_a - García, Ana.pdf', $this->downloadedUtf8Filename());
+    }
+
     /** ByProfile scope: the document is shared by everyone holding the profile, so there is no one uploader to name — only the activity title is prefixed. */
     public function testDownloadFilenamePrefixesJustTheActivityTitleForAByProfileSubmission(): void
     {

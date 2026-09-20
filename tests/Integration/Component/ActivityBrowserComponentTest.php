@@ -1566,6 +1566,129 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertSame('3', $instance->formEndDateGraceDays);
     }
 
+    public function testSaveActivityStoresTheSubmissionPrefix(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $component
+            ->set('formTitle', 'Programación didáctica 2026-2027')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formSubmissionPrefix', '  PD  ')
+            ->call('saveActivity');
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities       = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedCategory = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        $created = $activities->findByCategory($reloadedCategory)[0];
+        self::assertSame('PD', $created->getSubmissionPrefix(), 'must be trimmed before storing');
+    }
+
+    /** A blank (or whitespace-only) prefix is stored as null — "unset", falling back to the title — not as an empty string. */
+    public function testSaveActivityTreatsABlankSubmissionPrefixAsUnset(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $component
+            ->set('formTitle', 'Sin prefijo propio')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formSubmissionPrefix', '   ')
+            ->call('saveActivity');
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities       = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedCategory = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        $created = $activities->findByCategory($reloadedCategory)[0];
+        self::assertNull($created->getSubmissionPrefix());
+    }
+
+    /** A single hyphen is a real value ("no prefix at all" — see FolderController::downloadNameParts()), not blank: it must survive saving exactly as typed. */
+    public function testSaveActivityStoresASingleHyphenLiterallyRatherThanTreatingItAsBlank(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $component
+            ->set('formTitle', 'Sin prefijo')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formSubmissionPrefix', '-')
+            ->call('saveActivity');
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities       = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedCategory = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        $created = $activities->findByCategory($reloadedCategory)[0];
+        self::assertSame('-', $created->getSubmissionPrefix());
+    }
+
+    public function testStartEditActivityLoadsTheSubmissionPrefix(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category)->setSubmissionPrefix('PD');
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $activity, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()]);
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertSame('PD', $instance->formSubmissionPrefix);
+    }
+
+    public function testStartEditActivityLeavesTheSubmissionPrefixEmptyWhenUnset(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $activity, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()]);
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertSame('', $instance->formSubmissionPrefix);
+    }
+
     public function testGraceDaysFieldOnlyShowsWhileTheEndDateIsEnforced(): void
     {
         $centre   = $this->centre();
