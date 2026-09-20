@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-20
+
 ### Added
 
 - **Búsqueda**: en PostgreSQL, todas las búsquedas y filtros por texto (docentes, centros,
