@@ -171,6 +171,22 @@ class Document
         );
     }
 
+    /**
+     * The revision that originally created this document (version 1) — null if it was since
+     * deleted outright by an admin/responsable de calidad (see
+     * ActivityBrowserComponent::deleteRevision()), which is the only way a document can end up
+     * without one. Its uploader is what ActivitySubmissionSlotBuilder::resolveSlot() matches on to
+     * tell apart several teachers' own documents in an Individual-scope activity (see
+     * DocumentRepository::findOneByFolderProfileListItemNameAndFirstUploader()) — i.e. whose
+     * submission this document is, as opposed to who happens to hold its active revision today.
+     */
+    public function getFirstRevision(): ?DocumentRevision
+    {
+        return $this->revisions->findFirst(
+            static fn (int $i, DocumentRevision $r): bool => $r->getVersion() === 1
+        );
+    }
+
     public function getNextVersion(): int
     {
         $max = 0;

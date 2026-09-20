@@ -195,7 +195,8 @@ elegirse como activa, pero queda en el historial.
 El icono de descarga de cada documento baja siempre su **revisión activa**; si todavía no tiene
 ninguna (primera versión aún pendiente), el documento se muestra como «Pendiente» en su lugar. El
 fichero descargado usa el **nombre del documento**, no el del fichero original que se subió —
-conservando su extensión.
+conservando su extensión. Si el documento es la entrega de una actividad, el nombre lleva delante
+el título de la actividad — ver [Nombre del fichero descargado](08-actividades.md#nombre-del-fichero-descargado).
 
 El enlace **«Descargar la carpeta (ZIP)»**, encima de la lista de documentos, empaqueta de una vez
 la revisión activa de todos los documentos de la carpeta (los que aún no tienen revisión activa

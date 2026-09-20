@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Controller;
 
+use App\Entity\Activity;
+use App\Entity\ActivityCategory;
+use App\Entity\ActivitySubmissionScope;
 use App\Entity\AllowedFileFormat;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
@@ -570,6 +573,115 @@ final class FolderControllerTest extends ControllerTestCase
         $disposition = $this->client->getResponse()->headers->get('Content-Disposition');
         self::assertNotNull($disposition);
         self::assertStringNotContainsString('Tutor/a', $disposition, 'the "/" must never reach the Content-Disposition header');
+    }
+
+    // ── download() filename for an activity submission ──────────────────────
+
+    private function category(EducationalCentre $centre): ActivityCategory
+    {
+        return (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+    }
+
+    private function activity(ActivityCategory $category, string $title = 'Actividad'): Activity
+    {
+        return (new Activity())->setCategory($category)->setTitle($title)->setStart(1, 9)->setEnd(30, 6);
+    }
+
+    /**
+     * The exact filename the client actually receives, decoded — makeDisposition() only emits the
+     * RFC 5987 filename*=utf-8''… parameter (which preserves accents/punctuation the ASCII
+     * fallback would strip) when it differs from the plain ASCII one, so a plain-ASCII name like
+     * "Informe.txt" carries no such parameter at all and must be read from filename= instead.
+     */
+    private function downloadedUtf8Filename(): string
+    {
+        $disposition = $this->client->getResponse()->headers->get('Content-Disposition');
+        self::assertNotNull($disposition);
+
+        if (preg_match("/filename\*=utf-8''([^;]+)/", $disposition, $matches) === 1) {
+            return rawurldecode($matches[1]);
+        }
+
+        self::assertMatchesRegularExpression('/filename="?([^;"]+)"?/', $disposition);
+        preg_match('/filename="?([^;"]+)"?/', $disposition, $matches);
+
+        return $matches[1];
+    }
+
+    public function testDownloadFilenameIncludesTheActivityAndUploaderForAnIndividualSubmission(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $folder->addUploadProfile($profile);
+        $activity = $this->activity($category, 'Programación didáctica')
+            ->setFolder($folder)
+            ->setSubmissionScope(ActivitySubmissionScope::Individual);
+        $uploader   = (new Teacher(new PersonName('Ana', 'García')))->setUsername('agarcia');
+        $assignment = new SpecificProfileAssignment($profile, null, $uploader);
+
+        $document = new Document($folder, 'Tutor/a');
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'programacion.pdf', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $uploader);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $uploader, $assignment, $document, $file, $revision);
+        $folderId   = $folder->getId()->toRfc4122();
+        $documentId = $document->getId()->toRfc4122();
+        $revisionId = $revision->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones/{$revisionId}/descargar");
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertSame('Programación didáctica - Tutor_a - García, Ana.pdf', $this->downloadedUtf8Filename());
+    }
+
+    /** ByProfile scope: the document is shared by everyone holding the profile, so there is no one uploader to name — only the activity title is prefixed. */
+    public function testDownloadFilenamePrefixesJustTheActivityTitleForAByProfileSubmission(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $activity = $this->activity($category, 'Reunión de departamento')->setFolder($folder);
+        $uploader = $this->teacher('subidor');
+        $document = $this->documentWithFirstRevision($folder, $uploader, 'Acta');
+        $revision = $document->getActiveRevision();
+        self::assertNotNull($revision);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $activity, $uploader, $document);
+        $folderId   = $folder->getId()->toRfc4122();
+        $documentId = $document->getId()->toRfc4122();
+        $revisionId = $revision->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones/{$revisionId}/descargar");
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertSame('Reunión de departamento - Acta.txt', $this->downloadedUtf8Filename());
+    }
+
+    /** A plain document-tree file, unrelated to any activity, keeps its own name exactly as before. */
+    public function testDownloadFilenameIsUnchangedForAPlainDocumentTreeFile(): void
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($centre);
+        $uploader = $this->teacher('subidor');
+        $document = $this->documentWithFirstRevision($folder, $uploader, 'Informe');
+        $revision = $document->getActiveRevision();
+        self::assertNotNull($revision);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $uploader, $document);
+        $folderId   = $folder->getId()->toRfc4122();
+        $documentId = $document->getId()->toRfc4122();
+        $revisionId = $revision->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones/{$revisionId}/descargar");
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertSame('Informe.txt', $this->downloadedUtf8Filename());
     }
 
     // ── downloadZip() ────────────────────────────────────────────────────────

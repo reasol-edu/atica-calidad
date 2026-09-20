@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Actividades**: el fichero descargado de una entrega ahora lleva delante el nombre de la
+  actividad, separado con « - » (p. ej. «Programación didáctica - Tutor/a.pdf»); si la actividad es
+  de ámbito **individual**, añade también el nombre de quien la subió al final (p. ej.
+  «Programación didáctica - Tutor/a - García, Ana.pdf»). Un documento del árbol sin actividad
+  detrás conserva su nombre tal cual, como hasta ahora.
+
 ## [1.3.1] - 2026-09-20
 
 ### Fixed

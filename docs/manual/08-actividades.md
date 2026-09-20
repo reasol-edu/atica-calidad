@@ -108,6 +108,17 @@ aplica aquí sin cambios: una entrega **es** un documento de esa carpeta. Si la 
 docente todavía le queda alguna entrega propia por hacer, un aviso **«Formatos aceptados: ...»**
 aparece encima de «Mis entregas».
 
+### Nombre del fichero descargado {#nombre-del-fichero-descargado}
+
+Al descargar una entrega, el nombre del fichero antepone el título de la actividad al
+[nombre del documento](07-arbol-documental.md#revision-activa-historial-y-descarga), separados por
+« - » — p. ej. **«Programación didáctica - Tutor/a.pdf»**. Si la actividad es de ámbito
+**individual**, añade también el nombre de quien la subió al final:
+**«Programación didáctica - Tutor/a - García, Ana.pdf»** — al ser una entrega personal, y no
+compartida por todo el que tenga el perfil, identifica de un vistazo de quién es cada fichero
+descargado. Un documento del árbol que no sea la entrega de ninguna actividad sigue llevando solo
+su propio nombre, sin cambios.
+
 ### Retirar o sustituir una entrega propia
 
 Mientras nadie haya revisado todavía la entrega —está **pendiente de visto bueno**, o ya se

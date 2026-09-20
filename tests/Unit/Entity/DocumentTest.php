@@ -126,6 +126,26 @@ final class DocumentTest extends TestCase
         self::assertSame(4, $document->getNextVersion());
     }
 
+    public function testGetFirstRevisionFindsVersionOne(): void
+    {
+        $document = new Document($this->folder(), 'Doc');
+        $first    = $this->revision($document, 1, false);
+        $second   = $this->revision($document, 2, false);
+        $document->getRevisions()->add($first);
+        $document->getRevisions()->add($second);
+
+        self::assertSame($first, $document->getFirstRevision());
+    }
+
+    /** Version 1 can be deleted outright (by an admin/responsable de calidad) while later revisions remain — see the method's own docblock. */
+    public function testGetFirstRevisionReturnsNullWhenVersionOneWasDeleted(): void
+    {
+        $document = new Document($this->folder(), 'Doc');
+        $document->getRevisions()->add($this->revision($document, 2, false));
+
+        self::assertNull($document->getFirstRevision());
+    }
+
     public function testHasVersion(): void
     {
         $document = new Document($this->folder(), 'Doc');

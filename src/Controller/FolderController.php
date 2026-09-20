@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Attribute\CurrentCentre;
+use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
 use App\Entity\DocumentReviewNotificationKind;
@@ -275,12 +276,40 @@ class FolderController extends AbstractController
         return $this->downloadResponder->respond($file->getContent(), $file->getMimeType(), $this->downloadFilename($document, $file));
     }
 
-    /** The document's own name, keeping the extension of the file that was actually uploaded. */
+    /**
+     * The document's own name, keeping the extension of the file that was actually uploaded — for
+     * an activity's own submission, prefixed with the activity's title and, when it's an
+     * Individual-scope activity (so this document belongs to one specific teacher, not shared by
+     * everyone holding a profile), suffixed with that teacher's name: an otherwise anonymous
+     * "Tutor/a.pdf" downloads as "Programación didáctica - Tutor/a - García, Ana.pdf". A plain
+     * document-tree file (no activity) keeps just its own name, as before.
+     */
     private function downloadFilename(Document $document, DocumentFile $file): string
     {
         $extension = pathinfo($file->getOriginalFilename(), PATHINFO_EXTENSION);
+        $name      = implode(' - ', $this->downloadNameParts($document));
 
-        return $extension === '' ? $document->getName() : $document->getName() . '.' . $extension;
+        return $extension === '' ? $name : $name . '.' . $extension;
+    }
+
+    /** @return string[] */
+    private function downloadNameParts(Document $document): array
+    {
+        $activity = $document->getFolder()->getActivity();
+        if ($activity === null) {
+            return [$document->getName()];
+        }
+
+        $parts = [$activity->getTitle(), $document->getName()];
+
+        if ($activity->getSubmissionScope() === ActivitySubmissionScope::Individual) {
+            $uploader = $document->getFirstRevision()?->getUploadedBy();
+            if ($uploader !== null) {
+                $parts[] = $uploader->getName()->getLastName() . ', ' . $uploader->getName()->getFirstName();
+            }
+        }
+
+        return $parts;
     }
 
     /**
