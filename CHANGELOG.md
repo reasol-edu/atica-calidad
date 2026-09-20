@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-20
+
 ### Changed
 
 - **Actividades**: el fichero descargado de una entrega ahora lleva delante el nombre de la
