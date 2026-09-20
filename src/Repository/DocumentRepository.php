@@ -95,10 +95,10 @@ class DocumentRepository extends ServiceEntityRepository
             ->leftJoin('rev.uploadedBy', 'u')
             ->where('s.educationalCentre = :centre')
             ->andWhere(
-                'LOWER(d.name) LIKE LOWER(:query)'
-                . ' OR LOWER(p.name) LIKE LOWER(:query)'
-                . ' OR LOWER(u.name.firstName) LIKE LOWER(:query)'
-                . ' OR LOWER(u.name.lastName) LIKE LOWER(:query)'
+                'UNACCENT(LOWER(d.name)) LIKE UNACCENT(LOWER(:query))'
+                . ' OR UNACCENT(LOWER(p.name)) LIKE UNACCENT(LOWER(:query))'
+                . ' OR UNACCENT(LOWER(u.name.firstName)) LIKE UNACCENT(LOWER(:query))'
+                . ' OR UNACCENT(LOWER(u.name.lastName)) LIKE UNACCENT(LOWER(:query))'
             )
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
@@ -122,7 +122,7 @@ class DocumentRepository extends ServiceEntityRepository
             ->join('d.folder', 'f')
             ->join('f.documentSection', 's')
             ->where('s.educationalCentre = :centre')
-            ->andWhere('LOWER(d.name) LIKE LOWER(:query) OR LOWER(f.name) LIKE LOWER(:query)')
+            ->andWhere('UNACCENT(LOWER(d.name)) LIKE UNACCENT(LOWER(:query)) OR UNACCENT(LOWER(f.name)) LIKE UNACCENT(LOWER(:query))')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
             ->orderBy('d.name', 'ASC')
@@ -220,7 +220,7 @@ class DocumentRepository extends ServiceEntityRepository
             ->join('f.activity', 'a')
             ->join('f.documentSection', 's')
             ->where('s.educationalCentre = :centre')
-            ->andWhere('LOWER(d.name) LIKE LOWER(:query)')
+            ->andWhere('UNACCENT(LOWER(d.name)) LIKE UNACCENT(LOWER(:query))')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
             ->orderBy('d.name', 'ASC')

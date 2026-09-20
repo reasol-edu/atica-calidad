@@ -43,10 +43,10 @@ class EmailNotificationLogRepository extends ServiceEntityRepository
         if ($search !== '') {
             $qb->andWhere(
                 $qb->expr()->orX(
-                    'LOWER(l.recipientName) LIKE LOWER(:search)',
-                    'LOWER(l.subject) LIKE LOWER(:search)',
-                    'LOWER(r.name.firstName) LIKE LOWER(:search)',
-                    'LOWER(r.name.lastName) LIKE LOWER(:search)',
+                    'UNACCENT(LOWER(l.recipientName)) LIKE UNACCENT(LOWER(:search))',
+                    'UNACCENT(LOWER(l.subject)) LIKE UNACCENT(LOWER(:search))',
+                    'UNACCENT(LOWER(r.name.firstName)) LIKE UNACCENT(LOWER(:search))',
+                    'UNACCENT(LOWER(r.name.lastName)) LIKE UNACCENT(LOWER(:search))',
                 )
             )->setParameter('search', '%' . $search . '%');
         }

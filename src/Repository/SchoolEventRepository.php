@@ -107,8 +107,8 @@ class SchoolEventRepository extends ServiceEntityRepository
         if ($search !== '') {
             $qb->andWhere(
                 $qb->expr()->orX(
-                    'LOWER(se.name) LIKE LOWER(:search)',
-                    'LOWER(se.description) LIKE LOWER(:search)',
+                    'UNACCENT(LOWER(se.name)) LIKE UNACCENT(LOWER(:search))',
+                    'UNACCENT(LOWER(se.description)) LIKE UNACCENT(LOWER(:search))',
                 )
             )->setParameter('search', '%' . $search . '%');
         }

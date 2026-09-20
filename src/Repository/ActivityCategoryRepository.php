@@ -47,7 +47,7 @@ class ActivityCategoryRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('ac')
             ->where('ac.educationalCentre = :centre')
-            ->andWhere('LOWER(ac.name) LIKE LOWER(:query)')
+            ->andWhere('UNACCENT(LOWER(ac.name)) LIKE UNACCENT(LOWER(:query))')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
             ->orderBy('ac.name', 'ASC')

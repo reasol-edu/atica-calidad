@@ -47,7 +47,7 @@ class DocumentSectionRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('ds')
             ->where('ds.educationalCentre = :centre')
-            ->andWhere('LOWER(ds.name) LIKE LOWER(:query)')
+            ->andWhere('UNACCENT(LOWER(ds.name)) LIKE UNACCENT(LOWER(:query))')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
             ->orderBy('ds.name', 'ASC')

@@ -59,12 +59,12 @@ class ActivityLogRepository extends ServiceEntityRepository
         $userQuery = trim($filters['userQuery'] ?? '');
         if ($userQuery !== '') {
             $qb->andWhere($qb->expr()->orX(
-                'LOWER(u.name.firstName) LIKE LOWER(:userQuery)',
-                'LOWER(u.name.lastName) LIKE LOWER(:userQuery)',
-                'LOWER(u.username) LIKE LOWER(:userQuery)',
-                'LOWER(r.name.firstName) LIKE LOWER(:userQuery)',
-                'LOWER(r.name.lastName) LIKE LOWER(:userQuery)',
-                'LOWER(r.username) LIKE LOWER(:userQuery)',
+                'UNACCENT(LOWER(u.name.firstName)) LIKE UNACCENT(LOWER(:userQuery))',
+                'UNACCENT(LOWER(u.name.lastName)) LIKE UNACCENT(LOWER(:userQuery))',
+                'UNACCENT(LOWER(u.username)) LIKE UNACCENT(LOWER(:userQuery))',
+                'UNACCENT(LOWER(r.name.firstName)) LIKE UNACCENT(LOWER(:userQuery))',
+                'UNACCENT(LOWER(r.name.lastName)) LIKE UNACCENT(LOWER(:userQuery))',
+                'UNACCENT(LOWER(r.username)) LIKE UNACCENT(LOWER(:userQuery))',
             ))->setParameter('userQuery', '%' . $userQuery . '%');
         }
 

@@ -37,7 +37,7 @@ class FolderRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('f')
             ->join('f.documentSection', 's')
             ->where('s.educationalCentre = :centre')
-            ->andWhere('LOWER(f.name) LIKE LOWER(:query)')
+            ->andWhere('UNACCENT(LOWER(f.name)) LIKE UNACCENT(LOWER(:query))')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
             ->orderBy('f.name', 'ASC')

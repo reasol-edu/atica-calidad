@@ -36,9 +36,9 @@ class TeacherAutocompleter implements EntityAutocompleterInterface
         $q = '%' . $query . '%';
 
         return $qb
-            ->where('LOWER(t.name.firstName) LIKE LOWER(:q)')
-            ->orWhere('LOWER(t.name.lastName) LIKE LOWER(:q)')
-            ->orWhere('LOWER(t.username) LIKE LOWER(:q)')
+            ->where('UNACCENT(LOWER(t.name.firstName)) LIKE UNACCENT(LOWER(:q))')
+            ->orWhere('UNACCENT(LOWER(t.name.lastName)) LIKE UNACCENT(LOWER(:q))')
+            ->orWhere('UNACCENT(LOWER(t.username)) LIKE UNACCENT(LOWER(:q))')
             ->setParameter('q', $q)
             ->orderBy('t.name.lastName', 'ASC')
             ->addOrderBy('t.name.firstName', 'ASC');

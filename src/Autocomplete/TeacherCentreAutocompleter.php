@@ -59,9 +59,9 @@ class TeacherCentreAutocompleter implements EntityAutocompleterInterface
         return $qb
             ->andWhere(
                 $qb->expr()->orX(
-                    'LOWER(t.name.firstName) LIKE LOWER(:q)',
-                    'LOWER(t.name.lastName) LIKE LOWER(:q)',
-                    'LOWER(t.username) LIKE LOWER(:q)',
+                    'UNACCENT(LOWER(t.name.firstName)) LIKE UNACCENT(LOWER(:q))',
+                    'UNACCENT(LOWER(t.name.lastName)) LIKE UNACCENT(LOWER(:q))',
+                    'UNACCENT(LOWER(t.username)) LIKE UNACCENT(LOWER(:q))',
                 )
             )
             ->setParameter('q', $q)

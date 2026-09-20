@@ -18,7 +18,13 @@ sudo apt-get update && sudo apt-get install -y postgresql postgresql-client curl
 sudo -u postgres psql -c "CREATE USER atica WITH PASSWORD 'contraseña_segura';"
 sudo -u postgres psql -c "CREATE DATABASE atica OWNER atica;"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE atica TO atica;"
+sudo -u postgres psql -d atica -c "CREATE EXTENSION IF NOT EXISTS unaccent"
 ```
+
+El último comando activa la extensión `unaccent` (requiere permisos de superusuario, por eso se hace
+con el rol `postgres` y no con `atica`): permite que las búsquedas y filtros por texto ignoren
+tildes («Jose» encuentra también «José»). Si se omite o falla, la aplicación funciona con
+normalidad, solo que sin esta mejora — las migraciones vuelven a intentarlo cada vez que arranca.
 
 ## 2. Configurar el cortafuegos
 

@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Búsqueda**: en PostgreSQL, todas las búsquedas y filtros por texto (docentes, centros,
+  documentos, carpetas, secciones, actividades, categorías, eventos, registro de actividad y de
+  avisos por correo) ahora ignoran tildes: buscar «Jose» encuentra también «José». En MySQL/MariaDB
+  se fuerza la collation `utf8mb4_unicode_ci` en la propia comparación, con el mismo efecto, sin
+  depender de la que traiga el servidor por defecto. SQLite no se ve afectado.
+
 ## [1.2.0] - 2026-09-13
 
 ### Added
