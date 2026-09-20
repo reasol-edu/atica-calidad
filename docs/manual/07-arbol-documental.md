@@ -200,9 +200,12 @@ el título de la actividad — ver [Nombre del fichero descargado](08-actividade
 
 El enlace **«Descargar la carpeta (ZIP)»**, encima de la lista de documentos, empaqueta de una vez
 la revisión activa de todos los documentos de la carpeta (los que aún no tienen revisión activa
-quedan fuera). Si la carpeta está **organizada por perfil de subida**, dentro del ZIP cada perfil
-es una subcarpeta con su nombre —los caracteres que no valen en un nombre de fichero se
-sustituyen por `_`—, y los documentos sin perfil van en la raíz del archivo.
+quedan fuera). Cada fichero dentro del ZIP lleva el mismo nombre que tendría al descargarse suelto
+—incluida la regla de las entregas de una actividad, ver arriba— así que, en una actividad de
+ámbito individual, el ZIP distingue igual de bien la entrega de cada docente. Si la carpeta está
+**organizada por perfil de subida**, dentro del ZIP cada perfil es una subcarpeta con su nombre
+—los caracteres que no valen en un nombre de fichero se sustituyen por `_`—, y los documentos sin
+perfil van en la raíz del archivo.
 
 Quien es responsable de la carpeta (o tiene permiso de revisión, para poder aprobar con
 conocimiento del histórico) puede abrir el **historial completo de revisiones**: fecha, quién la

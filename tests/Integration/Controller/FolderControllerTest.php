@@ -813,6 +813,58 @@ final class FolderControllerTest extends ControllerTestCase
         self::assertSame(['Ciencias_Física.txt' => 'v1'], $this->readZipResponse());
     }
 
+    /**
+     * Regression: every teacher's own submission to an Individual-scope activity shares the exact
+     * same document name (the profile's own name, e.g. "Tutor/a" — see
+     * ActivitySubmissionSlotBuilder) — before ActivitySubmissionFilenameBuilder, the ZIP entries
+     * were told apart only by AttachmentZipExporter's own " (2)", " (3)"… de-duplication, with no
+     * way to tell whose was whose without opening each file. They must instead carry the same
+     * activity + uploader naming a single-revision download already does.
+     */
+    public function testDownloadZipNamesEachIndividualSubmissionAfterItsOwnUploader(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $folder->addUploadProfile($profile);
+        $activity = $this->activity($category, 'Programación didáctica')
+            ->setFolder($folder)
+            ->setSubmissionScope(ActivitySubmissionScope::Individual);
+
+        $garcia = (new Teacher(new PersonName('Ana', 'García')))->setUsername('agarcia');
+        $lopez  = (new Teacher(new PersonName('Luis', 'López')))->setUsername('llopez');
+
+        $docGarcia = new Document($folder, 'Tutor/a');
+        $fileGarcia = new DocumentFile(hash('sha256', 'garcia'), 'garcia', 'text/plain', 'g.txt', 1);
+        $revGarcia  = new DocumentRevision($docGarcia, 1, $fileGarcia, false, $garcia);
+        $docGarcia->getRevisions()->add($revGarcia);
+        $docGarcia->setActiveRevision($revGarcia);
+
+        $docLopez = new Document($folder, 'Tutor/a');
+        $fileLopez = new DocumentFile(hash('sha256', 'lopez'), 'lopez', 'text/plain', 'l.txt', 1);
+        $revLopez  = new DocumentRevision($docLopez, 1, $fileLopez, false, $lopez);
+        $docLopez->getRevisions()->add($revLopez);
+        $docLopez->setActiveRevision($revLopez);
+
+        $this->persist(
+            $centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity,
+            $garcia, $lopez, $docGarcia, $fileGarcia, $revGarcia, $docLopez, $fileLopez, $revLopez,
+        );
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($garcia, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip");
+
+        self::assertSame(
+            [
+                'Programación didáctica - Tutor_a - García, Ana.txt' => 'garcia',
+                'Programación didáctica - Tutor_a - López, Luis.txt' => 'lopez',
+            ],
+            $this->readZipResponse(),
+        );
+    }
+
     public function testDownloadZipSkipsDocumentsWithoutAnActiveRevision(): void
     {
         $centre   = $this->centre();

@@ -7,6 +7,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Actividades**: al descargar en ZIP la carpeta de una actividad de ámbito **individual**, cada
+  entrega dentro del ZIP ya lleva el nombre de quien la subió, igual que al descargarla suelta —
+  antes todas compartían el nombre del perfil y solo se distinguían por un «(2)», «(3)»… añadido
+  al repetirse.
+
 ## [1.4.0] - 2026-09-20
 
 ### Changed

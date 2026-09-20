@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Attribute\CurrentCentre;
-use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
 use App\Entity\DocumentReviewNotificationKind;
@@ -18,6 +17,7 @@ use App\Repository\DocumentRevisionRepository;
 use App\Repository\FolderRepository;
 use App\Security\Voter\FolderVoter;
 use App\Service\ActivityLogger;
+use App\Service\ActivitySubmissionFilenameBuilder;
 use App\Service\AttachmentDownloadResponder;
 use App\Service\DocumentCreationService;
 use App\Service\DocumentReviewNotifier;
@@ -48,13 +48,6 @@ class FolderController extends AbstractController
 
     private const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024;
 
-    /**
-     * The activity's own "submission prefix" setting, set to exactly this, means "no prefix at
-     * all" — not even the title — rather than a literal one-character prefix. See
-     * downloadNameParts() and Activity::getSubmissionPrefix().
-     */
-    private const NO_PREFIX_SENTINEL = '-';
-
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
@@ -68,6 +61,7 @@ class FolderController extends AbstractController
         private readonly DocumentReviewOutcomeNotifier $outcomeNotifier,
         private readonly FolderZipExporter $folderZipExporter,
         private readonly ActivityLogger $activityLogger,
+        private readonly ActivitySubmissionFilenameBuilder $submissionFilename,
     ) {}
 
     /**
@@ -290,39 +284,15 @@ class FolderController extends AbstractController
      * and, when it's an Individual-scope activity (so this document belongs to one specific
      * teacher, not shared by everyone holding a profile), suffixed with that teacher's name: an
      * otherwise anonymous "Tutor/a.pdf" downloads as "Programación didáctica - Tutor/a - García,
-     * Ana.pdf". A plain document-tree file (no activity) keeps just its own name, as before.
+     * Ana.pdf". A plain document-tree file (no activity) keeps just its own name, as before. See
+     * ActivitySubmissionFilenameBuilder, shared with FolderZipExporter's own entry names.
      */
     private function downloadFilename(Document $document, DocumentFile $file): string
     {
         $extension = pathinfo($file->getOriginalFilename(), PATHINFO_EXTENSION);
-        $name      = implode(' - ', $this->downloadNameParts($document));
+        $name      = implode(' - ', $this->submissionFilename->nameParts($document));
 
         return $extension === '' ? $name : $name . '.' . $extension;
-    }
-
-    /** @return string[] */
-    private function downloadNameParts(Document $document): array
-    {
-        $activity = $document->getFolder()->getActivity();
-        if ($activity === null) {
-            return [$document->getName()];
-        }
-
-        $parts  = [];
-        $prefix = $activity->getSubmissionPrefix();
-        if ($prefix !== self::NO_PREFIX_SENTINEL) {
-            $parts[] = $prefix !== null && $prefix !== '' ? $prefix : $activity->getTitle();
-        }
-        $parts[] = $document->getName();
-
-        if ($activity->getSubmissionScope() === ActivitySubmissionScope::Individual) {
-            $uploader = $document->getFirstRevision()?->getUploadedBy();
-            if ($uploader !== null) {
-                $parts[] = $uploader->getName()->getLastName() . ', ' . $uploader->getName()->getFirstName();
-            }
-        }
-
-        return $parts;
     }
 
     /**

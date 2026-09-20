@@ -15,8 +15,12 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  * When the folder is organised by upload profile (Folder::isGroupByProfile()), each profile —
  * or subprofile — becomes a subdirectory named after it, mirroring the on-screen grouping in
  * SectionBrowserComponent::getFolderDocumentGroups(); documents with no upload profile, and
- * every document of a folder that isn't grouped, sit at the archive root. Directory and file
- * names are stripped of characters that could break a ZIP entry or escape the archive.
+ * every document of a folder that isn't grouped, sit at the archive root. Entry names follow the
+ * same convention as a single-revision download (see ActivitySubmissionFilenameBuilder) — for an
+ * Individual-scope activity in particular, this is what tells several teachers' own submissions
+ * apart inside the ZIP, rather than leaving them all named identically after their shared
+ * profile. Directory and file names are stripped of characters that could break a ZIP entry or
+ * escape the archive.
  *
  * Documents whose only revisions are pending review or rejected have no active revision and are
  * left out — there is nothing published to hand over. The transient section-search filter is
@@ -27,6 +31,7 @@ final class FolderZipExporter
     public function __construct(
         private readonly DocumentRepository $documents,
         private readonly AttachmentZipExporter $zipExporter,
+        private readonly ActivitySubmissionFilenameBuilder $submissionFilename,
     ) {}
 
     public function export(Folder $folder): BinaryFileResponse
@@ -52,10 +57,19 @@ final class FolderZipExporter
         return $this->zipExporter->createResponse($this->zipFilename($folder), $entries);
     }
 
-    /** The document's own name, keeping the extension of the file that was actually uploaded. */
+    /**
+     * The document's display name (see ActivitySubmissionFilenameBuilder — activity prefix/title
+     * and, for an Individual-scope submission, the uploader's own name), keeping the extension of
+     * the file that was actually uploaded. Each part is sanitized on its own before joining, same
+     * as the single name entryFilename() used to sanitize as a whole.
+     */
     private function entryFilename(Document $document, string $originalFilename): string
     {
-        $stem      = $this->sanitizeSegment($this->flattenPathSeparators($document->getName()));
+        $parts = array_map(
+            fn (string $part): string => $this->sanitizeSegment($this->flattenPathSeparators($part)),
+            $this->submissionFilename->nameParts($document),
+        );
+        $stem      = implode(' - ', $parts);
         $extension = pathinfo($originalFilename, PATHINFO_EXTENSION);
 
         return $extension === '' ? $stem : $stem . '.' . $this->sanitizeSegment($extension);

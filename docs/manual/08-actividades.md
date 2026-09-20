@@ -125,6 +125,10 @@ todo el que tenga el perfil, identifica de un vistazo de quién es cada fichero 
 documento del árbol que no sea la entrega de ninguna actividad sigue llevando solo su propio
 nombre, sin cambios.
 
+Esta misma regla se aplica también dentro del **[ZIP de la carpeta](07-arbol-documental.md#revision-activa-historial-y-descarga)**:
+en una actividad de ámbito individual, cada entrega lleva el nombre de quien la subió, en vez de
+distinguirse solo por un «(2)», «(3)»… añadido al repetirse el nombre del perfil.
+
 ### Retirar o sustituir una entrega propia
 
 Mientras nadie haya revisado todavía la entrega —está **pendiente de visto bueno**, o ya se
