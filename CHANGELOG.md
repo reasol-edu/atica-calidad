@@ -7,6 +7,15 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Árbol documental**: descargar un documento cuyo nombre contiene una barra («/») —p. ej. una
+  entrega de una actividad de ámbito individual, nombrada como el perfil al que corresponde, como
+  «Tutor/a»— ya no da un error 500. Alcanzaba sobre todo a quien podía ver el historial de
+  versiones de una entrega pendiente de revisión (responsable o revisor de la carpeta, admin.,
+  responsable de calidad), ya que un docente normal no ve ese enlace para su propia entrega
+  todavía sin decidir.
+
 ## [1.3.0] - 2026-09-20
 
 ### Added

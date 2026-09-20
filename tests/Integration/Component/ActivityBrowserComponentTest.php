@@ -1701,6 +1701,41 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $this->em->clear();
     }
 
+    public function testReproDownloadPendingSubmissionAsQualityManagerWhoIsAlsoTheResponsibleProfile(): void
+    {
+        [$activity, $profile, $uploader, , $folder, $centre] = $this->individualReviewSetup();
+
+        $responsibleProfile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Responsable');
+        $folder->addResponsibleProfile($responsibleProfile);
+        $coordinator = $this->teacher('coordinador');
+        $centre->addQualityManager($coordinator);
+        $assignment = new SpecificProfileAssignment($responsibleProfile, null, $coordinator);
+        $this->persist($responsibleProfile, $coordinator, $assignment);
+
+        $this->loginAs($uploader, $centre);
+        $this->submitIndividual($activity, $profile, $uploader);
+
+        $document = $this->em->getRepository(Document::class)->findOneBy(['folder' => $folder]);
+        self::assertNotNull($document);
+        self::assertNotNull($document->getPendingRevision());
+        $documentId = $document->getId()->toRfc4122();
+
+        $this->loginAs($coordinator, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $activity->getCategory()->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('toggleAllSubmissions', ['activityId' => $activity->getId()->toRfc4122()]);
+        $component->call('toggleRevisionPanel', ['id' => $documentId]);
+
+        $downloadUrl = $component->render()->crawler()
+            ->filter('a[href*="descargar"]')->attr('href');
+        self::assertNotNull($downloadUrl);
+
+        $this->client->request('GET', $downloadUrl);
+        self::assertSame(200, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+    }
+
     public function testUploaderCanWithdrawTheirOwnPendingIndividualSubmission(): void
     {
         [$activity, $profile, $uploader, , $folder, $centre] = $this->individualReviewSetup();

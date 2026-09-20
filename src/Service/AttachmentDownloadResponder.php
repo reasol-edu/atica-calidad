@@ -11,6 +11,8 @@ class AttachmentDownloadResponder
 {
     public function respond(string $content, string $mimeType, string $filename): Response
     {
+        $filename = $this->sanitizeFilename($filename);
+
         $response = new Response($content);
         $response->headers->set('Content-Type', $mimeType);
         $response->headers->set(
@@ -23,6 +25,19 @@ class AttachmentDownloadResponder
         );
 
         return $response;
+    }
+
+    /**
+     * makeDisposition() rejects outright a filename containing "/" or "\" (Content-Disposition is
+     * itself a path-injection vector, per RFC 6266) — an uncaught InvalidArgumentException, not a
+     * validation error the caller could handle. The filename passed in here is usually a document's
+     * own name, which is free text and can legitimately contain either character (e.g. a submission
+     * named after the "Tutor/a" profile it belongs to): strip them before they ever reach
+     * makeDisposition(), rather than trust every caller to have sanitized its own filename first.
+     */
+    private function sanitizeFilename(string $filename): string
+    {
+        return str_replace(['/', '\\'], '_', $filename);
     }
 
     /**

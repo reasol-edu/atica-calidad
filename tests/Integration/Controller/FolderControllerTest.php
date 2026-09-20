@@ -542,6 +542,36 @@ final class FolderControllerTest extends ControllerTestCase
         self::assertSame(404, $this->client->getResponse()->getStatusCode());
     }
 
+    /**
+     * Regression: a document named after an Individual-scope activity's profile (e.g. "Tutor/a")
+     * legitimately contains a "/" — makeDisposition() rejects that outright in the filename it's
+     * given, an uncaught InvalidArgumentException that surfaced as a 500 for whoever could reach a
+     * pending revision's download link (folder responsible/reviewer, admin, quality manager — a
+     * plain uploader never sees that link for their own still-pending upload). See
+     * AttachmentDownloadResponder::sanitizeFilename().
+     */
+    public function testDownloadSucceedsWhenTheDocumentNameContainsASlash(): void
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($centre);
+        $uploader = $this->teacher('subidor');
+        $document = $this->documentWithFirstRevision($folder, $uploader, 'Tutor/a');
+        $revision = $document->getActiveRevision();
+        self::assertNotNull($revision);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $uploader, $document);
+        $folderId   = $folder->getId()->toRfc4122();
+        $documentId = $document->getId()->toRfc4122();
+        $revisionId = $revision->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones/{$revisionId}/descargar");
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        $disposition = $this->client->getResponse()->headers->get('Content-Disposition');
+        self::assertNotNull($disposition);
+        self::assertStringNotContainsString('Tutor/a', $disposition, 'the "/" must never reach the Content-Disposition header');
+    }
+
     // ── downloadZip() ────────────────────────────────────────────────────────
 
     /** @return array<string, string> entry path => content */
