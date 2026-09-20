@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-09-20
+
 ### Fixed
 
 - **Árbol documental**: descargar un documento cuyo nombre contiene una barra («/») —p. ej. una
