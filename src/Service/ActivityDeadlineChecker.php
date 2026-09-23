@@ -128,10 +128,12 @@ final class ActivityDeadlineChecker implements ResetInterface
 
         [$start, $end] = $this->calendarYearCycleNear($activity, $reference);
 
-        // A straddling occurrence is keyed by the academic year its start falls in.
-        $startYear = (int) $start->format('Y');
+        // A straddling occurrence is keyed by the academic year its end falls in: a whole-year
+        // Sep 1 – Jun 30 activity with a Sep 15 start is 2026-2027's when it runs Sep 2026 – Jun
+        // 2027, even though its first two weeks come before that academic year starts.
+        $endYear = (int) $end->format('Y');
 
-        return [$start, $end, (int) $start->format('nd') < $boundary ? $startYear - 1 : $startYear];
+        return [$start, $end, (int) $end->format('nd') < $boundary ? $endYear - 1 : $endYear];
     }
 
     /** Calendar year that $month/$day falls in within the academic year starting on $boundary (month * 100 + day) of $academicYear. */

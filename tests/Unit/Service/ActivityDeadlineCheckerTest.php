@@ -330,16 +330,31 @@ final class ActivityDeadlineCheckerTest extends TestCase
         self::assertSame(2025, $this->checker()->currentCycleKey($this->activity(1, 9, 10, 9)));
     }
 
-    /** A range straddling the start day is keyed by the academic year its own start falls in, and keeps that key for its whole span. */
+    /** A range straddling the start day is keyed by the academic year its end falls in, and keeps that key for its whole span. */
     public function testCycleKeyOfAStraddlingRangeStaysTheSameAcrossTheStartDay(): void
     {
         $activity = $this->activity(1, 9, 30, 9);
 
         self::mockTime('2026-09-10 10:00:00');
-        self::assertSame(2025, $this->checker()->currentCycleKey($activity));
+        self::assertSame(2026, $this->checker()->currentCycleKey($activity));
 
         self::mockTime('2026-09-20 10:00:00');
-        self::assertSame(2025, $this->checker()->currentCycleKey($activity));
+        self::assertSame(2026, $this->checker()->currentCycleKey($activity));
+    }
+
+    /** The most common straddling range — the whole academic year, Sep 1 – Jun 30 — belongs to the academic year it spans, not the one ending on Sep 14. */
+    public function testCycleKeyOfAWholeYearRangeIsTheAcademicYearItSpans(): void
+    {
+        $activity = $this->activity(1, 9, 30, 6);
+
+        self::mockTime('2026-09-05 10:00:00');
+        self::assertSame(2026, $this->checker()->currentCycleKey($activity));
+
+        self::mockTime('2027-03-01 10:00:00');
+        self::assertSame(2026, $this->checker()->currentCycleKey($activity));
+
+        self::mockTime('2027-07-15 10:00:00');
+        self::assertSame(2026, $this->checker()->currentCycleKey($activity), 'after it closes, still the one just finished');
     }
 
     public function testCycleKeyNearFollowsTheReferenceNotNow(): void
