@@ -20,8 +20,10 @@ use function Symfony\Component\Clock\now;
  * as EducationalCentre::$activeAcademicYear.
  */
 #[ORM\Entity(repositoryClass: DocumentRepository::class)]
-class Document
+class Document implements Trashable
 {
+    use TrashableTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator('doctrine.uuid_generator')]

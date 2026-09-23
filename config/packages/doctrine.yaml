@@ -21,6 +21,11 @@ doctrine:
         dql:
             string_functions:
                 UNACCENT: App\Doctrine\Query\UnaccentFunction
+        filters:
+            # Hides what's in the trash (App\Entity\Trashable) everywhere; see App\Doctrine\TrashFilter.
+            trash:
+                class: App\Doctrine\TrashFilter
+                enabled: true
         mappings:
             App:
                 type: attribute

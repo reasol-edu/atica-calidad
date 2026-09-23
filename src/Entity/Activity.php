@@ -19,8 +19,13 @@ use Symfony\Component\Uid\Uuid;
  * just a reminder with a deadline and manual completion (see setAutoComplete()).
  */
 #[ORM\Entity(repositoryClass: ActivityRepository::class)]
-class Activity
+class Activity implements Trashable
 {
+    use TrashableTrait {
+        moveToTrash as private markTrashed;
+        restoreFromTrash as private unmarkTrashed;
+    }
+
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator('doctrine.uuid_generator')]
@@ -109,6 +114,14 @@ class Activity
 
     #[ORM\Column]
     private int $position = 0;
+
+    /**
+     * While in the trash, the folder it was linked to: the link itself is dropped (a folder backs
+     * one activity at most, and another one may take it meanwhile), and put back on restore if
+     * the folder is still there and free — see TrashService::restoreActivity().
+     */
+    #[ORM\Column(type: 'uuid', nullable: true)]
+    private ?Uuid $trashedFolderId = null;
 
     public function __construct()
     {
@@ -211,6 +224,38 @@ class Activity
     }
 
     /** Clearing the folder also turns off auto-complete — it's meaningless without documents to publish. */
+    public function moveToTrash(\DateTimeImmutable $at, Teacher $by): void
+    {
+        $this->markTrashed($at, $by);
+        if ($this->folder !== null) {
+            // Unlinked by hand, not through setFolder(null), which would also switch
+            // $autoComplete off for good.
+            $this->trashedFolderId = $this->folder->getId();
+            if ($this->folder->getActivity() === $this) {
+                $this->folder->setActivity(null);
+            }
+            $this->folder = null;
+        }
+    }
+
+    /** Back from the trash, relinked to $folder: its former folder when still free, or none. */
+    public function restoreFromTrash(?Folder $folder = null): void
+    {
+        $this->unmarkTrashed();
+        $this->trashedFolderId = null;
+        if ($folder !== null) {
+            $folder->setActivity($this);
+            $this->folder = $folder;
+        } else {
+            $this->autoComplete = false;
+        }
+    }
+
+    public function getTrashedFolderId(): ?Uuid
+    {
+        return $this->trashedFolderId;
+    }
+
     public function setFolder(?Folder $folder): static
     {
         if ($folder !== null && $folder->getEducationalCentre() !== $this->category->getEducationalCentre()) {

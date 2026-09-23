@@ -26,6 +26,7 @@ use App\Security\Voter\FolderVoter;
 use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivityFolderCycleFilter;
 use App\Service\DocumentFileGarbageCollector;
+use App\Service\TrashService;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\ProfileAssignmentRowBuilder;
 use Doctrine\ORM\EntityManagerInterface;
@@ -190,6 +191,7 @@ class SectionBrowserComponent extends AbstractController
         private readonly DocumentTreeAccessChecker $access,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly DocumentFileGarbageCollector $garbageCollector,
+        private readonly TrashService $trash,
         private readonly TeacherRepository $teachers,
         private readonly ActivityFolderCycleFilter $cycleFilter,
     ) {}
@@ -1014,17 +1016,7 @@ class SectionBrowserComponent extends AbstractController
 
         $this->confirmingDeleteDocumentId = '';
 
-        $files = [];
-        foreach ($document->getRevisions() as $revision) {
-            $files[] = $revision->getFile();
-        }
-
-        $this->em->remove($document);
-        $this->em->flush();
-
-        foreach ($files as $file) {
-            $this->garbageCollector->deleteIfOrphaned($file);
-        }
+        $this->trash->trashDocument($document, $this->teacher());
 
         $this->errors = [];
         $this->flashSuccess($this->t('document.flash.deleted'));

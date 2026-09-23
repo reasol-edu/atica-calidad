@@ -6,6 +6,7 @@ namespace App;
 
 use App\Message\PurgeActivityLogMessage;
 use App\Message\PurgeEmailNotificationLogMessage;
+use App\Message\PurgeTrashMessage;
 use App\Message\SendDocumentNextReviewReminderMessage;
 use App\Message\SendDocumentReviewDigestMessage;
 use App\Message\SendPendingActivityReminderMessage;
@@ -31,6 +32,9 @@ class Schedule implements ScheduleProviderInterface
             )
             ->add(
                 RecurringMessage::cron('45 3 * * 0', new PurgeActivityLogMessage()),
+            )
+            ->add(
+                RecurringMessage::cron('0 4 * * *', new PurgeTrashMessage()),
             )
             ->add(
                 // Runs every day; the handler itself skips a centre entirely on a weekend or one

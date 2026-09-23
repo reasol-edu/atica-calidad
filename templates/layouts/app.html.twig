@@ -159,6 +159,16 @@
                     {{ ux_icon('heroicons:clipboard-document-check', {class: 'h-5 w-5 shrink-0'}) }}
                     <span class="truncate">{{ 'responsibilities'|trans({}, 'navigation') }}</span>
                 </a>
+
+                {# Trash — same people: whoever can restore what others deleted #}
+                {% set trash_active = current_route starts with 'app_trash_' %}
+                <a href="{{ path('app_trash_index', {centreId: active_centre.id}) }}"
+                    {{ trash_active ? 'aria-current="page"' : '' }}
+                   class="{{ trash_active ? 'bg-forest-800 text-white border-l-2 border-forest-300' : 'text-forest-100 hover:bg-forest-900 hover:text-white border-l-2 border-transparent' }}
+                          group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
+                    {{ ux_icon('heroicons:trash', {class: 'h-5 w-5 shrink-0'}) }}
+                    <span class="truncate">{{ 'trash'|trans({}, 'navigation') }}</span>
+                </a>
             {% endif %}
 
             {# Educational centre — management team and admins only #}

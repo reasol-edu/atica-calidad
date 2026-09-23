@@ -1,0 +1,90 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'trash'|trans({}, 'navigation') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{#
+   Something deleted: where it was, who deleted it and when, and when it goes for good — with
+   "Recuperar" and "Eliminar definitivamente". type: 'document' | 'activity'; route: app_trash_document|activity.
+#}
+{% macro row(type, item, title, location, centre, retentionDays) %}
+    {% set id = item.id.toRfc4122 %}
+    <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-4" data-trash-item="{{ id }}">
+        <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium text-gray-900">{{ title }}</p>
+            <p class="truncate text-xs text-gray-500">{{ location }}</p>
+            <p class="text-xs text-gray-400">
+                {{ 'trash.deleted'|trans({'%name%': item.deletedByName ?? '—', '%date%': item.deletedAt|date('d/m/Y H:i')}, 'admin') }}
+                · {{ 'trash.expires'|trans({'%date%': item.deletedAt|date_modify('+' ~ retentionDays ~ ' days')|date('d/m/Y')}, 'admin') }}
+            </p>
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+            <form method="post" action="{{ path('app_trash_' ~ type, {centreId: centre.id.toRfc4122, id: id, action: 'recuperar'}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('trash_' ~ type ~ '_' ~ id) }}">
+                <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
+                    {{ ux_icon('heroicons:arrow-uturn-left', {class: 'h-4 w-4'}) }}
+                    {{ 'trash.restore'|trans({}, 'admin') }}
+                </button>
+            </form>
+            <form method="post" action="{{ path('app_trash_' ~ type, {centreId: centre.id.toRfc4122, id: id, action: 'eliminar'}) }}"
+                  class="js-confirm-form" data-confirm="{{ 'trash.purge_confirm'|trans({'%name%': title}, 'admin')|e('html_attr') }}"
+                  data-confirm-label="{{ 'trash.purge'|trans({}, 'admin')|e('html_attr') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('trash_' ~ type ~ '_' ~ id) }}">
+                <button type="submit" class="js-confirm-trigger inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
+                    {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}
+                    {{ 'trash.purge'|trans({}, 'admin') }}
+                </button>
+            </form>
+        </div>
+    </li>
+{% endmacro %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-5xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <span aria-current="page" class="text-gray-700 font-medium">{{ 'trash'|trans({}, 'navigation') }}</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'trash'|trans({}, 'navigation') }}</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ 'trash.intro'|trans({'%days%': retentionDays}, 'admin') }}</p>
+    </div>
+
+    {% if documents is empty and activities is empty %}
+        <div class="rounded-2xl border border-gray-200 bg-white px-6 py-16 text-center shadow-xs">
+            {{ ux_icon('heroicons:trash', {class: 'mx-auto mb-3 h-10 w-10 text-gray-300'}) }}
+            <p class="text-sm text-gray-500">{{ 'trash.empty'|trans({}, 'admin') }}</p>
+        </div>
+    {% endif %}
+
+    {% if documents is not empty %}
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+            <h2 class="flex items-center gap-2 border-b border-gray-100 px-6 py-4 text-base font-semibold text-gray-900">
+                {{ ux_icon('heroicons:document-text', {class: 'h-5 w-5 text-forest-600'}) }}
+                {{ 'trash.documents'|trans({'%count%': documents|length}, 'admin') }}
+            </h2>
+            <ul class="divide-y divide-gray-100">
+                {% for document in documents %}
+                    {{ _self.row('document', document, document.name,
+                        document.folder.documentSection.name ~ ' › ' ~ document.folder.name ~ ' · ' ~ 'trash.revisions'|trans({'%count%': document.revisions|length}, 'admin'),
+                        centre, retentionDays) }}
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    {% if activities is not empty %}
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+            <h2 class="flex items-center gap-2 border-b border-gray-100 px-6 py-4 text-base font-semibold text-gray-900">
+                {{ ux_icon('heroicons:check-circle', {class: 'h-5 w-5 text-forest-600'}) }}
+                {{ 'trash.activities'|trans({'%count%': activities|length}, 'admin') }}
+            </h2>
+            <ul class="divide-y divide-gray-100">
+                {% for activity in activities %}
+                    {{ _self.row('activity', activity, activity.title, activity.category.name, centre, retentionDays) }}
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

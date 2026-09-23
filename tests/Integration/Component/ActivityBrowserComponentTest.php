@@ -410,7 +410,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component->call('startAddActivity');
     }
 
-    public function testDeleteActivityRemovesIt(): void
+    public function testDeleteActivityMovesItToTheTrash(): void
     {
         $centre   = $this->centre();
         $category = $this->category($centre);
@@ -430,6 +430,9 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         /** @var \App\Repository\ActivityRepository $activities */
         $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
         self::assertNull($activities->findById($activityId));
+        $trashed = $activities->findTrashedByIdAndCentre($activityId, $centre);
+        self::assertNotNull($trashed, 'hidden, not gone: it waits in the trash');
+        self::assertSame('admin, Nombre', $trashed->getDeletedByName());
     }
 
     // ── Related documents ─────────────────────────────────────────────────────

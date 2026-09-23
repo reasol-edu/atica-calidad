@@ -39,6 +39,7 @@ use App\Service\ActivitySubmissionProgressCalculator;
 use App\Service\ActivityWindowChecker;
 use App\Service\DocumentFileGarbageCollector;
 use App\Service\DocumentTreeAccessChecker;
+use App\Service\TrashService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -213,6 +214,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly DocumentFileGarbageCollector $garbageCollector,
         private readonly ActivityObligationFinder $obligations,
         private readonly ActivitySubmissionProgressCalculator $progress,
+        private readonly TrashService $trash,
     ) {}
 
     public function mount(
@@ -753,8 +755,7 @@ class ActivityBrowserComponent extends AbstractController
             return;
         }
 
-        $this->em->remove($activity);
-        $this->em->flush();
+        $this->trash->trashActivity($activity, $this->teacher());
 
         $this->confirmingDeleteActivityId = '';
         $this->flashSuccess($this->t('activity.flash.deleted'));
@@ -1185,17 +1186,7 @@ class ActivityBrowserComponent extends AbstractController
 
         $this->confirmingDeleteDocumentId = '';
 
-        $files = [];
-        foreach ($document->getRevisions() as $revision) {
-            $files[] = $revision->getFile();
-        }
-
-        $this->em->remove($document);
-        $this->em->flush();
-
-        foreach ($files as $file) {
-            $this->garbageCollector->deleteIfOrphaned($file);
-        }
+        $this->trash->trashDocument($document, $this->teacher());
 
         $this->flashSuccess($this->t('document.flash.deleted'));
     }

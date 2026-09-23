@@ -10,15 +10,67 @@ use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<Activity>
  */
 class ActivityRepository extends ServiceEntityRepository
 {
+    use TrashQueryTrait;
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Activity::class);
+    }
+
+    /**
+     * The centre's activities in the trash, most recently deleted first.
+     *
+     * @return list<Activity>
+     */
+    public function findTrashedByCentre(EducationalCentre $centre): array
+    {
+        return $this->withTrash(fn (): array => $this->createQueryBuilder('a')
+            ->addSelect('c')
+            ->join('a.category', 'c')
+            ->where('a.deletedAt IS NOT NULL')
+            ->andWhere('c.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('a.deletedAt', 'DESC')
+            ->getQuery()
+            ->getResult());
+    }
+
+    public function findTrashedByIdAndCentre(string $id, EducationalCentre $centre): ?Activity
+    {
+        if (!Uuid::isValid($id)) {
+            return null;
+        }
+
+        return $this->withTrash(function () use ($id, $centre): ?Activity {
+            $result = $this->createQueryBuilder('a')
+                ->join('a.category', 'c')
+                ->where('a.id = :id')
+                ->andWhere('a.deletedAt IS NOT NULL')
+                ->andWhere('c.educationalCentre = :centre')
+                ->setParameter('id', $id, 'uuid')
+                ->setParameter('centre', $centre->getId(), 'uuid')
+                ->getQuery()
+                ->getOneOrNullResult();
+
+            return $result instanceof Activity ? $result : null;
+        });
+    }
+
+    /** @return list<Activity> every centre's activities deleted before $cutoff, for TrashPurger */
+    public function findTrashedBefore(\DateTimeImmutable $cutoff): array
+    {
+        return $this->withTrash(fn (): array => $this->createQueryBuilder('a')
+            ->where('a.deletedAt < :cutoff')
+            ->setParameter('cutoff', $cutoff)
+            ->getQuery()
+            ->getResult());
     }
 
     /**

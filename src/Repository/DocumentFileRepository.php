@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\DocumentFile;
+use App\Entity\DocumentRevision;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
@@ -22,6 +23,20 @@ class DocumentFileRepository extends ServiceEntityRepository
     public function findByHash(string $hash): ?DocumentFile
     {
         return $this->findOneBy(['hash' => $hash]);
+    }
+
+    /**
+     * Deletes every file no revision points to any more — left behind when a whole folder goes
+     * (its documents, trashed ones included, go with it at database level, without passing
+     * through DocumentFileGarbageCollector). In one statement, without loading any content.
+     *
+     * @return int how many were deleted
+     */
+    public function deleteOrphans(): int
+    {
+        return $this->getEntityManager()
+            ->createQuery(\sprintf('DELETE FROM %s f WHERE NOT EXISTS (SELECT 1 FROM %s r WHERE r.file = f)', DocumentFile::class, DocumentRevision::class))
+            ->execute();
     }
 
     /** Looked up by bare id; callers must verify ownership before trusting it. */
