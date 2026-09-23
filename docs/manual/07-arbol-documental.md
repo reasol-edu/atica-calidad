@@ -85,8 +85,6 @@ ajustes de la carpeta (**⚙ Ajustes de la carpeta**):
 - **Organizar por perfil de subida** — si se activa, los documentos de la carpeta se agrupan
   visualmente por el perfil con el que se subieron (ver [Subir un documento](#subir-un-documento)),
   en vez de mostrarse todos juntos.
-- **Archivado automático** — interruptor reservado para una función todavía no implementada
-  (mover documentos antiguos a un histórico automáticamente). Por ahora no tiene ningún efecto.
 - **Descripción** — texto con formato (negrita, listas, enlaces...) que se muestra sobre el
   contenido de la carpeta a todo el que la vea. Útil para dejar instrucciones o contexto sin tener
   que subirlos como un documento más.

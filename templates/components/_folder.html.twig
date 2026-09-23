@@ -110,11 +110,6 @@
                     {% if folder.groupByProfile %}{{ ux_icon('heroicons:check', {class: 'h-3 w-3'}) }}{% endif %}
                     {{ 'folder.field.group_by_profile'|trans({}, 'admin') }}
                 </button>
-                <button type="button" data-action="live#action" data-live-action-param="toggleAutoArchive" data-live-id-param="{{ fid }}"
-                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs {{ folder.autoArchive ? 'bg-forest-600 text-white' : 'bg-white text-gray-600 border border-gray-200' }}">
-                    {% if folder.autoArchive %}{{ ux_icon('heroicons:check', {class: 'h-3 w-3'}) }}{% endif %}
-                    {{ 'folder.field.auto_archive'|trans({}, 'admin') }}
-                </button>
                 <button type="button" data-action="live#action"
                         data-live-action-param="{{ folder.obsolete ? 'toggleObsolete' : 'askMarkObsolete' }}" data-live-id-param="{{ fid }}"
                         class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs {{ folder.obsolete ? 'bg-amber-600 text-white' : 'bg-white text-gray-600 border border-gray-200' }}">

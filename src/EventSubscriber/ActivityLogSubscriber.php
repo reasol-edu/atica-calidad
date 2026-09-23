@@ -63,7 +63,6 @@ final class ActivityLogSubscriber
             'moveFolderUp'                => 'folder.reorder',
             'moveFolderDown'              => 'folder.reorder',
             'toggleGroupByProfile'        => 'folder.settings_update',
-            'toggleAutoArchive'           => 'folder.settings_update',
             'toggleObsolete'              => 'folder.settings_update',
             'saveFolderProfiles'          => 'folder.settings_update',
             'saveRenameDocument'          => 'document.rename',

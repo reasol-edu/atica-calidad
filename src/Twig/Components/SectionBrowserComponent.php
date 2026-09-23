@@ -636,15 +636,6 @@ class SectionBrowserComponent extends AbstractController
     }
 
     #[LiveAction]
-    public function toggleAutoArchive(#[LiveArg] string $id): void
-    {
-        $this->denyAccessUnlessGranted(EducationalCentreVoter::RESPONSIBILITIES, $this->centre);
-        $folder = $this->requireFolder($id);
-        $folder->setAutoArchive(!$folder->isAutoArchive());
-        $this->em->flush();
-    }
-
-    #[LiveAction]
     public function askMarkObsolete(#[LiveArg] string $id): void
     {
         $this->denyAccessUnlessGranted(EducationalCentreVoter::RESPONSIBILITIES, $this->centre);

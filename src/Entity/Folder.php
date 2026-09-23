@@ -47,10 +47,6 @@ class Folder
     #[ORM\Column]
     private bool $groupByProfile = false;
 
-    /** Whether a future automatic archiving pass moves this folder's documents to its history. */
-    #[ORM\Column]
-    private bool $autoArchive = false;
-
     /** Hidden by default; only quality managers/admins can reveal it. */
     #[ORM\Column]
     private bool $obsolete = false;
@@ -170,18 +166,6 @@ class Folder
     public function setGroupByProfile(bool $groupByProfile): static
     {
         $this->groupByProfile = $groupByProfile;
-
-        return $this;
-    }
-
-    public function isAutoArchive(): bool
-    {
-        return $this->autoArchive;
-    }
-
-    public function setAutoArchive(bool $autoArchive): static
-    {
-        $this->autoArchive = $autoArchive;
 
         return $this;
     }
