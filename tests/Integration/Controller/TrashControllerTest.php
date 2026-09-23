@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Controller;
 
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
+use App\Entity\CentreSettingValue;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
 use App\Entity\DocumentRevision;
@@ -13,11 +14,14 @@ use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Entity\PersonName;
+use App\Entity\SettingDefinition;
+use App\Entity\SettingType;
 use App\Entity\Teacher;
 use App\Repository\ActivityRepository;
 use App\Repository\DocumentFileRepository;
 use App\Repository\DocumentRepository;
 use App\Repository\FolderRepository;
+use App\Service\AppSettings;
 use App\Service\TrashService;
 use App\Tests\Integration\ControllerTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -252,8 +256,59 @@ final class TrashControllerTest extends ControllerTestCase
         self::assertSame(0, $purged['activities']);
         self::assertSame(1, $purged['files']);
         $this->em->clear();
-        self::assertSame([], $this->documents()->findTrashedBefore(new \DateTimeImmutable('2030-01-01')));
+        self::assertSame([], $this->documents()->findTrashedBefore($centre, new \DateTimeImmutable('2030-01-01')));
         self::assertNull($this->documents()->findTrashedByIdAndCentre($oldId, $centre));
         self::assertNotNull($this->activities()->findTrashedByIdAndCentre($activity->getId()->toRfc4122(), $centre));
+    }
+
+    // ── Retention days (setting "trash.retention_days") ──────────────────────
+
+    /** The setting at 30 globally, and $centreDays for $centre when given. */
+    private function retention(EducationalCentre $centre, ?int $centreDays): void
+    {
+        $definition = (new SettingDefinition())->setKey('trash.retention_days')->setType(SettingType::Integer)
+            ->setDefaultValue('30')->setCentreScope(true)->setMinValue(0)->setMaxValue(3650);
+        $this->persist($definition);
+        if ($centreDays !== null) {
+            $this->persist((new CentreSettingValue())->setDefinition($definition)->setCentre($centre)->setValue((string) $centreDays));
+        }
+
+        /** @var AppSettings $settings */
+        $settings = self::getContainer()->get(AppSettings::class);
+        $settings->invalidate();
+    }
+
+    public function testACentreKeepsItsTrashForItsOwnNumberOfDays(): void
+    {
+        self::mockTime('2026-09-20 10:00:00');
+        [$centre, , , $activity, $admin] = $this->trashedActivityWithFolder();
+        $activityId = $activity->getId()->toRfc4122();
+        $this->retention($centre, 10);
+
+        self::mockTime('2026-10-01 10:00:00'); // 11 days later: past this centre's 10, not the global 30
+        self::assertSame(1, $this->trash()->purgeExpired()['activities']);
+        $this->em->clear();
+        self::assertNull($this->activities()->findTrashedByIdAndCentre($activityId, $centre));
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('GET', '/centro/' . $centre->getId()->toRfc4122() . '/papelera');
+        self::assertStringContainsString('quedan aquí 10 días', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testZeroDaysNeverEmptiesTheTrashOnItsOwn(): void
+    {
+        self::mockTime('2025-01-01 10:00:00');
+        [$centre, , $document, $admin] = $this->trashedDocument();
+        $this->retention($centre, 0);
+
+        self::mockTime('2026-09-20 10:00:00');
+        self::assertSame(0, $this->trash()->purgeExpired()['documents']);
+        $this->em->clear();
+        self::assertNotNull($this->documents()->findTrashedByIdAndCentre($document->getId()->toRfc4122(), $centre));
+
+        $this->loginAs($admin, $centre);
+        $crawler = $this->client->request('GET', '/centro/' . $centre->getId()->toRfc4122() . '/papelera');
+        self::assertStringContainsString('el vaciado automático está desactivado', $crawler->text());
+        self::assertStringNotContainsString('se borrará para siempre el', $crawler->text());
     }
 }

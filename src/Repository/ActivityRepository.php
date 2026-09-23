@@ -63,12 +63,15 @@ class ActivityRepository extends ServiceEntityRepository
         });
     }
 
-    /** @return list<Activity> every centre's activities deleted before $cutoff, for TrashPurger */
-    public function findTrashedBefore(\DateTimeImmutable $cutoff): array
+    /** @return list<Activity> the centre's activities deleted before $cutoff, for TrashService::purgeExpired() */
+    public function findTrashedBefore(EducationalCentre $centre, \DateTimeImmutable $cutoff): array
     {
         return $this->withTrash(fn (): array => $this->createQueryBuilder('a')
+            ->join('a.category', 'c')
             ->where('a.deletedAt < :cutoff')
+            ->andWhere('c.educationalCentre = :centre')
             ->setParameter('cutoff', $cutoff)
+            ->setParameter('centre', $centre->getId(), 'uuid')
             ->getQuery()
             ->getResult());
     }

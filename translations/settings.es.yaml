@@ -23,6 +23,7 @@ settings.category.email_alerts.label: 'Avisos por correo'
 settings.category.report_templates.label: 'Plantillas de informes'
 settings.category.audit.label: 'Registro de actividad'
 settings.category.security.label: 'Seguridad'
+settings.category.trash.label: 'Papelera'
 
 # ── Definiciones de ajustes ───────────────────────────────────────────────────
 settings.key.page_size.label: 'Resultados por página'
@@ -39,6 +40,9 @@ settings.key.audit_log_enabled.description: 'Guarda un registro de auditoría de
 
 settings.key.audit_log_retention_days.label: 'Retención del registro de actividad'
 settings.key.audit_log_retention_days.description: 'Días que se conservan las entradas del registro de actividad antes de eliminarse automáticamente. Un valor de 0 desactiva esta eliminación automática.'
+
+settings.key.trash_retention_days.label: 'Días en la papelera'
+settings.key.trash_retention_days.description: 'Días que se conservan en la papelera los documentos y las actividades eliminados antes de borrarse para siempre. Un valor de 0 desactiva el vaciado automático: solo se borran a mano desde la papelera.'
 
 settings.key.notifications_email_notifications_enabled.label: 'Avisos por correo electrónico'
 settings.key.notifications_email_notifications_enabled.description: 'Activa el envío de avisos por correo electrónico a los profesores.'

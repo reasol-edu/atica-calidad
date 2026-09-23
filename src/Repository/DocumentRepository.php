@@ -403,12 +403,16 @@ class DocumentRepository extends ServiceEntityRepository
         });
     }
 
-    /** @return list<Document> every centre's documents deleted before $cutoff, for TrashPurger */
-    public function findTrashedBefore(\DateTimeImmutable $cutoff): array
+    /** @return list<Document> the centre's documents deleted before $cutoff, for TrashService::purgeExpired() */
+    public function findTrashedBefore(EducationalCentre $centre, \DateTimeImmutable $cutoff): array
     {
         return $this->withTrash(fn (): array => $this->createQueryBuilder('d')
+            ->join('d.folder', 'f')
+            ->join('f.documentSection', 's')
             ->where('d.deletedAt < :cutoff')
+            ->andWhere('s.educationalCentre = :centre')
             ->setParameter('cutoff', $cutoff)
+            ->setParameter('centre', $centre->getId(), 'uuid')
             ->getQuery()
             ->getResult());
     }

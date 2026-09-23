@@ -7,10 +7,12 @@ namespace App\Service;
 use App\Entity\Activity;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
+use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Repository\ActivityRepository;
 use App\Repository\DocumentFileRepository;
 use App\Repository\DocumentRepository;
+use App\Repository\EducationalCentreRepository;
 use App\Repository\FolderRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\ClockInterface;
@@ -18,15 +20,17 @@ use Symfony\Component\Clock\ClockInterface;
 /**
  * The trash ("papelera"): deleting a document (with all its revisions) or an activity (with its
  * completions) moves it here instead, hidden everywhere by TrashFilter. From the trash page it can
- * be restored as it was, or deleted for good; whatever is still there after RETENTION_DAYS is
- * purged by the daily PurgeTrashHandler.
+ * be restored as it was, or deleted for good; whatever is still there after the centre's
+ * "trash.retention_days" (global and centre setting; 0 = never on its own) is purged by the daily
+ * PurgeTrashHandler.
  *
  * Deleting what contains them (a folder, an activity category) still deletes them for good,
  * trashed or not, as the database cascades.
  */
 final class TrashService
 {
-    public const int RETENTION_DAYS = 30;
+    /** When the setting can't be read (e.g. its definition is missing). */
+    public const int DEFAULT_RETENTION_DAYS = 30;
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -36,7 +40,17 @@ final class TrashService
         private readonly FolderRepository $folders,
         private readonly DocumentFileRepository $files,
         private readonly DocumentFileGarbageCollector $garbageCollector,
+        private readonly EducationalCentreRepository $centres,
+        private readonly AppSettingsInterface $settings,
     ) {}
+
+    /** Days something stays in $centre's trash before it's purged; 0 = until deleted by hand. */
+    public function retentionDays(EducationalCentre $centre): int
+    {
+        $days = $this->settings->getForCentre('trash.retention_days', $centre);
+
+        return \is_int($days) ? max(0, $days) : self::DEFAULT_RETENTION_DAYS;
+    }
 
     public function trashDocument(Document $document, Teacher $by): void
     {
@@ -94,32 +108,34 @@ final class TrashService
         $this->em->flush();
     }
 
-    /** When something deleted on $deletedAt leaves the trash for good. */
-    public function expiresOn(\DateTimeImmutable $deletedAt): \DateTimeImmutable
-    {
-        return $deletedAt->modify('+' . self::RETENTION_DAYS . ' days');
-    }
-
     /**
-     * Deletes for good whatever has been in the trash longer than RETENTION_DAYS, then any file no
-     * revision points to any more.
+     * Deletes for good whatever has been in each centre's trash longer than its retention days
+     * (centres with 0 are left alone), then any file no revision points to any more.
      *
      * @return array{documents: int, activities: int, files: int}
      */
     public function purgeExpired(): array
     {
-        $cutoff = $this->clock->now()->modify('-' . self::RETENTION_DAYS . ' days');
+        $documents  = 0;
+        $activities = 0;
+        foreach ($this->centres->findAllOrderedByName() as $centre) {
+            $days = $this->retentionDays($centre);
+            if ($days === 0) {
+                continue;
+            }
+            $cutoff = $this->clock->now()->modify('-' . $days . ' days');
 
-        $documents = $this->documents->findTrashedBefore($cutoff);
-        foreach ($documents as $document) {
-            $this->em->remove($document);
-        }
-        $activities = $this->activities->findTrashedBefore($cutoff);
-        foreach ($activities as $activity) {
-            $this->em->remove($activity);
+            foreach ($this->documents->findTrashedBefore($centre, $cutoff) as $document) {
+                $this->em->remove($document);
+                ++$documents;
+            }
+            foreach ($this->activities->findTrashedBefore($centre, $cutoff) as $activity) {
+                $this->em->remove($activity);
+                ++$activities;
+            }
         }
         $this->em->flush();
 
-        return ['documents' => \count($documents), 'activities' => \count($activities), 'files' => $this->files->deleteOrphans()];
+        return ['documents' => $documents, 'activities' => $activities, 'files' => $this->files->deleteOrphans()];
     }
 }

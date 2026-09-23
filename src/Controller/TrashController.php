@@ -46,7 +46,7 @@ class TrashController extends AbstractController
             'centre'        => $centre,
             'documents'     => $this->documents->findTrashedByCentre($centre),
             'activities'    => $this->activities->findTrashedByCentre($centre),
-            'retentionDays' => TrashService::RETENTION_DAYS,
+            'retentionDays' => $this->trash->retentionDays($centre),
         ]);
     }
 

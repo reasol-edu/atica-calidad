@@ -9,7 +9,7 @@ use App\Service\TrashService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
-/** Daily (see Schedule.php): empties from the trash whatever has been there over TrashService::RETENTION_DAYS. */
+/** Daily (see Schedule.php): empties from each centre's trash whatever has been there longer than its "trash.retention_days". */
 #[AsMessageHandler]
 final class PurgeTrashHandler
 {

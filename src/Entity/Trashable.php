@@ -7,7 +7,8 @@ namespace App\Entity;
 /**
  * An entity that goes to the trash ("papelera") instead of being deleted straight away: it stays
  * in the database, hidden from every query by TrashFilter, until it's restored or purged — by
- * hand, or TrashPurger once TrashPurger::RETENTION_DAYS have passed. See TrashableTrait.
+ * hand, or by TrashService::purgeExpired() once the centre's retention days have passed. See
+ * TrashableTrait.
  */
 interface Trashable
 {

@@ -14,7 +14,7 @@
             <p class="truncate text-xs text-gray-500">{{ location }}</p>
             <p class="text-xs text-gray-400">
                 {{ 'trash.deleted'|trans({'%name%': item.deletedByName ?? '—', '%date%': item.deletedAt|date('d/m/Y H:i')}, 'admin') }}
-                · {{ 'trash.expires'|trans({'%date%': item.deletedAt|date_modify('+' ~ retentionDays ~ ' days')|date('d/m/Y')}, 'admin') }}
+                {%- if retentionDays > 0 %} · {{ 'trash.expires'|trans({'%date%': item.deletedAt|date_modify('+' ~ retentionDays ~ ' days')|date('d/m/Y')}, 'admin') }}{% endif %}
             </p>
         </div>
         <div class="flex shrink-0 items-center gap-2">
@@ -47,7 +47,10 @@
             <span aria-current="page" class="text-gray-700 font-medium">{{ 'trash'|trans({}, 'navigation') }}</span>
         </div>
         <h1 class="text-2xl font-bold text-gray-900">{{ 'trash'|trans({}, 'navigation') }}</h1>
-        <p class="mt-1 text-sm text-gray-500">{{ 'trash.intro'|trans({'%days%': retentionDays}, 'admin') }}</p>
+        <p class="mt-1 text-sm text-gray-500">
+            {{ (retentionDays > 0 ? 'trash.intro' : 'trash.intro_no_purge')|trans({'%count%': retentionDays}, 'admin') }}
+            {{ 'trash.intro_containers'|trans({}, 'admin') }}
+        </p>
     </div>
 
     {% if documents is empty and activities is empty %}
