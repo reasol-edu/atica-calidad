@@ -28,9 +28,11 @@ documental.
 
 Al entrar, el **Inicio** de la aplicación resume lo que hay pendiente:
 
-- **Mis actividades** — total, completadas, pendientes y vencidas del docente, con una barra de
-  progreso y la lista de las que quedan por hacer (enlaza a
-  [Mis actividades](#mis-actividades) para el detalle completo).
+- **Tus próximos pasos** — las actividades más urgentes que el docente puede hacer ahora mismo
+  (hasta cinco, primero las vencidas), con una sola línea de progreso: cuántas lleva hechas de su
+  total, cuántas esperan el visto bueno de otra persona y cuántas se le han pasado de plazo. Si no
+  le queda nada por hacer, indica cuál es la próxima actividad que se abrirá. El detalle completo
+  está en [Mis actividades](#mis-actividades).
 - **Revisiones pendientes** — documentos, de cualquier carpeta, que el docente debe revisar
   personalmente (ver [Entregas y revisión](#entregas-y-revision)).
 - **Todas las revisiones pendientes** — solo para responsable de calidad y administración: todas
@@ -42,25 +44,38 @@ Al entrar, el **Inicio** de la aplicación resume lo que hay pendiente:
 ![Pestaña «Mis actividades»: el resumen personal y la lista, con una actividad de cada estado y su color de fondo](img/actividades-mias.png)
 
 Lista plana de todas las actividades que le corresponden al docente, en cualquier categoría, con
-buscador, un interruptor **Mostrar solo lo pendiente** y filtros por fecha límite, perfil,
-categoría y estado. Es la vista pensada para el día a día: «¿qué me queda por hacer?», sin tener
-que navegar por la estructura de categorías.
+buscador, un interruptor **Solo lo que me toca** (oculta lo que no requiere nada del docente ahora
+mismo: lo que está en revisión, lo que aún no se ha abierto, lo cerrado y lo hecho) y filtros por
+fecha límite, perfil, categoría y estado. Es la vista pensada para el día a día: «¿qué me queda por
+hacer?», sin tener que navegar por la estructura de categorías.
 
-### Código de color
+Arriba, cuatro recuentos según **a quién le toca mover ficha**: **Por hacer** (con las vencidas
+destacadas dentro), **En revisión** (entregadas, a la espera del visto bueno), **Hechas** y
+**Próximamente** (aún no abiertas). Lo que aún no se ha abierto no cuenta como pendiente.
 
-Tanto en esta lista como en el panel principal y en la pestaña **Ver**, cada actividad lleva un
-color de fondo según su estado para el docente:
+### Estado de cada actividad {#estado-de-cada-actividad}
 
-| Color | Estado |
-| --- | --- |
-| Sin color | **Aún no ha empezado** — su plazo de este curso todavía no se ha abierto. |
-| Ámbar | **En plazo** — abierta y sin completar, con la fecha de fin todavía por delante. |
-| Rojo | **Vencida** — la fecha de fin ya ha pasado y sigue sin completar. |
-| Verde | **Completada** — en la pestaña «Ver» solo se pinta en verde si el docente tiene alguna obligación en esa actividad y la ha completado toda. |
+Todas las pantallas —el panel principal, esta lista, las tarjetas de la pestaña **Ver** y la
+campana— muestran el mismo estado para cada actividad, con la misma etiqueta y el mismo color, y
+los recordatorios por correo se basan en él:
 
-Es el mismo código que ya usaban las tarjetas de recuento (Total / Completadas / Pendientes /
-Vencidas) de la parte superior. En la pestaña **Ver**, dentro de una categoría, las tarjetas de
-actividad llevan el mismo código en un tono más suave:
+| Estado | Color | Qué significa | ¿Te toca? |
+| --- | --- | --- | --- |
+| **Pendiente** | Ámbar | Abierta y en plazo. Indica cuánto falta: «Vence hoy», «Vence mañana», «Vence en 3 días»… | Sí |
+| **Rechazada** | Rosa | Se rechazó tu entrega: hay que volver a entregarla. | Sí |
+| **Fuera de plazo** | Naranja | Ya pasó la fecha de fin, pero la actividad aún admite entregas (periodo de gracia). | Sí |
+| **Vencida** | Rojo | Ya pasó la fecha de fin y sigue sin completar. | Sí |
+| **En revisión** | Azul | Todo entregado; falta el visto bueno de quien revisa. Nunca aparece como vencida ni genera recordatorios. | No: le toca a quien revisa |
+| **Completada** | Verde | Hecha para este curso. | No |
+| **Próximamente** | Sin color | Su plazo de este curso aún no se ha abierto. | Todavía no |
+| **Cerrada** | Gris | El plazo (obligatorio) y su periodo de gracia terminaron sin completarla; ya no admite entregas. | No |
+
+Si un docente tiene varias obligaciones en la misma actividad (por ejemplo, dos perfiles), la
+tarjeta de la pestaña **Ver** muestra la más urgente. Una actividad que no le corresponde al
+docente —la ve con «Mostrar lo de todos los perfiles»— no se colorea: su fecha no es asunto suyo.
+
+En la pestaña **Ver**, dentro de una categoría, las tarjetas de actividad llevan el mismo color en
+un tono más suave:
 
 ![Tarjetas de actividad en la pestaña «Ver», con el borde y el fondo teñidos según el estado](img/actividades-ver-colores.png)
 
@@ -197,8 +212,11 @@ actividades ya completadas se muestran atenuadas y tachadas.
 ## Avisos
 
 La [campana de notificaciones](09-administrar-la-plataforma.md#ajustes-disponibles), en la
-cabecera, avisa de actividades pendientes/vencidas y de revisiones pendientes personales (nunca de
-«Todas las revisiones pendientes», que solo se muestra en el panel principal). La frecuencia de los
+cabecera, avisa solo de lo que el docente puede hacer ahora mismo —actividades pendientes,
+rechazadas, fuera de plazo o vencidas— y de sus revisiones pendientes personales (nunca de «Todas
+las revisiones pendientes», que solo se muestra en el panel principal). Lo que está en revisión, lo
+que aún no se ha abierto y lo cerrado no aparece. El recordatorio diario por correo sigue el mismo
+criterio: incluye las vencidas o fuera de plazo y las pendientes o rechazadas que vencen pronto. La frecuencia de los
 avisos por correo —al instante o en un resumen diario— se configura en
 **Ajustes → Avisos por correo**, a nivel global, de centro o personal — ver
 [Ajustes disponibles](09-administrar-la-plataforma.md#ajustes-disponibles).

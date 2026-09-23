@@ -33,6 +33,7 @@ use App\Security\Voter\FolderVoter;
 use App\Service\ActivityCompletionChecker;
 use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivityLogger;
+use App\Service\ActivityObligationFinder;
 use App\Service\ActivityWindowChecker;
 use App\Service\DocumentFileGarbageCollector;
 use App\Service\DocumentTreeAccessChecker;
@@ -208,6 +209,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly ActivityWindowChecker $windowChecker,
         private readonly ActivityLogger $activityLogger,
         private readonly DocumentFileGarbageCollector $garbageCollector,
+        private readonly ActivityObligationFinder $obligations,
     ) {}
 
     public function mount(
@@ -918,36 +920,17 @@ class ActivityBrowserComponent extends AbstractController
     }
 
     /**
-     * Colour-coded status of the activity for the current teacher, matching the dashboard and the
-     * "Mis actividades" list: 'completed' (the teacher owns obligations for it and every one is
-     * done), else 'not_started' (its yearly cycle hasn't opened), 'overdue' (deadline past) or
-     * 'active'. A teacher with no obligation for the activity never gets 'completed' — it's judged
-     * purely by its cycle then.
+     * Colour-coded status of the activity's card for the current teacher: the most urgent status
+     * among their own obligations for it (an ActivityObligationStatus value, the same the
+     * dashboard and "Mis actividades" show — see ActivityObligationFinder), or "neutral" when the
+     * activity isn't theirs at all: someone else's activity is never painted red just because its
+     * deadline passed.
      */
     public function getActivityStatus(Activity $activity): string
     {
-        $teacher     = $this->teacher();
-        $obligations = $this->completion->getMyOwnedObligations($teacher, $activity);
+        $status = $this->obligations->worstStatusFor($this->teacher(), $activity);
 
-        if ($obligations !== []) {
-            $allDone = true;
-            foreach ($obligations as $owner) {
-                if (!$this->completion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'])) {
-                    $allDone = false;
-
-                    break;
-                }
-            }
-            if ($allDone) {
-                return 'completed';
-            }
-        }
-
-        if (!$this->deadline->hasStarted($activity)) {
-            return 'not_started';
-        }
-
-        return $this->deadline->isOverdue($activity) ? 'overdue' : 'active';
+        return $status === null ? 'neutral' : $status->value;
     }
 
     #[LiveAction]

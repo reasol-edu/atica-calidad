@@ -18,6 +18,7 @@ emails.pending_activity_reminder.heading: 'Tienes actividades pendientes de comp
 emails.pending_activity_reminder.due_soon_heading: 'En plazo'
 emails.pending_activity_reminder.overdue_heading: 'Fuera de plazo'
 emails.pending_activity_reminder.due_date: 'vence el %date%'
+emails.pending_activity_reminder.rejected: 'la entrega se rechazó: hay que volver a entregarla'
 emails.pending_activity_reminder.overdue_since: 'venció el %date%'
 emails.pending_activity_reminder.cta: 'Ver mis actividades'
 

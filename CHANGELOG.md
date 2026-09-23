@@ -21,6 +21,25 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 
+- **Actividades**: todas las pantallas muestran ahora el mismo estado para cada actividad, con más
+  detalle: **Pendiente** (con «Vence hoy», «Vence mañana», «Vence en 3 días»…), **Rechazada**
+  (hay que volver a entregarla), **Fuera de plazo** (vencida, pero aún se admite en el periodo de
+  gracia), **Vencida**, **En revisión** (entregada, a la espera del visto bueno), **Completada**,
+  **Próximamente** (aún no abierta) y **Cerrada** (el plazo obligatorio terminó sin completarla).
+  Una entrega a la espera del visto bueno ya no aparece como pendiente ni como vencida, ni genera
+  recordatorios por correo: le toca a quien revisa.
+- **Panel principal**: el bloque de actividades pasa a llamarse **«Tus próximos pasos»** y muestra
+  solo las cinco más urgentes que se pueden hacer ahora, con una línea de progreso, en vez de
+  repetir los recuentos y la lista de «Mis actividades». Si no queda nada por hacer, avisa de la
+  próxima actividad que se abrirá.
+- **Mis actividades**: los recuentos pasan a ser **Por hacer** (con las vencidas destacadas),
+  **En revisión**, **Hechas** y **Próximamente**; lo que aún no se ha abierto ya no cuenta como
+  pendiente. El interruptor **«Solo lo que me toca»** sustituye a «Mostrar solo lo pendiente», y
+  la agrupación por estado separa lo que hay que hacer, lo que está en revisión, lo que aún no se
+  ha abierto, lo cerrado y lo hecho.
+- **Actividades (pestaña Ver)**: una actividad que no le corresponde al docente ya no se colorea
+  según su fecha (antes podía salir en rojo aunque estuviera entregada por todos).
+- **Campana de notificaciones**: solo avisa de lo que el docente puede hacer ahora mismo.
 - **Actividades**: el nombre de todas las descargas de una entrega empieza ahora por el curso
   académico al que corresponde, p. ej. «2026-2027 - Programación didáctica - Tutor/a.pdf», también
   dentro del ZIP de la carpeta. El propio ZIP se llama igual, precedido del curso (o del rango de

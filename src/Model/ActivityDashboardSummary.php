@@ -5,20 +5,24 @@ declare(strict_types=1);
 namespace App\Model;
 
 /**
- * The dashboard's "my activities" widget data — not persisted, built on the fly by
- * ActivityDashboardSummaryBuilder. Counts cover every obligation applicable to the teacher
- * (including completed ones); $items only lists the ones still needing attention (pending or
- * overdue), capped and sorted overdue-first, then soonest-deadline-first.
+ * The dashboard's "next steps" widget data — not persisted, built on the fly by
+ * ActivityDashboardSummaryBuilder from the teacher's obligations (see ActivityObligationFinder).
+ * The counts cover every obligation; $nextSteps only the most urgent ones the teacher can act on
+ * right now; $nextUpcoming the next one to open, to show when there's nothing left to do.
  */
 final readonly class ActivityDashboardSummary
 {
-    /** @param list<ActivityDashboardItem> $items */
+    /** @param list<ActivityDashboardItem> $nextSteps */
     public function __construct(
         public int $total,
-        public int $completed,
-        public int $pending,
+        /** Actionable right now (ActivityObligationStatus::GROUP_TODO). */
+        public int $todo,
+        /** Of $todo, the ones past their deadline. */
         public int $overdue,
-        public array $items,
+        public int $inReview,
+        public int $completed,
+        public array $nextSteps,
+        public ?ActivityDashboardItem $nextUpcoming,
     ) {}
 
     public function completionPercentage(): int

@@ -58,7 +58,7 @@ final class DashboardActivitySummaryComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('DashboardActivitySummaryComponent', ['centre' => $centre], $this->client);
 
         $html = (string) $component->render()->crawler()->html();
-        self::assertStringContainsString('¡Todo al día!', $html);
+        self::assertStringContainsString('No tienes ninguna actividad asignada', $html);
     }
 
     public function testListsAPendingActivity(): void
@@ -95,7 +95,7 @@ final class DashboardActivitySummaryComponentTest extends ControllerTestCase
         $html = (string) $component->render()->crawler()->html();
         self::assertStringContainsString('Memoria final', $html);
         self::assertStringContainsString('Vencida', $html);
-        self::assertStringContainsString('plazo vencido', $html);
+        self::assertStringContainsString('1 vencida', $html);
     }
 
     public function testACompletedActivityIsNotListedButCountsInTheStats(): void

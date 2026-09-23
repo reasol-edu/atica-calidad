@@ -15,12 +15,10 @@ use App\Entity\SettingType;
 use App\Entity\Teacher;
 use App\Message\SendPendingActivityReminderMessage;
 use App\MessageHandler\SendPendingActivityReminderHandler;
-use App\Repository\ActivityRepository;
 use App\Repository\EducationalCentreRepository;
 use App\Repository\EmailNotificationLogRepository;
 use App\Repository\TeacherRepository;
-use App\Service\ActivityCompletionChecker;
-use App\Service\ActivityDeadlineChecker;
+use App\Service\ActivityObligationFinder;
 use App\Service\AppSettingsInterface;
 use App\Service\NonWorkingDayChecker;
 use App\Service\NotificationMailer;
@@ -59,11 +57,9 @@ final class SendPendingActivityReminderHandlerTest extends RepositoryTestCase
 
     private function handler(MailerInterface $mailer): SendPendingActivityReminderHandler
     {
-        $finder = new PendingActivityReminderFinder(
-            self::getContainer()->get(ActivityRepository::class),
-            self::getContainer()->get(ActivityCompletionChecker::class),
-            new ActivityDeadlineChecker(self::getContainer()->get('clock'), self::getContainer()->get(AppSettingsInterface::class)),
-        );
+        /** @var ActivityObligationFinder $obligations */
+        $obligations = self::getContainer()->get(ActivityObligationFinder::class);
+        $finder      = new PendingActivityReminderFinder($obligations);
 
         $notificationMailer = new NotificationMailer(
             $mailer,

@@ -161,4 +161,37 @@ final class NotificationBellComponentTest extends ControllerTestCase
         self::assertStringNotContainsString('Acta de la reunión', $html);
         self::assertSame(0, $component->component()->getTotal());
     }
+
+    /**
+     * The bell lists only what the teacher can act on: a submission waiting for approval is the
+     * reviewer's move (even past its deadline), and an activity that hasn't opened yet isn't due.
+     */
+    public function testIgnoresASubmissionAwaitingApprovalAndAnActivityNotOpenYet(): void
+    {
+        self::mockTime('2025-11-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Carpeta');
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $folder->addUploadProfile($profile);
+        $submitted = (new Activity())->setCategory($category)->setTitle('Ya entregada')->setStart(1, 10)->setEnd(31, 10)->setFolder($folder);
+        $future    = (new Activity())->setCategory($category)->setTitle('Aún no abierta')->setStart(1, 12)->setEnd(20, 12);
+        $teacher   = $this->teacher('docente');
+        $assign    = new SpecificProfileAssignment($profile, null, $teacher);
+        $document  = (new Document($folder, 'Jefatura'))->setUploadProfile($profile);
+        $file      = new DocumentFile(hash('sha256', 'entrega'), 'x', 'application/pdf', 'x.pdf', 1);
+        $revision  = new DocumentRevision($document, 1, $file, true, $teacher);
+        $document->getRevisions()->add($revision);
+        $this->persist($centre, $category, $section, $folder, $profile, $submitted, $future, $teacher, $assign, $file, $document, $revision);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('NotificationBellComponent', [], $this->client);
+
+        self::assertSame(0, $component->component()->getTotal());
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringNotContainsString('Ya entregada', $html);
+        self::assertStringNotContainsString('Aún no abierta', $html);
+    }
 }

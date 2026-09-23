@@ -4,85 +4,43 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Entity\Activity;
-use App\Entity\ActivityCategory;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Model\ActivityDashboardItem;
-use App\Model\ActivityDashboardStatus;
 use App\Model\ActivityDashboardSummary;
-use App\Repository\ActivityRepository;
+use App\Model\ActivityObligationStatus;
 
 /**
- * Builds the dashboard's "my activities" widget: every obligation applicable to a teacher by
- * upload profile (narrower than DocumentTreeAccessChecker::isActivityRelevantToTeacher(), which
- * also counts managers/reviewers with no upload slot of their own), with its completed/pending/
- * overdue status.
+ * Builds the dashboard's "next steps" widget: how the teacher's obligations stand overall, and
+ * the few most urgent ones they can act on right now — the full list lives in "Mis actividades".
+ * Statuses come from ActivityObligationFinder, like everywhere else.
  */
 final class ActivityDashboardSummaryBuilder
 {
-    private const int MAX_ITEMS = 8;
+    public const int MAX_NEXT_STEPS = 5;
 
     public function __construct(
-        private readonly ActivityRepository $activities,
-        private readonly ActivityCompletionChecker $completion,
-        private readonly ActivityDeadlineChecker $deadline,
+        private readonly ActivityObligationFinder $obligations,
     ) {}
 
     public function build(Teacher $teacher, EducationalCentre $centre): ActivityDashboardSummary
     {
-        $total = 0;
-        $completed = 0;
-        $pending = 0;
-        $overdue = 0;
-        $needsAttention = [];
+        $items = $this->obligations->forTeacher($teacher, $centre);
 
-        foreach ($this->activities->findAllByCentre($centre) as $activity) {
-            foreach ($this->completion->getMyOwnedObligations($teacher, $activity) as $owner) {
-                ++$total;
+        $actionable = array_values(array_filter($items, static fn (ActivityDashboardItem $i): bool => $i->status->isActionable()));
+        usort($actionable, ActivityDashboardItem::compareByUrgency(...));
 
-                if ($this->completion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'])) {
-                    ++$completed;
-                    continue;
-                }
+        $upcoming = array_values(array_filter($items, static fn (ActivityDashboardItem $i): bool => $i->status === ActivityObligationStatus::Upcoming));
+        usort($upcoming, static fn (ActivityDashboardItem $a, ActivityDashboardItem $b): int => $a->startsAt <=> $b->startsAt);
 
-                $isOverdue = $this->deadline->isOverdue($activity);
-                if ($isOverdue) {
-                    ++$overdue;
-                } else {
-                    ++$pending;
-                }
-
-                $needsAttention[] = new ActivityDashboardItem(
-                    $activity,
-                    $isOverdue ? ActivityDashboardStatus::Overdue : ActivityDashboardStatus::Pending,
-                    $this->categoryPath($activity->getCategory()),
-                    $owner['label'],
-                    $this->deadline->currentCycleEndDate($activity),
-                    $this->deadline->currentCycleStartDate($activity),
-                    !$this->deadline->hasStarted($activity),
-                );
-            }
-        }
-
-        usort($needsAttention, static function (ActivityDashboardItem $a, ActivityDashboardItem $b): int {
-            if ($a->status !== $b->status) {
-                return $a->status === ActivityDashboardStatus::Overdue ? -1 : 1;
-            }
-
-            return $a->deadline <=> $b->deadline;
-        });
-
-        return new ActivityDashboardSummary($total, $completed, $pending, $overdue, array_slice($needsAttention, 0, self::MAX_ITEMS));
-    }
-
-    private function categoryPath(ActivityCategory $category): string
-    {
-        $trail = [];
-        for ($c = $category; $c !== null; $c = $c->getParent()) {
-            array_unshift($trail, $c->getName());
-        }
-
-        return implode(' › ', $trail);
+        return new ActivityDashboardSummary(
+            total: count($items),
+            todo: count($actionable),
+            overdue: count(array_filter($actionable, static fn (ActivityDashboardItem $i): bool => $i->status->isOverdue())),
+            inReview: count(array_filter($items, static fn (ActivityDashboardItem $i): bool => $i->status === ActivityObligationStatus::InReview)),
+            completed: count(array_filter($items, static fn (ActivityDashboardItem $i): bool => $i->status === ActivityObligationStatus::Completed)),
+            nextSteps: array_slice($actionable, 0, self::MAX_NEXT_STEPS),
+            nextUpcoming: $upcoming[0] ?? null,
+        );
     }
 }

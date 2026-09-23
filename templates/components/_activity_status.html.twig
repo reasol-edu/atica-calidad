@@ -1,39 +1,99 @@
 {#
-   Visual status of an activity for the current teacher, and the background tint that goes with it,
-   shared by the dashboard summary, the "Mis actividades" list and the "Ver categorías" cards.
+   How an activity obligation's status (ActivityObligationStatus, computed by
+   ActivityObligationFinder) looks — one set of macros shared by the dashboard, the "Mis
+   actividades" list, the "Ver" category cards and the notification bell, so the same status always
+   reads and looks the same everywhere. `status` is the enum's string value; the "Ver" cards also
+   pass "neutral" for an activity that isn't the viewer's own.
 
-   Four states:
-     not_started  — the cycle hasn't opened yet            → no tint (plain background)
-     active       — open, not completed, deadline not past  → amber
-     overdue      — deadline past, not completed            → red
-     completed    — done                                    → green
+     todo      open (amber) · rejected (rose) · late (orange) · overdue (red)
+     waiting   in_review (sky)
+     done      completed (green)
+     upcoming  upcoming (no tint)
+     closed    closed (grey)
 #}
 
-{# From an ActivityDashboardItem's status ('completed'|'pending'|'overdue') plus its notStarted flag. #}
-{% macro key(status_value, not_started) -%}
-    {%- if status_value == 'completed' -%}completed
-    {%- elseif status_value == 'overdue' -%}overdue
-    {%- elseif not_started -%}not_started
-    {%- else -%}active
+{# Small rounded status label. #}
+{% macro pill(status) -%}
+    {%- set classes = {
+        'open':      'bg-amber-50 text-amber-700',
+        'rejected':  'bg-rose-50 text-rose-700',
+        'late':      'bg-orange-50 text-orange-700',
+        'overdue':   'bg-red-50 text-red-700',
+        'in_review': 'bg-sky-50 text-sky-700',
+        'completed': 'bg-forest-50 text-forest-700',
+        'upcoming':  'bg-gray-100 text-gray-600',
+        'closed':    'bg-gray-200 text-gray-700',
+    } -%}
+    <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium {{ classes[status] ?? 'bg-gray-100 text-gray-600' }}">
+        {{- ('obligation.status.' ~ status)|trans({}, 'activity_content') -}}
+    </span>
+{%- endmacro %}
+
+{# Leading icon for a row. #}
+{% macro icon(status, size) -%}
+    {%- set icons = {
+        'open':      ['heroicons:clock', 'text-amber-500'],
+        'rejected':  ['heroicons:arrow-path', 'text-rose-500'],
+        'late':      ['heroicons:exclamation-circle', 'text-orange-500'],
+        'overdue':   ['heroicons:exclamation-circle', 'text-red-500'],
+        'in_review': ['heroicons:document-magnifying-glass', 'text-sky-500'],
+        'completed': ['heroicons:check-circle', 'text-forest-500'],
+        'upcoming':  ['heroicons:calendar-days', 'text-gray-400'],
+        'closed':    ['heroicons:lock-closed', 'text-gray-400'],
+    } -%}
+    {%- set icon = icons[status] ?? ['heroicons:clock', 'text-gray-400'] -%}
+    <span class="shrink-0 {{ icon[1] }}">{{ ux_icon(icon[0], {class: size ?? 'h-5 w-5'}) }}</span>
+{%- endmacro %}
+
+{# One line explaining the status in dates: "Vence en 3 días", "Venció el …", "Se abre el …". item: ActivityDashboardItem #}
+{% macro detail(item) -%}
+    {%- set status   = item.status.value -%}
+    {%- set deadline = item.deadline|date('d/m/Y') -%}
+    {%- if status == 'open' -%}
+        {%- if item.daysLeft == 0 -%}{{ 'obligation.detail.due_today'|trans({}, 'activity_content') }}
+        {%- elseif item.daysLeft == 1 -%}{{ 'obligation.detail.due_tomorrow'|trans({}, 'activity_content') }}
+        {%- elseif item.daysLeft <= 14 -%}{{ 'obligation.detail.due_in_days'|trans({'%days%': item.daysLeft}, 'activity_content') }}
+        {%- else -%}{{ 'obligation.detail.due_on'|trans({'%date%': deadline}, 'activity_content') }}
+        {%- endif -%}
+    {%- elseif status == 'rejected' -%}
+        {{ (item.daysLeft >= 0 ? 'obligation.detail.rejected_due' : 'obligation.detail.rejected_past')|trans({'%date%': deadline}, 'activity_content') }}
+    {%- elseif status == 'late' -%}
+        {{ (item.graceUntil > item.deadline ? 'obligation.detail.late_until' : 'obligation.detail.late')|trans({'%date%': deadline, '%grace%': item.graceUntil|date('d/m/Y')}, 'activity_content') }}
+    {%- elseif status == 'overdue' -%}
+        {{ 'obligation.detail.overdue'|trans({'%date%': deadline}, 'activity_content') }}
+    {%- elseif status == 'in_review' -%}
+        {{ 'obligation.detail.in_review'|trans({}, 'activity_content') }}
+    {%- elseif status == 'upcoming' -%}
+        {{ 'obligation.detail.upcoming'|trans({'%start%': item.startsAt|date('d/m/Y'), '%end%': deadline}, 'activity_content') }}
+    {%- elseif status == 'closed' -%}
+        {{ 'obligation.detail.closed'|trans({'%date%': item.graceUntil|date('d/m/Y')}, 'activity_content') }}
+    {%- else -%}
+        {{ 'obligation.detail.completed'|trans({}, 'activity_content') }}
     {%- endif -%}
 {%- endmacro %}
 
 {# Row background (list rows): tint + a matching hover. #}
-{% macro row_bg(key) -%}
+{% macro row_bg(status) -%}
     {{- {
-        'completed':   'bg-forest-50 hover:bg-forest-100',
-        'active':      'bg-amber-50 hover:bg-amber-100',
-        'overdue':     'bg-red-50 hover:bg-red-100',
-        'not_started': 'hover:bg-gray-50',
-    }[key] ?? 'hover:bg-gray-50' -}}
+        'open':      'bg-amber-50 hover:bg-amber-100',
+        'rejected':  'bg-rose-50 hover:bg-rose-100',
+        'late':      'bg-orange-50 hover:bg-orange-100',
+        'overdue':   'bg-red-50 hover:bg-red-100',
+        'in_review': 'bg-sky-50/60 hover:bg-sky-50',
+        'completed': 'bg-forest-50 hover:bg-forest-100',
+        'closed':    'bg-gray-50 hover:bg-gray-100',
+    }[status] ?? 'hover:bg-gray-50' -}}
 {%- endmacro %}
 
 {# Card background + border (the larger "Ver categorías" cards): keep it lighter than a row. #}
-{% macro card_bg(key) -%}
+{% macro card_bg(status) -%}
     {{- {
-        'completed':   'bg-forest-50/60 border-forest-200',
-        'active':      'bg-amber-50/60 border-amber-200',
-        'overdue':     'bg-red-50/60 border-red-200',
-        'not_started': 'bg-white border-gray-200',
-    }[key] ?? 'bg-white border-gray-200' -}}
+        'open':      'bg-amber-50/60 border-amber-200',
+        'rejected':  'bg-rose-50/60 border-rose-200',
+        'late':      'bg-orange-50/60 border-orange-200',
+        'overdue':   'bg-red-50/60 border-red-200',
+        'in_review': 'bg-sky-50/60 border-sky-200',
+        'completed': 'bg-forest-50/60 border-forest-200',
+        'closed':    'bg-gray-50 border-gray-300',
+    }[status] ?? 'bg-white border-gray-200' -}}
 {%- endmacro %}

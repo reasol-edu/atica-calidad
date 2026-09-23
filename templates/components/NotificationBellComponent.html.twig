@@ -1,3 +1,4 @@
+{% import 'components/_activity_status.html.twig' as activity_status %}
 <div {{ attributes.defaults({class: 'relative'}).defaults(stimulus_controller('dropdown')) }}>
 
     <button type="button"
@@ -39,21 +40,16 @@
                     </p>
                     <ul class="divide-y divide-gray-100">
                         {% for item in activityItems %}
-                            {% set entity  = item.entity %}
-                            {% set overdue = entity.status.value == 'overdue' %}
+                            {% set entity = item.entity %}
                             <li>
                                 <a href="{{ path('app_activities', {category: entity.activity.category.id.toRfc4122, activity: entity.activity.id.toRfc4122}) }}"
                                    class="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
-                                    <span class="mt-0.5 shrink-0 {{ overdue ? 'text-red-500' : 'text-amber-500' }}">
-                                        {{ ux_icon(overdue ? 'heroicons:exclamation-circle' : 'heroicons:clock', {class: 'h-4 w-4'}) }}
-                                    </span>
+                                    <span class="mt-0.5">{{ activity_status.icon(entity.status.value, 'h-4 w-4') }}</span>
                                     <span class="min-w-0 flex-1">
                                         <span class="block truncate text-sm text-gray-800">
                                             {{ entity.activity.title }}{{ entity.ownerLabel ? ' · ' ~ entity.ownerLabel : '' }}
                                         </span>
-                                        <span class="mt-0.5 block truncate text-xs text-gray-400">
-                                            {{ (overdue ? 'bell.item.activity_overdue' : 'bell.item.activity_pending')|trans({'%date%': item.date|date('format.date'|trans)}, 'notifications') }}
-                                        </span>
+                                        <span class="mt-0.5 block truncate text-xs text-gray-400">{{ activity_status.detail(entity) }}</span>
                                     </span>
                                 </a>
                             </li>

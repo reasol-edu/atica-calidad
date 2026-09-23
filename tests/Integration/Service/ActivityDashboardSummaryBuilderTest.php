@@ -15,12 +15,10 @@ use App\Entity\PersonName;
 use App\Entity\SpecificProfile;
 use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
-use App\Model\ActivityDashboardStatus;
-use App\Repository\ActivityRepository;
-use App\Service\ActivityCompletionChecker;
+use App\Model\ActivityObligationStatus;
 use App\Service\ActivityDashboardSummaryBuilder;
 use App\Service\ActivityDeadlineChecker;
-use App\Service\AppSettingsInterface;
+use App\Service\ActivityObligationFinder;
 use App\Tests\Integration\RepositoryTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
@@ -43,13 +41,15 @@ final class ActivityDashboardSummaryBuilderTest extends RepositoryTestCase
     {
         parent::setUp();
 
+        // Well inside the Sep 1–30 activities' window unless a test says otherwise, so none of
+        // these depends on the day the suite runs.
+        self::mockTime('2025-09-20 10:00:00');
+
         // Only ever consumed by DashboardActivitySummaryComponent, so the compiled container
         // inlines it — build it directly from its own real, container-provided dependencies.
-        $this->builder = new ActivityDashboardSummaryBuilder(
-            self::getContainer()->get(ActivityRepository::class),
-            self::getContainer()->get(ActivityCompletionChecker::class),
-            new ActivityDeadlineChecker(self::getContainer()->get('clock'), self::getContainer()->get(AppSettingsInterface::class)),
-        );
+        /** @var ActivityObligationFinder $obligations */
+        $obligations   = self::getContainer()->get(ActivityObligationFinder::class);
+        $this->builder = new ActivityDashboardSummaryBuilder($obligations);
     }
 
     private function centre(): EducationalCentre
@@ -90,7 +90,7 @@ final class ActivityDashboardSummaryBuilderTest extends RepositoryTestCase
         $summary = $this->builder->build($teacher, $centre);
 
         self::assertSame(1, $summary->total);
-        self::assertCount(1, $summary->items);
+        self::assertCount(1, $summary->nextSteps);
     }
 
     public function testAnIndividualScopeActivityOnlyAppliesWhenTheTeacherHoldsASlot(): void
@@ -130,7 +130,7 @@ final class ActivityDashboardSummaryBuilderTest extends RepositoryTestCase
         $summary = $this->builder->build($teacher, $centre);
 
         self::assertSame(2, $summary->total);
-        self::assertCount(2, $summary->items);
+        self::assertCount(2, $summary->nextSteps);
     }
 
     /**
@@ -165,13 +165,13 @@ final class ActivityDashboardSummaryBuilderTest extends RepositoryTestCase
 
         self::assertSame(1, $summary->total);
         self::assertSame(1, $summary->completed);
-        self::assertSame(0, $summary->pending);
+        self::assertSame(0, $summary->todo);
         self::assertSame(0, $summary->overdue);
-        self::assertSame([], $summary->items);
+        self::assertSame([], $summary->nextSteps);
         self::assertSame(100, $summary->completionPercentage());
     }
 
-    public function testAnUncompletedActivityIsPendingBeforeItsDeadline(): void
+    public function testAnUncompletedActivityIsToDoBeforeItsDeadline(): void
     {
         self::mockTime('2025-09-15 10:00:00');
 
@@ -183,9 +183,9 @@ final class ActivityDashboardSummaryBuilderTest extends RepositoryTestCase
 
         $summary = $this->builder->build($teacher, $centre);
 
-        self::assertSame(1, $summary->pending);
+        self::assertSame(1, $summary->todo);
         self::assertSame(0, $summary->overdue);
-        self::assertSame(ActivityDashboardStatus::Pending, $summary->items[0]->status);
+        self::assertSame(ActivityObligationStatus::Open, $summary->nextSteps[0]->status);
     }
 
     public function testAnUncompletedActivityIsOverdueAfterItsDeadline(): void
@@ -200,9 +200,9 @@ final class ActivityDashboardSummaryBuilderTest extends RepositoryTestCase
 
         $summary = $this->builder->build($teacher, $centre);
 
-        self::assertSame(0, $summary->pending);
+        self::assertSame(1, $summary->todo, 'overdue is still to do — counted within it');
         self::assertSame(1, $summary->overdue);
-        self::assertSame(ActivityDashboardStatus::Overdue, $summary->items[0]->status);
+        self::assertSame(ActivityObligationStatus::Overdue, $summary->nextSteps[0]->status);
     }
 
     public function testOverdueItemsAreSortedBeforePendingOnes(): void
@@ -212,18 +212,18 @@ final class ActivityDashboardSummaryBuilderTest extends RepositoryTestCase
         $centre     = $this->centre();
         $category   = $this->category($centre);
         $overdue    = $this->activity($category, 'Vencida')->setStart(1, 9)->setEnd(30, 9);
-        $pending    = $this->activity($category, 'Pendiente')->setStart(1, 11)->setEnd(30, 11);
+        $pending    = $this->activity($category, 'Pendiente')->setStart(1, 10)->setEnd(31, 10);
         $teacher    = $this->teacher('docente');
         $this->persist($centre, $category, $overdue, $pending, $teacher);
 
         $summary = $this->builder->build($teacher, $centre);
 
-        self::assertCount(2, $summary->items);
-        self::assertSame('Vencida', $summary->items[0]->activity->getTitle());
-        self::assertSame('Pendiente', $summary->items[1]->activity->getTitle());
+        self::assertCount(2, $summary->nextSteps);
+        self::assertSame('Vencida', $summary->nextSteps[0]->activity->getTitle());
+        self::assertSame('Pendiente', $summary->nextSteps[1]->activity->getTitle());
     }
 
-    public function testItemsAreCappedToEight(): void
+    public function testNextStepsAreCappedButEveryObligationIsCounted(): void
     {
         $centre   = $this->centre();
         $category = $this->category($centre);
@@ -237,7 +237,8 @@ final class ActivityDashboardSummaryBuilderTest extends RepositoryTestCase
         $summary = $this->builder->build($teacher, $centre);
 
         self::assertSame(10, $summary->total);
-        self::assertCount(8, $summary->items);
+        self::assertSame(10, $summary->todo);
+        self::assertCount(ActivityDashboardSummaryBuilder::MAX_NEXT_STEPS, $summary->nextSteps);
     }
 
     public function testCategoryPathIncludesTheFullAncestorTrail(): void
@@ -252,6 +253,24 @@ final class ActivityDashboardSummaryBuilderTest extends RepositoryTestCase
 
         $summary = $this->builder->build($teacher, $centre);
 
-        self::assertSame('Curso › Departamentos', $summary->items[0]->categoryPath);
+        self::assertSame('Curso › Departamentos', $summary->nextSteps[0]->categoryPath);
+    }
+
+    /** Upcoming obligations are not next steps; when nothing's left to do, the next one to open is. */
+    public function testTheNextUpcomingObligationIsOfferedWhenNothingIsLeftToDo(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $later    = $this->activity($category, 'En diciembre')->setStart(1, 12)->setEnd(20, 12);
+        $sooner   = $this->activity($category, 'En noviembre')->setStart(1, 11)->setEnd(30, 11);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $later, $sooner, $teacher);
+
+        $summary = $this->builder->build($teacher, $centre);
+
+        self::assertSame(0, $summary->todo);
+        self::assertSame([], $summary->nextSteps);
+        self::assertNotNull($summary->nextUpcoming);
+        self::assertSame('En noviembre', $summary->nextUpcoming->activity->getTitle());
     }
 }

@@ -1785,8 +1785,8 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $instance = $component->component();
 
         self::assertSame('overdue', $instance->getActivityStatus($overdue));
-        self::assertSame('active', $instance->getActivityStatus($active));
-        self::assertSame('not_started', $instance->getActivityStatus($future));
+        self::assertSame('open', $instance->getActivityStatus($active));
+        self::assertSame('upcoming', $instance->getActivityStatus($future));
         self::assertSame('completed', $instance->getActivityStatus($completed));
 
         // ...and the card in the "Ver" tab carries the matching background/border.
@@ -1794,6 +1794,31 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertStringContainsString('border-red-200', $html);
         self::assertStringContainsString('border-amber-200', $html);
         self::assertStringContainsString('border-forest-200', $html);
+    }
+
+    /** Someone else's activity isn't painted by its deadline: it has no status of the viewer's own. */
+    public function testAnActivityThatIsNotTheViewersOwnHasANeutralCard(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $folder->addUploadProfile($profile);
+        $overdue  = $this->activity($category, 'De otros')->setStart(1, 9)->setEnd(30, 9)->setFolder($folder);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $overdue, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+
+        self::assertSame('neutral', $instance->getActivityStatus($overdue));
     }
 
     // ── withdrawing an own pending/rejected submission ───────────────────────

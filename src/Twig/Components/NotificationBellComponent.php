@@ -7,7 +7,7 @@ namespace App\Twig\Components;
 use App\Entity\DocumentRevision;
 use App\Entity\Teacher;
 use App\Model\ActivityDashboardItem;
-use App\Service\ActivityDashboardSummaryBuilder;
+use App\Service\ActivityObligationFinder;
 use App\Service\PendingReviewFinder;
 use App\Service\TenantContextInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -33,7 +33,7 @@ class NotificationBellComponent extends AbstractController
 
     public function __construct(
         private readonly TenantContextInterface $tenant,
-        private readonly ActivityDashboardSummaryBuilder $activitySummary,
+        private readonly ActivityObligationFinder $obligations,
         private readonly PendingReviewFinder $pendingReview,
     ) {}
 
@@ -99,13 +99,18 @@ class NotificationBellComponent extends AbstractController
             return;
         }
 
-        $summary = $this->activitySummary->build($user, $centre);
+        // Only what the teacher can act on right now — not what waits for someone else's approval,
+        // hasn't opened yet or is closed (see ActivityObligationStatus::isActionable()).
+        $activities = array_values(array_filter(
+            $this->obligations->forTeacher($user, $centre),
+            static fn (ActivityDashboardItem $i): bool => $i->status->isActionable(),
+        ));
         $reviews = $this->pendingReview->forTeacher($user, $centre);
 
-        $this->total = $summary->pending + $summary->overdue + count($reviews);
+        $this->total = count($activities) + count($reviews);
 
         $items = [];
-        foreach ($summary->items as $item) {
+        foreach ($activities as $item) {
             $items[] = ['type' => 'activity', 'entity' => $item, 'date' => $item->deadline];
         }
         foreach ($reviews as $revision) {

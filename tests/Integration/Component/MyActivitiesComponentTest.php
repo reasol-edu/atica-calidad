@@ -130,9 +130,9 @@ final class MyActivitiesComponentTest extends ControllerTestCase
         $groups   = $instance->getGroups();
 
         self::assertCount(2, $groups);
-        self::assertSame('Pendientes', $groups[0]['label']);
+        self::assertSame('Por hacer', $groups[0]['label']);
         self::assertSame('Sin completar', $groups[0]['items'][0]->activity->getTitle());
-        self::assertSame('Completadas', $groups[1]['label']);
+        self::assertSame('Hechas', $groups[1]['label']);
         self::assertSame('Completada', $groups[1]['items'][0]->activity->getTitle());
     }
 
@@ -162,38 +162,42 @@ final class MyActivitiesComponentTest extends ControllerTestCase
         self::assertSame(['Categoría A', 'Categoría B'], $labels);
     }
 
-    public function testStatCountsReflectEachStatus(): void
+    public function testStatCountsReflectWhoseMoveItIs(): void
     {
         self::mockTime('2025-10-05 10:00:00');
 
         $centre    = $this->centre();
         $category  = $this->category($centre);
         $overdue   = $this->activity($category, 'Vencida')->setStart(1, 9)->setEnd(30, 9);
-        $pending   = $this->activity($category, 'Pendiente')->setStart(1, 11)->setEnd(30, 11);
+        $open      = $this->activity($category, 'Pendiente')->setStart(1, 10)->setEnd(31, 10);
+        $upcoming  = $this->activity($category, 'Próxima')->setStart(1, 11)->setEnd(30, 11);
         $completed = $this->activity($category, 'Completada')->setStart(1, 9)->setEnd(30, 9);
         $teacher   = $this->teacher('docente');
-        $this->persist($centre, $category, $overdue, $pending, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher, $this->cycleKey($completed)));
+        $this->persist($centre, $category, $overdue, $open, $upcoming, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher, $this->cycleKey($completed)));
 
         $this->loginAs($teacher, $centre);
         $component = $this->createLiveComponent('MyActivitiesComponent', ['centre' => $centre], $this->client);
-        $component->render();
+        $html      = (string) $component->render()->crawler()->html();
         /** @var MyActivitiesComponent $instance */
         $instance = $component->component();
 
-        self::assertSame(3, $instance->getTotal());
+        self::assertSame(4, $instance->getTotal());
+        self::assertSame(2, $instance->countInGroup('todo'), 'the overdue one is still to do');
         self::assertSame(1, $instance->getOverdueCount());
-        self::assertSame(1, $instance->getPendingCount());
-        self::assertSame(1, $instance->getCompletedCount());
+        self::assertSame(1, $instance->countInGroup('done'));
+        self::assertSame(1, $instance->countInGroup('upcoming'), 'not open yet: not counted as to do');
+        self::assertSame(0, $instance->countInGroup('waiting'));
+        self::assertStringContainsString('1 vencida', $html);
     }
 
-    public function testOnlyPendingHidesCompletedItemsButKeepsPendingAndOverdue(): void
+    public function testOnlyPendingKeepsJustWhatTheTeacherCanActOn(): void
     {
         self::mockTime('2025-10-05 10:00:00');
 
         $centre    = $this->centre();
         $category  = $this->category($centre);
         $overdue   = $this->activity($category, 'Vencida')->setStart(1, 9)->setEnd(30, 9);
-        $pending   = $this->activity($category, 'Pendiente')->setStart(1, 11)->setEnd(30, 11);
+        $pending   = $this->activity($category, 'Pendiente')->setStart(1, 10)->setEnd(31, 10);
         $completed = $this->activity($category, 'Completada')->setStart(1, 9)->setEnd(30, 9);
         $teacher   = $this->teacher('docente');
         $this->persist($centre, $category, $overdue, $pending, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher, $this->cycleKey($completed)));
@@ -211,7 +215,7 @@ final class MyActivitiesComponentTest extends ControllerTestCase
 
         // The stat tiles stay a fixed overview of everything — only the list itself is filtered.
         self::assertSame(3, $instance->getTotal());
-        self::assertSame(1, $instance->getCompletedCount());
+        self::assertSame(1, $instance->countInGroup('done'));
     }
 
     public function testARowThatHasNotOpenedYetShowsWhenItOpens(): void

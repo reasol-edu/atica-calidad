@@ -7,8 +7,8 @@ namespace App\Twig\Components;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Model\ActivityDashboardItem;
-use App\Model\ActivityDashboardStatus;
-use App\Service\MyActivitiesFinder;
+use App\Model\ActivityObligationStatus;
+use App\Service\ActivityObligationFinder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -32,6 +32,14 @@ class MyActivitiesComponent extends AbstractController
 
     private const array GROUP_MODES = ['deadline', 'profile', 'category', 'status'];
 
+    private const array STATUS_GROUP_ORDER = [
+        ActivityObligationStatus::GROUP_TODO,
+        ActivityObligationStatus::GROUP_WAITING,
+        ActivityObligationStatus::GROUP_UPCOMING,
+        ActivityObligationStatus::GROUP_CLOSED,
+        ActivityObligationStatus::GROUP_DONE,
+    ];
+
     #[LiveProp]
     public EducationalCentre $centre;
 
@@ -41,7 +49,7 @@ class MyActivitiesComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $groupBy = 'deadline';
 
-    /** When true, getFilteredItems()/getGroups() drop completed obligations — pending and overdue only. */
+    /** When true, getFilteredItems()/getGroups() keep only what the teacher can act on right now (ActivityObligationStatus::isActionable()). */
     #[LiveProp(writable: true)]
     public bool $onlyPending = false;
 
@@ -49,7 +57,7 @@ class MyActivitiesComponent extends AbstractController
     private ?array $items = null;
 
     public function __construct(
-        private readonly MyActivitiesFinder $finder,
+        private readonly ActivityObligationFinder $finder,
         private readonly TranslatorInterface $translator,
     ) {}
 
@@ -81,19 +89,16 @@ class MyActivitiesComponent extends AbstractController
         return count($this->getItems());
     }
 
-    public function getCompletedCount(): int
+    /** How many obligations fall in each ActivityObligationStatus group ("todo", "waiting"…). */
+    public function countInGroup(string $group): int
     {
-        return count(array_filter($this->getItems(), static fn (ActivityDashboardItem $i): bool => $i->status === ActivityDashboardStatus::Completed));
+        return count(array_filter($this->getItems(), static fn (ActivityDashboardItem $i): bool => $i->status->group() === $group));
     }
 
-    public function getPendingCount(): int
-    {
-        return count(array_filter($this->getItems(), static fn (ActivityDashboardItem $i): bool => $i->status === ActivityDashboardStatus::Pending));
-    }
-
+    /** Of the actionable ones, how many are past their deadline. */
     public function getOverdueCount(): int
     {
-        return count(array_filter($this->getItems(), static fn (ActivityDashboardItem $i): bool => $i->status === ActivityDashboardStatus::Overdue));
+        return count(array_filter($this->getItems(), static fn (ActivityDashboardItem $i): bool => $i->status->isOverdue()));
     }
 
     /**
@@ -106,10 +111,7 @@ class MyActivitiesComponent extends AbstractController
         $items = $this->getItems();
 
         if ($this->onlyPending) {
-            $items = array_values(array_filter(
-                $items,
-                static fn (ActivityDashboardItem $i): bool => $i->status !== ActivityDashboardStatus::Completed,
-            ));
+            $items = array_values(array_filter($items, static fn (ActivityDashboardItem $i): bool => $i->status->isActionable()));
         }
 
         $query = mb_strtolower(trim($this->searchQuery));
@@ -130,8 +132,8 @@ class MyActivitiesComponent extends AbstractController
     /**
      * Only meaningful when $groupBy !== 'deadline' — the flat view renders getFilteredItems()
      * directly instead. Groups are themselves ordered by their most urgent (soonest-deadline)
-     * item, except the 'status' grouping, which always puts "Pendientes" before "Completadas"
-     * regardless of individual deadlines.
+     * item, except the 'status' grouping, which always follows whose move it is: to do, waiting
+     * for approval, not open yet, closed, done — regardless of individual deadlines.
      *
      * @return list<array{label: string, items: list<ActivityDashboardItem>}>
      */
@@ -146,15 +148,12 @@ class MyActivitiesComponent extends AbstractController
         }
 
         if ($this->groupBy === 'status') {
-            $pendingLabel   = $this->translator->trans('mine.group.pending', [], 'activity_content');
-            $completedLabel = $this->translator->trans('mine.group.completed', [], 'activity_content');
-
             $groups = [];
-            if (isset($buckets[$pendingLabel])) {
-                $groups[] = ['label' => $pendingLabel, 'items' => $buckets[$pendingLabel]];
-            }
-            if (isset($buckets[$completedLabel])) {
-                $groups[] = ['label' => $completedLabel, 'items' => $buckets[$completedLabel]];
+            foreach (self::STATUS_GROUP_ORDER as $group) {
+                $label = $this->translator->trans('mine.group.' . $group, [], 'activity_content');
+                if (isset($buckets[$label])) {
+                    $groups[] = ['label' => $label, 'items' => $buckets[$label]];
+                }
             }
 
             return $groups;
@@ -175,9 +174,7 @@ class MyActivitiesComponent extends AbstractController
         return match ($this->groupBy) {
             'category' => $item->categoryPath,
             'profile'  => $item->ownerLabel ?? $this->translator->trans('mine.no_owner_label', [], 'activity_content'),
-            'status'   => $item->status === ActivityDashboardStatus::Completed
-                ? $this->translator->trans('mine.group.completed', [], 'activity_content')
-                : $this->translator->trans('mine.group.pending', [], 'activity_content'),
+            'status'   => $this->translator->trans('mine.group.' . $item->status->group(), [], 'activity_content'),
             default => '',
         };
     }

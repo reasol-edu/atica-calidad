@@ -9,6 +9,9 @@
             <span style="color: #93826a;">
                 — {{ 'emails.pending_activity_reminder.due_date'|trans({'%date%': item.deadline|date('d/m/Y')}, 'emails') }}
             </span>
+            {% if item.status.value == 'rejected' %}
+                <span style="color: #6b3241;">({{ 'emails.pending_activity_reminder.rejected'|trans({}, 'emails') }})</span>
+            {% endif %}
         </li>
     {% endfor %}
 </ul>

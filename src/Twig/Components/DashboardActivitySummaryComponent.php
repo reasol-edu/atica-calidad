@@ -14,11 +14,11 @@ use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * Home dashboard widget: every activity applicable to the current teacher by upload profile
- * (narrower than the "Actividades" section's own relevance filter — see
- * ActivityDashboardSummaryBuilder), with completed/pending/overdue counts and a capped list of
- * what still needs attention. Read-only: each item links out to the Actividades section to act on
- * it — the actual upload/completion actions live there, not duplicated here.
+ * Home dashboard widget, "Tus próximos pasos": the few most urgent activity obligations the current
+ * teacher can act on right now, plus one line of overall progress (see
+ * ActivityDashboardSummaryBuilder; statuses from ActivityObligationFinder, like every other
+ * screen). The full list and the totals by status live in "Mis actividades". Read-only: each item
+ * links out to the Actividades section to act on it.
  */
 #[AsLiveComponent]
 class DashboardActivitySummaryComponent extends AbstractController
