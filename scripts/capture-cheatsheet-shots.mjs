@@ -64,7 +64,9 @@ async function login(page, username, password) {
 
     const paletteInput = page.locator('[data-command-palette-target="input"]');
     await paletteInput.click();
-    await page.keyboard.type('admin', { delay: 30 });
+    // A term that finds several kinds of result (folders, activities, documents…), which is
+    // what the cheatsheet shows: results grouped by type.
+    await page.keyboard.type('program', { delay: 30 });
     await page.waitForTimeout(700);
     await hideToolbar(page);
     await page.locator('[data-command-palette-target="dialog"]').screenshot({ path: `${root}/busqueda-rapida-3.png` });

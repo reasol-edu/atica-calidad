@@ -7,7 +7,10 @@ la vez que se vaya añadiendo la gestión documental del sistema de calidad.
 ## Ficheros
 
 - `atica-calidad.md` — fuente de las diapositivas (Marp).
-- `img/` — capturas del entorno de pruebas incrustadas en la presentación (todavía sin contenido).
+- `img/` — capturas incrustadas en la presentación. Son copias de dos del manual, así que se
+  actualizan al [regenerar las del manual](../manual/README.md#regenerar-las-capturas):
+  `arbol-documental.png` es `docs/manual/img/arbol-carpeta-contenido.png` y `actividades.png` es
+  `docs/manual/img/actividades-mias.png`.
 
 ## Generar el PDF
 

@@ -32,16 +32,18 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 <div class="step">
   <span class="num">3</span>
   <div class="text">
-    <p>Escribe al menos 2 letras del nombre o el usuario de un docente del curso activo.</p>
-    <img src="img/busqueda-rapida-3.png" alt="Resultados de búsqueda agrupados por tipo">
+    <p>Escribe al menos 2 letras. Los resultados salen agrupados por tipo: carpetas, documentos,
+    categorías de actividades, actividades…</p>
+    <img src="img/busqueda-rapida-3.png" alt="Resultados de buscar «program», agrupados por tipo">
   </div>
 </div>
 
 <div class="step">
   <span class="num">4</span>
   <div class="text">
-    <p>La misma búsqueda encuentra también secciones, carpetas y documentos del árbol documental
-    —incluido el perfil de subida y quién subió la última revisión— agrupados por tipo.</p>
+    <p>Busca a la vez en el árbol documental (secciones, carpetas y documentos, incluido el perfil de
+    subida y quién subió la última revisión), en las actividades y, para administración y equipo
+    directivo, entre los docentes del curso activo (por nombre o usuario).</p>
   </div>
 </div>
 

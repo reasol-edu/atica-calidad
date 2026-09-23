@@ -91,6 +91,13 @@ node scripts/capture-gestion-shots.mjs
     opción Symfony ignora el `DATABASE_URL` exportado y usa el de `.env.local`: la base de datos
     de desarrollo real.
 
-El calendario guarda por defecto en `img/calendario/`; el manual usa `img/`, de ahí la segunda
-llamada con `SHOTS_OUT_DIR`. Para volver a capturar, vuelve a sembrar la base de datos (paso 1):
-los scripts dan por hecho los datos recién creados.
+El calendario guarda por defecto en `img/calendario/`; el manual usa `img/`, de ahí la llamada con
+`SHOTS_OUT_DIR`. Para volver a capturar, vuelve a sembrar la base de datos (paso 1): los scripts dan
+por hecho los datos recién creados.
+
+Con las capturas del manual se actualizan también las de otros documentos:
+
+- **Presentación** (`docs/slides/img/`): copia `img/arbol-carpeta-contenido.png` como
+  `arbol-documental.png` e `img/actividades-mias.png` como `actividades.png`.
+- **Fichas** (`docs/cheatsheets/img/`, capturas de móvil): `node scripts/capture-cheatsheet-shots.mjs`,
+  con la base recién sembrada (antes de `gestion`).
