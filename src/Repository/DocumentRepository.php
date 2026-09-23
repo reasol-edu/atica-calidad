@@ -211,6 +211,36 @@ class DocumentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Documents of $centre whose next review is due on or before $until, soonest first — only in
+     * folders that are neither obsolete nor backing an activity (the same scope as the document
+     * master list). Folder and section are fetched along.
+     *
+     * @return list<Document>
+     */
+    public function findWithNextReviewUpTo(EducationalCentre $centre, \DateTimeImmutable $until): array
+    {
+        /** @var list<Document> $documents */
+        $documents = $this->createQueryBuilder('d')
+            ->addSelect('f', 's')
+            ->join('d.folder', 'f')
+            ->join('f.documentSection', 's')
+            ->leftJoin('f.activity', 'a')
+            ->where('s.educationalCentre = :centre')
+            ->andWhere('d.nextReviewAt IS NOT NULL')
+            ->andWhere('d.nextReviewAt <= :until')
+            ->andWhere('f.obsolete = false')
+            ->andWhere('a.id IS NULL')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('until', $until, 'date_immutable')
+            ->orderBy('d.nextReviewAt', 'ASC')
+            ->addOrderBy('d.name', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $documents;
+    }
+
+    /**
      * $folder's submissions for activity occurrence $activityCycleYear, with their revisions
      * fetched in the same query (their files stay lazy — no content is loaded): enough to tell
      * each one's state without a query per document.

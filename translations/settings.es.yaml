@@ -67,6 +67,12 @@ settings.key.notifications_document_rejected_notification_mode.choice.disabled: 
 settings.key.notifications_document_rejected_notification_mode.choice.individual: 'Individual'
 settings.key.notifications_document_rejected_notification_mode.choice.daily_digest: 'Resumen diario'
 
+settings.key.notifications_document_next_review_reminder_enabled.label: 'Recordatorio de revisión de documentos'
+settings.key.notifications_document_next_review_reminder_enabled.description: 'Envía, una vez por semana (el primer día lectivo), la lista de documentos de las carpetas a tu cargo con la fecha de próxima revisión vencida o cerca. Si una carpeta no tiene responsables, lo reciben los responsables de calidad del centro.'
+
+settings.key.notifications_document_next_review_reminder_warning_days.label: 'Días de preaviso de la revisión de documentos'
+settings.key.notifications_document_next_review_reminder_warning_days.description: 'Con cuántos días de antelación sobre la fecha de próxima revisión empieza a incluirse un documento en el recordatorio (además de los ya vencidos).'
+
 settings.key.notifications_email_subject_prefix.label: 'Prefijo del asunto'
 settings.key.notifications_email_subject_prefix.description: 'Texto que se antepone al asunto de cada aviso por correo electrónico, seguido automáticamente de un espacio (p. ej. «[ÁTICA]» da como resultado «[ÁTICA] Asunto original»). Vacío por defecto: no se añade ningún prefijo.'
 

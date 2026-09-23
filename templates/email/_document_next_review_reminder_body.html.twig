@@ -1,0 +1,13 @@
+{# items: list<{document: Document, state: 'overdue'|'soon'|'ok', url: string}>, soonest review first #}
+<p style="margin: 0 0 12px;">{{ 'emails.document_next_review_reminder.intro'|trans({}, 'emails') }}</p>
+<ul style="margin: 0; padding-left: 20px;">
+    {% for item in items %}
+        {% set document = item.document %}
+        <li style="margin-bottom: 8px;{{ item.state == 'overdue' ? ' color: #6b3241;' : '' }}">
+            <a href="{{ item.url }}" style="color: inherit; font-weight: 600;">{{ document.name }}</a>
+            <span style="color: #93826a;">— {{ document.folder.documentSection.name }} › {{ document.folder.name }}</span><br>
+            {{ (item.state == 'overdue' ? 'emails.document_next_review_reminder.overdue_since' : 'emails.document_next_review_reminder.due_on')|trans({'%date%': document.nextReviewAt|date('d/m/Y')}, 'emails') }}
+        </li>
+    {% endfor %}
+</ul>
+<p style="margin: 16px 0 0; color: #93826a; font-size: 13px;">{{ 'emails.document_next_review_reminder.how_to'|trans({}, 'emails') }}</p>

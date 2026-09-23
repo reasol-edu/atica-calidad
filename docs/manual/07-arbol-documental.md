@@ -224,7 +224,11 @@ arrastrando) y reordenar manualmente el contenido de una carpeta requiere ser re
 carpeta. Al editar el nombre, fuera de las carpetas de actividades, se puede fijar también la
 **fecha de próxima revisión** del documento: cuándo toca comprobar que sigue vigente. El documento
 la muestra junto a su nombre —en ámbar durante los 30 días anteriores y en rojo cuando ya ha
-pasado— y aparece en los [informes](04-informes.md) de listado maestro y de revisiones. **Eliminar el documento completo**, con todo su historial de revisiones, sí está permitido
+pasado—, aparece en los [informes](04-informes.md) de listado maestro y de revisiones y, una vez
+por semana, quien es responsable de la carpeta recibe un correo con los documentos que tiene
+pendientes de revisar (ver
+[Ajustes disponibles](09-administrar-la-plataforma.md#ajustes-disponibles)). Si la carpeta no tiene
+responsables, el correo lo reciben los responsables de calidad del centro. **Eliminar el documento completo**, con todo su historial de revisiones, sí está permitido
 también a quien subió su revisión activa, aunque no sea responsable (ver
 [la excepción de arriba](#permisos-sobre-una-carpeta)).
 

@@ -9,6 +9,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Added
 
+- **Avisos por correo**: nuevo **recordatorio semanal de revisión de documentos**. El primer día
+  lectivo de cada semana, quien es responsable de una carpeta recibe la lista de sus documentos con
+  la fecha de próxima revisión vencida o que vence en los próximos 30 días (o los que se configuren),
+  con un enlace a cada uno; si la carpeta no tiene responsables, lo reciben los responsables de
+  calidad del centro. Se activa o desactiva, y se ajustan los días de preaviso, en **Ajustes → Avisos
+  por correo**, a nivel global, de centro o personal.
+- **Registro de avisos por correo**: cada aviso muestra su tipo con un nombre legible
+  («Recordatorio de actividades», «Documento aceptado»…) en lugar de su clave interna.
 - **Informes**: la sección deja de estar vacía, con tres informes que se descargan en PDF (con la
   plantilla de membrete del centro) o en Excel: el **listado maestro de documentos** (versión en
   vigor, fecha, estado, responsables y próxima revisión de cada documento), las **revisiones de

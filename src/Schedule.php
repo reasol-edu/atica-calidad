@@ -6,6 +6,7 @@ namespace App;
 
 use App\Message\PurgeActivityLogMessage;
 use App\Message\PurgeEmailNotificationLogMessage;
+use App\Message\SendDocumentNextReviewReminderMessage;
 use App\Message\SendDocumentReviewDigestMessage;
 use App\Message\SendPendingActivityReminderMessage;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
@@ -40,6 +41,11 @@ class Schedule implements ScheduleProviderInterface
             ->add(
                 // 15 min after the activity reminder — same daily cadence, own cron entry.
                 RecurringMessage::cron('15 7 * * *', new SendDocumentReviewDigestMessage()),
+            )
+            ->add(
+                // Daily too, but the handler only sends on each centre's first working day of the
+                // week: a weekly digest of documents whose next review is overdue or coming up.
+                RecurringMessage::cron('30 7 * * *', new SendDocumentNextReviewReminderMessage()),
             )
             ->stateful($this->cache)
             ->processOnlyLastMissedRun(true)

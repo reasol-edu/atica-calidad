@@ -235,6 +235,22 @@ final class DocumentTreeAccessChecker
      * to review anything, but that's a different question from what's personally theirs to act on
      * — see PendingReviewFinder::allPendingForCentre() for the admin-facing "everything" view.
      */
+    /**
+     * Whether the teacher personally holds one of the folder's responsible profiles — narrower than
+     * canManageFolder(), which also lets any admin/quality manager in. Used to address reminders to
+     * the people actually in charge of the folder rather than to every manager of the centre.
+     */
+    public function holdsResponsibleProfile(Teacher $teacher, Folder $folder): bool
+    {
+        /** @var array<int, array{0: SpecificProfile, 1: ?ListItem}> $pairs */
+        $pairs = array_map(
+            static fn (FolderResponsibleProfile $r): array => [$r->getSpecificProfile(), $r->getListItem()],
+            $folder->getResponsibleProfiles()->toArray()
+        );
+
+        return $pairs !== [] && $this->assignments->isTeacherAssignedToAny($teacher, $pairs);
+    }
+
     public function holdsReviewProfile(Teacher $teacher, Folder $folder): bool
     {
         /** @var array<int, array{0: SpecificProfile, 1: ?ListItem}> $pairs */
