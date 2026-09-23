@@ -10,6 +10,11 @@ framework:
             policy: sliding_window
             limit: 60
             interval: '1 minute'
+        # "Recordar a pendientes" (per activity): one round of emails an hour, however many reviewers click
+        activity_reminder:
+            policy: fixed_window
+            limit: 1
+            interval: '1 hour'
 
 when@test:
     framework:

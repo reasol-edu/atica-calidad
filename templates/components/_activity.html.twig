@@ -44,6 +44,19 @@
                             </p>
                         </div>
                     {% endif %}
+                    {% if this.canRemindPending(activity) and not activity_window.notStarted %}
+                        <form method="post" action="{{ path('app_activity_remind_pending', {activityId: aid}) }}"
+                              class="js-confirm-form"
+                              data-confirm="{{ 'remind_pending.hint'|trans({}, 'activity_content')|e('html_attr') }}"
+                              data-confirm-label="{{ 'remind_pending.button'|trans({}, 'activity_content')|e('html_attr') }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('activity_remind_pending_' ~ aid) }}">
+                            <button type="submit" title="{{ 'remind_pending.hint'|trans({}, 'activity_content') }}"
+                                    class="js-confirm-trigger inline-flex items-center gap-1 text-xs text-gray-400 hover:text-forest-600">
+                                {{ ux_icon('heroicons:bell-alert', {class: 'h-3.5 w-3.5 shrink-0'}) }}
+                                {{ 'remind_pending.button'|trans({}, 'activity_content') }}
+                            </button>
+                        </form>
+                    {% endif %}
                     {% if has_submissions and this.canReachFolder(folder) %}
                         <a href="{{ this.getFolderTreeUrl(folder) }}"
                            class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-forest-600">

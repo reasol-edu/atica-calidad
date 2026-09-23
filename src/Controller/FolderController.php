@@ -7,7 +7,6 @@ namespace App\Controller;
 use App\Attribute\CurrentCentre;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
-use App\Entity\DocumentReviewNotificationKind;
 use App\Entity\DocumentRevision;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
@@ -21,7 +20,7 @@ use App\Service\ActivitySubmissionFilenameBuilder;
 use App\Service\AttachmentDownloadResponder;
 use App\Service\DocumentCreationService;
 use App\Service\DocumentReviewNotifier;
-use App\Service\DocumentReviewOutcomeNotifier;
+use App\Service\DocumentRevisionReviewer;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\FolderZipExporter;
 use Doctrine\ORM\EntityManagerInterface;
@@ -58,7 +57,7 @@ class FolderController extends AbstractController
         private readonly AttachmentDownloadResponder $downloadResponder,
         private readonly DocumentCreationService $documentCreation,
         private readonly DocumentReviewNotifier $reviewNotifier,
-        private readonly DocumentReviewOutcomeNotifier $outcomeNotifier,
+        private readonly DocumentRevisionReviewer $reviewer,
         private readonly FolderZipExporter $folderZipExporter,
         private readonly ActivityLogger $activityLogger,
         private readonly ActivitySubmissionFilenameBuilder $submissionFilename,
@@ -336,16 +335,7 @@ class FolderController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $result = trim($request->request->getString('reviewResult'));
-        $revision->approve($teacher, $result !== '' ? $result : null);
-        $document->setActiveRevision($revision);
-        $this->em->flush();
-        $this->activityLogger->record('document.revision_approve', [
-            'folder'   => $folder->getName(),
-            'document' => $document->getName(),
-            'version'  => $revision->getVersion(),
-        ], $centre);
-        $this->outcomeNotifier->notifyOutcome($revision, DocumentReviewNotificationKind::Approved);
+        $this->reviewer->approve($revision, $teacher, $request->request->getString('reviewResult'), $centre);
 
         $this->addFlash('success', $this->t('review.flash.approved'));
 
@@ -369,18 +359,7 @@ class FolderController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $result = trim($request->request->getString('reviewResult'));
-        $revision->reject($teacher, $result !== '' ? $result : null);
-        if ($document->getActiveRevision() === $revision) {
-            $document->setActiveRevision(null);
-        }
-        $this->em->flush();
-        $this->activityLogger->record('document.revision_reject', [
-            'folder'   => $folder->getName(),
-            'document' => $document->getName(),
-            'version'  => $revision->getVersion(),
-        ], $centre);
-        $this->outcomeNotifier->notifyOutcome($revision, DocumentReviewNotificationKind::Rejected);
+        $this->reviewer->reject($revision, $teacher, $request->request->getString('reviewResult'), $centre);
 
         $this->addFlash('success', $this->t('review.flash.rejected'));
 

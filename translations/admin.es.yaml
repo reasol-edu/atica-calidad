@@ -748,6 +748,7 @@ activity_log.action.activity.mark_complete: 'Actividad marcada como completada'
 activity_log.action.activity.unmark_complete: 'Actividad desmarcada como completada'
 activity_log.action.activity.related_documents_update: 'Documentos relacionados de una actividad modificados'
 activity_log.action.activity.submission_upload: 'Entregas subidas'
+activity_log.action.activity.remind_pending: 'Recordatorio enviado a los pendientes de una actividad'
 
 activity_log.action.list_item.created: 'Elemento de lista creado'
 activity_log.action.list_item.updated: 'Elemento de lista modificado'

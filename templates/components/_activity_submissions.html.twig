@@ -89,6 +89,12 @@
         </div>
     {% endif %}
 
+    {# ── Pending review, all at once ──────────────────────────────────── #}
+    {% set pending_reviews = this.getPendingReviews(activity) %}
+    {% if pending_reviews is not empty %}
+        {% include 'components/_activity_bulk_review.html.twig' with {activity: activity, pending: pending_reviews} %}
+    {% endif %}
+
     {# ── All submissions ──────────────────────────────────────────────── #}
     {% if other_slots is not empty %}
         <div>

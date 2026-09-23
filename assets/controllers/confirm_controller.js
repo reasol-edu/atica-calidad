@@ -46,16 +46,20 @@ export default class extends Controller {
         }
         event.preventDefault();
         event.stopPropagation();
-        this.open(form);
+        this.open(form, trigger);
     }
 
-    open(form) {
+    // A form with several submit buttons (e.g. "Aprobar"/"Rechazar" seleccionadas) can give each
+    // trigger its own data-confirm/data-confirm-label, and the clicked button is kept as the
+    // submitter so its name=value still reaches the server.
+    open(form, trigger = null) {
         if (this.overlay) {
             return;
         }
         this.form = form;
+        this.submitter = trigger && trigger.type === 'submit' && trigger.form === form ? trigger : null;
         this.previousFocus = document.activeElement;
-        const message = form.dataset.confirm || '';
+        const message = trigger?.dataset.confirm || form.dataset.confirm || '';
 
         const titleId = 'confirm-dialog-title';
 
@@ -78,7 +82,7 @@ export default class extends Controller {
         const cancelBtn = dialog.querySelector('.js-confirm-cancel');
         const acceptBtn = dialog.querySelector('.js-confirm-accept');
         cancelBtn.textContent = this.cancelValue;
-        acceptBtn.textContent = form.dataset.confirmLabel || this.confirmValue;
+        acceptBtn.textContent = trigger?.dataset.confirmLabel || form.dataset.confirmLabel || this.confirmValue;
         cancelBtn.setAttribute('aria-label', this.closeValue || this.cancelValue);
 
         overlay.appendChild(dialog);
@@ -125,10 +129,11 @@ export default class extends Controller {
 
     submit() {
         const form = this.form;
+        const submitter = this.submitter;
         this.teardown();
         if (form) {
             if (typeof form.requestSubmit === 'function') {
-                form.requestSubmit();
+                form.requestSubmit(submitter || undefined);
             } else {
                 form.submit();
             }
@@ -154,6 +159,7 @@ export default class extends Controller {
         }
         this.dialog = null;
         this.form = null;
+        this.submitter = null;
         this.previousFocus = null;
     }
 }

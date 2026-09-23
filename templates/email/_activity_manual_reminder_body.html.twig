@@ -1,0 +1,16 @@
+{# "Recordar a pendientes" (ActivityController::remindPending): sent by sender for one activity; items: the recipient's own pending obligations in it. #}
+<p style="margin: 0 0 12px;">
+    {{ 'emails.activity_manual_reminder.intro'|trans({'%sender%': sender.name.firstName ~ ' ' ~ sender.name.lastName, '%title%': activity.title}, 'emails') }}
+</p>
+<ul style="margin: 0; padding-left: 20px;">
+    {% for item in items %}
+        {% set overdue = item.status.overdue %}
+        <li style="margin-bottom: 6px;{{ overdue ? ' color: #6b3241;' : '' }}">
+            {{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}
+            — {{ (overdue ? 'emails.pending_activity_reminder.overdue_since' : 'emails.pending_activity_reminder.due_date')|trans({'%date%': item.deadline|date('d/m/Y')}, 'emails') }}
+            {% if item.status.value == 'rejected' %}
+                ({{ 'emails.pending_activity_reminder.rejected'|trans({}, 'emails') }})
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>

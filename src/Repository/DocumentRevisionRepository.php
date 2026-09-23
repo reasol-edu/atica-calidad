@@ -8,6 +8,7 @@ use App\Entity\Document;
 use App\Entity\DocumentFile;
 use App\Entity\DocumentRevision;
 use App\Entity\EducationalCentre;
+use App\Entity\Folder;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -71,6 +72,26 @@ class DocumentRevisionRepository extends ServiceEntityRepository
             ->where('r.pendingReview = true')
             ->andWhere('s.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('r.revisedAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Every revision awaiting review in $folder, oldest first — an activity's submissions to
+     * approve or reject together (see ActivityController::bulkReview()).
+     *
+     * @return list<DocumentRevision>
+     */
+    public function findPendingReviewByFolder(Folder $folder): array
+    {
+        return $this->createQueryBuilder('r')
+            ->addSelect('d', 'u')
+            ->join('r.document', 'd')
+            ->join('r.uploadedBy', 'u')
+            ->where('r.pendingReview = true')
+            ->andWhere('d.folder = :folder')
+            ->setParameter('folder', $folder->getId(), 'uuid')
             ->orderBy('r.revisedAt', 'ASC')
             ->getQuery()
             ->getResult();

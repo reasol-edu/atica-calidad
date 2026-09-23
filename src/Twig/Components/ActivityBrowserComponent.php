@@ -885,6 +885,30 @@ class ActivityBrowserComponent extends AbstractController
     }
 
     /**
+     * The activity's submissions awaiting review, for its bulk review box — only for whoever
+     * reviews its folder; empty for everyone else.
+     *
+     * @return list<DocumentRevision>
+     */
+    public function getPendingReviews(Activity $activity): array
+    {
+        $folder = $activity->getFolder();
+        if ($folder === null || !$this->canReviewFolder($folder)) {
+            return [];
+        }
+
+        return $this->revisions->findPendingReviewByFolder($folder);
+    }
+
+    /** "Recordar a pendientes": same rule as ActivityController::canRemind(). */
+    public function canRemindPending(Activity $activity): bool
+    {
+        $folder = $activity->getFolder();
+
+        return $this->canEdit() || ($folder !== null && ($this->canManageFolder($folder) || $this->canReviewFolder($folder)));
+    }
+
+    /**
      * Delivered/accepted/rejected counts across just the current teacher's own slots (see
      * getMySlots()) — the compact one-line summary shown next to "Mis entregas", as opposed to
      * getStats()'s full breakdown grouped across every slot in the activity. A slot counts as
