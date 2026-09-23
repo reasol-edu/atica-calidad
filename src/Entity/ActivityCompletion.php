@@ -15,7 +15,9 @@ use function Symfony\Component\Clock\now;
  * single teacher (Activity::submissionScope Individual) or a profile/subprofile shared by everyone
  * holding it (ByProfile), never both at once. Only ever created for manual activities: an
  * auto-complete activity's completion state is computed on the fly instead (see
- * ActivitySubmissionSlotBuilder), nothing to persist.
+ * ActivitySubmissionSlotBuilder), nothing to persist. Scoped to one yearly occurrence of the
+ * activity through $cycleYear (see ActivityDeadlineChecker::currentCycleKey()): last academic
+ * year's completion doesn't count for this year's.
  */
 #[ORM\Entity(repositoryClass: ActivityCompletionRepository::class)]
 class ActivityCompletion
@@ -50,9 +52,14 @@ class ActivityCompletion
     #[ORM\Column]
     private \DateTimeImmutable $completedAt;
 
-    public function __construct(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem, Teacher $completedBy)
+    /** First calendar year of the academic year of the occurrence this completes (2026 for 2026-2027). */
+    #[ORM\Column]
+    private int $cycleYear;
+
+    public function __construct(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem, Teacher $completedBy, int $cycleYear)
     {
         $this->activity    = $activity;
+        $this->cycleYear   = $cycleYear;
         $this->teacher     = $teacher;
         $this->profile     = $profile;
         $this->listItem    = $listItem;
@@ -93,5 +100,10 @@ class ActivityCompletion
     public function getCompletedAt(): \DateTimeImmutable
     {
         return $this->completedAt;
+    }
+
+    public function getCycleYear(): int
+    {
+        return $this->cycleYear;
     }
 }

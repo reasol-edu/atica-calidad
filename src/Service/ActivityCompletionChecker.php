@@ -28,6 +28,7 @@ final class ActivityCompletionChecker
         private readonly ActivityCompletionRepository $completions,
         private readonly DocumentTreeAccessChecker $access,
         private readonly EntityManagerInterface $em,
+        private readonly ActivityDeadlineChecker $deadline,
     ) {}
 
     /** @return ActivitySubmissionSlot[] every expected submission of $activity. */
@@ -75,9 +76,10 @@ final class ActivityCompletionChecker
         ));
     }
 
-    public function resolveSlot(Activity $activity, ActivitySubmissionSlot $slot): ?Document
+    /** $slot's submission for the occurrence $reference belongs to ("now" if null). */
+    public function resolveSlot(Activity $activity, ActivitySubmissionSlot $slot, ?\DateTimeImmutable $reference = null): ?Document
     {
-        return $this->slotBuilder->resolveSlot($activity, $slot);
+        return $this->slotBuilder->resolveSlot($activity, $slot, $reference);
     }
 
     /** Whether a teacher's own completion is tracked as a single "me" owner (Individual scope, or no folder at all). */
@@ -163,7 +165,12 @@ final class ActivityCompletionChecker
         );
     }
 
-    public function isCompletedFor(Activity $activity, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher): bool
+    /**
+     * Whether the owner has completed the occurrence of $activity that $reference belongs to
+     * ("now" if null — the calendar passes the day it's showing, which may be in another
+     * academic year).
+     */
+    public function isCompletedFor(Activity $activity, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher, ?\DateTimeImmutable $reference = null): bool
     {
         if ($activity->isAutoComplete()) {
             foreach ($this->getAllSlots($activity) as $slot) {
@@ -173,7 +180,7 @@ final class ActivityCompletionChecker
                 if (!$owns) {
                     continue;
                 }
-                if ($this->resolveSlot($activity, $slot)?->getActiveRevision() === null) {
+                if ($this->resolveSlot($activity, $slot, $reference)?->getActiveRevision() === null) {
                     return false;
                 }
             }
@@ -181,7 +188,12 @@ final class ActivityCompletionChecker
             return true;
         }
 
-        return $this->completions->findOneForOwner($activity, $teacher, $profile, $listItem) !== null;
+        return $this->completions->findOneForOwner($activity, $teacher, $profile, $listItem, $this->cycleKey($activity, $reference)) !== null;
+    }
+
+    private function cycleKey(Activity $activity, ?\DateTimeImmutable $reference = null): int
+    {
+        return $reference === null ? $this->deadline->currentCycleKey($activity) : $this->deadline->cycleKeyNear($activity, $reference);
     }
 
     /**
@@ -194,11 +206,12 @@ final class ActivityCompletionChecker
             return false;
         }
 
-        if ($this->completions->findOneForOwner($activity, $targetTeacher, $profile, $listItem) !== null) {
+        $cycleYear = $this->cycleKey($activity);
+        if ($this->completions->findOneForOwner($activity, $targetTeacher, $profile, $listItem, $cycleYear) !== null) {
             return false;
         }
 
-        $this->em->persist(new ActivityCompletion($activity, $targetTeacher, $profile, $listItem, $completedBy));
+        $this->em->persist(new ActivityCompletion($activity, $targetTeacher, $profile, $listItem, $completedBy, $cycleYear));
 
         return true;
     }
@@ -214,7 +227,7 @@ final class ActivityCompletionChecker
             return false;
         }
 
-        $completion = $this->completions->findOneForOwner($activity, $targetTeacher, $profile, $listItem);
+        $completion = $this->completions->findOneForOwner($activity, $targetTeacher, $profile, $listItem, $this->cycleKey($activity));
         if ($completion === null) {
             return false;
         }

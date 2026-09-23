@@ -21,7 +21,13 @@ use Symfony\Contracts\Service\ResetInterface;
  * 2026-10-01 a Jan 10 – Feb 28 activity is the one opening on 2027-01-10 (this academic year's),
  * not the one that closed on 2026-02-28 (last academic year's). Only a range straddling the
  * start of the academic year itself (e.g. Sep 1 – Sep 30 with a Sep 15 start) can't fit inside
- * one academic year; those keep being anchored to the reference's calendar year instead.
+ * one academic year; those keep being anchored to the reference's calendar year instead. A range
+ * entirely before the start day belongs to the academic year that is ending, even within the same
+ * month: with a Sep 15 start, Sep 1–10 is the tail of the previous academic year.
+ *
+ * Each occurrence is identified by its cycle key: the first calendar year of the academic year it
+ * belongs to (2026 for 2026-2027). Completions and submissions are stored against that key, so
+ * last year's don't count for this year's occurrence of the same activity.
  */
 final class ActivityDeadlineChecker implements ResetInterface
 {
@@ -91,7 +97,19 @@ final class ActivityDeadlineChecker implements ResetInterface
         return (int) $this->clock->now()->diff($this->currentCycleEndDate($activity))->days;
     }
 
-    /** @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable} the [start, end] of the cycle $reference belongs to. */
+    /** Cycle key (first calendar year of its academic year, e.g. 2026 for 2026-2027) of the occurrence "now" belongs to. */
+    public function currentCycleKey(Activity $activity): int
+    {
+        return $this->cycleKeyNear($activity, $this->clock->now());
+    }
+
+    /** Cycle key of the occurrence $reference belongs to — see currentCycleKey(). */
+    public function cycleKeyNear(Activity $activity, \DateTimeImmutable $reference): int
+    {
+        return $this->cycleNear($activity, $reference)[2];
+    }
+
+    /** @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable, 2: int} the [start, end, cycle key] of the cycle $reference belongs to. */
     private function cycleNear(Activity $activity, \DateTimeImmutable $reference): array
     {
         $academicYearStart = $this->academicYearStart($activity->getCategory()->getEducationalCentre());
@@ -105,10 +123,15 @@ final class ActivityDeadlineChecker implements ResetInterface
         $end   = $this->endOf($activity, $this->calendarYearWithin($academicYear, $boundary, $activity->getEndMonth(), $activity->getEndDay()));
 
         if ($start <= $end) {
-            return [$start, $end];
+            return [$start, $end, $academicYear];
         }
 
-        return $this->calendarYearCycleNear($activity, $reference);
+        [$start, $end] = $this->calendarYearCycleNear($activity, $reference);
+
+        // A straddling occurrence is keyed by the academic year its start falls in.
+        $startYear = (int) $start->format('Y');
+
+        return [$start, $end, (int) $start->format('nd') < $boundary ? $startYear - 1 : $startYear];
     }
 
     /** Calendar year that $month/$day falls in within the academic year starting on $boundary (month * 100 + day) of $academicYear. */

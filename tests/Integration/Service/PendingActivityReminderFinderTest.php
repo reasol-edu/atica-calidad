@@ -25,6 +25,15 @@ final class PendingActivityReminderFinderTest extends RepositoryTestCase
 
     private PendingActivityReminderFinder $finder;
 
+    /** Cycle key of $activity's occurrence "now" — what a completion made at this point would be stored against. */
+    private function cycleKey(Activity $activity): int
+    {
+        /** @var \App\Service\ActivityDeadlineChecker $deadline */
+        $deadline = self::getContainer()->get(\App\Service\ActivityDeadlineChecker::class);
+
+        return $deadline->currentCycleKey($activity);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -130,7 +139,7 @@ final class PendingActivityReminderFinderTest extends RepositoryTestCase
         $category = $this->category($centre);
         $activity = (new Activity())->setCategory($category)->setTitle('Actividad')->setStart(1, 9)->setEnd(30, 9);
         $teacher  = $this->teacher('docente');
-        $this->persist($centre, $category, $activity, $teacher, new ActivityCompletion($activity, $teacher, null, null, $teacher));
+        $this->persist($centre, $category, $activity, $teacher, new ActivityCompletion($activity, $teacher, null, null, $teacher, $this->cycleKey($activity)));
 
         $result = $this->finder->forTeacher($teacher, $centre, 5);
 

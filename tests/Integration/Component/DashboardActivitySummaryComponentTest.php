@@ -19,6 +19,15 @@ final class DashboardActivitySummaryComponentTest extends ControllerTestCase
     use ClockSensitiveTrait;
     use InteractsWithLiveComponents;
 
+    /** Cycle key of $activity's occurrence "now" — what a completion made at this point would be stored against. */
+    private function cycleKey(Activity $activity): int
+    {
+        /** @var \App\Service\ActivityDeadlineChecker $deadline */
+        $deadline = self::getContainer()->get(\App\Service\ActivityDeadlineChecker::class);
+
+        return $deadline->currentCycleKey($activity);
+    }
+
     private function centre(): EducationalCentre
     {
         return (new EducationalCentre())->setCode('12345678')->setName('Centro')->setCity('Ciudad');
@@ -95,7 +104,7 @@ final class DashboardActivitySummaryComponentTest extends ControllerTestCase
         $category = $this->category($centre);
         $activity = $this->activity($category, 'Actividad completada');
         $teacher  = $this->teacher('docente');
-        $this->persist($centre, $category, $activity, $teacher, new ActivityCompletion($activity, $teacher, null, null, $teacher));
+        $this->persist($centre, $category, $activity, $teacher, new ActivityCompletion($activity, $teacher, null, null, $teacher, $this->cycleKey($activity)));
 
         $this->loginAs($teacher, $centre);
         $component = $this->createLiveComponent('DashboardActivitySummaryComponent', ['centre' => $centre], $this->client);

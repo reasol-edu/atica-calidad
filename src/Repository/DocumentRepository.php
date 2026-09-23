@@ -173,12 +173,15 @@ class DocumentRepository extends ServiceEntityRepository
         ?ListItem $listItem,
         string $name,
         ?Teacher $firstUploader,
+        int $activityCycleYear,
     ): ?Document {
         $qb = $this->createQueryBuilder('d')
             ->where('d.folder = :folder')
             ->andWhere('d.name = :name')
+            ->andWhere('d.activityCycleYear = :cycleYear')
             ->setParameter('folder', $folder->getId(), 'uuid')
-            ->setParameter('name', $name);
+            ->setParameter('name', $name)
+            ->setParameter('cycleYear', $activityCycleYear);
 
         if ($profile !== null) {
             $qb->andWhere('d.uploadProfile = :profile')->setParameter('profile', $profile->getId(), 'uuid');
@@ -204,6 +207,24 @@ class DocumentRepository extends ServiceEntityRepository
         $result = $qb->setMaxResults(1)->getQuery()->getOneOrNullResult();
 
         return $result instanceof Document ? $result : null;
+    }
+
+    /**
+     * Adopts every document already in $folder that isn't tied to any activity occurrence yet as a
+     * submission of occurrence $activityCycleYear — for when a folder gets linked to an activity
+     * after documents were uploaded to it. Returns how many were updated.
+     */
+    public function assignActivityCycleYearWhereMissing(Folder $folder, int $activityCycleYear): int
+    {
+        return $this->createQueryBuilder('d')
+            ->update()
+            ->set('d.activityCycleYear', ':cycleYear')
+            ->where('d.folder = :folder')
+            ->andWhere('d.activityCycleYear IS NULL')
+            ->setParameter('cycleYear', $activityCycleYear)
+            ->setParameter('folder', $folder->getId(), 'uuid')
+            ->getQuery()
+            ->execute();
     }
 
     /**

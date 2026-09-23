@@ -137,11 +137,14 @@ final class DocumentReviewOutcomeNotifierTest extends RepositoryTestCase
         $documentId = $fixture['document']->getId()->toRfc4122();
         $revisionId = $fixture['revision']->getId()->toRfc4122();
 
-        // Folder::$activity is the inverse side of a OneToOne whose owning side (Activity::$folder)
-        // was just set above — Doctrine only hydrates that inverse reference from the database, so
-        // it stays null on the in-memory object graph until reloaded, exactly like a fresh request
-        // would see it.
+        // Reload everything fresh, exactly like the request that reviews the revision would see it.
         $this->em->clear();
+        // Persisting the submission already read the settings (its activity cycle is stamped by
+        // DocumentActivityCycleListener) before the setting definitions above were flushed, and
+        // AppSettings caches the definitions it found — drop that cache, as a new request would.
+        /** @var \App\Service\AppSettings $appSettings */
+        $appSettings = self::getContainer()->get(\App\Service\AppSettings::class);
+        $appSettings->invalidate();
         /** @var DocumentRepository $documents */
         $documents = self::getContainer()->get(DocumentRepository::class);
         $document  = $documents->findById($documentId);

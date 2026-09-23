@@ -217,6 +217,14 @@ class Activity
             throw new \LogicException('An activity cannot be linked to a folder from another centre.');
         }
 
+        // Keep the inverse side (Folder::$activity) in sync in memory too, so code running in the
+        // same request — e.g. stamping a new submission's cycle in DocumentCreationService — sees
+        // the link without a reload.
+        if ($this->folder !== null && $this->folder !== $folder && $this->folder->getActivity() === $this) {
+            $this->folder->setActivity(null);
+        }
+        $folder?->setActivity($this);
+
         $this->folder = $folder;
         if ($folder === null) {
             $this->autoComplete = false;

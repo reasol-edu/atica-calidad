@@ -44,6 +44,7 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
         private readonly ListItemRepository $listItems,
         private readonly SpecificProfileAssignmentRepository $assignments,
         private readonly DocumentRepository $documents,
+        private readonly ActivityDeadlineChecker $deadline,
     ) {}
 
     public function reset(): void
@@ -214,9 +215,10 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
 
     /**
      * Whether anyone has already uploaded $slot's submission — matched by folder + profile/
-     * subprofile + name(+ first uploader, in Individual scope). Null if the slot is still empty.
+     * subprofile + name(+ first uploader, in Individual scope), for the occurrence of the activity
+     * $reference belongs to ("now" if null). Null if the slot is still empty.
      */
-    public function resolveSlot(Activity $activity, ActivitySubmissionSlot $slot): ?Document
+    public function resolveSlot(Activity $activity, ActivitySubmissionSlot $slot, ?\DateTimeImmutable $reference = null): ?Document
     {
         $folder = $activity->getFolder();
         if ($folder === null) {
@@ -229,6 +231,7 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
             $slot->listItem,
             $slot->displayName,
             $slot->teacher,
+            $reference === null ? $this->deadline->currentCycleKey($activity) : $this->deadline->cycleKeyNear($activity, $reference),
         );
     }
 }

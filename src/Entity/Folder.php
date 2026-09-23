@@ -282,6 +282,19 @@ class Folder
         return $this->activity;
     }
 
+    /**
+     * Inverse side only — keeps it in sync in memory. Call Activity::setFolder() instead, which
+     * owns the relation and calls this.
+     *
+     * @internal
+     */
+    public function setActivity(?Activity $activity): static
+    {
+        $this->activity = $activity;
+
+        return $this;
+    }
+
     // ── Responsible profiles ─────────────────────────────────────────────────
 
     /** @return Collection<int, FolderResponsibleProfile> */

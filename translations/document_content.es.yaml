@@ -33,6 +33,8 @@ status.no_revision: 'Pendiente'
 status.pending: 'Pendiente de visto bueno'
 status.approved: 'Aprobada'
 status.rejected: 'Rechazada'
+status.past_submission: 'Curso %year%'
+status.past_submission.title: 'Entrega de la actividad en el curso %year%; no cuenta para el curso actual.'
 
 move.title: 'Mover a otra carpeta'
 move.empty: 'No hay otra carpeta disponible en esta sección.'

@@ -672,6 +672,12 @@ class ActivityBrowserComponent extends AbstractController
 
         $this->em->flush();
 
+        // Documents already sitting in a newly linked folder become this occurrence's
+        // submissions (the ones uploaded through the activity get stamped as they're created).
+        if ($folder !== null) {
+            $this->documents->assignActivityCycleYearWhereMissing($folder, $this->deadline->currentCycleKey($activity));
+        }
+
         $this->activityFormOpen = false;
         $this->errors           = [];
         $this->flashSuccess($this->t('activity.flash.saved'));

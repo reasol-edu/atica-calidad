@@ -27,11 +27,13 @@ class ActivityCompletionRepository extends ServiceEntityRepository
      * (Individual scope) or a profile/subprofile (ByProfile scope), matched by identity including
      * NULL (a plain, non-list profile has $listItem === null, which must match exactly, not "any").
      */
-    public function findOneForOwner(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem): ?ActivityCompletion
+    public function findOneForOwner(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem, int $cycleYear): ?ActivityCompletion
     {
         $qb = $this->createQueryBuilder('c')
             ->where('c.activity = :activity')
-            ->setParameter('activity', $activity->getId(), 'uuid');
+            ->andWhere('c.cycleYear = :cycleYear')
+            ->setParameter('activity', $activity->getId(), 'uuid')
+            ->setParameter('cycleYear', $cycleYear);
 
         if ($teacher !== null) {
             $qb->andWhere('c.teacher = :teacher')->setParameter('teacher', $teacher->getId(), 'uuid');

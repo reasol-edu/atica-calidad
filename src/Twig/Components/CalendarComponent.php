@@ -157,7 +157,7 @@ class CalendarComponent extends AbstractCalendarComponent
                 : $this->activityDeadline->cycleStartDateNear($activity, $reference);
 
             foreach ($this->activityCompletion->getMyOwnedObligations($user, $activity) as $owner) {
-                $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher']);
+                $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $end);
                 $items[]   = new ActivityDeadlineOccurrence($activity, $start, $end, $owner['label'], $owner['key'], $completed);
             }
         }

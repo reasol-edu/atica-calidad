@@ -301,4 +301,51 @@ final class ActivityDeadlineCheckerTest extends TestCase
 
         self::assertSame(0, $this->checker()->daysUntilDeadline($activity));
     }
+
+    // ── Cycle key ────────────────────────────────────────────────────────────
+
+    public function testCycleKeyIsTheFirstCalendarYearOfTheOccurrencesAcademicYear(): void
+    {
+        $october = $this->activity(1, 10, 31, 10);
+        $janFeb  = $this->activity(10, 1, 28, 2);
+
+        self::mockTime('2026-10-10 10:00:00');
+        self::assertSame(2026, $this->checker()->currentCycleKey($october));
+        self::assertSame(2026, $this->checker()->currentCycleKey($janFeb), 'the Jan–Feb occurrence ahead, in 2027, still belongs to 2026-2027');
+
+        self::mockTime('2027-03-01 10:00:00');
+        self::assertSame(2026, $this->checker()->currentCycleKey($october));
+        self::assertSame(2026, $this->checker()->currentCycleKey($janFeb));
+
+        // Before the default Sep 15 start, everything still refers to the academic year ending.
+        self::mockTime('2026-09-10 10:00:00');
+        self::assertSame(2025, $this->checker()->currentCycleKey($janFeb));
+    }
+
+    /** With a Sep 15 start, Sep 1–10 is the tail of the academic year ending — keyed as such, even while it's open. */
+    public function testCycleKeyOfARangeBeforeTheStartDayIsTheEndingAcademicYear(): void
+    {
+        self::mockTime('2026-09-05 10:00:00');
+
+        self::assertSame(2025, $this->checker()->currentCycleKey($this->activity(1, 9, 10, 9)));
+    }
+
+    /** A range straddling the start day is keyed by the academic year its own start falls in, and keeps that key for its whole span. */
+    public function testCycleKeyOfAStraddlingRangeStaysTheSameAcrossTheStartDay(): void
+    {
+        $activity = $this->activity(1, 9, 30, 9);
+
+        self::mockTime('2026-09-10 10:00:00');
+        self::assertSame(2025, $this->checker()->currentCycleKey($activity));
+
+        self::mockTime('2026-09-20 10:00:00');
+        self::assertSame(2025, $this->checker()->currentCycleKey($activity));
+    }
+
+    public function testCycleKeyNearFollowsTheReferenceNotNow(): void
+    {
+        self::mockTime('2026-10-10 10:00:00');
+
+        self::assertSame(2024, $this->checker()->cycleKeyNear($this->activity(1, 10, 31, 10), new \DateTimeImmutable('2024-10-31')));
+    }
 }

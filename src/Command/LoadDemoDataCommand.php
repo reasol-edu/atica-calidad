@@ -22,6 +22,7 @@ use App\Repository\EducationalCentreRepository;
 use App\Repository\ListItemRepository;
 use App\Repository\TeacherRepository;
 use App\Service\CentreProvisioner;
+use App\Service\ActivityDeadlineChecker;
 use App\Service\DocumentCreationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\ClockInterface;
@@ -81,6 +82,7 @@ class LoadDemoDataCommand extends Command
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly CentreProvisioner $centreProvisioner,
         private readonly DocumentCreationService $documentCreation,
+        private readonly ActivityDeadlineChecker $deadline,
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
     ) {
@@ -722,7 +724,7 @@ class LoadDemoDataCommand extends Command
         $this->em->persist($completed);
         foreach (['direccion', 'calidad', 'admin'] as $username) {
             $teacher = $this->teachers[$username];
-            $this->em->persist(new ActivityCompletion($completed, $teacher, null, null, $teacher));
+            $this->em->persist(new ActivityCompletion($completed, $teacher, null, null, $teacher, $this->deadline->currentCycleKey($completed)));
         }
 
         [$futureStartD, $futureStartM] = $dm('+3 weeks');

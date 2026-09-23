@@ -48,6 +48,15 @@ class Document
     #[ORM\Column]
     private int $position = 0;
 
+    /**
+     * For an activity submission (a document in a folder backing an Activity): the cycle key of
+     * the occurrence it was submitted for (first calendar year of its academic year, 2026 for
+     * 2026-2027 — see ActivityDeadlineChecker::currentCycleKey()), so next year's occurrence of
+     * the same activity starts with an empty slot. Null for any other document.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?int $activityCycleYear = null;
+
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?DocumentRevision $activeRevision = null;
@@ -112,6 +121,18 @@ class Document
     {
         $this->uploadProfile  = $profile;
         $this->uploadListItem = $profile === null ? null : $listItem;
+
+        return $this;
+    }
+
+    public function getActivityCycleYear(): ?int
+    {
+        return $this->activityCycleYear;
+    }
+
+    public function setActivityCycleYear(?int $activityCycleYear): static
+    {
+        $this->activityCycleYear = $activityCycleYear;
 
         return $this;
     }

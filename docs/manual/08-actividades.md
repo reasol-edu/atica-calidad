@@ -109,6 +109,20 @@ aplica aquí sin cambios: una entrega **es** un documento de esa carpeta. Si la 
 docente todavía le queda alguna entrega propia por hacer, un aviso **«Formatos aceptados: ...»**
 aparece encima de «Mis entregas».
 
+### Cada curso, entregas y completados nuevos {#cada-curso}
+
+Como una actividad se repite cada curso, sus entregas y sus completados cuentan **solo para el
+curso en que se hicieron**: al empezar el curso siguiente (según el ajuste
+[Inicio del curso académico](09-administrar-la-plataforma.md#curso-academico)), la actividad vuelve
+a aparecer pendiente, con las filas de «Mis entregas» vacías y listas para la entrega de ese curso.
+Las entregas de cursos anteriores no se borran: siguen en la carpeta del árbol documental, marcadas
+con una etiqueta **«Curso 2025-2026»** (o el que corresponda) para distinguirlas de las del curso
+actual, que suelen llevar el mismo nombre. El calendario, al consultar días de un curso anterior,
+muestra si la actividad se completó en aquel curso.
+
+Si se vincula a una actividad una carpeta que ya tenía documentos, esos documentos pasan a contar
+como entregas del curso en vigor en ese momento.
+
 ### Nombre del fichero descargado {#nombre-del-fichero-descargado}
 
 Al descargar una entrega, el nombre del fichero antepone el título de la actividad —o su

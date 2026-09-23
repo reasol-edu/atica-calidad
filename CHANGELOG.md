@@ -23,6 +23,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   Con el inicio de curso por defecto (15 de septiembre), hasta ese día las actividades siguen
   refiriéndose al curso que termina, y también pertenecen a ese curso las que caen antes de ese día
   aunque sea el mismo mes (p. ej. una del 1 al 14 de septiembre).
+- **Actividades**: las entregas y los completados de una actividad cuentan ya solo para el curso en
+  que se hicieron. Antes, al repetirse la actividad el curso siguiente, lo entregado o completado
+  el curso anterior seguía dándola por hecha. Las entregas de cursos anteriores se conservan en la
+  carpeta del árbol documental, con una etiqueta «Curso 2025-2026» (o el que corresponda) para
+  distinguirlas de las del curso actual; y el calendario muestra, en los días de un curso
+  anterior, si la actividad se completó en aquel curso. Al actualizar, lo existente se asigna al
+  curso en que se hizo, sin ningún paso manual.
 - **Seguridad**: se refuerzan las comprobaciones de permisos en la página de Actividades. Ya no es
   posible, manipulando la petición, modificar o eliminar actividades o revisiones de otro centro,
   ni marcar como completada (o deshacer) una actividad que corresponde a otro perfil.

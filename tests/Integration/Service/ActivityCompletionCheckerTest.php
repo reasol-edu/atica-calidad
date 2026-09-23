@@ -21,10 +21,22 @@ use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
 use App\Service\ActivityCompletionChecker;
 use App\Tests\Integration\RepositoryTestCase;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 final class ActivityCompletionCheckerTest extends RepositoryTestCase
 {
+    use ClockSensitiveTrait;
+
     private ActivityCompletionChecker $checker;
+
+    /** Cycle key of $activity's occurrence "now" — what a completion made at this point would be stored against. */
+    private function cycleKey(Activity $activity): int
+    {
+        /** @var \App\Service\ActivityDeadlineChecker $deadline */
+        $deadline = self::getContainer()->get(\App\Service\ActivityDeadlineChecker::class);
+
+        return $deadline->currentCycleKey($activity);
+    }
 
     protected function setUp(): void
     {
@@ -304,7 +316,7 @@ final class ActivityCompletionCheckerTest extends RepositoryTestCase
 
         self::assertFalse($this->checker->isCompletedFor($activity, null, null, $teacher));
 
-        $this->persist(new ActivityCompletion($activity, $teacher, null, null, $teacher));
+        $this->persist(new ActivityCompletion($activity, $teacher, null, null, $teacher, $this->cycleKey($activity)));
 
         self::assertTrue($this->checker->isCompletedFor($activity, null, null, $teacher));
     }
@@ -354,7 +366,7 @@ final class ActivityCompletionCheckerTest extends RepositoryTestCase
         $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
         $activity = $this->activity($category);
         $teacher  = $this->teacher('docente');
-        $this->persist($centre, $category, $activity, $teacher, new ActivityCompletion($activity, $teacher, null, null, $teacher));
+        $this->persist($centre, $category, $activity, $teacher, new ActivityCompletion($activity, $teacher, null, null, $teacher, $this->cycleKey($activity)));
 
         self::assertFalse($this->checker->markCompleted($activity, $teacher, null, null, $teacher));
     }
@@ -377,7 +389,7 @@ final class ActivityCompletionCheckerTest extends RepositoryTestCase
         $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
         $activity = $this->activity($category);
         $teacher  = $this->teacher('docente');
-        $this->persist($centre, $category, $activity, $teacher, new ActivityCompletion($activity, $teacher, null, null, $teacher));
+        $this->persist($centre, $category, $activity, $teacher, new ActivityCompletion($activity, $teacher, null, null, $teacher, $this->cycleKey($activity)));
 
         $removed = $this->checker->unmarkCompleted($activity, $teacher, null, null);
 
@@ -407,5 +419,96 @@ final class ActivityCompletionCheckerTest extends RepositoryTestCase
         $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $activity, $teacher);
 
         self::assertFalse($this->checker->unmarkCompleted($activity, $teacher, null, null));
+    }
+
+    // ── Per academic year ─────────────────────────────────────────────────────
+
+    /** Oct 1–31: well inside the academic year with the default Sep 15 start, so its occurrence is unambiguous. */
+    private function octoberActivity(ActivityCategory $category): Activity
+    {
+        return (new Activity())->setCategory($category)->setTitle('Actividad')->setStart(1, 10)->setEnd(31, 10);
+    }
+
+    public function testACompletionOnlyCountsForTheAcademicYearItWasMadeIn(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = $this->octoberActivity($category);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $activity, $teacher);
+
+        self::mockTime('2025-10-10 10:00:00');
+        self::assertTrue($this->checker->markCompleted($activity, $teacher, null, null, $teacher));
+        $this->em->flush();
+        self::assertTrue($this->checker->isCompletedFor($activity, null, null, $teacher));
+
+        // Next academic year's occurrence starts out pending, and can be completed on its own.
+        self::mockTime('2026-10-10 10:00:00');
+        self::assertFalse($this->checker->isCompletedFor($activity, null, null, $teacher));
+        self::assertTrue($this->checker->markCompleted($activity, $teacher, null, null, $teacher));
+        $this->em->flush();
+        self::assertTrue($this->checker->isCompletedFor($activity, null, null, $teacher));
+
+        // Looking back at last year's occurrence (as the calendar does) still finds that one.
+        self::assertTrue($this->checker->isCompletedFor($activity, null, null, $teacher, new \DateTimeImmutable('2025-10-31')));
+    }
+
+    public function testUnmarkCompletedOnlyUndoesTheCurrentAcademicYear(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = $this->octoberActivity($category);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $activity, $teacher, new ActivityCompletion($activity, $teacher, null, null, $teacher, 2025));
+
+        self::mockTime('2026-10-10 10:00:00');
+        self::assertFalse($this->checker->unmarkCompleted($activity, $teacher, null, null), 'nothing to undo this year');
+        $this->em->flush();
+
+        self::assertTrue($this->checker->isCompletedFor($activity, null, null, $teacher, new \DateTimeImmutable('2025-10-31')), 'last year\'s completion is untouched');
+    }
+
+    public function testASubmissionFromLastAcademicYearDoesNotFillThisYearsSlot(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        $activity = $this->octoberActivity($category)->setFolder($folder)->setAutoComplete(true);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity);
+
+        self::mockTime('2025-10-10 10:00:00');
+        $teacher  = $this->teacher('docente');
+        $document = new Document($folder, 'Secretario/a');
+        $document->setUploadProfile($profile, null);
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $teacher);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+        $this->persist($teacher, $document, $file, $revision);
+
+        self::assertSame(2025, $document->getActivityCycleYear(), 'stamped with the occurrence open when it was uploaded');
+        self::assertTrue($this->checker->isCompletedFor($activity, $profile, null, null));
+
+        self::mockTime('2026-10-10 10:00:00');
+        self::assertFalse($this->checker->isCompletedFor($activity, $profile, null, null));
+        $slots = $this->checker->getAllSlots($activity);
+        self::assertCount(1, $slots);
+        self::assertNull($this->checker->resolveSlot($activity, $slots[0]), 'this year\'s slot is empty again, ready for a new upload');
+    }
+
+    public function testADocumentOutsideAnActivityFolderIsNotStamped(): void
+    {
+        $centre  = $this->centre();
+        $folder  = $this->folder($centre);
+        $teacher = $this->teacher('docente');
+        $document = new Document($folder, 'Acta');
+        $file     = new DocumentFile(hash('sha256', 'acta'), 'acta', 'text/plain', 'acta.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $teacher);
+        $document->getRevisions()->add($revision);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $teacher, $document, $file, $revision);
+
+        self::assertNull($document->getActivityCycleYear());
     }
 }

@@ -59,6 +59,7 @@ final class DocumentRepositoryTest extends RepositoryTestCase
     ): Document {
         $document = new Document($folder, $name);
         $document->setUploadProfile($profile, $listItem);
+        $document->setActivityCycleYear(2026);
         $file     = new DocumentFile(hash('sha256', $name . random_int(1, PHP_INT_MAX)), $name, 'text/plain', $name . '.txt', 1);
         $revision = new DocumentRevision($document, 1, $file, false, $uploader ?? $this->teacher('nadie'));
         $document->getRevisions()->add($revision);
@@ -83,7 +84,7 @@ final class DocumentRepositoryTest extends RepositoryTestCase
         $document = $this->document($folder, 'Entrega', $teacher, $profile, $item);
         $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $item, $teacher, $document);
 
-        $found = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, $item, 'Entrega', null);
+        $found = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, $item, 'Entrega', null, 2026);
 
         self::assertNotNull($found);
         self::assertSame($document->getId()->toRfc4122(), $found->getId()->toRfc4122());
@@ -100,7 +101,7 @@ final class DocumentRepositoryTest extends RepositoryTestCase
         $tagged = $this->document($folder, 'Entrega', $teacher, $profile, null);
         $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $teacher, $tagged);
 
-        $found = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, null, null, 'Entrega', null);
+        $found = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, null, null, 'Entrega', null, 2026);
 
         self::assertNull($found);
     }
@@ -118,7 +119,7 @@ final class DocumentRepositoryTest extends RepositoryTestCase
 
         // Same profile, but querying for the "(todos)"/no-subprofile case must not match a
         // document tagged with a specific subprofile.
-        $found = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Entrega', null);
+        $found = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Entrega', null, 2026);
 
         self::assertNull($found);
     }
@@ -134,7 +135,7 @@ final class DocumentRepositoryTest extends RepositoryTestCase
         $lengua      = $this->document($folder, 'Lengua', $teacher, $profile, null);
         $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $teacher, $matemáticas, $lengua);
 
-        $found = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Lengua', null);
+        $found = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Lengua', null, 2026);
 
         self::assertNotNull($found);
         self::assertSame($lengua->getId()->toRfc4122(), $found->getId()->toRfc4122());
@@ -158,8 +159,8 @@ final class DocumentRepositoryTest extends RepositoryTestCase
         $docB = $this->document($folder, '1º ESO A', $teacherB, $profile, $item);
         $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $item, $teacherA, $teacherB, $docA, $docB);
 
-        $foundA = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, $item, '1º ESO A', $teacherA);
-        $foundB = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, $item, '1º ESO A', $teacherB);
+        $foundA = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, $item, '1º ESO A', $teacherA, 2026);
+        $foundB = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, $item, '1º ESO A', $teacherB, 2026);
 
         self::assertNotNull($foundA);
         self::assertNotNull($foundB);
@@ -179,7 +180,7 @@ final class DocumentRepositoryTest extends RepositoryTestCase
         $doc = $this->document($folder, 'Entrega', $creator, $profile, null);
         $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $creator, $someoneElse, $doc);
 
-        $found = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Entrega', $someoneElse);
+        $found = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Entrega', $someoneElse, 2026);
 
         self::assertNull($found);
     }
@@ -199,6 +200,7 @@ final class DocumentRepositoryTest extends RepositoryTestCase
 
         $document = new Document($folder, 'Entrega');
         $document->setUploadProfile($profile, null);
+        $document->setActivityCycleYear(2026);
         $file1 = new DocumentFile(hash('sha256', 'v1'), 'v1', 'text/plain', 'v1.txt', 1);
         $rev1  = new DocumentRevision($document, 1, $file1, false, $original);
         $document->getRevisions()->add($rev1);
@@ -211,8 +213,8 @@ final class DocumentRepositoryTest extends RepositoryTestCase
 
         $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $original, $replacement, $document, $file1, $rev1, $file2, $rev2);
 
-        $foundByOriginal    = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Entrega', $original);
-        $foundByReplacement = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Entrega', $replacement);
+        $foundByOriginal    = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Entrega', $original, 2026);
+        $foundByReplacement = $this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Entrega', $replacement, 2026);
 
         self::assertNotNull($foundByOriginal);
         self::assertSame($document->getId()->toRfc4122(), $foundByOriginal->getId()->toRfc4122());
@@ -230,8 +232,8 @@ final class DocumentRepositoryTest extends RepositoryTestCase
         $docInA = $this->document($folderA, 'Entrega', $teacher, $profile, null);
         $this->persist($centre, $folderA->getDocumentSection(), $folderA, $folderB->getDocumentSection(), $folderB, $profile, $teacher, $docInA);
 
-        self::assertNull($this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folderB, $profile, null, 'Entrega', null));
-        self::assertNotNull($this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folderA, $profile, null, 'Entrega', null));
+        self::assertNull($this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folderB, $profile, null, 'Entrega', null, 2026));
+        self::assertNotNull($this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folderA, $profile, null, 'Entrega', null, 2026));
     }
 
     // ── searchActivitySubmissionsByCentre ────────────────────────────────────
@@ -349,5 +351,39 @@ final class DocumentRepositoryTest extends RepositoryTestCase
 
         self::assertContains($docA->getId()->toRfc4122(), $ids);
         self::assertNotContains($docB->getId()->toRfc4122(), $ids);
+    }
+
+    public function testDoesNotFindASubmissionFromAnotherActivityCycle(): void
+    {
+        $centre  = $this->centre();
+        $folder  = $this->folder($centre);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $teacher = $this->teacher('docente');
+
+        $document = $this->document($folder, 'Entrega', $teacher, $profile);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $profile, $teacher, $document);
+
+        self::assertNotNull($this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Entrega', null, 2026));
+        self::assertNull($this->documents->findOneByFolderProfileListItemNameAndFirstUploader($folder, $profile, null, 'Entrega', null, 2027));
+    }
+
+    public function testAssignActivityCycleYearWhereMissingOnlyTouchesUnstampedDocumentsOfThatFolder(): void
+    {
+        $centre     = $this->centre();
+        $folder     = $this->folder($centre);
+        $other      = (new Folder())->setDocumentSection($folder->getDocumentSection())->setName('Otra');
+        $teacher    = $this->teacher('docente');
+        $unstamped  = $this->document($folder, 'Suelto', $teacher)->setActivityCycleYear(null);
+        $stamped    = $this->document($folder, 'Del curso pasado', $teacher)->setActivityCycleYear(2025);
+        $elsewhere  = $this->document($other, 'En otra carpeta', $teacher)->setActivityCycleYear(null);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $other, $teacher, $unstamped, $stamped, $elsewhere);
+
+        self::assertSame(1, $this->documents->assignActivityCycleYearWhereMissing($folder, 2026));
+
+        $this->em->clear();
+        $reload = fn (Document $d): ?int => $this->documents->findById($d->getId()->toRfc4122())?->getActivityCycleYear();
+        self::assertSame(2026, $reload($unstamped));
+        self::assertSame(2025, $reload($stamped));
+        self::assertNull($reload($elsewhere));
     }
 }

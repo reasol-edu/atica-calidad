@@ -20,6 +20,15 @@ final class MyActivitiesComponentTest extends ControllerTestCase
     use ClockSensitiveTrait;
     use InteractsWithLiveComponents;
 
+    /** Cycle key of $activity's occurrence "now" — what a completion made at this point would be stored against. */
+    private function cycleKey(Activity $activity): int
+    {
+        /** @var \App\Service\ActivityDeadlineChecker $deadline */
+        $deadline = self::getContainer()->get(\App\Service\ActivityDeadlineChecker::class);
+
+        return $deadline->currentCycleKey($activity);
+    }
+
     private function centre(): EducationalCentre
     {
         return (new EducationalCentre())->setCode('12345678')->setName('Centro')->setCity('Ciudad');
@@ -110,7 +119,7 @@ final class MyActivitiesComponentTest extends ControllerTestCase
         $pending    = $this->activity($category, 'Sin completar');
         $completedA = $this->activity($category, 'Completada');
         $teacher    = $this->teacher('docente');
-        $this->persist($centre, $category, $pending, $completedA, $teacher, new ActivityCompletion($completedA, $teacher, null, null, $teacher));
+        $this->persist($centre, $category, $pending, $completedA, $teacher, new ActivityCompletion($completedA, $teacher, null, null, $teacher, $this->cycleKey($completedA)));
 
         $this->loginAs($teacher, $centre);
         $component = $this->createLiveComponent('MyActivitiesComponent', ['centre' => $centre], $this->client);
@@ -163,7 +172,7 @@ final class MyActivitiesComponentTest extends ControllerTestCase
         $pending   = $this->activity($category, 'Pendiente')->setStart(1, 11)->setEnd(30, 11);
         $completed = $this->activity($category, 'Completada')->setStart(1, 9)->setEnd(30, 9);
         $teacher   = $this->teacher('docente');
-        $this->persist($centre, $category, $overdue, $pending, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher));
+        $this->persist($centre, $category, $overdue, $pending, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher, $this->cycleKey($completed)));
 
         $this->loginAs($teacher, $centre);
         $component = $this->createLiveComponent('MyActivitiesComponent', ['centre' => $centre], $this->client);
@@ -187,7 +196,7 @@ final class MyActivitiesComponentTest extends ControllerTestCase
         $pending   = $this->activity($category, 'Pendiente')->setStart(1, 11)->setEnd(30, 11);
         $completed = $this->activity($category, 'Completada')->setStart(1, 9)->setEnd(30, 9);
         $teacher   = $this->teacher('docente');
-        $this->persist($centre, $category, $overdue, $pending, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher));
+        $this->persist($centre, $category, $overdue, $pending, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher, $this->cycleKey($completed)));
 
         $this->loginAs($teacher, $centre);
         $component = $this->createLiveComponent('MyActivitiesComponent', ['centre' => $centre], $this->client);
@@ -234,7 +243,7 @@ final class MyActivitiesComponentTest extends ControllerTestCase
         $future    = $this->activity($category, 'Sin empezar')->setStart(1, 11)->setEnd(30, 11);
         $completed = $this->activity($category, 'Hecha')->setStart(1, 9)->setEnd(30, 9);
         $teacher   = $this->teacher('docente');
-        $this->persist($centre, $category, $overdue, $active, $future, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher));
+        $this->persist($centre, $category, $overdue, $active, $future, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher, $this->cycleKey($completed)));
 
         $this->loginAs($teacher, $centre);
         $component = $this->createLiveComponent('MyActivitiesComponent', ['centre' => $centre], $this->client);

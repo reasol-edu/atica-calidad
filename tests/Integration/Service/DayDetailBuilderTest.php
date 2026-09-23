@@ -19,10 +19,22 @@ use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
 use App\Service\DayDetailBuilder;
 use App\Tests\Integration\RepositoryTestCase;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 final class DayDetailBuilderTest extends RepositoryTestCase
 {
+    use ClockSensitiveTrait;
+
     private DayDetailBuilder $builder;
+
+    /** Cycle key of $activity's occurrence "now" — what a completion made at this point would be stored against. */
+    private function cycleKey(Activity $activity): int
+    {
+        /** @var \App\Service\ActivityDeadlineChecker $deadline */
+        $deadline = self::getContainer()->get(\App\Service\ActivityDeadlineChecker::class);
+
+        return $deadline->currentCycleKey($activity);
+    }
 
     protected function setUp(): void
     {
@@ -213,13 +225,16 @@ final class DayDetailBuilderTest extends RepositoryTestCase
 
     public function testACompletedActivityDeadlineReflectsItsCompletionState(): void
     {
+        // Completed during that same occurrence: a completion only counts for the academic year
+        // it was made in, and the day shown here is in 2025-2026.
+        self::mockTime('2025-09-20 10:00:00');
         $centre   = $this->centre();
         $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
         $date     = new \DateTimeImmutable('2025-09-30');
         $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
         $activity = (new Activity())->setCategory($category)->setTitle('Lectura de la política de calidad')->setStart(1, 9)->setEnd(30, 9);
         $teacher  = $this->teacher('docente');
-        $completion = new ActivityCompletion($activity, $teacher, null, null, $teacher);
+        $completion = new ActivityCompletion($activity, $teacher, null, null, $teacher, $this->cycleKey($activity));
 
         $this->persist($centre, $year, $category, $activity, $teacher, $completion);
 

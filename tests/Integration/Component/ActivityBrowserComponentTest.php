@@ -32,6 +32,15 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
     use InteractsWithLiveComponents;
     use ClockSensitiveTrait;
 
+    /** Cycle key of $activity's occurrence "now" — what a completion made at this point would be stored against. */
+    private function cycleKey(Activity $activity): int
+    {
+        /** @var \App\Service\ActivityDeadlineChecker $deadline */
+        $deadline = self::getContainer()->get(\App\Service\ActivityDeadlineChecker::class);
+
+        return $deadline->currentCycleKey($activity);
+    }
+
     private function centre(): EducationalCentre
     {
         return (new EducationalCentre())->setCode('12345678')->setName('Centro')->setCity('Ciudad');
@@ -1017,7 +1026,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $teachers = self::getContainer()->get(\App\Repository\TeacherRepository::class);
         $reloadedTeacher = $teachers->findById($teacher->getId()->toRfc4122());
         self::assertNotNull($reloadedTeacher);
-        self::assertNotNull($completions->findOneForOwner($reloadedActivity, $reloadedTeacher, null, null));
+        self::assertNotNull($completions->findOneForOwner($reloadedActivity, $reloadedTeacher, null, null, $this->cycleKey($reloadedActivity)));
     }
 
     public function testMarkCompletedIsANoOpForAnAutoCompleteActivity(): void
@@ -1045,7 +1054,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $teachers = self::getContainer()->get(\App\Repository\TeacherRepository::class);
         $reloadedTeacher = $teachers->findById($teacher->getId()->toRfc4122());
         self::assertNotNull($reloadedTeacher);
-        self::assertNull($completions->findOneForOwner($reloadedActivity, $reloadedTeacher, null, null));
+        self::assertNull($completions->findOneForOwner($reloadedActivity, $reloadedTeacher, null, null, $this->cycleKey($reloadedActivity)));
     }
 
     public function testMarkCompletedDoesNotDuplicateAnExistingCompletion(): void
@@ -1054,7 +1063,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $category = $this->category($centre);
         $activity = $this->activity($category);
         $teacher  = $this->teacher('docente');
-        $existing = new ActivityCompletion($activity, $teacher, null, null, $teacher);
+        $existing = new ActivityCompletion($activity, $teacher, null, null, $teacher, $this->cycleKey($activity));
         $this->persist($centre, $category, $activity, $teacher, $existing);
         $activityId = $activity->getId()->toRfc4122();
 
@@ -1143,7 +1152,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $category = $this->category($centre);
         $activity = $this->activity($category);
         $teacher  = $this->teacher('docente');
-        $existing = new ActivityCompletion($activity, $teacher, null, null, $teacher);
+        $existing = new ActivityCompletion($activity, $teacher, null, null, $teacher, $this->cycleKey($activity));
         $this->persist($centre, $category, $activity, $teacher, $existing);
         $activityId = $activity->getId()->toRfc4122();
 
@@ -1185,7 +1194,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $category = $this->category($centre);
         $activity = $this->activity($category);
         $teacher  = $this->teacher('docente');
-        $existing = new ActivityCompletion($activity, $teacher, null, null, $teacher);
+        $existing = new ActivityCompletion($activity, $teacher, null, null, $teacher, $this->cycleKey($activity));
         $this->persist($centre, $category, $activity, $teacher, $existing);
         $activityId = $activity->getId()->toRfc4122();
 
@@ -1765,7 +1774,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $future    = $this->activity($category, 'Sin empezar')->setStart(1, 11)->setEnd(30, 11);
         $completed = $this->activity($category, 'Hecha')->setStart(1, 10)->setEnd(31, 10);
         $teacher   = $this->teacher('docente');
-        $this->persist($centre, $category, $overdue, $active, $future, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher));
+        $this->persist($centre, $category, $overdue, $active, $future, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher, $this->cycleKey($completed)));
 
         $this->loginAs($teacher, $centre);
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
@@ -2167,7 +2176,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $centre = $this->centre();
         $this->persist($centre);
         [$activity, $profile, $tutor] = $this->byProfileActivityHeldBy($centre, $this->teacher('tutor'));
-        $this->persist(new ActivityCompletion($activity, null, $profile, null, $tutor));
+        $this->persist(new ActivityCompletion($activity, null, $profile, null, $tutor, $this->cycleKey($activity)));
         $outsider = $this->teacher('ajeno');
         $this->persist($outsider);
 
@@ -2216,5 +2225,35 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component->call('markCompleted', ['activityId' => $foreign->getId()->toRfc4122()]);
 
         self::assertSame(0, $this->completionCount());
+    }
+
+    /** Documents already in a folder when it gets linked to an activity become that activity's submissions for the occurrence open right now. */
+    public function testLinkingAFolderAdoptsItsExistingDocumentsAsThisYearsSubmissions(): void
+    {
+        self::mockTime('2026-10-10 10:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $admin    = $this->admin();
+        $document = $this->documentWithApprovedRevision($folder, $admin);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $admin, $document);
+        self::assertNull($document->getActivityCycleYear(), 'not a submission while the folder backs no activity');
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component
+            ->set('formTitle', 'Actividad')
+            ->set('formStartDay', '1')->set('formStartMonth', '10')
+            ->set('formEndDay', '31')->set('formEndMonth', '10')
+            ->set('formFolderId', $folder->getId()->toRfc4122())
+            ->call('saveActivity');
+
+        $this->em->clear();
+        /** @var \App\Repository\DocumentRepository $documents */
+        $documents = self::getContainer()->get(\App\Repository\DocumentRepository::class);
+        self::assertSame(2026, $documents->findById($document->getId()->toRfc4122())?->getActivityCycleYear());
     }
 }
