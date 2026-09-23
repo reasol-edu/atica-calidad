@@ -697,6 +697,13 @@ activity_log.list.col.detail: 'Detalle'
 activity_log.impersonated_by: 'suplantado por %user%'
 activity_log.no_user: '—'
 activity_log.no_centre: '—'
+activity_log.export.label: 'Exportar'
+activity_log.export.csv: 'CSV'
+activity_log.export.pdf: 'PDF'
+activity_log.export.help: 'Descarga las entradas que cumplen los filtros actuales. El PDF incluye como máximo las %max% primeras; para más, usa el CSV.'
+activity_log.export.filename: 'registro-actividad'
+activity_log.export.pdf_count: '{1} 1 entrada|]1,Inf[ %count% entradas'
+activity_log.export.pdf_truncated: 'Se muestran solo las %max% primeras entradas. Exporta a CSV para obtener el registro completo.'
 
 # Etiquetas de los tipos de acción del registro. Cada una corresponde a un actionType
 # que emite ActivityLogSubscriber o un controlador (ver COMPONENT_ACTIONS en el subscriber).

@@ -1,0 +1,30 @@
+{% extends 'pdf/layout.html.twig' %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ pdfTitle }}</h1>
+    <div class="meta">
+        {{ 'activity_log.export.pdf_count'|trans({'%count%': rows|length}, 'admin') }}
+        {%- for line in filters %} · {{ line }}{% endfor %}
+    </div>
+</div>
+
+{% if truncated %}
+    <p><strong>{{ 'activity_log.export.pdf_truncated'|trans({'%max%': maxRows}, 'admin') }}</strong></p>
+{% endif %}
+
+{% if rows is empty %}
+    <p>{{ 'activity_log.list.search_empty'|trans({}, 'admin') }}</p>
+{% else %}
+    <table class="data-table">
+        <thead>
+            <tr>{% for header in headers %}<th>{{ header }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

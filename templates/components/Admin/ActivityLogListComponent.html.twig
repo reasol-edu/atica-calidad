@@ -90,6 +90,20 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                 </svg>
+                {% set export_params = {dateFrom: dateFrom, dateTo: dateTo, userQuery: userQuery, centreId: centreId, actionType: actionType, sort: sort, sortDir: sortDir}|filter(v => v != '') %}
+                <span class="inline-flex items-center gap-1.5" title="{{ 'activity_log.export.help'|trans({'%max%': constant('App\\Controller\\Admin\\ActivityLogController::PDF_MAX_ROWS')}, 'admin') }}">
+                    <span class="text-xs font-medium text-gray-500">{{ 'activity_log.export.label'|trans({}, 'admin') }}</span>
+                    <a href="{{ path('app_admin_activity_log_export', export_params|merge({_format: 'csv'})) }}"
+                       class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        {{ ux_icon('heroicons:table-cells', {class: 'h-3.5 w-3.5'}) }}
+                        {{ 'activity_log.export.csv'|trans({}, 'admin') }}
+                    </a>
+                    <a href="{{ path('app_admin_activity_log_export', export_params|merge({_format: 'pdf'})) }}" target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        {{ ux_icon('heroicons:document-text', {class: 'h-3.5 w-3.5'}) }}
+                        {{ 'activity_log.export.pdf'|trans({}, 'admin') }}
+                    </a>
+                </span>
                 {% if hasFilters %}
                     <button type="button" data-action="live#action" data-live-action-param="clearFilters"
                             class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs
