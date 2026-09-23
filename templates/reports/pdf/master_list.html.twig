@@ -1,0 +1,46 @@
+{% extends 'pdf/layout.html.twig' %}
+{% import 'reports/pdf/_macros.html.twig' as report %}
+
+{% block content %}
+{{ report.header(pdfTitle, centre, pdfGeneratedAt, 'master_list.summary'|trans({'%count%': rows|length}, 'reports')) }}
+
+{% if rows is empty %}
+    <p>{{ 'none'|trans({}, 'reports') }}</p>
+{% else %}
+    {# One table per section, in document tree order. #}
+    {% set current = null %}
+    {% for row in rows %}
+        {% if row.sectionPath != current %}
+            {% if current is not null %}</tbody></table>{% endif %}
+            <div class="subsection-title">{{ row.sectionPath }}</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>{{ 'master_list.col.folder'|trans({}, 'reports') }}</th>
+                        <th>{{ 'master_list.col.document'|trans({}, 'reports') }}</th>
+                        <th>{{ 'master_list.col.version'|trans({}, 'reports') }}</th>
+                        <th>{{ 'master_list.col.version_date'|trans({}, 'reports') }}</th>
+                        <th>{{ 'master_list.col.status'|trans({}, 'reports') }}</th>
+                        <th>{{ 'master_list.col.uploaded_by'|trans({}, 'reports') }}</th>
+                        <th>{{ 'master_list.col.responsibles'|trans({}, 'reports') }}</th>
+                        <th>{{ 'master_list.col.next_review'|trans({}, 'reports') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+            {% set current = row.sectionPath %}
+        {% endif %}
+                    <tr>
+                        <td>{{ row.folderName }}</td>
+                        <td>{{ row.documentName }}</td>
+                        <td>{{ row.version ?? '—' }}</td>
+                        <td>{{ row.versionDate ? row.versionDate|date('d/m/Y') : '—' }}</td>
+                        <td>{{ report.status_badge(row.status) }}</td>
+                        <td>{{ row.uploadedBy ?? '—' }}</td>
+                        <td>{{ row.responsibles ?: '—' }}</td>
+                        <td>{{ report.review(row.nextReviewAt, row.reviewState) }}</td>
+                    </tr>
+    {% endfor %}
+                </tbody>
+            </table>
+{% endif %}
+{% endblock %}

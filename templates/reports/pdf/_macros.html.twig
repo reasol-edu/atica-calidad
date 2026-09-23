@@ -1,0 +1,27 @@
+{# Shared bits of the Informes PDFs. #}
+
+{% macro header(title, centre, generatedAt, summary) -%}
+    <div class="page-header">
+        <h1>{{ title }}</h1>
+        <div class="centre-info">{{ centre.name }}</div>
+        <div class="meta">{{ 'generated_on'|trans({'%date%': generatedAt|date('d/m/Y H:i')}, 'reports') }}{{ summary ? ' · ' ~ summary : '' }}</div>
+    </div>
+{%- endmacro %}
+
+{% macro status_badge(status) -%}
+    {%- set classes = {active: 'badge-green', updating: 'badge-blue', pending: 'badge-amber', none: 'badge-gray'} -%}
+    <span class="badge {{ classes[status] ?? 'badge-gray' }}">{{ ('master_list.status.' ~ status)|trans({}, 'reports') }}</span>
+{%- endmacro %}
+
+{# A next review date, flagged when overdue or coming up. #}
+{% macro review(date, state) -%}
+    {%- if date is null -%}
+        —
+    {%- elseif state == 'overdue' -%}
+        <span class="badge badge-red">{{ date|date('d/m/Y') }}</span>
+    {%- elseif state == 'soon' -%}
+        <span class="badge badge-amber">{{ date|date('d/m/Y') }}</span>
+    {%- else -%}
+        {{ date|date('d/m/Y') }}
+    {%- endif -%}
+{%- endmacro %}

@@ -1,0 +1,37 @@
+{% extends 'pdf/layout.html.twig' %}
+{% import 'reports/pdf/_macros.html.twig' as report %}
+
+{% block content %}
+{{ report.header(pdfTitle, centre, pdfGeneratedAt, 'document_reviews.pdf_subtitle'|trans({'%days%': horizon}, 'reports')) }}
+
+{% if rows is empty %}
+    <p>{{ 'none'|trans({}, 'reports') }}</p>
+{% else %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{{ 'master_list.col.next_review'|trans({}, 'reports') }}</th>
+                <th>{{ 'master_list.col.document'|trans({}, 'reports') }}</th>
+                <th>{{ 'master_list.col.section'|trans({}, 'reports') }}</th>
+                <th>{{ 'master_list.col.folder'|trans({}, 'reports') }}</th>
+                <th>{{ 'master_list.col.version'|trans({}, 'reports') }}</th>
+                <th>{{ 'master_list.col.status'|trans({}, 'reports') }}</th>
+                <th>{{ 'master_list.col.responsibles'|trans({}, 'reports') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>{{ report.review(row.nextReviewAt, row.reviewState) }}<br><span style="font-size:7.5pt;color:#93826a;">{{ ('document_reviews.state.' ~ row.reviewState)|trans({}, 'reports') }}</span></td>
+                    <td>{{ row.documentName }}</td>
+                    <td>{{ row.sectionPath }}</td>
+                    <td>{{ row.folderName }}</td>
+                    <td>{{ row.version ?? '—' }}</td>
+                    <td>{{ report.status_badge(row.status) }}</td>
+                    <td>{{ row.responsibles ?: '—' }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

@@ -627,6 +627,7 @@ folder.flash.deleted: 'Carpeta eliminada.'
 folder.flash.profiles_saved: 'Perfiles de la carpeta actualizados.'
 
 document.error.name_required: 'Indica un nombre para el documento.'
+document.error.invalid_next_review: 'La fecha de próxima revisión no es válida.'
 document.error.revision_not_approved: 'Solo una revisión aprobada puede convertirse en la activa.'
 document.error.invalid_version: 'El número de versión debe ser mayor que 0.'
 document.error.version_in_use: 'Ese número de versión ya está en uso por otra revisión de este documento.'

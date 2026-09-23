@@ -137,8 +137,8 @@
                 'app_document_tree'
             ) }}
 
-            {# Reports — management team and admins only #}
-            {% if active_centre and is_granted('educational_centre.section', active_centre) %}
+            {# Reports — admins, management team, quality managers and internal auditors #}
+            {% if active_centre and is_granted('educational_centre.reports', active_centre) %}
                 {% set reports_active = current_route starts with 'app_reports_' %}
                 <a href="{{ path('app_reports_index', {centreId: active_centre.id}) }}"
                     {{ reports_active ? 'aria-current="page"' : '' }}

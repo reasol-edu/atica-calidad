@@ -124,6 +124,10 @@ class SectionBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $renameDocumentName = '';
 
+    /** The document's next review date while it's being edited ("Y-m-d", "" = none) — only offered outside activity folders. */
+    #[LiveProp(writable: true)]
+    public string $renameNextReview = '';
+
     #[LiveProp(writable: true)]
     public string $confirmingDeleteDocumentId = '';
 
@@ -940,6 +944,7 @@ class SectionBrowserComponent extends AbstractController
         $this->denyAccessUnlessGranted(FolderVoter::MANAGE, $folder);
         $this->renamingDocumentId = $id;
         $this->renameDocumentName = $document->getName();
+        $this->renameNextReview   = $document->getNextReviewAt()?->format('Y-m-d') ?? '';
     }
 
     #[LiveAction]
@@ -960,6 +965,18 @@ class SectionBrowserComponent extends AbstractController
             $this->errors = ['renameDocument' => $this->t('document.error.name_required')];
 
             return;
+        }
+
+        // A submission of an activity has no review cycle of its own: the field isn't offered there.
+        if ($folder->getActivity() === null) {
+            $nextReview = trim($this->renameNextReview);
+            $date       = $nextReview === '' ? null : \DateTimeImmutable::createFromFormat('!Y-m-d', $nextReview);
+            if ($date === false || ($date !== null && $date->format('Y-m-d') !== $nextReview)) {
+                $this->errors = ['renameDocument' => $this->t('document.error.invalid_next_review')];
+
+                return;
+            }
+            $document->setNextReviewAt($date);
         }
 
         $document->setName($name);

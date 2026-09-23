@@ -9,6 +9,16 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Added
 
+- **Informes**: la sección deja de estar vacía, con tres informes que se descargan en PDF (con la
+  plantilla de membrete del centro) o en Excel: el **listado maestro de documentos** (versión en
+  vigor, fecha, estado, responsables y próxima revisión de cada documento), las **revisiones de
+  documentos** vencidas o que vencen en los próximos 60 días y el **estado de las actividades** del
+  curso (entregas esperadas, enviadas, aceptadas, en revisión y rechazadas, o docentes que han
+  completado cada actividad manual). La ven, además de la administración y el equipo directivo, el
+  responsable de calidad y el auditor/a interno/a.
+- **Árbol documental**: cada documento puede llevar una **fecha de próxima revisión**, que pone quien
+  gestiona la carpeta al editarlo. Se muestra junto al documento —en ámbar los 30 días anteriores y
+  en rojo cuando ha pasado— y alimenta los informes de listado maestro y de revisiones.
 - **Actividades (pestaña Ver)**: quien gestiona o revisa la carpeta de una actividad ve en su
   tarjeta el **avance global** de las entregas de este curso —una barra y una línea como
   «14/20 entregadas · 3 en revisión · 1 rechazada»—, sin tener que abrir las estadísticas.

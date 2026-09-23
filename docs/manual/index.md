@@ -5,8 +5,7 @@ sistema de gestión de la calidad (SGC) de un centro educativo: un lugar central
 organizar la documentación, los plazos y los responsables del sistema de calidad, con acceso
 diferenciado por docente y por centro.
 
-Este manual describe la aplicación en su estado actual. Sigue en construcción —la sección
-**Informes**, por ejemplo, todavía está vacía— y este manual crecerá a la vez que la aplicación.
+Este manual describe la aplicación en su estado actual y crecerá a la vez que ella.
 
 ## Quién es quién
 

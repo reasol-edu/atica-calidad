@@ -28,7 +28,15 @@
             <form data-action="submit->live#action:prevent" data-live-action-param="saveRenameDocument" data-live-folder-id-param="{{ fid }}"
                   class="flex flex-1 items-center gap-1.5 min-w-0">
                 <input type="text" data-model="norender|renameDocumentName" value="{{ renameDocumentName }}" autofocus
+                       aria-label="{{ 'document.name_label'|trans({}, 'document_content') }}"
                        class="min-w-0 flex-1 rounded-md border border-forest-300 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                {% if not folder.activity %}
+                    <label class="flex shrink-0 items-center gap-1 text-xs text-gray-500" title="{{ 'document.next_review_help'|trans({}, 'document_content') }}">
+                        {{ 'document.next_review_label'|trans({}, 'document_content') }}
+                        <input type="date" data-model="norender|renameNextReview" value="{{ renameNextReview }}"
+                               class="rounded-md border border-gray-300 bg-white px-1.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                    </label>
+                {% endif %}
                 <button type="submit" class="shrink-0 text-forest-600 hover:text-forest-800">{{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}</button>
                 <button type="button" data-action="live#action" data-live-action-param="cancelRenameDocument" class="shrink-0 text-gray-400 hover:text-gray-600">{{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}</button>
             </form>
@@ -40,6 +48,14 @@
                     {% if past_year %}
                         <span class="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600"
                               title="{{ 'status.past_submission.title'|trans({'%year%': past_year}, 'document_content') }}">{{ 'status.past_submission'|trans({'%year%': past_year}, 'document_content') }}</span>
+                    {% endif %}
+                    {% set review_state = next_review_state(document) %}
+                    {% if review_state %}
+                        {# Grey while far off; amber within the month before; red once overdue. #}
+                        <span class="shrink-0 rounded-full px-1.5 py-0.5 text-[11px] {{ {overdue: 'bg-red-50 text-red-700', soon: 'bg-amber-50 text-amber-700'}[review_state] ?? 'bg-gray-100 text-gray-500' }}"
+                              title="{{ 'document.next_review_help'|trans({}, 'document_content') }}">
+                            {{ ('status.next_review.' ~ review_state)|trans({'%date%': document.nextReviewAt|date('d/m/Y')}, 'document_content') }}
+                        </span>
                     {% endif %}
                     {% if pending %}
                         <span class="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">{{ 'status.pending'|trans({}, 'document_content') }}</span>

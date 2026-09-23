@@ -7,6 +7,7 @@ namespace App\Entity;
 use App\Repository\DocumentRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
@@ -56,6 +57,14 @@ class Document
      */
     #[ORM\Column(nullable: true)]
     private ?int $activityCycleYear = null;
+
+    /**
+     * When the document is due to be reviewed next (a controlled document of the quality system
+     * is periodically checked to still be valid). Null when nobody has set one. Shown in the
+     * document tree as it gets close, and listed in the Informes section.
+     */
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $nextReviewAt = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
@@ -133,6 +142,18 @@ class Document
     public function setActivityCycleYear(?int $activityCycleYear): static
     {
         $this->activityCycleYear = $activityCycleYear;
+
+        return $this;
+    }
+
+    public function getNextReviewAt(): ?\DateTimeImmutable
+    {
+        return $this->nextReviewAt;
+    }
+
+    public function setNextReviewAt(?\DateTimeImmutable $nextReviewAt): static
+    {
+        $this->nextReviewAt = $nextReviewAt?->setTime(0, 0);
 
         return $this;
     }

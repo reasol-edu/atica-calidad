@@ -1,0 +1,47 @@
+{% extends 'pdf/layout.html.twig' %}
+{% import 'reports/pdf/_macros.html.twig' as report %}
+
+{% block content %}
+{{ report.header(pdfTitle, centre, pdfGeneratedAt, 'activity_status.summary'|trans({'%count%': rows|length}, 'reports')) }}
+
+{% if rows is empty %}
+    <p>{{ 'none'|trans({}, 'reports') }}</p>
+{% else %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{{ 'activity_status.col.category'|trans({}, 'reports') }}</th>
+                <th>{{ 'activity_status.col.activity'|trans({}, 'reports') }}</th>
+                <th>{{ 'activity_status.col.opens'|trans({}, 'reports') }}</th>
+                <th>{{ 'activity_status.col.deadline'|trans({}, 'reports') }}</th>
+                <th>{{ 'activity_status.col.kind'|trans({}, 'reports') }}</th>
+                <th>{{ 'activity_status.col.expected'|trans({}, 'reports') }}</th>
+                <th>{{ 'activity_status.col.delivered'|trans({}, 'reports') }}</th>
+                <th>{{ 'activity_status.col.done'|trans({}, 'reports') }}</th>
+                <th>{{ 'activity_status.col.in_review'|trans({}, 'reports') }}</th>
+                <th>{{ 'activity_status.col.rejected'|trans({}, 'reports') }}</th>
+                <th>{{ 'activity_status.col.percent'|trans({}, 'reports') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                {% set percent = row.donePercentage %}
+                <tr>
+                    <td>{{ row.categoryPath }}</td>
+                    <td>{{ row.title }}</td>
+                    <td>{{ row.startsAt|date('d/m/Y') }}</td>
+                    <td>{{ row.deadline|date('d/m/Y') }}</td>
+                    <td>{{ (row.withSubmissions ? 'activity_status.kind.submissions' : 'activity_status.kind.manual')|trans({}, 'reports') }}</td>
+                    <td>{{ row.expected }}</td>
+                    <td>{{ row.delivered }}</td>
+                    <td>{{ row.done }}</td>
+                    <td>{{ row.withSubmissions ? row.inReview : '—' }}</td>
+                    <td>{{ row.withSubmissions ? row.rejected : '—' }}</td>
+                    <td><span class="badge {{ percent >= 100 ? 'badge-green' : (percent >= 50 ? 'badge-amber' : 'badge-red') }}">{{ percent }} %</span></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p style="margin-top:8px;font-size:8pt;color:#93826a;">{{ 'activity_status.legend'|trans({}, 'reports') }}</p>
+{% endif %}
+{% endblock %}

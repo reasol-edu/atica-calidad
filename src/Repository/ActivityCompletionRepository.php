@@ -67,4 +67,17 @@ class ActivityCompletionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /** How many owners have completed occurrence $cycleYear of $activity. */
+    public function countByActivityAndCycle(Activity $activity, int $cycleYear): int
+    {
+        return (int) $this->createQueryBuilder('c')
+            ->select('COUNT(c.id)')
+            ->where('c.activity = :activity')
+            ->andWhere('c.cycleYear = :cycleYear')
+            ->setParameter('activity', $activity->getId(), 'uuid')
+            ->setParameter('cycleYear', $cycleYear)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

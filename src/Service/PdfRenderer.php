@@ -29,9 +29,9 @@ class PdfRenderer
      *
      * @param array<string, mixed>                                     $context        Must include 'centre' (EducationalCentre); merged into header/footer/content.
      * @param PdfHeader|null                                           $header         Custom header content and top margin; falls back to pdfTitle / centre name.
-     * @param bool                                                     $draftWatermark Shows a diagonal "BORRADOR" watermark on every page; used while the report/sanction hasn't been notified to the family yet.
+     * @param bool                                                     $draftWatermark Shows a diagonal "BORRADOR" watermark on every page.
      * @param 'P'|'L'                                                  $orientation    'P' (portrait, default) or 'L' (landscape).
-     * @param 'incident'|'sanction'|'group_stats'|'guard_duty'|null    $reportType     Together with $centre, resolves and stamps the configured PDF template as the background of every page (see PdfTemplateResolver).
+     * @param 'document_master_list'|'document_reviews'|'activity_status'|null    $reportType     Together with $centre, resolves and stamps the configured PDF template as the background of every page (see PdfTemplateResolver).
      */
     public function render(
         string $template,
@@ -113,7 +113,7 @@ class PdfRenderer
      * generated page. Returns the temp file's path for later cleanup,
      * or null if no template is configured.
      *
-     * @param 'incident'|'sanction'|'group_stats'|'guard_duty' $reportType
+     * @param 'document_master_list'|'document_reviews'|'activity_status' $reportType
      */
     private function applyDocTemplate(Mpdf $mpdf, string $reportType, string $orientation, EducationalCentre $centre): ?string
     {

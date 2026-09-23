@@ -109,4 +109,23 @@ final class EducationalCentreVoterTest extends TestCase
 
         self::assertSame(VoterInterface::ACCESS_DENIED, $this->vote($teacher, EducationalCentreVoter::SECTION, $centreA));
     }
+
+    /** Informes: the centre's admins, quality managers and internal auditors — never a plain teacher. */
+    public function testReportsGrantedToAdminsQualityManagersAndInternalAuditorsOnly(): void
+    {
+        $centre  = $this->centre();
+        $admin   = $this->teacher('director');
+        $quality = $this->teacher('calidad');
+        $auditor = $this->teacher('auditora');
+        $plain   = $this->teacher('docente');
+        $centre->getAdmins()->add($admin);
+        $centre->getQualityManagers()->add($quality);
+        $centre->getInternalAuditors()->add($auditor);
+
+        self::assertSame(VoterInterface::ACCESS_GRANTED, $this->vote($admin, EducationalCentreVoter::REPORTS, $centre));
+        self::assertSame(VoterInterface::ACCESS_GRANTED, $this->vote($quality, EducationalCentreVoter::REPORTS, $centre));
+        self::assertSame(VoterInterface::ACCESS_GRANTED, $this->vote($auditor, EducationalCentreVoter::REPORTS, $centre));
+        self::assertSame(VoterInterface::ACCESS_DENIED, $this->vote($plain, EducationalCentreVoter::REPORTS, $centre));
+        self::assertSame(VoterInterface::ACCESS_DENIED, $this->vote($auditor, EducationalCentreVoter::SECTION, $centre), 'an auditor gets the reports, not the centre management');
+    }
 }

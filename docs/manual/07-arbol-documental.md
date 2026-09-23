@@ -221,7 +221,10 @@ solo el responsable puede consultar el historial.
 
 Renombrar un documento, moverlo a otra carpeta de la misma sección (con un selector, no
 arrastrando) y reordenar manualmente el contenido de una carpeta requiere ser responsable de esa
-carpeta. **Eliminar el documento completo**, con todo su historial de revisiones, sí está permitido
+carpeta. Al editar el nombre, fuera de las carpetas de actividades, se puede fijar también la
+**fecha de próxima revisión** del documento: cuándo toca comprobar que sigue vigente. El documento
+la muestra junto a su nombre —en ámbar durante los 30 días anteriores y en rojo cuando ya ha
+pasado— y aparece en los [informes](04-informes.md) de listado maestro y de revisiones. **Eliminar el documento completo**, con todo su historial de revisiones, sí está permitido
 también a quien subió su revisión activa, aunque no sea responsable (ver
 [la excepción de arriba](#permisos-sobre-una-carpeta)).
 

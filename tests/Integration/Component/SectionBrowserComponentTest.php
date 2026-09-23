@@ -1005,4 +1005,82 @@ final class SectionBrowserComponentTest extends ControllerTestCase
 
         self::assertSame('', $this->stringProp($component, 'folderCycle'));
     }
+
+    // ── Next review date ─────────────────────────────────────────────────────
+
+    /** @return array{EducationalCentre, DocumentSection, Folder, Teacher, Document} a document in a folder the teacher manages */
+    private function managedDocument(): array
+    {
+        $centre     = $this->centre();
+        $section    = $this->section($centre);
+        $folder     = $this->folder($section);
+        $manager    = $this->teacher('responsable');
+        $profile    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Responsable');
+        $folder->addResponsibleProfile($profile);
+        $assignment = new SpecificProfileAssignment($profile, null, $manager);
+        $document   = $this->documentWithApprovedRevision($folder, $manager, 'Manual de calidad');
+        $this->persist($centre, $section, $folder, $profile, $manager, $assignment, $document);
+
+        return [$centre, $section, $folder, $manager, $document];
+    }
+
+    private function reloadDocument(Document $document): Document
+    {
+        $this->em->clear();
+        /** @var DocumentRepository $documents */
+        $documents = self::getContainer()->get(DocumentRepository::class);
+        $reloaded  = $documents->findById($document->getId()->toRfc4122());
+        self::assertNotNull($reloaded);
+
+        return $reloaded;
+    }
+
+    public function testTheFolderManagerSetsAndClearsTheNextReviewDate(): void
+    {
+        [$centre, $section, $folder, $manager, $document] = $this->managedDocument();
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+        $component->call('startRenameDocument', ['folderId' => $folderId, 'id' => $document->getId()->toRfc4122()]);
+        $component->set('renameNextReview', '2026-06-30')->call('saveRenameDocument', ['folderId' => $folderId]);
+        self::assertSame('2026-06-30', $this->reloadDocument($document)->getNextReviewAt()?->format('Y-m-d'));
+
+        $component->call('startRenameDocument', ['folderId' => $folderId, 'id' => $document->getId()->toRfc4122()]);
+        self::assertSame('2026-06-30', $this->stringProp($component, 'renameNextReview'), 'the form starts from the stored date');
+        $component->set('renameNextReview', '')->call('saveRenameDocument', ['folderId' => $folderId]);
+        self::assertNull($this->reloadDocument($document)->getNextReviewAt());
+    }
+
+    public function testAnInvalidNextReviewDateIsRejectedWithoutSavingAnything(): void
+    {
+        [$centre, $section, $folder, $manager, $document] = $this->managedDocument();
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+        $component->call('startRenameDocument', ['folderId' => $folderId, 'id' => $document->getId()->toRfc4122()]);
+        $component->set('renameDocumentName', 'Otro nombre')->set('renameNextReview', '2026-02-30')->call('saveRenameDocument', ['folderId' => $folderId]);
+
+        $reloaded = $this->reloadDocument($document);
+        self::assertSame('Manual de calidad', $reloaded->getName());
+        self::assertNull($reloaded->getNextReviewAt());
+    }
+
+    public function testTheTreeFlagsAnOverdueReview(): void
+    {
+        self::mockTime('2025-10-10 10:00:00');
+        [$centre, $section, $folder, $manager, $document] = $this->managedDocument();
+        $document->setNextReviewAt(new \DateTimeImmutable('2025-09-01'));
+        $this->em->flush();
+
+        $this->loginAs($manager, $centre);
+        $html = (string) $this->createLiveComponent(
+            'SectionBrowserComponent',
+            array_merge($this->inSection($section, $centre), ['initialFolderId' => $folder->getId()->toRfc4122()]),
+            $this->client,
+        )->render()->crawler()->html();
+
+        self::assertStringContainsString('Revisión vencida (01/09/2025)', $html);
+    }
 }

@@ -59,8 +59,10 @@ administradores globales pueden gestionar todos los centros desde la sección **
 - **Administración** — cursos académicos, docentes, perfiles de responsable de calidad y auditor/a
   interno/a, motor de ajustes (global/centro/personal), registro de avisos y copias de seguridad.
 
-La sección **Informes** todavía está vacía; el resto de la aplicación está operativa. Ver
-[CHANGELOG.md](CHANGELOG.md) para el detalle de cada versión.
+- **Informes** — listado maestro de documentos, revisiones de documentos pendientes y estado de las
+  actividades del curso, en PDF (con el membrete del centro) o en Excel.
+
+Ver [CHANGELOG.md](CHANGELOG.md) para el detalle de cada versión.
 
 Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para la guía de contribución, [CHANGELOG.md](CHANGELOG.md)
 para el historial de cambios y [SECURITY.md](SECURITY.md) para reportar vulnerabilidades.
@@ -96,7 +98,7 @@ Capítulos:
 | Instalación y puesta en marcha | Modos de despliegue y requisitos |
 | Preparar el curso académico | Configurar el centro y el curso académico |
 | Calendario | Navegación, eventos de centro y días no lectivos |
-| Informes | (todavía sin contenido) |
+| Informes | Listado maestro de documentos, revisiones de documentos y estado de las actividades |
 | Administrar el centro educativo | Referencia de cada sección del hub de centro |
 | Responsabilidades | Listas jerárquicas, etiquetas, perfiles específicos con subperfiles e importación desde Séneca |
 | Árbol documental | Secciones, carpetas, documentos, revisiones y flujo de visto bueno |

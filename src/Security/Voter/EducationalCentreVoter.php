@@ -25,9 +25,17 @@ final class EducationalCentreVoter extends Voter
      */
     public const RESPONSIBILITIES = 'educational_centre.responsibilities';
 
+    /**
+     * Access to the Informes section (document master list, document reviews, activity status).
+     * Granted to whoever answers for the quality system as a whole: the centre's admins, its
+     * quality managers and its internal auditors — who can already see every document anyway.
+     * Subject: EducationalCentre
+     */
+    public const REPORTS = 'educational_centre.reports';
+
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return in_array($attribute, [self::SECTION, self::RESPONSIBILITIES], true) && $subject instanceof EducationalCentre;
+        return in_array($attribute, [self::SECTION, self::RESPONSIBILITIES, self::REPORTS], true) && $subject instanceof EducationalCentre;
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
@@ -42,6 +50,10 @@ final class EducationalCentreVoter extends Voter
             return true;
         }
 
-        return $attribute === self::RESPONSIBILITIES && $subject->getQualityManagers()->contains($user);
+        return match ($attribute) {
+            self::RESPONSIBILITIES => $subject->getQualityManagers()->contains($user),
+            self::REPORTS          => $subject->getQualityManagers()->contains($user) || $subject->getInternalAuditors()->contains($user),
+            default                => false,
+        };
     }
 }

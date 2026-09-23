@@ -2,6 +2,31 @@
 
 {% block title %}{{ 'reports'|trans({}, 'navigation') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
 
+{% macro report_card(icon, key, route, centre, description, summary, summary_class) %}
+    <div class="flex flex-col rounded-2xl border border-gray-200 bg-white shadow-xs">
+        <div class="flex-1 px-6 py-5 space-y-2">
+            <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900">
+                {{ ux_icon(icon, {class: 'h-5 w-5 text-forest-600'}) }}
+                {{ (key ~ '.title')|trans({}, 'reports') }}
+            </h2>
+            <p class="text-sm text-gray-600">{{ description }}</p>
+            <p class="text-xs font-medium {{ summary_class ?? 'text-gray-500' }}">{{ summary }}</p>
+        </div>
+        <div class="flex items-center gap-2 border-t border-gray-100 px-6 py-3">
+            <a href="{{ path(route, {centreId: centre.id.toRfc4122, _format: 'pdf'}) }}" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
+                {{ ux_icon('heroicons:document-text', {class: 'h-4 w-4'}) }}
+                {{ 'download_pdf'|trans({}, 'reports') }}
+            </a>
+            <a href="{{ path(route, {centreId: centre.id.toRfc4122, _format: 'xlsx'}) }}"
+               class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                {{ ux_icon('heroicons:table-cells', {class: 'h-4 w-4'}) }}
+                {{ 'download_xlsx'|trans({}, 'reports') }}
+            </a>
+        </div>
+    </div>
+{% endmacro %}
+
 {% block content %}
 <div class="px-6 py-8 max-w-7xl mx-auto">
 
@@ -11,14 +36,28 @@
             <span aria-current="page" class="text-gray-700 font-medium">{{ 'reports'|trans({}, 'navigation') }}</span>
         </div>
         <h1 class="text-2xl font-bold text-gray-900">{{ 'reports'|trans({}, 'navigation') }}</h1>
-        {% if centre.activeAcademicYear %}
-            <p class="mt-1 text-sm text-gray-500">{{ centre.activeAcademicYear.name }}</p>
-        {% endif %}
+        <p class="mt-1 text-sm text-gray-500">{{ 'intro'|trans({}, 'reports') }}</p>
     </div>
 
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs px-6 py-16 text-center">
-        {{ ux_icon('heroicons:chart-bar', {class: 'mx-auto h-10 w-10 text-gray-300 mb-3'}) }}
-        <p class="text-sm text-gray-500">{{ 'empty'|trans({}, 'reports') }}</p>
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {{ _self.report_card(
+            'heroicons:clipboard-document-list', 'master_list', 'app_reports_master_list', centre,
+            'master_list.description'|trans({}, 'reports'),
+            'master_list.summary'|trans({'%count%': documentCount}, 'reports'),
+        ) }}
+
+        {{ _self.report_card(
+            'heroicons:calendar-days', 'document_reviews', 'app_reports_document_reviews', centre,
+            'document_reviews.description'|trans({'%days%': reviewHorizon}, 'reports'),
+            'document_reviews.summary'|trans({'%count%': reviewsDueCount}, 'reports') ~ (reviewsOverdue > 0 ? 'document_reviews.overdue'|trans({'%count%': reviewsOverdue}, 'reports') : (reviewsDueCount > 0 ? '.' : '')),
+            reviewsOverdue > 0 ? 'text-red-600' : null,
+        ) }}
+
+        {{ _self.report_card(
+            'heroicons:check-circle', 'activity_status', 'app_reports_activity_status', centre,
+            'activity_status.description'|trans({}, 'reports'),
+            'activity_status.summary'|trans({'%count%': activityCount}, 'reports'),
+        ) }}
     </div>
 
 </div>
