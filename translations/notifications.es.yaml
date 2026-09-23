@@ -3,6 +3,5 @@ bell.aria: 'Notificaciones'
 bell.title: 'Pendientes'
 bell.empty: 'No tienes nada pendiente.'
 
-bell.item.review_pending: 'Pendiente de revisar en «%folder%» · subido el %date%'
 bell.section.activities: 'Actividades pendientes de completar'
 bell.section.reviews: 'Entregas pendientes de revisar'

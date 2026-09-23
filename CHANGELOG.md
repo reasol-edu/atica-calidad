@@ -9,6 +9,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Added
 
+- **Actividades (pestaña Ver)**: quien gestiona o revisa la carpeta de una actividad ve en su
+  tarjeta el **avance global** de las entregas de este curso —una barra y una línea como
+  «14/20 entregadas · 3 en revisión · 1 rechazada»—, sin tener que abrir las estadísticas.
+- **Revisiones pendientes** (panel principal y campana): las entregas de una misma actividad se
+  agrupan en **una sola línea** («Programación didáctica · 6 entregas por revisar»), que abre la
+  actividad con todas sus entregas desplegadas y la más antigua resaltada, en lugar de una línea
+  por documento que llevaba al árbol documental.
 - **Árbol documental**: la carpeta de una actividad muestra por defecto solo las entregas del curso
   académico actual. Si hay entregas de otros cursos, un desplegable **«Curso:»** encima de la lista
   permite ver las de otro curso —solo aparecen los cursos que tienen alguna entrega, además del

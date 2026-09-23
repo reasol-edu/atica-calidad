@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Twig\Components;
 
-use App\Entity\DocumentRevision;
 use App\Entity\Teacher;
 use App\Model\ActivityDashboardItem;
+use App\Model\PendingReviewGroup;
 use App\Service\ActivityObligationFinder;
 use App\Service\PendingReviewFinder;
 use App\Service\TenantContextInterface;
@@ -26,7 +26,7 @@ class NotificationBellComponent extends AbstractController
 
     private const int MAX_ITEMS = 8;
 
-    /** @var list<array{type: 'activity'|'review', entity: ActivityDashboardItem|DocumentRevision, date: \DateTimeImmutable}>|null */
+    /** @var list<array{type: 'activity'|'review', entity: ActivityDashboardItem|PendingReviewGroup, date: \DateTimeImmutable}>|null */
     private ?array $items = null;
 
     private int $total = 0;
@@ -37,7 +37,7 @@ class NotificationBellComponent extends AbstractController
         private readonly PendingReviewFinder $pendingReview,
     ) {}
 
-    /** @return list<array{type: 'activity'|'review', entity: ActivityDashboardItem|DocumentRevision, date: \DateTimeImmutable}> */
+    /** @return list<array{type: 'activity'|'review', entity: ActivityDashboardItem|PendingReviewGroup, date: \DateTimeImmutable}> */
     public function getVisibleItems(): array
     {
         $this->load();
@@ -72,12 +72,12 @@ class NotificationBellComponent extends AbstractController
         return $activities;
     }
 
-    /** @return list<array{type: 'review', entity: DocumentRevision, date: \DateTimeImmutable}> */
+    /** @return list<array{type: 'review', entity: PendingReviewGroup, date: \DateTimeImmutable}> */
     public function getVisibleReviewItems(): array
     {
         $reviews = [];
         foreach ($this->getVisibleItems() as $item) {
-            if ($item['entity'] instanceof DocumentRevision) {
+            if ($item['entity'] instanceof PendingReviewGroup) {
                 $reviews[] = ['type' => 'review', 'entity' => $item['entity'], 'date' => $item['date']];
             }
         }
@@ -113,8 +113,9 @@ class NotificationBellComponent extends AbstractController
         foreach ($activities as $item) {
             $items[] = ['type' => 'activity', 'entity' => $item, 'date' => $item->deadline];
         }
-        foreach ($reviews as $revision) {
-            $items[] = ['type' => 'review', 'entity' => $revision, 'date' => $revision->getRevisedAt()];
+        // An activity's submissions awaiting review come as one line, not one per submission.
+        foreach ($this->pendingReview->group($reviews) as $group) {
+            $items[] = ['type' => 'review', 'entity' => $group, 'date' => $group->oldestAt()];
         }
 
         usort($items, static fn (array $a, array $b): int => $a['date'] <=> $b['date']);

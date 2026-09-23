@@ -16,6 +16,7 @@ use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use App\Entity\Tag;
 use App\Entity\Teacher;
+use App\Model\ActivitySubmissionProgress;
 use App\Model\ActivitySubmissionSlot;
 use App\Model\ActivityWindow;
 use App\Model\ProfileAssignmentRow;
@@ -34,6 +35,7 @@ use App\Service\ActivityCompletionChecker;
 use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivityLogger;
 use App\Service\ActivityObligationFinder;
+use App\Service\ActivitySubmissionProgressCalculator;
 use App\Service\ActivityWindowChecker;
 use App\Service\DocumentFileGarbageCollector;
 use App\Service\DocumentTreeAccessChecker;
@@ -210,6 +212,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly ActivityLogger $activityLogger,
         private readonly DocumentFileGarbageCollector $garbageCollector,
         private readonly ActivityObligationFinder $obligations,
+        private readonly ActivitySubmissionProgressCalculator $progress,
     ) {}
 
     public function mount(
@@ -234,8 +237,16 @@ class ActivityBrowserComponent extends AbstractController
 
         if ($initialHighlightDocumentId !== '') {
             $document = $this->findDocument($initialHighlightDocumentId);
-            if ($document !== null && $document->getFolder()->getActivity() !== null) {
+            $activity = $document?->getFolder()->getActivity();
+            if ($activity !== null) {
                 $this->highlightedDocumentId = $initialHighlightDocumentId;
+                // Landing here from "Revisiones pendientes" / the bell: open the activity's full
+                // submission list — collapsed by default for someone with submissions of their own
+                // — so the highlighted one (and the rest waiting for review) is right there.
+                $this->expandedAllSubmissions[] = $activity->getId()->toRfc4122();
+                if ($this->currentCategoryId === '') {
+                    $this->currentCategoryId = $activity->getCategory()->getId()->toRfc4122();
+                }
             }
         }
     }
@@ -856,6 +867,21 @@ class ActivityBrowserComponent extends AbstractController
         }
 
         return ['groups' => array_values($groups), 'needsReview' => $needsReview];
+    }
+
+    /**
+     * The activity's overall submission progress (every slot, this academic year) — only for
+     * whoever manages or reviews its folder, who need the whole picture at a glance on the card
+     * itself; null for everyone else, and for an activity without a folder.
+     */
+    public function getSubmissionProgress(Activity $activity): ?ActivitySubmissionProgress
+    {
+        $folder = $activity->getFolder();
+        if ($folder === null || !($this->canManageFolder($folder) || $this->canReviewFolder($folder))) {
+            return null;
+        }
+
+        return $this->progress->forActivity($activity);
     }
 
     /**

@@ -211,6 +211,30 @@ class DocumentRepository extends ServiceEntityRepository
     }
 
     /**
+     * $folder's submissions for activity occurrence $activityCycleYear, with their revisions
+     * fetched in the same query (their files stay lazy — no content is loaded): enough to tell
+     * each one's state without a query per document.
+     *
+     * @return list<Document>
+     */
+    public function findSubmissionsWithRevisions(Folder $folder, int $activityCycleYear): array
+    {
+        /** @var list<Document> $documents */
+        $documents = $this->createQueryBuilder('d')
+            ->addSelect('r')
+            ->leftJoin('d.revisions', 'r')
+            ->where('d.folder = :folder')
+            ->andWhere('d.activityCycleYear = :cycleYear')
+            ->setParameter('folder', $folder->getId(), 'uuid')
+            ->setParameter('cycleYear', $activityCycleYear)
+            ->orderBy('d.position', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $documents;
+    }
+
+    /**
      * For every document in $folder with an active revision: that revision's file id and original
      * filename, keyed by document id (RFC 4122). Read as plain columns so no DocumentFile gets
      * hydrated — that would load its whole content too (see DocumentFileRepository::writeContentTo()).

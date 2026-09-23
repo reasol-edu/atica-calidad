@@ -19,39 +19,14 @@
 
             {# ── List of pending items ───────────────────────────────────────── #}
             <ul class="-mx-6 divide-y divide-gray-100">
-                {% for revision in summary.items %}
-                    {% set document = revision.document %}
-                    {% set folder   = document.folder %}
-                    <li>
-                        <a href="{{ path('app_document_tree', {
-                                section: folder.documentSection.id.toRfc4122,
-                                folder: folder.id.toRfc4122,
-                                document: document.id.toRfc4122,
-                            }) }}"
-                           class="flex items-start gap-3 px-6 py-3 transition-colors hover:bg-gray-50">
-                            <span class="mt-0.5 shrink-0 text-amber-500">
-                                {{ ux_icon('heroicons:document-magnifying-glass', {class: 'h-5 w-5'}) }}
-                            </span>
-                            <span class="min-w-0 flex-1">
-                                <span class="block truncate text-sm font-medium text-gray-900">
-                                    {{ document.name }}
-                                </span>
-                                <span class="block truncate text-xs text-gray-500">
-                                    {{ folder.name }} ·
-                                    {{ 'reviews.uploaded_by'|trans({
-                                        '%name%': revision.uploadedBy.name.firstName ~ ' ' ~ revision.uploadedBy.name.lastName,
-                                        '%date%': revision.revisedAt|date('format.date'|trans),
-                                    }, 'dashboard') }}
-                                </span>
-                            </span>
-                        </a>
-                    </li>
+                {% for group in summary.groups %}
+                    {% include 'components/_pending_review_group.html.twig' with {group: group} %}
                 {% endfor %}
             </ul>
 
-            {% if summary.total > summary.items|length %}
+            {% if summary.total > summary.shownCount %}
                 <p class="text-center text-xs text-gray-400">
-                    {{ 'reviews.more_not_shown'|trans({'%count%': summary.total - summary.items|length}, 'dashboard') }}
+                    {{ 'reviews.more_not_shown'|trans({'%count%': summary.total - summary.shownCount}, 'dashboard') }}
                 </p>
             {% endif %}
         {% else %}

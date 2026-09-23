@@ -1,0 +1,40 @@
+{#
+   One line of pending reviews (PendingReviewGroup): all of an activity's submissions together,
+   opened in the activity itself — where they can be reviewed side by side, with their context —
+   or a single document from any other folder, opened in the document tree.
+   group: PendingReviewGroup · compact: bool (the bell's smaller rows)
+#}
+{% set compact  = compact ?? false %}
+{% set revision = group.first %}
+{% set document = revision.document %}
+{% set folder   = document.folder %}
+{% set activity = group.activity %}
+<li>
+    <a href="{{ activity
+            ? path('app_activities', {category: activity.category.id.toRfc4122, activity: activity.id.toRfc4122, highlight: document.id.toRfc4122})
+            : path('app_document_tree', {section: folder.documentSection.id.toRfc4122, folder: folder.id.toRfc4122, document: document.id.toRfc4122}) }}"
+       class="flex items-start gap-3 transition-colors hover:bg-gray-50 {{ compact ? 'px-4 py-2.5' : 'px-6 py-3' }}">
+        <span class="mt-0.5 shrink-0 text-amber-500">
+            {{ ux_icon(activity ? 'heroicons:check-circle' : 'heroicons:document-magnifying-glass', {class: compact ? 'h-4 w-4' : 'h-5 w-5'}) }}
+        </span>
+        <span class="min-w-0 flex-1">
+            <span class="block truncate {{ compact ? 'text-sm text-gray-800' : 'text-sm font-medium text-gray-900' }}">
+                {{ activity ? activity.title : document.name }}
+            </span>
+            <span class="block truncate text-xs {{ compact ? 'mt-0.5 text-gray-400' : 'text-gray-500' }}">
+                {% if activity and group.count > 1 %}
+                    {{ 'reviews.group.submissions'|trans({'%count%': group.count, '%date%': group.oldestAt|date('format.date'|trans)}, 'dashboard') }}
+                {% else %}
+                    {{ activity ? document.name : folder.name }} ·
+                    {{ 'reviews.uploaded_by'|trans({
+                        '%name%': revision.uploadedBy.name.firstName ~ ' ' ~ revision.uploadedBy.name.lastName,
+                        '%date%': revision.revisedAt|date('format.date'|trans),
+                    }, 'dashboard') }}
+                {% endif %}
+            </span>
+        </span>
+        {% if activity and group.count > 1 %}
+            <span class="shrink-0 self-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">{{ group.count }}</span>
+        {% endif %}
+    </a>
+</li>

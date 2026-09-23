@@ -39,6 +39,11 @@ Al entrar, el **Inicio** de la aplicación resume lo que hay pendiente:
   las revisiones pendientes del centro, no solo las propias, para tener una vista de conjunto sin
   depender de a quién le toque revisar cada carpeta. El resto del profesorado no ve esta tarjeta.
 
+En las dos tarjetas de revisiones, las entregas de una misma actividad aparecen **juntas en una
+sola línea** —p. ej. «Programación didáctica · 6 entregas por revisar · la más antigua, del
+02/10/2025»—, que abre la actividad con todas sus entregas a la vista, en lugar de una línea por
+documento. Los documentos de carpetas que no son de ninguna actividad siguen apareciendo uno a uno.
+
 ## Mis actividades
 
 ![Pestaña «Mis actividades»: el resumen personal y la lista, con una actividad de cada estado y su color de fondo](img/actividades-mias.png)
@@ -88,6 +93,11 @@ dentro de cada una, sus actividades. Por defecto solo se ven las actividades de 
 tiene el docente; **Mostrar lo de todos los perfiles** añade también las demás, atenuadas, para
 quien necesite una vista completa sin tener que asumir esos perfiles.
 
+Quien **gestiona o revisa la carpeta** de una actividad ve además, en su tarjeta, el **avance
+global** de las entregas de este curso: una barra y una línea como «14/20 entregadas · 3 en
+revisión · 1 rechazada», contando todas las entregas esperadas, no solo las propias. El detalle por
+perfil sigue en **Estadísticas**, dentro de la actividad. El resto del profesorado no ve esta línea.
+
 ## Editar categorías
 
 Reservada a responsable de calidad, equipo directivo/admin. del centro y admin. de la plataforma —
@@ -115,7 +125,9 @@ igual que las secciones del árbol documental; dentro de cada una se crean y edi
 
 Al abrir una actividad con carpeta aparecen **Mis entregas** (una fila por cada entrega que le
 corresponde al docente, con zona de arrastrar-y-soltar) y, para quien gestiona o revisa la carpeta,
-**Todas las entregas** (colapsada por defecto, con las de todo el mundo). El icono de reloj de cada
+**Todas las entregas** (colapsada por defecto, con las de todo el mundo; se abre ya desplegada
+cuando se llega desde «Revisiones pendientes» o desde la campana, con la entrega en cuestión
+resaltada). El icono de reloj de cada
 fila abre el mismo panel de versiones que en el árbol documental, con **Aprobar**/**Rechazar** para
 quien tenga permiso de revisión — ver
 [Revisar una versión pendiente](07-arbol-documental.md#revisar-una-version-pendiente), que se
@@ -215,7 +227,8 @@ La [campana de notificaciones](09-administrar-la-plataforma.md#ajustes-disponibl
 cabecera, avisa solo de lo que el docente puede hacer ahora mismo —actividades pendientes,
 rechazadas, fuera de plazo o vencidas— y de sus revisiones pendientes personales (nunca de «Todas
 las revisiones pendientes», que solo se muestra en el panel principal). Lo que está en revisión, lo
-que aún no se ha abierto y lo cerrado no aparece. El recordatorio diario por correo sigue el mismo
+que aún no se ha abierto y lo cerrado no aparece. Las revisiones pendientes se agrupan por
+actividad, igual que en el panel principal. El recordatorio diario por correo sigue el mismo
 criterio: incluye las vencidas o fuera de plazo y las pendientes o rechazadas que vencen pronto. La frecuencia de los
 avisos por correo —al instante o en un resumen diario— se configura en
 **Ajustes → Avisos por correo**, a nivel global, de centro o personal — ver

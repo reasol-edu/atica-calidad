@@ -2281,4 +2281,91 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $documents = self::getContainer()->get(\App\Repository\DocumentRepository::class);
         self::assertSame(2026, $documents->findById($document->getId()->toRfc4122())?->getActivityCycleYear());
     }
+
+    // ── Overall submission progress on the card ───────────────────────────────
+
+    /**
+     * @return array{EducationalCentre, ActivityCategory, Folder, Teacher} an Oct 1–31 by-profile
+     *         activity with two expected submissions, one of them sent and waiting for approval;
+     *         the teacher returned manages the folder
+     */
+    private function activityWithOneOfTwoSubmitted(): array
+    {
+        self::mockTime('2025-10-10 10:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $a        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil A');
+        $b        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil B');
+        $manager  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Coordinación');
+        $folder->addUploadProfile($a);
+        $folder->addUploadProfile($b);
+        $folder->addResponsibleProfile($manager);
+        $activity = $this->activity($category, 'Memoria')->setStart(1, 10)->setEnd(31, 10)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile);
+        $coordinator = $this->teacher('coordinador');
+        $uploader    = $this->teacher('subidor');
+        $document    = (new Document($folder, 'Perfil A'))->setUploadProfile($a);
+        $file        = new DocumentFile(hash('sha256', 'memoria'), 'x', 'application/pdf', 'x.pdf', 1);
+        $revision    = new DocumentRevision($document, 1, $file, true, $uploader);
+        $document->getRevisions()->add($revision);
+        $this->persist(
+            $centre, $category, $folder->getDocumentSection(), $folder, $a, $b, $manager, $activity, $coordinator, $uploader,
+            new SpecificProfileAssignment($manager, null, $coordinator), $file, $document, $revision,
+        );
+
+        return [$centre, $category, $folder, $coordinator];
+    }
+
+    public function testTheFolderManagerSeesTheOverallProgressOnTheCard(): void
+    {
+        [$centre, $category, , $coordinator] = $this->activityWithOneOfTwoSubmitted();
+
+        $this->loginAs($coordinator, $centre);
+        $html = (string) $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client)->render()->crawler()->html();
+
+        self::assertStringContainsString('1/2 entregadas', $html);
+        self::assertStringContainsString('1 en revisión', $html);
+    }
+
+    public function testATeacherWhoNeitherManagesNorReviewsTheFolderDoesNotSeeIt(): void
+    {
+        [$centre, $category] = $this->activityWithOneOfTwoSubmitted();
+        $teacher = $this->teacher('docente');
+        $this->persist($teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->set('showAllProfiles', true);
+        $html = (string) $component->render()->crawler()->html();
+
+        self::assertStringContainsString('Memoria', $html, 'the activity itself is listed');
+        self::assertStringNotContainsString('entregadas', $html);
+    }
+
+    /** Landing from "Revisiones pendientes" or the bell: the highlighted submission's activity opens with its full submission list expanded. */
+    public function testAHighlightedSubmissionOpensItsCategoryWithEverySubmissionExpanded(): void
+    {
+        [$centre, $category, $folder, $coordinator] = $this->activityWithOneOfTwoSubmitted();
+        $activity = $folder->getActivity();
+        self::assertNotNull($activity);
+        /** @var \App\Repository\DocumentRepository $documents */
+        $documents  = self::getContainer()->get(\App\Repository\DocumentRepository::class);
+        $submission = $documents->findByFolder($folder)[0];
+
+        $this->loginAs($coordinator, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'                     => $centre,
+            'initialHighlightDocumentId' => $submission->getId()->toRfc4122(),
+        ], $this->client);
+
+        self::assertSame($category->getId()->toRfc4122(), $this->stringProp($component, 'currentCategoryId'));
+        self::assertContains($activity->getId()->toRfc4122(), $this->stringListProp($component, 'expandedAllSubmissions'));
+        self::assertSame($submission->getId()->toRfc4122(), $this->stringProp($component, 'highlightedDocumentId'));
+    }
 }

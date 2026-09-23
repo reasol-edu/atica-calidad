@@ -92,7 +92,7 @@ final class NotificationBellComponentTest extends ControllerTestCase
 
         $html = (string) $component->render()->crawler()->html();
         self::assertStringContainsString('Acta de la reunión', $html);
-        self::assertStringContainsString('Pendiente de revisar', $html);
+        self::assertStringContainsString('Subido por', $html);
         self::assertStringContainsString('Entregas pendientes de revisar', $html);
 
         // Deep-links straight to the section/folder/document, not just the tree's landing page

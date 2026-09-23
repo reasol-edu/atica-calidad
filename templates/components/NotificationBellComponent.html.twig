@@ -63,27 +63,7 @@
                     </p>
                     <ul class="divide-y divide-gray-100">
                         {% for item in reviewItems %}
-                            {% set entity = item.entity %}
-                            <li>
-                                <a href="{{ path('app_document_tree', {
-                                        section: entity.document.folder.documentSection.id.toRfc4122,
-                                        folder: entity.document.folder.id.toRfc4122,
-                                        document: entity.document.id.toRfc4122,
-                                    }) }}"
-                                   class="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
-                                    <span class="mt-0.5 shrink-0 text-amber-500">
-                                        {{ ux_icon('heroicons:document-magnifying-glass', {class: 'h-4 w-4'}) }}
-                                    </span>
-                                    <span class="min-w-0 flex-1">
-                                        <span class="block truncate text-sm text-gray-800">
-                                            {{ entity.document.name }}
-                                        </span>
-                                        <span class="mt-0.5 block truncate text-xs text-gray-400">
-                                            {{ 'bell.item.review_pending'|trans({'%folder%': entity.document.folder.name, '%date%': item.date|date('format.date'|trans)}, 'notifications') }}
-                                        </span>
-                                    </span>
-                                </a>
-                            </li>
+                            {% include 'components/_pending_review_group.html.twig' with {group: item.entity, compact: true} %}
                         {% endfor %}
                     </ul>
                 {% endif %}

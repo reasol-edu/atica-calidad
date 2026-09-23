@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\Activity;
 use App\Entity\DocumentRevision;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
+use App\Model\PendingReviewGroup;
 use App\Repository\DocumentRevisionRepository;
 use App\Repository\FolderRepository;
 
@@ -68,5 +70,33 @@ final class PendingReviewFinder
     public function allPendingForCentre(EducationalCentre $centre): array
     {
         return $this->revisions->findPendingReviewByCentre($centre);
+    }
+
+    /**
+     * $revisions (oldest pending first) as lines to show: every submission of the same activity
+     * in one group, in the place of its oldest one; any other document on its own line.
+     *
+     * @param list<DocumentRevision> $revisions
+     *
+     * @return list<PendingReviewGroup>
+     */
+    public function group(array $revisions): array
+    {
+        /** @var array<string, array{activity: ?Activity, revisions: non-empty-list<DocumentRevision>}> $groups */
+        $groups = [];
+        foreach ($revisions as $index => $revision) {
+            $activity = $revision->getDocument()->getFolder()->getActivity();
+            $key      = $activity === null ? 'document-' . $index : 'activity-' . $activity->getId()->toRfc4122();
+            if (isset($groups[$key])) {
+                $groups[$key]['revisions'][] = $revision;
+            } else {
+                $groups[$key] = ['activity' => $activity, 'revisions' => [$revision]];
+            }
+        }
+
+        return array_values(array_map(
+            static fn (array $group): PendingReviewGroup => new PendingReviewGroup($group['activity'], $group['revisions']),
+            $groups,
+        ));
     }
 }

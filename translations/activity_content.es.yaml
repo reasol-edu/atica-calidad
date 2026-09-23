@@ -143,3 +143,9 @@ obligation.detail.in_review: 'Entregada · pendiente de visto bueno'
 obligation.detail.upcoming: 'Se abre el %start% · vence el %end%'
 obligation.detail.closed: 'Plazo cerrado el %date%'
 obligation.detail.completed: 'Completada'
+
+# ── Avance global de las entregas (tarjetas de «Ver», para quien gestiona o revisa la carpeta) ──
+progress.title: 'Entregas de todos los perfiles en este curso'
+progress.delivered: '%delivered%/%total% entregadas'
+progress.in_review: '{1}1 en revisión|]1,Inf[%count% en revisión'
+progress.rejected: '{1}1 rechazada|]1,Inf[%count% rechazadas'

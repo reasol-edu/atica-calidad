@@ -53,7 +53,7 @@ class DashboardPendingReviewComponent extends AbstractController
 
         $pending = $this->pendingReview->forTeacher($teacher, $this->centre);
 
-        return $this->summary = new DocumentReviewDashboardSummary(true, count($pending), array_slice($pending, 0, self::MAX_ITEMS));
+        return $this->summary = new DocumentReviewDashboardSummary(true, count($pending), array_slice($this->pendingReview->group($pending), 0, self::MAX_ITEMS));
     }
 
     private function teacher(): Teacher

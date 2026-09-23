@@ -26,6 +26,24 @@
                             {{ 'activity.opens_on'|trans({'%date%': activity_window.startDate|date('d/m/Y')}, 'activity_content') }}
                         </p>
                     {% endif %}
+                    {% set progress = has_submissions ? this.getSubmissionProgress(activity) : null %}
+                    {% if progress and progress.total > 0 %}
+                        {# Overall picture for whoever manages or reviews the folder: every expected
+                           submission this academic year, not just their own. #}
+                        <div class="max-w-xs pt-0.5" title="{{ 'progress.title'|trans({}, 'activity_content') }}">
+                            <div class="flex h-1.5 w-full overflow-hidden rounded-full bg-gray-200/70"
+                                 role="img" aria-label="{{ 'progress.delivered'|trans({'%delivered%': progress.delivered, '%total%': progress.total}, 'activity_content') }}">
+                                <div class="bg-forest-500" style="width: {{ progress.accepted / progress.total * 100 }}%"></div>
+                                <div class="bg-sky-400" style="width: {{ progress.inReview / progress.total * 100 }}%"></div>
+                                <div class="bg-rose-400" style="width: {{ progress.rejected / progress.total * 100 }}%"></div>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">
+                                {{- 'progress.delivered'|trans({'%delivered%': progress.delivered, '%total%': progress.total}, 'activity_content') -}}
+                                {%- if progress.inReview > 0 %} · <span class="text-sky-700">{{ 'progress.in_review'|trans({'%count%': progress.inReview}, 'activity_content') }}</span>{% endif -%}
+                                {%- if progress.rejected > 0 %} · <span class="text-rose-700">{{ 'progress.rejected'|trans({'%count%': progress.rejected}, 'activity_content') }}</span>{% endif -%}
+                            </p>
+                        </div>
+                    {% endif %}
                     {% if has_submissions and this.canReachFolder(folder) %}
                         <a href="{{ this.getFolderTreeUrl(folder) }}"
                            class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-forest-600">

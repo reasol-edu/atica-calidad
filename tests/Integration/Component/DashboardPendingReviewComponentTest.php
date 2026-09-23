@@ -107,4 +107,36 @@ final class DashboardPendingReviewComponentTest extends ControllerTestCase
         self::assertStringContainsString('Acta de la reunión', $html);
         self::assertStringContainsString('Carpeta de calidad', $html);
     }
+
+    /** A reviewer of an activity's folder gets one line for all its submissions, linking to the activity. */
+    public function testGroupsAnActivitysSubmissionsIntoOneLineLinkingToTheActivity(): void
+    {
+        $centre   = $this->centre();
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Programaciones');
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Revisión');
+        $folder->addReviewProfile($profile);
+        $category = (new \App\Entity\ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new \App\Entity\Activity())->setCategory($category)->setTitle('Programación didáctica')->setStart(1, 10)->setEnd(31, 10)->setFolder($folder);
+        $reviewer = $this->teacher('revisor');
+        $uploader = $this->teacher('docente');
+        $entities = [$centre, $section, $folder, $profile, $category, $activity, $reviewer, $uploader, new SpecificProfileAssignment($profile, null, $reviewer)];
+        foreach (['Lengua', 'Matemáticas', 'Inglés'] as $name) {
+            $document = new Document($folder, $name);
+            $file     = new DocumentFile(hash('sha256', $name), 'x', 'text/plain', 'f.txt', 1);
+            $revision = new DocumentRevision($document, 1, $file, true, $uploader);
+            $document->getRevisions()->add($revision);
+            array_push($entities, $document, $file, $revision);
+        }
+        $this->persist(...$entities);
+
+        $this->loginAs($reviewer, $centre);
+        $crawler = $this->createLiveComponent('DashboardPendingReviewComponent', ['centre' => $centre], $this->client)->render()->crawler();
+        $html    = (string) $crawler->html();
+
+        self::assertCount(1, $crawler->filter('ul > li'), 'one line for the whole activity');
+        self::assertStringContainsString('Programación didáctica', $html);
+        self::assertStringContainsString('3 entregas por revisar', $html);
+        self::assertStringContainsString('/actividades?', (string) $crawler->filter('ul > li a')->attr('href'));
+    }
 }
