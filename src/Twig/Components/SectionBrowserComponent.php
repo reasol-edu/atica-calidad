@@ -23,6 +23,8 @@ use App\Repository\FolderRepository;
 use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Security\Voter\FolderVoter;
+use App\Service\ActivityDeadlineChecker;
+use App\Service\ActivityFolderCycleFilter;
 use App\Service\DocumentFileGarbageCollector;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\ProfileAssignmentRowBuilder;
@@ -162,6 +164,14 @@ class SectionBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $localSearchQuery = '';
 
+    /**
+     * Which academic year's submissions the expanded folder shows, when it backs an activity: ""
+     * for the current one, ActivityFolderCycleFilter::ALL for every year, or a cycle key ("2025").
+     * Also what its ZIP download holds. Back to "" whenever another folder is expanded.
+     */
+    #[LiveProp(writable: true)]
+    public string $folderCycle = '';
+
     /** @var array<string, string> */
     #[LiveProp]
     public array $errors = [];
@@ -177,6 +187,7 @@ class SectionBrowserComponent extends AbstractController
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly DocumentFileGarbageCollector $garbageCollector,
         private readonly TeacherRepository $teachers,
+        private readonly ActivityFolderCycleFilter $cycleFilter,
     ) {}
 
     public function mount(
@@ -218,8 +229,10 @@ class SectionBrowserComponent extends AbstractController
                 if ($documentId !== '' && $this->documents->findByIdAndFolder($documentId, $folder) !== null) {
                     $this->revisionPanelDocumentId = $documentId;
                 }
-                if ($highlightDocumentId !== '' && $this->documents->findByIdAndFolder($highlightDocumentId, $folder) !== null) {
+                $highlighted = $highlightDocumentId !== '' ? $this->documents->findByIdAndFolder($highlightDocumentId, $folder) : null;
+                if ($highlighted !== null) {
                     $this->highlightedDocumentId = $highlightDocumentId;
+                    $this->showCycleOf($highlighted);
                 }
             }
         }
@@ -373,6 +386,7 @@ class SectionBrowserComponent extends AbstractController
         $this->editingRevisionId         = '';
         $this->confirmingDeleteRevisionId = '';
         $this->localSearchQuery          = '';
+        $this->folderCycle               = '';
         $this->errors                    = [];
     }
 
@@ -411,6 +425,7 @@ class SectionBrowserComponent extends AbstractController
     public function toggleFolder(#[LiveArg] string $id): void
     {
         $this->expandedFolderId = $this->expandedFolderId === $id ? '' : $id;
+        $this->folderCycle      = '';
         $this->renamingDocumentId         = '';
         $this->confirmingDeleteDocumentId = '';
         $this->movingDocumentId           = '';
@@ -803,7 +818,8 @@ class SectionBrowserComponent extends AbstractController
      */
     public function getFolderDocumentGroups(Folder $folder): array
     {
-        $all = $this->documents->findByFolder($folder);
+        $selection = $folder->getId()->toRfc4122() === $this->expandedFolderId ? $this->folderCycle : '';
+        $all       = $this->cycleFilter->filter($folder, $this->documents->findByFolder($folder), $selection);
         if ($all === []) {
             return [];
         }
@@ -1411,7 +1427,49 @@ class SectionBrowserComponent extends AbstractController
         $this->expandedFolderId       = $folder->getId()->toRfc4122();
         $this->highlightedDocumentId  = $documentId;
         $this->searchQuery            = '';
+        $this->showCycleOf($document);
         $this->dispatchLocation();
+    }
+
+    /**
+     * Academic years an activity folder's selector offers (most recent first), each with its
+     * selection value; empty when there's nothing to choose between.
+     *
+     * @return list<array{value: string, label: string, current: bool}>
+     */
+    public function getFolderCycleOptions(Folder $folder): array
+    {
+        $current = $this->cycleFilter->currentCycle($folder);
+
+        return array_map(
+            static fn (int $cycle): array => [
+                'value'   => $cycle === $current ? '' : (string) $cycle,
+                'label'   => ActivityDeadlineChecker::academicYearLabel($cycle),
+                'current' => $cycle === $current,
+            ],
+            $this->cycleFilter->options($folder),
+        );
+    }
+
+    /** The ZIP link's selection: the same as on screen, but always explicit (never "") so the download can't drift if the academic year rolls over meanwhile. */
+    public function getFolderZipCycle(Folder $folder): string
+    {
+        $selected = $this->cycleFilter->selectedCycle($folder, $this->folderCycle);
+        if ($selected !== null) {
+            return (string) $selected;
+        }
+
+        return $this->cycleFilter->currentCycle($folder) === null ? '' : ActivityFolderCycleFilter::ALL;
+    }
+
+    /** Switches the selector to $document's own academic year when it isn't the current one, so jumping to it never lands on a list that hides it. */
+    private function showCycleOf(Document $document): void
+    {
+        $cycle   = $document->getActivityCycleYear();
+        $current = $this->cycleFilter->currentCycle($document->getFolder());
+        if ($cycle !== null && $current !== null && $cycle !== $current) {
+            $this->folderCycle = (string) $cycle;
+        }
     }
 
     /** Jumps straight to a folder search result: opens its section and expands it. */

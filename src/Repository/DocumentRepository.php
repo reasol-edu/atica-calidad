@@ -210,6 +210,33 @@ class DocumentRepository extends ServiceEntityRepository
     }
 
     /**
+     * The activity cycles (first calendar year of each academic year) $folder holds submissions
+     * for, most recent first.
+     *
+     * @return list<int>
+     */
+    public function findActivityCycleYearsInFolder(Folder $folder): array
+    {
+        $rows = $this->createQueryBuilder('d')
+            ->select('DISTINCT d.activityCycleYear AS cycleYear')
+            ->where('d.folder = :folder')
+            ->andWhere('d.activityCycleYear IS NOT NULL')
+            ->setParameter('folder', $folder->getId(), 'uuid')
+            ->orderBy('d.activityCycleYear', 'DESC')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        $cycles = [];
+        foreach ($rows as $cycle) {
+            if (is_numeric($cycle)) {
+                $cycles[] = (int) $cycle;
+            }
+        }
+
+        return $cycles;
+    }
+
+    /**
      * Adopts every document already in $folder that isn't tied to any activity occurrence yet as a
      * submission of occurrence $activityCycleYear — for when a folder gets linked to an activity
      * after documents were uploaded to it. Returns how many were updated.

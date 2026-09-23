@@ -15,8 +15,11 @@ use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Entity\PersonName;
 use App\Entity\Teacher;
+use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivitySubmissionFilenameBuilder;
+use App\Service\AppSettingsInterface;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Clock\MockClock;
 
 final class ActivitySubmissionFilenameBuilderTest extends TestCase
 {
@@ -32,22 +35,12 @@ final class ActivitySubmissionFilenameBuilderTest extends TestCase
         return (new Folder())->setDocumentSection($section)->setName('Carpeta');
     }
 
-    /**
-     * Activity::setFolder() only sets its own side — Folder::$activity is the inverse side of a
-     * bidirectional one-to-one, normally populated by Doctrine's own hydration when loading from
-     * the database, which this pure in-memory test never does. Mirroring that one write here via
-     * reflection makes $folder->getActivity() resolve the same way it would after a real fetch.
-     */
+    /** Oct 1–31, so "now" (2026-10-10, see builder()) is well inside 2026-2027's occurrence. */
     private function activity(EducationalCentre $centre, Folder $folder, string $title = 'Programación didáctica'): Activity
     {
         $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
-        $activity = (new Activity())->setCategory($category)->setTitle($title)->setFolder($folder);
 
-        $property = new \ReflectionProperty(Folder::class, 'activity');
-        $property->setAccessible(true);
-        $property->setValue($folder, $activity);
-
-        return $activity;
+        return (new Activity())->setCategory($category)->setTitle($title)->setStart(1, 10)->setEnd(31, 10)->setFolder($folder);
     }
 
     private function teacher(string $firstName, string $lastName): Teacher
@@ -68,7 +61,10 @@ final class ActivitySubmissionFilenameBuilderTest extends TestCase
 
     private function builder(): ActivitySubmissionFilenameBuilder
     {
-        return new ActivitySubmissionFilenameBuilder();
+        $settings = $this->createStub(AppSettingsInterface::class);
+        $settings->method('getForCentre')->willReturn(null);
+
+        return new ActivitySubmissionFilenameBuilder(new ActivityDeadlineChecker(new MockClock('2026-10-10 10:00:00'), $settings));
     }
 
     public function testAPlainDocumentTreeFileIsJustItsOwnName(): void
@@ -86,7 +82,7 @@ final class ActivitySubmissionFilenameBuilderTest extends TestCase
         $activity = $this->activity($centre, $folder);
         $document = $this->document($folder, 'Tutor/a', $this->teacher('Ana', 'García'));
 
-        self::assertSame(['Programación didáctica', 'Tutor/a'], $this->builder()->nameParts($document));
+        self::assertSame(['2026-2027', 'Programación didáctica', 'Tutor/a'], $this->builder()->nameParts($document));
     }
 
     public function testTheActivitysOwnSubmissionPrefixReplacesTheTitleWhenSet(): void
@@ -96,7 +92,7 @@ final class ActivitySubmissionFilenameBuilderTest extends TestCase
         $activity = $this->activity($centre, $folder)->setSubmissionPrefix('PD');
         $document = $this->document($folder, 'Tutor/a', $this->teacher('Ana', 'García'));
 
-        self::assertSame(['PD', 'Tutor/a'], $this->builder()->nameParts($document));
+        self::assertSame(['2026-2027', 'PD', 'Tutor/a'], $this->builder()->nameParts($document));
     }
 
     public function testASingleHyphenPrefixOmitsTheLeadingPartEntirely(): void
@@ -106,7 +102,7 @@ final class ActivitySubmissionFilenameBuilderTest extends TestCase
         $activity = $this->activity($centre, $folder)->setSubmissionPrefix('-');
         $document = $this->document($folder, 'Tutor/a', $this->teacher('Ana', 'García'));
 
-        self::assertSame(['Tutor/a'], $this->builder()->nameParts($document));
+        self::assertSame(['2026-2027', 'Tutor/a'], $this->builder()->nameParts($document));
     }
 
     public function testAnIndividualScopeSubmissionIsTrailedByTheUploadersName(): void
@@ -117,7 +113,7 @@ final class ActivitySubmissionFilenameBuilderTest extends TestCase
         $activity = $this->activity($centre, $folder)->setSubmissionScope(ActivitySubmissionScope::Individual);
         $document = $this->document($folder, 'Tutor/a', $uploader);
 
-        self::assertSame(['Programación didáctica', 'Tutor/a', 'García, Ana'], $this->builder()->nameParts($document));
+        self::assertSame(['2026-2027', 'Programación didáctica', 'Tutor/a', 'García, Ana'], $this->builder()->nameParts($document));
     }
 
     public function testAByProfileScopeSubmissionIsNeverTrailedByAnyonesName(): void
@@ -127,7 +123,7 @@ final class ActivitySubmissionFilenameBuilderTest extends TestCase
         $activity = $this->activity($centre, $folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile);
         $document = $this->document($folder, 'Tutor/a', $this->teacher('Ana', 'García'));
 
-        self::assertSame(['Programación didáctica', 'Tutor/a'], $this->builder()->nameParts($document));
+        self::assertSame(['2026-2027', 'Programación didáctica', 'Tutor/a'], $this->builder()->nameParts($document));
     }
 
     /** The uploader can only be told apart from version 1's own uploader (see Document::getFirstRevision()) — deleted outright, there is no one left to name. */
@@ -139,6 +135,16 @@ final class ActivitySubmissionFilenameBuilderTest extends TestCase
         $document = new Document($folder, 'Tutor/a');
         $document->getRevisions()->add(new DocumentRevision($document, 2, new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1), false, $this->teacher('Ana', 'García')));
 
-        self::assertSame(['Programación didáctica', 'Tutor/a'], $this->builder()->nameParts($document));
+        self::assertSame(['2026-2027', 'Programación didáctica', 'Tutor/a'], $this->builder()->nameParts($document));
+    }
+
+    public function testASubmissionIsLedByTheAcademicYearItWasSubmittedFor(): void
+    {
+        $centre = $this->centre();
+        $folder = $this->folder($centre);
+        $this->activity($centre, $folder);
+        $document = $this->document($folder, 'Tutor/a', $this->teacher('Ana', 'García'))->setActivityCycleYear(2024);
+
+        self::assertSame(['2024-2025', 'Programación didáctica', 'Tutor/a'], $this->builder()->nameParts($document));
     }
 }

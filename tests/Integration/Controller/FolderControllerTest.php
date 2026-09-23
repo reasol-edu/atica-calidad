@@ -24,10 +24,13 @@ use App\Repository\DocumentRepository;
 use App\Repository\EmailNotificationLogRepository;
 use App\Repository\FolderRepository;
 use App\Tests\Integration\ControllerTestCase;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class FolderControllerTest extends ControllerTestCase
 {
+    use ClockSensitiveTrait;
+
     private function centre(): EducationalCentre
     {
         return (new EducationalCentre())->setCode('12345678')->setName('Centro')->setCity('Ciudad');
@@ -610,6 +613,7 @@ final class FolderControllerTest extends ControllerTestCase
 
     public function testDownloadFilenameIncludesTheActivityAndUploaderForAnIndividualSubmission(): void
     {
+        self::mockTime('2026-10-10 10:00:00');
         $centre   = $this->centre();
         $category = $this->category($centre);
         $folder   = $this->folder($centre);
@@ -636,12 +640,13 @@ final class FolderControllerTest extends ControllerTestCase
         $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones/{$revisionId}/descargar");
 
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
-        self::assertSame('Programación didáctica - Tutor_a - García, Ana.pdf', $this->downloadedUtf8Filename());
+        self::assertSame('2026-2027 - Programación didáctica - Tutor_a - García, Ana.pdf', $this->downloadedUtf8Filename());
     }
 
     /** The activity's own "submission prefix" setting, when set, replaces the title as the leading part of the downloaded filename. */
     public function testDownloadFilenameUsesTheActivitysOwnSubmissionPrefixWhenSet(): void
     {
+        self::mockTime('2026-10-10 10:00:00');
         $centre   = $this->centre();
         $category = $this->category($centre);
         $folder   = $this->folder($centre);
@@ -669,12 +674,13 @@ final class FolderControllerTest extends ControllerTestCase
         $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones/{$revisionId}/descargar");
 
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
-        self::assertSame('PD - Tutor_a - García, Ana.pdf', $this->downloadedUtf8Filename());
+        self::assertSame('2026-2027 - PD - Tutor_a - García, Ana.pdf', $this->downloadedUtf8Filename());
     }
 
     /** A submission prefix of exactly "-" means no prefix at all — not even the title — leading the filename straight with the document's own name (and, for Individual scope, the uploader's). */
     public function testDownloadFilenameOmitsThePrefixEntirelyWhenSetToASingleHyphen(): void
     {
+        self::mockTime('2026-10-10 10:00:00');
         $centre   = $this->centre();
         $category = $this->category($centre);
         $folder   = $this->folder($centre);
@@ -702,12 +708,13 @@ final class FolderControllerTest extends ControllerTestCase
         $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones/{$revisionId}/descargar");
 
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
-        self::assertSame('Tutor_a - García, Ana.pdf', $this->downloadedUtf8Filename());
+        self::assertSame('2026-2027 - Tutor_a - García, Ana.pdf', $this->downloadedUtf8Filename());
     }
 
     /** ByProfile scope: the document is shared by everyone holding the profile, so there is no one uploader to name — only the activity title is prefixed. */
     public function testDownloadFilenamePrefixesJustTheActivityTitleForAByProfileSubmission(): void
     {
+        self::mockTime('2026-10-10 10:00:00');
         $centre   = $this->centre();
         $category = $this->category($centre);
         $folder   = $this->folder($centre);
@@ -726,7 +733,7 @@ final class FolderControllerTest extends ControllerTestCase
         $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones/{$revisionId}/descargar");
 
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
-        self::assertSame('Reunión de departamento - Acta.txt', $this->downloadedUtf8Filename());
+        self::assertSame('2026-2027 - Reunión de departamento - Acta.txt', $this->downloadedUtf8Filename());
     }
 
     /** A plain document-tree file, unrelated to any activity, keeps its own name exactly as before. */
@@ -823,6 +830,7 @@ final class FolderControllerTest extends ControllerTestCase
      */
     public function testDownloadZipNamesEachIndividualSubmissionAfterItsOwnUploader(): void
     {
+        self::mockTime('2026-10-10 10:00:00');
         $centre   = $this->centre();
         $category = $this->category($centre);
         $folder   = $this->folder($centre);
@@ -858,8 +866,8 @@ final class FolderControllerTest extends ControllerTestCase
 
         self::assertSame(
             [
-                'Programación didáctica - Tutor_a - García, Ana.txt' => 'garcia',
-                'Programación didáctica - Tutor_a - López, Luis.txt' => 'lopez',
+                '2026-2027 - Programación didáctica - Tutor_a - García, Ana.txt' => 'garcia',
+                '2026-2027 - Programación didáctica - Tutor_a - López, Luis.txt' => 'lopez',
             ],
             $this->readZipResponse(),
         );
@@ -1274,5 +1282,126 @@ final class FolderControllerTest extends ControllerTestCase
         /** @var EmailNotificationLogRepository $logs */
         $logs = self::getContainer()->get(EmailNotificationLogRepository::class);
         self::assertSame([], $logs->findAll());
+    }
+
+    // ── ZIP of an activity's folder, by academic year ─────────────────────────
+
+    /**
+     * An Oct 1–31 activity's folder with one "Tutor/a" submission from 2025-2026 and one from
+     * 2026-2027, looked at on 2026-10-10 (so 2026-2027 is the current academic year).
+     *
+     * @return array{Teacher, EducationalCentre, string}
+     */
+    private function activityFolderWithTwoAcademicYears(bool $groupByProfile = false): array
+    {
+        self::mockTime('2026-10-10 10:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre)->setGroupByProfile($groupByProfile);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $folder->addUploadProfile($profile);
+        $activity = (new Activity())->setCategory($category)->setTitle('Memoria')->setStart(1, 10)->setEnd(31, 10)->setFolder($folder);
+        $teacher  = $this->teacher('docente');
+
+        $old = $this->submission($folder, $profile, $teacher, 2025, 'antiguo');
+        $new = $this->submission($folder, $profile, $teacher, 2026, 'v1');
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, $old, $new);
+
+        return [$teacher, $centre, $folder->getId()->toRfc4122()];
+    }
+
+    /** A "Tutor/a" submission for academic year $cycleYear, whose active revision's file holds $content. */
+    private function submission(Folder $folder, SpecificProfile $profile, Teacher $uploader, int $cycleYear, string $content): Document
+    {
+        $document = (new Document($folder, 'Tutor/a'))->setActivityCycleYear($cycleYear);
+        $document->setUploadProfile($profile);
+        $file     = new DocumentFile(hash('sha256', $content . $cycleYear), $content, 'text/plain', 'f.txt', strlen($content));
+        $revision = new DocumentRevision($document, 1, $file, false, $uploader);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+        $this->em->persist($file);
+        $this->em->persist($revision);
+
+        return $document;
+    }
+
+    private function downloadedZipFilename(): string
+    {
+        $disposition = (string) $this->client->getResponse()->headers->get('Content-Disposition');
+        if (preg_match("/filename\\*=utf-8''([^;]+)/", $disposition, $matches) === 1) {
+            return rawurldecode($matches[1]);
+        }
+        preg_match('/filename="?([^;"]+)"?/', $disposition, $matches);
+
+        return $matches[1] ?? '';
+    }
+
+    public function testDownloadZipOfAnActivityFolderHoldsOnlyTheCurrentAcademicYearByDefault(): void
+    {
+        [$teacher, $centre, $folderId] = $this->activityFolderWithTwoAcademicYears();
+
+        $this->loginAs($teacher, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip");
+
+        self::assertSame(['2026-2027 - Memoria - Tutor_a.txt' => 'v1'], $this->readZipResponse());
+        self::assertSame('2026-2027 - Carpeta.zip', $this->downloadedZipFilename());
+    }
+
+    public function testDownloadZipOfAnActivityFolderHoldsTheSelectedAcademicYear(): void
+    {
+        [$teacher, $centre, $folderId] = $this->activityFolderWithTwoAcademicYears();
+
+        $this->loginAs($teacher, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip?curso=2025");
+
+        self::assertSame(['2025-2026 - Memoria - Tutor_a.txt' => 'antiguo'], $this->readZipResponse());
+        self::assertSame('2025-2026 - Carpeta.zip', $this->downloadedZipFilename());
+    }
+
+    public function testDownloadZipOfEveryAcademicYearPutsEachOneInItsOwnDirectory(): void
+    {
+        [$teacher, $centre, $folderId] = $this->activityFolderWithTwoAcademicYears();
+
+        $this->loginAs($teacher, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip?curso=todos");
+
+        $files = $this->readZipResponse();
+        ksort($files);
+        self::assertSame([
+            '2025-2026/2025-2026 - Memoria - Tutor_a.txt' => 'antiguo',
+            '2026-2027/2026-2027 - Memoria - Tutor_a.txt' => 'v1',
+        ], $files);
+        self::assertSame('2025-2026 a 2026-2027 - Carpeta.zip', $this->downloadedZipFilename());
+    }
+
+    public function testDownloadZipOfEveryAcademicYearNestsTheProfileDirectoriesInsideEachYear(): void
+    {
+        [$teacher, $centre, $folderId] = $this->activityFolderWithTwoAcademicYears(groupByProfile: true);
+
+        $this->loginAs($teacher, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip?curso=todos");
+
+        $files = $this->readZipResponse();
+        ksort($files);
+        self::assertSame([
+            '2025-2026/Tutor_a/2025-2026 - Memoria - Tutor_a.txt' => 'antiguo',
+            '2026-2027/Tutor_a/2026-2027 - Memoria - Tutor_a.txt' => 'v1',
+        ], $files);
+    }
+
+    public function testDownloadZipOfAPlainFolderIgnoresTheAcademicYearSelection(): void
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($centre);
+        $uploader = $this->teacher('subidor');
+        $document = $this->documentWithFirstRevision($folder, $uploader, 'Acta');
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $uploader, $document);
+        $folderId = $folder->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/descargar-zip?curso=2025");
+
+        self::assertSame(['Acta.txt' => 'v1'], $this->readZipResponse());
+        self::assertSame('Carpeta.zip', $this->downloadedZipFilename());
     }
 }

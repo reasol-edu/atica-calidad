@@ -20,6 +20,7 @@ use App\Entity\Teacher;
 use App\Repository\DocumentRepository;
 use App\Tests\Integration\ControllerTestCase;
 use App\Twig\Components\SectionBrowserComponent;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
@@ -27,6 +28,7 @@ use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 final class SectionBrowserComponentTest extends ControllerTestCase
 {
     use InteractsWithLiveComponents;
+    use ClockSensitiveTrait;
 
     private function centre(): EducationalCentre
     {
@@ -877,5 +879,130 @@ final class SectionBrowserComponentTest extends ControllerTestCase
 
         $html = (string) $component->render()->crawler()->html();
         self::assertStringNotContainsString('prose', $html);
+    }
+
+    // ── Activity folders: one academic year at a time ────────────────────────
+
+    /**
+     * An Oct 1–31 activity's folder on 2026-10-10 (2026-2027 is the current academic year), with
+     * one submission per academic year in $cycles, each named after its own year.
+     *
+     * @param list<int> $cycles
+     *
+     * @return array{EducationalCentre, DocumentSection, Folder, Teacher, array<int, Document>}
+     */
+    private function activityFolderWithSubmissions(array $cycles): array
+    {
+        self::mockTime('2026-10-10 10:00:00');
+        $centre   = $this->centre();
+        $section  = $this->section($centre);
+        $folder   = $this->folder($section);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new Activity())->setCategory($category)->setTitle('Memoria')->setStart(1, 10)->setEnd(31, 10)->setFolder($folder);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $section, $folder, $category, $activity, $teacher);
+
+        $documents = [];
+        foreach ($cycles as $cycle) {
+            $documents[$cycle] = $this->documentWithApprovedRevision($folder, $teacher, 'Entrega ' . $cycle)->setActivityCycleYear($cycle);
+        }
+        $this->em->flush();
+
+        return [$centre, $section, $folder, $teacher, $documents];
+    }
+
+    private function openFolder(EducationalCentre $centre, DocumentSection $section, Folder $folder, Teacher $teacher): TestLiveComponent
+    {
+        $this->loginAs($teacher, $centre);
+
+        return $this->createLiveComponent(
+            'SectionBrowserComponent',
+            array_merge($this->inSection($section, $centre), ['initialFolderId' => $folder->getId()->toRfc4122()]),
+            $this->client,
+        );
+    }
+
+    public function testAnActivityFolderShowsOnlyTheCurrentAcademicYearByDefault(): void
+    {
+        [$centre, $section, $folder, $teacher] = $this->activityFolderWithSubmissions([2025, 2026]);
+        $crawler = $this->openFolder($centre, $section, $folder, $teacher)->render()->crawler();
+        $html    = (string) $crawler->html();
+
+        self::assertStringContainsString('Entrega 2026', $html);
+        self::assertStringNotContainsString('Entrega 2025', $html);
+
+        $options = $crawler->filter('select[data-model="folderCycle"] option')->each(static fn ($o): array => [(string) $o->attr('value'), trim($o->text())]);
+        self::assertSame([['', '2026-2027 (curso actual)'], ['2025', '2025-2026'], ['todos', 'Todos los cursos']], $options);
+        self::assertStringContainsString('descargar-zip?curso=2026', (string) $crawler->filter('a[href*="descargar-zip"]')->attr('href'));
+    }
+
+    public function testPickingAnEarlierAcademicYearShowsOnlyItsSubmissions(): void
+    {
+        [$centre, $section, $folder, $teacher] = $this->activityFolderWithSubmissions([2025, 2026]);
+        $component = $this->openFolder($centre, $section, $folder, $teacher);
+        $component->set('folderCycle', '2025');
+        $crawler = $component->render()->crawler();
+        $html    = (string) $crawler->html();
+
+        self::assertStringContainsString('Entrega 2025', $html);
+        self::assertStringNotContainsString('Entrega 2026', $html);
+        self::assertStringContainsString('Curso 2025-2026', $html, 'an earlier year\'s submission keeps its label');
+        self::assertStringContainsString('descargar-zip?curso=2025', (string) $crawler->filter('a[href*="descargar-zip"]')->attr('href'));
+    }
+
+    public function testEveryAcademicYearShowsAllSubmissionsMostRecentFirst(): void
+    {
+        [$centre, $section, $folder, $teacher] = $this->activityFolderWithSubmissions([2025, 2026]);
+        $component = $this->openFolder($centre, $section, $folder, $teacher);
+        $component->set('folderCycle', 'todos');
+        $crawler = $component->render()->crawler();
+        $html    = (string) $crawler->html();
+
+        $new = strpos($html, 'Entrega 2026');
+        $old = strpos($html, 'Entrega 2025');
+        self::assertNotFalse($new);
+        self::assertNotFalse($old);
+        self::assertLessThan($old, $new);
+        self::assertStringContainsString('descargar-zip?curso=todos', (string) $crawler->filter('a[href*="descargar-zip"]')->attr('href'));
+    }
+
+    public function testTheSelectorOnlyListsEarlierAcademicYearsThatHaveSubmissions(): void
+    {
+        // 2024-2025 has none: never listed. The current one is listed even while still empty.
+        [$centre, $section, $folder, $teacher] = $this->activityFolderWithSubmissions([2023]);
+        $crawler = $this->openFolder($centre, $section, $folder, $teacher)->render()->crawler();
+
+        $values = $crawler->filter('select[data-model="folderCycle"] option')->each(static fn ($o): string => (string) $o->attr('value'));
+        self::assertSame(['', '2023', 'todos'], $values);
+        self::assertStringContainsString('Todavía no hay documentos del curso actual', (string) $crawler->html());
+    }
+
+    public function testNoSelectorWhenOnlyTheCurrentAcademicYearHasSubmissions(): void
+    {
+        [$centre, $section, $folder, $teacher] = $this->activityFolderWithSubmissions([2026]);
+        $crawler = $this->openFolder($centre, $section, $folder, $teacher)->render()->crawler();
+
+        self::assertCount(0, $crawler->filter('select[data-model="folderCycle"]'));
+    }
+
+    public function testJumpingToAnEarlierYearsSubmissionSwitchesTheSelectorToItsYear(): void
+    {
+        [$centre, $section, $folder, $teacher, $documents] = $this->activityFolderWithSubmissions([2025, 2026]);
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+        $component->call('openSearchResult', ['documentId' => $documents[2025]->getId()->toRfc4122()]);
+
+        self::assertSame('2025', $this->stringProp($component, 'folderCycle'));
+        self::assertStringContainsString('Entrega 2025', (string) $component->render()->crawler()->html());
+    }
+
+    public function testExpandingAnotherFolderGoesBackToTheCurrentAcademicYear(): void
+    {
+        [$centre, $section, $folder, $teacher] = $this->activityFolderWithSubmissions([2025, 2026]);
+        $component = $this->openFolder($centre, $section, $folder, $teacher);
+        $component->set('folderCycle', '2025');
+        $component->call('toggleFolder', ['id' => $folder->getId()->toRfc4122()]);
+
+        self::assertSame('', $this->stringProp($component, 'folderCycle'));
     }
 }

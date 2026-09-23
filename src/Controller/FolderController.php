@@ -302,14 +302,21 @@ class FolderController extends AbstractController
      * single-revision download above.
      */
     #[Route('/descargar-zip', name: 'app_folder_download_zip', methods: ['GET'])]
-    public function downloadZip(string $folderId, #[CurrentCentre] EducationalCentre $centre): Response
+    public function downloadZip(string $folderId, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
     {
         $folder = $this->requireFolder($folderId, $centre);
         $this->denyAccessUnlessGranted(FolderVoter::VIEW, $folder);
 
-        $this->activityLogger->record('folder.download_zip', ['folder' => $folder->getName()], $centre);
+        // An activity's folder: which academic year(s), as picked on screen — see ActivityFolderCycleFilter.
+        $cycle = $request->query->getString('curso');
 
-        return $this->folderZipExporter->export($folder);
+        $logData = ['folder' => $folder->getName()];
+        if ($cycle !== '') {
+            $logData['cycle'] = $cycle;
+        }
+        $this->activityLogger->record('folder.download_zip', $logData, $centre);
+
+        return $this->folderZipExporter->export($folder, $cycle);
     }
 
     #[Route('/documentos/{documentId}/revisiones/{revisionId}/aprobar', name: 'app_folder_document_revision_approve', methods: ['POST'])]

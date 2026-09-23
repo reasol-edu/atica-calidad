@@ -36,6 +36,6 @@ final class ActivityCycleExtension extends AbstractExtension
             return null;
         }
 
-        return \sprintf('%d-%d', $cycleYear, $cycleYear + 1);
+        return ActivityDeadlineChecker::academicYearLabel($cycleYear);
     }
 }

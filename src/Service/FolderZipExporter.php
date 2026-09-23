@@ -25,6 +25,11 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  * Documents whose only revisions are pending review or rejected have no active revision and are
  * left out — there is nothing published to hand over. The transient section-search filter is
  * ignored on purpose: a download is always the full folder.
+ *
+ * An activity's folder, though, only holds the academic year selected on screen (see
+ * ActivityFolderCycleFilter; the current one by default). When that spans more than one academic
+ * year, each year becomes a top-level directory ("2025-2026/"), with the profile directories
+ * inside it; and the ZIP's own name is led by the academic year (or range of years) it holds.
  */
 final class FolderZipExporter
 {
@@ -32,21 +37,37 @@ final class FolderZipExporter
         private readonly DocumentRepository $documents,
         private readonly AttachmentZipExporter $zipExporter,
         private readonly ActivitySubmissionFilenameBuilder $submissionFilename,
+        private readonly ActivityFolderCycleFilter $cycleFilter,
     ) {}
 
-    public function export(Folder $folder): BinaryFileResponse
+    /** @param string $cycleSelection see ActivityFolderCycleFilter: "" (current academic year), ActivityFolderCycleFilter::ALL or a cycle key */
+    public function export(Folder $folder, string $cycleSelection = ''): BinaryFileResponse
     {
         $groupByProfile = $folder->isGroupByProfile();
+        $currentCycle   = $this->cycleFilter->currentCycle($folder);
 
-        $entries = [];
-        foreach ($this->documents->findByFolder($folder) as $document) {
+        $published = [];
+        $cycles    = [];
+        foreach ($this->cycleFilter->filter($folder, $this->documents->findByFolder($folder), $cycleSelection) as $document) {
             $revision = $document->getActiveRevision();
             if ($revision === null) {
                 continue;
             }
+            $published[] = [$document, $revision->getFile()];
+            if ($currentCycle !== null) {
+                $cycles[$document->getActivityCycleYear() ?? $currentCycle] = true;
+            }
+        }
+        $byAcademicYear = count($cycles) > 1;
 
-            $file   = $revision->getFile();
-            $prefix = $groupByProfile ? $this->profileDirectory($document) : '';
+        $entries = [];
+        foreach ($published as [$document, $file]) {
+            $prefix = $byAcademicYear && $currentCycle !== null
+                ? $this->sanitizeSegment(ActivityDeadlineChecker::academicYearLabel($document->getActivityCycleYear() ?? $currentCycle)) . '/'
+                : '';
+            if ($groupByProfile) {
+                $prefix .= $this->profileDirectory($document);
+            }
 
             $entries[] = [
                 'name'    => $prefix . $this->entryFilename($document, $file->getOriginalFilename()),
@@ -54,7 +75,12 @@ final class FolderZipExporter
             ];
         }
 
-        return $this->zipExporter->createResponse($this->zipFilename($folder), $entries);
+        $cycleKeys = array_keys($cycles);
+        if ($cycleKeys === [] && $currentCycle !== null) {
+            $cycleKeys = [$this->cycleFilter->selectedCycle($folder, $cycleSelection) ?? $currentCycle];
+        }
+
+        return $this->zipExporter->createResponse($this->zipFilename($folder, $cycleKeys), $entries);
     }
 
     /**
@@ -122,8 +148,24 @@ final class FolderZipExporter
         return $safe === '' ? '_' : $safe;
     }
 
-    private function zipFilename(Folder $folder): string
+    /**
+     * The folder's name — for an activity's folder, led by the academic year its submissions are
+     * from ("2026-2027 - Programaciones.zip"), or the range of years when there are several
+     * ("2024-2025 a 2026-2027 - Programaciones.zip").
+     *
+     * @param list<int> $cycles the activity cycles the ZIP holds (empty for a plain folder)
+     */
+    private function zipFilename(Folder $folder, array $cycles): string
     {
-        return $this->sanitizeSegment($folder->getName()) . '.zip';
+        $name = $this->sanitizeSegment($folder->getName());
+        if ($cycles === []) {
+            return $name . '.zip';
+        }
+
+        $first = ActivityDeadlineChecker::academicYearLabel(min($cycles));
+        $last  = ActivityDeadlineChecker::academicYearLabel(max($cycles));
+        $years = $first === $last ? $first : $first . ' a ' . $last;
+
+        return $this->sanitizeSegment($years) . ' - ' . $name . '.zip';
     }
 }

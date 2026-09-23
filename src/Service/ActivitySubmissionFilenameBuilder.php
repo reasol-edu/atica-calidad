@@ -20,6 +20,10 @@ use App\Entity\Document;
  */
 final class ActivitySubmissionFilenameBuilder
 {
+    public function __construct(
+        private readonly ActivityDeadlineChecker $deadline,
+    ) {}
+
     /**
      * The activity's own "submission prefix" setting, set to exactly this, means "no prefix at
      * all" — not even the title — rather than a literal one-character prefix.
@@ -27,8 +31,10 @@ final class ActivitySubmissionFilenameBuilder
     private const NO_PREFIX_SENTINEL = '-';
 
     /**
-     * The document's own name, led by the activity's "submission prefix" setting if it has one
-     * (its title otherwise, unless the prefix is exactly "-", meaning no prefix at all) and,
+     * The document's own name, led by the academic year it was submitted for ("2026-2027" — the
+     * same activity collects one submission per year, usually under the very same name), then by
+     * the activity's "submission prefix" setting if it has one (its title otherwise, unless the
+     * prefix is exactly "-", meaning no prefix at all) and,
      * for an Individual-scope activity (so this document belongs to one specific teacher, not
      * shared by everyone holding a profile), trailed by that teacher's name. A plain
      * document-tree file (no activity behind its folder) is just its own name, on its own.
@@ -42,7 +48,9 @@ final class ActivitySubmissionFilenameBuilder
             return [$document->getName()];
         }
 
-        $parts  = [];
+        // Every document in an activity's folder is stamped when created (see
+        // DocumentActivityCycleListener); the current occurrence is only a safety net.
+        $parts  = [ActivityDeadlineChecker::academicYearLabel($document->getActivityCycleYear() ?? $this->deadline->currentCycleKey($activity))];
         $prefix = $activity->getSubmissionPrefix();
         if ($prefix !== self::NO_PREFIX_SENTINEL) {
             $parts[] = $prefix !== null && $prefix !== '' ? $prefix : $activity->getTitle();

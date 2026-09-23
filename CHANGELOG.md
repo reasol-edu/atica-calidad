@@ -9,10 +9,22 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Added
 
+- **Árbol documental**: la carpeta de una actividad muestra por defecto solo las entregas del curso
+  académico actual. Si hay entregas de otros cursos, un desplegable **«Curso:»** encima de la lista
+  permite ver las de otro curso —solo aparecen los cursos que tienen alguna entrega, además del
+  actual— o las de **«Todos los cursos»**. La descarga **«Descargar la carpeta (ZIP)»** incluye
+  exactamente lo seleccionado y, si abarca varios cursos, pone cada uno en su propia subcarpeta.
 - **Administración**: nuevo ajuste **«Inicio del curso académico»** (Administración → Ajustes,
   global y de centro), que se elige con un día y un mes: 15 de septiembre por defecto. Decide a qué
   curso pertenece cada fecha de las actividades, que se repiten cada curso. Solo admite fechas que
   existen todos los años (no el 29 de febrero).
+
+### Changed
+
+- **Actividades**: el nombre de todas las descargas de una entrega empieza ahora por el curso
+  académico al que corresponde, p. ej. «2026-2027 - Programación didáctica - Tutor/a.pdf», también
+  dentro del ZIP de la carpeta. El propio ZIP se llama igual, precedido del curso (o del rango de
+  cursos, p. ej. «2024-2025 a 2026-2027 - Programaciones.zip»).
 
 ### Fixed
 

@@ -205,7 +205,10 @@ quedan fuera). Cada fichero dentro del ZIP lleva el mismo nombre que tendría al
 ámbito individual, el ZIP distingue igual de bien la entrega de cada docente. Si la carpeta está
 **organizada por perfil de subida**, dentro del ZIP cada perfil es una subcarpeta con su nombre
 —los caracteres que no valen en un nombre de fichero se sustituyen por `_`—, y los documentos sin
-perfil van en la raíz del archivo.
+perfil van en la raíz del archivo. En la carpeta de una actividad, el ZIP contiene solo el curso
+académico seleccionado encima de la lista (el actual, por defecto) y, si se eligen varios cursos,
+cada uno va en su propia subcarpeta, con las de perfil dentro — ver
+[Cada curso, entregas y completados nuevos](08-actividades.md#cada-curso).
 
 Quien es responsable de la carpeta (o tiene permiso de revisión, para poder aprobar con
 conocimiento del histórico) puede abrir el **historial completo de revisiones**: fecha, quién la

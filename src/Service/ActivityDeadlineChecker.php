@@ -97,6 +97,12 @@ final class ActivityDeadlineChecker implements ResetInterface
         return (int) $this->clock->now()->diff($this->currentCycleEndDate($activity))->days;
     }
 
+    /** The academic year a cycle key stands for, as shown to users: 2026 → "2026-2027". */
+    public static function academicYearLabel(int $cycleYear): string
+    {
+        return \sprintf('%d-%d', $cycleYear, $cycleYear + 1);
+    }
+
     /** Cycle key (first calendar year of its academic year, e.g. 2026 for 2026-2027) of the occurrence "now" belongs to. */
     public function currentCycleKey(Activity $activity): int
     {

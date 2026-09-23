@@ -115,33 +115,40 @@ Como una actividad se repite cada curso, sus entregas y sus completados cuentan 
 curso en que se hicieron**: al empezar el curso siguiente (según el ajuste
 [Inicio del curso académico](09-administrar-la-plataforma.md#curso-academico)), la actividad vuelve
 a aparecer pendiente, con las filas de «Mis entregas» vacías y listas para la entrega de ese curso.
-Las entregas de cursos anteriores no se borran: siguen en la carpeta del árbol documental, marcadas
-con una etiqueta **«Curso 2025-2026»** (o el que corresponda) para distinguirlas de las del curso
-actual, que suelen llevar el mismo nombre. El calendario, al consultar días de un curso anterior,
-muestra si la actividad se completó en aquel curso.
+Las entregas de cursos anteriores no se borran: siguen en la carpeta del árbol documental. Esa
+carpeta muestra por defecto **solo las entregas del curso actual**; si hay entregas de otros cursos,
+un desplegable **«Curso:»** encima de la lista permite elegir otro de esos cursos o **«Todos los
+cursos»**. El desplegable ofrece siempre el curso actual, y de los anteriores solo los que tienen
+alguna entrega. Las entregas de un curso anterior llevan además una etiqueta **«Curso 2025-2026»**
+(o el que corresponda) para distinguirlas de las del curso actual, que suelen llevar el mismo
+nombre. El **ZIP de la carpeta** descarga exactamente lo que esté seleccionado: si incluye más de un
+curso, cada curso va en su propia subcarpeta del ZIP («2025-2026/», «2026-2027/»…). El calendario,
+al consultar días de un curso anterior, muestra si la actividad se completó en aquel curso.
 
 Si se vincula a una actividad una carpeta que ya tenía documentos, esos documentos pasan a contar
 como entregas del curso en vigor en ese momento.
 
 ### Nombre del fichero descargado {#nombre-del-fichero-descargado}
 
-Al descargar una entrega, el nombre del fichero antepone el título de la actividad —o su
-**prefijo de entrega**, si la actividad tiene uno configurado (ver
-[Campos de una actividad](#campos-de-una-actividad))— al
+Al descargar una entrega, el nombre del fichero empieza siempre por el **curso académico** al que
+corresponde la entrega, seguido del título de la actividad —o de su **prefijo de entrega**, si la
+actividad tiene uno configurado (ver [Campos de una actividad](#campos-de-una-actividad))— y del
 [nombre del documento](07-arbol-documental.md#revision-activa-historial-y-descarga), separados por
-« - » — p. ej. **«Programación didáctica - Tutor/a.pdf»**, o **«PD - Tutor/a.pdf»** con el prefijo
-«PD». Escribir un guion («-») a solas como prefijo de entrega quita el prefijo del todo —ni el
-título ni ningún otro texto—, dejando el nombre del fichero empezar directamente por el del
-documento: **«Tutor/a.pdf»**. Si la actividad es de ámbito **individual**, añade también el nombre
-de quien la subió al final: **«Programación didáctica - Tutor/a - García, Ana.pdf»** (o
-**«Tutor/a - García, Ana.pdf»**, con el guion) — al ser una entrega personal, y no compartida por
-todo el que tenga el perfil, identifica de un vistazo de quién es cada fichero descargado. Un
-documento del árbol que no sea la entrega de ninguna actividad sigue llevando solo su propio
-nombre, sin cambios.
+« - » — p. ej. **«2026-2027 - Programación didáctica - Tutor/a.pdf»**, o
+**«2026-2027 - PD - Tutor/a.pdf»** con el prefijo «PD». Escribir un guion («-») a solas como prefijo
+de entrega quita el título (y cualquier otro prefijo), pero no el curso:
+**«2026-2027 - Tutor/a.pdf»**. Si la actividad es de ámbito **individual**, añade también el nombre
+de quien la subió al final: **«2026-2027 - Programación didáctica - Tutor/a - García, Ana.pdf»** (o
+**«2026-2027 - Tutor/a - García, Ana.pdf»**, con el guion) — al ser una entrega personal, y no
+compartida por todo el que tenga el perfil, identifica de un vistazo de quién es cada fichero
+descargado. Un documento del árbol que no sea la entrega de ninguna actividad sigue llevando solo su
+propio nombre, sin cambios.
 
 Esta misma regla se aplica también dentro del **[ZIP de la carpeta](07-arbol-documental.md#revision-activa-historial-y-descarga)**:
 en una actividad de ámbito individual, cada entrega lleva el nombre de quien la subió, en vez de
-distinguirse solo por un «(2)», «(3)»… añadido al repetirse el nombre del perfil.
+distinguirse solo por un «(2)», «(3)»… añadido al repetirse el nombre del perfil. El propio ZIP
+también empieza por el curso que contiene —**«2026-2027 - Programaciones.zip»**—, o por el rango de
+cursos si se eligió «Todos los cursos» y hay varios: **«2024-2025 a 2026-2027 - Programaciones.zip»**.
 
 ### Retirar o sustituir una entrega propia
 

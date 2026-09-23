@@ -14,16 +14,43 @@
         </p>
     {% endif %}
 
-    {% if groups is empty %}
-        <p class="px-4 py-6 text-center text-sm text-gray-400">{{ 'empty'|trans({}, 'document_content') }}</p>
-    {% else %}
-        <div class="flex justify-end px-4 pt-3 -mb-1">
-            <a href="{{ path('app_folder_download_zip', {folderId: fid}) }}"
-               class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-forest-600 transition-colors">
-                {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-3.5 w-3.5'}) }}
-                {{ 'folder.download_zip'|trans({}, 'document_content') }}
-            </a>
+    {# An activity's folder keeps every academic year's submissions: only the current year's show
+       unless another one (or all of them) is picked here — and the ZIP holds exactly that. #}
+    {% set cycle_options = this.getFolderCycleOptions(folder) %}
+    {% if cycle_options is not empty or groups is not empty %}
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 -mb-1 {{ cycle_options is empty ? 'justify-end' : 'justify-between' }}">
+            {% if cycle_options is not empty %}
+                {% set all_value = constant('App\\Service\\ActivityFolderCycleFilter::ALL') %}
+                <label class="inline-flex items-center gap-1.5 text-xs text-gray-500">
+                    {{ ux_icon('heroicons:calendar-days', {class: 'h-3.5 w-3.5 text-gray-400'}) }}
+                    <span>{{ 'folder.cycle.label'|trans({}, 'document_content') }}</span>
+                    <select data-model="folderCycle"
+                            class="rounded-md border border-gray-200 bg-white py-1 pl-2 pr-7 text-xs text-gray-700 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                        {# The current academic year is always listed; earlier ones only if they have submissions. #}
+                        {% for option in cycle_options %}
+                            <option value="{{ option.value }}" {{ folderCycle == option.value ? 'selected' : '' }}>
+                                {{ option.current ? 'folder.cycle.current'|trans({'%year%': option.label}, 'document_content') : option.label }}
+                            </option>
+                        {% endfor %}
+                        <option value="{{ all_value }}" {{ folderCycle == all_value ? 'selected' : '' }}>{{ 'folder.cycle.all'|trans({}, 'document_content') }}</option>
+                    </select>
+                </label>
+            {% endif %}
+            {% if groups is not empty %}
+                {% set zip_cycle = this.getFolderZipCycle(folder) %}
+                <a href="{{ path('app_folder_download_zip', zip_cycle is empty ? {folderId: fid} : {folderId: fid, curso: zip_cycle}) }}"
+                   class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-forest-600 transition-colors">
+                    {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-3.5 w-3.5'}) }}
+                    {{ 'folder.download_zip'|trans({}, 'document_content') }}
+                </a>
+            {% endif %}
         </div>
+    {% endif %}
+
+    {% if groups is empty %}
+        <p class="px-4 py-6 text-center text-sm text-gray-400">
+            {{ (cycle_options is empty ? 'empty' : (folderCycle == '' ? 'folder.cycle.empty_current' : 'folder.cycle.empty'))|trans({}, 'document_content') }}
+        </p>
     {% endif %}
 
     {% for group in groups %}
