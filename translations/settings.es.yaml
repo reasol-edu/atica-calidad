@@ -18,6 +18,7 @@ settings.hub.manage: 'Configurar'
 
 # ── Categorías de ajustes ────────────────────────────────────────────────────
 settings.category.display.label: 'Visualización'
+settings.category.academic_year.label: 'Curso académico'
 settings.category.email_alerts.label: 'Avisos por correo'
 settings.category.report_templates.label: 'Plantillas de informes'
 settings.category.audit.label: 'Registro de actividad'
@@ -68,6 +69,9 @@ settings.key.notifications_document_rejected_notification_mode.choice.daily_dige
 settings.key.notifications_email_subject_prefix.label: 'Prefijo del asunto'
 settings.key.notifications_email_subject_prefix.description: 'Texto que se antepone al asunto de cada aviso por correo electrónico, seguido automáticamente de un espacio (p. ej. «[ÁTICA]» da como resultado «[ÁTICA] Asunto original»). Vacío por defecto: no se añade ningún prefijo.'
 
+settings.key.academic_year_start_date.label: 'Inicio del curso académico'
+settings.key.academic_year_start_date.description: 'Día y mes en que empieza cada curso académico (15 de septiembre por defecto). Las actividades se repiten cada curso en sus fechas, y este día marca cuándo pasan a contar las del curso siguiente: p. ej., una actividad de enero a febrero, consultada en octubre, se refiere a la del próximo enero, no a la del enero ya pasado.'
+
 settings.key.reports_pdf_template_portrait.label: 'Plantilla PDF general (vertical)'
 settings.key.reports_pdf_template_portrait.description: 'PDF de una sola página que se usa como fondo de cada página de los informes en orientación vertical que no tengan una plantilla propia. Si no se sube ninguna, esos informes se generan sin fondo.'
 
@@ -77,6 +81,7 @@ settings.key.reports_pdf_template_landscape.description: 'PDF de una sola págin
 # ── Errores de validación ──────────────────────────────────────────────────────
 settings.error.integer_range: 'Debe ser un número entre %min% y %max%'
 settings.error.invalid_value: 'Valor no válido'
+settings.error.invalid_day_month: 'Esa fecha no existe (el 29 de febrero tampoco vale: no existe todos los años)'
 
 # ── Plantillas PDF ───────────────────────────────────────────────────────────
 settings.pdf_template.view: 'Ver'
@@ -99,3 +104,8 @@ settings.locked_by_centre: 'Bloqueado por el centro educativo'
 settings.lock.title: 'Bloquear este valor para niveles inferiores'
 settings.lock.no_value_title: 'Elige un valor explícito antes de bloquear'
 settings.unlock.title: 'Desbloquear'
+
+# ── Ajustes de tipo día y mes ─────────────────────────────────────────────────
+settings.day_month.day: 'Día'
+settings.day_month.month: 'Mes'
+settings.day_month.format: '%day% de %month%'

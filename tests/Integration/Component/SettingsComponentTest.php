@@ -311,4 +311,76 @@ final class SettingsComponentTest extends ControllerTestCase
         self::assertNotNull($reloadedTeacher);
         self::assertNull($teacherValues->findByDefinitionAndTeacher($reloadedDef, $reloadedTeacher));
     }
+
+    private function dayMonthDefinition(): SettingDefinition
+    {
+        return (new SettingDefinition())->setKey('academic_year.start_date')->setType(SettingType::DayMonth)
+            ->setDefaultValue('09-15')->setCategory('settings.category.academic_year')->setGlobalScope(true)->setCentreScope(true);
+    }
+
+    private function storedCentreValue(EducationalCentre $centre, string $key): ?string
+    {
+        $this->em->clear();
+        /** @var CentreSettingValueRepository $centreValues */
+        $centreValues = self::getContainer()->get(CentreSettingValueRepository::class);
+        /** @var SettingDefinitionRepository $definitions */
+        $definitions = self::getContainer()->get(SettingDefinitionRepository::class);
+        $reloadedDef = $definitions->findOneBy(['key' => $key]);
+        self::assertNotNull($reloadedDef);
+        /** @var EducationalCentreRepository $centres */
+        $centres = self::getContainer()->get(EducationalCentreRepository::class);
+        $reloadedCentre = $centres->findById($centre->getId()->toRfc4122());
+        self::assertNotNull($reloadedCentre);
+
+        return $centreValues->findByDefinitionAndCentre($reloadedDef, $reloadedCentre)?->getValue();
+    }
+
+    public function testDayMonthRendersDaySelectAndMonthSelectWithTheDefaultOption(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $admin, $this->dayMonthDefinition());
+
+        $this->loginAs($admin, $centre);
+        $crawler = $this->createLiveComponent('SettingsComponent', ['scope' => 'centre'], $this->client)->render()->crawler();
+
+        self::assertCount(31, $crawler->filter('[data-setting-save-target="day"] option'));
+        self::assertSame('15', $crawler->filter('[data-setting-save-target="day"] option[selected]')->attr('value'));
+        self::assertSame('__default__', $crawler->filter('[data-setting-save-target="month"] option[selected]')->attr('value'));
+        self::assertStringContainsString('15 de septiembre', $crawler->filter('[data-setting-save-target="month"] option[selected]')->text());
+    }
+
+    public function testDayMonthSavesAValidDate(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $admin, $this->dayMonthDefinition());
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('SettingsComponent', ['scope' => 'centre'], $this->client);
+        $component->call('save', ['key' => 'academic_year.start_date', 'value' => '08-15']);
+
+        $crawler = $component->render()->crawler();
+        self::assertSame('15', $crawler->filter('[data-setting-save-target="day"] option[selected]')->attr('value'));
+        self::assertSame('8', $crawler->filter('[data-setting-save-target="month"] option[selected]')->attr('value'));
+        self::assertSame('08-15', $this->storedCentreValue($centre, 'academic_year.start_date'));
+    }
+
+    public function testDayMonthRejectsADateThatDoesNotExist(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $admin, $this->dayMonthDefinition());
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('SettingsComponent', ['scope' => 'centre'], $this->client);
+        $component->call('save', ['key' => 'academic_year.start_date', 'value' => '04-31']);
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('Esa fecha no existe', $html);
+        self::assertNull($this->storedCentreValue($centre, 'academic_year.start_date'));
+    }
 }

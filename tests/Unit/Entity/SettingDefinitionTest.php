@@ -121,4 +121,27 @@ final class SettingDefinitionTest extends TestCase
 
         self::assertSame([], $def->getChoicesArray());
     }
+
+    // ── Day/month ────────────────────────────────────────────────────────────
+
+    public function testDayMonthAcceptsOnlyCanonicalDatesThatExistEveryYear(): void
+    {
+        $def = $this->definition(SettingType::DayMonth, '09-01');
+
+        self::assertTrue($def->isValueValid('09-01'));
+        self::assertTrue($def->isValueValid('02-28'));
+        self::assertTrue($def->isValueValid('12-31'));
+        self::assertFalse($def->isValueValid('02-29'), 'Feb 29 does not exist every year.');
+        self::assertFalse($def->isValueValid('04-31'));
+        self::assertFalse($def->isValueValid('13-01'));
+        self::assertFalse($def->isValueValid('00-10'));
+        self::assertFalse($def->isValueValid('9-1'), 'Only the zero-padded "MM-DD" form is canonical.');
+        self::assertFalse($def->isValueValid('01/09'));
+        self::assertFalse($def->isValueValid(''));
+    }
+
+    public function testDayMonthCastedDefaultValueIsTheRawString(): void
+    {
+        self::assertSame('09-01', $this->definition(SettingType::DayMonth, '09-01')->getCastedDefaultValue());
+    }
 }

@@ -7,6 +7,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Administración**: nuevo ajuste **«Inicio del curso académico»** (Administración → Ajustes,
+  global y de centro), que se elige con un día y un mes: 15 de septiembre por defecto. Decide a qué
+  curso pertenece cada fecha de las actividades, que se repiten cada curso. Solo admite fechas que
+  existen todos los años (no el 29 de febrero).
+
 ## [1.4.1] - 2026-09-20
 
 ### Fixed

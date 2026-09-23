@@ -159,6 +159,49 @@
                             {% endfor %}
                         </select>
 
+                    {% elseif def.type.value == 'day_month' %}
+                        {# Stored as "MM-DD". The month select carries the "default" option; the day
+                           select alone can't express it, so changing the day while on the default
+                           keeps the default's month (see setting_save_controller.js). #}
+                        {% set effectiveParts = effective|split('-') %}
+                        {% set shownParts     = (displayValue ?? effective)|split('-') %}
+                        {% set shownDay       = shownParts|last|number_format %}
+                        {% set shownMonth     = displayValue is null ? '__default__' : shownParts|first|number_format %}
+                        <div class="flex items-center gap-2"
+                             data-controller="setting-save"
+                             data-setting-key="{{ key }}"
+                             data-setting-save-default-month-value="{{ effectiveParts|first|number_format }}">
+                            {% set selectClasses = 'rounded-lg border py-1.5 pl-3 pr-8 text-sm text-gray-900 focus:outline-none focus:ring-3 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 '
+                                ~ (isError ? 'border-red-400 bg-red-50 focus:border-red-400 focus:ring-red-500/20' : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:ring-forest-500/20') %}
+                            <select class="{{ selectClasses }}"
+                                    aria-label="{{ 'settings.day_month.day'|trans({}, 'settings') }}"
+                                    {{ parentLock is not null ? 'disabled' : '' }}
+                                    data-setting-save-target="day"
+                                    data-action="change->setting-save#save">
+                                {% for d in 1..31 %}
+                                    <option value="{{ d }}" {{ shownDay == d ? 'selected' : '' }}>{{ d }}</option>
+                                {% endfor %}
+                            </select>
+                            <select class="{{ selectClasses }}"
+                                    aria-label="{{ 'settings.day_month.month'|trans({}, 'settings') }}"
+                                    {{ parentLock is not null ? 'disabled' : '' }}
+                                    data-setting-save-target="month"
+                                    data-action="change->setting-save#save">
+                                <option value="__default__" {{ shownMonth == '__default__' ? 'selected' : '' }} {{ isLocked ? 'disabled' : '' }}>
+                                    {{ 'settings.default_label'|trans({}, 'settings') }}
+                                    ({{ 'settings.day_month.format'|trans({
+                                        '%day%': effectiveParts|last|number_format,
+                                        '%month%': ('month.' ~ effectiveParts|first|number_format)|trans({}, 'calendar')|lower,
+                                    }, 'settings') }})
+                                </option>
+                                {% for m in 1..12 %}
+                                    <option value="{{ m }}" {{ shownMonth == m ? 'selected' : '' }}>
+                                        {{ ('month.' ~ m)|trans({}, 'calendar') }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                     {% elseif def.type.value == 'richtext' %}
                         {% if parentLock is not null %}
                             <div class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 prose prose-sm max-w-none text-gray-500">
@@ -260,6 +303,8 @@
                             {{ ux_icon('heroicons:exclamation-circle', {class: 'h-3.5 w-3.5'}) }}
                             {% if def.type.value == 'integer' and def.minValue is not null and def.maxValue is not null %}
                                 {{ 'settings.error.integer_range'|trans({'%min%': def.minValue, '%max%': def.maxValue}, 'settings') }}
+                            {% elseif def.type.value == 'day_month' %}
+                                {{ 'settings.error.invalid_day_month'|trans({}, 'settings') }}
                             {% else %}
                                 {{ 'settings.error.invalid_value'|trans({}, 'settings') }}
                             {% endif %}

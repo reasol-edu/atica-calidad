@@ -72,7 +72,8 @@ final class AppSettings implements AppSettingsInterface
             SettingType::String,
             SettingType::Choice,
             SettingType::RichText,
-            SettingType::Pdf => $raw,
+            SettingType::Pdf,
+            SettingType::DayMonth => $raw,
         };
     }
 
@@ -101,7 +102,8 @@ final class AppSettings implements AppSettingsInterface
             SettingType::String,
             SettingType::Choice,
             SettingType::RichText,
-            SettingType::Pdf => $raw,
+            SettingType::Pdf,
+            SettingType::DayMonth => $raw,
         };
     }
 
@@ -122,7 +124,8 @@ final class AppSettings implements AppSettingsInterface
             SettingType::String,
             SettingType::Choice,
             SettingType::RichText,
-            SettingType::Pdf => $raw,
+            SettingType::Pdf,
+            SettingType::DayMonth => $raw,
         };
     }
 
@@ -155,7 +158,8 @@ final class AppSettings implements AppSettingsInterface
             SettingType::String,
             SettingType::Choice,
             SettingType::RichText,
-            SettingType::Pdf => $raw,
+            SettingType::Pdf,
+            SettingType::DayMonth => $raw,
         };
     }
 
@@ -223,7 +227,8 @@ final class AppSettings implements AppSettingsInterface
                 SettingType::String,
                 SettingType::Choice,
                 SettingType::RichText,
-                SettingType::Pdf => $raw,
+                SettingType::Pdf,
+                SettingType::DayMonth => $raw,
             };
         }
     }

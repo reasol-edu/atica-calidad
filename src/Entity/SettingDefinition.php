@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Model\DayMonth;
 use App\Repository\SettingDefinitionRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -221,6 +222,7 @@ class SettingDefinition
      * Strings must have a length within [minValue, maxValue] when set; empty is always valid.
      * Pdf-typed values hold the display filename and are validated the same way as
      * strings; the actual file is validated and stored separately (see SettingFile).
+     * Day/month values must be a canonical "MM-DD" date that exists every year (see DayMonth).
      */
     public function isValueValid(string $value): bool
     {
@@ -231,6 +233,7 @@ class SettingDefinition
             SettingType::RichText,
             SettingType::Pdf     => $this->isStringValueValid($value),
             SettingType::Choice  => in_array($value, $this->getChoicesArray(), true),
+            SettingType::DayMonth => DayMonth::tryParse($value) !== null,
         };
     }
 
@@ -281,7 +284,8 @@ class SettingDefinition
             SettingType::String,
             SettingType::Choice,
             SettingType::RichText,
-            SettingType::Pdf => $this->defaultValue,
+            SettingType::Pdf,
+            SettingType::DayMonth => $this->defaultValue,
         };
     }
 }

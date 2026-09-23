@@ -67,6 +67,15 @@ el profesorado, si el ajuste lo permite a nivel de centro.
 
 ## Ajustes disponibles {#ajustes-disponibles}
 
+### Curso académico {#curso-academico}
+
+- **Inicio del curso académico** (global y de centro) — día y mes en que empieza cada curso;
+  15 de septiembre por defecto. Las [actividades](08-actividades.md) solo guardan día y mes y se
+  repiten cada curso: este ajuste decide a qué curso pertenece cada fecha. Así, una actividad de
+  enero a febrero, consultada en octubre, se refiere a la del próximo enero —aún sin abrir—, no a
+  la del enero ya pasado. Hasta el día indicado, todo sigue refiriéndose al curso que termina.
+  Solo admite fechas que existen todos los años (no el 29 de febrero).
+
 ### Avisos por correo
 
 Cada uno de los tres avisos que se envían por correo (documento pendiente de revisar, documento
