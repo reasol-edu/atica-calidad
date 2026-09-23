@@ -87,6 +87,16 @@
                 </div>
             {% endif %}
 
+            {# Logged out after a period without activity (IdleSessionSubscriber) #}
+            {% if app.request.query.get('sesion') == 'caducada' and not error %}
+                <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 mb-6 text-sm">
+                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                    </svg>
+                    <span>{{ 'session_expired'|trans({}, 'login') }}</span>
+                </div>
+            {% endif %}
+
             {# Error #}
             {% if error %}
                 <div class="flex items-start gap-3 bg-red-50 border border-red-100 text-red-700 rounded-xl px-4 py-3 mb-6 text-sm">

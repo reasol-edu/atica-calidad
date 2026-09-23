@@ -49,4 +49,27 @@ final class PasswordPolicyTest extends TestCase
     {
         self::assertSame('profile.error.password_too_short', $this->policy->firstViolationKey(''));
     }
+
+    public function testRejectsAPasswordContainingTheUsernameInAnyCase(): void
+    {
+        self::assertSame('profile.error.password_contains_username', $this->policy->firstViolationKey('miClaveDeJGarcia2026', 'jgarcia'));
+    }
+
+    public function testIgnoresAVeryShortUsername(): void
+    {
+        self::assertNull($this->policy->firstViolationKey('una frase larga cualquiera', 'ua'));
+    }
+
+    public function testRejectsAPasswordFoundInKnownBreaches(): void
+    {
+        $password = 'contraseña filtrada de ejemplo';
+        $suffix   = substr(strtoupper(sha1($password)), 5);
+        $checker  = new \App\Service\CompromisedPasswordChecker(
+            new \Symfony\Component\HttpClient\MockHttpClient(new \Symfony\Component\HttpClient\Response\MockResponse($suffix . ":42\r\n")),
+            new \Psr\Log\NullLogger(),
+            true,
+        );
+
+        self::assertSame('profile.error.password_compromised', (new PasswordPolicy($checker))->firstViolationKey($password));
+    }
 }

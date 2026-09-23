@@ -176,4 +176,34 @@ final class DocumentSectionJsonExportImportTest extends RepositoryTestCase
         $counts = $this->importer->import($decoded, $centre);
         self::assertSame(1, $counts['sections']);
     }
+
+    /** A tree nested deeper than any real one is refused before anything is touched. */
+    public function testImportRejectsATreeNestedTooDeep(): void
+    {
+        $centre = $this->centre();
+        $this->persist($centre);
+
+        $children = [];
+        for ($i = 0; $i < 21; ++$i) {
+            $children = [['name' => 'Nivel', 'profiles' => [], 'children' => $children]];
+        }
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('nested more than 20 levels');
+        $this->importer->import(['type' => 'document_sections', 'sections' => $children], $centre);
+    }
+
+    public function testImportAcceptsATreeTwentyLevelsDeep(): void
+    {
+        $centre = $this->centre();
+        $this->persist($centre);
+
+        $children = [];
+        for ($i = 0; $i < 20; ++$i) {
+            $children = [['name' => 'Nivel', 'profiles' => [], 'children' => $children]];
+        }
+
+        $this->importer->import(['type' => 'document_sections', 'sections' => $children], $centre);
+        $this->addToAssertionCount(1);
+    }
 }

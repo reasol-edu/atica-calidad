@@ -34,6 +34,10 @@ use Symfony\UX\Autocomplete\EntityAutocompleterInterface;
  *
  * No page/next_page support: every current widget uses min-characters >= 2 and a small result set
  * (max 10), so there has never been a "load more" to serve.
+ *
+ * The bundle's own route isn't registered at all (config/routes/ux_autocomplete.yaml was removed):
+ * nothing uses it, and it was one more public endpoint. Reinstalling the bundle's Flex recipe would
+ * bring the file back — delete it again.
  */
 #[Route('/autocomplete-app')]
 class AutocompleteController extends AbstractController

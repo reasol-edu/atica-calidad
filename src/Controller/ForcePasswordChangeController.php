@@ -53,7 +53,7 @@ class ForcePasswordChangeController extends AbstractController
                     $errors['current_password'] = $this->translator->trans('profile.error.current_password_invalid', [], 'messages');
                 }
 
-                if (($policyViolation = $this->passwordPolicy->firstViolationKey($newPassword)) !== null) {
+                if (($policyViolation = $this->passwordPolicy->firstViolationKey($newPassword, $teacher->getUsername())) !== null) {
                     $errors['new_password'] = $this->translator->trans(
                         $policyViolation,
                         ['%min%' => PasswordPolicy::MIN_LENGTH],

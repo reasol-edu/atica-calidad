@@ -114,6 +114,12 @@ seguidos.
   (membrete) de los informes que se generen en cada orientación, cuando existan. Ajustable a nivel
   de centro, desde **Centro educativo → Ajustes del centro**.
 
+### Seguridad {#seguridad}
+
+- **Cierre de sesión por inactividad** (global) — minutos sin actividad tras los que se cierra la
+  sesión de un docente, para que un equipo compartido que se deja abierto no quede utilizable por
+  otra persona; 120 por defecto, 0 lo desactiva.
+
 ### Ajustes del registro de actividad
 
 - **Registrar la actividad de los usuarios** — activa o desactiva el [registro de

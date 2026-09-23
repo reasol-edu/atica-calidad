@@ -54,6 +54,18 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Fixed
 
+- **Seguridad**: la sesión se cierra sola tras un rato sin actividad (dos horas por defecto), para
+  que un equipo compartido que se deja abierto no quede utilizable por otra persona. Se configura, o
+  se desactiva con 0, en **Administración → Ajustes → Seguridad**; la pantalla de inicio de sesión
+  explica por qué se ha cerrado.
+- **Seguridad**: una contraseña nueva ya no puede contener el propio nombre de usuario ni figurar en
+  filtraciones de datos conocidas (consulta a «Have I Been Pwned» con k-anonimato: nunca se envía la
+  contraseña). Si el servidor no tiene salida a Internet la comprobación se omite en pocos segundos;
+  `APP_PASSWORD_BREACH_CHECK=false` la desactiva.
+- **Seguridad**: si a un docente se le retira el acceso a un centro con la sesión abierta, deja de
+  ver sus datos en la siguiente petición, en vez de conservarlos hasta cerrar sesión.
+- **Seguridad**: la importación de árboles en JSON (secciones del árbol documental, listas de
+  Responsabilidades) rechaza anidamientos de más de 20 niveles.
 - **Árbol documental**: «Descargar la carpeta (ZIP)» ya funciona con carpetas grandes. Antes, el
   servidor cargaba en memoria todos los ficheros de la carpeta a la vez —unas tres veces su
   tamaño—, así que una carpeta de unos 40 MB (80 MB con Docker) acababa en un error. Ahora prepara

@@ -11,6 +11,7 @@ use App\Repository\AcademicYearRepository;
 use App\Repository\EducationalCentreRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\Service\ResetInterface;
 
@@ -35,6 +36,7 @@ final class TenantContext implements TenantContextInterface, ResetInterface
         private readonly EducationalCentreRepository $centres,
         private readonly AcademicYearRepository $years,
         private readonly EntityManagerInterface $em,
+        private readonly TokenStorageInterface $tokenStorage,
     ) {}
 
     public function isSelected(): bool
@@ -57,6 +59,17 @@ final class TenantContext implements TenantContextInterface, ResetInterface
         }
 
         $centre = $this->centres->findByIdWithActiveYear($id);
+
+        // The centre was only checked when it was picked (CentreSelectionController::choose()):
+        // re-check it on every request, so a teacher removed from the centre — or an admin who
+        // lost the role — mid-session stops reaching its data right away instead of keeping it
+        // until they log out. They land back on the centre picker (TenantContextSubscriber).
+        $user = $this->tokenStorage->getToken()?->getUser();
+        if ($centre !== null && $user instanceof Teacher && !$this->centres->isAccessibleByTeacher($centre, $user)) {
+            $this->requestStack->getSession()->remove(self::SESSION_KEY);
+            $this->requestStack->getSession()->remove(self::SESSION_YEAR_KEY);
+            $centre = null;
+        }
 
         // Ensure activeAcademicYear is not stale from a prior identity-map load
         // (e.g. the subscriber loaded the centre without the JOIN in the same request)

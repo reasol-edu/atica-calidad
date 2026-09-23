@@ -11,6 +11,21 @@
 - Si la cuenta está desactivada, solo la administración del centro o de la plataforma puede
   reactivarla.
 
+## Se ha cerrado mi sesión
+
+Por seguridad, la sesión se cierra sola tras un rato sin usar la aplicación (dos horas por
+defecto; la administración de la plataforma puede cambiarlo o desactivarlo en
+[Ajustes → Seguridad](09-administrar-la-plataforma.md#seguridad)). La pantalla de inicio de sesión
+lo indica; basta con volver a entrar.
+
+## No me deja poner una contraseña
+
+Una contraseña nueva debe tener al menos 12 caracteres, no puede contener tu nombre de usuario y no
+puede ser una de las que aparecen en filtraciones de datos conocidas (una frase de varias palabras
+suele cumplirlo todo). Esta última comprobación consulta el servicio «Have I Been Pwned» sin
+enviarle la contraseña —solo el principio de su huella— y se omite si el servidor no tiene salida a
+Internet (o si la administración la desactiva con `APP_PASSWORD_BREACH_CHECK=false`).
+
 ## He olvidado mi contraseña
 
 Desde la pantalla de inicio de sesión, pulsa **¿Olvidaste tu contraseña?** e introduce tu nombre de

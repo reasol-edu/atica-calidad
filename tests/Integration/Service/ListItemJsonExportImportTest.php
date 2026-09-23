@@ -163,4 +163,34 @@ final class ListItemJsonExportImportTest extends RepositoryTestCase
         self::assertSame(2, $counts['items']);
         self::assertSame(1, $counts['tags'], 'ESO and eso must resolve to the same tag');
     }
+
+    /** A tree nested deeper than any real one is refused before anything is touched. */
+    public function testImportRejectsATreeNestedTooDeep(): void
+    {
+        $centre = $this->centre();
+        $this->persist($centre);
+
+        $children = [];
+        for ($i = 0; $i < 21; ++$i) {
+            $children = [['name' => 'Nivel', 'active' => true, 'tags' => [], 'children' => $children]];
+        }
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('nested more than 20 levels');
+        $this->importer->import(['type' => 'list_items', 'items' => $children], $centre);
+    }
+
+    public function testImportAcceptsATreeTwentyLevelsDeep(): void
+    {
+        $centre = $this->centre();
+        $this->persist($centre);
+
+        $children = [];
+        for ($i = 0; $i < 20; ++$i) {
+            $children = [['name' => 'Nivel', 'active' => true, 'tags' => [], 'children' => $children]];
+        }
+
+        $this->importer->import(['type' => 'list_items', 'items' => $children], $centre);
+        $this->addToAssertionCount(1);
+    }
 }

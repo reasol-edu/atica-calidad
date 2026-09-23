@@ -22,6 +22,7 @@ settings.category.academic_year.label: 'Curso académico'
 settings.category.email_alerts.label: 'Avisos por correo'
 settings.category.report_templates.label: 'Plantillas de informes'
 settings.category.audit.label: 'Registro de actividad'
+settings.category.security.label: 'Seguridad'
 
 # ── Definiciones de ajustes ───────────────────────────────────────────────────
 settings.key.page_size.label: 'Resultados por página'
@@ -71,6 +72,9 @@ settings.key.notifications_email_subject_prefix.description: 'Texto que se antep
 
 settings.key.academic_year_start_date.label: 'Inicio del curso académico'
 settings.key.academic_year_start_date.description: 'Día y mes en que empieza cada curso académico (15 de septiembre por defecto). Las actividades se repiten cada curso en sus fechas, y este día marca cuándo pasan a contar las del curso siguiente: p. ej., una actividad de enero a febrero, consultada en octubre, se refiere a la del próximo enero, no a la del enero ya pasado.'
+
+settings.key.security_idle_timeout_minutes.label: 'Cierre de sesión por inactividad'
+settings.key.security_idle_timeout_minutes.description: 'Minutos sin actividad tras los que se cierra la sesión de un docente, para que un equipo compartido que se deja abierto no quede utilizable por otra persona. 0 lo desactiva. 120 por defecto.'
 
 settings.key.reports_pdf_template_portrait.label: 'Plantilla PDF general (vertical)'
 settings.key.reports_pdf_template_portrait.description: 'PDF de una sola página que se usa como fondo de cada página de los informes en orientación vertical que no tengan una plantilla propia. Si no se sube ninguna, esos informes se generan sin fondo.'

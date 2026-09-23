@@ -147,7 +147,7 @@ class PasswordResetController extends AbstractController
                 ]);
             }
 
-            if (($policyViolation = $this->passwordPolicy->firstViolationKey($newPassword)) !== null) {
+            if (($policyViolation = $this->passwordPolicy->firstViolationKey($newPassword, $teacher->getUsername())) !== null) {
                 return $this->render('security/password_reset.html.twig', [
                     'token' => $token,
                     'error' => $this->translator->trans($policyViolation, ['%min%' => PasswordPolicy::MIN_LENGTH], 'messages'),

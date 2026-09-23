@@ -151,4 +151,47 @@ final class NoCentreSelectedRedirectTest extends ControllerTestCase
         self::assertInstanceOf(RedirectResponse::class, $response);
         self::assertSame('/seleccion/centro', $response->getTargetUrl());
     }
+
+    /**
+     * Access to the centre in the session is re-checked on every request, not only when it was
+     * picked: a teacher taken off the centre mid-session stops reaching its pages right away.
+     */
+    public function testATeacherRemovedFromTheSelectedCentreMidSessionLosesItAtOnce(): void
+    {
+        $removedFrom = $this->centre('11111111', 'Del que se le quita');
+        $stillIn     = $this->centre('22222222', 'Sigue en este');
+        $alsoIn      = $this->centre('33333333', 'Y en este');
+        $teacher     = $this->teacher('docente');
+        $years       = [];
+        foreach ([$removedFrom, $stillIn, $alsoIn] as $centre) {
+            $years[] = $year = (new \App\Entity\AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+            $centre->setActiveAcademicYear($year);
+            $year->addTeacher($teacher);
+        }
+        $this->persist($removedFrom, $stillIn, $alsoIn, $teacher, ...$years);
+        $removedFromId = $removedFrom->getId()->toRfc4122();
+
+        $this->client->loginUser($teacher);
+        $this->client->request('GET', '/');
+        $this->setSessionCentreId($removedFromId);
+        $this->client->request('GET', '/actividades');
+        self::assertSame(200, $this->client->getResponse()->getStatusCode(), 'still a member: the page opens');
+
+        // Reloaded: the entity manager is cleared between requests, so the objects above are detached.
+        /** @var \App\Repository\AcademicYearRepository $yearRepository */
+        $yearRepository = self::getContainer()->get(\App\Repository\AcademicYearRepository::class);
+        /** @var \App\Repository\TeacherRepository $teacherRepository */
+        $teacherRepository = self::getContainer()->get(\App\Repository\TeacherRepository::class);
+        $year    = $yearRepository->findById($years[0]->getId()->toRfc4122());
+        $managed = $teacherRepository->findById($teacher->getId()->toRfc4122());
+        self::assertNotNull($year);
+        self::assertNotNull($managed);
+        $year->removeTeacher($managed);
+        $this->em->flush();
+
+        $this->client->request('GET', '/actividades');
+
+        self::assertTrue($this->client->getResponse()->isRedirect('/seleccion/centro'), 'no longer a member: back to the centre picker');
+        self::assertNotSame($removedFromId, $this->client->getRequest()->getSession()->get('tenant.centre_id'));
+    }
 }

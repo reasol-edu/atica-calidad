@@ -23,6 +23,12 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 class DocumentSectionJsonImporter
 {
+    /**
+     * Nesting deeper than this is refused outright: no real tree comes close, and it keeps a
+     * crafted file from walking the importer down hundreds of levels.
+     */
+    private const int MAX_DEPTH = 20;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly DocumentSectionRepository $sections,
@@ -66,10 +72,13 @@ class DocumentSectionJsonImporter
         return $counts;
     }
 
-    private function validateLevel(mixed $sections): void
+    private function validateLevel(mixed $sections, int $depth = 1): void
     {
         if (!is_array($sections)) {
             throw new \InvalidArgumentException('Expected an array of sections.');
+        }
+        if ($sections !== [] && $depth > self::MAX_DEPTH) {
+            throw new \InvalidArgumentException(\sprintf('The tree is nested more than %d levels deep.', self::MAX_DEPTH));
         }
 
         foreach ($sections as $node) {
@@ -92,7 +101,7 @@ class DocumentSectionJsonImporter
                     throw new \InvalidArgumentException('"listItemPath" must be null or an array of strings.');
                 }
             }
-            $this->validateLevel($node['children'] ?? null);
+            $this->validateLevel($node['children'] ?? null, $depth + 1);
         }
     }
 

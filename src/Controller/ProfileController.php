@@ -90,7 +90,7 @@ class ProfileController extends AbstractController
                     $errors['current_password'] = $this->t('profile.error.current_password_invalid');
                 }
 
-                if (($policyViolation = $this->passwordPolicy->firstViolationKey($values['new_password'])) !== null) {
+                if (($policyViolation = $this->passwordPolicy->firstViolationKey($values['new_password'], $teacher->getUsername())) !== null) {
                     $errors['new_password'] = $this->translator->trans(
                         $policyViolation,
                         ['%min%' => PasswordPolicy::MIN_LENGTH],

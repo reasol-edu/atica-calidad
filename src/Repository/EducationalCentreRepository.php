@@ -157,4 +157,20 @@ class EducationalCentreRepository extends ServiceEntityRepository
 
         return $centres;
     }
+
+    /** Whether $teacher may work in $centre — the same rule as findAccessibleByTeacher(). */
+    public function isAccessibleByTeacher(EducationalCentre $centre, Teacher $teacher): bool
+    {
+        if ($teacher->isAdmin()) {
+            return true;
+        }
+
+        foreach ($this->findAccessibleByTeacher($teacher) as $accessible) {
+            if ($accessible->getId()->equals($centre->getId())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

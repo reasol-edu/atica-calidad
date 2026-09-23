@@ -93,10 +93,48 @@ abstract class ControllerTestCase extends WebTestCase
         $this->client->request('GET', '/');
 
         if ($centre !== null) {
+            $this->ensureBelongsTo($teacher, $centre);
             $session = $this->client->getRequest()->getSession();
             $session->set('tenant.centre_id', $centre->getId()->toRfc4122());
             $session->save();
         }
+    }
+
+    /**
+     * A centre in the session is re-checked on every request (TenantContext::getSelectedCentre()),
+     * exactly as for a real login, which could only have picked a centre the teacher belongs to.
+     * Tests that just drop a teacher into a centre get that membership here: the centre's active
+     * academic year if it has one — or else a separate, non-active year, so a test about a centre
+     * without an active year still sees none.
+     */
+    private function ensureBelongsTo(Teacher $teacher, EducationalCentre $centre): void
+    {
+        /** @var \App\Repository\EducationalCentreRepository $centres */
+        $centres = static::getContainer()->get(\App\Repository\EducationalCentreRepository::class);
+        /** @var \App\Repository\TeacherRepository $teachers */
+        $teachers = static::getContainer()->get(\App\Repository\TeacherRepository::class);
+        $managedTeacher = $teachers->findById($teacher->getId()->toRfc4122());
+        $managedCentre  = $centres->findById($centre->getId()->toRfc4122());
+        if ($managedTeacher === null || $managedCentre === null || $centres->isAccessibleByTeacher($managedCentre, $managedTeacher)) {
+            return;
+        }
+
+        $year = $managedCentre->getActiveAcademicYear();
+        if ($year === null) {
+            /** @var \App\Repository\AcademicYearRepository $years */
+            $years = static::getContainer()->get(\App\Repository\AcademicYearRepository::class);
+            foreach ($years->findByCentreOrderedByName($managedCentre) as $existing) {
+                if ($existing->getName() === 'Pertenencia de pruebas') {
+                    $year = $existing;
+                }
+            }
+        }
+        if ($year === null) {
+            $year = (new AcademicYear())->setName('Pertenencia de pruebas')->setEducationalCentre($managedCentre);
+            $this->em->persist($year);
+        }
+        $year->addTeacher($managedTeacher);
+        $this->em->flush();
     }
 
     /**
