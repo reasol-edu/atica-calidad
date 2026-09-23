@@ -85,7 +85,7 @@ igual que las secciones del árbol documental; dentro de cada una se crean y edi
 | Campo | Significado |
 | --- | --- |
 | Título / Descripción | Texto libre. |
-| Fecha de inicio / Fecha de fin | Solo **día y mes** (sin año): la actividad se repite automáticamente cada curso académico en esas fechas. |
+| Fecha de inicio / Fecha de fin | Solo **día y mes** (sin año): la actividad se repite automáticamente cada curso académico en esas fechas. Cada fecha se sitúa dentro del curso en vigor según el ajuste [Inicio del curso académico](09-administrar-la-plataforma.md#curso-academico) (15 de septiembre por defecto): una actividad de enero a febrero, consultada en octubre, se refiere a la del próximo enero, no a la del enero ya pasado. |
 | Carpeta | Opcional. Si se elige una, la actividad pasa a tener entregas (ver [Entregas y revisión](#entregas-y-revision)); si se deja vacía, se completa a mano. |
 | Lista para nombrar entregas | Opcional. Un elemento de [Listas](06-responsabilidades.md#listas) (p. ej. «Materia», o una rama concreta): **cada hoja que cuelga de él** —a cualquier profundidad— es una entrega esperada, con nombre igual a su **ruta bajo el elemento elegido** (p. ej. «Ciencias › Física»). Si la carpeta tiene un único perfil de subida, todas las hojas cuentan; si tiene varios, solo cuentan las hojas asociadas (en Listas) a uno de ellos, que además determina a quién le corresponde. |
 | Documentos relacionados | Documentos del árbol documental enlazados como lectura de apoyo, independientes de la carpeta de entregas. |

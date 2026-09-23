@@ -14,6 +14,7 @@ use App\Model\ActivityDashboardStatus;
 use App\Repository\ActivityRepository;
 use App\Service\ActivityCompletionChecker;
 use App\Service\ActivityDeadlineChecker;
+use App\Service\AppSettingsInterface;
 use App\Service\PendingActivityReminderFinder;
 use App\Tests\Integration\RepositoryTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -34,7 +35,7 @@ final class PendingActivityReminderFinderTest extends RepositoryTestCase
         $this->finder = new PendingActivityReminderFinder(
             self::getContainer()->get(ActivityRepository::class),
             self::getContainer()->get(ActivityCompletionChecker::class),
-            new ActivityDeadlineChecker(self::getContainer()->get('clock')),
+            new ActivityDeadlineChecker(self::getContainer()->get('clock'), self::getContainer()->get(AppSettingsInterface::class)),
         );
     }
 
@@ -55,13 +56,13 @@ final class PendingActivityReminderFinderTest extends RepositoryTestCase
 
     public function testAnActivityWhoseCycleHasNotStartedIsExcludedEvenIfNominallyWithinWarningRange(): void
     {
-        self::mockTime('2025-08-15 10:00:00');
+        self::mockTime('2025-09-15 10:00:00');
 
         $centre   = $this->centre();
         $category = $this->category($centre);
-        // Sep 1–30: hasn't started yet on Aug 15, even though the (wrong) naive "days until Sep 30"
+        // Oct 1–30: hasn't started yet on Sep 15, even though the (wrong) naive "days until Oct 30"
         // would fall well inside a generous warning window.
-        $activity = (new Activity())->setCategory($category)->setTitle('Actividad')->setStart(1, 9)->setEnd(30, 9);
+        $activity = (new Activity())->setCategory($category)->setTitle('Actividad')->setStart(1, 10)->setEnd(30, 10);
         $teacher  = $this->teacher('docente');
         $this->persist($centre, $category, $activity, $teacher);
 
@@ -139,12 +140,12 @@ final class PendingActivityReminderFinderTest extends RepositoryTestCase
 
     public function testBothBucketsAreSortedByDeadlineAscending(): void
     {
-        self::mockTime('2025-10-05 10:00:00');
+        self::mockTime('2025-11-05 10:00:00');
 
         $centre    = $this->centre();
         $category  = $this->category($centre);
-        $earlier   = (new Activity())->setCategory($category)->setTitle('Antigua')->setStart(1, 9)->setEnd(10, 9);
-        $later     = (new Activity())->setCategory($category)->setTitle('Reciente')->setStart(1, 9)->setEnd(30, 9);
+        $earlier   = (new Activity())->setCategory($category)->setTitle('Antigua')->setStart(1, 10)->setEnd(10, 10);
+        $later     = (new Activity())->setCategory($category)->setTitle('Reciente')->setStart(1, 10)->setEnd(30, 10);
         $teacher   = $this->teacher('docente');
         $this->persist($centre, $category, $earlier, $later, $teacher);
 

@@ -14,6 +14,15 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   curso pertenece cada fecha de las actividades, que se repiten cada curso. Solo admite fechas que
   existen todos los años (no el 29 de febrero).
 
+### Fixed
+
+- **Actividades**: las actividades cuyo plazo cae en la segunda parte del curso (p. ej. de enero a
+  febrero) ya no aparecen como **vencidas** entre septiembre y diciembre —ni en el panel, ni en
+  «Mis actividades», ni en la campana, ni en los recordatorios por correo—. Se referían por error
+  al plazo del curso anterior; ahora se muestran como «Se abre el…» con la fecha de este curso.
+  Con el inicio de curso por defecto (15 de septiembre), hasta ese día las actividades siguen
+  refiriéndose al curso que termina.
+
 ## [1.4.1] - 2026-09-20
 
 ### Fixed

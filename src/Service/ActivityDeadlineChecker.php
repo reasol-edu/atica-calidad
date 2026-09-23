@@ -5,19 +5,43 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Activity;
+use App\Entity\EducationalCentre;
+use App\Model\DayMonth;
 use Symfony\Component\Clock\ClockInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Computes whether an Activity's day/month deadline (no year — it repeats every academic year)
- * has already passed for the current cycle. Self-contained: anchors the deadline to a real
- * calendar date using only "now", without needing AcademicYear's actual dates (it only stores a
- * name like "2025-2026", not real start/end dates).
+ * has already passed for the current cycle, anchoring it to a real calendar date. AcademicYear
+ * only stores a name like "2025-2026", not real dates, so the cycle boundary comes instead from
+ * the centre's "start of the academic year" setting (academic_year.start_date, Sep 15 by
+ * default).
+ *
+ * A cycle is the academic year the reference date falls in, not its calendar year: on
+ * 2026-10-01 a Jan 10 – Feb 28 activity is the one opening on 2027-01-10 (this academic year's),
+ * not the one that closed on 2026-02-28 (last academic year's). Only a range straddling the
+ * start of the academic year itself (e.g. Sep 1 – Sep 30 with a Sep 15 start) can't fit inside
+ * one academic year; those keep being anchored to the reference's calendar year instead.
  */
-final class ActivityDeadlineChecker
+final class ActivityDeadlineChecker implements ResetInterface
 {
+    public const string START_DATE_SETTING = 'academic_year.start_date';
+
+    /** Used when the setting is missing (e.g. not migrated yet) or somehow holds an invalid value. */
+    private const string DEFAULT_START_DATE = '09-15';
+
+    /** @var array<int, DayMonth> the date the academic year starts on, by centre object id (cleared on reset()) */
+    private array $academicYearStarts = [];
+
     public function __construct(
         private readonly ClockInterface $clock,
+        private readonly AppSettingsInterface $settings,
     ) {}
+
+    public function reset(): void
+    {
+        $this->academicYearStarts = [];
+    }
 
     /** The real calendar date the activity's deadline falls on for the cycle "now" belongs to. */
     public function currentCycleEndDate(Activity $activity): \DateTimeImmutable
@@ -27,25 +51,12 @@ final class ActivityDeadlineChecker
 
     /**
      * The real calendar date the activity's deadline falls on for the cycle $reference belongs
-     * to — same anchoring/year-crossing logic as currentCycleEndDate(), just anchored to an
-     * arbitrary date instead of "now". Used by the calendar, which can be browsed to any month.
+     * to — same anchoring as currentCycleEndDate(), just anchored to an arbitrary date instead of
+     * "now". Used by the calendar, which can be browsed to any month.
      */
     public function cycleEndDateNear(Activity $activity, \DateTimeImmutable $reference): \DateTimeImmutable
     {
-        $end = new \DateTimeImmutable(\sprintf(
-            '%04d-%02d-%02d 23:59:59',
-            (int) $reference->format('Y'),
-            $activity->getEndMonth(),
-            $activity->getEndDay(),
-        ));
-
-        // A range that crosses the calendar year boundary (e.g. Sep–Jun): while the reference is
-        // still in the "start" stretch (Sep–Dec), the relevant end date is next calendar year's.
-        if ($activity->getStartMonth() > $activity->getEndMonth() && (int) $reference->format('n') >= $activity->getStartMonth()) {
-            $end = $end->modify('+1 year');
-        }
-
-        return $end;
+        return $this->cycleNear($activity, $reference)[1];
     }
 
     public function isOverdue(Activity $activity): bool
@@ -61,24 +72,11 @@ final class ActivityDeadlineChecker
 
     /**
      * The real calendar date the activity's period opens on for the cycle $reference belongs to —
-     * same anchoring/year-crossing logic as cycleEndDateNear(), mirrored for the start side: a
-     * wrapping range (e.g. Sep–Jun) whose reference sits in the "end" stretch (Jan–Jun) started
-     * back in the previous calendar year.
+     * same anchoring as cycleEndDateNear(), mirrored for the start side.
      */
     public function cycleStartDateNear(Activity $activity, \DateTimeImmutable $reference): \DateTimeImmutable
     {
-        $start = new \DateTimeImmutable(\sprintf(
-            '%04d-%02d-%02d 00:00:00',
-            (int) $reference->format('Y'),
-            $activity->getStartMonth(),
-            $activity->getStartDay(),
-        ));
-
-        if ($activity->getStartMonth() > $activity->getEndMonth() && (int) $reference->format('n') < $activity->getStartMonth()) {
-            $start = $start->modify('-1 year');
-        }
-
-        return $start;
+        return $this->cycleNear($activity, $reference)[0];
     }
 
     /** Whether the activity's current cycle has already opened — false while still waiting for its yearly start date. */
@@ -91,5 +89,75 @@ final class ActivityDeadlineChecker
     public function daysUntilDeadline(Activity $activity): int
     {
         return (int) $this->clock->now()->diff($this->currentCycleEndDate($activity))->days;
+    }
+
+    /** @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable} the [start, end] of the cycle $reference belongs to. */
+    private function cycleNear(Activity $activity, \DateTimeImmutable $reference): array
+    {
+        $academicYearStart = $this->academicYearStart($activity->getCategory()->getEducationalCentre());
+        $boundary          = $academicYearStart->month * 100 + $academicYearStart->day;
+
+        // First calendar year of the academic year $reference falls in (2026 for 2026-2027).
+        $referenceYear = (int) $reference->format('Y');
+        $academicYear  = (int) $reference->format('nd') < $boundary ? $referenceYear - 1 : $referenceYear;
+
+        $start = $this->startOf($activity, $this->calendarYearWithin($academicYear, $boundary, $activity->getStartMonth(), $activity->getStartDay()));
+        $end   = $this->endOf($activity, $this->calendarYearWithin($academicYear, $boundary, $activity->getEndMonth(), $activity->getEndDay()));
+
+        if ($start <= $end) {
+            return [$start, $end];
+        }
+
+        return $this->calendarYearCycleNear($activity, $reference);
+    }
+
+    /** Calendar year that $month/$day falls in within the academic year starting on $boundary (month * 100 + day) of $academicYear. */
+    private function calendarYearWithin(int $academicYear, int $boundary, int $month, int $day): int
+    {
+        return $month * 100 + $day >= $boundary ? $academicYear : $academicYear + 1;
+    }
+
+    /**
+     * Fallback for a range straddling the start of the academic year (e.g. Sep 1 – Sep 30 with a
+     * Sep 15 start), which no single academic year contains: anchored to $reference's calendar
+     * year, moving the end forward (or the start back) a year only for a range that also wraps
+     * the calendar year.
+     *
+     * @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable}
+     */
+    private function calendarYearCycleNear(Activity $activity, \DateTimeImmutable $reference): array
+    {
+        $year  = (int) $reference->format('Y');
+        $start = $this->startOf($activity, $year);
+        $end   = $this->endOf($activity, $year);
+
+        if ($activity->getStartMonth() > $activity->getEndMonth()) {
+            if ((int) $reference->format('n') >= $activity->getStartMonth()) {
+                $end = $end->modify('+1 year');
+            } else {
+                $start = $start->modify('-1 year');
+            }
+        }
+
+        return [$start, $end];
+    }
+
+    private function academicYearStart(EducationalCentre $centre): DayMonth
+    {
+        $centreKey = spl_object_id($centre);
+
+        return $this->academicYearStarts[$centreKey] ??= DayMonth::tryParse($this->settings->getForCentre(self::START_DATE_SETTING, $centre))
+            ?? DayMonth::tryParse(self::DEFAULT_START_DATE)
+            ?? throw new \LogicException('Invalid default academic year start date.');
+    }
+
+    private function startOf(Activity $activity, int $year): \DateTimeImmutable
+    {
+        return new \DateTimeImmutable(\sprintf('%04d-%02d-%02d 00:00:00', $year, $activity->getStartMonth(), $activity->getStartDay()));
+    }
+
+    private function endOf(Activity $activity, int $year): \DateTimeImmutable
+    {
+        return new \DateTimeImmutable(\sprintf('%04d-%02d-%02d 23:59:59', $year, $activity->getEndMonth(), $activity->getEndDay()));
     }
 }

@@ -20,6 +20,7 @@ use App\Repository\ActivityRepository;
 use App\Service\ActivityCompletionChecker;
 use App\Service\ActivityDashboardSummaryBuilder;
 use App\Service\ActivityDeadlineChecker;
+use App\Service\AppSettingsInterface;
 use App\Tests\Integration\RepositoryTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
@@ -38,7 +39,7 @@ final class ActivityDashboardSummaryBuilderTest extends RepositoryTestCase
         $this->builder = new ActivityDashboardSummaryBuilder(
             self::getContainer()->get(ActivityRepository::class),
             self::getContainer()->get(ActivityCompletionChecker::class),
-            new ActivityDeadlineChecker(self::getContainer()->get('clock')),
+            new ActivityDeadlineChecker(self::getContainer()->get('clock'), self::getContainer()->get(AppSettingsInterface::class)),
         );
     }
 

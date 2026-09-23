@@ -62,7 +62,7 @@ final class SendPendingActivityReminderHandlerTest extends RepositoryTestCase
         $finder = new PendingActivityReminderFinder(
             self::getContainer()->get(ActivityRepository::class),
             self::getContainer()->get(ActivityCompletionChecker::class),
-            new ActivityDeadlineChecker(self::getContainer()->get('clock')),
+            new ActivityDeadlineChecker(self::getContainer()->get('clock'), self::getContainer()->get(AppSettingsInterface::class)),
         );
 
         $notificationMailer = new NotificationMailer(
