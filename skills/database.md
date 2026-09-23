@@ -91,3 +91,19 @@ Don't add the filter unconditionally to a method that's meant to support both.
 - For file-typed values attached to a setting, use the generic, hash-deduplicated
   storage (`SettingFile` + FK from the value row, keyed by SHA-256 hash) instead
   of creating a table specific to a single use case.
+
+## File contents (BLOB columns): never hydrate many at once
+
+`DocumentFile::$content` (and `SettingFile`'s) is a BLOB column on the entity itself — Doctrine
+can't lazy-load a single column, so hydrating a `DocumentFile` loads its whole content, and the
+identity map keeps it for the rest of the request. Fine for one download; for anything that walks
+over many files (a folder's ZIP, an export…) it multiplies memory by the total size (measured:
+~3× the folder; an HTTP 500 past a few tens of MB).
+
+- Read contents one file at a time with `DocumentFileRepository::writeContentTo($fileId, $path)`
+  (a plain query per file, straight to disk), and get file metadata as plain columns
+  (e.g. `DocumentRepository::findActiveFilesInFolder()`), not through `$revision->getFile()`.
+- Never select several contents in one query: MySQL's driver buffers the whole result set.
+- `AttachmentZipExporter` takes entries as `['name' => …, 'write' => fn (string $path) => …]` and
+  adds them with `ZipArchive::addFile()`, so only one entry is in memory at a time.
+  `FolderZipExporterMemoryTest` guards this.

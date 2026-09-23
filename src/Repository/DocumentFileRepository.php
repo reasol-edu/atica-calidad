@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\DocumentFile;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<DocumentFile>
@@ -33,5 +34,34 @@ class DocumentFileRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
 
         return $result instanceof DocumentFile ? $result : null;
+    }
+
+    /**
+     * Writes a file's content straight to $path, one file at a time, without hydrating the
+     * DocumentFile (which Doctrine would then keep, content included, for the rest of the
+     * request). Lets a caller walk through many files — e.g. a whole folder's ZIP — holding just
+     * one in memory at a time. Queried on its own on purpose: a single result set carrying every
+     * content would be buffered whole by MySQL's driver.
+     */
+    public function writeContentTo(Uuid $id, string $path): void
+    {
+        $metadata = $this->getClassMetadata();
+        $sql      = \sprintf('SELECT %s FROM %s WHERE %s = ?', $metadata->getColumnName('content'), $metadata->getTableName(), $metadata->getColumnName('id'));
+        $content  = $this->getEntityManager()->getConnection()->fetchOne($sql, [$id], ['uuid']);
+
+        $out = fopen($path, 'wb');
+        if ($out === false) {
+            throw new \RuntimeException(\sprintf('Cannot write to "%s".', $path));
+        }
+
+        try {
+            match (true) {
+                is_resource($content) => stream_copy_to_stream($content, $out),
+                is_string($content)   => fwrite($out, $content),
+                default               => throw new \RuntimeException(\sprintf('Document file "%s" not found.', $id->toRfc4122())),
+            };
+        } finally {
+            fclose($out);
+        }
     }
 }

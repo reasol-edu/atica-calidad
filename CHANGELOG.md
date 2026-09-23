@@ -28,6 +28,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Fixed
 
+- **Árbol documental**: «Descargar la carpeta (ZIP)» ya funciona con carpetas grandes. Antes, el
+  servidor cargaba en memoria todos los ficheros de la carpeta a la vez —unas tres veces su
+  tamaño—, así que una carpeta de unos 40 MB (80 MB con Docker) acababa en un error. Ahora prepara
+  los ficheros de uno en uno, y la descarga también es bastante más rápida.
 - **Actividades**: las actividades cuyo plazo cae en la segunda parte del curso (p. ej. de enero a
   febrero) ya no aparecen como **vencidas** entre septiembre y diciembre —ni en el panel, ni en
   «Mis actividades», ni en la campana, ni en los recordatorios por correo—. Se referían por error

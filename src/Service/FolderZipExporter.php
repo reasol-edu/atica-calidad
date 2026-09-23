@@ -6,6 +6,7 @@ namespace App\Service;
 
 use App\Entity\Document;
 use App\Entity\Folder;
+use App\Repository\DocumentFileRepository;
 use App\Repository\DocumentRepository;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -30,6 +31,10 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  * ActivityFolderCycleFilter; the current one by default). When that spans more than one academic
  * year, each year becomes a top-level directory ("2025-2026/"), with the profile directories
  * inside it; and the ZIP's own name is led by the academic year (or range of years) it holds.
+ *
+ * File contents are never loaded here: the file ids and original filenames come from one plain
+ * query, and each entry streams its own content to disk through DocumentFileRepository::
+ * writeContentTo() when AttachmentZipExporter asks for it — one file in memory at a time.
  */
 final class FolderZipExporter
 {
@@ -38,6 +43,7 @@ final class FolderZipExporter
         private readonly AttachmentZipExporter $zipExporter,
         private readonly ActivitySubmissionFilenameBuilder $submissionFilename,
         private readonly ActivityFolderCycleFilter $cycleFilter,
+        private readonly DocumentFileRepository $documentFiles,
     ) {}
 
     /** @param string $cycleSelection see ActivityFolderCycleFilter: "" (current academic year), ActivityFolderCycleFilter::ALL or a cycle key */
@@ -46,14 +52,16 @@ final class FolderZipExporter
         $groupByProfile = $folder->isGroupByProfile();
         $currentCycle   = $this->cycleFilter->currentCycle($folder);
 
+        $activeFiles = $this->documents->findActiveFilesInFolder($folder);
+
         $published = [];
         $cycles    = [];
         foreach ($this->cycleFilter->filter($folder, $this->documents->findByFolder($folder), $cycleSelection) as $document) {
-            $revision = $document->getActiveRevision();
-            if ($revision === null) {
+            $file = $activeFiles[$document->getId()->toRfc4122()] ?? null;
+            if ($file === null) {
                 continue;
             }
-            $published[] = [$document, $revision->getFile()];
+            $published[] = [$document, $file];
             if ($currentCycle !== null) {
                 $cycles[$document->getActivityCycleYear() ?? $currentCycle] = true;
             }
@@ -69,9 +77,10 @@ final class FolderZipExporter
                 $prefix .= $this->profileDirectory($document);
             }
 
+            $fileId    = $file['fileId'];
             $entries[] = [
-                'name'    => $prefix . $this->entryFilename($document, $file->getOriginalFilename()),
-                'content' => $file->getContent(),
+                'name'  => $prefix . $this->entryFilename($document, $file['originalFilename']),
+                'write' => fn (string $path) => $this->documentFiles->writeContentTo($fileId, $path),
             ];
         }
 

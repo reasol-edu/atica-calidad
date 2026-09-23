@@ -12,6 +12,7 @@ use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<Document>
@@ -207,6 +208,34 @@ class DocumentRepository extends ServiceEntityRepository
         $result = $qb->setMaxResults(1)->getQuery()->getOneOrNullResult();
 
         return $result instanceof Document ? $result : null;
+    }
+
+    /**
+     * For every document in $folder with an active revision: that revision's file id and original
+     * filename, keyed by document id (RFC 4122). Read as plain columns so no DocumentFile gets
+     * hydrated — that would load its whole content too (see DocumentFileRepository::writeContentTo()).
+     *
+     * @return array<string, array{fileId: Uuid, originalFilename: string}>
+     */
+    public function findActiveFilesInFolder(Folder $folder): array
+    {
+        $rows = $this->createQueryBuilder('d')
+            ->select('d.id AS documentId', 'f.id AS fileId', 'f.originalFilename AS originalFilename')
+            ->join('d.activeRevision', 'r')
+            ->join('r.file', 'f')
+            ->where('d.folder = :folder')
+            ->setParameter('folder', $folder->getId(), 'uuid')
+            ->getQuery()
+            ->getArrayResult();
+
+        $files = [];
+        foreach ($rows as $row) {
+            if (is_array($row) && ($row['documentId'] ?? null) instanceof Uuid && ($row['fileId'] ?? null) instanceof Uuid && is_string($row['originalFilename'] ?? null)) {
+                $files[$row['documentId']->toRfc4122()] = ['fileId' => $row['fileId'], 'originalFilename' => $row['originalFilename']];
+            }
+        }
+
+        return $files;
     }
 
     /**
