@@ -1,4 +1,4 @@
-{# item: ActivityDashboardItem #}
+{# item: ActivityDashboardItem; nested: inside an activity's expandable row (_my_activity_group_row), which already names the activity and its category. #}
 {% import 'components/_activity_status.html.twig' as activity_status %}
 {% set status = item.status.value %}
 {% set completed = status == 'completed' %}
@@ -8,10 +8,10 @@
         <span class="mt-0.5">{{ activity_status.icon(status) }}</span>
         <span class="min-w-0 flex-1">
             <span class="block truncate text-sm font-medium text-gray-900 {{ completed ? 'line-through decoration-gray-300' : '' }}">
-                {{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}
+                {% if nested ?? false %}{{ item.ownerLabel ?? item.activity.title }}{% else %}{{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}{% endif %}
             </span>
             <span class="block truncate text-xs text-gray-500">
-                {{ item.categoryPath }} · {{ activity_status.detail(item) }}
+                {% if not (nested ?? false) %}{{ item.categoryPath }} · {% endif %}{{ activity_status.detail(item) }}
             </span>
             {# Below sm, the pill moves to its own line here instead of sitting shrink-0 at the end
                of the row, where it was squeezing the title/date text on narrow screens. #}

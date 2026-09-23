@@ -1,0 +1,38 @@
+{# row: ActivityObligationGroup — one activity; its obligations fold into an expandable row when there are several. #}
+{% import 'components/_activity_status.html.twig' as activity_status %}
+{% if row.single %}
+    {% include 'components/_my_activity_row.html.twig' with {item: row.items|first} %}
+{% else %}
+    {% set lead = row.lead %}
+    {% set status = lead.status.value %}
+    {% set done = row.doneCount %}
+    <li>
+        <details class="group/obligations">
+            <summary class="flex cursor-pointer list-none items-start gap-3 px-4 py-3 transition-colors {{ activity_status.row_bg(status) }} [&::-webkit-details-marker]:hidden">
+                <span class="mt-0.5">{{ activity_status.icon(status) }}</span>
+                <span class="min-w-0 flex-1">
+                    <span class="flex items-center gap-2 text-sm font-medium text-gray-900">
+                        <span class="truncate">{{ row.activity.title }}</span>
+                        <span class="shrink-0 rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-semibold text-gray-600 ring-1 ring-gray-200"
+                              title="{{ 'mine.obligations_done'|trans({'%done%': done, '%total%': row.count}, 'activity_content') }}">
+                            {{ done }}/{{ row.count }}
+                        </span>
+                    </span>
+                    <span class="block truncate text-xs text-gray-500">
+                        {{ lead.categoryPath }} · {{ 'mine.obligations'|trans({'%count%': row.count}, 'activity_content') }} · {{ activity_status.detail(lead) }}
+                    </span>
+                    <span class="mt-1 inline-block sm:hidden">{{ activity_status.pill(status) }}</span>
+                </span>
+                <span class="hidden self-center sm:block">{{ activity_status.pill(status) }}</span>
+                <span class="self-center text-gray-400 transition-transform group-open/obligations:rotate-180">
+                    {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4'}) }}
+                </span>
+            </summary>
+            <ul class="divide-y divide-gray-100 border-t border-gray-100 bg-white pl-8">
+                {% for item in row.items %}
+                    {% include 'components/_my_activity_row.html.twig' with {item: item, nested: true} %}
+                {% endfor %}
+            </ul>
+        </details>
+    </li>
+{% endif %}

@@ -85,15 +85,15 @@
             <p class="text-sm font-medium text-forest-700">{{ 'mine.empty'|trans({}, 'activity_content') }}</p>
         </div>
     {% elseif groupBy == 'deadline' %}
-        {% set items = this.filteredItems %}
-        {% if items is empty %}
+        {% set rows = this.rows %}
+        {% if rows is empty %}
             <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-8 text-center">
                 <p class="text-sm text-gray-500">{{ 'mine.no_results'|trans({}, 'activity_content') }}</p>
             </div>
         {% else %}
             <ul class="divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden bg-white">
-                {% for item in items %}
-                    {% include 'components/_my_activity_row.html.twig' with {item: item} %}
+                {% for row in rows %}
+                    {% include 'components/_my_activity_group_row.html.twig' with {row: row} %}
                 {% endfor %}
             </ul>
         {% endif %}
@@ -112,8 +112,8 @@
                             <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">{{ group.items|length }}</span>
                         </h3>
                         <ul class="divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden bg-white">
-                            {% for item in group.items %}
-                                {% include 'components/_my_activity_row.html.twig' with {item: item} %}
+                            {% for row in group.rows %}
+                                {% include 'components/_my_activity_group_row.html.twig' with {row: row} %}
                             {% endfor %}
                         </ul>
                     </div>

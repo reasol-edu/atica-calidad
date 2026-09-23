@@ -28,6 +28,8 @@ mine.group.upcoming: 'Próximamente'
 mine.group.closed: 'Cerradas sin completar'
 mine.group.done: 'Hechas'
 mine.no_owner_label: 'Individual'
+mine.obligations: '{1}1 obligación|]1,Inf[%count% obligaciones'
+mine.obligations_done: '%done% de %total% completadas'
 mine.empty: '¡Todo al día! No tienes ninguna actividad pendiente.'
 mine.no_results: 'No se han encontrado actividades que coincidan con la búsqueda.'
 

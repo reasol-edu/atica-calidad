@@ -7,6 +7,11 @@ namespace App\Tests\Integration\Component;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\ActivityCompletion;
+use App\Entity\DocumentSection;
+use App\Entity\Folder;
+use App\Entity\SpecificProfile;
+use App\Entity\SpecificProfileAssignment;
+use App\Entity\ActivitySubmissionScope;
 use App\Entity\EducationalCentre;
 use App\Entity\PersonName;
 use App\Entity\Teacher;
@@ -258,5 +263,43 @@ final class MyActivitiesComponentTest extends ControllerTestCase
         self::assertStringContainsString('hover:bg-red-100', $html);    // overdue
         self::assertStringContainsString('hover:bg-amber-100', $html);  // active
         self::assertStringContainsString('hover:bg-forest-100', $html); // completed
+    }
+
+    /** Two owner rows of the same by-profile activity: one expandable "0/2" row, not the activity twice — except where the view groups by exactly what tells them apart. */
+    public function testTheObligationsOfOneActivityFoldIntoOneExpandableRow(): void
+    {
+        self::mockTime('2025-09-10 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Carpeta');
+        $mate     = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura Matemáticas');
+        $info     = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura Informática');
+        $folder->addUploadProfile($mate);
+        $folder->addUploadProfile($info);
+        $activity = $this->activity($category, 'Memoria del departamento')->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile);
+        $other    = $this->activity($category, 'Otra');
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $section, $folder, $mate, $info, $activity, $other, $teacher,
+            new SpecificProfileAssignment($mate, null, $teacher), new SpecificProfileAssignment($info, null, $teacher));
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('MyActivitiesComponent', ['centre' => $centre], $this->client);
+        $crawler   = $component->render()->crawler();
+
+        self::assertCount(2, $crawler->filter('ul.rounded-xl > li'), 'one row per activity');
+        $folded = $crawler->filter('details');
+        self::assertCount(1, $folded);
+        self::assertStringContainsString('Memoria del departamento', $folded->filter('summary')->text());
+        self::assertStringContainsString('0/2', $folded->filter('summary')->text());
+        self::assertStringContainsString('Jefatura Informática', $folded->filter('ul')->text());
+        self::assertStringContainsString('Jefatura Matemáticas', $folded->filter('ul')->text());
+
+        $component->call('setGroupBy', ['mode' => 'category']);
+        self::assertCount(1, $component->render()->crawler()->filter('details'));
+
+        $component->call('setGroupBy', ['mode' => 'profile']);
+        self::assertCount(0, $component->render()->crawler()->filter('details'));
     }
 }

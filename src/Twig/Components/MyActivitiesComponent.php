@@ -7,6 +7,7 @@ namespace App\Twig\Components;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Model\ActivityDashboardItem;
+use App\Model\ActivityObligationGroup;
 use App\Model\ActivityObligationStatus;
 use App\Service\ActivityObligationFinder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,6 +25,10 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * views (by profile/owner label, by category, by done/not-done status); grouping never changes the
  * within-group order, which stays deadline-ascending throughout — including for overdue items,
  * whose deadline already sits in the past, so they naturally surface first without special-casing.
+ *
+ * In the deadline and category views, the obligations of one activity (several owner rows of a
+ * ByProfile activity) fold into one expandable row with an "X/Y" count (ActivityObligationGroup).
+ * The profile and status views keep them apart: that's precisely what they group by.
  */
 #[AsLiveComponent]
 class MyActivitiesComponent extends AbstractController
@@ -130,12 +135,22 @@ class MyActivitiesComponent extends AbstractController
     }
 
     /**
+     * The flat view's rows: getFilteredItems(), one row per activity.
+     *
+     * @return list<ActivityObligationGroup>
+     */
+    public function getRows(): array
+    {
+        return ActivityObligationGroup::fold($this->getFilteredItems());
+    }
+
+    /**
      * Only meaningful when $groupBy !== 'deadline' — the flat view renders getFilteredItems()
      * directly instead. Groups are themselves ordered by their most urgent (soonest-deadline)
      * item, except the 'status' grouping, which always follows whose move it is: to do, waiting
      * for approval, not open yet, closed, done — regardless of individual deadlines.
      *
-     * @return list<array{label: string, items: list<ActivityDashboardItem>}>
+     * @return list<array{label: string, items: list<ActivityDashboardItem>, rows: list<ActivityObligationGroup>}>
      */
     public function getGroups(): array
     {
@@ -152,7 +167,7 @@ class MyActivitiesComponent extends AbstractController
             foreach (self::STATUS_GROUP_ORDER as $group) {
                 $label = $this->translator->trans('mine.group.' . $group, [], 'activity_content');
                 if (isset($buckets[$label])) {
-                    $groups[] = ['label' => $label, 'items' => $buckets[$label]];
+                    $groups[] = ['label' => $label, 'items' => $buckets[$label], 'rows' => $this->unfolded($buckets[$label])];
                 }
             }
 
@@ -161,12 +176,26 @@ class MyActivitiesComponent extends AbstractController
 
         $groups = [];
         foreach ($buckets as $label => $groupItems) {
-            $groups[] = ['label' => $label, 'items' => $groupItems];
+            $groups[] = [
+                'label' => $label,
+                'items' => $groupItems,
+                'rows'  => $this->groupBy === 'category' ? ActivityObligationGroup::fold($groupItems) : $this->unfolded($groupItems),
+            ];
         }
 
         usort($groups, static fn (array $a, array $b): int => $a['items'][0]->deadline <=> $b['items'][0]->deadline);
 
         return $groups;
+    }
+
+    /**
+     * @param list<ActivityDashboardItem> $items
+     *
+     * @return list<ActivityObligationGroup> one single-item row per obligation
+     */
+    private function unfolded(array $items): array
+    {
+        return array_map(static fn (ActivityDashboardItem $i): ActivityObligationGroup => new ActivityObligationGroup([$i]), $items);
     }
 
     private function groupLabel(ActivityDashboardItem $item): string
