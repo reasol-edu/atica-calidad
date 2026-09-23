@@ -15,7 +15,9 @@ use App\Entity\FolderReviewProfile;
 use App\Entity\FolderUploadProfile;
 use App\Entity\FolderVisibilityProfile;
 use App\Entity\Teacher;
+use App\Entity\DocumentReadAcknowledgement;
 use App\Model\ProfileAssignmentRow;
+use App\Model\ReadAcknowledgementStatus;
 use App\Repository\DocumentRepository;
 use App\Repository\DocumentRevisionRepository;
 use App\Repository\DocumentSectionRepository;
@@ -29,6 +31,7 @@ use App\Service\DocumentFileGarbageCollector;
 use App\Service\TrashService;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\ProfileAssignmentRowBuilder;
+use App\Service\ReadAcknowledgementService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -181,6 +184,10 @@ class SectionBrowserComponent extends AbstractController
     #[LiveProp]
     public array $errors = [];
 
+    /** Document whose "who has read it" list is open, for a folder manager (read acknowledgement). */
+    #[LiveProp(writable: true)]
+    public string $readStatusDocumentId = '';
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
@@ -194,6 +201,7 @@ class SectionBrowserComponent extends AbstractController
         private readonly TrashService $trash,
         private readonly TeacherRepository $teachers,
         private readonly ActivityFolderCycleFilter $cycleFilter,
+        private readonly ReadAcknowledgementService $readAcknowledgements,
     ) {}
 
     public function mount(
@@ -624,6 +632,59 @@ class SectionBrowserComponent extends AbstractController
         }
 
         return $keys;
+    }
+
+    #[LiveAction]
+    public function toggleReadAcknowledgement(#[LiveArg] string $id): void
+    {
+        $this->denyAccessUnlessGranted(EducationalCentreVoter::RESPONSIBILITIES, $this->centre);
+        $folder = $this->requireFolder($id);
+        if ($folder->getActivity() !== null) {
+            return;
+        }
+        $folder->setRequiresReadAcknowledgement(!$folder->requiresReadAcknowledgement());
+        $this->em->flush();
+    }
+
+    // ── Read acknowledgement ("acuse de lectura") ─────────────────────────────
+
+    /** Whether the current teacher has to acknowledge $document's version in force. */
+    public function mustReadDocument(Document $document): bool
+    {
+        return $this->readAcknowledgements->mustRead($this->teacher(), $document);
+    }
+
+    public function getMyReadAcknowledgement(Document $document): ?DocumentReadAcknowledgement
+    {
+        return $this->readAcknowledgements->acknowledgementOf($this->teacher(), $document);
+    }
+
+    /** Who has read $document's version in force — only for whoever manages its folder. */
+    public function getReadStatus(Document $document): ?ReadAcknowledgementStatus
+    {
+        if (!$this->canManageFolder($document->getFolder())) {
+            return null;
+        }
+
+        return $this->readAcknowledgements->statusOf([$document])[$document->getId()->toRfc4122()] ?? null;
+    }
+
+    #[LiveAction]
+    public function acknowledgeDocument(#[LiveArg] string $folderId, #[LiveArg] string $id): void
+    {
+        $document = $this->requireDocument($this->requireFolder($folderId), $id);
+        if (!$this->readAcknowledgements->mustRead($this->teacher(), $document)) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $this->readAcknowledgements->acknowledge($this->teacher(), $document);
+        $this->flashSuccess($this->t('read_ack.flash.acknowledged'));
+    }
+
+    #[LiveAction]
+    public function toggleReadStatus(#[LiveArg] string $id): void
+    {
+        $this->readStatusDocumentId = $this->readStatusDocumentId === $id ? '' : $id;
     }
 
     #[LiveAction]

@@ -18,6 +18,11 @@ activities.more_to_do: '{1}Y 1 más por hacer en Mis actividades.|]1,Inf[Y %coun
 activities.all_done: '¡Todo al día! No tienes nada pendiente ahora mismo.'
 activities.next_upcoming: 'La próxima, «%title%», se abre el %date%.'
 
+read_ack.title: 'Documentos por leer'
+read_ack.help: 'Ábrelos, léelos y pulsa «Confirmar lectura» junto a cada uno.'
+read_ack.version: 'versión %version% del %date%'
+read_ack.more: '{1}Y 1 documento más.|]1,Inf[Y %count% documentos más.'
+
 reviews.title: 'Revisiones pendientes'
 reviews.stat.pending: 'Pendientes'
 reviews.uploaded_by: 'Subido por %name% el %date%'

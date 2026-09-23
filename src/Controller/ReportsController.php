@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Document;
 use App\Entity\EducationalCentre;
+use App\Entity\Teacher;
 use App\Model\ActivityStatusReportRow;
 use App\Model\DocumentMasterListRow;
+use App\Model\ReadAcknowledgementStatus;
+use App\Repository\DocumentRepository;
 use App\Repository\EducationalCentreRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Service\ActivityStatusReportBuilder;
 use App\Service\DocumentMasterListBuilder;
 use App\Service\DocumentReviewSchedule;
 use App\Service\PdfRenderer;
+use App\Service\ReadAcknowledgementService;
 use App\Service\XlsxExporter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Clock\ClockInterface;
@@ -26,7 +31,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * - the document master list (DocumentMasterListBuilder);
  * - documents whose review is overdue or coming up (DocumentMasterListBuilder::reviewsDue());
- * - how every activity stands this academic year (ActivityStatusReportBuilder).
+ * - how every activity stands this academic year (ActivityStatusReportBuilder);
+ * - who has read the documents that require it (ReadAcknowledgementService).
  *
  * For the centre's admins, quality managers and internal auditors (EducationalCentreVoter::REPORTS),
  * who can already see every document.
@@ -40,6 +46,8 @@ class ReportsController extends AbstractController
         private readonly EducationalCentreRepository $centres,
         private readonly DocumentMasterListBuilder $masterList,
         private readonly ActivityStatusReportBuilder $activityStatus,
+        private readonly ReadAcknowledgementService $readAcknowledgements,
+        private readonly DocumentRepository $documents,
         private readonly PdfRenderer $pdf,
         private readonly XlsxExporter $xlsx,
         private readonly TranslatorInterface $translator,
@@ -58,6 +66,7 @@ class ReportsController extends AbstractController
             'reviewsDueCount' => \count($reviewsDue),
             'reviewsOverdue'  => \count(array_filter($reviewsDue, static fn (DocumentMasterListRow $r): bool => $r->reviewState === DocumentReviewSchedule::OVERDUE)),
             'activityCount'   => \count($this->activityStatus->build($centre)),
+            'readAckCount'    => \count($this->documents->findRequiringReadAcknowledgementByCentre($centre)),
             'reviewHorizon'   => DocumentMasterListBuilder::REVIEW_HORIZON_DAYS,
         ]);
     }
@@ -118,8 +127,53 @@ class ReportsController extends AbstractController
     }
 
     /**
-     * @param 'document_master_list'|'document_reviews'|'activity_status' $reportType
-     * @param array<string, mixed>                                        $context
+     * Who has read, and who hasn't, the version in force of every document that requires it
+     * (ReadAcknowledgementService), in tree order.
+     */
+    #[Route('/acuses-de-lectura.{_format}', name: 'app_reports_read_acknowledgements', requirements: ['_format' => self::FORMATS])]
+    public function readAcknowledgements(string $centreId, string $_format): Response
+    {
+        $centre   = $this->requireCentre($centreId);
+        $statuses = array_values($this->readAcknowledgements->statusOf($this->documents->findRequiringReadAcknowledgementByCentre($centre)));
+
+        if ($_format === 'pdf') {
+            return $this->pdfResponse('reports/pdf/read_acknowledgements.html.twig', 'read_acknowledgements', 'read_acknowledgements', $centre, [
+                'statuses' => $statuses,
+                'paths'    => array_map(fn (ReadAcknowledgementStatus $s): string => $this->sectionPath($s->document), $statuses),
+            ]);
+        }
+
+        $headers = array_map(fn (string $key): string => $this->t('read_acknowledgements.col.' . $key), ['section', 'folder', 'document', 'version', 'read', 'total', 'percent', 'pending']);
+
+        return $this->xlsx->createResponse($this->filename('read_acknowledgements', 'xlsx'), $headers, array_map(
+            fn (ReadAcknowledgementStatus $s): array => [
+                $this->sectionPath($s->document),
+                $s->document->getFolder()->getName(),
+                $s->document->getName(),
+                $s->document->getActiveRevision()?->getVersion(),
+                $s->readCount(),
+                $s->total(),
+                $s->total() > 0 ? (int) round(100 * $s->readCount() / $s->total()) : 100,
+                implode('; ', array_map(static fn (Teacher $t): string => $t->getName()->getLastName() . ', ' . $t->getName()->getFirstName(), $s->pending)),
+            ],
+            $statuses,
+        ));
+    }
+
+    /** "8. Operación › 8.1 Planificación" for the document's section and its ancestors. */
+    private function sectionPath(Document $document): string
+    {
+        $names = [];
+        for ($section = $document->getFolder()->getDocumentSection(); $section !== null; $section = $section->getParent()) {
+            array_unshift($names, $section->getName());
+        }
+
+        return implode(' › ', $names);
+    }
+
+    /**
+     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements' $reportType
+     * @param array<string, mixed>                                                                $context
      */
     private function pdfResponse(string $template, string $reportType, string $key, EducationalCentre $centre, array $context): Response
     {

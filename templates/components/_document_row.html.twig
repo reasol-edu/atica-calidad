@@ -7,6 +7,11 @@
 {% set can_review = this.canReviewFolder(folder) %}
 {% set can_edit_metadata = this.canEditRevisionMetadata %}
 {% set highlighted = highlightedDocumentId == did %}
+{# Read acknowledgement: only in a folder that requires it, and only for the version in force. #}
+{% set needs_ack = active and folder.requiresReadAcknowledgement %}
+{% set must_read = needs_ack and this.mustReadDocument(document) %}
+{% set my_ack = must_read ? this.getMyReadAcknowledgement(document) : null %}
+{% set read_status = needs_ack and can_manage ? this.getReadStatus(document) : null %}
 
 <div>
     <div {{ (highlighted ? 'data-controller="scroll-into-view"' : '')|raw }}
@@ -57,6 +62,15 @@
                             {{ ('status.next_review.' ~ review_state)|trans({'%date%': document.nextReviewAt|date('d/m/Y')}, 'document_content') }}
                         </span>
                     {% endif %}
+                    {% if must_read %}
+                        {% if my_ack %}
+                            <span class="shrink-0 inline-flex items-center gap-0.5 rounded-full bg-forest-50 px-1.5 py-0.5 text-[11px] text-forest-700">
+                                {{ ux_icon('heroicons:check', {class: 'h-3 w-3'}) }}{{ 'read_ack.read_on'|trans({'%date%': my_ack.acknowledgedAt|date('d/m/Y')}, 'document_content') }}
+                            </span>
+                        {% else %}
+                            <span class="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700">{{ 'read_ack.to_read'|trans({}, 'document_content') }}</span>
+                        {% endif %}
+                    {% endif %}
                     {% if pending %}
                         <span class="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">{{ 'status.pending'|trans({}, 'document_content') }}</span>
                     {% elseif not active %}
@@ -69,6 +83,24 @@
                     </p>
                 {% endif %}
             </div>
+        {% endif %}
+
+        {% if must_read and not my_ack %}
+            <button type="button" data-action="live#action" data-live-action-param="acknowledgeDocument" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
+                    title="{{ 'read_ack.confirm_help'|trans({'%version%': active.version}, 'document_content') }}"
+                    class="shrink-0 inline-flex items-center gap-1 rounded-md border border-forest-200 bg-white px-2 py-0.5 text-xs font-medium text-forest-700 hover:bg-forest-50">
+                {{ ux_icon('heroicons:check-badge', {class: 'h-3.5 w-3.5'}) }}
+                {{ 'read_ack.confirm'|trans({}, 'document_content') }}
+            </button>
+        {% endif %}
+        {% if read_status %}
+            <button type="button" data-action="live#action" data-live-action-param="toggleReadStatus" data-live-id-param="{{ did }}"
+                    aria-expanded="{{ readStatusDocumentId == did ? 'true' : 'false' }}"
+                    title="{{ 'read_ack.status_help'|trans({}, 'document_content') }}"
+                    class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium {{ read_status.complete ? 'bg-forest-50 text-forest-700' : 'bg-gray-100 text-gray-600' }} hover:ring-1 hover:ring-gray-300">
+                {{ ux_icon('heroicons:eye', {class: 'h-3 w-3'}) }}
+                {{ 'read_ack.status'|trans({'%read%': read_status.readCount, '%total%': read_status.total}, 'document_content') }}
+            </button>
         {% endif %}
 
         {% if can_manage or can_upload_revision %}
@@ -150,6 +182,28 @@
     {% if errors.deleteDocument is defined and confirmingDeleteDocumentId == did %}<p class="ml-8 text-xs text-red-600">{{ errors.deleteDocument }}</p>{% endif %}
     {% if errors.activeRevision is defined and revisionPanelDocumentId == did %}<p class="ml-8 text-xs text-red-600">{{ errors.activeRevision }}</p>{% endif %}
     {% if errors.editRevision is defined and revisionPanelDocumentId == did %}<p class="ml-8 text-xs text-red-600">{{ errors.editRevision }}</p>{% endif %}
+
+    {% if read_status and readStatusDocumentId == did %}
+        <div class="ml-8 mb-3 grid gap-3 rounded-lg border border-gray-100 bg-gray-50/60 p-3 text-xs sm:grid-cols-2">
+            <div>
+                <p class="mb-1 font-semibold text-amber-700">{{ 'read_ack.pending_list'|trans({'%count%': read_status.pending|length}, 'document_content') }}</p>
+                {% for teacher in read_status.pending %}
+                    <p class="text-gray-700">{{ teacher.name.lastName }}, {{ teacher.name.firstName }}</p>
+                {% else %}
+                    <p class="italic text-gray-400">{{ 'read_ack.nobody_pending'|trans({}, 'document_content') }}</p>
+                {% endfor %}
+            </div>
+            <div>
+                <p class="mb-1 font-semibold text-forest-700">{{ 'read_ack.read_list'|trans({'%count%': read_status.read|length}, 'document_content') }}</p>
+                {% for ack in read_status.read %}
+                    <p class="text-gray-700">{{ ack.teacher.name.lastName }}, {{ ack.teacher.name.firstName }} <span class="text-gray-400">· {{ ack.acknowledgedAt|date('d/m/Y H:i') }}</span></p>
+                {% else %}
+                    <p class="italic text-gray-400">{{ 'read_ack.nobody_read'|trans({}, 'document_content') }}</p>
+                {% endfor %}
+            </div>
+            <p class="text-gray-500 sm:col-span-2">{{ 'read_ack.version_note'|trans({'%version%': active.version}, 'document_content') }}</p>
+        </div>
+    {% endif %}
 
     {% if movingDocumentId == did %}
         {% set destinations = this.getMoveDestinationFolders(document) %}

@@ -63,6 +63,8 @@ final class ActivityLogSubscriber
             'moveFolderUp'                => 'folder.reorder',
             'moveFolderDown'              => 'folder.reorder',
             'toggleGroupByProfile'        => 'folder.settings_update',
+            'toggleReadAcknowledgement'   => 'folder.settings_update',
+            'acknowledgeDocument'         => 'document.read_acknowledge',
             'toggleObsolete'              => 'folder.settings_update',
             'saveFolderProfiles'          => 'folder.settings_update',
             'saveRenameDocument'          => 'document.rename',

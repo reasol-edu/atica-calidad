@@ -47,6 +47,14 @@ class Folder
     #[ORM\Column]
     private bool $groupByProfile = false;
 
+    /**
+     * Whoever can see this folder has to confirm they've read each document's version in force
+     * (DocumentReadAcknowledgement, see ReadAcknowledgementService). Never for an activity's
+     * folder, whose documents are submissions rather than documents to read.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $requiresReadAcknowledgement = false;
+
     /** Hidden by default; only quality managers/admins can reveal it. */
     #[ORM\Column]
     private bool $obsolete = false;
@@ -166,6 +174,19 @@ class Folder
     public function setGroupByProfile(bool $groupByProfile): static
     {
         $this->groupByProfile = $groupByProfile;
+
+        return $this;
+    }
+
+    /** Only meaningful while the folder backs no activity: see $requiresReadAcknowledgement. */
+    public function requiresReadAcknowledgement(): bool
+    {
+        return $this->requiresReadAcknowledgement && $this->activity === null;
+    }
+
+    public function setRequiresReadAcknowledgement(bool $requiresReadAcknowledgement): static
+    {
+        $this->requiresReadAcknowledgement = $requiresReadAcknowledgement;
 
         return $this;
     }

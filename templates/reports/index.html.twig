@@ -58,6 +58,12 @@
             'activity_status.description'|trans({}, 'reports'),
             'activity_status.summary'|trans({'%count%': activityCount}, 'reports'),
         ) }}
+
+        {{ _self.report_card(
+            'heroicons:check-badge', 'read_acknowledgements', 'app_reports_read_acknowledgements', centre,
+            'read_acknowledgements.description'|trans({}, 'reports'),
+            'read_acknowledgements.summary'|trans({'%count%': readAckCount}, 'reports'),
+        ) }}
     </div>
 
 </div>

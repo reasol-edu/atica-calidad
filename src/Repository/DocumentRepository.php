@@ -363,6 +363,34 @@ class DocumentRepository extends ServiceEntityRepository
     }
 
     /**
+     * The centre's documents that have to be acknowledged as read: those with a version in force,
+     * in a folder that requires it (Folder::requiresReadAcknowledgement()) and is neither obsolete
+     * nor an activity's. By section, folder and position, as in the tree.
+     *
+     * @return list<Document>
+     */
+    public function findRequiringReadAcknowledgementByCentre(EducationalCentre $centre): array
+    {
+        return $this->createQueryBuilder('d')
+            ->addSelect('f', 's', 'r', 'u')
+            ->join('d.folder', 'f')
+            ->join('f.documentSection', 's')
+            ->join('d.activeRevision', 'r')
+            ->join('r.uploadedBy', 'u')
+            ->leftJoin('f.activity', 'act')
+            ->where('s.educationalCentre = :centre')
+            ->andWhere('f.requiresReadAcknowledgement = true')
+            ->andWhere('f.obsolete = false')
+            ->andWhere('act.id IS NULL')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('s.position', 'ASC')
+            ->addOrderBy('f.position', 'ASC')
+            ->addOrderBy('d.position', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * The centre's documents in the trash, most recently deleted first.
      *
      * @return list<Document>

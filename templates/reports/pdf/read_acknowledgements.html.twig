@@ -1,0 +1,45 @@
+{% extends 'pdf/layout.html.twig' %}
+{% import 'reports/pdf/_macros.html.twig' as report %}
+
+{# statuses: list<ReadAcknowledgementStatus>, paths: section path of each, same order #}
+{% block content %}
+{{ report.header(pdfTitle, centre, pdfGeneratedAt, 'read_acknowledgements.summary'|trans({'%count%': statuses|length}, 'reports')) }}
+
+{% if statuses is empty %}
+    <p>{{ 'none'|trans({}, 'reports') }}</p>
+{% else %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{{ 'read_acknowledgements.col.section'|trans({}, 'reports') }}</th>
+                <th>{{ 'read_acknowledgements.col.folder'|trans({}, 'reports') }}</th>
+                <th>{{ 'read_acknowledgements.col.document'|trans({}, 'reports') }}</th>
+                <th>{{ 'read_acknowledgements.col.version'|trans({}, 'reports') }}</th>
+                <th>{{ 'read_acknowledgements.col.read'|trans({}, 'reports') }}</th>
+                <th>{{ 'read_acknowledgements.col.pending'|trans({}, 'reports') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for status in statuses %}
+                <tr>
+                    <td>{{ paths[loop.index0] }}</td>
+                    <td>{{ status.document.folder.name }}</td>
+                    <td>{{ status.document.name }}</td>
+                    <td>{{ status.document.activeRevision.version }}</td>
+                    <td>
+                        <span class="badge {{ status.complete ? 'badge-green' : 'badge-amber' }}">{{ status.readCount }} / {{ status.total }}</span>
+                    </td>
+                    <td>
+                        {%- for teacher in status.pending -%}
+                            {{ teacher.name.lastName }}, {{ teacher.name.firstName }}{% if not loop.last %}; {% endif %}
+                        {%- else -%}
+                            —
+                        {%- endfor -%}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p style="font-size:8pt;color:#93826a;">{{ 'read_acknowledgements.legend'|trans({}, 'reports') }}</p>
+{% endif %}
+{% endblock %}

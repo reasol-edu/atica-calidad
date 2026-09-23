@@ -17,7 +17,12 @@ final class PdfTemplateResolver
         private readonly AppSettingsInterface $settings,
     ) {}
 
-    /** @param 'document_master_list'|'document_reviews'|'activity_status' $reportType */
+    /**
+     * A report without a template setting of its own ("read_acknowledgements") always gets the
+     * general one for its orientation.
+     *
+     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements' $reportType
+     */
     public function resolve(string $reportType, string $orientation, EducationalCentre $centre): ?ResolvedSettingFile
     {
         $specific = $this->settings->getFileForCentre("reports.{$reportType}_pdf_template", $centre);
