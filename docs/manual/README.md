@@ -11,9 +11,8 @@ del repositorio con `make`, no directamente desde esta carpeta.
 - `mkdocs.yml` — configuración de MkDocs Material para la versión web (navegación, tema, exclusiones).
 - `requirements.txt` — dependencias de Python para generar la web (MkDocs Material y sus plugins).
 - `assets/` — hojas de estilo (`theme.css`, `print.css`) compartidas por el PDF y la web.
-- `img/` — capturas de pantalla y otras imágenes referenciadas desde los capítulos. De momento solo
-  las usa [Árbol documental](07-arbol-documental.md); el resto de capítulos son todavía esqueletos
-  sin capturas.
+- `img/` — capturas de pantalla y otras imágenes referenciadas desde los capítulos (ver
+  [Regenerar las capturas](#regenerar-las-capturas)).
 - `atica-calidad-manual.pdf` y `_build.html` — salidas generadas por `make docs-pdf` (ver abajo); no
   se editan a mano.
 
@@ -59,3 +58,39 @@ make docs
 
 Equivale a ejecutar `make docs-pdf` seguido de `make docs-web`: genera el PDF y construye la web en
 un solo paso, útil antes de publicar una nueva versión.
+
+## Regenerar las capturas
+
+Las capturas de `img/` salen de scripts de Node/[Playwright](https://playwright.dev) en
+`scripts/capture-*-shots.mjs`, uno por capítulo o grupo de pantallas: `actividades`, `arbol`,
+`calendar` y `gestion` (preparar el nuevo curso, papelera y registro de actividad). Se ejecutan
+contra un servidor local con una **base de datos desechable** sembrada con los datos de
+demostración, **nunca contra la real**: `gestion` elimina una actividad y una entrega para que la
+papelera tenga contenido.
+
+```bash
+# 1. Base de datos desechable (SQLite) con los datos de demostración
+export DATABASE_URL="sqlite:///$PWD/var/capturas.db" MIGRATIONS_PATH=migrations/sqlite
+rm -f var/capturas.db
+php bin/console doctrine:migrations:migrate -n
+php bin/console app:load-demo-data -n
+php bin/console tailwind:build
+
+# 2. Servidor en el puerto 8744 (en otra terminal, con las mismas variables exportadas)
+php -d variables_order=EGPCS -S 127.0.0.1:8744 scripts/router-shots.php
+
+# 3. Capturas: gestion, la última
+node scripts/capture-actividades-shots.mjs
+node scripts/capture-arbol-shots.mjs
+SHOTS_OUT_DIR=docs/manual/img node scripts/capture-calendar-shots.mjs
+node scripts/capture-gestion-shots.mjs
+```
+
+!!! danger "`-d variables_order=EGPCS` es imprescindible"
+    El servidor integrado de PHP no pasa las variables de entorno a `$_SERVER`, así que sin esa
+    opción Symfony ignora el `DATABASE_URL` exportado y usa el de `.env.local`: la base de datos
+    de desarrollo real.
+
+El calendario guarda por defecto en `img/calendario/`; el manual usa `img/`, de ahí la segunda
+llamada con `SHOTS_OUT_DIR`. Para volver a capturar, vuelve a sembrar la base de datos (paso 1):
+los scripts dan por hecho los datos recién creados.

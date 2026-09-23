@@ -228,9 +228,36 @@ pasado—, aparece en los [informes](04-informes.md) de listado maestro y de rev
 por semana, quien es responsable de la carpeta recibe un correo con los documentos que tiene
 pendientes de revisar (ver
 [Ajustes disponibles](09-administrar-la-plataforma.md#ajustes-disponibles)). Si la carpeta no tiene
-responsables, el correo lo reciben los responsables de calidad del centro. **Eliminar el documento completo**, con todo su historial de revisiones, sí está permitido
-también a quien subió su revisión activa, aunque no sea responsable (ver
-[la excepción de arriba](#permisos-sobre-una-carpeta)).
+responsables, el correo lo reciben los responsables de calidad del centro.
+
+**Eliminar el documento completo**, con todo su historial de revisiones, sí está permitido también a
+quien subió su revisión activa, aunque no sea responsable (ver
+[la excepción de arriba](#permisos-sobre-una-carpeta)). El documento no se borra en el acto: pasa a
+la [papelera](#papelera), desde donde se puede recuperar tal como estaba. Eliminar una revisión
+suelta, en cambio, la borra directamente.
+
+## Papelera {#papelera}
+
+Los documentos (con todas sus versiones) y las actividades (con sus completados) que se eliminan
+pasan a **Papelera**, en el menú lateral. Allí se ve qué se eliminó, dónde estaba, quién lo eliminó
+y cuándo, y la fecha en que se borrará para siempre. Cada elemento tiene dos botones:
+**Recuperar**, que lo devuelve a su sitio tal como estaba, y **Eliminar definitivamente**, que pide
+confirmación.
+
+![La papelera, con un documento y una actividad eliminados](img/papelera.png)
+
+- **Quién la ve:** la dirección y la coordinación de calidad del centro (quien puede gestionar
+  [Responsabilidades](06-responsabilidades.md)). Un docente que elimina algo por error debe pedirles
+  que lo recuperen.
+- **Cuánto tiempo:** 30 días por defecto. Se configura con el ajuste «Días en la papelera», a nivel
+  global y de cada centro (ver
+  [Ajustes disponibles](09-administrar-la-plataforma.md#papelera)). Con 0, la papelera no se vacía
+  sola: lo eliminado se queda hasta que alguien lo recupere o lo elimine definitivamente.
+- **Carpetas y categorías:** si se elimina la carpeta o la categoría que contenía algo que está en
+  la papelera, eso se borra también.
+- **Actividades recuperadas:** vuelven enlazadas a su carpeta de entregas si sigue libre. Si otra
+  actividad la ha ocupado mientras tanto, vuelven sin carpeta, y se avisa para asignarle una desde
+  «Editar».
 
 ## Buscar en el árbol documental
 

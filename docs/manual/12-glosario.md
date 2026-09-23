@@ -120,6 +120,15 @@ perfil/subperfil) o **individual** (cada docente entrega la suya).
 : Modo de una actividad con carpeta en el que no hay botón de completar: se considera hecha en
 cuanto el documento esperado está aprobado.
 
+**Papelera**
+: Donde quedan los documentos y las actividades eliminados antes de borrarse para siempre (30 días
+por defecto, configurable). Desde ella, la dirección y la coordinación de calidad pueden recuperarlos
+tal como estaban — ver [Papelera](07-arbol-documental.md#papelera).
+
+**Recordar a pendientes**
+: Botón de una actividad que envía un correo a cada docente que aún la tiene por hacer — ver
+[Recordar a pendientes](08-actividades.md#recordar-a-pendientes).
+
 **Resumen diario**
 : Modo de aviso por correo que agrupa lo pendiente de un día en un único correo, en vez de un aviso
 individual por cada evento — ver [Ajustes disponibles](09-administrar-la-plataforma.md#ajustes-disponibles).

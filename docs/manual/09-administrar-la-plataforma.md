@@ -133,6 +133,15 @@ seguidos.
 - **Retención del registro de actividad** — días que se conservan las entradas antes de eliminarse
   automáticamente en la limpieza semanal (0 desactiva esa eliminación). Solo a nivel global.
 
+### Papelera {#papelera}
+
+- **Días en la papelera** — días que se conservan en la [papelera](07-arbol-documental.md#papelera)
+  los documentos y las actividades eliminados antes de borrarse para siempre, en el vaciado
+  automático de cada madrugada; 30 por defecto, de 0 a 3650. Con 0 no se vacía sola: lo eliminado se
+  queda hasta que alguien lo recupere o lo elimine definitivamente. Ajustable a nivel global y de
+  centro, desde **Centro educativo → Ajustes del centro**, salvo que un administrador global haya
+  bloqueado el ajuste. Cambiarlo afecta también a lo que ya está en la papelera.
+
 ## Copias de seguridad
 
 Haz copia de seguridad con regularidad de:
@@ -228,9 +237,22 @@ el tipo de acción y algunos datos de contexto. Se registran, entre otras cosas:
 - **Lectura**: abrir una sección del árbol, abrir una carpeta o un documento, descargar una
   revisión, descargar una carpeta en ZIP, exportar el árbol o generar un informe.
 - **Escritura**: crear, renombrar, mover o eliminar carpetas, secciones, listas, categorías,
-  actividades o perfiles; subir un documento o una revisión; aceptar o rechazar una revisión;
-  marcar una actividad como completada manualmente; subir entregas; cambiar ajustes; altas, bajas
-  y modificaciones de docentes y centros.
+  actividades o perfiles; enviar a la papelera, recuperar o eliminar definitivamente; subir un
+  documento o una revisión; aceptar o rechazar una revisión; marcar una actividad como completada
+  manualmente; subir entregas; enviar un «Recordar a pendientes»; copiar los docentes de un curso a
+  otro; cambiar ajustes; altas, bajas y modificaciones de docentes y centros.
+
+![Registro de actividad, con el filtro «Últimas 24 h» aplicado y los botones para exportar](img/registro-actividad.png)
+
+El listado se puede filtrar por fechas (con atajos como «Última hora» o «Últimas 24 h»), por
+usuario, por centro y por tipo de acción. **Exportar CSV** y **Exportar PDF** descargan exactamente
+las entradas que cumplen los filtros aplicados, en el mismo orden:
+
+- **CSV**: todo el registro filtrado, sin límite de tamaño. Se abre directamente en Excel o
+  LibreOffice (separado por «;» y en UTF-8). Las celdas que empiezan como una fórmula se guardan
+  como texto, para que la hoja de cálculo no las ejecute.
+- **PDF**: pensado para leer o adjuntar a un informe. Incluye como máximo las 2000 primeras
+  entradas y avisa si hay más; en ese caso, usa el CSV. La cabecera resume los filtros aplicados.
 
 La escritura del registro se hace **después de enviar la respuesta al navegador**, así que no
 añade retardo a ninguna acción. El registro se puede activar o desactivar por centro y su

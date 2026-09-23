@@ -7,14 +7,15 @@
 | Ver y completar/entregar sus propias actividades (ver [Actividades](08-actividades.md#permisos-de-un-vistazo)) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Crear o editar categorías y actividades | — | — | ✅ | ✅ | ✅ |
 | Gestionar Responsabilidades (listas y perfiles específicos) | — | — | ✅ | ✅ | ✅ |
+| Recuperar o eliminar definitivamente lo que está en la [papelera](07-arbol-documental.md#papelera) | — | — | ✅ | ✅ | ✅ |
 | Crear eventos en el calendario | — | — | — | ✅ | ✅ |
-| Administrar cursos académicos, docentes, días no lectivos y perfiles del centro | — | — | — | ✅ | ✅ |
+| Administrar cursos académicos, docentes, días no lectivos y perfiles del centro (incluido [Preparar el nuevo curso](02-preparar-el-curso-academico.md#preparar-el-nuevo-curso)) | — | — | — | ✅ | ✅ |
 | Consultar el registro de avisos por correo del centro | — | — | — | ✅ | ✅ |
 | Configurar los ajustes del centro | — | — | — | ✅ | ✅ |
 | Gestionar todos los centros del servidor y el profesorado global | — | — | — | — | ✅ |
 | Bloquear ajustes a nivel global | — | — | — | — | ✅ |
 | Consultar y descargar los [informes](04-informes.md) | — | ✅ | ✅ | ✅ | ✅ |
-| Consultar el [registro de actividad](09-administrar-la-plataforma.md#registro-de-actividad) (auditoría) | — | — | — | — | ✅ |
+| Consultar y exportar el [registro de actividad](09-administrar-la-plataforma.md#registro-de-actividad) (auditoría) | — | — | — | — | ✅ |
 
 ¹ Cualquier docente ve el árbol documental, pero solo el contenido no restringido más el que le
 corresponda por sus perfiles/subperfiles de Responsabilidades — ver el desglose completo en

@@ -38,7 +38,9 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 
 <div class="nota">
   <p>Con los ficheros de Séneca a mano, todo el proceso lleva pocos minutos y se repite una vez
-  al año, al abrir cada curso nuevo. Detalle completo en el capítulo «Preparar el curso
+  al año, al abrir cada curso nuevo. <strong>Centro educativo › Cursos académicos › Preparar el
+  nuevo curso</strong> guía estos pasos y marca los que ya están hechos; allí también se pueden
+  copiar los docentes del curso anterior. Detalle completo en el capítulo «Preparar el curso
   académico» del manual.</p>
 </div>
 

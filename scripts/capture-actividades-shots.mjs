@@ -66,13 +66,23 @@ await page.click('text=Plan de Acción Tutorial (PAT)');
 await page.waitForSelector('text=Mis entregas');
 await hideToolbar();
 
+// ── 4a. The activity's bulk review box ("N entregas por revisar") ────────────
+const bulkReview = page.locator('form[action$="/revisar"]').first();
+await bulkReview.waitFor();
+await bulkReview.evaluate(el => el.scrollIntoView({ block: 'center' }));
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/actividades-revision-bloque.png` });
+
+// ── 4b. One submission's own revision panel ──────────────────────────────────
+// "Aprobar" exactly: the bulk box above has an "Aprobar seleccionadas" of its own.
+const approveButton = 'button:text-is("Aprobar")';
 const toggles = page.locator('button[data-live-action-param="toggleRevisionPanel"]');
 const toggleCount = await toggles.count();
 let found = false;
 for (let i = 0; i < toggleCount; i++) {
     await toggles.nth(i).click();
     await page.waitForTimeout(300);
-    if (await page.locator('button:has-text("Aprobar")').isVisible().catch(() => false)) {
+    if (await page.locator(approveButton).isVisible().catch(() => false)) {
         found = true;
         break;
     }
@@ -87,7 +97,7 @@ if (!found) {
     for (let i = 0; i < count2; i++) {
         await toggles2.nth(i).click();
         await page.waitForTimeout(300);
-        if (await page.locator('button:has-text("Aprobar")').isVisible().catch(() => false)) {
+        if (await page.locator(approveButton).isVisible().catch(() => false)) {
             found = true;
             break;
         }
@@ -95,7 +105,7 @@ if (!found) {
     }
 }
 if (!found) throw new Error('No se encontró ninguna entrega pendiente con Aprobar/Rechazar visibles.');
-await page.locator('button:has-text("Aprobar")').first().evaluate(el =>
+await page.locator(approveButton).first().evaluate(el =>
     el.closest('div').scrollIntoView({ block: 'center' })
 );
 await page.evaluate(() => window.scrollBy(0, -220));

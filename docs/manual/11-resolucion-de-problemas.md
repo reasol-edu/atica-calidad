@@ -40,6 +40,13 @@ Solo la administración de la plataforma puede añadirte al equipo directivo de 
 (**Administración → Centros educativos**) o la administración de ese centro puede añadirte a su
 curso activo (**Centro educativo → Docentes del centro**).
 
+## He eliminado un documento o una actividad por error
+
+No se ha perdido: está en la [papelera](07-arbol-documental.md#papelera) durante los días que tenga
+configurados el centro (30 por defecto). Pide a la dirección o a la coordinación de calidad que lo
+recuperen desde **Papelera**; vuelve tal como estaba, con todas sus versiones o completados. Una
+revisión suelta eliminada, en cambio, no pasa por la papelera.
+
 ## No me llegan los correos de la aplicación
 
 Comprueba con la administración de la plataforma que el correo del servidor está

@@ -58,6 +58,12 @@ Arriba, cuatro recuentos según **a quién le toca mover ficha**: **Por hacer** 
 destacadas dentro), **En revisión** (entregadas, a la espera del visto bueno), **Hechas** y
 **Próximamente** (aún no abiertas). Lo que aún no se ha abierto no cuenta como pendiente.
 
+Si un docente tiene **varias obligaciones en la misma actividad** (por ejemplo, la jefatura de dos
+departamentos en una actividad por perfil), las vistas por fecha límite y por categoría las muestran
+en **una sola fila desplegable**, con cuántas están hechas («1/2») y el estado de la más urgente. Al
+desplegarla aparece cada perfil con su propio estado. Las vistas por perfil y por estado las siguen
+mostrando por separado, porque agrupan precisamente por eso.
+
 ### Estado de cada actividad {#estado-de-cada-actividad}
 
 Todas las pantallas —el panel principal, esta lista, las tarjetas de la pestaña **Ver** y la
@@ -98,12 +104,25 @@ global** de las entregas de este curso: una barra y una línea como «14/20 entr
 revisión · 1 rechazada», contando todas las entregas esperadas, no solo las propias. El detalle por
 perfil sigue en **Estadísticas**, dentro de la actividad. El resto del profesorado no ve esta línea.
 
+### Recordar a pendientes {#recordar-a-pendientes}
+
+Bajo el plazo de una actividad ya abierta, **Recordar a pendientes** envía un correo a cada docente
+del curso que aún la tiene por hacer: abierta, rechazada, fuera de plazo o vencida. El correo le
+lista sus obligaciones pendientes en esa actividad, con un enlace para abrirla. Quien ya la entregó
+y espera el visto bueno, quien la completó y quien no tiene dirección de correo no lo reciben.
+
+El botón lo ven la dirección, la coordinación de calidad y quien gestiona o revisa la carpeta de la
+actividad. Pide confirmación antes de enviar, y cada actividad admite **un recordatorio por hora**,
+aunque lo pulsen varias personas. El envío queda anotado en el
+[registro de actividad](09-administrar-la-plataforma.md#registro-de-actividad).
 ## Editar categorías
 
 Reservada a responsable de calidad, equipo directivo/admin. del centro y admin. de la plataforma —
 mismo papel que [Editar árbol](07-arbol-documental.md#secciones-pestana-editar-arbol). Las
 categorías son nodos con la profundidad que se necesite (crear, renombrar, reordenar, eliminar),
 igual que las secciones del árbol documental; dentro de cada una se crean y editan las actividades.
+Una actividad eliminada, con sus completados, pasa a la
+[papelera](07-arbol-documental.md#papelera), desde donde se puede recuperar.
 
 ### Campos de una actividad
 
@@ -135,6 +154,18 @@ aplica aquí sin cambios: una entrega **es** un documento de esa carpeta. Si la 
 [formatos de fichero aceptados](07-arbol-documental.md#carpetas-pestana-ver) configurados y al
 docente todavía le queda alguna entrega propia por hacer, un aviso **«Formatos aceptados: ...»**
 aparece encima de «Mis entregas».
+
+### Revisar varias entregas a la vez {#revisar-varias-entregas}
+
+Quien revisa la carpeta de la actividad ve, además, un recuadro **«N entregas por revisar»** con
+todas las entregas pendientes de visto bueno, cada una con quién la subió, la fecha y su descarga.
+Todas vienen marcadas: basta con desmarcar las que no se quieran tocar, escribir si se quiere un
+comentario común y pulsar **Aprobar seleccionadas** o **Rechazar seleccionadas**. Rechazar pide
+confirmación, porque cada docente recibe un aviso para volver a entregarla. El efecto es el mismo
+que revisar una por una: cambia la versión en vigor, se anota en el registro de actividad y se avisa
+a quien la subió.
+
+![Recuadro de revisión en bloque, con las entregas pendientes marcadas y los botones de aprobar y rechazar](img/actividades-revision-bloque.png)
 
 ### Cada curso, entregas y completados nuevos {#cada-curso}
 
@@ -182,7 +213,8 @@ cursos si se eligió «Todos los cursos» y hay varios: **«2024-2025 a 2026-202
 Mientras nadie haya revisado todavía la entrega —está **pendiente de visto bueno**, o ya se
 **rechazó**—, el docente que la subió puede eliminarla con el icono de papelera de su fila, sin
 necesidad de ningún permiso sobre la carpeta: es su única entrega y nadie ha dicho la última
-palabra sobre ella todavía. En cuanto se elimina, la fila vuelve a mostrar la zona de
+palabra sobre ella todavía. La entrega eliminada pasa a la
+[papelera](07-arbol-documental.md#papelera). En cuanto se elimina, la fila vuelve a mostrar la zona de
 arrastrar-y-soltar en su lugar —lista para subir otra— siempre que el plazo de la actividad siga
 abierto; si el plazo ya se cerró, la fila queda vacía y de solo lectura, igual que si nunca se
 hubiera llegado a entregar nada. En cuanto una entrega queda **aceptada**, este permiso deja de
@@ -243,7 +275,9 @@ avisos por correo —al instante o en un resumen diario— se configura en
 | Entregar (con carpeta) / marcar como completada (sin carpeta) | — | ✅ | ✅ | ✅ |
 | Retirar o sustituir su propia entrega, mientras esté pendiente o rechazada | — | ✅ (la propia) | ✅ | ✅ |
 | Deshacer un completado manual | — | ✅ (la propia) | ✅ | ✅ |
-| Aprobar o rechazar una entrega pendiente | — | — | ✅ (con perfil de revisión) | ✅ |
+| Aprobar o rechazar una entrega pendiente, una a una o varias a la vez | — | — | ✅ (con perfil de revisión) | ✅ |
+| Recordar a pendientes | — | — | ✅ | ✅ |
 | Crear/editar categorías y actividades | — | — | — | ✅ |
+| Recuperar de la papelera lo eliminado | — | — | — | ✅ (responsable de calidad y equipo directivo) |
 
 Volver a [Permisos de un vistazo](10-permisos-de-un-vistazo.md) para el resto de la aplicación.

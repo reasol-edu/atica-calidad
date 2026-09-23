@@ -43,6 +43,23 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   global y de centro), que se elige con un día y un mes: 15 de septiembre por defecto. Decide a qué
   curso pertenece cada fecha de las actividades, que se repiten cada curso. Solo admite fechas que
   existen todos los años (no el 29 de febrero).
+- **Papelera**: eliminar un documento (con todas sus versiones) o una actividad (con sus
+  completados) ya no los borra en el acto. Pasan a la nueva sección **Papelera**, desde donde la
+  dirección y la coordinación de calidad pueden recuperarlos tal como estaban o eliminarlos
+  definitivamente. Se vacía sola a los 30 días; el ajuste **«Días en la papelera»** (global y de
+  centro) cambia ese plazo, y con 0 no se vacía sola.
+- **Actividades**: quien revisa la carpeta de una actividad puede **aprobar o rechazar varias
+  entregas a la vez**, con un comentario común, desde el recuadro «N entregas por revisar».
+- **Actividades**: nuevo botón **«Recordar a pendientes»**, que envía un correo a cada docente que
+  aún tiene la actividad por hacer. Lo ven la dirección, la coordinación de calidad y quien gestiona
+  o revisa la carpeta; admite un envío por hora y actividad.
+- **Mis actividades**: las obligaciones de un docente en una misma actividad (por ejemplo, dos
+  jefaturas) se agrupan en una fila desplegable con el avance («1/2»).
+- **Cursos académicos**: nueva página **«Preparar el nuevo curso»**, una lista de pasos que se marcan
+  solos al hacerse: crear el curso (con el nombre ya sugerido), activarlo, añadir los docentes
+  (copiándolos de un curso anterior en un clic), los días no lectivos y revisar las asignaciones de
+  perfiles de quien ya no está.
+- **Registro de actividad**: se puede **exportar a CSV o PDF** con los filtros aplicados.
 
 ### Changed
 
