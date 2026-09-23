@@ -21,7 +21,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   «Mis actividades», ni en la campana, ni en los recordatorios por correo—. Se referían por error
   al plazo del curso anterior; ahora se muestran como «Se abre el…» con la fecha de este curso.
   Con el inicio de curso por defecto (15 de septiembre), hasta ese día las actividades siguen
-  refiriéndose al curso que termina.
+  refiriéndose al curso que termina, y también pertenecen a ese curso las que caen antes de ese día
+  aunque sea el mismo mes (p. ej. una del 1 al 14 de septiembre).
 - **Seguridad**: se refuerzan las comprobaciones de permisos en la página de Actividades. Ya no es
   posible, manipulando la petición, modificar o eliminar actividades o revisiones de otro centro,
   ni marcar como completada (o deshacer) una actividad que corresponde a otro perfil.

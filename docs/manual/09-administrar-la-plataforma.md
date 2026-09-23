@@ -73,8 +73,10 @@ el profesorado, si el ajuste lo permite a nivel de centro.
   15 de septiembre por defecto. Las [actividades](08-actividades.md) solo guardan día y mes y se
   repiten cada curso: este ajuste decide a qué curso pertenece cada fecha. Así, una actividad de
   enero a febrero, consultada en octubre, se refiere a la del próximo enero —aún sin abrir—, no a
-  la del enero ya pasado. Hasta el día indicado, todo sigue refiriéndose al curso que termina.
-  Solo admite fechas que existen todos los años (no el 29 de febrero).
+  la del enero ya pasado. Hasta el día indicado, todo sigue refiriéndose al curso que termina, y
+  también pertenece a ese curso una actividad cuyas fechas caen antes de ese día aunque sea el
+  mismo mes: con el valor por defecto, una actividad del 1 al 14 de septiembre es del curso que
+  acaba. Solo admite fechas que existen todos los años (no el 29 de febrero).
 
 ### Avisos por correo
 
