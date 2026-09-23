@@ -58,10 +58,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   que un equipo compartido que se deja abierto no quede utilizable por otra persona. Se configura, o
   se desactiva con 0, en **Administración → Ajustes → Seguridad**; la pantalla de inicio de sesión
   explica por qué se ha cerrado.
-- **Seguridad**: una contraseña nueva ya no puede contener el propio nombre de usuario ni figurar en
-  filtraciones de datos conocidas (consulta a «Have I Been Pwned» con k-anonimato: nunca se envía la
-  contraseña). Si el servidor no tiene salida a Internet la comprobación se omite en pocos segundos;
-  `APP_PASSWORD_BREACH_CHECK=false` la desactiva.
+- **Seguridad**: una contraseña nueva ya no puede contener el propio nombre de usuario. Además, la
+  administración puede activar con `APP_PASSWORD_BREACH_CHECK=true` (desactivado por defecto) que
+  tampoco pueda figurar en filtraciones de datos conocidas: consulta el servicio externo «Have I Been
+  Pwned» con k-anonimato, sin enviar nunca la contraseña, y se omite en pocos segundos si el servidor
+  no tiene salida a Internet.
 - **Seguridad**: si a un docente se le retira el acceso a un centro con la sesión abierta, deja de
   ver sus datos en la siguiente petición, en vez de conservarlos hasta cerrar sesión.
 - **Seguridad**: la importación de árboles en JSON (secciones del árbol documental, listas de

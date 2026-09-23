@@ -18,8 +18,10 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * Not Symfony's own NotCompromisedPassword constraint: its validator sets no timeout, so on a
  * network that silently drops outgoing traffic (a centre's isolated intranet) a password change
  * would hang for a minute. Here the request is capped at a few seconds and any failure lets the
- * password through (logged) — this is a safety net, never a reason to lock anyone out. Turned off
- * with APP_PASSWORD_BREACH_CHECK=false (always off in tests).
+ * password through (logged) — this is a safety net, never a reason to lock anyone out.
+ *
+ * Opt-in: it calls a third-party service, so it stays off unless the platform's administration
+ * sets APP_PASSWORD_BREACH_CHECK=true (false by default in .env, and always in tests).
  */
 final class CompromisedPasswordChecker
 {

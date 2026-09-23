@@ -20,11 +20,12 @@ lo indica; basta con volver a entrar.
 
 ## No me deja poner una contraseña
 
-Una contraseña nueva debe tener al menos 12 caracteres, no puede contener tu nombre de usuario y no
-puede ser una de las que aparecen en filtraciones de datos conocidas (una frase de varias palabras
-suele cumplirlo todo). Esta última comprobación consulta el servicio «Have I Been Pwned» sin
-enviarle la contraseña —solo el principio de su huella— y se omite si el servidor no tiene salida a
-Internet (o si la administración la desactiva con `APP_PASSWORD_BREACH_CHECK=false`).
+Una contraseña nueva debe tener al menos 12 caracteres y no puede contener tu nombre de usuario (una
+frase de varias palabras suele cumplirlo todo). Si la administración de la plataforma lo ha activado
+(`APP_PASSWORD_BREACH_CHECK=true`; está desactivado por defecto), tampoco puede ser una de las que
+aparecen en filtraciones de datos conocidas: se consulta el servicio externo «Have I Been Pwned» sin
+enviarle la contraseña —solo el principio de su huella—, y la comprobación se omite si el servidor
+no tiene salida a Internet.
 
 ## He olvidado mi contraseña
 
