@@ -1974,4 +1974,247 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertStringNotContainsString('activity-submissions#drop', $html);
         self::assertStringContainsString('terminó el', $html);
     }
+
+    // ── Cross-centre and ownership guards on client-supplied ids ──────────────
+
+    private function otherCentre(): EducationalCentre
+    {
+        return (new EducationalCentre())->setCode('87654321')->setName('Otro centro')->setCity('Otra ciudad');
+    }
+
+    /**
+     * A quality manager of one centre must not reach another centre's activity by feeding its id
+     * to a LiveAction — e.g. someone who is quality manager here and a plain teacher there, and
+     * so has seen that centre's activity ids in its URLs.
+     */
+    public function testDeleteActivityIgnoresAnActivityFromAnotherCentre(): void
+    {
+        $centre        = $this->centre();
+        $category      = $this->category($centre);
+        $other         = $this->otherCentre();
+        $otherCategory = $this->category($other);
+        $foreign       = $this->activity($otherCategory, 'Ajena');
+        $qm            = $this->teacher('calidad');
+        $centre->getQualityManagers()->add($qm);
+        $this->persist($centre, $category, $other, $otherCategory, $foreign, $qm);
+        $foreignId = $foreign->getId()->toRfc4122();
+
+        $this->loginAs($qm, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('deleteActivity', ['id' => $foreignId]);
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        self::assertNotNull($activities->findById($foreignId), 'another centre\'s activity must survive');
+    }
+
+    public function testStartEditActivityDoesNotLoadAnActivityFromAnotherCentre(): void
+    {
+        $centre        = $this->centre();
+        $category      = $this->category($centre);
+        $other         = $this->otherCentre();
+        $otherCategory = $this->category($other);
+        $foreign       = $this->activity($otherCategory, 'Ajena');
+        $qm            = $this->teacher('calidad');
+        $centre->getQualityManagers()->add($qm);
+        $this->persist($centre, $category, $other, $otherCategory, $foreign, $qm);
+
+        $this->loginAs($qm, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('startEditActivity', ['id' => $foreign->getId()->toRfc4122()]);
+
+        self::assertSame('', $this->stringProp($component, 'formTitle'));
+        self::assertSame('', $this->stringProp($component, 'formActivityId'));
+    }
+
+    /** $formActivityId is a writable LiveProp: pointing it at another centre's activity must neither overwrite it nor move it here. */
+    public function testSaveActivityRefusesAnActivityIdFromAnotherCentre(): void
+    {
+        $centre        = $this->centre();
+        $category      = $this->category($centre);
+        $other         = $this->otherCentre();
+        $otherCategory = $this->category($other);
+        $foreign       = $this->activity($otherCategory, 'Ajena');
+        $qm            = $this->teacher('calidad');
+        $centre->getQualityManagers()->add($qm);
+        $this->persist($centre, $category, $other, $otherCategory, $foreign, $qm);
+        $foreignId = $foreign->getId()->toRfc4122();
+
+        $this->loginAs($qm, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('startAddActivity');
+        $component->set('formActivityId', $foreignId);
+        $component->set('formTitle', 'Sobrescrita');
+        $component->set('formStartDay', '1');
+        $component->set('formStartMonth', '10');
+        $component->set('formEndDay', '30');
+        $component->set('formEndMonth', '10');
+
+        try {
+            $component->call('saveActivity');
+            self::fail('saving over another centre\'s activity must be refused');
+        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+        }
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloaded   = $activities->findById($foreignId);
+        self::assertNotNull($reloaded);
+        self::assertSame('Ajena', $reloaded->getTitle());
+        self::assertSame($otherCategory->getId()->toRfc4122(), $reloaded->getCategory()->getId()->toRfc4122());
+    }
+
+    public function testDeleteRevisionRefusesADocumentFromAnotherCentre(): void
+    {
+        $centre = $this->centre();
+        $other  = $this->otherCentre();
+        $folder = $this->folder($other);
+        $qm     = $this->teacher('calidad');
+        $centre->getQualityManagers()->add($qm);
+        $uploader = $this->teacher('subidor');
+        $document = $this->documentWithApprovedRevision($folder, $uploader);
+        $revision = $document->getActiveRevision();
+        self::assertNotNull($revision);
+        $this->persist($centre, $other, $folder->getDocumentSection(), $folder, $qm, $uploader, $document);
+        $documentId = $document->getId()->toRfc4122();
+
+        $this->loginAs($qm, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+
+        try {
+            $component->call('askDeleteRevision', ['id' => $documentId, 'revisionId' => $revision->getId()->toRfc4122()]);
+            $component->call('deleteRevision', ['id' => $documentId]);
+            self::fail('deleting another centre\'s revision must be refused');
+        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+        }
+
+        $this->em->clear();
+        /** @var \App\Repository\DocumentRepository $documents */
+        $documents = self::getContainer()->get(\App\Repository\DocumentRepository::class);
+        $reloaded  = $documents->findById($documentId);
+        self::assertNotNull($reloaded);
+        self::assertCount(1, $reloaded->getRevisions());
+    }
+
+    /** @return array{Activity, SpecificProfile, Teacher} a by-profile activity whose only upload profile is held by $holder */
+    private function byProfileActivityHeldBy(EducationalCentre $centre, Teacher $holder): array
+    {
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $folder->addUploadProfile($profile);
+        $activity   = $this->activity($category)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile);
+        $assignment = new SpecificProfileAssignment($profile, null, $holder);
+        $this->persist($category, $folder->getDocumentSection(), $folder, $profile, $activity, $holder, $assignment);
+
+        return [$activity, $profile, $holder];
+    }
+
+    private function completionCount(): int
+    {
+        $this->em->clear();
+
+        return $this->em->getRepository(ActivityCompletion::class)->count([]);
+    }
+
+    public function testMarkCompletedIsGrantedForAProfileTheTeacherHolds(): void
+    {
+        $centre = $this->centre();
+        $this->persist($centre);
+        [$activity, $profile, $tutor] = $this->byProfileActivityHeldBy($centre, $this->teacher('tutor'));
+
+        $this->loginAs($tutor, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('markCompleted', ['activityId' => $activity->getId()->toRfc4122(), 'profileId' => $profile->getId()->toRfc4122()]);
+
+        self::assertSame(1, $this->completionCount());
+    }
+
+    /** The button only renders for one's own rows, but the ids are client-supplied: a crafted call must not complete someone else's. */
+    public function testMarkCompletedIsDeniedForAProfileTheTeacherDoesNotHold(): void
+    {
+        $centre = $this->centre();
+        $this->persist($centre);
+        [$activity, $profile] = $this->byProfileActivityHeldBy($centre, $this->teacher('tutor'));
+        $outsider = $this->teacher('ajeno');
+        $this->persist($outsider);
+
+        $this->loginAs($outsider, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+
+        try {
+            $component->call('markCompleted', ['activityId' => $activity->getId()->toRfc4122(), 'profileId' => $profile->getId()->toRfc4122()]);
+            self::fail('completing a profile the teacher does not hold must be refused');
+        } catch (AccessDeniedException) {
+        }
+
+        self::assertSame(0, $this->completionCount());
+    }
+
+    public function testUnmarkCompletedIsDeniedForAProfileTheTeacherDoesNotHold(): void
+    {
+        $centre = $this->centre();
+        $this->persist($centre);
+        [$activity, $profile, $tutor] = $this->byProfileActivityHeldBy($centre, $this->teacher('tutor'));
+        $this->persist(new ActivityCompletion($activity, null, $profile, null, $tutor));
+        $outsider = $this->teacher('ajeno');
+        $this->persist($outsider);
+
+        $this->loginAs($outsider, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+
+        try {
+            $component->call('unmarkCompleted', ['activityId' => $activity->getId()->toRfc4122(), 'profileId' => $profile->getId()->toRfc4122()]);
+            self::fail('undoing a profile completion the teacher does not hold must be refused');
+        } catch (AccessDeniedException) {
+        }
+
+        self::assertSame(1, $this->completionCount());
+    }
+
+    /** A by-profile activity has no individual completion owner: an empty profileId must not create a stray personal completion instead. */
+    public function testMarkCompletedWithoutAProfileIsDeniedForAByProfileActivity(): void
+    {
+        $centre = $this->centre();
+        $this->persist($centre);
+        [$activity, , $tutor] = $this->byProfileActivityHeldBy($centre, $this->teacher('tutor'));
+
+        $this->loginAs($tutor, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+
+        try {
+            $component->call('markCompleted', ['activityId' => $activity->getId()->toRfc4122()]);
+            self::fail('a by-profile activity has no personal completion to mark');
+        } catch (AccessDeniedException) {
+        }
+
+        self::assertSame(0, $this->completionCount());
+    }
+
+    public function testMarkCompletedIgnoresAnActivityFromAnotherCentre(): void
+    {
+        $centre        = $this->centre();
+        $other         = $this->otherCentre();
+        $otherCategory = $this->category($other);
+        $foreign       = $this->activity($otherCategory, 'Ajena');
+        $teacher       = $this->teacher('docente');
+        $this->persist($centre, $other, $otherCategory, $foreign, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('markCompleted', ['activityId' => $foreign->getId()->toRfc4122()]);
+
+        self::assertSame(0, $this->completionCount());
+    }
 }

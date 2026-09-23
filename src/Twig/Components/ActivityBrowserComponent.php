@@ -219,8 +219,8 @@ class ActivityBrowserComponent extends AbstractController
         $this->centre = $centre;
 
         if ($initialActivityId !== '') {
-            $activity = $this->activities->findById($initialActivityId);
-            if ($activity !== null && $activity->getCategory()->getEducationalCentre() === $centre) {
+            $activity = $this->findActivity($initialActivityId);
+            if ($activity !== null) {
                 $this->currentCategoryId = $activity->getCategory()->getId()->toRfc4122();
             }
         } elseif ($initialCategoryId !== '') {
@@ -231,7 +231,7 @@ class ActivityBrowserComponent extends AbstractController
         }
 
         if ($initialHighlightDocumentId !== '') {
-            $document = $this->documents->findById($initialHighlightDocumentId);
+            $document = $this->findDocument($initialHighlightDocumentId);
             if ($document !== null && $document->getFolder()->getActivity() !== null) {
                 $this->highlightedDocumentId = $initialHighlightDocumentId;
             }
@@ -362,7 +362,7 @@ class ActivityBrowserComponent extends AbstractController
     /** @return Folder[] folders not yet linked to another activity, plus the one $formActivityId is currently linked to (if editing). */
     public function getAvailableFolders(): array
     {
-        $editing = $this->formActivityId === '' ? null : $this->activities->findById($this->formActivityId);
+        $editing = $this->formActivityId === '' ? null : $this->findActivity($this->formActivityId);
 
         return array_values(array_filter(
             $this->folders->findAllByCentre($this->centre),
@@ -408,7 +408,7 @@ class ActivityBrowserComponent extends AbstractController
     {
         $documents = [];
         foreach ($this->formRelatedDocumentIds as $id) {
-            $document = $this->documents->findById($id);
+            $document = $this->findDocument($id);
             if ($document !== null) {
                 $documents[] = $document;
             }
@@ -544,7 +544,7 @@ class ActivityBrowserComponent extends AbstractController
     public function startEditActivity(#[LiveArg] string $id): void
     {
         $this->requireEditPermission();
-        $activity = $this->activities->findById($id);
+        $activity = $this->findActivity($id);
         if ($activity === null) {
             return;
         }
@@ -615,7 +615,12 @@ class ActivityBrowserComponent extends AbstractController
         $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
         $scope    = ActivitySubmissionScope::from($this->formScope === 'individual' ? 'individual' : 'by_profile');
 
-        $activity = $this->formActivityId === '' ? null : $this->activities->findById($this->formActivityId);
+        $activity = null;
+        if ($this->formActivityId !== '') {
+            // $formActivityId is client-writable: an id from another centre must never be
+            // edited (nor silently turned into a brand new activity here instead).
+            $activity = $this->findActivity($this->formActivityId) ?? throw $this->createNotFoundException();
+        }
         if ($activity === null) {
             $activity = (new Activity())
                 ->setCategory($category)
@@ -697,8 +702,8 @@ class ActivityBrowserComponent extends AbstractController
     /** A related document must belong to this centre and stay within what the editing teacher can actually see — re-checked here since $formRelatedDocumentIds is client-controlled state. */
     private function findViewableDocumentById(string $id): ?Document
     {
-        $document = $this->documents->findById($id);
-        if ($document === null || $document->getFolder()->getDocumentSection()->getEducationalCentre() !== $this->centre) {
+        $document = $this->findDocument($id);
+        if ($document === null) {
             return null;
         }
 
@@ -722,7 +727,7 @@ class ActivityBrowserComponent extends AbstractController
     public function deleteActivity(#[LiveArg] string $id): void
     {
         $this->requireEditPermission();
-        $activity = $this->activities->findById($id);
+        $activity = $this->findActivity($id);
         if ($activity === null) {
             $this->confirmingDeleteActivityId = '';
 
@@ -954,15 +959,16 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveAction]
     public function markCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = ''): void
     {
-        $activity = $this->activities->findById($activityId);
-        if ($activity === null) {
+        $activity = $this->findActivity($activityId);
+        // Auto-complete activities have nothing to mark: their status is always computed.
+        if ($activity === null || $activity->isAutoComplete()) {
             $this->confirmingCompleteKey = '';
 
             return;
         }
 
         $teacher                     = $this->teacher();
-        [$profile, $listItem]        = $this->resolveOwnerIds($profileId, $listItemId);
+        [$profile, $listItem]        = $this->requireOwnCompletionOwner($activity, $profileId, $listItemId);
         $targetTeacher               = $profile === null ? $teacher : null;
         $this->confirmingCompleteKey = '';
 
@@ -994,13 +1000,13 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveAction]
     public function unmarkCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = ''): void
     {
-        $activity = $this->activities->findById($activityId);
-        if ($activity === null) {
+        $activity = $this->findActivity($activityId);
+        if ($activity === null || $activity->isAutoComplete()) {
             return;
         }
 
         $teacher               = $this->teacher();
-        [$profile, $listItem]  = $this->resolveOwnerIds($profileId, $listItemId);
+        [$profile, $listItem]  = $this->requireOwnCompletionOwner($activity, $profileId, $listItemId);
         $targetTeacher         = $profile === null ? $teacher : null;
 
         if (!$this->completion->unmarkCompleted($activity, $targetTeacher, $profile, $listItem)) {
@@ -1012,13 +1018,39 @@ class ActivityBrowserComponent extends AbstractController
         $this->flashSuccess($this->t('activity.flash.completion_undone'));
     }
 
-    /** @return array{0: ?SpecificProfile, 1: ?ListItem} */
-    private function resolveOwnerIds(string $profileId, string $listItemId): array
+    /**
+     * Resolves the owner a (un)mark-completed call targets, and denies it unless it's one the
+     * current teacher is actually offered the button for (_activity_completion.html.twig): their
+     * own individual completion when the activity has one, or one of the profile/list item rows
+     * they hold themselves (getMyCompletionOwners()). The ids are client-supplied LiveArgs, so the
+     * template only showing the right buttons is not enough on its own.
+     *
+     * @return array{0: ?SpecificProfile, 1: ?ListItem}
+     */
+    private function requireOwnCompletionOwner(Activity $activity, string $profileId, string $listItemId): array
     {
         $profile  = $profileId === '' ? null : $this->profiles->findByIdAndCentre($profileId, $this->centre);
         $listItem = $listItemId === '' ? null : $this->listItems->findByIdAndCentre($listItemId, $this->centre);
 
-        return [$profile, $listItem];
+        if (($profileId !== '' && $profile === null) || ($listItemId !== '' && $listItem === null)) {
+            throw $this->createAccessDeniedException();
+        }
+
+        if ($profile === null) {
+            if ($listItem !== null || !$this->completion->hasIndividualCompletionOwner($activity)) {
+                throw $this->createAccessDeniedException();
+            }
+
+            return [null, null];
+        }
+
+        foreach ($this->completion->getMyCompletionOwners($this->teacher(), $activity) as $owner) {
+            if ($owner['profile'] === $profile && $owner['listItem'] === $listItem) {
+                return [$profile, $listItem];
+            }
+        }
+
+        throw $this->createAccessDeniedException();
     }
 
     // ── Revision panel (mirrors SectionBrowserComponent's equivalents, scoped to an activity's own folder) ──
@@ -1090,7 +1122,7 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveAction]
     public function askDeleteDocument(#[LiveArg] string $id): void
     {
-        $document = $this->documents->findById($id);
+        $document = $this->findDocument($id);
         if ($document === null || !$this->canDeleteDocument($document)) {
             throw $this->createAccessDeniedException();
         }
@@ -1107,7 +1139,7 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveAction]
     public function deleteDocument(#[LiveArg] string $id): void
     {
-        $document = $this->documents->findById($id);
+        $document = $this->findDocument($id);
         if ($document === null || !$this->canDeleteDocument($document)) {
             throw $this->createAccessDeniedException();
         }
@@ -1282,12 +1314,27 @@ class ActivityBrowserComponent extends AbstractController
 
     private function requireDocument(string $id): Document
     {
-        $document = $this->documents->findById($id);
-        if ($document === null) {
-            throw $this->createNotFoundException();
-        }
+        return $this->findDocument($id) ?? throw $this->createNotFoundException();
+    }
 
-        return $document;
+    /**
+     * Every id reaching this component from the client (LiveArgs, writable LiveProps) goes through
+     * these two: a bare findById() would happily return another centre's activity or document, and
+     * a permission check against $this->centre (e.g. requireEditPermission()) says nothing about
+     * where the entity itself lives.
+     */
+    private function findActivity(string $id): ?Activity
+    {
+        $activity = $this->activities->findById($id);
+
+        return $activity !== null && $activity->getCategory()->getEducationalCentre() === $this->centre ? $activity : null;
+    }
+
+    private function findDocument(string $id): ?Document
+    {
+        $document = $this->documents->findById($id);
+
+        return $document !== null && $document->getFolder()->getDocumentSection()->getEducationalCentre() === $this->centre ? $document : null;
     }
 
     // ── Search ───────────────────────────────────────────────────────────────
@@ -1381,8 +1428,8 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveAction]
     public function openActivitySearchResult(#[LiveArg] string $id): void
     {
-        $activity = $this->activities->findById($id);
-        if ($activity === null || $activity->getCategory()->getEducationalCentre() !== $this->centre) {
+        $activity = $this->findActivity($id);
+        if ($activity === null) {
             return;
         }
         if (!$this->access->isActivityRelevantToTeacher($this->teacher(), $activity)) {
@@ -1396,7 +1443,7 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveAction]
     public function openSubmissionSearchResult(#[LiveArg] string $documentId): void
     {
-        $document = $this->documents->findById($documentId);
+        $document = $this->findDocument($documentId);
         $activity = $document?->getFolder()->getActivity();
         if ($document === null || $activity === null) {
             return;

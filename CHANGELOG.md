@@ -22,6 +22,9 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   al plazo del curso anterior; ahora se muestran como «Se abre el…» con la fecha de este curso.
   Con el inicio de curso por defecto (15 de septiembre), hasta ese día las actividades siguen
   refiriéndose al curso que termina.
+- **Seguridad**: se refuerzan las comprobaciones de permisos en la página de Actividades. Ya no es
+  posible, manipulando la petición, modificar o eliminar actividades o revisiones de otro centro,
+  ni marcar como completada (o deshacer) una actividad que corresponde a otro perfil.
 
 ## [1.4.1] - 2026-09-20
 
