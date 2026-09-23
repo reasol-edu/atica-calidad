@@ -185,4 +185,35 @@ final class YearSelectionControllerTest extends ControllerTestCase
         self::assertNotNull($viewYear);
         self::assertSame($activeYear->getId()->toRfc4122(), $viewYear->getId()->toRfc4122(), 'resetting must fall back to the active year, not stay on the past one');
     }
+
+    /** @return iterable<string, array{string, string}> _return_to → where the redirect must land */
+    public static function returnToProvider(): iterable
+    {
+        yield 'same-origin path'               => ['/actividades?tab=view', '/actividades?tab=view'];
+        yield 'protocol-relative URL'          => ['//evil.example/phish', '/'];
+        yield 'backslash protocol-relative'    => ['/\\evil.example/phish', '/'];
+        yield 'tab collapsed by the browser'   => ["/\t/evil.example/phish", '/'];
+        yield 'absolute URL'                   => ['https://evil.example/phish', '/'];
+        yield 'empty'                          => ['', '/'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('returnToProvider')]
+    public function testResetOnlyRedirectsBackToASameOriginPath(string $returnTo, string $expectedLocation): void
+    {
+        $centre     = $this->centre();
+        $activeYear = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($activeYear);
+        $admin = $this->admin();
+        $this->persist($centre, $activeYear, $admin);
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('GET', '/curso/año');
+        $this->client->request('POST', '/curso/año/activo', [
+            '_token'     => $this->csrfToken('reset_year'),
+            '_return_to' => $returnTo,
+        ]);
+
+        self::assertTrue($this->client->getResponse()->isRedirect());
+        self::assertSame($expectedLocation, $this->client->getResponse()->headers->get('Location'));
+    }
 }

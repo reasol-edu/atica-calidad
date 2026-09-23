@@ -59,33 +59,14 @@ final class TeacherAuthenticator extends AbstractLoginFormAuthenticator
                     throw new CustomUserMessageAuthenticationException(self::ERROR_INVALID_CREDENTIALS);
                 }
 
+                if (!$this->isPasswordValid($user, $plainPassword)) {
+                    throw new CustomUserMessageAuthenticationException(self::ERROR_INVALID_CREDENTIALS);
+                }
+
+                // Only after the password checks out: saying "inactive" for any password would
+                // tell anyone which usernames exist (and which ones are deactivated).
                 if (!$user->isActive()) {
                     throw new CustomUserMessageAuthenticationException(self::ERROR_USER_INACTIVE);
-                }
-
-                if ($user->isExternal()) {
-                    if (!$this->senecaAuthenticator->isEnabled()) {
-                        throw new CustomUserMessageAuthenticationException(self::ERROR_EXTERNAL_UNAVAILABLE);
-                    }
-
-                    try {
-                        if ($this->senecaAuthenticator->checkUserCredentials($user->getUsername(), $plainPassword)) {
-                            return true;
-                        }
-                    } catch (RandomException|RuntimeException) {
-                        throw new CustomUserMessageAuthenticationException(self::ERROR_EXTERNAL_UNAVAILABLE);
-                    }
-
-                    throw new CustomUserMessageAuthenticationException(self::ERROR_INVALID_CREDENTIALS);
-                }
-
-                $hashedPassword = $user->getPassword();
-                if ($hashedPassword === null || $hashedPassword === '') {
-                    throw new CustomUserMessageAuthenticationException(self::ERROR_INVALID_CREDENTIALS);
-                }
-
-                if (!$this->passwordHasher->isPasswordValid($user, $plainPassword)) {
-                    throw new CustomUserMessageAuthenticationException(self::ERROR_INVALID_CREDENTIALS);
                 }
 
                 return true;
@@ -94,6 +75,28 @@ final class TeacherAuthenticator extends AbstractLoginFormAuthenticator
                 new CsrfTokenBadge('authenticate', $csrfToken),
             ]
         );
+    }
+
+    private function isPasswordValid(Teacher $user, string $plainPassword): bool
+    {
+        if ($user->isExternal()) {
+            if (!$this->senecaAuthenticator->isEnabled()) {
+                throw new CustomUserMessageAuthenticationException(self::ERROR_EXTERNAL_UNAVAILABLE);
+            }
+
+            try {
+                return $this->senecaAuthenticator->checkUserCredentials($user->getUsername(), $plainPassword);
+            } catch (RandomException|RuntimeException) {
+                throw new CustomUserMessageAuthenticationException(self::ERROR_EXTERNAL_UNAVAILABLE);
+            }
+        }
+
+        $hashedPassword = $user->getPassword();
+        if ($hashedPassword === null || $hashedPassword === '') {
+            return false;
+        }
+
+        return $this->passwordHasher->isPasswordValid($user, $plainPassword);
     }
 
     protected function getLoginUrl(Request $request): string

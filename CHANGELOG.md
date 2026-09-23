@@ -25,6 +25,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - **Seguridad**: se refuerzan las comprobaciones de permisos en la página de Actividades. Ya no es
   posible, manipulando la petición, modificar o eliminar actividades o revisiones de otro centro,
   ni marcar como completada (o deshacer) una actividad que corresponde a otro perfil.
+- **Seguridad**: tras cambiar de curso, la aplicación ya solo redirige a páginas de la propia
+  aplicación.
+- **Seguridad**: la respuesta del servicio de autenticación de Séneca se procesa de forma más
+  estricta.
+- **Inicio de sesión**: el aviso «Tu cuenta está desactivada» solo aparece si la contraseña es
+  correcta; con una contraseña errónea se muestra el mensaje genérico de credenciales no válidas.
 
 ## [1.4.1] - 2026-09-20
 

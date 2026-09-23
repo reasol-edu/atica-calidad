@@ -82,11 +82,16 @@ class YearSelectionController extends AbstractController
         return $this->redirect($this->resolveReturnTo($request));
     }
 
+    /**
+     * Only a same-origin path is followed. "//host" and "/\host" also start with "/", but
+     * browsers resolve them to another host (protocol-relative); and they strip tabs/newlines
+     * from a URL before resolving it, so "/\t/host" would collapse into "//host" as well.
+     */
     private function resolveReturnTo(Request $request): string
     {
         $returnTo = $request->request->getString('_return_to', '');
 
-        if ($returnTo !== '' && str_starts_with($returnTo, '/')) {
+        if (preg_match('#^/(?![/\\\\])#', $returnTo) === 1 && preg_match('/[\x00-\x1F\x7F]/', $returnTo) !== 1) {
             return $returnTo;
         }
 

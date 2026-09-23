@@ -84,7 +84,10 @@ class SenecaAuthenticatorService
         $dom = new \DOMDocument();
         $previous = libxml_use_internal_errors(true);
 
-        if (!$dom->loadXML($str, LIBXML_NONET | LIBXML_NOENT)) {
+        // No LIBXML_NOENT: entity substitution is exactly what makes a hostile or spoofed response
+        // (TLS verification can be turned off, see APP_EXTERNAL_URL_FORCE_SECURITY) able to read local
+        // files through external entities. Only "<correcto>" is read, which needs none.
+        if (!$dom->loadXML($str, LIBXML_NONET)) {
             libxml_use_internal_errors($previous);
             throw new RuntimeException('External authentication service returned an invalid response.');
         }
