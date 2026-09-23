@@ -1,0 +1,11 @@
+{# A misconfigured SYMFONY_TRUSTED_PROXIES (ProxyConfigurationChecker); proxyWarning: {problem, proxy} or null. #}
+{% if proxyWarning %}
+    <div role="alert" class="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+        {{ ux_icon('heroicons:exclamation-triangle', {class: 'h-5 w-5 shrink-0 text-amber-600 mt-0.5'}) }}
+        <div class="space-y-1">
+            <p class="font-semibold">{{ ('proxy_warning.' ~ proxyWarning.problem ~ '.title')|trans({}, 'admin') }}</p>
+            <p>{{ ('proxy_warning.' ~ proxyWarning.problem ~ '.body')|trans({'%proxy%': proxyWarning.proxy}, 'admin') }}</p>
+            <p class="text-xs text-amber-800">{{ 'proxy_warning.help'|trans({}, 'admin') }}</p>
+        </div>
+    </div>
+{% endif %}

@@ -6,7 +6,9 @@ namespace App\Controller;
 
 use App\Repository\EducationalCentreRepository;
 use App\Repository\TeacherRepository;
+use App\Service\ProxyConfigurationChecker;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -17,13 +19,15 @@ class AdminController extends AbstractController
     public function __construct(
         private readonly TeacherRepository $teachers,
         private readonly EducationalCentreRepository $centres,
+        private readonly ProxyConfigurationChecker $proxyChecker,
     ) {}
 
     #[Route('/admin', name: 'app_admin')]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         return $this->render('admin/index.html.twig', [
-            'stats' => [
+            'proxyWarning' => $this->proxyChecker->check($request),
+            'stats'        => [
                 'teachers_total'  => $this->teachers->countAll(),
                 'teachers_active' => $this->teachers->countActive(),
                 'teachers_admin'  => $this->teachers->countAdmins(),

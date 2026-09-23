@@ -10,6 +10,10 @@
         <p class="mt-1 text-sm text-gray-500">{{ 'dashboard.subtitle'|trans({}, 'admin') }}</p>
     </div>
 
+    {% if proxyWarning %}
+        <div class="mb-6">{% include 'admin/_proxy_warning.html.twig' %}</div>
+    {% endif %}
+
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
         {# ── Card: Teachers ───────────────────────────────────────────────────── #}

@@ -9,6 +9,7 @@ use App\Repository\ActivityLogRepository;
 use App\Repository\EducationalCentreRepository;
 use App\Service\PdfHeader;
 use App\Service\PdfRenderer;
+use App\Service\ProxyConfigurationChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Clock\ClockInterface;
@@ -38,12 +39,15 @@ class ActivityLogController extends AbstractController
         private readonly PdfRenderer $pdf,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
+        private readonly ProxyConfigurationChecker $proxyChecker,
     ) {}
 
     #[Route('', name: 'app_admin_activity_log')]
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        return $this->render('admin/activity_log/index.html.twig');
+        return $this->render('admin/activity_log/index.html.twig', [
+            'proxyWarning' => $this->proxyChecker->check($request),
+        ]);
     }
 
     /**

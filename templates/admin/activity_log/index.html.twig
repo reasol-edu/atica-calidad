@@ -17,6 +17,8 @@
         <p class="mt-1 text-sm text-gray-500">{{ 'activity_log.help'|trans({}, 'admin') }}</p>
     </div>
 
+    {% include 'admin/_proxy_warning.html.twig' %}
+
     <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
         <twig:Admin:ActivityLogListComponent />
     </div>

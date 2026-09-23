@@ -42,6 +42,22 @@ final class ActivityLogControllerTest extends ControllerTestCase
         self::assertStringContainsString('Registro de actividad', (string) $this->client->getResponse()->getContent());
     }
 
+    public function testWarnsWhenBehindAProxyThatIsNotTrusted(): void
+    {
+        $admin = $this->teacher('root', admin: true);
+        $this->persist($admin);
+
+        $this->loginAs($admin);
+        $this->client->request('GET', '/admin/registro-actividad');
+        self::assertStringNotContainsString('proxy que no está configurado', (string) $this->client->getResponse()->getContent());
+
+        // The test client's REMOTE_ADDR is 127.0.0.1, and no proxy is trusted in the test environment.
+        $this->client->request('GET', '/admin/registro-actividad', server: ['HTTP_X_FORWARDED_FOR' => '203.0.113.7']);
+        $content = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('proxy que no está configurado', $content);
+        self::assertStringContainsString('SYMFONY_TRUSTED_PROXIES=&quot;127.0.0.1&quot;', $content);
+    }
+
     public function testExportIsDeniedForANonAdmin(): void
     {
         $teacher = $this->teacher('docente');

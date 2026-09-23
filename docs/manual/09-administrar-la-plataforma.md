@@ -284,6 +284,18 @@ interna), `127.0.0.1,10.0.0.1` (varios). Sin proxy inverso, deja la variable sin
 Para comprobar que está bien configurado, revisa la columna **IP** del registro de actividad: debe
 mostrar la IP real del cliente, no `127.0.0.1` ni la IP del proxy.
 
+La aplicación también lo comprueba sola. Si las peticiones llegan con cabeceras `X-Forwarded-*`
+desde una dirección de la propia máquina o de la red interna que no es de confianza, el **panel de
+administración** y el **registro de actividad** muestran un aviso con el valor exacto que hay que
+poner en `SYMFONY_TRUSTED_PROXIES`. También avisan si la variable confía en cualquier dirección
+(`0.0.0.0/0`), porque entonces cualquier visitante puede inventarse su IP. Un proxy con IP pública
+no se detecta así (las cabeceras podría haberlas escrito el propio visitante): en ese caso,
+compruébalo con la columna **IP**.
+
+Por defecto se leen `X-Forwarded-For`, `X-Forwarded-Port` y `X-Forwarded-Proto` de los proxies de
+confianza. Si tu proxy cambia además el nombre del servidor, añade
+`SYMFONY_TRUSTED_HEADERS="x-forwarded-for,x-forwarded-port,x-forwarded-proto,x-forwarded-host"`.
+
 ## Protección de datos (RGPD)
 
 ÁTICA Calidad almacena datos personales del profesorado (nombre, usuario, correo electrónico) con
