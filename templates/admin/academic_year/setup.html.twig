@@ -1,0 +1,150 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'year_setup.title'|trans({}, 'admin') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{#
+   "Preparar el nuevo curso" (AcademicYearSetupController): one card per step, in order. A step
+   shows done / to do / waiting for an earlier one, and carries its own action or a link to the
+   page that handles it.
+#}
+{% set button = 'inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors' %}
+{% set link = 'inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors' %}
+{% set steps = steps|reduce((carry, s) => carry|merge({(s.key): s}), {}) %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-3xl mx-auto">
+
+    <div class="mb-6">
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_centre_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">{{ 'educational_centre'|trans({}, 'navigation') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            <a href="{{ path('app_centre_years_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">{{ 'years.title'|trans({}, 'admin') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'year_setup.title'|trans({}, 'admin') }}</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ 'year_setup.intro'|trans({}, 'admin') }}</p>
+    </div>
+
+    <ol class="divide-y divide-gray-100 rounded-2xl border border-gray-200 bg-white shadow-xs">
+
+        {# ── 1. Create ─────────────────────────────────────────────────────── #}
+        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 1, step: steps.create, title: 'year_setup.create.title'|trans({}, 'admin'),
+            help: target ? 'year_setup.create.done'|trans({'%year%': target.name}, 'admin') : 'year_setup.create.help'|trans({}, 'admin')} %}
+            {% block actions %}
+            <form method="post" action="{{ path('app_centre_year_setup_create', {centreId: centre.id}) }}" class="flex flex-wrap items-center gap-2">
+                <input type="hidden" name="_token" value="{{ csrf_token('year_setup_create_' ~ centre.id) }}">
+                <input type="text" name="name" value="{{ suggestedName }}" required aria-label="{{ 'years.field.name_placeholder'|trans({}, 'admin') }}"
+                       class="w-40 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                <button type="submit" class="{{ steps.create.done ? link : button }}">
+                    {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                    {{ (steps.create.done ? 'year_setup.create.another' : 'year_setup.create.submit')|trans({}, 'admin') }}
+                </button>
+            </form>
+            {% endblock %}
+        {% endembed %}
+
+        {# ── 2. Activate ───────────────────────────────────────────────────── #}
+        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 2, step: steps.activate, title: 'year_setup.activate.title'|trans({}, 'admin'),
+            help: 'year_setup.activate.help'|trans({'%current%': centre.activeAcademicYear ? centre.activeAcademicYear.name : '—'}, 'admin')} %}
+            {% block actions %}
+            {% if target and not steps.activate.done %}
+                <form method="post" action="{{ path('app_centre_year_setup_activate', {centreId: centre.id}) }}"
+                      class="js-confirm-form" data-confirm="{{ 'year_setup.activate.confirm'|trans({'%year%': target.name}, 'admin')|e('html_attr') }}"
+                      data-confirm-label="{{ 'year_setup.activate.submit'|trans({'%year%': target.name}, 'admin')|e('html_attr') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('year_setup_activate_' ~ centre.id) }}">
+                    <button type="submit" class="js-confirm-trigger {{ button }}">
+                        {{ ux_icon('heroicons:check-circle', {class: 'h-4 w-4'}) }}
+                        {{ 'year_setup.activate.submit'|trans({'%year%': target.name}, 'admin') }}
+                    </button>
+                </form>
+            {% endif %}
+            {% endblock %}
+        {% endembed %}
+
+        {# ── 3. Teachers ───────────────────────────────────────────────────── #}
+        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 3, step: steps.teachers, title: 'year_setup.teachers.title'|trans({}, 'admin'),
+            help: steps.teachers.done ? 'year_setup.teachers.count'|trans({'%count%': steps.teachers.count}, 'admin') : 'year_setup.teachers.help'|trans({}, 'admin')} %}
+            {% block actions %}
+            {% if not steps.teachers.blocked %}
+                <div class="flex flex-wrap items-center gap-2">
+                    {% if copySources is not empty %}
+                        <form method="post" action="{{ path('app_centre_year_setup_copy_teachers', {centreId: centre.id}) }}" class="flex flex-wrap items-center gap-2">
+                            <input type="hidden" name="_token" value="{{ csrf_token('year_setup_copy_teachers_' ~ centre.id) }}">
+                            <select name="source" aria-label="{{ 'year_setup.teachers.source'|trans({}, 'admin') }}"
+                                    class="rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                                {% for year in copySources %}
+                                    <option value="{{ year.id.toRfc4122 }}">{{ 'year_setup.teachers.source_option'|trans({'%year%': year.name, '%count%': year.teachers|length}, 'admin') }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="{{ steps.teachers.done ? link : button }}">
+                                {{ ux_icon('heroicons:document-duplicate', {class: 'h-4 w-4'}) }}
+                                {{ 'year_setup.teachers.copy'|trans({}, 'admin') }}
+                            </button>
+                        </form>
+                    {% endif %}
+                    <a href="{{ path('app_centre_teachers_import', {centreId: centre.id}) }}" class="{{ link }}">
+                        {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                        {{ 'year_setup.teachers.import'|trans({}, 'admin') }}
+                    </a>
+                    <a href="{{ path('app_centre_teachers_index', {centreId: centre.id}) }}" class="{{ link }}">
+                        {{ 'year_setup.teachers.manage'|trans({}, 'admin') }}
+                    </a>
+                </div>
+                {% if copySources is not empty %}
+                    <p class="text-xs text-gray-400">{{ 'year_setup.teachers.copy_hint'|trans({}, 'admin') }}</p>
+                {% endif %}
+            {% endif %}
+            {% endblock %}
+        {% endembed %}
+
+        {# ── 4. Non-working days ───────────────────────────────────────────── #}
+        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 4, step: steps.non_working_days, title: 'year_setup.days.title'|trans({}, 'admin'),
+            help: steps.non_working_days.done ? 'year_setup.days.count'|trans({'%count%': steps.non_working_days.count}, 'admin') : 'year_setup.days.help'|trans({}, 'admin')} %}
+            {% block actions %}
+            {% if not steps.non_working_days.blocked %}
+                <a href="{{ path('app_centre_non_working_days_index', {centreId: centre.id}) }}" class="{{ steps.non_working_days.done ? link : button }}">
+                    {{ ux_icon('heroicons:calendar-days', {class: 'h-4 w-4'}) }}
+                    {{ 'year_setup.days.manage'|trans({}, 'admin') }}
+                </a>
+            {% endif %}
+            {% endblock %}
+        {% endembed %}
+
+        {# ── 5. Profile assignments ────────────────────────────────────────── #}
+        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 5, step: steps.assignments, title: 'year_setup.assignments.title'|trans({}, 'admin'),
+            help: stale is empty ? 'year_setup.assignments.help'|trans({}, 'admin') : 'year_setup.assignments.stale'|trans({'%count%': stale|length}, 'admin')} %}
+            {% block actions %}
+            {% if not steps.assignments.blocked %}
+                {% if stale is not empty %}
+                    <ul class="max-h-48 overflow-y-auto rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2 text-xs text-gray-700 space-y-0.5">
+                        {% for assignment in stale %}
+                            <li>
+                                <span class="font-medium">{{ assignment.teacher.name.lastName }}, {{ assignment.teacher.name.firstName }}</span>
+                                · {{ assignment.specificProfile.name }}{{ assignment.listItem ? ' ' ~ assignment.listItem.name : '' }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if is_granted('educational_centre.responsibilities', centre) %}
+                    <a href="{{ path('app_responsibilities_assignments', {centreId: centre.id}) }}" class="{{ stale is empty ? link : button }}">
+                        {{ ux_icon('heroicons:user-group', {class: 'h-4 w-4'}) }}
+                        {{ 'year_setup.assignments.manage'|trans({}, 'admin') }}
+                    </a>
+                {% endif %}
+            {% endif %}
+            {% endblock %}
+        {% endembed %}
+    </ol>
+
+    <p class="mt-4 flex items-start gap-2 text-xs text-gray-500">
+        {{ ux_icon('heroicons:information-circle', {class: 'h-4 w-4 shrink-0 text-gray-400'}) }}
+        <span>
+            {{ 'year_setup.automatic'|trans({}, 'admin') }}
+            {% if is_granted('educational_centre.reports', centre) %}
+                <a href="{{ path('app_reports_index', {centreId: centre.id.toRfc4122}) }}" class="font-medium text-forest-600 hover:text-forest-700">{{ 'year_setup.reports'|trans({}, 'admin') }}</a>
+            {% endif %}
+        </span>
+    </p>
+</div>
+{% endblock %}

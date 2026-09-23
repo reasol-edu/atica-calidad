@@ -1,0 +1,15 @@
+{# One step of "Preparar el nuevo curso", embedded by setup.html.twig: number, step (AcademicYearSetupStep), title, help; its actions go in the "actions" block. #}
+{% set state = step.done ? 'done' : (step.blocked ? 'blocked' : 'todo') %}
+<li class="flex gap-4 px-6 py-5 {{ state == 'blocked' ? 'opacity-60' : '' }}" data-step="{{ step.key }}" data-state="{{ state }}">
+    <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold
+                 {{ state == 'done' ? 'bg-forest-600 text-white' : (state == 'todo' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-400') }}">
+        {% if state == 'done' %}{{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{% else %}{{ number }}{% endif %}
+    </span>
+    <div class="min-w-0 flex-1 space-y-2">
+        <div>
+            <h2 class="text-sm font-semibold text-gray-900">{{ title }}</h2>
+            <p class="text-sm text-gray-500">{{ help }}</p>
+        </div>
+        {% block actions %}{% endblock %}
+    </div>
+</li>

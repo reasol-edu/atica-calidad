@@ -16,6 +16,16 @@
         <h1 class="text-2xl font-bold text-gray-900">{{ 'years.title'|trans({}, 'admin') }}</h1>
     </div>
 
+    <a href="{{ path('app_centre_year_setup', {centreId: centre.id}) }}"
+       class="mb-4 flex items-center gap-3 rounded-2xl border border-forest-200 bg-forest-50 px-5 py-4 hover:bg-forest-100 transition-colors">
+        {{ ux_icon('heroicons:clipboard-document-check', {class: 'h-6 w-6 shrink-0 text-forest-600'}) }}
+        <span class="min-w-0 flex-1">
+            <span class="block text-sm font-semibold text-forest-800">{{ 'year_setup.link'|trans({}, 'admin') }}</span>
+            <span class="block text-xs text-forest-700">{{ 'year_setup.link_help'|trans({}, 'admin') }}</span>
+        </span>
+        {{ ux_icon('heroicons:chevron-right', {class: 'h-5 w-5 shrink-0 text-forest-500'}) }}
+    </a>
+
     <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
 
         {# List of academic years #}
