@@ -4,7 +4,8 @@
 para resolverlo: las **incidencias** que comunica cualquier docente, las **no conformidades** y sus
 **acciones** (reparadoras, correctivas, preventivas y de mejora), hasta comprobar que han sido
 eficaces, el **plan de mejora** de cada curso, los **indicadores** con los que el centro mide cómo
-van sus procesos y la **auditoría interna**. Aparece en el menú lateral para todo el profesorado.
+van sus procesos, la **auditoría interna** y la **revisión por la dirección**. Aparece en el menú
+lateral para todo el profesorado.
 
 La sección usa el lenguaje del centro, no el de la norma: nadie necesita saber qué es una «no
 conformidad» para comunicar un problema. Los términos de la ISO 9001 aparecen solo como ayuda al
@@ -16,7 +17,7 @@ clasificar.
 | --- | --- |
 | **Cualquier docente** | Comunica incidencias y sigue las que ha comunicado. Si se le asigna una acción, la hace y adjunta la evidencia. Si es responsable de un indicador, registra sus valores. |
 | **Responsable del análisis** | Analiza las causas de una no conformidad y propone las acciones correctivas. |
-| **Responsable de calidad** y **equipo directivo / admin. del centro** | Clasifican lo que llega, asignan el análisis, verifican la eficacia y cierran. Preparan el plan de mejora, definen los indicadores y deciden qué se hace cuando uno queda fuera de meta. Programan las auditorías (el equipo directivo aprueba el programa). Ven todo. |
+| **Responsable de calidad** y **equipo directivo / admin. del centro** | Clasifican lo que llega, asignan el análisis, verifican la eficacia y cierran. Preparan el plan de mejora, definen los indicadores y deciden qué se hace cuando uno queda fuera de meta. Programan las auditorías (el equipo directivo aprueba el programa). Preparan la revisión por la dirección y anotan sus decisiones (el equipo directivo la cierra). Ven todo. |
 | **Auditor/a interno/a** | Consulta todas las fichas, el plan de mejora, los indicadores y sus informes, sin modificarlos. Prepara y realiza las auditorías de cuyo equipo forma parte. |
 | **Equipo auditor** | Cualquier docente al que se le asigne una auditoría: la prepara, la realiza y emite su informe. |
 
@@ -56,7 +57,7 @@ La portada reúne, en este orden:
 - **Lo que has comunicado** — las incidencias propias y en qué punto están.
 
 Quien ve todas las fichas tiene además los botones **Ver todas las fichas**, **Plan de mejora**,
-**Indicadores** y **Auditorías**.
+**Indicadores**, **Auditorías** y **Revisión por la dirección**.
 
 ## Dónde aparece lo que te toca {#donde-aparece-lo-que-te-toca}
 
@@ -425,6 +426,73 @@ Cada lista se puede editar, crear desde cero o eliminar, y **exportar** e **impo
 para compartirlas con otros centros; al importar, una lista con el nombre de otra ya existente
 recibe un número detrás.
 
+## Revisión por la dirección {#revision-por-la-direccion}
+
+Una vez al año (o cuando haga falta), el equipo directivo repasa cómo va el sistema de calidad y
+decide qué cambiar: es la **revisión por la dirección** (apartado 9.3 de la ISO 9001). La aplicación
+reúne lo que sabe del periodo; en la reunión se anota lo demás, las conclusiones y las decisiones.
+
+![Revisiones por la dirección del centro](img/mejora-revisiones.png)
+
+**Mejora continua → Revisión por la dirección** muestra las revisiones del centro, la más reciente
+primero. La coordinación de calidad o el equipo directivo pulsan **Nueva revisión** e indican la
+fecha de la reunión y el **periodo** que repasa, que por defecto va desde el día siguiente al final
+de la revisión anterior (o desde el 1 de septiembre, si es la primera) hasta hoy.
+
+### Lo que reúne la aplicación
+
+![Revisión abierta, con los datos del periodo](img/mejora-revision.png)
+
+La página de la revisión sigue el orden de la norma (cada bloque lleva su apartado en gris) y
+reúne, para el periodo:
+
+- **Qué ha sido de las decisiones de la revisión anterior**, con su estado actual.
+- Las **quejas y reclamaciones** (fichas con ese origen).
+- El **cuadro de indicadores** del curso: cuántos están en meta, en alerta, fuera de meta o sin dato,
+  con su meta, su último valor y el del curso anterior.
+- Las **actividades** vencidas en el periodo y cuánto se han completado (solo en el curso activo),
+  las **revisiones de documentos** vencidas y próximas y el **acuse de lectura**.
+- Las **fichas** del periodo por tipo y por origen, las no conformidades verificadas como eficaces o
+  no, y las **no conformidades abiertas** (también las anteriores al periodo).
+- Las **auditorías internas** planificadas en el periodo, con sus hallazgos y su conclusión.
+- El **plan de mejora** del curso (hechas, sin terminar, vencidas) y las **oportunidades de
+  mejora** detectadas.
+
+Cada elemento enlaza con su ficha, acción o auditoría. Mientras la revisión está abierta, estos datos
+se calculan de nuevo cada vez que se abre la página.
+
+### Anotar la reunión
+
+![Anotar lo que se habla en la reunión](img/mejora-revision-anotar.png)
+
+**Anotar** abre los apartados que la aplicación no puede saber: **asistentes**, **cambios en el
+contexto** del centro, **satisfacción y opiniones** (encuestas, sugerencias), **proveedores y
+servicios externos**, **recursos** y las **conclusiones** sobre si el sistema es adecuado y eficaz.
+En la página, cada apartado sin anotar tiene su enlace **Anotar**.
+
+### Las decisiones
+
+![Decisiones de una revisión cerrada](img/mejora-revision-decisiones.png)
+
+Cada decisión —una mejora, un cambio en el sistema, un recurso que hace falta— es una **acción del
+plan de mejora**: **Añadir decisión** abre el formulario del plan (con el aviso «Decisión de…»),
+y al guardarla se vuelve a la revisión. Llega como tarea a su responsable, se sigue en el plan como
+cualquier otra y su página indica en qué revisión se decidió. La revisión siguiente muestra cómo han
+ido.
+
+### Cerrar la revisión y el acta
+
+Cuando la reunión ya se ha celebrado y las conclusiones están escritas, el **equipo directivo**
+pulsa **Cerrar la revisión**. Al cerrarla, los datos de la aplicación **quedan fijados** tal como
+estaban ese día (lo que ocurra después ya no los cambia) y la revisión deja de poder modificarse o
+eliminarse. Las decisiones, en cambio, siguen mostrando su estado actual.
+
+**Acta en PDF** descarga el acta con el membrete del centro: los datos de la reunión, las entradas
+de la revisión y sus salidas (conclusiones y decisiones). Mientras la revisión está abierta, sale
+con la marca de borrador.
+
+Una revisión abierta se puede eliminar; sus decisiones se quedan en el plan de mejora.
+
 ## Ajustes
 
 En **Ajustes**, a nivel global o de centro:
@@ -458,3 +526,6 @@ En **Ajustes**, a nivel global o de centro:
 | Ver una auditoría en la que se le audita | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Programar auditorías y gestionar las listas de comprobación | — | — | ✅ | ✅ | ✅ |
 | Aprobar el programa de auditorías | — | — | — | ✅ | ✅ |
+| Ver las revisiones por la dirección y su acta | — | ✅ | ✅ | ✅ | ✅ |
+| Crear una revisión por la dirección, anotarla y añadir sus decisiones | — | — | ✅ | ✅ | ✅ |
+| Cerrar una revisión por la dirección | — | — | — | ✅ | ✅ |

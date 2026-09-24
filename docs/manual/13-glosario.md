@@ -189,6 +189,11 @@ El centro tiene una biblioteca, que se puede cargar con las de la ISO 9001.
 : Quienes son responsables de las carpetas de los procesos que audita una auditoría. Reciben su
 informe y ven sus fichas.
 
+**Revisión por la dirección**
+: Reunión en la que el equipo directivo repasa, para un periodo, cómo va el sistema de calidad y
+decide qué cambiar. Se cierra con sus datos fijados y un acta en PDF, y sus decisiones son acciones
+del plan de mejora — ver [Revisión por la dirección](09-mejora-continua.md#revision-por-la-direccion).
+
 **Plan de mejora**
 : Las acciones preventivas y de mejora que el centro se propone en un curso, sin que haya una
 incidencia detrás, cada una con su código (`PM-AAAA-NNN`), responsable, plazo y evidencias — ver

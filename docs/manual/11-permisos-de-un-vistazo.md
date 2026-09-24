@@ -18,6 +18,9 @@
 | Preparar y realizar las auditorías de cuyo equipo forma parte | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Programar auditorías y gestionar las listas de comprobación | — | — | ✅ | ✅ | ✅ |
 | Aprobar el programa de auditorías | — | — | — | ✅ | ✅ |
+| Ver las [revisiones por la dirección](09-mejora-continua.md#revision-por-la-direccion) y su acta | — | ✅ | ✅ | ✅ | ✅ |
+| Preparar una revisión por la dirección y añadir sus decisiones | — | — | ✅ | ✅ | ✅ |
+| Cerrar una revisión por la dirección | — | — | — | ✅ | ✅ |
 | Clasificar incidencias, asignar el análisis, verificar la eficacia y cerrar | — | — | ✅ | ✅ | ✅ |
 | Preparar el [plan de mejora](09-mejora-continua.md#plan-de-mejora) (añadir, editar y eliminar acciones) | — | — | ✅ | ✅ | ✅ |
 | Crear eventos en el calendario | — | — | — | ✅ | ✅ |

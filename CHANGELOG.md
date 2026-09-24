@@ -75,6 +75,18 @@ forma, lanza `php bin/console doctrine:migrations:migrate` tras actualizar.
     auditoría se **cierra sola** cuando se cierran todas sus fichas.
   - El equipo tiene la auditoría como tarea desde un mes antes, y el equipo directivo, la de
     aprobar el programa.
+- **Revisión por la dirección** (Mejora continua → Revisión por la dirección):
+  - Cada revisión tiene su fecha y el **periodo** que repasa (por defecto, desde la anterior hasta
+    hoy), y reúne en el orden de la ISO 9001 (9.3.2) lo que la aplicación sabe de él: qué ha sido de
+    las decisiones de la revisión anterior, quejas y reclamaciones, el cuadro de indicadores,
+    actividades y documentos, fichas y no conformidades abiertas, eficacia de las acciones,
+    auditorías internas, plan de mejora y oportunidades de mejora, con enlace a cada elemento.
+  - En la reunión se **anotan** los asistentes, los cambios en el contexto, la satisfacción, los
+    proveedores, los recursos y las **conclusiones**. Cada **decisión** es una acción del plan de
+    mejora enlazada a la revisión, con responsable y plazo.
+  - El **equipo directivo la cierra**: los datos quedan fijados como estaban ese día y ya no se
+    puede modificar. El **acta en PDF**, con el membrete del centro, sale como borrador mientras
+    está abierta.
 - **Las tareas de Mejora continua, donde ya se mira**: clasificar, analizar causas, hacer una acción
   (de una ficha o del plan de mejora) y verificar la eficacia aparecen también en la **campana**, en
   el **calendario** (el día en que vencen, y las acciones ya hechas, tachadas) y en el
@@ -83,7 +95,9 @@ forma, lanza `php bin/console doctrine:migrations:migrate` tras actualizar.
 - **Datos de demostración**: cinco fichas de ejemplo de Mejora continua, una en cada paso, un plan
   de mejora con cuatro acciones, cinco indicadores, con los valores de todo el curso anterior y la
   evaluación inicial del actual, y un programa de auditorías aprobado con una auditoría con el
-  informe emitido, otra en curso y otra planificada (y la biblioteca de listas de la ISO 9001).
+  informe emitido, otra en curso y otra planificada (y la biblioteca de listas de la ISO 9001), y
+  dos revisiones por la dirección: la del curso anterior, cerrada y con dos decisiones en el plan de
+  mejora, y la de inicio de curso, abierta.
 - **Manual**: nuevo capítulo [Mejora continua](docs/manual/09-mejora-continua.md), con sus capturas.
 
 ### Fixed

@@ -165,6 +165,23 @@ await shot('mejora-auditoria-nueva', { fullPage: true });
 await page.goto(`${baseUrl}/mejora/auditorias/listas`);
 await shot('mejora-listas-comprobacion', { fullPage: true });
 
+// ── Management review: this year's, open; last year's, closed ────────────────
+await page.goto(`${baseUrl}/mejora/revisiones`);
+await shot('mejora-revisiones');
+
+await page.click('li a:has-text("inicio de curso") >> visible=true');
+await page.waitForLoadState('networkidle');
+await shot('mejora-revision', { fullPage: true });
+
+await page.goto(page.url() + '/editar');
+await shot('mejora-revision-anotar', { fullPage: true });
+
+await page.goto(`${baseUrl}/mejora/revisiones`);
+await page.click('li a:has-text("2025-2026") >> visible=true');
+await page.waitForLoadState('networkidle');
+await page.locator('#decisiones').scrollIntoViewIfNeeded();
+await shot('mejora-revision-decisiones');
+
 // ── The internal auditor, on a tablet: carrying out the audit under way ──────
 const tablet = await browser.newPage({ viewport: { width: 820, height: 1180 }, locale: 'es-ES' });
 await tablet.goto(`${baseUrl}/login`);
