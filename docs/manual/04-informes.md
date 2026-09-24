@@ -62,6 +62,13 @@ de mejora con su código, lo que se quiere conseguir, el proceso, su responsable
 (*Vencida* si se ha pasado de plazo sin hacerse) y qué se ha hecho. Desde la página del plan se
 descarga el del curso que se esté viendo, también de cursos anteriores.
 
+## Cuadro de indicadores {#cuadro-de-indicadores}
+
+Los [indicadores](09-mejora-continua.md#indicadores) del curso activo por proceso: la meta y el
+umbral de alerta de cada uno, su valor en cada periodo, cómo va y el valor del curso anterior. En
+Excel, una fila por indicador y periodo, para trabajar con los datos. Desde la página de indicadores
+se descarga el del curso que se esté viendo, también de cursos anteriores.
+
 ## Acuses de lectura {#acuses-de-lectura}
 
 Para cada documento de las carpetas con [acuse de lectura](07-arbol-documental.md#acuse-de-lectura),

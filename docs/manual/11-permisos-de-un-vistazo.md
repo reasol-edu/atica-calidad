@@ -11,7 +11,9 @@
 | Ver quién ha leído cada documento (en la carpeta, si la gestiona; o en el informe) | — | ✅ (informe) | ✅ | ✅ | ✅ |
 | Recuperar o eliminar definitivamente lo que está en la [papelera](07-arbol-documental.md#papelera) | — | — | ✅ | ✅ | ✅ |
 | Comunicar incidencias y hacer los análisis y acciones de [Mejora continua](09-mejora-continua.md#permisos-de-un-vistazo) que se le asignen | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Ver todas las fichas de Mejora continua y el plan de mejora | — | ✅ | ✅ | ✅ | ✅ |
+| Registrar los valores de los [indicadores](09-mejora-continua.md#indicadores) de los que es responsable | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Ver todas las fichas de Mejora continua, el plan de mejora y los indicadores | — | ✅ | ✅ | ✅ | ✅ |
+| Definir indicadores y calendarios de medición, y decidir sobre los valores fuera de meta | — | — | ✅ | ✅ | ✅ |
 | Clasificar incidencias, asignar el análisis, verificar la eficacia y cerrar | — | — | ✅ | ✅ | ✅ |
 | Preparar el [plan de mejora](09-mejora-continua.md#plan-de-mejora) (añadir, editar y eliminar acciones) | — | — | ✅ | ✅ | ✅ |
 | Crear eventos en el calendario | — | — | — | ✅ | ✅ |

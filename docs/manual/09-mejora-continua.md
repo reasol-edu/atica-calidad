@@ -3,7 +3,8 @@
 **Mejora continua** es donde el centro registra lo que no funciona como debería y sigue qué se hace
 para resolverlo: las **incidencias** que comunica cualquier docente, las **no conformidades** y sus
 **acciones** (reparadoras, correctivas, preventivas y de mejora), hasta comprobar que han sido
-eficaces, y el **plan de mejora** de cada curso. Aparece en el menú lateral para todo el profesorado.
+eficaces, el **plan de mejora** de cada curso y los **indicadores** con los que el centro mide cómo
+van sus procesos. Aparece en el menú lateral para todo el profesorado.
 
 La sección usa el lenguaje del centro, no el de la norma: nadie necesita saber qué es una «no
 conformidad» para comunicar un problema. Los términos de la ISO 9001 aparecen solo como ayuda al
@@ -13,10 +14,10 @@ clasificar.
 
 | Papel | Qué hace |
 | --- | --- |
-| **Cualquier docente** | Comunica incidencias y sigue las que ha comunicado. Si se le asigna una acción, la hace y adjunta la evidencia. |
+| **Cualquier docente** | Comunica incidencias y sigue las que ha comunicado. Si se le asigna una acción, la hace y adjunta la evidencia. Si es responsable de un indicador, registra sus valores. |
 | **Responsable del análisis** | Analiza las causas de una no conformidad y propone las acciones correctivas. |
-| **Responsable de calidad** y **equipo directivo / admin. del centro** | Clasifican lo que llega, asignan el análisis, verifican la eficacia y cierran. Preparan el plan de mejora. Ven todas las fichas. |
-| **Auditor/a interno/a** | Consulta todas las fichas, el plan de mejora y sus informes, sin modificarlos. |
+| **Responsable de calidad** y **equipo directivo / admin. del centro** | Clasifican lo que llega, asignan el análisis, verifican la eficacia y cierran. Preparan el plan de mejora, definen los indicadores y deciden qué se hace cuando uno queda fuera de meta. Ven todo. |
+| **Auditor/a interno/a** | Consulta todas las fichas, el plan de mejora, los indicadores y sus informes, sin modificarlos. |
 
 Cada docente ve, además de lo que ha comunicado, las fichas en las que tiene algo que hacer: las que
 analiza y las que tienen una acción a su nombre o a nombre de uno de sus perfiles.
@@ -53,12 +54,14 @@ La portada reúne, en este orden:
 - **Recuentos por estado** — para quien ve todas las fichas; cada uno abre el listado filtrado.
 - **Lo que has comunicado** — las incidencias propias y en qué punto están.
 
-Quien ve todas las fichas tiene además los botones **Ver todas las fichas** y **Plan de mejora**.
+Quien ve todas las fichas tiene además los botones **Ver todas las fichas**, **Plan de mejora** e
+**Indicadores**.
 
 ## Dónde aparece lo que te toca {#donde-aparece-lo-que-te-toca}
 
 Nadie tiene que entrar en Mejora continua para enterarse de que tiene algo que hacer. Cada tarea
-—clasificar, analizar causas, hacer una acción, verificar la eficacia— aparece, con el mismo color
+—clasificar, analizar causas, hacer una acción, verificar la eficacia, registrar el valor de un
+indicador o decidir qué se hace con uno fuera de meta— aparece, con el mismo color
 que las actividades (ámbar si vence en los próximos 7 días, rojo si ya ha vencido):
 
 - en **Tus próximos pasos** del panel principal, bajo «Mejora continua»;
@@ -231,6 +234,97 @@ con ella (opcional), y cuando la termina, contar **qué se ha hecho** y pulsar *
 En **Evidencias** adjunta lo que lo demuestre (fotos, actas, documentos...), antes o después de
 marcarla.
 
+## Indicadores {#indicadores}
+
+![Cuadro de indicadores del curso anterior, con todos sus valores](img/mejora-indicadores-anterior.png)
+
+Un **indicador** mide cómo va un proceso del centro: el alumnado que promociona, el absentismo, la
+satisfacción de las familias... Cada uno tiene su **meta** para el curso y, opcionalmente, un
+**umbral de alerta**; con ellos, cada valor queda:
+
+| Estado | Qué significa |
+| --- | --- |
+| **En meta** | Alcanza la meta (o no la supera, si menos es mejor). |
+| **Alerta** | No llega a la meta, pero no pasa del umbral de alerta. |
+| **Fuera de meta** | Pasa del umbral de alerta (o no llega a la meta, si no hay umbral). |
+| **Sin dato** | Terminó el plazo para registrarlo y no se hizo. |
+
+**Indicadores** (desde la portada, para quien ve todas las fichas) muestra el **cuadro** del curso
+seleccionado en el menú lateral: una tarjeta por indicador, agrupadas por proceso, con su último valor,
+su estado, una pequeña gráfica y el valor del curso anterior. Arriba, los recuentos por estado sirven
+de filtro. Está pensado para proyectarlo en la reunión del equipo de calidad, y se descarga en PDF o
+Excel (el mismo informe que [Informes → Cuadro de indicadores](04-informes.md#cuadro-de-indicadores)).
+
+![Cuadro de indicadores al empezar el curso: los valores del curso anterior como referencia](img/mejora-indicadores.png)
+
+### Calendarios de medición {#calendarios-de-medicion}
+
+![Calendarios de medición del curso](img/mejora-calendarios-medicion.png)
+
+Antes de medir hay que decir **cuándo**. En **Indicadores → Calendarios de medición**, quien gestiona
+crea para cada curso uno o varios calendarios: listas de **periodos** con su nombre y sus fechas. Se
+empieza desde una plantilla —**por evaluación** (1.ª, 2.ª, 3.ª, Final 1 y Final 2), **por trimestre**,
+**mensual** o **una vez por curso**— o en blanco, y después se ajusta al calendario del centro:
+
+![Edición de un calendario de medición](img/mejora-calendario-medicion.png)
+
+- se cambian el nombre y las fechas de cualquier periodo, se **añaden** periodos en las filas vacías
+  (por ejemplo, una «Evaluación inicial») y se **quitan** marcando «Quitar»; los periodos quedan
+  siempre ordenados por fecha;
+- al quitar un periodo se borran también los valores que tuviera;
+- un calendario que usa algún indicador no se puede eliminar.
+
+Al empezar un curso nuevo sin calendarios, la página ofrece **Copiar del curso anterior**: copia sus
+calendarios con las fechas un año después y da a cada indicador la misma meta, el mismo umbral y el
+calendario copiado. Después solo queda revisar las fechas.
+
+### Definir un indicador
+
+![Formulario de un indicador nuevo](img/mejora-indicador-nuevo.png)
+
+**Nuevo indicador** pide:
+
+- el **nombre** y **cómo se calcula** (en palabras: «alumnado que promociona / alumnado matriculado
+  × 100»);
+- el **proceso** que mide, **quién lo registra** —un docente o un perfil de
+  [Responsabilidades](06-responsabilidades.md)—, la **unidad** (%, puntos, días...) y **qué es mejor**:
+  más o menos;
+- para el curso activo: el **calendario de medición**, la **meta** y el **umbral de alerta**. Sin
+  calendario, el indicador no se mide ese curso.
+
+Al editarlo se puede desmarcar **Se sigue midiendo**: conserva su historia, pero deja de pedir
+valores. La meta, el umbral y el calendario son de cada curso; el resto, del indicador.
+
+### Registrar los valores
+
+![Página de un indicador, con el valor de la evaluación inicial por registrar](img/mejora-indicador-registrar.png)
+
+Cuando termina un periodo, quien registra el indicador tiene la tarea **Registrar** (en el panel
+principal, la campana, el calendario y el recordatorio diario) hasta 15 días después (ajustable en
+[Ajustes](#ajustes)); pasado ese plazo, el periodo consta como **Sin dato**. Desde la tarea llega a
+la página del indicador, escribe el **valor** —con coma o con punto— y, si quiere, unas
+**observaciones** sobre de dónde sale el dato. Un valor ya registrado se puede **corregir**.
+
+La página muestra la meta y el umbral del curso, una gráfica con los valores del curso (en verde), los
+del curso anterior en los mismos periodos (en gris) y las líneas de la meta y del umbral, y cada
+periodo con su valor, su estado y quién lo registró.
+
+### Un valor fuera de meta
+
+![Un valor fuera de meta, a la espera de que se decida qué hacer](img/mejora-indicador.png)
+
+Cuando un valor queda **fuera de meta**, la coordinación de calidad recibe un aviso por correo y la
+tarea **Fuera de meta**. En el periodo del indicador decide qué se hace:
+
+- **Abrir no conformidad**: crea una incidencia con el origen «Indicador fuera de meta», el indicador,
+  el periodo, el valor y la meta ya escritos, y la lleva a la ficha para clasificarla;
+- **Proponer acción de mejora**: abre el formulario de una acción del
+  [plan de mejora](#plan-de-mejora) con el proceso y lo que se quiere conseguir ya rellenos;
+- **No requiere actuación**: se anota por qué (por ejemplo, «un grupo excepcional este curso»).
+
+A partir de ahí, el periodo muestra lo que se abrió (con enlace) o la nota, y la tarea desaparece. Si
+el valor se corrige después, vuelve a quedar pendiente de decidir.
+
 ## Ajustes
 
 En **Ajustes**, a nivel global o de centro:
@@ -238,6 +332,9 @@ En **Ajustes**, a nivel global o de centro:
 - **Mejora continua → Días hasta la verificación de eficacia** (30 por defecto): los días que se
   dejan pasar, desde que se terminan las acciones de una no conformidad, antes de proponer
   comprobar si han funcionado.
+- **Mejora continua → Días para registrar el valor de un indicador** (15 por defecto): desde que
+  termina un periodo de medición, el plazo para registrar su valor antes de que conste como «Sin
+  dato».
 - **Avisos por correo → Avisos de Mejora continua**: los correos de «te toca» (clasificar, analizar,
   hacer una acción, verificar) y los de «tu incidencia se ha resuelto». También se puede desactivar
   a nivel personal; quien lo desactiva deja de ver también sus tareas de Mejora continua en el
@@ -251,6 +348,8 @@ En **Ajustes**, a nivel global o de centro:
 | --- | :-: | :-: | :-: | :-: | :-: |
 | Comunicar incidencias y seguir las propias | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Analizar las causas y hacer las acciones que se le asignen | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Ver todas las fichas, el plan de mejora y sus informes | — | ✅ | ✅ | ✅ | ✅ |
+| Registrar los valores de los indicadores de los que es responsable | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Ver todas las fichas, el plan de mejora, los indicadores y sus informes | — | ✅ | ✅ | ✅ | ✅ |
 | Clasificar, descartar, asignar, verificar y cerrar | — | — | ✅ | ✅ | ✅ |
 | Añadir, editar y eliminar acciones del plan de mejora | — | — | ✅ | ✅ | ✅ |
+| Definir indicadores y calendarios de medición, registrar cualquier valor y decidir sobre los que quedan fuera de meta | — | — | ✅ | ✅ | ✅ |

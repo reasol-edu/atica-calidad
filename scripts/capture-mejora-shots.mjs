@@ -75,6 +75,25 @@ await shot('mejora-ficha', { fullPage: true });
 await page.goto(`${baseUrl}/mejora/plan`);
 await shot('mejora-plan', { fullPage: true });
 
+// ── The quality manager: indicators ──────────────────────────────────────────
+await page.goto(`${baseUrl}/mejora/indicadores`);
+await shot('mejora-indicadores', { fullPage: true });
+
+await page.click('a:has-text("Alumnado con tres o más materias suspensas") >> visible=true');
+await page.waitForLoadState('networkidle');
+await shot('mejora-indicador', { fullPage: true });
+
+await page.goto(`${baseUrl}/mejora/indicadores/calendarios`);
+await shot('mejora-calendarios-medicion', { fullPage: true });
+await page.click('a:has-text("Evaluaciones") >> visible=true');
+await page.waitForLoadState('networkidle');
+await shot('mejora-calendario-medicion', { fullPage: true });
+
+await page.goto(`${baseUrl}/mejora/indicadores/nuevo`);
+await page.fill('#ind-name', 'Alumnado que titula en 4.º de ESO');
+await page.fill('#ind-description', 'Alumnado que obtiene el título / alumnado de 4.º de ESO × 100');
+await shot('mejora-indicador-nuevo', { fullPage: true });
+
 await page.goto(`${baseUrl}/mejora/plan/nueva`);
 await page.fill('#plan-description', 'Organizar una jornada de buenas prácticas entre departamentos');
 await page.fill('#plan-goal', 'Que cada departamento comparta al menos una práctica que le haya funcionado.');
@@ -101,6 +120,23 @@ await shot('mejora-campana');
 
 await page.goto(`${baseUrl}/calendario`);
 await shot('mejora-calendario');
+
+// Her indicator: the value to record.
+await page.goto(`${baseUrl}/mejora`);
+await page.click('a:has-text("Registrar: Alumnado con todas las materias aprobadas") >> visible=true');
+await page.waitForLoadState('networkidle');
+await page.goto(page.url().split('#')[0]); // from the top, not scrolled to the period
+await shot('mejora-indicador-registrar', { fullPage: true });
+
+// ── The management team: last year's full board ─────────────────────────────
+// (Switching the year being viewed is theirs; it only changes their own session.)
+await login('direccion');
+await page.goto(`${baseUrl}/curso/año`);
+// Newest first: the second is last year.
+await page.locator('form[action*="/curso/"] button[type="submit"]').nth(1).click();
+await page.waitForLoadState('networkidle');
+await page.goto(`${baseUrl}/mejora/indicadores`);
+await shot('mejora-indicadores-anterior', { fullPage: true });
 
 await browser.close();
 console.log('Capturas guardadas en', outDir);

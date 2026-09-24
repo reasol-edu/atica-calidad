@@ -158,6 +158,20 @@ buscarse con la técnica de los **5 porqués**.
 ocurrir; la preventiva evita un problema que aún no ha ocurrido; la de mejora mejora algo que ya
 funciona — ver [Acciones](09-mejora-continua.md#acciones).
 
+**Indicador**
+: Medida de cómo va un proceso del centro (por ejemplo, el alumnado que promociona), con su meta y su
+umbral de alerta en cada curso. Sus valores se registran en cada periodo de su calendario de medición
+— ver [Indicadores](09-mejora-continua.md#indicadores).
+
+**Calendario de medición**
+: Lista de periodos con nombre y fechas («1.ª evaluación», «Final 1», «Final 2»...) que dice cuándo
+se miden los indicadores que lo usan en un curso — ver
+[Calendarios de medición](09-mejora-continua.md#calendarios-de-medicion).
+
+**Meta y umbral de alerta**
+: La meta es el valor que un indicador quiere alcanzar (o no superar, si menos es mejor); entre la
+meta y el umbral, el valor está en *Alerta*, y más allá, *Fuera de meta*.
+
 **Plan de mejora**
 : Las acciones preventivas y de mejora que el centro se propone en un curso, sin que haya una
 incidencia detrás, cada una con su código (`PM-AAAA-NNN`), responsable, plazo y evidencias — ver
