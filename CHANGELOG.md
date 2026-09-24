@@ -7,6 +7,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-24
+
+**Al actualizar:** esta versión cambia la base de datos (papelera, acuse de lectura, cursos en las
+entregas y completados, y se retira el «Archivado automático» de las carpetas). Los cambios se
+aplican solos al arrancar la aplicación (Docker, binario o instalador de Ubuntu); si la ejecutas de
+otra forma, lanza `php bin/console doctrine:migrations:migrate` tras actualizar.
+
 ### Added
 
 - **Avisos por correo**: nuevo **recordatorio semanal de revisión de documentos**. El primer día
