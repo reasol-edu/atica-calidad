@@ -1,8 +1,8 @@
-{# Body of every "Mejora continua" email (QualityNotifier): intro, the finding, and optionally a quote (a description, a reason, notes). #}
+{# Body of every "Mejora continua" email (QualityNotifier): intro, what it's about (a finding or a plan action), and optionally a quote (a description, a reason, notes, a goal). #}
 <p style="margin: 0 0 12px;">{{ intro }}</p>
 <p style="margin: 0 0 12px;">
-    <strong>{{ finding.code ?? 'finding.no_code'|trans({}, 'quality') }}</strong> · {{ finding.title }}
-    {% if finding.section %}<br><span style="color: #93826a;">{{ finding.section.name }}</span>{% endif %}
+    {% if about.code %}<strong>{{ about.code }}</strong> · {% endif %}{{ about.title }}
+    {% if about.section %}<br><span style="color: #93826a;">{{ about.section }}</span>{% endif %}
 </p>
 {% if quote %}
     <blockquote style="margin: 0 0 12px; padding: 8px 12px; border-left: 3px solid #d7c9ae; color: #5a4f42; white-space: pre-line;">{{ quote }}</blockquote>

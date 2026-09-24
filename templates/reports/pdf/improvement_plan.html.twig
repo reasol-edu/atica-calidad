@@ -1,0 +1,47 @@
+{% extends 'pdf/layout.html.twig' %}
+{% import 'reports/pdf/_macros.html.twig' as report %}
+
+{# actions: list<ImprovementAction> of year's plan, soonest due first; today: for "Vencida" #}
+{% block content %}
+{% set done = actions|filter(a => a.done)|length %}
+{{ report.header(pdfTitle ~ ' · ' ~ 'improvement_plan.year'|trans({'%year%': year.name}, 'reports'), centre, pdfGeneratedAt, 'improvement_plan.pdf_count'|trans({'%count%': actions|length, '%done%': done}, 'reports')) }}
+
+{% if actions is empty %}
+    <p>{{ 'none'|trans({}, 'reports') }}</p>
+{% else %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{{ 'improvement_plan.col.code'|trans({}, 'reports') }}</th>
+                <th>{{ 'improvement_plan.col.action'|trans({}, 'reports') }}</th>
+                <th>{{ 'improvement_plan.col.section'|trans({}, 'reports') }}</th>
+                <th>{{ 'improvement_plan.col.responsible'|trans({}, 'reports') }}</th>
+                <th>{{ 'improvement_plan.col.due'|trans({}, 'reports') }}</th>
+                <th>{{ 'improvement_plan.col.status'|trans({}, 'reports') }}</th>
+                <th>{{ 'improvement_plan.col.result'|trans({}, 'reports') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in actions %}
+                {% set overdue = a.overdue(today) %}
+                <tr>
+                    <td>{{ a.code }}<br><span style="font-size:7.5pt;color:#93826a;">{{ ('action_type.' ~ a.type.value)|trans({}, 'quality') }}</span></td>
+                    <td>{{ a.description }}{% if a.goal %}<br><span style="font-size:7.5pt;color:#93826a;">{{ 'improvement_plan.col.goal'|trans({}, 'reports') }}: {{ a.goal }}</span>{% endif %}</td>
+                    <td>{{ a.section ? a.section.name : '—' }}</td>
+                    <td>{% if a.responsibleTeacher %}{{ a.responsibleTeacher.name.firstName }} {{ a.responsibleTeacher.name.lastName }}{% elseif a.responsibleProfile %}{{ a.responsibleProfile.name }}{% else %}—{% endif %}</td>
+                    <td>{{ a.dueDate ? a.dueDate|date('d/m/Y') : '—' }}</td>
+                    <td>
+                        {%- if overdue -%}
+                            <span class="badge badge-red">{{ 'action_status.overdue'|trans({}, 'quality') }}</span>
+                        {%- else -%}
+                            <span class="badge {{ a.done ? 'badge-green' : (a.status.value == 'in_progress' ? 'badge-blue' : 'badge-amber') }}">{{ ('action_status.' ~ a.status.value)|trans({}, 'quality') }}</span>
+                        {%- endif -%}
+                        {%- if a.doneAt %}<br><span style="font-size:7.5pt;">{{ a.doneAt|date('d/m/Y') }}</span>{% endif -%}
+                    </td>
+                    <td>{{ a.result ?? '—' }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

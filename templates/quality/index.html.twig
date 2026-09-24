@@ -27,6 +27,11 @@
                     {{ ux_icon('heroicons:queue-list', {class: 'h-4 w-4'}) }}
                     {{ 'hub.all'|trans({}, 'quality') }}
                 </a>
+                <a href="{{ path('app_quality_plan') }}"
+                   class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    {{ ux_icon('heroicons:rocket-launch', {class: 'h-4 w-4'}) }}
+                    {{ 'plan.hub_link'|trans({}, 'quality') }}
+                </a>
             {% endif %}
             <a href="{{ path('app_quality_report') }}"
                class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">

@@ -135,15 +135,17 @@ class QualityController extends AbstractController
     #[Route('/acciones/{id}/adjuntos', name: 'app_quality_action_attach', methods: ['POST'])]
     public function attachToAction(string $id, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
     {
-        $action  = $this->actions->findByIdAndCentre($id, $centre);
-        $finding = $action?->getFinding();
-        if ($action === null || $finding === null) {
+        $action = $this->actions->findByIdAndCentre($id, $centre);
+        if ($action === null) {
             throw $this->createNotFoundException();
         }
         $this->denyAccessUnlessGranted(QualityVoter::ACTION_WORK, $action);
+        $finding = $action->getFinding();
         $this->upload($request, 'quality_attach_' . $id, $finding, $action);
 
-        return $this->redirectToRoute('app_quality_finding', ['id' => $finding->getId()->toRfc4122(), '_fragment' => 'accion-' . $id]);
+        return $finding !== null
+            ? $this->redirectToRoute('app_quality_finding', ['id' => $finding->getId()->toRfc4122(), '_fragment' => 'accion-' . $id])
+            : $this->redirectToRoute('app_quality_action', ['id' => $id, '_fragment' => 'evidencias']);
     }
 
     #[Route('/adjuntos/{id}', name: 'app_quality_attachment', methods: ['GET'])]
@@ -151,17 +153,28 @@ class QualityController extends AbstractController
     {
         $attachment = $this->attachments->findById($id);
         $finding    = $attachment?->getOwningFinding();
-        if ($attachment === null || $finding === null || $finding->getEducationalCentre() !== $centre) {
+        $action     = $attachment?->getAction();
+        if ($attachment === null) {
             throw $this->createNotFoundException();
         }
-        $this->denyAccessUnlessGranted(QualityVoter::FINDING_VIEW, $finding);
+        if ($finding !== null) {
+            if ($finding->getEducationalCentre() !== $centre) {
+                throw $this->createNotFoundException();
+            }
+            $this->denyAccessUnlessGranted(QualityVoter::FINDING_VIEW, $finding);
+        } elseif ($action !== null && $action->getEducationalCentre() === $centre) {
+            // A plan action's evidence.
+            $this->denyAccessUnlessGranted(QualityVoter::ACTION_VIEW, $action);
+        } else {
+            throw $this->createNotFoundException();
+        }
 
         $file = $attachment->getFile();
 
         return $this->downloadResponder->respond($file->getContent(), $file->getMimeType(), $attachment->getFilename());
     }
 
-    private function upload(Request $request, string $tokenId, Finding $finding, ?ImprovementAction $action): void
+    private function upload(Request $request, string $tokenId, ?Finding $finding, ?ImprovementAction $action): void
     {
         if ($this->isUploadTooLarge($request)) {
             $this->addFlash('error', $this->t('report.error.too_large'));

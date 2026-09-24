@@ -75,6 +75,15 @@ final class LoadDemoDataCommandTest extends RepositoryTestCase
         ksort($counts);
         self::assertSame(['analysis' => 1, 'closed' => 1, 'execution' => 2, 'reported' => 1], $counts);
 
+        // ...and an improvement plan with an action done, one late and two pending.
+        /** @var \App\Repository\ImprovementActionRepository $actions */
+        $actions = self::getContainer()->get(\App\Repository\ImprovementActionRepository::class);
+        $year    = $centre->getActiveAcademicYear();
+        self::assertNotNull($year);
+        self::assertCount(4, $actions->findPlan($centre, $year));
+        self::assertCount(1, $actions->findPlan($centre, $year, ['status' => 'done']));
+        self::assertCount(1, $actions->findPlan($centre, $year, ['status' => 'overdue']));
+
         /** @var ListItemRepository $items */
         $items = self::getContainer()->get(ListItemRepository::class);
         $roots = $items->findRootsByCentre($centre);

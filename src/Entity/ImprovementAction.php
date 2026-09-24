@@ -19,8 +19,12 @@ use Symfony\Component\Uid\Uuid;
  */
 #[ORM\Entity(repositoryClass: ImprovementActionRepository::class)]
 #[ORM\Index(columns: ['educational_centre_id', 'status'], name: 'idx_improvement_action_centre_status')]
+#[ORM\UniqueConstraint(name: 'uq_improvement_action_centre_code', columns: ['educational_centre_id', 'code'])]
 class ImprovementAction
 {
+    /** Prefix of the improvement plan's codes: PM-2026-003. */
+    public const string PLAN_CODE_PREFIX = 'PM';
+
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator('doctrine.uuid_generator')]
@@ -35,11 +39,29 @@ class ImprovementAction
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?Finding $finding;
 
+    /** Only the improvement plan's own actions (no finding) have one: PM-2026-003. */
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $code = null;
+
+    /** The academic year whose improvement plan it belongs to (plan actions only). */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?AcademicYear $academicYear = null;
+
+    /** The process (document tree section) it concerns (plan actions; a finding's have the finding's). */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?DocumentSection $section = null;
+
     #[ORM\Column(enumType: ImprovementActionType::class)]
     private ImprovementActionType $type;
 
     #[ORM\Column(type: Types::TEXT)]
     private string $description;
+
+    /** What it's meant to achieve, and how it'll be seen that it did (plan actions). */
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $goal = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
@@ -105,14 +127,88 @@ class ImprovementAction
         return $this->finding;
     }
 
+    public function isPlanAction(): bool
+    {
+        return $this->finding === null;
+    }
+
+    public function getCode(): ?string
+    {
+        return $this->code;
+    }
+
+    public function setCode(?string $code): static
+    {
+        $this->code = $code;
+
+        return $this;
+    }
+
+    public function getAcademicYear(): ?AcademicYear
+    {
+        return $this->academicYear;
+    }
+
+    public function setAcademicYear(?AcademicYear $academicYear): static
+    {
+        $this->academicYear = $academicYear;
+
+        return $this;
+    }
+
+    /** Its own process, or its finding's. */
+    public function getSection(): ?DocumentSection
+    {
+        return $this->section ?? $this->finding?->getSection();
+    }
+
+    public function setSection(?DocumentSection $section): static
+    {
+        $this->section = $section;
+
+        return $this;
+    }
+
     public function getType(): ImprovementActionType
     {
         return $this->type;
     }
 
+    public function setType(ImprovementActionType $type): static
+    {
+        $this->type = $type;
+
+        return $this;
+    }
+
     public function getDescription(): string
     {
         return $this->description;
+    }
+
+    public function setDescription(string $description): static
+    {
+        $this->description = $description;
+
+        return $this;
+    }
+
+    public function getGoal(): ?string
+    {
+        return $this->goal;
+    }
+
+    public function setGoal(?string $goal): static
+    {
+        $this->goal = $goal;
+
+        return $this;
+    }
+
+    /** Overdue: not done and past its due date (compared by day). */
+    public function isOverdue(\DateTimeImmutable $today): bool
+    {
+        return !$this->isDone() && $this->dueDate !== null && $this->dueDate < $today->setTime(0, 0);
     }
 
     public function getResponsibleTeacher(): ?Teacher

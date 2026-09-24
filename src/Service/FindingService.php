@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\AcademicYear;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Finding;
@@ -165,6 +166,80 @@ final class FindingService
         return $action;
     }
 
+    /**
+     * A preventive or improvement action of $year's improvement plan: no finding, its own code
+     * (PM-2026-003), what it's meant to achieve and the process it concerns.
+     */
+    public function createPlanAction(
+        EducationalCentre $centre,
+        AcademicYear $year,
+        Teacher $actor,
+        ImprovementActionType $type,
+        string $description,
+        ?string $goal,
+        ?DocumentSection $section,
+        ?Teacher $responsibleTeacher,
+        ?SpecificProfile $responsibleProfile,
+        ?\DateTimeImmutable $dueDate,
+    ): ImprovementAction {
+        $now    = $this->clock->now();
+        $action = (new ImprovementAction($centre, null, $type, trim($description), $actor, $now))
+            ->setCode($this->codes->nextPlanAction($centre, $now))
+            ->setAcademicYear($year)
+            ->setGoal(self::nullIfBlank($goal))
+            ->setSection($section)
+            ->assignTo($responsibleTeacher ?? ($responsibleProfile === null ? $actor : null), $responsibleProfile)
+            ->setDueDate($dueDate);
+        $this->em->persist($action);
+        $this->em->flush();
+
+        $this->activityLogger->record('improvement_action.create', ['action' => $action->getCode() . ' ' . $action->getDescription()], $centre);
+        $this->notifier->actionAssigned($action);
+
+        return $action;
+    }
+
+    /** Edits a plan action; whoever it's newly assigned to is told. */
+    public function updatePlanAction(
+        ImprovementAction $action,
+        ImprovementActionType $type,
+        string $description,
+        ?string $goal,
+        ?DocumentSection $section,
+        ?Teacher $responsibleTeacher,
+        ?SpecificProfile $responsibleProfile,
+        ?\DateTimeImmutable $dueDate,
+    ): void {
+        $before = [$action->getResponsibleTeacher()?->getId()->toRfc4122(), $action->getResponsibleProfile()?->getId()->toRfc4122()];
+        $action->setType($type)
+            ->setDescription(trim($description))
+            ->setGoal(self::nullIfBlank($goal))
+            ->setSection($section)
+            ->assignTo($responsibleTeacher, $responsibleTeacher === null ? $responsibleProfile : null)
+            ->setDueDate($dueDate);
+        $this->em->flush();
+
+        $this->activityLogger->record('improvement_action.update', ['action' => $action->getCode() . ' ' . $action->getDescription()], $action->getEducationalCentre());
+        $after = [$action->getResponsibleTeacher()?->getId()->toRfc4122(), $action->getResponsibleProfile()?->getId()->toRfc4122()];
+        if ($after !== $before && !$action->isDone()) {
+            $this->notifier->actionAssigned($action);
+        }
+    }
+
+    /** Deletes a plan action, with its evidence. */
+    public function deletePlanAction(ImprovementAction $action): void
+    {
+        $label  = $action->getCode() . ' ' . $action->getDescription();
+        $centre = $action->getEducationalCentre();
+        foreach ($action->getAttachments() as $attachment) {
+            $this->em->remove($attachment);
+        }
+        $this->em->remove($action);
+        $this->em->flush();
+
+        $this->activityLogger->record('improvement_action.delete', ['action' => $label], $centre);
+    }
+
     public function startAction(ImprovementAction $action, Teacher $actor): void
     {
         $action->start();
@@ -215,9 +290,15 @@ final class FindingService
         $this->em->flush();
     }
 
-    /** Attaches a file to $finding, or to $action (its evidence) when given. */
-    public function attach(Finding $finding, ?ImprovementAction $action, Teacher $actor, UploadedFile $file, bool $timeline = true): QualityAttachment
+    /**
+     * Attaches a file to $action (its evidence) when given, or else to $finding. A plan action has
+     * no finding, and so no timeline to record it in.
+     */
+    public function attach(?Finding $finding, ?ImprovementAction $action, Teacher $actor, UploadedFile $file, bool $timeline = true): QualityAttachment
     {
+        if ($action === null && $finding === null) {
+            throw new \InvalidArgumentException('A file is attached to a finding or to an action.');
+        }
         $content  = (string) file_get_contents($file->getPathname());
         $stored   = $this->files->storeFile($content, $file->getMimeType() ?? 'application/octet-stream', $file->getClientOriginalName());
         $now      = $this->clock->now();
@@ -228,7 +309,9 @@ final class FindingService
             : QualityAttachment::forFinding($finding, $stored, $filename, $actor, $now);
         $this->em->persist($attachment);
 
-        if ($timeline) {
+        if ($finding === null) {
+            $this->em->flush();
+        } elseif ($timeline) {
             $this->em->persist(new FindingTimelineEntry($finding, FindingEventKind::AttachmentAdded, $actor, $now, null, array_filter([
                 'file'   => $filename,
                 'action' => $action?->getDescription(),
@@ -270,6 +353,11 @@ final class FindingService
             $this->findingStateMachine->apply($finding, 'request_verification', ['actor' => $actor]);
             $this->em->flush();
         }
+    }
+
+    private static function nullIfBlank(?string $text): ?string
+    {
+        return $text === null || trim($text) === '' ? null : trim($text);
     }
 
     /** The first line of the report, shortened on a word boundary. */

@@ -16,6 +16,7 @@ use App\Entity\FindingKind;
 use App\Entity\FindingOrigin;
 use App\Entity\FindingSeverity;
 use App\Entity\Folder;
+use App\Entity\ImprovementAction;
 use App\Entity\ImprovementActionType;
 use App\Entity\ListItem;
 use App\Entity\PersonName;
@@ -170,6 +171,7 @@ class LoadDemoDataCommand extends Command
         $io->section('Mejora continua');
         $this->em->flush();
         $this->seedFindings($centre, $folders, $io);
+        $this->seedImprovementPlan($centre, $folders, $io);
 
         $this->em->flush();
 
@@ -864,6 +866,36 @@ class LoadDemoDataCommand extends Command
         $this->findingService->close($minutes, $quality, 'Las actas del último mes se han subido a tiempo.');
 
         $io->text('5 fichas de ejemplo: una incidencia por clasificar, una no conformidad en análisis, otra con sus acciones en marcha, una oportunidad de mejora y una observación cerrada.');
+    }
+
+    /**
+     * The active year's improvement plan: one action done, one under way and late, two pending.
+     *
+     * @param array{programaciones: Folder, pat: Folder, etcp: Folder, politica: Folder} $folders
+     */
+    private function seedImprovementPlan(EducationalCentre $centre, array $folders, SymfonyStyle $io): void
+    {
+        $year = $centre->getActiveAcademicYear();
+        if ($year === null) {
+            return;
+        }
+        $quality   = $this->teachers['calidad'];
+        $direccion = $this->teachers['direccion'];
+        $ana       = $this->teacherNamed('Ruiz Molina');
+        $pablo     = $this->teacherNamed('Sánchez Vidal');
+        $due       = fn (string $modify): \DateTimeImmutable => $this->clock->now()->setTime(0, 0)->modify($modify);
+        $plan      = fn (ImprovementActionType $type, string $description, ?string $goal, ?DocumentSection $section, Teacher $responsible, string $when): ImprovementAction => $this->findingService->createPlanAction($centre, $year, $quality, $type, $description, $goal, $section, $responsible, null, $due($when));
+
+        $minutes = $plan(ImprovementActionType::Improvement, 'Crear una plantilla común para las actas de departamento', 'Que todas las actas recojan los mismos apartados y se suban en la semana de la reunión.', null, $quality, '-10 days');
+        $this->findingService->completeAction($minutes, $quality, 'Plantilla aprobada en la CCP y subida a la carpeta de actas.');
+
+        $survey = $plan(ImprovementActionType::Improvement, 'Pasar una encuesta de satisfacción a las familias tras la primera evaluación', 'Conocer la valoración de las familias y compararla con la del curso pasado.', null, $pablo, '-3 days');
+        $this->findingService->startAction($survey, $pablo);
+
+        $plan(ImprovementActionType::Preventive, 'Revisar con cada departamento el calendario de entregas al comienzo de curso', 'Que ningún departamento desconozca los plazos de las programaciones.', $folders['programaciones']->getDocumentSection(), $ana, '+4 days');
+        $plan(ImprovementActionType::Improvement, 'Preparar una guía de acogida para el profesorado de nueva incorporación', 'Que el profesorado nuevo conozca el sistema de calidad en su primera semana.', $folders['politica']->getDocumentSection(), $direccion, '+25 days');
+
+        $io->text('4 acciones de ejemplo en el plan de mejora: una hecha, otra en curso y fuera de plazo, y dos pendientes.');
     }
 
     private function teacherNamed(string $lastName): Teacher

@@ -17,7 +17,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * Builds the detail view of a single day, reached by clicking a day in the calendar: school
  * events (per visibility), the teacher's own activity deadlines landing on that day (by upload
  * profile — never "all activities", not even for an admin, see
- * ActivityCompletionChecker::getMyOwnedObligations()), and the non-working day label.
+ * ActivityCompletionChecker::getMyOwnedObligations()), the teacher's "Mejora continua" deadlines
+ * (QualityTaskFinder::dueBetween()), and the non-working day label.
  */
 class DayDetailBuilder
 {
@@ -28,6 +29,7 @@ class DayDetailBuilder
         private readonly ActivityRepository $activities,
         private readonly ActivityCompletionChecker $activityCompletion,
         private readonly ActivityDeadlineChecker $activityDeadline,
+        private readonly QualityTaskFinder $qualityTasks,
     ) {}
 
     public function build(AcademicYear $year, EducationalCentre $centre, ?Teacher $viewer, bool $isAdmin, \DateTimeImmutable $date): DayDetailReport
@@ -45,6 +47,7 @@ class DayDetailBuilder
             $events,
             $viewer !== null ? $this->activityDeadlinesForDate($viewer, $centre, $date) : [],
             $this->nonWorkingDayChecker->isNonWorkingDay($year, $date) ? $this->nonWorkingDayLabel($year, $date) : null,
+            $viewer !== null ? $this->qualityTasks->dueBetween($viewer, $centre, $date, $date) : [],
         );
     }
 

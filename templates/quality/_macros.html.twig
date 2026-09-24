@@ -64,18 +64,48 @@
         'action':   'heroicons:wrench-screwdriver',
         'verify':   'heroicons:check-badge',
     }[task.type] -%}
+    {% import _self as q %}
     <li>
-        <a href="{{ path('app_quality_finding', {id: task.finding.id.toRfc4122}) }}{{ task.action ? '#accion-' ~ task.action.id.toRfc4122 : '' }}"
+        <a href="{{ q.task_url(task) }}"
            class="flex items-start gap-3 {{ compact ? 'px-6 py-3' : 'px-6 py-3' }} transition-colors {{ bg }}">
             <span class="mt-0.5 shrink-0 {{ task.urgency == 'overdue' ? 'text-red-500' : 'text-forest-600' }}">{{ ux_icon(icon, {class: 'h-5 w-5'}) }}</span>
             <span class="min-w-0 flex-1">
                 <span class="block truncate text-sm font-medium text-gray-900">{{ ('task.' ~ task.type)|trans({}, 'quality') }}: {{ task.label }}</span>
                 <span class="block truncate text-xs text-gray-500">
-                    {{ task.finding.code ?? 'finding.no_code'|trans({}, 'quality') }}
-                    {%- if task.action %} · {{ task.finding.title }}{% endif %}
+                    {{ task.code ?? 'finding.no_code'|trans({}, 'quality') }}
+                    {%- if task.finding and task.action %} · {{ task.finding.title }}{% elseif not task.finding %} · {{ 'plan.title'|trans({}, 'quality') }}{% endif %}
                     {%- if task.dueDate %} · {{ ('task.due.' ~ task.urgency)|trans({'%date%': task.dueDate|date('d/m/Y')}, 'quality') }}{% endif %}
                 </span>
             </span>
         </a>
     </li>
+{%- endmacro %}
+
+{# Where a task (QualityTask) is done: its finding's page (at the action, if any) or the plan action's own page. absolute: for emails. #}
+{% macro task_url(task, absolute) -%}
+    {%- if task.finding -%}
+        {{ absolute ? url('app_quality_finding', {id: task.finding.id.toRfc4122}) : path('app_quality_finding', {id: task.finding.id.toRfc4122}) }}{{ task.action ? '#accion-' ~ task.action.id.toRfc4122 : '' }}
+    {%- else -%}
+        {{ absolute ? url('app_quality_action', {id: task.action.id.toRfc4122}) : path('app_quality_action', {id: task.action.id.toRfc4122}) }}
+    {%- endif -%}
+{%- endmacro %}
+
+{# An action's status as a pill, "Vencida" in red when overdue. #}
+{% macro action_status_pill(action, today) -%}
+    {%- if action.overdue(today) -%}
+        <span class="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">{{ 'action_status.overdue'|trans({}, 'quality') }}</span>
+    {%- else -%}
+        <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium {{ {'pending': 'bg-amber-50 text-amber-700', 'in_progress': 'bg-sky-50 text-sky-700', 'done': 'bg-forest-50 text-forest-700'}[action.status.value] }}">{{ ('action_status.' ~ action.status.value)|trans({}, 'quality') }}</span>
+    {%- endif -%}
+{%- endmacro %}
+
+{# "Ana Ruiz" / a profile's name / "—": who an action is for. #}
+{% macro responsible(action) -%}
+    {%- if action.responsibleTeacher -%}
+        {{ action.responsibleTeacher.name.firstName }} {{ action.responsibleTeacher.name.lastName }}
+    {%- elseif action.responsibleProfile -%}
+        {{ action.responsibleProfile.name }}
+    {%- else -%}
+        —
+    {%- endif -%}
 {%- endmacro %}

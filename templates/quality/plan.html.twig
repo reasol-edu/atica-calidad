@@ -1,0 +1,144 @@
+{% extends 'layouts/app.html.twig' %}
+{% import 'quality/_macros.html.twig' as q %}
+
+{% block title %}{{ 'plan.title'|trans({}, 'quality') }} · {{ app_name }}{% endblock %}
+
+{#
+   The improvement plan of the year being viewed: its preventive and improvement actions with
+   their progress, filters and downloads. Rows open each action's page.
+#}
+{% block content %}
+{% set field = 'rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
+<div class="px-4 sm:px-6 py-8 max-w-6xl mx-auto space-y-6">
+
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                {% include 'components/_breadcrumb_home.html.twig' %}
+                <a href="{{ path('app_quality_index') }}" class="hover:text-forest-600 transition-colors">{{ 'quality'|trans({}, 'navigation') }}</a>
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ 'plan.title'|trans({}, 'quality') }}{% if year %} <span class="font-normal text-gray-500">{{ year.name }}</span>{% endif %}</h1>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ 'plan.intro'|trans({}, 'quality') }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            {% if year %}
+                <a href="{{ path('app_reports_improvement_plan', {centreId: centre.id.toRfc4122, _format: 'pdf', curso: year.id.toRfc4122}) }}" target="_blank" rel="noopener"
+                   class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    {{ ux_icon('heroicons:document-arrow-down', {class: 'h-4 w-4'}) }}PDF
+                </a>
+                <a href="{{ path('app_reports_improvement_plan', {centreId: centre.id.toRfc4122, _format: 'xlsx', curso: year.id.toRfc4122}) }}"
+                   class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    {{ ux_icon('heroicons:table-cells', {class: 'h-4 w-4'}) }}Excel
+                </a>
+            {% endif %}
+            {% if canAdd %}
+                <a href="{{ path('app_quality_plan_new') }}"
+                   class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                    {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+                    {{ 'plan.add'|trans({}, 'quality') }}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if summary.total > 0 %}
+        {# ── Progress ─────────────────────────────────────────────────────────── #}
+        <div class="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-xs">
+            <div class="h-2 w-full overflow-hidden rounded-full bg-forest-100 ring-1 ring-inset ring-forest-200" role="img" aria-label="{{ 'plan.progress'|trans({'%done%': summary.done, '%total%': summary.total}, 'quality') }}">
+                <div class="h-full rounded-full bg-forest-600" style="width: {{ (summary.done / summary.total * 100)|round }}%"></div>
+            </div>
+            <p class="mt-2 text-sm text-gray-600">
+                {{ 'plan.progress'|trans({'%done%': summary.done, '%total%': summary.total}, 'quality') }}
+                {%- if summary.overdue > 0 %} · <a href="{{ path('app_quality_plan', {estado: 'overdue'}) }}" class="font-medium text-red-700 hover:underline">{{ 'plan.overdue_count'|trans({'%count%': summary.overdue}, 'quality') }}</a>{% endif %}
+            </p>
+        </div>
+    {% endif %}
+
+    <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+        {# ── Filters ───────────────────────────────────────────────────────────── #}
+        <form method="get" class="flex flex-wrap items-end gap-3 border-b border-gray-100 bg-gray-50/60 px-5 py-4 rounded-t-2xl">
+            <label class="flex min-w-48 flex-1 flex-col gap-1 text-xs font-medium text-gray-500">
+                {{ 'list.search'|trans({}, 'quality') }}
+                <input type="search" name="q" value="{{ filters.query }}" placeholder="{{ 'plan.search_placeholder'|trans({}, 'quality') }}" class="{{ field }}">
+            </label>
+            <label class="flex flex-col gap-1 text-xs font-medium text-gray-500">
+                {{ 'list.status'|trans({}, 'quality') }}
+                <select name="estado" class="{{ field }}">
+                    <option value="">{{ 'list.all'|trans({}, 'quality') }}</option>
+                    {% for s in ['open', 'overdue', 'pending', 'in_progress', 'done'] %}
+                        <option value="{{ s }}" {{ filters.status == s ? 'selected' : '' }}>{{ ('plan.status_filter.' ~ s)|trans({}, 'quality') }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="flex flex-col gap-1 text-xs font-medium text-gray-500">
+                {{ 'list.kind'|trans({}, 'quality') }}
+                <select name="tipo" class="{{ field }}">
+                    <option value="">{{ 'list.all'|trans({}, 'quality') }}</option>
+                    {% for t in types %}
+                        <option value="{{ t.value }}" {{ filters.type == t.value ? 'selected' : '' }}>{{ ('action_type.' ~ t.value)|trans({}, 'quality') }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="flex min-w-0 max-w-full flex-col gap-1 text-xs font-medium text-gray-500">
+                {{ 'list.section'|trans({}, 'quality') }}
+                <select name="proceso" class="{{ field }} max-w-64">
+                    <option value="">{{ 'list.all'|trans({}, 'quality') }}</option>
+                    {% for choice in sections %}
+                        <option value="{{ choice.id }}" {{ filters.section == choice.id ? 'selected' : '' }}>{{ choice.indented }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <div class="flex items-center gap-3">
+                <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    {{ ux_icon('heroicons:funnel', {class: 'h-4 w-4'}) }}{{ 'plan.filter'|trans({}, 'quality') }}
+                </button>
+                {% if filtered %}
+                    <a href="{{ path('app_quality_plan') }}" class="text-sm font-medium text-gray-500 hover:text-gray-700">{{ 'list.clear'|trans({}, 'quality') }}</a>
+                {% endif %}
+            </div>
+        </form>
+
+        {# ── Actions ───────────────────────────────────────────────────────────── #}
+        {% if actions is empty %}
+            <div class="px-6 py-10 text-center">
+                <p class="text-sm text-gray-500">{{ (filtered ? 'plan.empty_filtered' : (year ? 'plan.empty' : 'plan.no_year'))|trans({}, 'quality') }}</p>
+                {% if canAdd and not filtered %}
+                    <a href="{{ path('app_quality_plan_new') }}" class="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-forest-700 hover:text-forest-800">
+                        {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}{{ 'plan.add_first'|trans({}, 'quality') }}
+                    </a>
+                {% endif %}
+            </div>
+        {% else %}
+            <ul class="divide-y divide-gray-100">
+                {% for a in actions %}
+                    {% set overdue = a.overdue(today) %}
+                    <li>
+                        <a href="{{ path('app_quality_action', {id: a.id.toRfc4122}) }}" class="flex flex-col gap-2 px-5 py-3.5 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:gap-4">
+                            <span class="min-w-0 flex-1">
+                                <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                    <span class="font-mono text-xs font-semibold text-gray-500">{{ a.code }}</span>
+                                    <span class="rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-gray-600">{{ ('action_type.' ~ a.type.value)|trans({}, 'quality') }}</span>
+                                </span>
+                                <span class="mt-1 block text-sm font-medium text-gray-900 {{ a.done ? 'text-gray-500' : '' }}">{{ a.description }}</span>
+                                <span class="mt-0.5 block truncate text-xs text-gray-500">
+                                    {{ q.responsible(a) }}
+                                    {%- if a.section %} · {{ a.section.name }}{% endif %}
+                                </span>
+                            </span>
+                            <span class="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end sm:gap-1">
+                                {{ q.action_status_pill(a, today) }}
+                                {% if a.done %}
+                                    <span class="text-xs text-gray-500">{{ 'plan.done_on'|trans({'%date%': a.doneAt|date('d/m/Y')}, 'quality') }}</span>
+                                {% elseif a.dueDate %}
+                                    <span class="text-xs {{ overdue ? 'font-medium text-red-700' : 'text-gray-500' }}">{{ 'action.due_on'|trans({'%date%': a.dueDate|date('d/m/Y')}, 'quality') }}</span>
+                                {% endif %}
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

@@ -30,11 +30,29 @@ forma, lanza `php bin/console doctrine:migrations:migrate` tras actualizar.
     correo se pueden desactivar en **Ajustes → Avisos por correo → Avisos de Mejora continua**.
   - Nuevo informe **No conformidades** (PDF y Excel), con el estado de cada ficha, sus acciones y si
     han sido eficaces.
-- **Datos de demostración**: cinco fichas de ejemplo de Mejora continua, una en cada paso.
+- **Plan de mejora** (Mejora continua → Plan de mejora): las acciones preventivas y de mejora que el
+  centro se propone cada curso sin una incidencia detrás, con su código (`PM-2026-001`), lo que se
+  quiere conseguir, el proceso, el responsable (un docente o un perfil), el plazo y las evidencias. La
+  coordinación de calidad y el equipo directivo las añaden, editan y eliminan; quien es responsable
+  las empieza y las marca como hechas contando qué se ha hecho. La página muestra el avance del curso
+  («1 de 4 acciones hechas · 1 vencida»), con filtros, y se descarga en PDF o Excel; también en
+  **Informes → Plan de mejora**.
+- **Las tareas de Mejora continua, donde ya se mira**: clasificar, analizar causas, hacer una acción
+  (de una ficha o del plan de mejora) y verificar la eficacia aparecen también en la **campana**, en
+  el **calendario** (el día en que vencen, y las acciones ya hechas, tachadas) y en el
+  **recordatorio diario por correo** de actividades pendientes, que llega también a quien solo tiene
+  tareas de Mejora continua. Quien desactiva los avisos de Mejora continua no las recibe en el correo.
+- **Datos de demostración**: cinco fichas de ejemplo de Mejora continua, una en cada paso, y un plan
+  de mejora con cuatro acciones.
 - **Manual**: nuevo capítulo [Mejora continua](docs/manual/09-mejora-continua.md), con sus capturas.
 
 ### Fixed
 
+- **Iconos**: algunos iconos (entre ellos el de Mejora continua en el menú lateral) no se veían en
+  producción, porque no estaban incluidos en la aplicación. Una prueba comprueba ahora que lo están
+  todos.
+- **Registro de avisos por correo**: los avisos de Mejora continua y los «Recordar a pendientes» de
+  una actividad muestran su tipo con un nombre legible.
 - **Actualizador de Ubuntu** (`update-ubuntu.sh`): borra los ficheros de la aplicación que la versión
   nueva ya no trae. Antes se quedaban en el servidor y podían impedir que arrancara (p. ej. una
   clase renombrada). Conserva `data/`, `.env.local`, la caché y los registros.

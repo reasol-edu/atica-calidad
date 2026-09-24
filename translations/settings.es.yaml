@@ -55,7 +55,7 @@ settings.key.notifications_email_notifications_enabled.label: 'Avisos por correo
 settings.key.notifications_email_notifications_enabled.description: 'Activa el envío de avisos por correo electrónico a los profesores.'
 
 settings.key.notifications_pending_activity_reminder_enabled.label: 'Recordatorio de actividad pendiente de completar'
-settings.key.notifications_pending_activity_reminder_enabled.description: 'Envía un recordatorio cuando una actividad esté pendiente de completar.'
+settings.key.notifications_pending_activity_reminder_enabled.description: 'Envía un recordatorio cuando una actividad esté pendiente de completar. Incluye también las tareas de Mejora continua con plazo (acciones, análisis de causas, verificaciones), salvo que estén desactivados los avisos de Mejora continua.'
 
 settings.key.notifications_pending_activity_reminder_warning_days.label: 'Días de preaviso del recordatorio'
 settings.key.notifications_pending_activity_reminder_warning_days.description: 'Días de antelación sobre la fecha límite a partir de los cuales se avisa de una actividad pendiente de completar (además de las que ya estén fuera de plazo).'

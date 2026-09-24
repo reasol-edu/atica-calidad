@@ -8,13 +8,16 @@ use App\Entity\Document;
 use App\Entity\EducationalCentre;
 use App\Entity\Finding;
 use App\Entity\FindingStatus;
+use App\Entity\ImprovementAction;
 use App\Entity\Teacher;
 use App\Model\ActivityStatusReportRow;
 use App\Model\DocumentMasterListRow;
 use App\Model\ReadAcknowledgementStatus;
+use App\Repository\AcademicYearRepository;
 use App\Repository\DocumentRepository;
 use App\Repository\EducationalCentreRepository;
 use App\Repository\FindingRepository;
+use App\Repository\ImprovementActionRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Service\ActivityStatusReportBuilder;
 use App\Service\DocumentMasterListBuilder;
@@ -24,6 +27,7 @@ use App\Service\ReadAcknowledgementService;
 use App\Service\XlsxExporter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Clock\ClockInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -35,7 +39,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * - the document master list (DocumentMasterListBuilder);
  * - documents whose review is overdue or coming up (DocumentMasterListBuilder::reviewsDue());
  * - how every activity stands this academic year (ActivityStatusReportBuilder);
- * - who has read the documents that require it (ReadAcknowledgementService).
+ * - who has read the documents that require it (ReadAcknowledgementService);
+ * - the nonconformity log and each year's improvement plan ("Mejora continua").
  *
  * For the centre's admins, quality managers and internal auditors (EducationalCentreVoter::REPORTS),
  * who can already see every document.
@@ -52,6 +57,8 @@ class ReportsController extends AbstractController
         private readonly ReadAcknowledgementService $readAcknowledgements,
         private readonly DocumentRepository $documents,
         private readonly FindingRepository $findingRepository,
+        private readonly ImprovementActionRepository $actionRepository,
+        private readonly AcademicYearRepository $academicYears,
         private readonly PdfRenderer $pdf,
         private readonly XlsxExporter $xlsx,
         private readonly TranslatorInterface $translator,
@@ -72,6 +79,7 @@ class ReportsController extends AbstractController
             'activityCount'   => \count($this->activityStatus->build($centre)),
             'readAckCount'    => \count($this->documents->findRequiringReadAcknowledgementByCentre($centre)),
             'findingCounts'   => $this->findingRepository->countByStatus($centre),
+            'planActions'     => $centre->getActiveAcademicYear() === null ? [] : $this->actionRepository->findPlan($centre, $centre->getActiveAcademicYear()),
             'reviewHorizon'   => DocumentMasterListBuilder::REVIEW_HORIZON_DAYS,
         ]);
     }
@@ -206,6 +214,52 @@ class ReportsController extends AbstractController
         ));
     }
 
+    /**
+     * An academic year's improvement plan — the active one, or ?curso= — soonest due first: its
+     * preventive and improvement actions with their goal, process, responsible, due date, status
+     * and what was done.
+     */
+    #[Route('/plan-de-mejora.{_format}', name: 'app_reports_improvement_plan', requirements: ['_format' => self::FORMATS])]
+    public function improvementPlan(string $centreId, string $_format, Request $request): Response
+    {
+        $centre = $this->requireCentre($centreId);
+        $yearId = $request->query->getString('curso');
+        $year   = $yearId !== '' ? $this->academicYears->findByCentreAndId($centre, $yearId) : $centre->getActiveAcademicYear();
+        if ($year === null) {
+            throw $this->createNotFoundException();
+        }
+        $actions = $this->actionRepository->findPlan($centre, $year);
+        $today   = $this->clock->now();
+
+        if ($_format === 'pdf') {
+            return $this->pdfResponse('reports/pdf/improvement_plan.html.twig', 'improvement_plan', 'improvement_plan', $centre, [
+                'actions' => $actions,
+                'year'    => $year,
+                'today'   => $today,
+            ]);
+        }
+
+        $headers = array_map(fn (string $key): string => $this->t('improvement_plan.col.' . $key), ['code', 'type', 'action', 'goal', 'section', 'responsible', 'due', 'status', 'done', 'result']);
+
+        return $this->xlsx->createResponse($this->filename('improvement_plan', 'xlsx'), $headers, array_map(
+            fn (ImprovementAction $a): array => [
+                $a->getCode(),
+                $this->translator->trans('action_type.' . $a->getType()->value, [], 'quality'),
+                $a->getDescription(),
+                $a->getGoal(),
+                $a->getSection()?->getName(),
+                $a->getResponsibleTeacher() !== null
+                    ? $a->getResponsibleTeacher()->getName()->getFirstName() . ' ' . $a->getResponsibleTeacher()->getName()->getLastName()
+                    : $a->getResponsibleProfile()?->getName(),
+                $a->getDueDate()?->format('d/m/Y'),
+                $this->translator->trans($a->isOverdue($today) ? 'action_status.overdue' : 'action_status.' . $a->getStatus()->value, [], 'quality'),
+                $a->getDoneAt()?->format('d/m/Y'),
+                $a->getResult(),
+            ],
+            $actions,
+        ));
+    }
+
     /** "8. Operación › 8.1 Planificación" for the document's section and its ancestors. */
     private function sectionPath(Document $document): string
     {
@@ -218,7 +272,7 @@ class ReportsController extends AbstractController
     }
 
     /**
-     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings' $reportType
+     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings'|'improvement_plan' $reportType
      * @param array<string, mixed>                                                                $context
      */
     private function pdfResponse(string $template, string $reportType, string $key, EducationalCentre $centre, array $context): Response

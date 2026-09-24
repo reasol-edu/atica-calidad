@@ -21,11 +21,29 @@
 <p style="margin: 0 0 8px; font-weight: 600; color: #6b3241;">
     {{ 'emails.pending_activity_reminder.overdue_heading'|trans({}, 'emails') }}
 </p>
-<ul style="margin: 0; padding-left: 20px; color: #6b3241;">
+<ul style="margin: 0 0 20px; padding-left: 20px; color: #6b3241;">
     {% for item in overdue %}
         <li style="margin-bottom: 6px;">
             <strong>{{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}</strong>
             — {{ 'emails.pending_activity_reminder.overdue_since'|trans({'%date%': item.deadline|date('d/m/Y')}, 'emails') }}
+        </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{# "Mejora continua": list<QualityTask>, overdue first; each links to where it's done. #}
+{% if quality is defined and quality is not empty %}
+{% import 'quality/_macros.html.twig' as q %}
+<p style="margin: 0 0 8px; font-weight: 600;">
+    {{ 'task.section_title'|trans({}, 'quality') }}
+</p>
+<ul style="margin: 0; padding-left: 20px;">
+    {% for task in quality %}
+        <li style="margin-bottom: 6px;{{ task.urgency == 'overdue' ? ' color: #6b3241;' : '' }}">
+            <a href="{{ q.task_url(task, true) }}" style="color: inherit;">{{ ('task.' ~ task.type)|trans({}, 'quality') }}: {{ task.label }}</a>
+            <span style="color: #93826a;">
+                — {{ task.code ?? 'finding.no_code'|trans({}, 'quality') }} · {{ ('task.due.' ~ task.urgency)|trans({'%date%': task.dueDate|date('d/m/Y')}, 'quality') }}
+            </span>
         </li>
     {% endfor %}
 </ul>

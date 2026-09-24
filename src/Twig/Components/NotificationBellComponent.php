@@ -7,8 +7,10 @@ namespace App\Twig\Components;
 use App\Entity\Teacher;
 use App\Model\ActivityDashboardItem;
 use App\Model\PendingReviewGroup;
+use App\Model\QualityTask;
 use App\Service\ActivityObligationFinder;
 use App\Service\PendingReviewFinder;
+use App\Service\QualityTaskFinder;
 use App\Service\TenantContextInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -17,7 +19,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 /**
  * Header bell: a live-computed queue of things the current teacher needs to act on in the
  * selected centre — no persisted notification, no read/unread state. An item drops out of the
- * queue the moment its underlying condition is resolved (activity completed, revision reviewed).
+ * queue the moment its underlying condition is resolved (activity completed, revision reviewed,
+ * "Mejora continua" task done — see QualityTaskFinder).
  */
 #[AsLiveComponent]
 class NotificationBellComponent extends AbstractController
@@ -26,7 +29,7 @@ class NotificationBellComponent extends AbstractController
 
     private const int MAX_ITEMS = 8;
 
-    /** @var list<array{type: 'activity'|'review', entity: ActivityDashboardItem|PendingReviewGroup, date: \DateTimeImmutable}>|null */
+    /** @var list<array{type: 'activity'|'review'|'quality', entity: ActivityDashboardItem|PendingReviewGroup|QualityTask, date: \DateTimeImmutable}>|null */
     private ?array $items = null;
 
     private int $total = 0;
@@ -35,9 +38,10 @@ class NotificationBellComponent extends AbstractController
         private readonly TenantContextInterface $tenant,
         private readonly ActivityObligationFinder $obligations,
         private readonly PendingReviewFinder $pendingReview,
+        private readonly QualityTaskFinder $qualityTasks,
     ) {}
 
-    /** @return list<array{type: 'activity'|'review', entity: ActivityDashboardItem|PendingReviewGroup, date: \DateTimeImmutable}> */
+    /** @return list<array{type: 'activity'|'review'|'quality', entity: ActivityDashboardItem|PendingReviewGroup|QualityTask, date: \DateTimeImmutable}> */
     public function getVisibleItems(): array
     {
         $this->load();
@@ -85,6 +89,19 @@ class NotificationBellComponent extends AbstractController
         return $reviews;
     }
 
+    /** @return list<QualityTask> "Mejora continua": what to classify, analyse, do or verify */
+    public function getVisibleQualityItems(): array
+    {
+        $tasks = [];
+        foreach ($this->getVisibleItems() as $item) {
+            if ($item['entity'] instanceof QualityTask) {
+                $tasks[] = $item['entity'];
+            }
+        }
+
+        return $tasks;
+    }
+
     private function load(): void
     {
         if ($this->items !== null) {
@@ -106,8 +123,9 @@ class NotificationBellComponent extends AbstractController
             static fn (ActivityDashboardItem $i): bool => $i->status->isActionable(),
         ));
         $reviews = $this->pendingReview->forTeacher($user, $centre);
+        $quality = $this->qualityTasks->forTeacher($user, $centre);
 
-        $this->total = count($activities) + count($reviews);
+        $this->total = count($activities) + count($reviews) + count($quality);
 
         $items = [];
         foreach ($activities as $item) {
@@ -116,6 +134,10 @@ class NotificationBellComponent extends AbstractController
         // An activity's submissions awaiting review come as one line, not one per submission.
         foreach ($this->pendingReview->group($reviews) as $group) {
             $items[] = ['type' => 'review', 'entity' => $group, 'date' => $group->oldestAt()];
+        }
+        // Classifying has no due date: it goes by when it was reported.
+        foreach ($quality as $task) {
+            $items[] = ['type' => 'quality', 'entity' => $task, 'date' => $task->dueDate ?? $task->finding?->getReportedAt() ?? $task->action?->getCreatedAt() ?? new \DateTimeImmutable()];
         }
 
         usort($items, static fn (array $a, array $b): int => $a['date'] <=> $b['date']);

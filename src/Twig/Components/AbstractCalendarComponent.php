@@ -32,7 +32,7 @@ abstract class AbstractCalendarComponent extends AbstractController
 
     public function __construct(
         private readonly TenantContext $tenantContext,
-        private readonly TranslatorInterface $translator,
+        protected readonly TranslatorInterface $translator,
         private readonly NonWorkingDayChecker $nonWorkingDayChecker,
         private readonly ClockInterface $clock,
     ) {}

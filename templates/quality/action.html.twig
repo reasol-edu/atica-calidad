@@ -1,0 +1,145 @@
+{% extends 'layouts/app.html.twig' %}
+{% import 'quality/_macros.html.twig' as q %}
+
+{% block title %}{{ action.code }} · {{ 'plan.title'|trans({}, 'quality') }} · {{ app_name }}{% endblock %}
+
+{#
+   A plan action's page. On top, what's next: for its responsible, start it and mark it done
+   saying what was done; for everyone else, who does it and by when. Below, the details, the
+   evidence and, for whoever manages the plan, editing and deleting.
+#}
+{% block content %}
+{% set secondary = 'inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors' %}
+{% set aid = action.id.toRfc4122 %}
+<div class="px-4 sm:px-6 py-8 max-w-4xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-2">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_quality_index') }}" class="hover:text-forest-600 transition-colors">{{ 'quality'|trans({}, 'navigation') }}</a>
+            {% if canList %}
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+                <a href="{{ path('app_quality_plan') }}" class="hover:text-forest-600 transition-colors">{{ 'plan.title'|trans({}, 'quality') }}</a>
+            {% endif %}
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            <span aria-current="page" class="font-medium text-gray-700">{{ action.code }}</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="font-mono text-xs font-semibold text-gray-500">{{ action.code }}</span>
+            {{ q.action_status_pill(action, today) }}
+            <span class="rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-gray-600">{{ ('action_type.' ~ action.type.value)|trans({}, 'quality') }}</span>
+        </div>
+        <h1 class="mt-2 text-2xl font-bold text-gray-900 whitespace-pre-line">{{ action.description }}</h1>
+        <p class="mt-1 text-sm text-gray-500">
+            {{ 'plan.title'|trans({}, 'quality') }}{% if action.academicYear %} {{ action.academicYear.name }}{% endif %}
+            {%- if action.section %} · {{ action.section.name }}{% endif %}
+            {%- if action.createdBy %} · {{ 'plan.created_by'|trans({'%name%': action.createdBy.name.firstName ~ ' ' ~ action.createdBy.name.lastName, '%date%': action.createdAt|date('d/m/Y')}, 'quality') }}{% endif %}
+        </p>
+    </div>
+
+    {# ── What's next ──────────────────────────────────────────────────────────── #}
+    <section class="rounded-2xl border-2 {{ action.done ? 'border-forest-100 bg-white' : 'border-forest-200 bg-forest-50/40' }} p-5 sm:p-6 space-y-4">
+        <h2 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-forest-700">
+            {{ ux_icon(action.done ? 'heroicons:check-circle' : 'heroicons:arrow-right-circle', {class: 'h-5 w-5'}) }}
+            {{ (action.done ? 'plan.done_title' : 'next.title')|trans({}, 'quality') }}
+        </h2>
+
+        {% if action.done %}
+            <p class="text-sm text-gray-700">{{ 'plan.done_by'|trans({'%name%': action.doneBy ? action.doneBy.name.firstName ~ ' ' ~ action.doneBy.name.lastName : '—', '%date%': action.doneAt|date('d/m/Y')}, 'quality') }}</p>
+            {% if action.result %}<p class="rounded-lg bg-white px-3.5 py-2.5 text-sm text-gray-800 whitespace-pre-line ring-1 ring-inset ring-gray-100">{{ action.result }}</p>{% endif %}
+        {% elseif canWork %}
+            <p class="text-sm text-gray-700">
+                {{ 'plan.next_work'|trans({}, 'quality') }}
+                {%- if action.dueDate %} {{ 'plan.next_due'|trans({'%date%': action.dueDate|date('d/m/Y')}, 'quality') }}{% endif %}
+            </p>
+            {% if action.status.value == 'pending' %}
+                <form method="post" action="{{ path('app_quality_action_start', {id: aid}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('quality_action_' ~ aid) }}">
+                    <button type="submit" class="{{ secondary }}">{{ ux_icon('heroicons:play', {class: 'h-4 w-4'}) }}{{ 'action.start'|trans({}, 'quality') }}</button>
+                    <span class="ml-2 text-xs text-gray-500">{{ 'plan.start_help'|trans({}, 'quality') }}</span>
+                </form>
+            {% endif %}
+            <form method="post" action="{{ path('app_quality_action_complete', {id: aid}) }}" class="space-y-2 border-t border-forest-100 pt-4">
+                <input type="hidden" name="_token" value="{{ csrf_token('quality_action_' ~ aid) }}">
+                <label for="action-result" class="block text-sm font-semibold text-gray-900">{{ 'action.result'|trans({}, 'quality') }}</label>
+                <textarea id="action-result" name="result" rows="3" required
+                          placeholder="{{ 'action.result_placeholder'|trans({}, 'quality') }}"
+                          class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20"></textarea>
+                <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                    {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'action.mark_done'|trans({}, 'quality') }}
+                </button>
+            </form>
+        {% else %}
+            <p class="text-sm text-gray-700">{{ 'plan.next_wait'|trans({'%name%': q.responsible(action), '%date%': action.dueDate ? action.dueDate|date('d/m/Y') : '—'}, 'quality') }}</p>
+        {% endif %}
+    </section>
+
+    <div class="grid gap-6 {{ canManage ? 'lg:grid-cols-[1fr_18rem]' : '' }}">
+        {# ── Details ─────────────────────────────────────────────────────────── #}
+        <section class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
+            <dl class="grid gap-4 sm:grid-cols-2 text-sm">
+                <div class="sm:col-span-2">
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'plan.goal'|trans({}, 'quality') }}</dt>
+                    <dd class="mt-1 text-gray-800 whitespace-pre-line">{{ action.goal ?: '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'action.responsible'|trans({}, 'quality') }}</dt>
+                    <dd class="mt-1 text-gray-800">{{ q.responsible(action) }}{% if action.responsibleProfile %} <span class="text-xs text-gray-500">({{ 'plan.anyone_with_profile'|trans({}, 'quality') }})</span>{% endif %}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'action.due'|trans({}, 'quality') }}</dt>
+                    <dd class="mt-1 {{ action.overdue(today) ? 'font-medium text-red-700' : 'text-gray-800' }}">{{ action.dueDate ? action.dueDate|date('d/m/Y') : '—' }}</dd>
+                </div>
+            </dl>
+        </section>
+
+        {# ── Managing it ─────────────────────────────────────────────────────── #}
+        {% if canManage %}
+            <aside class="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs space-y-3 self-start">
+                <a href="{{ path('app_quality_action_edit', {id: aid}) }}" class="{{ secondary }} w-full justify-center">{{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4'}) }}{{ 'plan.edit'|trans({}, 'quality') }}</a>
+                <details class="group">
+                    <summary class="flex cursor-pointer list-none items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 [&::-webkit-details-marker]:hidden">
+                        {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}{{ 'plan.delete'|trans({}, 'quality') }}
+                    </summary>
+                    <form method="post" action="{{ path('app_quality_action_delete', {id: aid}) }}" class="mt-2 space-y-2 rounded-lg bg-red-50 p-3">
+                        <input type="hidden" name="_token" value="{{ csrf_token('quality_action_' ~ aid) }}">
+                        <p class="text-xs text-red-800">{{ 'plan.delete_confirm'|trans({}, 'quality') }}</p>
+                        <button type="submit" class="w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">{{ 'plan.delete_submit'|trans({}, 'quality') }}</button>
+                    </form>
+                </details>
+            </aside>
+        {% endif %}
+    </div>
+
+    {# ── Evidence ─────────────────────────────────────────────────────────────── #}
+    <section id="evidencias" class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs space-y-3">
+        <h2 class="text-base font-semibold text-gray-900">{{ 'plan.evidence'|trans({}, 'quality') }}</h2>
+        {% if action.attachments is empty %}
+            <p class="text-sm text-gray-500">{{ 'plan.evidence_empty'|trans({}, 'quality') }}</p>
+        {% else %}
+            <ul class="space-y-1.5">
+                {% for att in action.attachments %}
+                    <li class="flex items-center gap-2 text-sm">
+                        {{ ux_icon('heroicons:paper-clip', {class: 'h-4 w-4 shrink-0 text-gray-400'}) }}
+                        <a href="{{ path('app_quality_attachment', {id: att.id.toRfc4122}) }}" class="min-w-0 truncate font-medium text-forest-700 hover:text-forest-800">{{ att.filename }}</a>
+                        <span class="shrink-0 text-xs text-gray-500">{{ att.uploadedAt|date('d/m/Y') }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if canWork %}
+            <details class="border-t border-gray-100 pt-3">
+                <summary class="inline-flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-forest-700 hover:text-forest-800 [&::-webkit-details-marker]:hidden">
+                    {{ ux_icon('heroicons:paper-clip', {class: 'h-4 w-4'}) }}{{ 'attachment.evidence'|trans({}, 'quality') }}
+                </summary>
+                <form method="post" action="{{ path('app_quality_action_attach', {id: aid}) }}" enctype="multipart/form-data" class="mt-3 flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="_token" value="{{ csrf_token('quality_attach_' ~ aid) }}">
+                    <label class="sr-only" for="action-files">{{ 'attachment.evidence'|trans({}, 'quality') }}</label>
+                    <input id="action-files" type="file" name="files[]" multiple required class="min-w-0 flex-1 text-xs text-gray-600 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-gray-700">
+                    <button type="submit" class="{{ secondary }} text-xs">{{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}{{ 'attachment.add'|trans({}, 'quality') }}</button>
+                </form>
+            </details>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

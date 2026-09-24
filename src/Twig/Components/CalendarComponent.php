@@ -11,6 +11,7 @@ use App\Entity\SchoolEvent;
 use App\Entity\Teacher;
 use App\Model\ActivityDeadlineOccurrence;
 use App\Model\ProfileAssignmentRow;
+use App\Model\QualityTask;
 use App\Repository\ActivityRepository;
 use App\Repository\SchoolEventRepository;
 use App\Security\Voter\EducationalCentreVoter;
@@ -19,6 +20,7 @@ use App\Service\ActivityDeadlineChecker;
 use App\Service\AssignmentColorPalette;
 use App\Service\CalendarMonthGridBuilder;
 use App\Service\NonWorkingDayChecker;
+use App\Service\QualityTaskFinder;
 use App\Service\TenantContext;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -28,12 +30,18 @@ use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
  * Monthly calendar: centre events (by visibility — general for everyone, restricted
  * by assigned profile or subprofile) plus, for each teacher, their own activity deadlines
  * (those where they hold an upload profile — never "all of the centre's", not even as an
- * admin: see ActivityCompletionChecker::getMyOwnedObligations()) in a monthly grid.
+ * admin: see ActivityCompletionChecker::getMyOwnedObligations()) and "Mejora continua" deadlines
+ * (QualityTaskFinder::dueBetween()) in a monthly grid.
  */
 #[AsLiveComponent]
 class CalendarComponent extends AbstractCalendarComponent
 {
     private const array GENERAL_EVENT_COLOR = ['bg' => 'bg-sky-50', 'text' => 'text-sky-800', 'border' => 'border-sky-200', 'accent' => 'border-l-sky-500'];
+
+    /** "Mejora continua" deadlines: one colour of their own, red once overdue. */
+    private const array QUALITY_COLOR = ['bg' => 'bg-violet-50', 'text' => 'text-violet-800', 'border' => 'border-violet-200', 'accent' => 'border-l-violet-500'];
+
+    private const array OVERDUE_QUALITY_COLOR = ['bg' => 'bg-red-50', 'text' => 'text-red-800', 'border' => 'border-red-200', 'accent' => 'border-l-red-500'];
 
     /** @var list<SchoolEvent>|null */
     private ?array $itemsCache = null;
@@ -49,6 +57,7 @@ class CalendarComponent extends AbstractCalendarComponent
         private readonly ActivityRepository $activityRepository,
         private readonly ActivityCompletionChecker $activityCompletion,
         private readonly ActivityDeadlineChecker $activityDeadline,
+        private readonly QualityTaskFinder $qualityTasks,
     ) {
         parent::__construct($tenantContext, $translator, $nonWorkingDayChecker, $clock);
     }
@@ -67,24 +76,40 @@ class CalendarComponent extends AbstractCalendarComponent
         $items = [
             ...$this->getItemsForYear($centre, $academicYear),
             ...$this->getActivityDeadlineItems($centre),
+            ...$this->getQualityItems($centre),
         ];
 
         return $this->gridBuilder->build(
             $this->year,
             $this->month,
             $items,
-            static fn (SchoolEvent|ActivityDeadlineOccurrence $item): array => $item instanceof ActivityDeadlineOccurrence
-                ? [
+            static fn (SchoolEvent|ActivityDeadlineOccurrence|QualityTask $item): array => match (true) {
+                $item instanceof ActivityDeadlineOccurrence => [
                     'id'    => 'activity-' . $item->activity->getId()->toRfc4122() . ($item->ownerKey !== '' ? '-' . $item->ownerKey : ''),
                     'start' => $item->startDate,
                     'end'   => $item->endDate,
-                ]
-                : [
+                ],
+                $item instanceof QualityTask => [
+                    'id'    => 'quality-' . $item->type . '-' . ($item->action?->getId()->toRfc4122() ?? $item->finding?->getId()->toRfc4122() ?? ''),
+                    'start' => $item->dueDate ?? new \DateTimeImmutable(),
+                    'end'   => $item->dueDate ?? new \DateTimeImmutable(),
+                ],
+                default => [
                     'id'    => 'event-' . $item->getId()->toRfc4122(),
                     'start' => $item->getDate(),
                     'end'   => $item->getDate(),
                 ],
-            function (SchoolEvent|ActivityDeadlineOccurrence $item): array {
+            },
+            function (SchoolEvent|ActivityDeadlineOccurrence|QualityTask $item): array {
+                if ($item instanceof QualityTask) {
+                    return [
+                        'label'   => $this->translator->trans('task.' . $item->type, [], 'quality') . ': ' . $item->label(),
+                        'details' => $item->code() ?? '',
+                        'color'   => $item->urgency === 'overdue' ? self::OVERDUE_QUALITY_COLOR : self::QUALITY_COLOR,
+                        'icon'    => $item->urgency === 'done' ? 'heroicons:check-circle' : 'heroicons:wrench-screwdriver',
+                        'muted'   => $item->urgency === 'done',
+                    ];
+                }
                 if ($item instanceof ActivityDeadlineOccurrence) {
                     return [
                         'label'   => $item->activity->getTitle() . ($item->ownerLabel !== null ? ' · ' . $item->ownerLabel : ''),
@@ -163,6 +188,23 @@ class CalendarComponent extends AbstractCalendarComponent
         }
 
         return $items;
+    }
+
+    /**
+     * The teacher's "Mejora continua" deadlines around this month (the grid shows a few days of
+     * the neighbouring ones): analyses, actions and verifications due, and their own actions done.
+     *
+     * @return list<QualityTask>
+     */
+    private function getQualityItems(EducationalCentre $centre): array
+    {
+        $user = $this->getUser();
+        if (!$user instanceof Teacher) {
+            return [];
+        }
+        $first = (new \DateTimeImmutable())->setDate($this->year, $this->month, 1)->setTime(0, 0);
+
+        return $this->qualityTasks->dueBetween($user, $centre, $first->modify('-7 days'), $first->modify('last day of this month')->modify('+7 days'));
     }
 
     private function isSingleDate(Activity $activity): bool

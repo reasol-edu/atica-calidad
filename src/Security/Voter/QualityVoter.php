@@ -24,6 +24,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
  *   actions (directly or through a profile they hold).
  * - FINDING_ANALYZE: MANAGE, or its analysis responsible.
  * - ACTION_WORK: MANAGE, or the action's responsible teacher, or anyone holding its profile.
+ * - ACTION_VIEW: VIEW_ALL or ACTION_WORK; for a finding's action, also its FINDING_VIEW.
  *
  * @extends Voter<string, EducationalCentre|Finding|ImprovementAction>
  */
@@ -34,6 +35,7 @@ final class QualityVoter extends Voter
     public const string FINDING_VIEW    = 'quality.finding_view';
     public const string FINDING_ANALYZE = 'quality.finding_analyze';
     public const string ACTION_WORK     = 'quality.action_work';
+    public const string ACTION_VIEW     = 'quality.action_view';
 
     public function __construct(
         private readonly DocumentTreeAccessChecker $access,
@@ -44,7 +46,7 @@ final class QualityVoter extends Voter
         return match ($attribute) {
             self::MANAGE, self::VIEW_ALL              => $subject instanceof EducationalCentre,
             self::FINDING_VIEW, self::FINDING_ANALYZE => $subject instanceof Finding,
-            self::ACTION_WORK                          => $subject instanceof ImprovementAction,
+            self::ACTION_WORK, self::ACTION_VIEW       => $subject instanceof ImprovementAction,
             default                                    => false,
         };
     }
@@ -59,7 +61,7 @@ final class QualityVoter extends Voter
         return match (true) {
             $subject instanceof EducationalCentre => $attribute === self::MANAGE ? $this->manages($user, $subject) : $this->seesAll($user, $subject),
             $subject instanceof Finding           => $attribute === self::FINDING_ANALYZE ? $this->canAnalyze($user, $subject) : $this->canView($user, $subject),
-            $subject instanceof ImprovementAction => $this->canWork($user, $subject),
+            $subject instanceof ImprovementAction => $attribute === self::ACTION_VIEW ? $this->canViewAction($user, $subject) : $this->canWork($user, $subject),
         };
     }
 
@@ -98,6 +100,15 @@ final class QualityVoter extends Voter
     private function canWork(Teacher $teacher, ImprovementAction $action): bool
     {
         return $this->manages($teacher, $action->getEducationalCentre()) || $this->isResponsible($teacher, $action);
+    }
+
+    private function canViewAction(Teacher $teacher, ImprovementAction $action): bool
+    {
+        $finding = $action->getFinding();
+
+        return $this->seesAll($teacher, $action->getEducationalCentre())
+            || $this->canWork($teacher, $action)
+            || ($finding !== null && $this->canView($teacher, $finding));
     }
 
     private function isResponsible(Teacher $teacher, ImprovementAction $action): bool

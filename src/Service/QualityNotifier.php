@@ -44,21 +44,31 @@ final class QualityNotifier
         ]);
     }
 
-    /** To whoever has to carry out the action (its teacher, or everyone holding its profile). */
+    /**
+     * To whoever has to carry out the action (its teacher, or everyone holding its profile) — about
+     * its finding, or for a plan action, about the action itself.
+     */
     public function actionAssigned(ImprovementAction $action): void
     {
-        $finding = $action->getFinding();
-        if ($finding === null) {
-            return;
-        }
-
         $recipients = $action->getResponsibleTeacher() !== null
             ? [$action->getResponsibleTeacher()]
             : ($action->getResponsibleProfile() === null ? [] : $this->assignments->findTeachersHoldingProfileAndListItem($action->getResponsibleProfile(), null));
+        $params = ['%date%' => $action->getDueDate()?->format('d/m/Y') ?? '—'];
 
-        $this->send($recipients, $finding, 'action_assigned', $action->getDescription(), [
-            '%date%' => $action->getDueDate()?->format('d/m/Y') ?? '—',
-        ]);
+        $finding = $action->getFinding();
+        if ($finding !== null) {
+            $this->send($recipients, $finding, 'action_assigned', $action->getDescription(), $params);
+
+            return;
+        }
+
+        $this->deliver($recipients, $action->getEducationalCentre(), 'plan_action_assigned', [
+            'code'    => $action->getCode() ?? '',
+            'title'   => $action->getDescription(),
+            'section' => $action->getSection()?->getName(),
+            'url'     => $this->urls->generate('app_quality_action', ['id' => $action->getId()->toRfc4122()], UrlGeneratorInterface::ABSOLUTE_URL),
+            'cta'     => $this->translator->trans('email.cta_action', [], 'quality'),
+        ], $action->getGoal(), $params + ['%code%' => $action->getCode() ?? '']);
     }
 
     /** To the quality managers: every action done, time to check whether it worked. */
@@ -105,12 +115,25 @@ final class QualityNotifier
      */
     private function send(iterable $recipients, Finding $finding, string $event, ?string $quote, array $params = []): void
     {
-        $centre = $finding->getEducationalCentre();
-        $params += [
-            '%code%'  => $finding->getCode() ?? $this->translator->trans('finding.no_code', [], 'quality'),
-            '%title%' => $finding->getTitle(),
-        ];
+        $code    = $finding->getCode() ?? $this->translator->trans('finding.no_code', [], 'quality');
+        $params += ['%code%' => $code, '%title%' => $finding->getTitle()];
 
+        $this->deliver($recipients, $finding->getEducationalCentre(), $event, [
+            'code'    => $code,
+            'title'   => $finding->getTitle(),
+            'section' => $finding->getSection()?->getName(),
+            'url'     => $this->urls->generate('app_quality_finding', ['id' => $finding->getId()->toRfc4122()], UrlGeneratorInterface::ABSOLUTE_URL),
+            'cta'     => $this->translator->trans('email.cta', [], 'quality'),
+        ], $quote, $params);
+    }
+
+    /**
+     * @param iterable<Teacher>                                                              $recipients
+     * @param array{code: string, title: string, section: ?string, url: string, cta: string} $about      what the email is about, and the link to it
+     * @param array<string, string>                                                          $params
+     */
+    private function deliver(iterable $recipients, EducationalCentre $centre, string $event, array $about, ?string $quote, array $params): void
+    {
         $sent = [];
         foreach ($recipients as $teacher) {
             $key = $teacher->getId()->toRfc4122();
@@ -127,12 +150,12 @@ final class QualityNotifier
                 $this->translator->trans('email.' . $event . '.subject', $params, 'quality'),
                 $this->translator->trans('email.' . $event . '.heading', $params, 'quality'),
                 $this->twig->render('email/_quality_body.html.twig', [
-                    'intro'   => $this->translator->trans('email.' . $event . '.intro', $params, 'quality'),
-                    'finding' => $finding,
-                    'quote'   => $quote,
+                    'intro' => $this->translator->trans('email.' . $event . '.intro', $params, 'quality'),
+                    'about' => $about,
+                    'quote' => $quote,
                 ]),
-                $this->urls->generate('app_quality_finding', ['id' => $finding->getId()->toRfc4122()], UrlGeneratorInterface::ABSOLUTE_URL),
-                $this->translator->trans('email.cta', [], 'quality'),
+                $about['url'],
+                $about['cta'],
             );
         }
     }

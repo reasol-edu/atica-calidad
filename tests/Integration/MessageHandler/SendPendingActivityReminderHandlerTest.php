@@ -8,6 +8,8 @@ use App\Entity\AcademicYear;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\EducationalCentre;
+use App\Entity\ImprovementAction;
+use App\Entity\ImprovementActionType;
 use App\Entity\NonWorkingDay;
 use App\Entity\PersonName;
 use App\Entity\SettingDefinition;
@@ -23,10 +25,13 @@ use App\Service\AppSettingsInterface;
 use App\Service\NonWorkingDayChecker;
 use App\Service\NotificationMailer;
 use App\Service\PendingActivityReminderFinder;
+use App\Service\QualityTaskFinder;
 use App\Tests\Integration\RepositoryTestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
@@ -81,7 +86,68 @@ final class SendPendingActivityReminderHandlerTest extends RepositoryTestCase
             self::getContainer()->get(TranslatorInterface::class),
             self::getContainer()->get(UrlGeneratorInterface::class),
             self::getContainer()->get(Environment::class),
+            self::getContainer()->get(QualityTaskFinder::class),
         );
+    }
+
+    public function testRemindsOfAPlanActionDueSoonEvenWithoutActivities(): void
+    {
+        self::mockTime('2025-09-29 10:00:00'); // a Monday
+
+        $centre  = $this->centre();
+        $year    = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $teacher = $this->teacher('docente');
+        $teacher->addAcademicYear($year);
+        $action  = (new ImprovementAction($centre, null, ImprovementActionType::Improvement, 'Guía de acogida', null, new \DateTimeImmutable('2025-09-01')))
+            ->setCode('PM-2025-001')
+            ->setAcademicYear($year)
+            ->assignTo($teacher, null)
+            ->setDueDate(new \DateTimeImmutable('2025-10-02'));
+
+        $enabled = $this->booleanDefinition('notifications.pending_activity_reminder_enabled', 'true');
+        $emailOn = $this->booleanDefinition('notifications.email_notifications_enabled', 'true');
+        $warning = $this->integerDefinition('notifications.pending_activity_reminder_warning_days', '5');
+        $this->persist($centre, $year, $teacher, $action, $enabled, $emailOn, $warning);
+
+        $sent   = [];
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects(self::once())->method('send')->willReturnCallback(static function (Email $email) use (&$sent): void {
+            $sent[] = $email;
+        });
+
+        $this->handler($mailer)(new SendPendingActivityReminderMessage());
+
+        self::assertInstanceOf(TemplatedEmail::class, $sent[0]);
+        self::assertStringContainsString('Tareas pendientes de Mejora continua', (string) $sent[0]->getSubject());
+        $context = $sent[0]->getContext();
+        self::assertStringContainsString('Guía de acogida', $context['bodyHtml']);
+        self::assertStringContainsString('PM-2025-001', $context['bodyHtml']);
+        self::assertStringEndsWith('/mejora', $context['actionUrl']);
+    }
+
+    public function testLeavesOutPlanActionsWhenTheQualityEmailsAreOff(): void
+    {
+        self::mockTime('2025-09-29 10:00:00');
+
+        $centre  = $this->centre();
+        $year    = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $teacher = $this->teacher('docente');
+        $teacher->addAcademicYear($year);
+        $action  = (new ImprovementAction($centre, null, ImprovementActionType::Improvement, 'Guía de acogida', null, new \DateTimeImmutable('2025-09-01')))
+            ->assignTo($teacher, null)
+            ->setDueDate(new \DateTimeImmutable('2025-09-20'));
+
+        $enabled    = $this->booleanDefinition('notifications.pending_activity_reminder_enabled', 'true');
+        $qualityOff = $this->booleanDefinition('notifications.quality_notifications_enabled', 'false');
+        $warning    = $this->integerDefinition('notifications.pending_activity_reminder_warning_days', '5');
+        $this->persist($centre, $year, $teacher, $action, $enabled, $qualityOff, $warning);
+
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects(self::never())->method('send');
+
+        $this->handler($mailer)(new SendPendingActivityReminderMessage());
     }
 
     private function logs(): EmailNotificationLogRepository

@@ -39,7 +39,8 @@ final class QualityTaskFinder
     {
         $tasks = [];
 
-        if ($this->security->isGranted(QualityVoter::MANAGE, $centre)) {
+        // For $teacher, not the logged-in user: the daily reminder runs with nobody logged in.
+        if ($this->security->isGrantedForUser($teacher, QualityVoter::MANAGE, $centre)) {
             foreach ($this->findings->findByCentreAndStatus($centre, FindingStatus::Reported) as $finding) {
                 $tasks[] = new QualityTask(QualityTask::CLASSIFY, $finding, null, null, 'open');
             }
@@ -59,7 +60,7 @@ final class QualityTaskFinder
 
         foreach ($this->actions->findOpenByCentre($centre) as $action) {
             $finding = $action->getFinding();
-            if ($finding === null || !$finding->getStatus()->isOpen() || !$this->isResponsible($teacher, $action)) {
+            if (($finding !== null && !$finding->getStatus()->isOpen()) || !$this->isResponsible($teacher, $action)) {
                 continue;
             }
             $tasks[] = $this->task(QualityTask::ACTION, $finding, $action, $action->getDueDate());
@@ -70,7 +71,34 @@ final class QualityTaskFinder
         return $tasks;
     }
 
-    private function task(string $type, Finding $finding, ?ImprovementAction $action, ?\DateTimeImmutable $due): QualityTask
+    /**
+     * For the calendar: the teacher's tasks due between $from and $to (inclusive), plus the actions
+     * of theirs due then that are already done (urgency "done"), as the calendar also shows the
+     * activities already completed.
+     *
+     * @return list<QualityTask>
+     */
+    public function dueBetween(Teacher $teacher, EducationalCentre $centre, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        $from = $from->setTime(0, 0);
+        $to   = $to->setTime(0, 0);
+
+        $tasks = array_values(array_filter(
+            $this->forTeacher($teacher, $centre),
+            static fn (QualityTask $t): bool => $t->dueDate !== null && $t->dueDate >= $from && $t->dueDate <= $to,
+        ));
+        foreach ($this->actions->findDueBetween($centre, $from, $to) as $action) {
+            if ($action->isDone() && $this->isResponsible($teacher, $action)) {
+                $tasks[] = new QualityTask(QualityTask::ACTION, $action->getFinding(), $action, $action->getDueDate(), 'done');
+            }
+        }
+
+        usort($tasks, QualityTask::compare(...));
+
+        return $tasks;
+    }
+
+    private function task(string $type, ?Finding $finding, ?ImprovementAction $action, ?\DateTimeImmutable $due): QualityTask
     {
         $today   = $this->clock->now()->setTime(0, 0);
         $urgency = match (true) {
@@ -84,7 +112,7 @@ final class QualityTaskFinder
     }
 
     /** Only the action's own responsible — not the managers as such, who see every action anyway. */
-    private function isResponsible(Teacher $teacher, ImprovementAction $action): bool
+    public function isResponsible(Teacher $teacher, ImprovementAction $action): bool
     {
         if ($action->getResponsibleTeacher() !== null) {
             return $action->getResponsibleTeacher()->getId()->equals($teacher->getId());
