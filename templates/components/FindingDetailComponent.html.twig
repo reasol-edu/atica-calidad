@@ -179,7 +179,7 @@
             {% set pending = f.countPendingActions %}
             <p class="text-sm text-gray-700">{{ 'next.execution'|trans({'%done%': total - pending, '%total%': total}, 'quality') }}</p>
             {% if total > 0 %}
-                <div class="h-2 w-full max-w-md overflow-hidden rounded-full bg-white" role="img" aria-label="{{ 'next.execution'|trans({'%done%': total - pending, '%total%': total}, 'quality') }}">
+                <div class="h-2 w-full max-w-md overflow-hidden rounded-full bg-forest-100 ring-1 ring-inset ring-forest-200" role="img" aria-label="{{ 'next.execution'|trans({'%done%': total - pending, '%total%': total}, 'quality') }}">
                     <div class="h-full bg-forest-500" style="width: {{ (total - pending) / total * 100 }}%"></div>
                 </div>
             {% endif %}
@@ -247,12 +247,17 @@
                     </ul>
                 {% endif %}
                 {% if f.status.open %}
-                    <form method="post" action="{{ path('app_quality_finding_attach', {id: f.id.toRfc4122}) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4">
-                        <input type="hidden" name="_token" value="{{ csrf_token('quality_attach_' ~ f.id.toRfc4122) }}">
-                        <label class="sr-only" for="finding-files">{{ 'attachment.add'|trans({}, 'quality') }}</label>
-                        <input id="finding-files" type="file" name="files[]" multiple class="min-w-0 flex-1 text-xs text-gray-600 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-gray-700">
-                        <button type="submit" class="{{ secondary }} text-xs">{{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}{{ 'attachment.add'|trans({}, 'quality') }}</button>
-                    </form>
+                    <details class="group border-t border-gray-100 pt-3">
+                        <summary class="inline-flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-forest-700 hover:text-forest-800 [&::-webkit-details-marker]:hidden">
+                            {{ ux_icon('heroicons:paper-clip', {class: 'h-4 w-4'}) }}{{ 'attachment.add_file'|trans({}, 'quality') }}
+                        </summary>
+                        <form method="post" action="{{ path('app_quality_finding_attach', {id: f.id.toRfc4122}) }}" enctype="multipart/form-data" class="mt-3 flex flex-wrap items-center gap-2">
+                            <input type="hidden" name="_token" value="{{ csrf_token('quality_attach_' ~ f.id.toRfc4122) }}">
+                            <label class="sr-only" for="finding-files">{{ 'attachment.add_file'|trans({}, 'quality') }}</label>
+                            <input id="finding-files" type="file" name="files[]" multiple required class="min-w-0 flex-1 text-xs text-gray-600 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-gray-700">
+                            <button type="submit" class="{{ secondary }} text-xs">{{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}{{ 'attachment.add'|trans({}, 'quality') }}</button>
+                        </form>
+                    </details>
                 {% endif %}
             </section>
 
@@ -391,12 +396,17 @@
                                     {% endif %}
                                 {% endif %}
                                 {% if can_work %}
-                                    <form method="post" action="{{ path('app_quality_action_attach', {id: aid}) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('quality_attach_' ~ aid) }}">
-                                        <label class="sr-only" for="action-files-{{ aid }}">{{ 'attachment.evidence'|trans({}, 'quality') }}</label>
-                                        <input id="action-files-{{ aid }}" type="file" name="files[]" multiple class="min-w-0 flex-1 text-xs text-gray-600 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-gray-700">
-                                        <button type="submit" class="{{ secondary }} text-xs">{{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}{{ 'attachment.evidence'|trans({}, 'quality') }}</button>
-                                    </form>
+                                    <details>
+                                        <summary class="inline-flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-forest-700 hover:text-forest-800 [&::-webkit-details-marker]:hidden">
+                                            {{ ux_icon('heroicons:paper-clip', {class: 'h-4 w-4'}) }}{{ 'attachment.evidence'|trans({}, 'quality') }}
+                                        </summary>
+                                        <form method="post" action="{{ path('app_quality_action_attach', {id: aid}) }}" enctype="multipart/form-data" class="mt-2 flex flex-wrap items-center gap-2">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('quality_attach_' ~ aid) }}">
+                                            <label class="sr-only" for="action-files-{{ aid }}">{{ 'attachment.evidence'|trans({}, 'quality') }}</label>
+                                            <input id="action-files-{{ aid }}" type="file" name="files[]" multiple required class="min-w-0 flex-1 text-xs text-gray-600 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-gray-700">
+                                            <button type="submit" class="{{ secondary }} text-xs">{{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}{{ 'attachment.add'|trans({}, 'quality') }}</button>
+                                        </form>
+                                    </details>
                                 {% endif %}
                             </li>
                         {% endfor %}

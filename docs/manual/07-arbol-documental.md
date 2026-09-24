@@ -227,7 +227,7 @@ la muestra junto a su nombre —en ámbar durante los 30 días anteriores y en r
 pasado—, aparece en los [informes](04-informes.md) de listado maestro y de revisiones y, una vez
 por semana, quien es responsable de la carpeta recibe un correo con los documentos que tiene
 pendientes de revisar (ver
-[Ajustes disponibles](09-administrar-la-plataforma.md#ajustes-disponibles)). Si la carpeta no tiene
+[Ajustes disponibles](10-administrar-la-plataforma.md#ajustes-disponibles)). Si la carpeta no tiene
 responsables, el correo lo reciben los responsables de calidad del centro.
 
 **Eliminar el documento completo**, con todo su historial de revisiones, sí está permitido también a
@@ -276,7 +276,7 @@ confirmación.
   que lo recuperen.
 - **Cuánto tiempo:** 30 días por defecto. Se configura con el ajuste «Días en la papelera», a nivel
   global y de cada centro (ver
-  [Ajustes disponibles](09-administrar-la-plataforma.md#papelera)). Con 0, la papelera no se vacía
+  [Ajustes disponibles](10-administrar-la-plataforma.md#papelera)). Con 0, la papelera no se vacía
   sola: lo eliminado se queda hasta que alguien lo recupere o lo elimine definitivamente.
 - **Carpetas y categorías:** si se elimina la carpeta o la categoría que contenía algo que está en
   la papelera, eso se borra también.
@@ -330,4 +330,4 @@ Hay tres formas de buscar, cada una para un caso distinto:
 ² La ampliación a «quien comparte el perfil» no aplica en una actividad de ámbito individual — ver
 [Permisos sobre una carpeta](#permisos-sobre-una-carpeta) más arriba.
 
-Volver a [Permisos de un vistazo](10-permisos-de-un-vistazo.md) para el resto de la aplicación.
+Volver a [Permisos de un vistazo](11-permisos-de-un-vistazo.md) para el resto de la aplicación.

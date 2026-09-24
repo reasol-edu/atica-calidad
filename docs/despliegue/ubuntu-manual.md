@@ -105,7 +105,7 @@ SYMFONY_TRUSTED_PROXIES=10.0.0.5
 - **No** hay Let's Encrypt ni certificado en este servidor: `SERVER_ADDR` con puerto y sin
   dominio desactiva el HTTPS automático de Caddy. El certificado del dominio lo gestiona el proxy.
 - `SYMFONY_TRUSTED_PROXIES` es imprescindible para que el [registro de
-  actividad](../manual/09-administrar-la-plataforma.md#registro-de-actividad) y los límites de
+  actividad](../manual/10-administrar-la-plataforma.md#registro-de-actividad) y los límites de
   intentos guarden la IP real del usuario y no la del proxy. Acepta una IP, un rango CIDR o varios
   valores separados por comas.
 - El proxy debe reenviar las cabeceras `X-Forwarded-For`, `X-Forwarded-Proto` y `X-Forwarded-Host`.
@@ -236,7 +236,7 @@ sudo systemctl restart atica-calidad atica-calidad-worker
 - La aplicación queda accesible en `https://tudominio.es` con `admin` / `admin`.
   **Cambia la contraseña inmediatamente** en **Perfil → Cambiar contraseña**.
 - Si usas un [proxy inverso](#5b-variante-detras-de-un-proxy-inverso), comprueba en el
-  [registro de actividad](../manual/09-administrar-la-plataforma.md#registro-de-actividad) que la
+  [registro de actividad](../manual/10-administrar-la-plataforma.md#registro-de-actividad) que la
   IP que se registra es la del cliente y no la del proxy; si no, revisa `SYMFONY_TRUSTED_PROXIES`
   y que el proxy envíe `X-Forwarded-For`.
 - Para automatizar las actualizaciones a nuevas versiones, ver la guía de

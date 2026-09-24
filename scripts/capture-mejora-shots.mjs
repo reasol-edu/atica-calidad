@@ -1,0 +1,82 @@
+/**
+ * Captures the desktop screenshots of the "Mejora continua" chapter of the manual
+ * (docs/manual/img/mejora-*.png), against the demo data from `app:load-demo-data` (IES Ada
+ * Lovelace), whose five sample findings cover every step. Read-only: it opens forms but submits
+ * nothing, so it can run in any order with the other capture scripts — still, only against a
+ * disposable database (see docs/manual/README.md).
+ */
+import { chromium } from 'playwright';
+import { mkdirSync } from 'node:fs';
+
+const baseUrl = process.env.SHOTS_BASE_URL ?? 'http://127.0.0.1:8744';
+const outDir  = process.env.SHOTS_OUT_DIR ?? 'docs/manual/img';
+
+mkdirSync(outDir, { recursive: true });
+
+const browser = await chromium.launch({ args: ['--lang=es-ES'] });
+const page    = await browser.newPage({ viewport: { width: 1360, height: 900 }, locale: 'es-ES' });
+
+async function hideToolbar() {
+    await page.addStyleTag({ content: 'div[id^="sfwdt"] { display: none !important; }' });
+}
+
+async function login(username, password = username) {
+    await page.context().clearCookies();
+    await page.goto(`${baseUrl}/login`);
+    await page.fill('#username', username);
+    await page.fill('#password', password);
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState('networkidle');
+    if (page.url().includes('/seleccion/centro')) {
+        await page.click('text=IES Ada Lovelace');
+        await page.waitForLoadState('networkidle');
+    }
+}
+
+async function shot(name, options = {}) {
+    await page.waitForLoadState('networkidle');
+    await hideToolbar();
+    await page.screenshot({ path: `${outDir}/${name}.png`, ...options });
+}
+
+async function openFinding(title) {
+    await page.goto(`${baseUrl}/mejora/fichas`);
+    await page.waitForLoadState('networkidle');
+    await page.click(`a:has-text("${title}")`);
+    await page.waitForLoadState('networkidle');
+}
+
+// ── A teacher: reporting an incident ─────────────────────────────────────────
+await login('c.núñez', 'prueba');
+await page.goto(`${baseUrl}/mejora/comunicar`);
+await page.fill('#report-description', 'La impresora de la sala de profesores atasca el papel cada pocas hojas\nLlevamos así desde el lunes.');
+await shot('mejora-comunicar');
+
+// ── The quality manager: hub with the inbox, classifying, the board ──────────
+await login('calidad');
+await page.goto(`${baseUrl}/mejora`);
+await shot('mejora-portada');
+
+await page.click('a:has-text("El proyector del aula 12")');
+await page.waitForLoadState('networkidle');
+await page.check('input[name="kind"][value="nonconformity"]');
+await page.waitForSelector('#classify-responsible');
+await shot('mejora-clasificar');
+
+await page.goto(`${baseUrl}/mejora/fichas?view=board`);
+await shot('mejora-tablero');
+
+await openFinding('La Política de Calidad no llega');
+await shot('mejora-ficha', { fullPage: true });
+
+// ── The analyst: "Tus próximos pasos" and the cause analysis ────────────────
+await login('a.ruiz', 'prueba');
+await page.goto(`${baseUrl}/`);
+await shot('mejora-proximos-pasos');
+
+await page.click('a:has-text("Programaciones didácticas entregadas fuera de plazo")');
+await page.waitForLoadState('networkidle');
+await shot('mejora-analisis', { fullPage: true });
+
+await browser.close();
+console.log('Capturas guardadas en', outDir);

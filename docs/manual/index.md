@@ -18,7 +18,7 @@ Este manual describe la aplicación en su estado actual y crecerá a la vez que 
   alojados en él.
 
 El detalle completo de lo que puede hacer cada perfil está en
-[Permisos de un vistazo](10-permisos-de-un-vistazo.md).
+[Permisos de un vistazo](11-permisos-de-un-vistazo.md).
 
 ## Acceso a la aplicación
 
@@ -40,9 +40,11 @@ No hace falta leerlo de principio a fin; cada persona puede ir directamente a lo
   documento?** Consulta [Árbol documental](07-arbol-documental.md).
 - **¿Buscas tus plazos pendientes, o cómo entregar o revisar una actividad?** Consulta
   [Actividades](08-actividades.md).
+- **¿Algo no funciona como debería, o te han asignado un análisis o una acción?** Consulta
+  [Mejora continua](09-mejora-continua.md).
 - **¿Vas a instalar la aplicación o mantener el servidor?** Los capítulos
   [Instalación y puesta en marcha](01-instalacion-y-puesta-en-marcha.md) y
-  [Administrar la plataforma](09-administrar-la-plataforma.md) son los únicos con contenido
+  [Administrar la plataforma](10-administrar-la-plataforma.md) son los únicos con contenido
   técnico. Si tu centro ya tiene ÁTICA Calidad en marcha, puedes saltártelos por completo.
 
 ## Sobre el proyecto

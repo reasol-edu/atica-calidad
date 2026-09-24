@@ -15,7 +15,7 @@
 
 Por seguridad, la sesión se cierra sola tras un rato sin usar la aplicación (dos horas por
 defecto; la administración de la plataforma puede cambiarlo o desactivarlo en
-[Ajustes → Seguridad](09-administrar-la-plataforma.md#seguridad)). La pantalla de inicio de sesión
+[Ajustes → Seguridad](10-administrar-la-plataforma.md#seguridad)). La pantalla de inicio de sesión
 lo indica; basta con volver a entrar.
 
 ## No me deja poner una contraseña
@@ -50,9 +50,9 @@ revisión suelta eliminada, en cambio, no pasa por la papelera.
 ## No me llegan los correos de la aplicación
 
 Comprueba con la administración de la plataforma que el correo del servidor está
-[configurado y activo](09-administrar-la-plataforma.md#correo-electronico-del-servidor), y que el
+[configurado y activo](10-administrar-la-plataforma.md#correo-electronico-del-servidor), y que el
 worker (Messenger) está en marcha — ver
-[Correos en cola](09-administrar-la-plataforma.md#correos-en-cola-messenger).
+[Correos en cola](10-administrar-la-plataforma.md#correos-en-cola-messenger).
 
 ## La aplicación no arranca tras una actualización
 
@@ -63,4 +63,4 @@ php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
 Si el problema persiste, consulta los registros del servidor (ver
-[Administrar la plataforma](09-administrar-la-plataforma.md)) para identificar el error concreto.
+[Administrar la plataforma](10-administrar-la-plataforma.md)) para identificar el error concreto.

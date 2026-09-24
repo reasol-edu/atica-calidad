@@ -44,6 +44,17 @@ Cómo va cada [actividad](08-actividades.md) en el curso actual:
 La columna **% hecho** resume el avance (entregas aceptadas o docentes que la han completado,
 sobre el total esperado).
 
+## No conformidades {#no-conformidades}
+
+El registro de [Mejora continua](09-mejora-continua.md): las no conformidades, observaciones y
+oportunidades de mejora del centro, y las incidencias aún sin clasificar, con su código, tipo,
+proceso, origen, estado, fecha de comunicación, cuántas acciones están hechas, fecha de cierre y
+si han sido **eficaces**. En PDF incluye también la causa raíz de cada no conformidad. No incluye
+las descartadas.
+
+Es la evidencia habitual, en una auditoría, del tratamiento de las no conformidades y de la
+eficacia de las acciones correctivas.
+
 ## Acuses de lectura {#acuses-de-lectura}
 
 Para cada documento de las carpetas con [acuse de lectura](07-arbol-documental.md#acuse-de-lectura),

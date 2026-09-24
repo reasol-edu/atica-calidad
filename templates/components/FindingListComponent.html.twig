@@ -89,7 +89,7 @@
                             {% for f in items %}
                                 <li>
                                     <a href="{{ path('app_quality_finding', {id: f.id.toRfc4122}) }}" class="block rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-xs hover:border-forest-300">
-                                        <span class="flex items-center gap-2">{{ q.code(f) }}{{ q.kind_chip(f) }}</span>
+                                        <span class="flex flex-wrap items-center gap-x-2 gap-y-1">{{ q.code(f) }}{{ q.kind_chip(f) }}</span>
                                         <span class="mt-1 block font-medium text-gray-900">{{ f.title }}</span>
                                         <span class="mt-1 block text-xs text-gray-500">
                                             {{ 'list.days_open'|trans({'%count%': date().diff(f.reportedAt).days}, 'quality') }}

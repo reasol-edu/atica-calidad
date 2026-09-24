@@ -9,13 +9,13 @@ error.date: 'Fecha no válida.'
 step.error.not_now: 'Este paso ya no está disponible. Recarga la página.'
 
 # ── Portada ──────────────────────────────────────────────────────────────────
-hub.intro: 'Comunica lo que no funciona como debería y sigue qué se hace para resolverlo. Lo que te toca también aparece en el panel principal.'
+hub.intro: 'Comunica lo que no funciona como debería y sigue qué se hace para resolverlo. Las tareas pendientes también aparecen en el panel principal.'
 hub.all: 'Ver todas las fichas'
 hub.inbox: 'Bandeja: por clasificar'
 hub.inbox_empty: 'No hay nada pendiente de clasificar.'
 hub.classify: 'Clasificar'
 hub.reported_by: 'Comunicada por %name% el %date%'
-hub.tasks: 'Lo que te toca'
+hub.tasks: 'Lo que toca ahora'
 hub.tasks_empty: 'No tienes nada pendiente en Mejora continua.'
 hub.mine: 'Lo que has comunicado'
 hub.mine_empty: 'Todavía no has comunicado ninguna incidencia. Si ves algo que no funciona como debería, pulsa «Comunicar incidencia».'
@@ -54,6 +54,7 @@ report.error.file: 'No se ha podido recibir «%name%» (o pasa de 20 MB).'
 
 # ── Adjuntos ─────────────────────────────────────────────────────────────────
 attachment.add: 'Adjuntar'
+attachment.add_file: 'Adjuntar un fichero'
 attachment.evidence: 'Adjuntar evidencia'
 attachment.error.none: 'Elige al menos un fichero.'
 attachment.flash.added: '{1}Fichero adjuntado.|]1,Inf[%count% ficheros adjuntados.'

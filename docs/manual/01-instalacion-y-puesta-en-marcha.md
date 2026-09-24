@@ -23,7 +23,7 @@ docker compose up -d
 
 El volumen `/data` dentro del contenedor contiene la base de datos (si usas SQLite) y los ficheros
 subidos. Haz copia de seguridad de ese volumen con regularidad — ver
-[Copias de seguridad](09-administrar-la-plataforma.md#copias-de-seguridad).
+[Copias de seguridad](10-administrar-la-plataforma.md#copias-de-seguridad).
 
 ### Arranque automático al reiniciar el servidor
 
@@ -61,7 +61,7 @@ Cada versión se anuncia con sus cambios en el
 [registro de cambios](https://github.com/reasol-edu/atica-calidad/blob/main/CHANGELOG.md). Antes de
 actualizar, revisa si incluye algún cambio que requiera **intervención manual** (poco frecuente,
 siempre indicado de forma explícita) y **haz una copia de seguridad** de la base de datos y de
-`.env.local` (ver [Copias de seguridad](09-administrar-la-plataforma.md#copias-de-seguridad)). Las
+`.env.local` (ver [Copias de seguridad](10-administrar-la-plataforma.md#copias-de-seguridad)). Las
 migraciones de base de datos son seguras de re-ejecutar: si la versión no cambia el esquema,
 `doctrine:migrations:migrate` termina en segundos sin tocar nada.
 
@@ -162,7 +162,7 @@ php bin/console app:setup
 
 Crea un nuevo centro educativo con su primer curso académico, junto con las tres raíces por
 defecto de Responsabilidades → Listas (Departamento, Grupo, Materia — ver
-[Administrar la plataforma](09-administrar-la-plataforma.md#centros-educativos)).
+[Administrar la plataforma](10-administrar-la-plataforma.md#centros-educativos)).
 
 ```bash
 php bin/console app:create-educational-centre <código> <nombre> <localidad>
@@ -181,7 +181,7 @@ php bin/console app:create-admin <usuario> <contraseña>
 Crea una copia de seguridad completa de la base de datos en un único fichero ZIP. Sin argumento la
 deja en `var/backups/`; también acepta una carpeta de destino o la ruta de un `.zip`. Con
 `--password=…` (o `--password` sin valor, que la pide por consola) el ZIP se cifra con AES-256. Ver
-[Administrar la plataforma → Copias de seguridad](09-administrar-la-plataforma.md#copias-de-seguridad).
+[Administrar la plataforma → Copias de seguridad](10-administrar-la-plataforma.md#copias-de-seguridad).
 
 ```bash
 php bin/console app:backup [carpeta-o-fichero.zip] [--password[=CONTRASEÑA]]
@@ -192,7 +192,7 @@ php bin/console app:backup [carpeta-o-fichero.zip] [--password[=CONTRASEÑA]]
 Restaura una copia creada con `app:backup`, **reemplazando todos los datos actuales**. Pide
 confirmación (salvo `--force`) y se niega si el esquema no coincide con el de la copia (salvo
 `--force`). En PostgreSQL necesita un rol con privilegios. Ver
-[Administrar la plataforma → Copias de seguridad](09-administrar-la-plataforma.md#copias-de-seguridad).
+[Administrar la plataforma → Copias de seguridad](10-administrar-la-plataforma.md#copias-de-seguridad).
 
 ```bash
 php bin/console app:restore <copia.zip> [--password[=CONTRASEÑA]] [--force]

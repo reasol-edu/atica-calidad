@@ -114,7 +114,7 @@ y espera el visto bueno, quien la completó y quien no tiene dirección de corre
 El botón lo ven la dirección, la coordinación de calidad y quien gestiona o revisa la carpeta de la
 actividad. Pide confirmación antes de enviar, y cada actividad admite **un recordatorio por hora**,
 aunque lo pulsen varias personas. El envío queda anotado en el
-[registro de actividad](09-administrar-la-plataforma.md#registro-de-actividad).
+[registro de actividad](10-administrar-la-plataforma.md#registro-de-actividad).
 ## Editar categorías
 
 Reservada a responsable de calidad, equipo directivo/admin. del centro y admin. de la plataforma —
@@ -129,7 +129,7 @@ Una actividad eliminada, con sus completados, pasa a la
 | Campo | Significado |
 | --- | --- |
 | Título / Descripción | Texto libre. |
-| Fecha de inicio / Fecha de fin | Solo **día y mes** (sin año): la actividad se repite automáticamente cada curso académico en esas fechas. Cada fecha se sitúa dentro del curso en vigor según el ajuste [Inicio del curso académico](09-administrar-la-plataforma.md#curso-academico) (15 de septiembre por defecto): una actividad de enero a febrero, consultada en octubre, se refiere a la del próximo enero, no a la del enero ya pasado. |
+| Fecha de inicio / Fecha de fin | Solo **día y mes** (sin año): la actividad se repite automáticamente cada curso académico en esas fechas. Cada fecha se sitúa dentro del curso en vigor según el ajuste [Inicio del curso académico](10-administrar-la-plataforma.md#curso-academico) (15 de septiembre por defecto): una actividad de enero a febrero, consultada en octubre, se refiere a la del próximo enero, no a la del enero ya pasado. |
 | Carpeta | Opcional. Si se elige una, la actividad pasa a tener entregas (ver [Entregas y revisión](#entregas-y-revision)); si se deja vacía, se completa a mano. |
 | Lista para nombrar entregas | Opcional. Un elemento de [Listas](06-responsabilidades.md#listas) (p. ej. «Materia», o una rama concreta): **cada hoja que cuelga de él** —a cualquier profundidad— es una entrega esperada, con nombre igual a su **ruta bajo el elemento elegido** (p. ej. «Ciencias › Física»). Si la carpeta tiene un único perfil de subida, todas las hojas cuentan; si tiene varios, solo cuentan las hojas asociadas (en Listas) a uno de ellos, que además determina a quién le corresponde. |
 | Documentos relacionados | Documentos del árbol documental enlazados como lectura de apoyo, independientes de la carpeta de entregas. |
@@ -171,7 +171,7 @@ a quien la subió.
 
 Como una actividad se repite cada curso, sus entregas y sus completados cuentan **solo para el
 curso en que se hicieron**: al empezar el curso siguiente (según el ajuste
-[Inicio del curso académico](09-administrar-la-plataforma.md#curso-academico)), la actividad vuelve
+[Inicio del curso académico](10-administrar-la-plataforma.md#curso-academico)), la actividad vuelve
 a aparecer pendiente, con las filas de «Mis entregas» vacías y listas para la entrega de ese curso.
 Las entregas de cursos anteriores no se borran: siguen en la carpeta del árbol documental. Esa
 carpeta muestra por defecto **solo las entregas del curso actual**; si hay entregas de otros cursos,
@@ -255,7 +255,7 @@ actividades ya completadas se muestran atenuadas y tachadas.
 
 ## Avisos
 
-La [campana de notificaciones](09-administrar-la-plataforma.md#ajustes-disponibles), en la
+La [campana de notificaciones](10-administrar-la-plataforma.md#ajustes-disponibles), en la
 cabecera, avisa solo de lo que el docente puede hacer ahora mismo —actividades pendientes,
 rechazadas, fuera de plazo o vencidas— y de sus revisiones pendientes personales (nunca de «Todas
 las revisiones pendientes», que solo se muestra en el panel principal). Lo que está en revisión, lo
@@ -264,7 +264,7 @@ actividad, igual que en el panel principal. El recordatorio diario por correo si
 criterio: incluye las vencidas o fuera de plazo y las pendientes o rechazadas que vencen pronto. La frecuencia de los
 avisos por correo —al instante o en un resumen diario— se configura en
 **Ajustes → Avisos por correo**, a nivel global, de centro o personal — ver
-[Ajustes disponibles](09-administrar-la-plataforma.md#ajustes-disponibles).
+[Ajustes disponibles](10-administrar-la-plataforma.md#ajustes-disponibles).
 
 ## Permisos, de un vistazo
 
@@ -280,4 +280,4 @@ avisos por correo —al instante o en un resumen diario— se configura en
 | Crear/editar categorías y actividades | — | — | — | ✅ |
 | Recuperar de la papelera lo eliminado | — | — | — | ✅ (responsable de calidad y equipo directivo) |
 
-Volver a [Permisos de un vistazo](10-permisos-de-un-vistazo.md) para el resto de la aplicación.
+Volver a [Permisos de un vistazo](11-permisos-de-un-vistazo.md) para el resto de la aplicación.

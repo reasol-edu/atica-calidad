@@ -133,17 +133,46 @@ tal como estaban — ver [Papelera](07-arbol-documental.md#papelera).
 : Botón de una actividad que envía un correo a cada docente que aún la tiene por hacer — ver
 [Recordar a pendientes](08-actividades.md#recordar-a-pendientes).
 
+**Incidencia**
+: Algo que no funciona como debería, comunicado por cualquier docente desde **Mejora continua**. La
+coordinación de calidad la clasifica como no conformidad, observación u oportunidad de mejora, o la
+descarta — ver [Mejora continua](09-mejora-continua.md).
+
+**No conformidad (NC)**
+: Incumplimiento de un requisito de la norma, de un procedimiento del centro o de un compromiso. Se
+analizan sus causas, se definen acciones correctivas y se comprueba que han sido eficaces — ver
+[El ciclo de una ficha](09-mejora-continua.md#el-ciclo-de-una-ficha).
+
+**Observación (OB)**
+: Situación que todavía no es un incumplimiento pero podría llegar a serlo.
+
+**Oportunidad de mejora (OM)**
+: Algo que ya funciona y podría ir mejor.
+
+**Causa raíz**
+: La causa de fondo de una no conformidad que, si se elimina, evita que vuelva a pasar. Suele
+buscarse con la técnica de los **5 porqués**.
+
+**Acción reparadora, correctiva, preventiva y de mejora**
+: La reparadora arregla el efecto inmediato; la correctiva elimina la causa para que no vuelva a
+ocurrir; la preventiva evita un problema que aún no ha ocurrido; la de mejora mejora algo que ya
+funciona — ver [Acciones](09-mejora-continua.md#acciones).
+
+**Verificación de eficacia**
+: Comprobación, pasado un tiempo desde que se terminan las acciones de una no conformidad, de que el
+problema se ha resuelto de verdad. Si no, la no conformidad vuelve al análisis de causas.
+
 **Resumen diario**
 : Modo de aviso por correo que agrupa lo pendiente de un día en un único correo, en vez de un aviso
-individual por cada evento — ver [Ajustes disponibles](09-administrar-la-plataforma.md#ajustes-disponibles).
+individual por cada evento — ver [Ajustes disponibles](10-administrar-la-plataforma.md#ajustes-disponibles).
 
 **Registro de actividad**
 : Registro de auditoría de seguridad con lo que hace cada usuario (accesos, altas, cambios,
 descargas, subidas) y desde qué dirección IP. Lo consultan solo los administradores de la
 plataforma, en **Administración → Registro de actividad** — ver
-[Registro de actividad](09-administrar-la-plataforma.md#registro-de-actividad).
+[Registro de actividad](10-administrar-la-plataforma.md#registro-de-actividad).
 
 **Proxy de confianza**
 : Dirección IP de un proxy inverso, balanceador o túnel del que la aplicación acepta la cabecera
 `X-Forwarded-For` para conocer la IP real del usuario. Se declara con `SYMFONY_TRUSTED_PROXIES` —
-ver [IP del usuario y proxies de confianza](09-administrar-la-plataforma.md#registro-de-actividad).
+ver [IP del usuario y proxies de confianza](10-administrar-la-plataforma.md#registro-de-actividad).

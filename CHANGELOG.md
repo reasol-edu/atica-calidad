@@ -7,6 +7,32 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+**Al actualizar:** esta versión cambia la base de datos (Mejora continua). Los cambios se aplican
+solos al arrancar la aplicación (Docker, binario o instalador de Ubuntu); si la ejecutas de otra
+forma, lanza `php bin/console doctrine:migrations:migrate` tras actualizar.
+
+### Added
+
+- **Mejora continua**, nueva sección del menú lateral para todo el profesorado:
+  - **Comunicar incidencia**: cualquier docente cuenta qué no funciona como debería, dónde (si lo
+    sabe) y adjunta fotos o documentos, desde la sección o desde la paleta de comandos (⌘K).
+  - La coordinación de calidad la **clasifica** desde una bandeja como **no conformidad** (menor o
+    mayor), **observación** u **oportunidad de mejora** —con su código, `NC-2026-001`, `OB-…`,
+    `OM-…`—, o la **descarta** con un motivo que se comunica a quien la envió.
+  - Una no conformidad pasa por el **análisis de causas** (con los 5 porqués como ayuda y la causa
+    raíz), las **acciones** reparadoras, correctivas, preventivas o de mejora —con responsable (un
+    docente o un perfil), plazo y evidencia— y la **verificación de eficacia**, que se propone sola
+    cuando todas las acciones están hechas (30 días después, ajustable). Si no ha sido eficaz,
+    vuelve al análisis.
+  - Cada ficha dice arriba **qué falta y a quién le toca**, y lleva un historial con comentarios.
+    Quien gestiona o audita ve además todas las fichas en tabla o en tablero, con filtros.
+  - Lo que toca a cada uno aparece en **Tus próximos pasos** del panel principal, y los avisos por
+    correo se pueden desactivar en **Ajustes → Avisos por correo → Avisos de Mejora continua**.
+  - Nuevo informe **No conformidades** (PDF y Excel), con el estado de cada ficha, sus acciones y si
+    han sido eficaces.
+- **Datos de demostración**: cinco fichas de ejemplo de Mejora continua, una en cada paso.
+- **Manual**: nuevo capítulo [Mejora continua](docs/manual/09-mejora-continua.md), con sus capturas.
+
 ## [1.5.0] - 2026-09-24
 
 **Al actualizar:** esta versión cambia la base de datos (papelera, acuse de lectura, cursos en las

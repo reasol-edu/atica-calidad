@@ -63,7 +63,8 @@ un solo paso, útil antes de publicar una nueva versión.
 
 Las capturas de `img/` salen de scripts de Node/[Playwright](https://playwright.dev) en
 `scripts/capture-*-shots.mjs`, uno por capítulo o grupo de pantallas: `actividades`, `arbol`,
-`calendar` y `gestion` (preparar el nuevo curso, papelera y registro de actividad). Se ejecutan
+`calendar`, `mejora` (Mejora continua; solo lee, no envía nada) y `gestion` (preparar el nuevo
+curso, papelera y registro de actividad). Se ejecutan
 contra un servidor local con una **base de datos desechable** sembrada con los datos de
 demostración, **nunca contra la real**: `gestion` elimina una actividad y una entrega para que la
 papelera tenga contenido.
@@ -83,6 +84,7 @@ php -d variables_order=EGPCS -S 127.0.0.1:8744 scripts/router-shots.php
 node scripts/capture-actividades-shots.mjs
 node scripts/capture-arbol-shots.mjs
 SHOTS_OUT_DIR=docs/manual/img node scripts/capture-calendar-shots.mjs
+node scripts/capture-mejora-shots.mjs
 node scripts/capture-gestion-shots.mjs
 ```
 
