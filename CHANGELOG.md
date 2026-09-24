@@ -7,6 +7,25 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-09-24
+
+**Al actualizar:** esta versión corrige datos de la base de datos (el curso de algunas entregas y
+completados). La corrección se aplica sola al arrancar la aplicación (Docker, binario o instalador
+de Ubuntu); si la ejecutas de otra forma, lanza `php bin/console doctrine:migrations:migrate` tras
+actualizar.
+
+### Fixed
+
+- En las actividades cuyas fechas empiezan antes del inicio del curso académico y terminan después
+  (por ejemplo, del 10 al 30 de septiembre, con el curso empezando el 15), las entregas y los
+  completados de los primeros días hechos antes de actualizar a la versión 1.5.0 quedaban asignados
+  al curso anterior: la actividad volvía a pedir la entrega («Mis entregas» mostraba la zona para
+  subirla) aunque la entrega aparecía en la lista de entregas por revisar. Al actualizar, pasan al
+  curso que les corresponde; si alguien ya la había vuelto a entregar o a completar, se conserva
+  la nueva.
+- La revisión conjunta de entregas separa las que quedan pendientes de **cursos anteriores**, con
+  su curso y sin marcar, para que no se aprueben o rechacen por error junto con las del curso actual.
+
 ## [1.6.0] - 2026-09-24
 
 **Al actualizar:** esta versión cambia la base de datos (Mejora continua). Los cambios se aplican
