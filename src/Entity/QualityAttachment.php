@@ -9,8 +9,8 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * A file attached to a Finding (a photo of the problem, a report) or to one of its
- * ImprovementActions (the evidence it was done). The content lives in the shared, deduplicated
+ * A file attached to a Finding (a photo of the problem, a report), to an ImprovementAction (the
+ * evidence it was done) or to a point of an internal audit (what was seen). The content lives in the shared, deduplicated
  * DocumentFile store — which is why DocumentFileGarbageCollector and the orphan sweep also count
  * these before deleting a file.
  */
@@ -30,6 +30,10 @@ class QualityAttachment
     #[ORM\ManyToOne(inversedBy: 'attachments')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?ImprovementAction $action = null;
+
+    #[ORM\ManyToOne(inversedBy: 'attachments')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    private ?AuditItem $auditItem = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -69,6 +73,21 @@ class QualityAttachment
         $action->getAttachments()->add($attachment);
 
         return $attachment;
+    }
+
+    /** Evidence of a point of an internal audit. */
+    public static function forAuditItem(AuditItem $item, DocumentFile $file, string $filename, ?Teacher $uploadedBy, \DateTimeImmutable $uploadedAt): self
+    {
+        $attachment            = new self($file, $filename, $uploadedBy, $uploadedAt);
+        $attachment->auditItem = $item;
+        $item->getAttachments()->add($attachment);
+
+        return $attachment;
+    }
+
+    public function getAuditItem(): ?AuditItem
+    {
+        return $this->auditItem;
     }
 
     public function getId(): Uuid

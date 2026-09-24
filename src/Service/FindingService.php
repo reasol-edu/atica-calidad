@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\AcademicYear;
+use App\Entity\AuditItem;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Finding;
@@ -36,6 +37,9 @@ final class FindingService
 {
     /** Longest title taken from the first line of a report. */
     private const int TITLE_LENGTH = 120;
+
+    /** Days to analyse the causes of a nonconformity raised by an internal audit. */
+    public const int AUDIT_ANALYSIS_DAYS = 15;
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -98,6 +102,43 @@ final class FindingService
             ['actor' => $actor],
         );
         $this->em->flush();
+    }
+
+    /**
+     * The finding an audit point becomes when its report is issued: reported by the auditor and
+     * already classified — its kind from the result (a nonconformity with the severity the auditor
+     * gave it), its code, origin "internal audit", its process the audit's first — so a
+     * nonconformity goes straight to cause analysis (by the quality managers, within
+     * AUDIT_ANALYSIS_DAYS) and the rest to execution. Not through the workflow's classify steps:
+     * those are the quality managers', and whoever audits needn't be one. Flushed at once, so the
+     * next one from the same report gets the next code.
+     */
+    public function fromAuditItem(AuditItem $item, Teacher $auditor): ?Finding
+    {
+        $kind = $item->getResult()?->findingKind();
+        if ($kind === null) {
+            return null;
+        }
+        $audit       = $item->getAudit();
+        $now         = $this->clock->now();
+        $description = $item->getQuestion() . ($item->getEvidence() !== null ? "\n" . $item->getEvidence() : '');
+        // What was found reads better as a title than the question it answers.
+        $finding     = (new Finding($audit->getEducationalCentre(), self::titleFrom($item->getEvidence() ?? $item->getQuestion()), $description, $auditor, $now))
+            ->setSection($audit->getScope()->first() ?: null)
+            ->setOrigin(FindingOrigin::InternalAudit)
+            ->setAuditItem($item)
+            ->setKind($kind)
+            ->setSeverity($kind === FindingKind::Nonconformity ? $item->getSeverity() : null)
+            ->setAnalysisDueDate($kind === FindingKind::Nonconformity ? $now->setTime(0, 0)->modify('+' . self::AUDIT_ANALYSIS_DAYS . ' days') : null)
+            ->markClassified($auditor, $now);
+        $finding->setCode($this->codes->next($finding, $kind, $now));
+        $finding->setStatus($kind === FindingKind::Nonconformity ? FindingStatus::Analysis : FindingStatus::Execution);
+        $this->em->persist($finding);
+        $this->em->persist(new FindingTimelineEntry($finding, FindingEventKind::Reported, $auditor, $now, null, ['audit' => $audit->getCode()]));
+        $this->em->persist(new FindingTimelineEntry($finding, FindingEventKind::Classified, $auditor, $now));
+        $this->em->flush();
+
+        return $finding;
     }
 
     public function discard(Finding $finding, Teacher $actor, string $reason): void

@@ -57,6 +57,11 @@ class Finding
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Measurement $measurement = null;
 
+    /** The point of an internal audit it came from, if any. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?AuditItem $auditItem = null;
+
     #[ORM\Column(enumType: FindingStatus::class)]
     private FindingStatus $status = FindingStatus::Reported;
 
@@ -191,6 +196,18 @@ class Finding
     public function getSection(): ?DocumentSection
     {
         return $this->section;
+    }
+
+    public function getAuditItem(): ?AuditItem
+    {
+        return $this->auditItem;
+    }
+
+    public function setAuditItem(?AuditItem $auditItem): static
+    {
+        $this->auditItem = $auditItem;
+
+        return $this;
     }
 
     public function getMeasurement(): ?Measurement

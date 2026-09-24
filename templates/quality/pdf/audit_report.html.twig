@@ -1,0 +1,84 @@
+{% extends 'pdf/layout.html.twig' %}
+{% import 'reports/pdf/_macros.html.twig' as report %}
+
+{#
+   An internal audit's report: scope, criteria and team, who was audited, a summary by result, the
+   strengths, the findings (with the code of the record each became), the checklist and the conclusion.
+   audit: Audit; auditees: list<Teacher>; findings: list<Finding> it raised.
+#}
+{% block content %}
+{% import 'quality/_macros.html.twig' as q %}
+{{ report.header(pdfTitle ~ ' · ' ~ audit.title, centre, pdfGeneratedAt, 'audit.pdf.issued'|trans({'%date%': audit.reportIssuedAt|date('d/m/Y'), '%name%': q.person(audit.reportIssuedBy)}, 'quality')) }}
+
+<table class="data-table">
+    <tbody>
+        <tr><th style="width:28%;">{{ 'audit.scope'|trans({}, 'quality') }}</th><td>{{ audit.scope|map(s => s.name)|join(' · ') }}</td></tr>
+        {% if audit.objective %}<tr><th>{{ 'audit.objective'|trans({}, 'quality') }}</th><td>{{ audit.objective }}</td></tr>{% endif %}
+        <tr><th>{{ 'audit.pdf.when'|trans({}, 'quality') }}</th><td>{{ audit.scheduledAt ? audit.scheduledAt|date('d/m/Y H:i') : '—' }}</td></tr>
+        <tr><th>{{ 'audit.team'|trans({}, 'quality') }}</th><td>{{ audit.team|map(t => t.name.firstName ~ ' ' ~ t.name.lastName)|join(', ') ?: '—' }}{% if audit.leadAuditor %} ({{ 'audit.lead_short'|trans({}, 'quality') }}: {{ q.person(audit.leadAuditor) }}){% endif %}</td></tr>
+        <tr><th>{{ 'audit.auditees'|trans({}, 'quality') }}</th><td>{{ auditees|map(t => t.name.firstName ~ ' ' ~ t.name.lastName)|join(', ') ?: '—' }}</td></tr>
+    </tbody>
+</table>
+
+<h2>{{ 'audit.pdf.summary'|trans({}, 'quality') }}</h2>
+<table class="data-table">
+    <thead><tr>
+        {% for r in ['conforming', 'observation', 'nonconformity', 'improvement', 'not_applicable'] %}<th>{{ ('audit.result.' ~ r)|trans({}, 'quality') }}</th>{% endfor %}
+    </tr></thead>
+    <tbody><tr>
+        {% for r in ['conforming', 'observation', 'nonconformity', 'improvement', 'not_applicable'] %}<td style="text-align:center;">{{ audit.items|filter(i => i.result and i.result.value == r)|length }}</td>{% endfor %}
+    </tr></tbody>
+</table>
+
+{% if audit.strengths %}
+    <h2>{{ 'audit.strengths'|trans({}, 'quality') }}</h2>
+    <p style="white-space: pre-line;">{{ audit.strengths }}</p>
+{% endif %}
+
+<h2>{{ 'audit.pdf.findings'|trans({}, 'quality') }}</h2>
+{% if findings is empty %}
+    <p>{{ 'audit.no_findings'|trans({}, 'quality') }}</p>
+{% else %}
+    <table class="data-table">
+        <thead><tr>
+            <th>{{ 'audit.pdf.code'|trans({}, 'quality') }}</th>
+            <th>{{ 'audit.clause'|trans({}, 'quality') }}</th>
+            <th>{{ 'audit.pdf.finding'|trans({}, 'quality') }}</th>
+            <th>{{ 'audit.pdf.kind'|trans({}, 'quality') }}</th>
+        </tr></thead>
+        <tbody>
+            {% for f in findings %}
+                <tr>
+                    <td>{{ f.code }}</td>
+                    <td>{{ f.auditItem ? f.auditItem.clause : '' }}</td>
+                    <td>{{ f.auditItem ? f.auditItem.question : f.title }}{% if f.auditItem and f.auditItem.evidence %}<br><span style="font-size:7.5pt;color:#5a4f42;">{{ f.auditItem.evidence }}</span>{% endif %}</td>
+                    <td>{{ ('kind.' ~ f.kind.value)|trans({}, 'quality') }}{% if f.severity %} · {{ ('severity.' ~ f.severity.value)|trans({}, 'quality') }}{% endif %}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+<h2>{{ 'audit.checklist'|trans({}, 'quality') }}</h2>
+<table class="data-table">
+    <thead><tr>
+        <th>{{ 'audit.clause'|trans({}, 'quality') }}</th>
+        <th>{{ 'audit.question'|trans({}, 'quality') }}</th>
+        <th>{{ 'audit.pdf.result'|trans({}, 'quality') }}</th>
+        <th>{{ 'audit.evidence'|trans({}, 'quality') }}</th>
+    </tr></thead>
+    <tbody>
+        {% for item in audit.items %}
+            <tr>
+                <td>{{ item.clause }}</td>
+                <td>{{ item.question }}</td>
+                <td>{{ item.result ? ('audit.result.' ~ item.result.value)|trans({}, 'quality') : '—' }}</td>
+                <td style="white-space: pre-line;">{{ item.evidence }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>{{ 'audit.conclusion'|trans({}, 'quality') }}</h2>
+<p style="white-space: pre-line;">{{ audit.conclusion }}</p>
+{% endblock %}

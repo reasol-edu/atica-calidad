@@ -1,0 +1,29 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ audit.code }} · {{ 'audit.perform'|trans({}, 'quality') }} · {{ app_name }}{% endblock %}
+
+{# Carrying out an audit: AuditPerformComponent, which saves as it's filled in. #}
+{% block content %}
+<div class="px-3 sm:px-6 py-6 max-w-4xl mx-auto space-y-4">
+    <div>
+        <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_quality_audit', {id: audit.id.toRfc4122}) }}" class="hover:text-forest-600 transition-colors">{{ audit.code }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">{{ audit.title }}</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ 'audit.perform_intro'|trans({}, 'quality') }}</p>
+    </div>
+
+    {% if audit.scope is not empty %}
+        <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
+            {{ ux_icon('heroicons:folder-open', {class: 'h-4 w-4 text-gray-400'}) }}
+            {% for section in audit.scope %}
+                <a href="{{ path('app_document_tree', {section: section.id.toRfc4122}) }}" target="_blank" rel="noopener" class="font-medium text-forest-700 hover:underline">{{ section.name }}</a>
+            {% endfor %}
+        </p>
+    {% endif %}
+
+    {{ component('AuditPerformComponent', {audit: audit}) }}
+</div>
+{% endblock %}

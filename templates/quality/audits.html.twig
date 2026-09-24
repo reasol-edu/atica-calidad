@@ -1,0 +1,131 @@
+{% extends 'layouts/app.html.twig' %}
+{% import 'quality/_macros.html.twig' as q %}
+
+{% block title %}{{ 'audit.program'|trans({}, 'quality') }} · {{ app_name }}{% endblock %}
+
+{#
+   The internal audit programme of the year being viewed: its approval, a line of the year's
+   months with each audit, and the list — status, team, and a warning when someone would audit
+   their own process.
+#}
+{% block content %}
+<div class="px-4 sm:px-6 py-8 max-w-6xl mx-auto space-y-6">
+
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                {% include 'components/_breadcrumb_home.html.twig' %}
+                <a href="{{ path('app_quality_index') }}" class="hover:text-forest-600 transition-colors">{{ 'quality'|trans({}, 'navigation') }}</a>
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ 'audit.program'|trans({}, 'quality') }}{% if year %} <span class="font-normal text-gray-500">{{ year.name }}</span>{% endif %}</h1>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ 'audit.intro'|trans({}, 'quality') }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            {% if program and program.audits is not empty %}
+                <a href="{{ path('app_quality_audits_pdf') }}" target="_blank" rel="noopener"
+                   class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    {{ ux_icon('heroicons:document-arrow-down', {class: 'h-4 w-4'}) }}PDF
+                </a>
+            {% endif %}
+            {% if canManage %}
+                <a href="{{ path('app_quality_checklists') }}"
+                   class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    {{ ux_icon('heroicons:clipboard-document-list', {class: 'h-4 w-4'}) }}{{ 'checklist.title'|trans({}, 'quality') }}
+                </a>
+                {% if writable %}
+                    <a href="{{ path('app_quality_audit_new') }}"
+                       class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                        {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}{{ 'audit.add'|trans({}, 'quality') }}
+                    </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    {% if writable and canManage and previous %}
+        <form method="post" action="{{ path('app_quality_audits_copy') }}" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-forest-200 bg-forest-50/50 px-5 py-4">
+            <input type="hidden" name="_token" value="{{ csrf_token('quality_audit_program') }}">
+            <p class="text-sm text-gray-700">{{ 'audit.copy_help'|trans({'%year%': previous.name}, 'quality') }}</p>
+            <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {{ ux_icon('heroicons:document-duplicate', {class: 'h-4 w-4'}) }}{{ 'calendar.copy'|trans({'%year%': previous.name}, 'quality') }}
+            </button>
+        </form>
+    {% endif %}
+
+    {% if program is null or program.audits is empty %}
+        <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-sm text-gray-500">{{ 'audit.empty'|trans({}, 'quality') }}</div>
+    {% else %}
+        {# ── Approval ───────────────────────────────────────────────────────────── #}
+        {% if program.approved %}
+            <p class="flex items-center gap-2 rounded-xl bg-forest-50 px-4 py-3 text-sm text-forest-800">
+                {{ ux_icon('heroicons:check-badge', {class: 'h-5 w-5 shrink-0'}) }}
+                {{ 'audit.approved_by'|trans({'%name%': q.person(program.approvedBy), '%date%': program.approvedAt|date('d/m/Y')}, 'quality') }}
+            </p>
+        {% else %}
+            <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <p class="flex items-center gap-2">{{ ux_icon('heroicons:clock', {class: 'h-5 w-5 shrink-0'}) }}{{ 'audit.pending_approval'|trans({}, 'quality') }}</p>
+                {% if canApprove and writable %}
+                    <form method="post" action="{{ path('app_quality_audits_approve') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('quality_audit_program') }}">
+                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-forest-700">
+                            {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'audit.approve'|trans({}, 'quality') }}
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {# ── The year, month by month ───────────────────────────────────────────── #}
+        <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
+            <div class="grid min-w-[44rem] gap-2" style="grid-template-columns: repeat({{ months|length }}, minmax(0, 1fr));">
+                {% for key, label in months %}
+                    <div class="space-y-1.5">
+                        <p class="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-500">{{ label|split(' ')|first|slice(0, 3) }}</p>
+                        {% for audit in program.audits|filter(a => a.plannedMonth|date('Y-m') == key) %}
+                            <a href="{{ path('app_quality_audit', {id: audit.id.toRfc4122}) }}" title="{{ audit.code }} · {{ audit.title }}"
+                               class="block truncate rounded-md border px-1.5 py-1 text-[11px] font-medium {{ {'closed': 'border-forest-200 bg-forest-50 text-forest-800', 'report_issued': 'border-violet-200 bg-violet-50 text-violet-800', 'in_progress': 'border-sky-200 bg-sky-50 text-sky-800'}[audit.status.value] ?? 'border-gray-200 bg-gray-50 text-gray-700' }}">
+                                {{ audit.code|split('-')|last }} · {{ audit.title }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# ── The audits ─────────────────────────────────────────────────────────── #}
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+            <ul class="divide-y divide-gray-100">
+                {% for audit in program.audits %}
+                    {% set conflict = conflicts[audit.id.toRfc4122] ?? [] %}
+                    <li>
+                        <a href="{{ path('app_quality_audit', {id: audit.id.toRfc4122}) }}" class="flex flex-col gap-2 px-5 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:gap-4">
+                            <span class="min-w-0 flex-1">
+                                <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                    <span class="font-mono text-xs font-semibold text-gray-500">{{ audit.code }}</span>
+                                    <span class="text-sm font-medium text-gray-900">{{ audit.title }}</span>
+                                </span>
+                                <span class="mt-0.5 block truncate text-xs text-gray-500">
+                                    {{ audit.scope|map(s => s.name)|join(' · ') }}
+                                </span>
+                                <span class="mt-0.5 block truncate text-xs text-gray-500">
+                                    {{ 'audit.team_short'|trans({'%names%': audit.team|map(t => t.name.firstName ~ ' ' ~ t.name.lastName)|join(', ') ?: '—'}, 'quality') }}
+                                </span>
+                                {% if conflict is not empty %}
+                                    <span class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-amber-700">
+                                        {{ ux_icon('heroicons:exclamation-triangle', {class: 'h-3.5 w-3.5'}) }}{{ 'audit.independence_short'|trans({}, 'quality') }}
+                                    </span>
+                                {% endif %}
+                            </span>
+                            <span class="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end sm:gap-1">
+                                {{ q.audit_status_pill(audit.status) }}
+                                <span class="text-xs text-gray-500">{{ audit.scheduledAt ? audit.scheduledAt|date('d/m/Y H:i') : months[audit.plannedMonth|date('Y-m')] ?? audit.plannedMonth|date('m/Y') }}</span>
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

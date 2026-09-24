@@ -27,10 +27,15 @@ use App\Entity\PersonName;
 use App\Entity\SchoolEvent;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
+use App\Entity\AuditResult;
+use App\Repository\AuditChecklistTemplateRepository;
+use App\Repository\DocumentSectionRepository;
 use App\Repository\EducationalCentreRepository;
 use App\Repository\FindingRepository;
 use App\Repository\ListItemRepository;
 use App\Repository\TeacherRepository;
+use App\Service\AuditChecklistLibrary;
+use App\Service\AuditService;
 use App\Service\CentreProvisioner;
 use App\Service\ActivityDeadlineChecker;
 use App\Service\DocumentCreationService;
@@ -100,6 +105,10 @@ class LoadDemoDataCommand extends Command
         private readonly FindingService $findingService,
         private readonly IndicatorService $indicatorService,
         private readonly FindingRepository $findingRepository,
+        private readonly AuditService $auditService,
+        private readonly AuditChecklistLibrary $checklistLibrary,
+        private readonly AuditChecklistTemplateRepository $checklists,
+        private readonly DocumentSectionRepository $sectionRepository,
     ) {
         parent::__construct();
     }
@@ -181,6 +190,7 @@ class LoadDemoDataCommand extends Command
         $this->seedFindings($centre, $folders, $io);
         $this->seedImprovementPlan($centre, $folders, $io);
         $this->seedIndicators($centre, $folders, $io);
+        $this->seedAudits($centre, $io);
 
         $this->em->flush();
 
@@ -982,6 +992,84 @@ class LoadDemoDataCommand extends Command
         }
 
         $io->text('5 indicadores de ejemplo, con los valores del curso ' . $previous->getName() . ' y la evaluación inicial de este: uno por registrar y otro fuera de meta.');
+    }
+
+    /**
+     * The ISO 9001 checklist library, Irene Campos as internal auditor and an approved programme
+     * of three audits: one whose report is out (with a nonconformity and an observation to deal
+     * with), one under way — with someone on the team who'd audit their own process, to show the
+     * warning — and one planned for later.
+     */
+    private function seedAudits(EducationalCentre $centre, SymfonyStyle $io): void
+    {
+        $year = $centre->getActiveAcademicYear();
+        if ($year === null) {
+            return;
+        }
+        $this->checklistLibrary->loadIso($centre);
+        $irene = $this->teacher('Irene Campos Lozano');
+        $centre->addInternalAuditor($irene);
+        $this->em->flush();
+
+        $sections = [];
+        foreach ($this->sectionRepository->findAllByCentre($centre) as $section) {
+            $sections[explode(' ', $section->getName())[0]] = $section;
+        }
+        $templates = [];
+        foreach ($this->checklists->findByCentre($centre) as $template) {
+            $templates[$template->getClause() ?? ''] = $template;
+        }
+        $today = $this->clock->now()->setTime(0, 0);
+        $plan  = fn (string $title, string $clause, \DateTimeImmutable $month, array $auditors, string $objective): \App\Entity\Audit => $this->auditService->saveAudit($centre, $year, null, [
+            'title'        => $title,
+            'objective'    => $objective,
+            'scope'        => isset($sections[$clause]) ? [$sections[$clause]] : [],
+            'plannedMonth' => $month,
+            'lead'         => $irene,
+            'auditors'     => array_values(array_filter($auditors, static fn (mixed $t): bool => $t instanceof Teacher)),
+        ]);
+
+        // 1. Carried out a few days ago; its report is out.
+        $policy = $plan('Política de calidad', '5.2', $today, [], 'Comprobar que la política de calidad está vigente, se ha comunicado y es accesible (ISO 9001 5.2).');
+        $this->auditService->addChecklist($policy, $irene, $templates['5.2'] ?? throw new \LogicException('No 5.2 checklist.'));
+        $this->auditService->savePreparation($policy, $irene, $today->modify('-5 days')->setTime(10, 0), $policy->getObjective(), array_map(
+            static fn ($item): array => ['id' => $item->getId()->toRfc4122(), 'clause' => $item->getClause(), 'question' => $item->getQuestion(), 'guidance' => $item->getGuidance()],
+            array_values($policy->getItems()->toArray()),
+        ));
+        $this->auditService->start($policy, $irene);
+        $results = [
+            [AuditResult::Conforming, 'Versión aprobada en el claustro de septiembre; coherente con el proyecto educativo.'],
+            [AuditResult::Observation, 'De tres docentes preguntados, dos no recordaban su contenido. El acuse de lectura está al 40 %.'],
+            [AuditResult::Nonconformity, 'No está publicada en la web del centro ni en el tablón de la entrada.'],
+        ];
+        foreach (array_values($policy->getItems()->toArray()) as $i => $item) {
+            [$result, $evidence] = $results[$i] ?? [AuditResult::Conforming, null];
+            $this->auditService->record($item, $result, null, $evidence);
+        }
+        $this->auditService->saveReport($policy, 'El equipo directivo conoce y defiende la política; está alineada con los objetivos del curso.', 'La política está vigente y es adecuada, pero su difusión es insuficiente: hay que publicarla y reforzar su conocimiento entre el profesorado.');
+        $this->auditService->issueReport($policy, $irene);
+
+        // 2. Under way today, two points of three reviewed — with Paula on the team, who answers for
+        //    the programaciones folder it audits.
+        $planning = $plan('Planificación y control operacional', '8.1', $today, [$this->teacher('Paula Vázquez Reyes')], 'Comprobar la planificación del curso y la entrega de las programaciones didácticas (ISO 9001 8.1).');
+        $this->auditService->addChecklist($planning, $irene, $templates['8.1'] ?? throw new \LogicException('No 8.1 checklist.'));
+        $this->auditService->savePreparation($planning, $irene, $today->setTime(9, 30), $planning->getObjective(), array_map(
+            static fn ($item): array => ['id' => $item->getId()->toRfc4122(), 'clause' => $item->getClause(), 'question' => $item->getQuestion(), 'guidance' => $item->getGuidance()],
+            array_values($planning->getItems()->toArray()),
+        ));
+        $this->auditService->start($planning, $irene);
+        [$first, $second] = array_values($planning->getItems()->toArray());
+        $this->auditService->record($first, AuditResult::Conforming, null, 'Plan de centro aprobado en julio; calendario publicado en la web.');
+        $this->auditService->record($second, AuditResult::Nonconformity, FindingSeverity::Minor, 'Cuatro de doce programaciones se entregaron después del plazo.');
+
+        // 3. Planned for February.
+        $first = (int) explode('-', $year->getName())[0];
+        $plan('Seguimiento, medición y análisis', '9.1', (new \DateTimeImmutable())->setDate($first + 1, 2, 1), [], 'Revisar el cuadro de indicadores y cómo se actúa con los valores fuera de meta (ISO 9001 9.1).');
+
+        $program = $policy->getProgram();
+        $this->auditService->approve($program, $this->teachers['direccion']);
+
+        $io->text('Biblioteca ISO 9001 y 3 auditorías de ejemplo: una con el informe emitido, otra en curso y otra planificada.');
     }
 
     /**

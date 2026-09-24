@@ -83,21 +83,32 @@
         'verify':   'heroicons:check-badge',
         'measure':  'heroicons:chart-bar',
         'review':   'heroicons:exclamation-triangle',
+        'audit':    'heroicons:clipboard-document-check',
+        'approve':  'heroicons:check-badge',
     }[task.type] -}}
 {%- endmacro %}
 
 {# What a task is about, under its label: "NC-2026-001 · <finding>", "PM-2026-003 · Plan de mejora", "1.ª evaluación · Indicador". #}
 {% macro task_context(task) -%}
+    {%- if task.type == 'approve' -%}
+        {{- 'audit.program'|trans({}, 'quality') -}}
+    {%- else -%}
     {{- task.code ?? 'finding.no_code'|trans({}, 'quality') -}}
-    {%- if task.indicator %} · {{ 'indicator.one'|trans({}, 'quality') }}
+    {%- if task.audit %} · {{ 'audit.one'|trans({}, 'quality') }}
+    {%- elseif task.indicator %} · {{ 'indicator.one'|trans({}, 'quality') }}
     {%- elseif task.finding and task.action %} · {{ task.finding.title }}
     {%- elseif not task.finding %} · {{ 'plan.title'|trans({}, 'quality') }}
+    {%- endif -%}
     {%- endif -%}
 {%- endmacro %}
 
 {# Where a task (QualityTask) is done: its finding's page (at the action, if any), the plan action's own page, or the indicator's (at the period). absolute: for emails. #}
 {% macro task_url(task, absolute) -%}
-    {%- if task.indicator -%}
+    {%- if task.type == 'approve' -%}
+        {{ absolute ? url('app_quality_audits') : path('app_quality_audits') }}
+    {%- elseif task.audit -%}
+        {{ absolute ? url('app_quality_audit', {id: task.audit.id.toRfc4122}) : path('app_quality_audit', {id: task.audit.id.toRfc4122}) }}
+    {%- elseif task.indicator -%}
         {{ absolute ? url('app_quality_indicator', {id: task.indicator.id.toRfc4122}) : path('app_quality_indicator', {id: task.indicator.id.toRfc4122}) }}#periodo-{{ task.period.id.toRfc4122 }}
     {%- elseif task.finding -%}
         {{ absolute ? url('app_quality_finding', {id: task.finding.id.toRfc4122}) : path('app_quality_finding', {id: task.finding.id.toRfc4122}) }}{{ task.action ? '#accion-' ~ task.action.id.toRfc4122 : '' }}
@@ -152,4 +163,33 @@
         {%- if chart.points|length > 1 %}<polyline fill="none" stroke="#3f5a33" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke" points="{% for p in chart.points %}{{ p.x }},{{ p.y }} {% endfor %}"/>{% endif -%}
         {%- for p in chart.points %}<circle cx="{{ p.x }}" cy="{{ p.y }}" r="{{ dot }}" fill="#3f5a33"/>{% endfor -%}
     </svg>
+{%- endmacro %}
+
+{# An audit's status (AuditStatus) as a pill. #}
+{% macro audit_status_pill(status) -%}
+    {%- set classes = {
+        'planned':       'bg-gray-100 text-gray-600',
+        'preparation':   'bg-amber-50 text-amber-700',
+        'in_progress':   'bg-sky-50 text-sky-700',
+        'report_issued': 'bg-violet-50 text-violet-700',
+        'closed':        'bg-forest-50 text-forest-700',
+    } -%}
+    <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium {{ classes[status.value] }}">{{ ('audit.status.' ~ status.value)|trans({}, 'quality') }}</span>
+{%- endmacro %}
+
+{# An audit point's result (AuditResult) as a pill; severity for a nonconformity. #}
+{% macro audit_result_pill(result, severity) -%}
+    {%- set classes = {
+        'conforming':     'bg-forest-50 text-forest-700',
+        'observation':    'bg-amber-50 text-amber-700',
+        'nonconformity':  'bg-red-50 text-red-700',
+        'improvement':    'bg-sky-50 text-sky-700',
+        'not_applicable': 'bg-gray-100 text-gray-600',
+    } -%}
+    <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium {{ classes[result.value] }}">{{ ('audit.result.' ~ result.value)|trans({}, 'quality') }}{% if severity %} · {{ ('severity.' ~ severity.value)|trans({}, 'quality') }}{% endif %}</span>
+{%- endmacro %}
+
+{# "Ana Ruiz" #}
+{% macro person(teacher) -%}
+    {{- teacher ? teacher.name.firstName ~ ' ' ~ teacher.name.lastName : '—' -}}
 {%- endmacro %}

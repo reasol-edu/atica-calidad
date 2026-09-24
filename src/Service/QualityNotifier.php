@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\Audit;
 use App\Entity\EducationalCentre;
 use App\Entity\Finding;
 use App\Entity\ImprovementAction;
@@ -88,6 +89,27 @@ final class QualityNotifier
             '%indicator%' => $indicator->getName(),
             '%value%'     => $indicator->format($measurement->getValue()),
             '%target%'    => $indicator->format($target?->getTarget()),
+        ]);
+    }
+
+    /**
+     * To the people audited, the team and the quality managers: the audit's report is out, with
+     * how many findings it raised.
+     *
+     * @param iterable<Teacher> $recipients
+     */
+    public function auditReportIssued(Audit $audit, iterable $recipients, int $findings): void
+    {
+        $this->deliver($recipients, $audit->getEducationalCentre(), 'audit_report_issued', [
+            'code'    => $audit->getCode(),
+            'title'   => $audit->getTitle(),
+            'section' => null,
+            'url'     => $this->urls->generate('app_quality_audit', ['id' => $audit->getId()->toRfc4122()], UrlGeneratorInterface::ABSOLUTE_URL),
+            'cta'     => $this->translator->trans('email.cta_audit', [], 'quality'),
+        ], $audit->getConclusion(), [
+            '%code%'  => $audit->getCode(),
+            '%title%' => $audit->getTitle(),
+            '%count%' => (string) $findings,
         ]);
     }
 

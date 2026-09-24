@@ -115,6 +115,22 @@ class FindingRepository extends ServiceEntityRepository
     }
 
     /**
+     * The findings an internal audit's report raised, in the order of its checklist.
+     *
+     * @return list<Finding>
+     */
+    public function findByAudit(\App\Entity\Audit $audit): array
+    {
+        return $this->createQueryBuilder('f')
+            ->join('f.auditItem', 'i')
+            ->where('i.audit = :audit')
+            ->setParameter('audit', $audit->getId(), 'uuid')
+            ->orderBy('i.position', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * The findings opened from any of $measurements.
      *
      * @param list<\App\Entity\Measurement> $measurements

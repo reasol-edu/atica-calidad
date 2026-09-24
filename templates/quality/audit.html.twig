@@ -1,0 +1,172 @@
+{% extends 'layouts/app.html.twig' %}
+{% import 'quality/_macros.html.twig' as q %}
+
+{% block title %}{{ audit.code }} · {{ audit.title }} · {{ app_name }}{% endblock %}
+
+{#
+   An internal audit: what's audited, when and by whom, who is audited; on top, what's next for it
+   (preparing it, carrying it out, its report and the findings it raised); below, its checklist.
+#}
+{% block content %}
+{% set aid = audit.id.toRfc4122 %}
+{% set status = audit.status.value %}
+{% set secondary = 'inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors' %}
+{% set primary = 'inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors' %}
+<div class="px-4 sm:px-6 py-8 max-w-5xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-2">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_quality_index') }}" class="hover:text-forest-600 transition-colors">{{ 'quality'|trans({}, 'navigation') }}</a>
+            {% if canList %}
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+                <a href="{{ path('app_quality_audits') }}" class="hover:text-forest-600 transition-colors">{{ 'audit.program'|trans({}, 'quality') }}</a>
+            {% endif %}
+        </div>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-mono text-xs font-semibold text-gray-500">{{ audit.code }}</span>
+                    {{ q.audit_status_pill(audit.status) }}
+                </div>
+                <h1 class="mt-1 text-2xl font-bold text-gray-900">{{ audit.title }}</h1>
+            </div>
+            {% if canManage and audit.status.pending %}
+                <div class="flex items-center gap-2">
+                    <a href="{{ path('app_quality_audit_edit', {id: aid}) }}" class="{{ secondary }}">{{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4'}) }}{{ 'plan.edit'|trans({}, 'quality') }}</a>
+                    {% if status in ['planned', 'preparation'] %}
+                        <details class="relative">
+                            <summary class="{{ secondary }} cursor-pointer list-none text-red-700 [&::-webkit-details-marker]:hidden">{{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}</summary>
+                            <form method="post" action="{{ path('app_quality_audit_delete', {id: aid}) }}" class="absolute right-0 z-10 mt-2 w-64 space-y-2 rounded-lg border border-red-100 bg-white p-3 shadow-lg">
+                                <input type="hidden" name="_token" value="{{ csrf_token('quality_audit_' ~ aid) }}">
+                                <p class="text-xs text-red-800">{{ 'audit.delete_confirm'|trans({}, 'quality') }}</p>
+                                <button type="submit" class="w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">{{ 'audit.delete'|trans({}, 'quality') }}</button>
+                            </form>
+                        </details>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% for conflict in conflicts %}
+        <p class="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {{ ux_icon('heroicons:exclamation-triangle', {class: 'h-5 w-5 shrink-0'}) }}
+            {{ 'audit.independence'|trans({'%name%': q.person(conflict.teacher), '%sections%': conflict.sections|map(s => s.name)|join(', ')}, 'quality') }}
+        </p>
+    {% endfor %}
+
+    {# ── What's next ──────────────────────────────────────────────────────────── #}
+    <section class="rounded-2xl border-2 border-forest-200 bg-forest-50/40 p-5 sm:p-6 space-y-4">
+        <h2 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-forest-700">
+            {{ ux_icon('heroicons:arrow-right-circle', {class: 'h-5 w-5'}) }}{{ 'next.title'|trans({}, 'quality') }}
+        </h2>
+
+        {% if status in ['planned', 'preparation'] %}
+            <p class="text-sm text-gray-700">{{ ('audit.next.' ~ status)|trans({'%name%': q.person(audit.leadAuditor)}, 'quality') }}</p>
+            {% if canWork %}
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="{{ path('app_quality_audit_prepare', {id: aid}) }}" class="{{ status == 'planned' ? primary : secondary }}">{{ ux_icon('heroicons:clipboard-document-list', {class: 'h-4 w-4'}) }}{{ 'audit.prepare'|trans({}, 'quality') }}</a>
+                    {% if status == 'preparation' %}
+                        <form method="post" action="{{ path('app_quality_audit_start', {id: aid}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('quality_audit_' ~ aid) }}">
+                            <button type="submit" class="{{ primary }} disabled:cursor-not-allowed disabled:opacity-50" {{ blockers.start is not empty ? 'disabled' : '' }}>
+                                {{ ux_icon('heroicons:play', {class: 'h-4 w-4'}) }}{{ 'audit.start'|trans({}, 'quality') }}
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+                {% if status == 'preparation' and blockers.start is not empty %}
+                    <ul class="space-y-0.5 text-xs text-amber-800">{% for b in blockers.start %}<li>{{ b }}</li>{% endfor %}</ul>
+                {% endif %}
+            {% endif %}
+        {% elseif status == 'in_progress' %}
+            <p class="text-sm text-gray-700">{{ 'audit.next.in_progress'|trans({'%done%': audit.countAnswered, '%total%': audit.items|length}, 'quality') }}</p>
+            {% if canWork %}
+                <a href="{{ path('app_quality_audit_perform', {id: aid}) }}" class="{{ primary }}">{{ ux_icon('heroicons:clipboard-document-check', {class: 'h-4 w-4'}) }}{{ 'audit.continue'|trans({}, 'quality') }}</a>
+            {% endif %}
+        {% else %}
+            <p class="text-sm text-gray-700">
+                {{ 'audit.issued_by'|trans({'%name%': q.person(audit.reportIssuedBy), '%date%': audit.reportIssuedAt|date('d/m/Y')}, 'quality') }}
+                {%- if audit.closedAt %} {{ 'audit.closed_on'|trans({'%date%': audit.closedAt|date('d/m/Y')}, 'quality') }}{% else %} {{ 'audit.closes_when'|trans({}, 'quality') }}{% endif %}
+            </p>
+            <a href="{{ path('app_quality_audit_report', {id: aid}) }}" target="_blank" rel="noopener" class="{{ secondary }}">{{ ux_icon('heroicons:document-arrow-down', {class: 'h-4 w-4'}) }}{{ 'audit.report_pdf'|trans({}, 'quality') }}</a>
+            {% if findings is not empty %}
+                {% set closedCount = findings|filter(f => not f.status.open)|length %}
+                <div class="space-y-2">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'audit.findings'|trans({'%done%': closedCount, '%total%': findings|length}, 'quality') }}</p>
+                    <ul class="divide-y divide-forest-100 rounded-lg bg-white ring-1 ring-inset ring-forest-100">
+                        {% for finding in findings %}{{ q.finding_row(finding) }}{% endfor %}
+                    </ul>
+                </div>
+            {% else %}
+                <p class="text-sm text-gray-600">{{ 'audit.no_findings'|trans({}, 'quality') }}</p>
+            {% endif %}
+        {% endif %}
+    </section>
+
+    <div class="grid gap-6 lg:grid-cols-[1fr_20rem]">
+        {# ── Checklist ──────────────────────────────────────────────────────── #}
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+            <h2 class="border-b border-gray-100 px-5 py-4 text-base font-semibold text-gray-900">{{ 'audit.checklist'|trans({}, 'quality') }} <span class="text-sm font-normal text-gray-500">({{ audit.items|length }})</span></h2>
+            {% if audit.items is empty %}
+                <p class="px-5 py-6 text-sm text-gray-500">{{ 'audit.checklist_empty'|trans({}, 'quality') }}</p>
+            {% else %}
+                <ol class="divide-y divide-gray-100">
+                    {% for item in audit.items %}
+                        <li class="flex items-start gap-3 px-5 py-3">
+                            <span class="mt-0.5 w-10 shrink-0 font-mono text-xs text-gray-500">{{ item.clause }}</span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-sm text-gray-900">{{ item.question }}</span>
+                                {% if item.evidence %}<span class="mt-0.5 block text-xs text-gray-600 whitespace-pre-line">{{ item.evidence }}</span>{% endif %}
+                                {% if item.attachments is not empty %}
+                                    <span class="mt-1 flex flex-wrap gap-x-3 text-xs">
+                                        {% for att in item.attachments %}<a href="{{ path('app_quality_attachment', {id: att.id.toRfc4122}) }}" class="text-forest-700 hover:underline">{{ att.filename }}</a>{% endfor %}
+                                    </span>
+                                {% endif %}
+                            </span>
+                            {% if item.result %}{{ q.audit_result_pill(item.result, item.severity) }}{% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+            {% endif %}
+        </section>
+
+        {# ── Details ────────────────────────────────────────────────────────── #}
+        <aside class="space-y-4 self-start rounded-2xl border border-gray-200 bg-white p-5 shadow-xs text-sm">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'audit.when'|trans({}, 'quality') }}</p>
+                <p class="mt-0.5 text-gray-800">{{ audit.scheduledAt ? audit.scheduledAt|date('d/m/Y H:i') : 'audit.month_of'|trans({'%month%': ('month.' ~ audit.plannedMonth|date('n'))|trans({}, 'calendar') ~ ' ' ~ audit.plannedMonth|date('Y')}, 'quality') }}</p>
+            </div>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'audit.scope'|trans({}, 'quality') }}</p>
+                <ul class="mt-0.5 space-y-0.5">
+                    {% for section in audit.scope %}
+                        <li><a href="{{ path('app_document_tree', {section: section.id.toRfc4122}) }}" class="text-forest-700 hover:underline">{{ section.name }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'audit.team'|trans({}, 'quality') }}</p>
+                <ul class="mt-0.5 space-y-0.5 text-gray-800">
+                    {% for member in audit.team %}
+                        <li>{{ q.person(member) }}{% if loop.first and audit.leadAuditor %} <span class="text-xs text-gray-500">({{ 'audit.lead_short'|trans({}, 'quality') }})</span>{% endif %}</li>
+                    {% else %}
+                        <li class="text-gray-500">—</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'audit.auditees'|trans({}, 'quality') }}</p>
+                <p class="mt-0.5 text-gray-800">{{ auditees|map(t => t.name.firstName ~ ' ' ~ t.name.lastName)|join(', ') ?: 'audit.auditees_none'|trans({}, 'quality') }}</p>
+            </div>
+            {% if audit.objective %}
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'audit.objective'|trans({}, 'quality') }}</p>
+                    <p class="mt-0.5 text-gray-800 whitespace-pre-line">{{ audit.objective }}</p>
+                </div>
+            {% endif %}
+        </aside>
+    </div>
+</div>
+{% endblock %}

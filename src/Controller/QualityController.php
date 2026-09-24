@@ -165,6 +165,9 @@ class QualityController extends AbstractController
         } elseif ($action !== null && $action->getEducationalCentre() === $centre) {
             // A plan action's evidence.
             $this->denyAccessUnlessGranted(QualityVoter::ACTION_VIEW, $action);
+        } elseif ($attachment->getAuditItem()?->getAudit()->getEducationalCentre() === $centre) {
+            // What was seen in an internal audit.
+            $this->denyAccessUnlessGranted(QualityVoter::AUDIT_VIEW, $attachment->getAuditItem()->getAudit());
         } else {
             throw $this->createNotFoundException();
         }

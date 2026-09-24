@@ -1,0 +1,110 @@
+{#
+   Carrying out an audit (AuditPerformComponent): a card per point with big result buttons — the
+   chosen one again clears it —, the severity for a nonconformity, the evidence (saved on leaving
+   the field) and any files; then the strengths and conclusion, and issuing the report.
+#}
+{% import 'quality/_macros.html.twig' as q %}
+{% set items = this.items %}
+{% set answered = items|filter(i => i.result)|length %}
+{% set area = 'block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
+{% set tones = {
+    'conforming':     'border-forest-500 bg-forest-600 text-white',
+    'observation':    'border-amber-500 bg-amber-500 text-white',
+    'nonconformity':  'border-red-600 bg-red-600 text-white',
+    'improvement':    'border-sky-600 bg-sky-600 text-white',
+    'not_applicable': 'border-gray-500 bg-gray-500 text-white',
+} %}
+<div {{ attributes }} class="space-y-4">
+    <div class="sticky top-0 z-10 -mx-3 bg-[#fbf9f4]/95 px-3 py-2 backdrop-blur sm:mx-0 sm:rounded-xl sm:px-4">
+        <div class="h-2 w-full overflow-hidden rounded-full bg-forest-100 ring-1 ring-inset ring-forest-200">
+            <div class="h-full rounded-full bg-forest-600 transition-all" style="width: {{ items is empty ? 0 : (answered / items|length * 100)|round }}%"></div>
+        </div>
+        <p class="mt-1 text-xs text-gray-600">{{ 'audit.progress'|trans({'%done%': answered, '%total%': items|length}, 'quality') }}</p>
+    </div>
+
+    <ol class="space-y-3">
+        {% for item in items %}
+            {% set i = loop.index0 %}
+            {% set iid = item.id.toRfc4122 %}
+            <li id="punto-{{ iid }}" class="scroll-mt-24 rounded-2xl border {{ item.result ? 'border-gray-200' : 'border-amber-200' }} bg-white p-4 sm:p-5 shadow-xs space-y-3">
+                <div class="flex items-start gap-3">
+                    <span class="mt-0.5 shrink-0 rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-600">{{ item.clause ?? loop.index }}</span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-base font-medium text-gray-900">{{ item.question }}</p>
+                        {% if item.guidance %}<p class="mt-1 text-sm text-gray-500">{{ item.guidance }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-5" role="group" aria-label="{{ 'audit.result_label'|trans({}, 'quality') }}">
+                    {% for result in this.results %}
+                        {% set chosen = item.result and item.result.value == result.value %}
+                        <button type="button" data-action="live#action" data-live-action-param="setResult" data-live-index-param="{{ i }}" data-live-result-param="{{ result.value }}"
+                                aria-pressed="{{ chosen ? 'true' : 'false' }}"
+                                class="min-h-11 rounded-xl border-2 px-2 py-2 text-sm font-semibold transition-colors {{ chosen ? tones[result.value] : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300' }}">
+                            {{ ('audit.result.' ~ result.value)|trans({}, 'quality') }}
+                        </button>
+                    {% endfor %}
+                </div>
+
+                {% if item.result and item.result.value == 'nonconformity' %}
+                    <div class="flex flex-wrap items-center gap-2 text-sm">
+                        <span class="text-gray-600">{{ 'classify.severity'|trans({}, 'quality') }}:</span>
+                        {% for sev in ['minor', 'major'] %}
+                            <button type="button" data-action="live#action" data-live-action-param="setSeverity" data-live-index-param="{{ i }}" data-live-severity-param="{{ sev }}"
+                                    class="rounded-lg border px-3 py-1.5 font-medium {{ item.severity and item.severity.value == sev ? 'border-red-600 bg-red-50 text-red-700' : 'border-gray-200 bg-white text-gray-700' }}">
+                                {{ ('severity.' ~ sev)|trans({}, 'quality') }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <label class="block">
+                    <span class="sr-only">{{ 'audit.evidence'|trans({}, 'quality') }}</span>
+                    <textarea rows="2" data-model="norender|evidence.{{ i }}" data-action="change->live#action" data-live-action-param="saveEvidence" data-live-index-param="{{ i }}"
+                              placeholder="{{ 'audit.evidence_placeholder'|trans({}, 'quality') }}" class="{{ area }}">{{ evidence[i] ?? '' }}</textarea>
+                </label>
+
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs" data-live-ignore id="adjuntos-{{ iid }}-{{ item.attachments|length }}">
+                    {% for att in item.attachments %}
+                        <a href="{{ path('app_quality_attachment', {id: att.id.toRfc4122}) }}" class="inline-flex items-center gap-1 font-medium text-forest-700 hover:underline">{{ ux_icon('heroicons:paper-clip', {class: 'h-3.5 w-3.5'}) }}{{ att.filename }}</a>
+                    {% endfor %}
+                    <details>
+                        <summary class="inline-flex cursor-pointer list-none items-center gap-1 font-medium text-forest-700 hover:text-forest-800 [&::-webkit-details-marker]:hidden">{{ ux_icon('heroicons:camera', {class: 'h-4 w-4'}) }}{{ 'audit.attach'|trans({}, 'quality') }}</summary>
+                        <form method="post" action="{{ path('app_quality_audit_item_attach', {itemId: iid}) }}" enctype="multipart/form-data" class="mt-2 flex flex-wrap items-center gap-2">
+                            <input type="hidden" name="_token" value="{{ csrf_token('quality_audit_item_' ~ iid) }}">
+                            <input type="file" name="files[]" multiple required accept="image/*,application/pdf,.doc,.docx,.odt,.xlsx,.ods" aria-label="{{ 'audit.attach'|trans({}, 'quality') }}" class="min-w-0 flex-1 text-xs text-gray-600 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-gray-700">
+                            <button type="submit" class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">{{ 'attachment.add'|trans({}, 'quality') }}</button>
+                        </form>
+                    </details>
+                </div>
+            </li>
+        {% endfor %}
+    </ol>
+
+    {# ── Report ──────────────────────────────────────────────────────────────── #}
+    <section class="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-xs space-y-3">
+        <h2 class="text-base font-semibold text-gray-900">{{ 'audit.report'|trans({}, 'quality') }}</h2>
+        <label class="block space-y-1">
+            <span class="text-sm font-semibold text-gray-900">{{ 'audit.strengths'|trans({}, 'quality') }} <span class="font-normal text-gray-500">{{ 'report.optional'|trans({}, 'quality') }}</span></span>
+            <textarea rows="3" data-model="norender|strengths" data-action="change->live#action" data-live-action-param="saveReport" placeholder="{{ 'audit.strengths_placeholder'|trans({}, 'quality') }}" class="{{ area }}">{{ strengths }}</textarea>
+        </label>
+        <label class="block space-y-1">
+            <span class="text-sm font-semibold text-gray-900">{{ 'audit.conclusion'|trans({}, 'quality') }}</span>
+            <textarea rows="3" data-model="norender|conclusion" data-action="change->live#action" data-live-action-param="saveReport" placeholder="{{ 'audit.conclusion_placeholder'|trans({}, 'quality') }}" class="{{ area }}">{{ conclusion }}</textarea>
+        </label>
+
+        {% set blockers = this.blockers %}
+        <form method="post" action="{{ path('app_quality_audit_issue', {id: audit.id.toRfc4122}) }}" class="flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
+            <input type="hidden" name="_token" value="{{ csrf_token('quality_audit_' ~ audit.id.toRfc4122) }}">
+            <button type="submit" {{ blockers is not empty ? 'disabled' : '' }}
+                    class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 disabled:cursor-not-allowed disabled:opacity-50">
+                {{ ux_icon('heroicons:document-check', {class: 'h-4 w-4'}) }}{{ 'audit.issue'|trans({}, 'quality') }}
+            </button>
+            {% if blockers is not empty %}
+                <span class="text-xs text-amber-800">{{ blockers|join(' ') }}</span>
+            {% else %}
+                <span class="text-xs text-gray-500">{{ 'audit.issue_help'|trans({}, 'quality') }}</span>
+            {% endif %}
+        </form>
+    </section>
+</div>

@@ -68,12 +68,21 @@ final class LoadDemoDataCommandTest extends RepositoryTestCase
         self::assertContains('Difusión de los objetivos de calidad', $titles);
         self::assertContains('Auditoría interna (planificación)', $titles);
 
-        // "Mejora continua": one finding at each step.
+        // "Mejora continua": one finding at each step, plus the nonconformity and the observation
+        // of the audit whose report is out.
         /** @var \App\Repository\FindingRepository $findings */
         $findings = self::getContainer()->get(\App\Repository\FindingRepository::class);
         $counts = $findings->countByStatus($centre);
         ksort($counts);
-        self::assertSame(['analysis' => 1, 'closed' => 1, 'execution' => 2, 'reported' => 1], $counts);
+        self::assertSame(['analysis' => 2, 'closed' => 1, 'execution' => 3, 'reported' => 1], $counts);
+
+        // An approved programme of three audits.
+        /** @var \App\Repository\AuditProgramRepository $programs */
+        $programs = self::getContainer()->get(\App\Repository\AuditProgramRepository::class);
+        $program  = $programs->findByYear($centre->getActiveAcademicYear() ?? throw new \LogicException());
+        self::assertNotNull($program);
+        self::assertTrue($program->isApproved());
+        self::assertSame(['report_issued', 'in_progress', 'planned'], array_map(static fn ($a): string => $a->getStatus()->value, $program->getAudits()->toArray()));
 
         // ...and an improvement plan with an action done, one late and two pending.
         /** @var \App\Repository\ImprovementActionRepository $actions */

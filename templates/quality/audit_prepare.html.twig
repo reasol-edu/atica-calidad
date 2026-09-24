@@ -1,0 +1,103 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'audit.prepare'|trans({}, 'quality') }} · {{ audit.code }} · {{ app_name }}{% endblock %}
+
+{#
+   Preparing an audit: its day and time, its objective and its checklist — started from the
+   library (a whole checklist appended at once) and adapted here. Three blank rows add points;
+   "Quitar" removes one.
+#}
+{% block content %}
+{% set aid = audit.id.toRfc4122 %}
+{% set cell = 'w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
+<div class="px-4 sm:px-6 py-8 max-w-5xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_quality_audits') }}" class="hover:text-forest-600 transition-colors">{{ 'audit.program'|trans({}, 'quality') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            <a href="{{ path('app_quality_audit', {id: aid}) }}" class="hover:text-forest-600 transition-colors">{{ audit.code }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'audit.prepare'|trans({}, 'quality') }}: {{ audit.title }}</h1>
+    </div>
+
+    {# ── From the library ─────────────────────────────────────────────────────── #}
+    <form method="post" action="{{ path('app_quality_audit_add_checklist', {id: aid}) }}" class="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-xs">
+        <input type="hidden" name="_token" value="{{ csrf_token('quality_audit_' ~ aid) }}">
+        <label class="flex min-w-64 flex-1 flex-col gap-1 text-sm font-semibold text-gray-900">
+            {{ 'audit.add_checklist'|trans({}, 'quality') }}
+            <select name="template" required class="{{ cell }} font-normal">
+                {# Preselected: the one for the clause of the audit's first process ("8.1 Planificación…" → 8.1). #}
+                {% set scope_clause = audit.scope is not empty ? (audit.scope|first).name|split(' ')|first : '' %}
+                {% for t in templates %}
+                    <option value="{{ t.id.toRfc4122 }}" {{ t.clause and t.clause == scope_clause ? 'selected' : '' }}>{{ t.name }} ({{ t.items|length }})</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" {{ templates is empty ? 'disabled' : '' }}>
+            {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}{{ 'audit.add_checklist_submit'|trans({}, 'quality') }}
+        </button>
+        {% if templates is empty %}
+            <p class="w-full text-xs text-gray-500">{{ 'audit.library_empty'|trans({}, 'quality') }} <a href="{{ path('app_quality_checklists') }}" class="font-medium text-forest-700 hover:underline">{{ 'checklist.title'|trans({}, 'quality') }}</a></p>
+        {% endif %}
+    </form>
+
+    <form method="post" class="space-y-5 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
+        <input type="hidden" name="_token" value="{{ csrf_token('quality_audit_' ~ aid) }}">
+
+        <div class="grid gap-4 sm:grid-cols-[12rem_8rem_1fr]">
+            <label class="flex flex-col gap-1 text-sm font-semibold text-gray-900">
+                {{ 'audit.date'|trans({}, 'quality') }}
+                <input type="date" name="date" value="{{ values.date }}" class="{{ cell }} font-normal {{ errors.date is defined ? 'border-red-300' : '' }}">
+            </label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-gray-900">
+                {{ 'audit.time'|trans({}, 'quality') }}
+                <input type="time" name="time" value="{{ values.time }}" class="{{ cell }} font-normal">
+            </label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-gray-900">
+                {{ 'audit.objective'|trans({}, 'quality') }}
+                <input name="objective" value="{{ values.objective }}" placeholder="{{ 'audit.objective_placeholder'|trans({}, 'quality') }}" class="{{ cell }} font-normal">
+            </label>
+        </div>
+        {% if errors.date is defined %}<p class="text-xs text-red-600">{{ errors.date }}</p>{% endif %}
+
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[46rem] text-sm">
+                <thead>
+                    <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <th class="w-20 pb-2 pr-2">{{ 'audit.clause'|trans({}, 'quality') }}</th>
+                        <th class="pb-2 pr-2">{{ 'audit.question'|trans({}, 'quality') }}</th>
+                        <th class="pb-2 pr-2">{{ 'audit.guidance'|trans({}, 'quality') }}</th>
+                        <th class="w-14 pb-2 text-center">{{ 'calendar.remove'|trans({}, 'quality') }}</th>
+                    </tr>
+                </thead>
+                <tbody class="align-top">
+                    {% set blank = {id: '', clause: '', question: '', guidance: ''} %}
+                    {% for r in rows|merge([blank, blank, blank]) %}
+                        <tr>
+                            <td class="py-1 pr-2">
+                                <input type="hidden" name="items[{{ loop.index0 }}][id]" value="{{ r.id }}">
+                                <input name="items[{{ loop.index0 }}][clause]" value="{{ r.clause }}" maxlength="20" aria-label="{{ 'audit.clause'|trans({}, 'quality') }}" class="{{ cell }}">
+                            </td>
+                            <td class="py-1 pr-2"><textarea name="items[{{ loop.index0 }}][question]" rows="2" aria-label="{{ 'audit.question'|trans({}, 'quality') }}" placeholder="{{ r.id ? '' : 'audit.new_question'|trans({}, 'quality') }}" class="{{ cell }}">{{ r.question }}</textarea></td>
+                            <td class="py-1 pr-2"><textarea name="items[{{ loop.index0 }}][guidance]" rows="2" aria-label="{{ 'audit.guidance'|trans({}, 'quality') }}" class="{{ cell }}">{{ r.guidance }}</textarea></td>
+                            <td class="py-1 text-center">{% if r.id %}<input type="checkbox" name="items[{{ loop.index0 }}][remove]" value="1" aria-label="{{ 'calendar.remove'|trans({}, 'quality') }}" class="mt-2 rounded text-red-600 focus:ring-red-500">{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if errors.items is defined %}<p class="text-xs text-red-600">{{ errors.items }}</p>{% endif %}
+        <p class="text-xs text-gray-500">{{ 'audit.prepare_help'|trans({}, 'quality') }}</p>
+
+        <div class="flex flex-wrap items-center justify-end gap-3">
+            <a href="{{ path('app_quality_audit', {id: aid}) }}" class="text-sm font-medium text-gray-500 hover:text-gray-700">{{ 'cancel'|trans({}, 'quality') }}</a>
+            <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700">
+                {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'plan.save'|trans({}, 'quality') }}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

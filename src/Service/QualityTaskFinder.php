@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\Audit;
 use App\Entity\EducationalCentre;
 use App\Entity\Finding;
 use App\Entity\FindingStatus;
@@ -16,6 +17,7 @@ use App\Entity\Teacher;
 use App\Model\IndicatorCell;
 use App\Model\IndicatorRow;
 use App\Model\QualityTask;
+use App\Repository\AuditProgramRepository;
 use App\Repository\FindingRepository;
 use App\Repository\ImprovementActionRepository;
 use App\Security\Voter\QualityVoter;
@@ -29,13 +31,19 @@ use Symfony\Component\Clock\ClockInterface;
  *   nonconformity that has no analysis responsible, and decide on indicator values off target;
  * - the analysis responsible: analyse their nonconformities;
  * - anyone: the actions assigned to them, and the values to record of the indicators they're
- *   responsible for — directly or through a profile they hold — once each period is over.
+ *   responsible for — directly or through a profile they hold — once each period is over;
+ * - an audit team: its audits still to carry out, from AUDIT_NOTICE_DAYS before they're due;
+ * - the management team: approving the year's audit programme, while it isn't.
  */
 final class QualityTaskFinder
 {
+    /** How long before an audit is due its team has it as a task. */
+    public const int AUDIT_NOTICE_DAYS = 30;
+
     public function __construct(
         private readonly FindingRepository $findings,
         private readonly ImprovementActionRepository $actions,
+        private readonly AuditProgramRepository $programs,
         private readonly IndicatorBoardBuilder $indicators,
         private readonly Security $security,
         private readonly DocumentTreeAccessChecker $access,
@@ -86,6 +94,21 @@ final class QualityTaskFinder
             }
         }
 
+        $program = $centre->getActiveAcademicYear() === null ? null : $this->programs->findByYear($centre->getActiveAcademicYear());
+        if ($program !== null) {
+            $first = $program->getAudits()->first();
+            if ($first !== false && !$program->isApproved() && $this->security->isGrantedForUser($teacher, QualityVoter::AUDIT_APPROVE, $centre)) {
+                $tasks[] = new QualityTask(QualityTask::APPROVE, null, null, null, 'open', audit: $first);
+            }
+            // The team's audits still to carry out, from a few weeks before they're due.
+            $horizon = $this->clock->now()->setTime(0, 0)->modify('+' . self::AUDIT_NOTICE_DAYS . ' days');
+            foreach ($program->getAudits() as $audit) {
+                if ($audit->getStatus()->isPending() && $audit->isInTeam($teacher) && $audit->getDueDate() <= $horizon) {
+                    $tasks[] = $this->task(QualityTask::AUDIT, null, null, $audit->getDueDate(), audit: $audit);
+                }
+            }
+        }
+
         usort($tasks, QualityTask::compare(...));
 
         return $tasks;
@@ -110,6 +133,19 @@ final class QualityTaskFinder
         foreach ($this->actions->findDueBetween($centre, $from, $to) as $action) {
             if ($action->isDone() && $this->isResponsible($teacher, $action)) {
                 $tasks[] = new QualityTask(QualityTask::ACTION, $action->getFinding(), $action, $action->getDueDate(), 'done');
+            }
+        }
+        // Audits on those days: the team's (not already a task: scheduled far ahead, or done) and
+        // where the teacher is audited.
+        $program = $centre->getActiveAcademicYear() === null ? null : $this->programs->findByYear($centre->getActiveAcademicYear());
+        foreach ($program?->getAudits() ?? [] as $audit) {
+            $day = $audit->getScheduledAt()?->setTime(0, 0);
+            if ($day === null || $day < $from || $day > $to) {
+                continue;
+            }
+            $inTeam = $audit->isInTeam($teacher);
+            if (($inTeam && !$this->hasTaskFor($tasks, $audit)) || (!$inTeam && $this->isAudited($teacher, $audit))) {
+                $tasks[] = new QualityTask(QualityTask::AUDIT, null, null, $day, $audit->getStatus()->isPending() ? 'open' : 'done', audit: $audit);
             }
         }
         // Values to record later on (not asked for yet), and those already recorded.
@@ -142,7 +178,32 @@ final class QualityTaskFinder
         return $year === null ? [] : array_merge([], ...array_values($this->indicators->board($centre, $year)));
     }
 
-    private function task(string $type, ?Finding $finding, ?ImprovementAction $action, ?\DateTimeImmutable $due, ?Indicator $indicator = null, ?MeasurementPeriod $period = null): QualityTask
+    /** @param list<QualityTask> $tasks */
+    private function hasTaskFor(array $tasks, Audit $audit): bool
+    {
+        foreach ($tasks as $task) {
+            if ($task->audit === $audit) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isAudited(Teacher $teacher, Audit $audit): bool
+    {
+        foreach ($audit->getScope() as $section) {
+            foreach (AuditService::foldersUnder($section) as $folder) {
+                if ($this->access->holdsResponsibleProfile($teacher, $folder)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function task(string $type, ?Finding $finding, ?ImprovementAction $action, ?\DateTimeImmutable $due, ?Indicator $indicator = null, ?MeasurementPeriod $period = null, ?Audit $audit = null): QualityTask
     {
         $today   = $this->clock->now()->setTime(0, 0);
         $urgency = match (true) {
@@ -152,7 +213,7 @@ final class QualityTaskFinder
             default                                                        => 'open',
         };
 
-        return new QualityTask($type, $finding, $action, $due, $urgency, $indicator, $period);
+        return new QualityTask($type, $finding, $action, $due, $urgency, $indicator, $period, audit: $audit);
     }
 
     /** Only the action's own responsible — not the managers as such, who see every action anyway. */

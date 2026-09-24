@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Model;
 
+use App\Entity\Audit;
 use App\Entity\Finding;
 use App\Entity\ImprovementAction;
 use App\Entity\Indicator;
@@ -14,7 +15,8 @@ use App\Entity\MeasurementPeriod;
  * Something a teacher has to do in "Mejora continua" (QualityTaskFinder): classify a report,
  * analyse a nonconformity, carry out an action — a finding's, or one of the improvement plan,
  * which has no finding — check whether the actions worked, record an indicator's value for a
- * period, or decide what to do about one off target. Shown with the activities in "Tus próximos
+ * period, decide what to do about one off target, prepare and carry out an internal audit, or
+ * approve the year's audit programme. Shown with the activities in "Tus próximos
  * pasos", the bell, the calendar and the daily reminder, with the same status colours.
  */
 final readonly class QualityTask
@@ -25,6 +27,8 @@ final readonly class QualityTask
     public const string VERIFY   = 'verify';
     public const string MEASURE  = 'measure';
     public const string REVIEW   = 'review';
+    public const string AUDIT    = 'audit';
+    public const string APPROVE  = 'approve';
 
     /** Days before the due date from which a task is "due soon". */
     public const int SOON_DAYS = 7;
@@ -41,11 +45,17 @@ final readonly class QualityTask
         public ?Indicator $indicator = null,
         public ?MeasurementPeriod $period = null,
         public ?Measurement $measurement = null,
+        /** AUDIT: the audit to prepare and carry out (or, in the calendar, the one of theirs, or where they're audited); APPROVE: any of the programme's. */
+        public ?Audit $audit = null,
     ) {}
 
     public function label(): string
     {
-        return $this->indicator?->getName() ?? $this->action?->getDescription() ?? $this->finding?->getTitle() ?? '';
+        if ($this->type === self::APPROVE) {
+            return $this->audit?->getProgram()->getAcademicYear()->getName() ?? '';
+        }
+
+        return $this->audit?->getTitle() ?? $this->indicator?->getName() ?? $this->action?->getDescription() ?? $this->finding?->getTitle() ?? '';
     }
 
     /**
@@ -55,6 +65,8 @@ final readonly class QualityTask
     public function code(): ?string
     {
         return match (true) {
+            $this->type === self::APPROVE => null,
+            $this->audit !== null   => $this->audit->getCode(),
             $this->period !== null  => $this->period->getName(),
             $this->finding !== null => $this->finding->getCode(),
             default                 => $this->action?->getCode(),
@@ -76,6 +88,7 @@ final readonly class QualityTask
             ?? $this->action?->getCreatedAt()
             ?? $this->measurement?->getRecordedAt()
             ?? $this->period?->getEndDate()
+            ?? $this->audit?->getCreatedAt()
             ?? new \DateTimeImmutable('9999-12-31');
     }
 }

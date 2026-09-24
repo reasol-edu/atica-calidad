@@ -1,0 +1,35 @@
+{% extends 'pdf/layout.html.twig' %}
+{% import 'reports/pdf/_macros.html.twig' as report %}
+
+{# program: AuditProgram of a year, with its audits in month order. #}
+{% block content %}
+{% set approval = program.approved
+    ? 'audit.approved_by'|trans({'%name%': program.approvedBy ? program.approvedBy.name.firstName ~ ' ' ~ program.approvedBy.name.lastName : '—', '%date%': program.approvedAt|date('d/m/Y')}, 'quality')
+    : 'audit.pending_approval'|trans({}, 'quality') %}
+{{ report.header(pdfTitle, centre, pdfGeneratedAt, approval) }}
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>{{ 'audit.pdf.code'|trans({}, 'quality') }}</th>
+            <th>{{ 'audit.title_field'|trans({}, 'quality') }}</th>
+            <th>{{ 'audit.scope'|trans({}, 'quality') }}</th>
+            <th>{{ 'audit.pdf.when'|trans({}, 'quality') }}</th>
+            <th>{{ 'audit.team'|trans({}, 'quality') }}</th>
+            <th>{{ 'audit.pdf.status'|trans({}, 'quality') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for audit in program.audits %}
+            <tr>
+                <td>{{ audit.code }}</td>
+                <td>{{ audit.title }}{% if audit.objective %}<br><span style="font-size:7.5pt;color:#93826a;">{{ audit.objective }}</span>{% endif %}</td>
+                <td>{{ audit.scope|map(s => s.name)|join(' · ') }}</td>
+                <td>{{ audit.scheduledAt ? audit.scheduledAt|date('d/m/Y H:i') : ('month.' ~ audit.plannedMonth|date('n'))|trans({}, 'calendar') ~ ' ' ~ audit.plannedMonth|date('Y') }}</td>
+                <td>{{ audit.team|map(t => t.name.firstName ~ ' ' ~ t.name.lastName)|join(', ') ?: '—' }}</td>
+                <td><span class="badge {{ audit.status.value == 'closed' ? 'badge-green' : (audit.status.pending ? 'badge-gray' : 'badge-blue') }}">{{ ('audit.status.' ~ audit.status.value)|trans({}, 'quality') }}</span></td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

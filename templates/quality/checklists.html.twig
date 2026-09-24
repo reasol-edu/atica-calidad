@@ -1,0 +1,70 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'checklist.title'|trans({}, 'quality') }} · {{ app_name }}{% endblock %}
+
+{#
+   The centre's library of audit checklists: the ISO 9001 ones (loaded with a button), edited or
+   its own, exported and imported as JSON.
+#}
+{% block content %}
+<div class="px-4 sm:px-6 py-8 max-w-4xl mx-auto space-y-6">
+
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
+                {% include 'components/_breadcrumb_home.html.twig' %}
+                <a href="{{ path('app_quality_audits') }}" class="hover:text-forest-600 transition-colors">{{ 'audit.program'|trans({}, 'quality') }}</a>
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ 'checklist.title'|trans({}, 'quality') }}</h1>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ 'checklist.intro'|trans({}, 'quality') }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            {% if templates is not empty %}
+                <a href="{{ path('app_quality_checklists_export') }}" class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-4 w-4'}) }}{{ 'checklist.export'|trans({}, 'quality') }}
+                </a>
+            {% endif %}
+            <a href="{{ path('app_quality_checklist_new') }}" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700">
+                {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}{{ 'checklist.add'|trans({}, 'quality') }}
+            </a>
+        </div>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+        <form method="post" action="{{ path('app_quality_checklists_iso') }}" class="flex flex-col justify-between gap-3 rounded-2xl border border-forest-200 bg-forest-50/50 p-5">
+            <input type="hidden" name="_token" value="{{ csrf_token('quality_checklists') }}">
+            <p class="text-sm text-gray-700">{{ 'checklist.iso_help'|trans({}, 'quality') }}</p>
+            <button type="submit" class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {{ ux_icon('heroicons:book-open', {class: 'h-4 w-4'}) }}{{ 'checklist.iso'|trans({}, 'quality') }}
+            </button>
+        </form>
+        <form method="post" action="{{ path('app_quality_checklists_import') }}" enctype="multipart/form-data" class="flex flex-col justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-5">
+            <input type="hidden" name="_token" value="{{ csrf_token('quality_checklists') }}">
+            <label class="text-sm text-gray-700">{{ 'checklist.import_help'|trans({}, 'quality') }}
+                <input type="file" name="file" accept="application/json,.json" required class="mt-2 block w-full text-xs text-gray-600 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-gray-700">
+            </label>
+            <button type="submit" class="inline-flex w-fit items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}{{ 'checklist.import'|trans({}, 'quality') }}
+            </button>
+        </form>
+    </div>
+
+    <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+        {% if templates is empty %}
+            <p class="px-6 py-8 text-center text-sm text-gray-500">{{ 'checklist.empty'|trans({}, 'quality') }}</p>
+        {% else %}
+            <ul class="divide-y divide-gray-100">
+                {% for t in templates %}
+                    <li>
+                        <a href="{{ path('app_quality_checklist', {id: t.id.toRfc4122}) }}" class="flex items-center justify-between gap-3 px-6 py-3 transition-colors hover:bg-gray-50">
+                            <span class="min-w-0 truncate text-sm font-medium text-gray-900">{{ t.name }}</span>
+                            <span class="shrink-0 text-xs text-gray-500">{{ 'checklist.points'|trans({'%count%': t.items|length}, 'quality') }}</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

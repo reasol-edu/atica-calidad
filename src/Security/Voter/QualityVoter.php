@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Security\Voter;
 
+use App\Entity\Audit;
 use App\Entity\EducationalCentre;
 use App\Entity\Finding;
 use App\Entity\ImprovementAction;
 use App\Entity\Indicator;
 use App\Entity\Teacher;
+use App\Service\AuditService;
 use App\Service\DocumentTreeAccessChecker;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
@@ -28,8 +30,13 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
  * - ACTION_VIEW: VIEW_ALL or ACTION_WORK; for a finding's action, also its FINDING_VIEW.
  * - INDICATOR_VIEW: VIEW_ALL, or the indicator's responsible (teacher, or anyone holding its profile).
  * - INDICATOR_RECORD (record its values): MANAGE, or its responsible.
+ * - AUDIT_APPROVE (centre): approve the audit programme — the management team (the centre's
+ *   admins) and platform admins.
+ * - AUDIT_WORK: prepare and carry out an audit, and issue its report — MANAGE, or its team.
+ * - AUDIT_VIEW: VIEW_ALL, its team, or anyone audited (holding a responsible profile on a folder
+ *   of its scope).
  *
- * @extends Voter<string, EducationalCentre|Finding|ImprovementAction|Indicator>
+ * @extends Voter<string, EducationalCentre|Finding|ImprovementAction|Indicator|Audit>
  */
 final class QualityVoter extends Voter
 {
@@ -41,6 +48,9 @@ final class QualityVoter extends Voter
     public const string ACTION_VIEW     = 'quality.action_view';
     public const string INDICATOR_VIEW   = 'quality.indicator_view';
     public const string INDICATOR_RECORD = 'quality.indicator_record';
+    public const string AUDIT_APPROVE    = 'quality.audit_approve';
+    public const string AUDIT_WORK       = 'quality.audit_work';
+    public const string AUDIT_VIEW       = 'quality.audit_view';
 
     public function __construct(
         private readonly DocumentTreeAccessChecker $access,
@@ -49,7 +59,8 @@ final class QualityVoter extends Voter
     protected function supports(string $attribute, mixed $subject): bool
     {
         return match ($attribute) {
-            self::MANAGE, self::VIEW_ALL              => $subject instanceof EducationalCentre,
+            self::MANAGE, self::VIEW_ALL, self::AUDIT_APPROVE => $subject instanceof EducationalCentre,
+            self::AUDIT_WORK, self::AUDIT_VIEW         => $subject instanceof Audit,
             self::FINDING_VIEW, self::FINDING_ANALYZE => $subject instanceof Finding,
             self::ACTION_WORK, self::ACTION_VIEW       => $subject instanceof ImprovementAction,
             self::INDICATOR_VIEW, self::INDICATOR_RECORD => $subject instanceof Indicator,
@@ -65,7 +76,13 @@ final class QualityVoter extends Voter
         }
 
         return match (true) {
-            $subject instanceof EducationalCentre => $attribute === self::MANAGE ? $this->manages($user, $subject) : $this->seesAll($user, $subject),
+            $subject instanceof EducationalCentre => match ($attribute) {
+                self::MANAGE        => $this->manages($user, $subject),
+                self::AUDIT_APPROVE => $user->isAdmin() || self::among($user, $subject->getAdmins()),
+                default             => $this->seesAll($user, $subject),
+            },
+            $subject instanceof Audit => $this->manages($user, $subject->getEducationalCentre()) || $subject->isInTeam($user)
+                || ($attribute === self::AUDIT_VIEW && ($this->seesAll($user, $subject->getEducationalCentre()) || $this->isAudited($user, $subject))),
             $subject instanceof Finding           => $attribute === self::FINDING_ANALYZE ? $this->canAnalyze($user, $subject) : $this->canView($user, $subject),
             $subject instanceof ImprovementAction => $attribute === self::ACTION_VIEW ? $this->canViewAction($user, $subject) : $this->canWork($user, $subject),
             $subject instanceof Indicator         => $this->isIndicatorResponsible($user, $subject)
@@ -117,6 +134,19 @@ final class QualityVoter extends Voter
         return $this->seesAll($teacher, $action->getEducationalCentre())
             || $this->canWork($teacher, $action)
             || ($finding !== null && $this->canView($teacher, $finding));
+    }
+
+    private function isAudited(Teacher $teacher, Audit $audit): bool
+    {
+        foreach ($audit->getScope() as $section) {
+            foreach (AuditService::foldersUnder($section) as $folder) {
+                if ($this->access->holdsResponsibleProfile($teacher, $folder)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function isIndicatorResponsible(Teacher $teacher, Indicator $indicator): bool

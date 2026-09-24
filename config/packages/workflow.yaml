@@ -47,3 +47,37 @@ framework:
                 close:
                     from: execution
                     to: closed
+
+        # Life cycle of an internal audit. The marking is the App\Entity\AuditStatus enum; who may
+        # take each step, and when, is decided by App\EventSubscriber\AuditWorkflowSubscriber
+        # (guards), which also logs each step. Preparing starts on its own when the team first
+        # saves the preparation; closing, when every nonconformity it raised is closed (AuditService).
+        audit:
+            type: state_machine
+            audit_trail:
+                enabled: false
+            marking_store:
+                type: method
+                property: status
+            supports:
+                - App\Entity\Audit
+            initial_marking: planned
+            places:
+                - planned
+                - preparation
+                - in_progress
+                - report_issued
+                - closed
+            transitions:
+                prepare:
+                    from: planned
+                    to: preparation
+                start:
+                    from: preparation
+                    to: in_progress
+                issue_report:
+                    from: in_progress
+                    to: report_issued
+                close:
+                    from: report_issued
+                    to: closed

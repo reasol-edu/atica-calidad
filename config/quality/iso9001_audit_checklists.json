@@ -1,0 +1,203 @@
+{
+    "format": "atica-calidad-audit-checklists",
+    "version": 1,
+    "templates": [
+        {
+            "name": "4.1 y 4.2 Contexto y partes interesadas",
+            "clause": "4.1",
+            "items": [
+                {"clause": "4.1", "question": "¿Se han identificado las cuestiones internas y externas que afectan al centro (entorno, alumnado, plantilla, recursos, normativa)?", "guidance": "Pedir el análisis DAFO o equivalente y comprobar cuándo se revisó por última vez."},
+                {"clause": "4.2", "question": "¿Están identificadas las partes interesadas (alumnado, familias, profesorado, administración, empresas de FCT…) y lo que esperan del centro?", "guidance": "Ver el documento de partes interesadas y si sus requisitos se tienen en cuenta en la planificación."},
+                {"clause": "4.1", "question": "¿Se revisa esa información con una periodicidad definida?", "guidance": "Buscar evidencias de revisión (actas, revisión por la dirección)."}
+            ]
+        },
+        {
+            "name": "4.3 y 4.4 Alcance y mapa de procesos",
+            "clause": "4.3",
+            "items": [
+                {"clause": "4.3", "question": "¿Está documentado el alcance del sistema de gestión de la calidad (enseñanzas, sedes, servicios)?", "guidance": "Comprobar que coincide con la oferta educativa actual del centro."},
+                {"clause": "4.4", "question": "¿Existe un mapa de procesos con sus interacciones y responsables?", "guidance": "Ver el mapa de procesos y si cada proceso tiene responsable asignado."},
+                {"clause": "4.4", "question": "¿Cada proceso tiene definidas sus entradas, salidas, indicadores y documentación?", "guidance": "Muestrear dos o tres fichas de proceso."}
+            ]
+        },
+        {
+            "name": "5.1 Liderazgo y compromiso",
+            "clause": "5.1",
+            "items": [
+                {"clause": "5.1", "question": "¿El equipo directivo participa activamente en el sistema de calidad (revisiones, objetivos, recursos)?", "guidance": "Entrevista al equipo directivo; ver actas de reuniones del equipo de calidad."},
+                {"clause": "5.1.2", "question": "¿Se tiene en cuenta la satisfacción del alumnado y las familias en las decisiones del centro?", "guidance": "Buscar acciones derivadas de encuestas o quejas."}
+            ]
+        },
+        {
+            "name": "5.2 Política de calidad",
+            "clause": "5.2",
+            "items": [
+                {"clause": "5.2", "question": "¿La política de calidad está aprobada, vigente y es coherente con el proyecto educativo?", "guidance": "Ver la versión en vigor en el árbol documental y su fecha de aprobación."},
+                {"clause": "5.2.2", "question": "¿La política se ha comunicado y el profesorado la conoce?", "guidance": "Comprobar el acuse de lectura y preguntar a dos o tres docentes."},
+                {"clause": "5.2.2", "question": "¿Está a disposición de las partes interesadas (web, tablón)?", "guidance": ""}
+            ]
+        },
+        {
+            "name": "5.3 Roles, responsabilidades y autoridades",
+            "clause": "5.3",
+            "items": [
+                {"clause": "5.3", "question": "¿Están asignadas y comunicadas las responsabilidades del sistema (coordinación de calidad, responsables de proceso, jefaturas)?", "guidance": "Ver la sección de Responsabilidades y el organigrama."},
+                {"clause": "5.3", "question": "¿Las personas conocen sus responsabilidades en el sistema?", "guidance": "Preguntar a un responsable de proceso por sus tareas."}
+            ]
+        },
+        {
+            "name": "6.1 Riesgos y oportunidades",
+            "clause": "6.1",
+            "items": [
+                {"clause": "6.1", "question": "¿Se han identificado los riesgos y oportunidades de los procesos?", "guidance": "Ver el registro de riesgos o el análisis por proceso."},
+                {"clause": "6.1.2", "question": "¿Se han planificado acciones para abordarlos y se evalúa su eficacia?", "guidance": "Muestrear acciones preventivas del plan de mejora."}
+            ]
+        },
+        {
+            "name": "6.2 Objetivos de la calidad",
+            "clause": "6.2",
+            "items": [
+                {"clause": "6.2", "question": "¿Hay objetivos de calidad para el curso, medibles y coherentes con la política?", "guidance": "Ver el documento de objetivos y su relación con los indicadores."},
+                {"clause": "6.2.2", "question": "¿Cada objetivo tiene responsable, recursos, plazo y forma de evaluarlo?", "guidance": ""},
+                {"clause": "6.2", "question": "¿Se hace el seguimiento de los objetivos durante el curso?", "guidance": "Ver el cuadro de indicadores y las actas de seguimiento."}
+            ]
+        },
+        {
+            "name": "7.1 Recursos e infraestructura",
+            "clause": "7.1",
+            "items": [
+                {"clause": "7.1.3", "question": "¿Se mantienen las instalaciones y equipos (aulas, laboratorios, talleres, TIC)?", "guidance": "Ver el registro de incidencias de mantenimiento y su tiempo de respuesta."},
+                {"clause": "7.1.4", "question": "¿El ambiente de trabajo (convivencia, seguridad, limpieza) es adecuado?", "guidance": "Plan de autoprotección, plan de convivencia."},
+                {"clause": "7.1.6", "question": "¿Se conserva y comparte el conocimiento del centro (materiales, buenas prácticas, relevo de cargos)?", "guidance": ""}
+            ]
+        },
+        {
+            "name": "7.2 y 7.3 Competencia y toma de conciencia",
+            "clause": "7.2",
+            "items": [
+                {"clause": "7.2", "question": "¿Se detectan las necesidades de formación del profesorado y se planifica la formación?", "guidance": "Ver el plan de formación y su evaluación."},
+                {"clause": "7.2", "question": "¿Se acoge al profesorado de nueva incorporación con la información necesaria?", "guidance": "Plan de acogida; preguntar a un docente nuevo."},
+                {"clause": "7.3", "question": "¿El personal conoce la política, los objetivos y su contribución al sistema?", "guidance": "Entrevistas breves."}
+            ]
+        },
+        {
+            "name": "7.4 Comunicación",
+            "clause": "7.4",
+            "items": [
+                {"clause": "7.4", "question": "¿Están definidos los canales de comunicación interna y externa (qué, cuándo, a quién y cómo)?", "guidance": "Plan de comunicación; uso de la plataforma, correo, web."},
+                {"clause": "7.4", "question": "¿Las familias reciben la información prevista a tiempo (calendario, evaluaciones, reuniones)?", "guidance": "Muestrear comunicaciones de la última evaluación."}
+            ]
+        },
+        {
+            "name": "7.5 Información documentada",
+            "clause": "7.5",
+            "items": [
+                {"clause": "7.5.2", "question": "¿Los documentos del sistema están identificados, aprobados y en su versión vigente?", "guidance": "Muestrear cinco documentos del listado maestro: versión, fecha, aprobación."},
+                {"clause": "7.5.3", "question": "¿Los documentos se revisan cuando toca?", "guidance": "Ver el informe de revisiones de documentos: vencidas y próximas."},
+                {"clause": "7.5.3", "question": "¿Los registros (actas, programaciones, evidencias) se conservan, son legibles y localizables?", "guidance": "Pedir tres registros concretos y medir cuánto se tarda en encontrarlos."},
+                {"clause": "7.5.3", "question": "¿Se protege la información con datos personales (acceso restringido, conservación)?", "guidance": "Comprobar restricciones de carpetas con datos del alumnado."}
+            ]
+        },
+        {
+            "name": "8.1 Planificación y control operacional",
+            "clause": "8.1",
+            "items": [
+                {"clause": "8.1", "question": "¿Se planifica el curso (calendario, horarios, plan de centro) antes de su inicio?", "guidance": "Ver el plan de centro aprobado y el calendario de actividades."},
+                {"clause": "8.1", "question": "¿Las programaciones didácticas se entregan en plazo y siguen el modelo del centro?", "guidance": "Ver el estado de la actividad de programaciones: entregadas, en revisión, rechazadas."},
+                {"clause": "8.1", "question": "¿Se controlan los cambios planificados (cambios de horario, sustituciones)?", "guidance": ""}
+            ]
+        },
+        {
+            "name": "8.2 Requisitos del servicio educativo",
+            "clause": "8.2",
+            "items": [
+                {"clause": "8.2.1", "question": "¿Se informa al alumnado y a las familias de los criterios de evaluación, normas y servicios?", "guidance": "Ver la información de inicio de curso y la web."},
+                {"clause": "8.2.1", "question": "¿Se atienden y registran las quejas y reclamaciones?", "guidance": "Ver las fichas de origen «queja o reclamación» y su tiempo de respuesta."},
+                {"clause": "8.2.2", "question": "¿Se revisa que el centro puede ofrecer lo que se compromete (plazas, optativas, recursos)?", "guidance": ""}
+            ]
+        },
+        {
+            "name": "8.3 Diseño de las programaciones",
+            "clause": "8.3",
+            "items": [
+                {"clause": "8.3.2", "question": "¿La elaboración de las programaciones está planificada (responsables, plazos, revisión)?", "guidance": "Ver actas de departamento sobre la programación."},
+                {"clause": "8.3.3", "question": "¿Las programaciones tienen en cuenta la normativa, los resultados del curso anterior y las propuestas de mejora?", "guidance": "Muestrear dos programaciones."},
+                {"clause": "8.3.4", "question": "¿Se revisan y aprueban antes de aplicarse?", "guidance": "Ver el estado de revisión en el árbol documental."},
+                {"clause": "8.3.6", "question": "¿Los cambios durante el curso quedan registrados y justificados?", "guidance": ""}
+            ]
+        },
+        {
+            "name": "8.4 Proveedores y servicios externos",
+            "clause": "8.4",
+            "items": [
+                {"clause": "8.4.1", "question": "¿Se evalúa a los proveedores y servicios externos (transporte, comedor, actividades extraescolares, empresas de FCT)?", "guidance": "Ver criterios y registros de evaluación."},
+                {"clause": "8.4.3", "question": "¿Se les comunican los requisitos del centro?", "guidance": "Contratos, convenios, pliegos."}
+            ]
+        },
+        {
+            "name": "8.5 Prestación del servicio educativo",
+            "clause": "8.5",
+            "items": [
+                {"clause": "8.5.1", "question": "¿La docencia se desarrolla según lo programado (seguimiento de la programación)?", "guidance": "Ver el seguimiento trimestral de las programaciones."},
+                {"clause": "8.5.1", "question": "¿La acción tutorial se desarrolla según el plan de acción tutorial?", "guidance": "Muestrear actas de tutoría y entrevistas con familias."},
+                {"clause": "8.5.1", "question": "¿Se atiende a la diversidad según lo previsto (refuerzos, adaptaciones)?", "guidance": ""},
+                {"clause": "8.5.3", "question": "¿Se cuidan los bienes y datos del alumnado y las familias?", "guidance": "Custodia de exámenes, datos personales."}
+            ]
+        },
+        {
+            "name": "8.6 y 8.7 Evaluación del alumnado y servicio no conforme",
+            "clause": "8.6",
+            "items": [
+                {"clause": "8.6", "question": "¿La evaluación se realiza según los criterios publicados y queda registrada?", "guidance": "Actas de evaluación, registros del profesorado."},
+                {"clause": "8.6", "question": "¿Se tramitan las reclamaciones a las calificaciones en plazo y forma?", "guidance": ""},
+                {"clause": "8.7", "question": "¿Se detectan y tratan las situaciones en que el servicio no se presta como debe (clases sin cubrir, actividades suspendidas)?", "guidance": "Ver las incidencias comunicadas y cómo se resolvieron."}
+            ]
+        },
+        {
+            "name": "9.1 Seguimiento, medición, análisis y evaluación",
+            "clause": "9.1",
+            "items": [
+                {"clause": "9.1.1", "question": "¿Está definido qué se mide, cómo y cuándo (indicadores, metas, calendario de medición)?", "guidance": "Ver el cuadro de indicadores del curso."},
+                {"clause": "9.1.1", "question": "¿Los valores se registran a tiempo?", "guidance": "Buscar periodos «sin dato»."},
+                {"clause": "9.1.2", "question": "¿Se mide la satisfacción del alumnado, las familias y el profesorado?", "guidance": "Encuestas del último curso y su análisis."},
+                {"clause": "9.1.3", "question": "¿Se analizan los resultados y se actúa cuando un indicador queda fuera de meta?", "guidance": "Ver qué se decidió con los valores fuera de meta."}
+            ]
+        },
+        {
+            "name": "9.2 Auditoría interna",
+            "clause": "9.2",
+            "items": [
+                {"clause": "9.2.2", "question": "¿Hay un programa de auditorías aprobado que cubre los procesos en un plazo razonable?", "guidance": "Ver el programa del curso y el de cursos anteriores."},
+                {"clause": "9.2.2", "question": "¿Los auditores son objetivos e imparciales (no auditan su propio trabajo)?", "guidance": ""},
+                {"clause": "9.2.2", "question": "¿Los resultados se comunican y los hallazgos se tratan?", "guidance": "Ver informes emitidos y el estado de sus fichas."}
+            ]
+        },
+        {
+            "name": "9.3 Revisión por la dirección",
+            "clause": "9.3",
+            "items": [
+                {"clause": "9.3.1", "question": "¿La dirección revisa el sistema con la periodicidad prevista?", "guidance": "Ver el acta o informe de la última revisión."},
+                {"clause": "9.3.2", "question": "¿La revisión trata todas las entradas que pide la norma (acciones anteriores, contexto, satisfacción, objetivos, procesos, no conformidades, auditorías, proveedores, recursos, riesgos)?", "guidance": ""},
+                {"clause": "9.3.3", "question": "¿Las decisiones de la revisión se convierten en acciones con responsable y plazo?", "guidance": "Ver el plan de mejora."}
+            ]
+        },
+        {
+            "name": "10.2 No conformidades y acciones correctivas",
+            "clause": "10.2",
+            "items": [
+                {"clause": "10.2.1", "question": "¿Las no conformidades se registran y se clasifican sin demora?", "guidance": "Ver la bandeja y la antigüedad de lo pendiente de clasificar."},
+                {"clause": "10.2.1", "question": "¿Se analizan las causas y se definen acciones correctivas proporcionadas?", "guidance": "Muestrear dos fichas con análisis de causas."},
+                {"clause": "10.2.1", "question": "¿Se verifica la eficacia de las acciones?", "guidance": "Ver fichas cerradas y su verificación."},
+                {"clause": "10.2.2", "question": "¿Se conservan las evidencias de todo el tratamiento?", "guidance": ""}
+            ]
+        },
+        {
+            "name": "10.3 Mejora continua",
+            "clause": "10.3",
+            "items": [
+                {"clause": "10.3", "question": "¿Hay un plan de mejora del curso con acciones, responsables y plazos?", "guidance": "Ver el plan de mejora y su avance."},
+                {"clause": "10.3", "question": "¿Se aprovechan los resultados de análisis, auditorías y revisiones para mejorar?", "guidance": ""}
+            ]
+        }
+    ]
+}

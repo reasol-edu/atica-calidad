@@ -1,0 +1,81 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% set heading = template ? template.name : 'checklist.new_title'|trans({}, 'quality') %}
+{% block title %}{{ heading }} · {{ 'checklist.title'|trans({}, 'quality') }} · {{ app_name }}{% endblock %}
+
+{# A checklist of the library: its name, clause and points; three blank rows add points. #}
+{% block content %}
+{% set tid = template ? template.id.toRfc4122 : 'new' %}
+{% set cell = 'w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
+<div class="px-4 sm:px-6 py-8 max-w-5xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_quality_checklists') }}" class="hover:text-forest-600 transition-colors">{{ 'checklist.title'|trans({}, 'quality') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ heading }}</h1>
+    </div>
+
+    <form method="post" class="space-y-5 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
+        <input type="hidden" name="_token" value="{{ csrf_token('quality_checklist_' ~ tid) }}">
+        <div class="grid gap-4 sm:grid-cols-[1fr_8rem]">
+            <label class="flex flex-col gap-1 text-sm font-semibold text-gray-900">
+                {{ 'checklist.name'|trans({}, 'quality') }}
+                <input name="name" value="{{ name }}" required maxlength="255" class="{{ cell }} font-normal {{ errors.name is defined ? 'border-red-300' : '' }}">
+            </label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-gray-900">
+                {{ 'audit.clause'|trans({}, 'quality') }}
+                <input name="clause" value="{{ clause }}" maxlength="20" class="{{ cell }} font-normal">
+            </label>
+        </div>
+        {% if errors.name is defined %}<p class="text-xs text-red-600">{{ errors.name }}</p>{% endif %}
+
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[46rem] text-sm">
+                <thead>
+                    <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <th class="w-20 pb-2 pr-2">{{ 'audit.clause'|trans({}, 'quality') }}</th>
+                        <th class="pb-2 pr-2">{{ 'audit.question'|trans({}, 'quality') }}</th>
+                        <th class="pb-2 pr-2">{{ 'audit.guidance'|trans({}, 'quality') }}</th>
+                        <th class="w-14 pb-2 text-center">{{ 'calendar.remove'|trans({}, 'quality') }}</th>
+                    </tr>
+                </thead>
+                <tbody class="align-top">
+                    {% set blank = {clause: '', question: '', guidance: '', blank: true} %}
+                    {% for r in rows|merge([blank, blank, blank]) %}
+                        <tr>
+                            <td class="py-1 pr-2"><input name="items[{{ loop.index0 }}][clause]" value="{{ r.clause }}" maxlength="20" aria-label="{{ 'audit.clause'|trans({}, 'quality') }}" class="{{ cell }}"></td>
+                            <td class="py-1 pr-2"><textarea name="items[{{ loop.index0 }}][question]" rows="2" aria-label="{{ 'audit.question'|trans({}, 'quality') }}" placeholder="{{ r.blank is defined ? 'audit.new_question'|trans({}, 'quality') : '' }}" class="{{ cell }}">{{ r.question }}</textarea></td>
+                            <td class="py-1 pr-2"><textarea name="items[{{ loop.index0 }}][guidance]" rows="2" aria-label="{{ 'audit.guidance'|trans({}, 'quality') }}" class="{{ cell }}">{{ r.guidance }}</textarea></td>
+                            <td class="py-1 text-center">{% if r.blank is not defined %}<input type="checkbox" name="items[{{ loop.index0 }}][remove]" value="1" aria-label="{{ 'calendar.remove'|trans({}, 'quality') }}" class="mt-2 rounded text-red-600 focus:ring-red-500">{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if errors.items is defined %}<p class="text-xs text-red-600">{{ errors.items }}</p>{% endif %}
+
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-4">
+                {% if template %}
+                    <a href="{{ path('app_quality_checklists_export', {lista: tid}) }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-forest-700 hover:underline">{{ ux_icon('heroicons:arrow-down-tray', {class: 'h-4 w-4'}) }}{{ 'checklist.export_one'|trans({}, 'quality') }}</a>
+                    <details>
+                        <summary class="cursor-pointer list-none text-sm font-medium text-red-700 hover:text-red-800 [&::-webkit-details-marker]:hidden">{{ 'plan.delete'|trans({}, 'quality') }}</summary>
+                        <button type="submit" form="delete-checklist" class="mt-2 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700">{{ 'checklist.delete_submit'|trans({}, 'quality') }}</button>
+                    </details>
+                {% endif %}
+            </div>
+            <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700">
+                {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'plan.save'|trans({}, 'quality') }}
+            </button>
+        </div>
+    </form>
+    {% if template %}
+        <form id="delete-checklist" method="post" action="{{ path('app_quality_checklist_delete', {id: tid}) }}" hidden>
+            <input type="hidden" name="_token" value="{{ csrf_token('quality_checklist_' ~ tid) }}">
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

@@ -56,14 +56,34 @@ forma, lanza `php bin/console doctrine:migrations:migrate` tras actualizar.
     una gráfica y el valor del curso anterior; y la página de cada indicador, con la evolución del
     curso frente al anterior, la meta y el umbral. Se descarga en PDF o Excel; también en
     **Informes → Cuadro de indicadores**.
+- **Auditoría interna** (Mejora continua → Auditorías):
+  - Un **programa de auditorías** por curso —qué procesos se auditan, en qué mes, con qué equipo—,
+    que prepara la coordinación de calidad (o copia del curso anterior) y **aprueba el equipo
+    directivo**; si después se añade o quita una auditoría, vuelve a quedar pendiente. Se ve como
+    línea del curso y como lista, y se descarga en PDF.
+  - **Aviso de independencia** cuando alguien del equipo auditaría su propio proceso (es responsable
+    de una carpeta del alcance). Las **personas auditadas** son quienes lo son.
+  - Una **biblioteca de listas de comprobación**, con una por apartado de la ISO 9001 pensada para
+    un centro educativo, que el centro edita, amplía y exporta o importa en JSON.
+  - Cada auditoría se **prepara** (fecha y hora, que van al calendario del equipo y de las personas
+    auditadas, y su lista, copiada de la biblioteca y ajustable) y se **realiza en una pantalla
+    pensada para tableta**: por punto, Conforme, Observación, No conformidad (menor o mayor),
+    Mejora o No aplica, la evidencia y fotos o documentos, todo guardado al momento.
+  - Al **emitir el informe**, cada no conformidad, observación o mejora se convierte en una **ficha
+    ya clasificada** y enlazada a la auditoría; las personas auditadas, el equipo y la coordinación
+    de calidad reciben el aviso, y se genera el **informe en PDF** con el membrete del centro. La
+    auditoría se **cierra sola** cuando se cierran todas sus fichas.
+  - El equipo tiene la auditoría como tarea desde un mes antes, y el equipo directivo, la de
+    aprobar el programa.
 - **Las tareas de Mejora continua, donde ya se mira**: clasificar, analizar causas, hacer una acción
   (de una ficha o del plan de mejora) y verificar la eficacia aparecen también en la **campana**, en
   el **calendario** (el día en que vencen, y las acciones ya hechas, tachadas) y en el
   **recordatorio diario por correo** de actividades pendientes, que llega también a quien solo tiene
   tareas de Mejora continua. Quien desactiva los avisos de Mejora continua no las recibe en el correo.
 - **Datos de demostración**: cinco fichas de ejemplo de Mejora continua, una en cada paso, un plan
-  de mejora con cuatro acciones y cinco indicadores, con los valores de todo el curso anterior y la
-  evaluación inicial del actual.
+  de mejora con cuatro acciones, cinco indicadores, con los valores de todo el curso anterior y la
+  evaluación inicial del actual, y un programa de auditorías aprobado con una auditoría con el
+  informe emitido, otra en curso y otra planificada (y la biblioteca de listas de la ISO 9001).
 - **Manual**: nuevo capítulo [Mejora continua](docs/manual/09-mejora-continua.md), con sus capturas.
 
 ### Fixed
