@@ -33,6 +33,12 @@ forma, lanza `php bin/console doctrine:migrations:migrate` tras actualizar.
 - **Datos de demostración**: cinco fichas de ejemplo de Mejora continua, una en cada paso.
 - **Manual**: nuevo capítulo [Mejora continua](docs/manual/09-mejora-continua.md), con sus capturas.
 
+### Fixed
+
+- **Actualizador de Ubuntu** (`update-ubuntu.sh`): borra los ficheros de la aplicación que la versión
+  nueva ya no trae. Antes se quedaban en el servidor y podían impedir que arrancara (p. ej. una
+  clase renombrada). Conserva `data/`, `.env.local`, la caché y los registros.
+
 ## [1.5.0] - 2026-09-24
 
 **Al actualizar:** esta versión cambia la base de datos (papelera, acuse de lectura, cursos en las

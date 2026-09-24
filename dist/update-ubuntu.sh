@@ -24,7 +24,8 @@
 #   3. Si hay una versión más reciente (o se ha pasado --force): para los
 #      servicios, descarga y extrae el paquete nuevo sobre /opt/atica-calidad
 #      (data/ y .env.local no forman parte del paquete, así que se conservan
-#      intactos) y vuelve a arrancar los servicios. atica-calidad-start.sh
+#      intactos), borra de app/ lo que la versión nueva ya no trae y vuelve
+#      a arrancar los servicios. atica-calidad-start.sh
 #      aplica las migraciones pendientes y regenera la caché en el arranque.
 #
 # Es seguro ejecutarlo repetidamente (p. ej. desde un cron o un systemd
@@ -99,10 +100,10 @@ step "Descargando ÁTICA Calidad ${REMOTE_TAG} (${ASSET_ARCH})"
 
 TARBALL_URL="https://github.com/${REPO}/releases/download/${REMOTE_TAG}/atica-calidad-${REMOTE_TAG}-${ASSET_ARCH}.tar.gz"
 TMP_FILE="$(mktemp)"
-trap 'rm -f "$TMP_FILE"' EXIT
+STAGE_DIR=""
+trap 'rm -f "$TMP_FILE"; [[ -n "$STAGE_DIR" ]] && rm -rf "$STAGE_DIR"' EXIT
 
 curl -fsSL "$TARBALL_URL" -o "$TMP_FILE" || die "No se pudo descargar ${TARBALL_URL}."
-chmod 644 "$TMP_FILE"
 ok "Descargado"
 
 # ── parar, extraer y arrancar ─────────────────────────────────────────────────
@@ -111,7 +112,49 @@ systemctl stop atica-calidad-worker atica-calidad
 ok "Servicios detenidos"
 
 step "Extrayendo sobre ${INSTALL_DIR}"
-sudo -u aticacalidad tar xzf "$TMP_FILE" -C "$INSTALL_DIR" --strip-components=1
+# Se extrae primero a un directorio de preparación, propiedad de
+# "aticacalidad", en vez de directamente sobre ${INSTALL_DIR}: así se puede
+# comparar qué había antes con lo que trae el paquete nuevo y borrar lo que ya
+# no exista (ver más abajo), algo que un `tar` directo no puede hacer.
+#
+# El fichero temporal lo crea `mktemp` con permisos 600, propiedad de root. En
+# vez de hacerlo legible para "aticacalidad" (un ACL por defecto en /tmp puede
+# impedirlo igualmente), root lo abre aquí —la redirección la resuelve el
+# propio bash— y le pasa el descriptor ya abierto al `tar` de "aticacalidad".
+STAGE_DIR="$(mktemp -d)"
+chown aticacalidad:aticacalidad "$STAGE_DIR"
+# El `cp -a` final copia también los permisos del directorio de preparación
+# (700, de mktemp) sobre ${INSTALL_DIR}: se igualan antes a los actuales.
+chmod --reference="$INSTALL_DIR" "$STAGE_DIR"
+sudo -u aticacalidad tar xzf - -C "$STAGE_DIR" --strip-components=1 < "$TMP_FILE"
+[[ -f "${STAGE_DIR}/app/bin/console" ]] \
+    || die "El paquete descargado no tiene la estructura esperada (falta app/bin/console). No se ha tocado la instalación."
+
+# tar (y cp) solo añaden y sobrescriben: un fichero eliminado del código en una
+# versión (p. ej. una clase renombrada o una migración retirada) se quedaría
+# huérfano en el servidor para siempre, y Symfony puede fallar al arrancar si
+# encuentra uno bajo app/src/ o app/config/. Se compara el app/ instalado con
+# el del paquete nuevo y se borra lo que ya no exista en este último. Se
+# excluyen var/ (caché y logs) y .env, que los genera atica-calidad-start.sh en
+# cada arranque y no forman parte del paquete.
+if [[ -d "${INSTALL_DIR}/app" ]]; then
+    REMOVED=0
+    while IFS= read -r -d '' rel; do
+        [[ "$rel" == "var" || "$rel" == var/* || "$rel" == ".env" ]] && continue
+        # Ya borrado con su carpeta.
+        [[ -e "${INSTALL_DIR}/app/${rel}" || -L "${INSTALL_DIR}/app/${rel}" ]] || continue
+        if [[ ! -e "${STAGE_DIR}/app/${rel}" && ! -L "${STAGE_DIR}/app/${rel}" ]]; then
+            rm -rf -- "${INSTALL_DIR}/app/${rel}"
+            REMOVED=$((REMOVED + 1))
+        fi
+    done < <(cd "${INSTALL_DIR}/app" && find . -mindepth 1 -printf '%P\0' 2>/dev/null)
+    (( REMOVED == 0 )) || ok "Eliminados ${REMOVED} ficheros o carpetas que ya no forman parte de la aplicación"
+fi
+
+# data/ llega vacío dentro del paquete: copiar sobre un directorio existente no
+# borra su contenido, así que la base de datos, los secretos y .env.local
+# (que no está en el paquete) se conservan.
+sudo -u aticacalidad cp -a "${STAGE_DIR}/." "$INSTALL_DIR"
 ok "ÁTICA Calidad actualizado a ${REMOTE_TAG}"
 
 step "Arrancando los servicios"
