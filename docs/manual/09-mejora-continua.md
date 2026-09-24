@@ -3,8 +3,8 @@
 **Mejora continua** es donde el centro registra lo que no funciona como debería y sigue qué se hace
 para resolverlo: las **incidencias** que comunica cualquier docente, las **no conformidades** y sus
 **acciones** (reparadoras, correctivas, preventivas y de mejora), hasta comprobar que han sido
-eficaces, el **plan de mejora** de cada curso y los **indicadores** con los que el centro mide cómo
-van sus procesos. Aparece en el menú lateral para todo el profesorado.
+eficaces, el **plan de mejora** de cada curso, los **indicadores** con los que el centro mide cómo
+van sus procesos y la **auditoría interna**. Aparece en el menú lateral para todo el profesorado.
 
 La sección usa el lenguaje del centro, no el de la norma: nadie necesita saber qué es una «no
 conformidad» para comunicar un problema. Los términos de la ISO 9001 aparecen solo como ayuda al
@@ -16,8 +16,9 @@ clasificar.
 | --- | --- |
 | **Cualquier docente** | Comunica incidencias y sigue las que ha comunicado. Si se le asigna una acción, la hace y adjunta la evidencia. Si es responsable de un indicador, registra sus valores. |
 | **Responsable del análisis** | Analiza las causas de una no conformidad y propone las acciones correctivas. |
-| **Responsable de calidad** y **equipo directivo / admin. del centro** | Clasifican lo que llega, asignan el análisis, verifican la eficacia y cierran. Preparan el plan de mejora, definen los indicadores y deciden qué se hace cuando uno queda fuera de meta. Ven todo. |
-| **Auditor/a interno/a** | Consulta todas las fichas, el plan de mejora, los indicadores y sus informes, sin modificarlos. |
+| **Responsable de calidad** y **equipo directivo / admin. del centro** | Clasifican lo que llega, asignan el análisis, verifican la eficacia y cierran. Preparan el plan de mejora, definen los indicadores y deciden qué se hace cuando uno queda fuera de meta. Programan las auditorías (el equipo directivo aprueba el programa). Ven todo. |
+| **Auditor/a interno/a** | Consulta todas las fichas, el plan de mejora, los indicadores y sus informes, sin modificarlos. Prepara y realiza las auditorías de cuyo equipo forma parte. |
+| **Equipo auditor** | Cualquier docente al que se le asigne una auditoría: la prepara, la realiza y emite su informe. |
 
 Cada docente ve, además de lo que ha comunicado, las fichas en las que tiene algo que hacer: las que
 analiza y las que tienen una acción a su nombre o a nombre de uno de sus perfiles.
@@ -54,14 +55,15 @@ La portada reúne, en este orden:
 - **Recuentos por estado** — para quien ve todas las fichas; cada uno abre el listado filtrado.
 - **Lo que has comunicado** — las incidencias propias y en qué punto están.
 
-Quien ve todas las fichas tiene además los botones **Ver todas las fichas**, **Plan de mejora** e
-**Indicadores**.
+Quien ve todas las fichas tiene además los botones **Ver todas las fichas**, **Plan de mejora**,
+**Indicadores** y **Auditorías**.
 
 ## Dónde aparece lo que te toca {#donde-aparece-lo-que-te-toca}
 
 Nadie tiene que entrar en Mejora continua para enterarse de que tiene algo que hacer. Cada tarea
 —clasificar, analizar causas, hacer una acción, verificar la eficacia, registrar el valor de un
-indicador o decidir qué se hace con uno fuera de meta— aparece, con el mismo color
+indicador, decidir qué se hace con uno fuera de meta, preparar y realizar una auditoría o aprobar el
+programa de auditorías— aparece, con el mismo color
 que las actividades (ámbar si vence en los próximos 7 días, rojo si ya ha vencido):
 
 - en **Tus próximos pasos** del panel principal, bajo «Mejora continua»;
@@ -325,6 +327,104 @@ tarea **Fuera de meta**. En el periodo del indicador decide qué se hace:
 A partir de ahí, el periodo muestra lo que se abrió (con enlace) o la nota, y la tarea desaparece. Si
 el valor se corrige después, vuelve a quedar pendiente de decidir.
 
+## Auditoría interna {#auditoria-interna}
+
+La auditoría interna comprueba, con una lista de puntos, que un proceso funciona como se ha
+establecido. Cada curso tiene su **programa de auditorías**: qué se audita, cuándo y quién lo hace.
+Lo que se encuentra se convierte en fichas de Mejora continua.
+
+### El programa del curso
+
+![Programa de auditorías del curso, aprobado](img/mejora-auditorias.png)
+
+**Auditorías** (desde la portada, para quien ve todas las fichas) muestra el programa del curso
+seleccionado en el menú lateral: una línea con los meses del curso y cada auditoría en el suyo, y
+la lista con su código (`AI-AAAA-NN`), su alcance, su equipo, su estado y su fecha. El PDF del
+programa se descarga desde aquí.
+
+La coordinación de calidad lo prepara con **Nueva auditoría**:
+
+![Formulario de una auditoría nueva](img/mejora-auditoria-nueva.png)
+
+- el **título** y el **alcance**: los procesos o apartados del [árbol documental](07-arbol-documental.md)
+  que se auditan. Se audita a quien es responsable de sus carpetas (las **personas auditadas**);
+- el **mes previsto**, el **auditor/a jefe** y el **resto del equipo**;
+- el **objetivo y los criterios** (opcional): contra qué se comprueba y para qué.
+
+La norma pide que nadie audite su propio trabajo. Si alguien del equipo es responsable de un proceso
+del alcance, se avisa al guardar y en la página de la auditoría, aunque no se impide:
+
+![Aviso de independencia en una auditoría](img/mejora-auditoria-independencia.png)
+
+El **equipo directivo aprueba el programa** con un botón (le aparece como tarea mientras no lo
+haga). Si después se añade o se quita una auditoría, el programa vuelve a quedar pendiente de
+aprobar. Un curso nuevo sin auditorías puede empezar **copiando las del curso anterior**, un año
+después y con el mismo equipo.
+
+### Preparar la auditoría
+
+Un mes antes de su fecha, el equipo auditor tiene la tarea **Auditoría** en el panel principal, la
+campana, el calendario y el recordatorio diario. En **Preparar la auditoría** fija la **fecha y la
+hora** —que aparecen en el calendario del equipo y de las personas auditadas— y la **lista de
+comprobación**:
+
+![Preparación de una auditoría, con la lista de comprobación](img/mejora-auditoria-preparar.png)
+
+- **Añadir una lista de la biblioteca** copia sus puntos (se propone la del apartado auditado);
+- después se ajustan a esta auditoría —apartado, qué se comprueba y cómo comprobarlo—, se añaden
+  puntos en las filas vacías y se quitan con «Quitar», sin cambiar la biblioteca.
+
+Con la fecha, el auditor/a jefe y al menos un punto, se puede **Empezar la auditoría**.
+
+### Realizar la auditoría
+
+![Realización de una auditoría en una tableta](img/mejora-auditoria-realizar.png)
+
+La pantalla está pensada para usarse con una tableta durante la auditoría. Cada punto tiene cinco
+botones grandes:
+
+| Resultado | Qué significa | Al emitir el informe |
+| --- | --- | --- |
+| **Conforme** | Se cumple. | — |
+| **Observación** | Se cumple, pero podría dejar de hacerlo. | Ficha de observación |
+| **No conformidad** | No se cumple (con su gravedad, menor o mayor). | Ficha de no conformidad |
+| **Mejora** | Se cumple y podría ir mejor. | Ficha de oportunidad de mejora |
+| **No aplica** | No procede en este proceso. | — |
+
+Bajo cada punto se anota la **evidencia** (qué se ha visto o preguntado) y se adjuntan **fotos o
+documentos**. Todo se guarda solo al pulsar o al salir del campo, así que se puede dejar y
+volver. Arriba, el avance; el enlace del alcance abre sus documentos en el árbol documental.
+
+Al final se escriben los **puntos fuertes** (opcional) y la **conclusión**, y se pulsa **Emitir el
+informe** cuando todos los puntos tienen resultado.
+
+### El informe y el cierre
+
+![Auditoría con el informe emitido y las fichas que ha generado](img/mejora-auditoria-informe.png)
+
+Al emitir el informe:
+
+- cada **no conformidad**, **observación** o **mejora** se convierte en una ficha ya clasificada,
+  con su código, el origen «Auditoría interna» y el proceso auditado; la no conformidad pasa al
+  análisis de causas (con 15 días de plazo) y el resto, a ejecución;
+- las **personas auditadas**, el equipo y la coordinación de calidad reciben el aviso por correo, y
+  las personas auditadas pueden ver la auditoría;
+- se genera el **informe en PDF** con el membrete del centro: alcance, equipo, personas auditadas,
+  resumen por resultado, puntos fuertes, hallazgos, lista de comprobación y conclusión.
+
+La auditoría se **cierra sola** cuando se cierran todas las fichas que generó (o al emitir el
+informe, si no encontró nada que tratar). Mientras tanto, su página muestra cuántas quedan.
+
+### Listas de comprobación
+
+![Biblioteca de listas de comprobación](img/mejora-listas-comprobacion.png)
+
+**Auditorías → Listas de comprobación** es la biblioteca del centro. **Cargar las listas de la ISO
+9001** añade una por apartado de la norma, pensadas para un centro educativo (solo las que falten).
+Cada lista se puede editar, crear desde cero o eliminar, y **exportar** e **importar** en JSON
+para compartirlas con otros centros; al importar, una lista con el nombre de otra ya existente
+recibe un número detrás.
+
 ## Ajustes
 
 En **Ajustes**, a nivel global o de centro:
@@ -353,3 +453,8 @@ En **Ajustes**, a nivel global o de centro:
 | Clasificar, descartar, asignar, verificar y cerrar | — | — | ✅ | ✅ | ✅ |
 | Añadir, editar y eliminar acciones del plan de mejora | — | — | ✅ | ✅ | ✅ |
 | Definir indicadores y calendarios de medición, registrar cualquier valor y decidir sobre los que quedan fuera de meta | — | — | ✅ | ✅ | ✅ |
+| Ver el programa de auditorías y sus informes | — | ✅ | ✅ | ✅ | ✅ |
+| Preparar y realizar una auditoría y emitir su informe | Si está en su equipo | Si está en su equipo | ✅ | ✅ | ✅ |
+| Ver una auditoría en la que se le audita | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Programar auditorías y gestionar las listas de comprobación | — | — | ✅ | ✅ | ✅ |
+| Aprobar el programa de auditorías | — | — | — | ✅ | ✅ |

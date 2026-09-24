@@ -172,6 +172,23 @@ se miden los indicadores que lo usan en un curso — ver
 : La meta es el valor que un indicador quiere alcanzar (o no superar, si menos es mejor); entre la
 meta y el umbral, el valor está en *Alerta*, y más allá, *Fuera de meta*.
 
+**Auditoría interna**
+: Comprobación planificada, con una lista de puntos, de que un proceso funciona como se ha
+establecido. Lo que se encuentra se convierte en fichas de Mejora continua — ver
+[Auditoría interna](09-mejora-continua.md#auditoria-interna).
+
+**Programa de auditorías**
+: Las auditorías internas de un curso —qué se audita, en qué mes y quién—, que prepara la
+coordinación de calidad y aprueba el equipo directivo.
+
+**Lista de comprobación**
+: Los puntos que se revisan en una auditoría, con el apartado de la norma y cómo comprobar cada uno.
+El centro tiene una biblioteca, que se puede cargar con las de la ISO 9001.
+
+**Personas auditadas**
+: Quienes son responsables de las carpetas de los procesos que audita una auditoría. Reciben su
+informe y ven sus fichas.
+
 **Plan de mejora**
 : Las acciones preventivas y de mejora que el centro se propone en un curso, sin que haya una
 incidencia detrás, cada una con su código (`PM-AAAA-NNN`), responsable, plazo y evidencias — ver

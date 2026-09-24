@@ -138,5 +138,47 @@ await page.waitForLoadState('networkidle');
 await page.goto(`${baseUrl}/mejora/indicadores`);
 await shot('mejora-indicadores-anterior', { fullPage: true });
 
+// ── Internal audits: the quality manager ─────────────────────────────────────
+await login('calidad');
+await page.goto(`${baseUrl}/mejora/auditorias`);
+await shot('mejora-auditorias', { fullPage: true });
+
+await page.click('li a:has-text("Política de calidad") >> visible=true');
+await page.waitForLoadState('networkidle');
+await shot('mejora-auditoria-informe', { fullPage: true });
+
+await page.goto(`${baseUrl}/mejora/auditorias`);
+await page.click('li a:has-text("Planificación y control operacional") >> visible=true');
+await page.waitForLoadState('networkidle');
+await shot('mejora-auditoria-independencia');
+
+await page.goto(`${baseUrl}/mejora/auditorias`);
+await page.click('li a:has-text("Seguimiento, medición y análisis") >> visible=true');
+await page.waitForLoadState('networkidle');
+await page.goto(page.url() + '/preparar');
+await shot('mejora-auditoria-preparar', { fullPage: true });
+
+await page.goto(`${baseUrl}/mejora/auditorias/nueva`);
+await page.fill('#audit-title', 'Información documentada');
+await shot('mejora-auditoria-nueva', { fullPage: true });
+
+await page.goto(`${baseUrl}/mejora/auditorias/listas`);
+await shot('mejora-listas-comprobacion', { fullPage: true });
+
+// ── The internal auditor, on a tablet: carrying out the audit under way ──────
+const tablet = await browser.newPage({ viewport: { width: 820, height: 1180 }, locale: 'es-ES' });
+await tablet.goto(`${baseUrl}/login`);
+await tablet.fill('#username', 'i.campos');
+await tablet.fill('#password', 'prueba');
+await tablet.click('button[type="submit"]');
+await tablet.waitForLoadState('networkidle');
+await tablet.goto(`${baseUrl}/mejora/auditorias`);
+await tablet.click('li a:has-text("Planificación y control operacional") >> visible=true');
+await tablet.waitForLoadState('networkidle');
+await tablet.goto(tablet.url() + '/realizar');
+await tablet.waitForLoadState('networkidle');
+await tablet.addStyleTag({ content: 'div[id^="sfwdt"] { display: none !important; }' });
+await tablet.screenshot({ path: `${outDir}/mejora-auditoria-realizar.png`, fullPage: true });
+
 await browser.close();
 console.log('Capturas guardadas en', outDir);

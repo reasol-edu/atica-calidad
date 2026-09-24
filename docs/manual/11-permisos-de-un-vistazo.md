@@ -14,6 +14,10 @@
 | Registrar los valores de los [indicadores](09-mejora-continua.md#indicadores) de los que es responsable | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Ver todas las fichas de Mejora continua, el plan de mejora y los indicadores | — | ✅ | ✅ | ✅ | ✅ |
 | Definir indicadores y calendarios de medición, y decidir sobre los valores fuera de meta | — | — | ✅ | ✅ | ✅ |
+| Ver el programa de [auditorías](09-mejora-continua.md#auditoria-interna) y sus informes | — | ✅ | ✅ | ✅ | ✅ |
+| Preparar y realizar las auditorías de cuyo equipo forma parte | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Programar auditorías y gestionar las listas de comprobación | — | — | ✅ | ✅ | ✅ |
+| Aprobar el programa de auditorías | — | — | — | ✅ | ✅ |
 | Clasificar incidencias, asignar el análisis, verificar la eficacia y cerrar | — | — | ✅ | ✅ | ✅ |
 | Preparar el [plan de mejora](09-mejora-continua.md#plan-de-mejora) (añadir, editar y eliminar acciones) | — | — | ✅ | ✅ | ✅ |
 | Crear eventos en el calendario | — | — | — | ✅ | ✅ |
