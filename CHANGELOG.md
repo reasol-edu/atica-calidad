@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-09-24
+
 **Al actualizar:** esta versión cambia la base de datos (Mejora continua). Los cambios se aplican
 solos al arrancar la aplicación (Docker, binario o instalador de Ubuntu); si la ejecutas de otra
 forma, lanza `php bin/console doctrine:migrations:migrate` tras actualizar.
