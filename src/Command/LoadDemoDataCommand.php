@@ -12,7 +12,11 @@ use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
+use App\Entity\FindingKind;
+use App\Entity\FindingOrigin;
+use App\Entity\FindingSeverity;
 use App\Entity\Folder;
+use App\Entity\ImprovementActionType;
 use App\Entity\ListItem;
 use App\Entity\PersonName;
 use App\Entity\SchoolEvent;
@@ -24,6 +28,7 @@ use App\Repository\TeacherRepository;
 use App\Service\CentreProvisioner;
 use App\Service\ActivityDeadlineChecker;
 use App\Service\DocumentCreationService;
+use App\Service\FindingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -85,6 +90,7 @@ class LoadDemoDataCommand extends Command
         private readonly ActivityDeadlineChecker $deadline,
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
+        private readonly FindingService $findingService,
     ) {
         parent::__construct();
     }
@@ -160,6 +166,10 @@ class LoadDemoDataCommand extends Command
 
         $io->section('Calendario');
         $this->createCalendarEvents($academicYear, $year, $io);
+
+        $io->section('Mejora continua');
+        $this->em->flush();
+        $this->seedFindings($centre, $folders, $io);
 
         $this->em->flush();
 
@@ -806,6 +816,67 @@ class LoadDemoDataCommand extends Command
     }
 
     /** Standalone reference document (no submission workflow) that the manual "Política de Calidad" activity links as a related document — demonstrates the feature with a document nothing else in the demo dataset already points to. */
+    /**
+     * "Mejora continua": one finding at each step, through FindingService and the real workflow
+     * (run without a logged-in user, only its data rules apply) — a report still in the inbox, a
+     * nonconformity being analysed, one whose actions are under way, an improvement opportunity
+     * under way and a closed observation.
+     *
+     * @param array{programaciones: Folder, pat: Folder, etcp: Folder, politica: Folder} $folders
+     */
+    private function seedFindings(EducationalCentre $centre, array $folders, SymfonyStyle $io): void
+    {
+        $quality   = $this->teachers['calidad'];
+        $direccion = $this->teachers['direccion'];
+        $claudia   = $this->teacherNamed('Núñez Aguilar');
+        $ana       = $this->teacherNamed('Ruiz Molina');
+        $pablo     = $this->teacherNamed('Sánchez Vidal');
+        $due       = fn (string $modify): \DateTimeImmutable => $this->clock->now()->setTime(0, 0)->modify($modify);
+
+        // 1. Just reported: waiting in the quality manager's inbox.
+        $this->findingService->report($centre, $claudia, "El proyector del aula 12 no funciona desde hace dos semanas\nSe dio parte a conserjería el día 3 y sigue sin arreglar; la clase de 2.º de Bachillerato no puede proyectar.", null);
+
+        // 2. A nonconformity being analysed by Ana, with the repair already done.
+        $late = $this->findingService->report($centre, $pablo, "Tres programaciones didácticas se han subido después del plazo\nEl departamento no sabía que el plazo acababa el 30 de octubre.", $folders['programaciones']->getDocumentSection());
+        $this->findingService->classify($late, $quality, FindingKind::Nonconformity, FindingSeverity::Minor, 'Programaciones didácticas entregadas fuera de plazo', $folders['programaciones']->getDocumentSection(), FindingOrigin::InternalReport, $ana, $due('+10 days'));
+        $this->findingService->addAction($centre, $late, $quality, ImprovementActionType::Repair, 'Recordar el plazo a los tres departamentos y recoger las programaciones pendientes', null, null, null, alreadyDone: true, result: 'Recogidas las tres programaciones.');
+        $this->findingService->saveAnalysis($late, ['El departamento no conocía la fecha', 'La fecha solo se comunicó en el claustro de septiembre'], '');
+
+        // 3. A nonconformity with its corrective actions under way.
+        $policy = $this->findingService->report($centre, $direccion, "El profesorado nuevo no conoce la Política de Calidad\nEn la reunión de acogida nadie la había leído.", $folders['politica']->getDocumentSection());
+        $this->findingService->classify($policy, $quality, FindingKind::Nonconformity, FindingSeverity::Major, 'La Política de Calidad no llega al profesorado de nueva incorporación', $folders['politica']->getDocumentSection(), FindingOrigin::InternalAudit, $quality, $due('+5 days'));
+        $this->findingService->saveAnalysis($policy, ['Nadie se la entrega al llegar', 'El plan de acogida no la incluye'], 'El plan de acogida del profesorado no incluye la difusión de la Política de Calidad.');
+        $this->findingService->addAction($centre, $policy, $quality, ImprovementActionType::Corrective, 'Incluir la Política de Calidad en el plan de acogida y activar el acuse de lectura en su carpeta', $quality, null, $due('+20 days'));
+        $welcome = $this->findingService->addAction($centre, $policy, $quality, ImprovementActionType::Corrective, 'Presentar la Política de Calidad en la reunión de acogida', $direccion, null, $due('+30 days'));
+        $this->findingService->submitAnalysis($policy, $quality);
+        $this->findingService->startAction($welcome, $direccion);
+
+        // 4. An improvement opportunity with its action.
+        $agenda = $this->findingService->report($centre, $ana, 'Se podría enviar el orden del día de los claustros con una semana de antelación', null);
+        $this->findingService->classify($agenda, $quality, FindingKind::ImprovementOpportunity, null, 'Orden del día de los claustros con una semana de antelación', null, FindingOrigin::InternalReport, null, null);
+        $this->findingService->addAction($centre, $agenda, $quality, ImprovementActionType::Improvement, 'Publicar el orden del día en el calendario al convocar el claustro', $direccion, null, $due('+15 days'));
+
+        // 5. A closed observation.
+        $minutes = $this->findingService->report($centre, $claudia, 'Algunas actas de departamento se suben al árbol semanas después de la reunión', null);
+        $this->findingService->classify($minutes, $quality, FindingKind::Observation, null, 'Actas de departamento subidas con retraso', null, FindingOrigin::InternalReport, null, null);
+        $reminder = $this->findingService->addAction($centre, $minutes, $quality, ImprovementActionType::Preventive, 'Recordar en la CCP que las actas se suben en la semana de la reunión', $quality, null, $due('+7 days'));
+        $this->findingService->completeAction($reminder, $quality, 'Recordado en la CCP de noviembre.');
+        $this->findingService->close($minutes, $quality, 'Las actas del último mes se han subido a tiempo.');
+
+        $io->text('5 fichas de ejemplo: una incidencia por clasificar, una no conformidad en análisis, otra con sus acciones en marcha, una oportunidad de mejora y una observación cerrada.');
+    }
+
+    private function teacherNamed(string $lastName): Teacher
+    {
+        foreach ($this->teachers as $teacher) {
+            if ($teacher->getName()->getLastName() === $lastName) {
+                return $teacher;
+            }
+        }
+
+        throw new \LogicException(\sprintf('No demo teacher named "%s".', $lastName));
+    }
+
     private function seedPoliticaSample(Folder $folder, SymfonyStyle $io): Document
     {
         $document = $this->uploadSample($folder, 'Política de Calidad y Objetivos 2025-2026', null, null, $this->teachers['direccion'], 'approved', $this->teachers['calidad']);

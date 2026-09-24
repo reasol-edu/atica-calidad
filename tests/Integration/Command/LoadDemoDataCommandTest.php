@@ -68,6 +68,13 @@ final class LoadDemoDataCommandTest extends RepositoryTestCase
         self::assertContains('Difusión de los objetivos de calidad', $titles);
         self::assertContains('Auditoría interna (planificación)', $titles);
 
+        // "Mejora continua": one finding at each step.
+        /** @var \App\Repository\FindingRepository $findings */
+        $findings = self::getContainer()->get(\App\Repository\FindingRepository::class);
+        $counts = $findings->countByStatus($centre);
+        ksort($counts);
+        self::assertSame(['analysis' => 1, 'closed' => 1, 'execution' => 2, 'reported' => 1], $counts);
+
         /** @var ListItemRepository $items */
         $items = self::getContainer()->get(ListItemRepository::class);
         $roots = $items->findRootsByCentre($centre);
