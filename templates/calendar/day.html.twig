@@ -147,7 +147,7 @@
                                    class="text-sm font-medium hover:text-forest-600 transition-colors {{ task.urgency == 'done' ? 'line-through text-gray-400' : 'text-gray-900' }}">
                                     {{ ('task.' ~ task.type)|trans({}, 'quality') }}: {{ task.label }}
                                 </a>
-                                <p class="text-xs text-gray-500 mt-0.5">{{ task.code ?? 'finding.no_code'|trans({}, 'quality') }}{% if not task.finding %} · {{ 'plan.title'|trans({}, 'quality') }}{% endif %}</p>
+                                <p class="text-xs text-gray-500 mt-0.5">{{ quality.task_context(task) }}</p>
                             </div>
                             {% if task.urgency == 'done' %}
                                 <span class="inline-flex items-center gap-1 rounded-full bg-forest-50 px-2.5 py-0.5 text-xs font-medium text-forest-700 shrink-0">

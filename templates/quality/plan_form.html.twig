@@ -28,6 +28,13 @@
 
     <form method="post" class="space-y-5 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
         <input type="hidden" name="_token" value="{{ csrf_token('quality_plan_action') }}">
+        {% if measurement %}
+            <input type="hidden" name="measurement" value="{{ measurement.id.toRfc4122 }}">
+            <p class="flex items-start gap-2 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-800">
+                {{ ux_icon('heroicons:chart-bar', {class: 'h-4 w-4 shrink-0 mt-0.5'}) }}
+                {{ 'indicator.proposed_from'|trans({'%indicator%': measurement.indicator.name, '%period%': measurement.period.name, '%value%': measurement.indicator.format(measurement.value)}, 'quality') }}
+            </p>
+        {% endif %}
 
         <fieldset class="space-y-1.5">
             <legend class="mb-1.5 block text-sm font-semibold text-gray-900">{{ 'action.type'|trans({}, 'quality') }}</legend>

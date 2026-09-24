@@ -58,22 +58,15 @@
 {# One task (QualityTask) as a list row, with the urgency colours of the activities. compact: the dashboard's tighter padding. #}
 {% macro task_row(task, compact) -%}
     {%- set bg = {'overdue': 'bg-red-50 hover:bg-red-100', 'soon': 'bg-amber-50 hover:bg-amber-100'}[task.urgency] ?? 'hover:bg-gray-50' -%}
-    {%- set icon = {
-        'classify': 'heroicons:inbox-arrow-down',
-        'analyze':  'heroicons:magnifying-glass',
-        'action':   'heroicons:wrench-screwdriver',
-        'verify':   'heroicons:check-badge',
-    }[task.type] -%}
     {% import _self as q %}
     <li>
         <a href="{{ q.task_url(task) }}"
            class="flex items-start gap-3 {{ compact ? 'px-6 py-3' : 'px-6 py-3' }} transition-colors {{ bg }}">
-            <span class="mt-0.5 shrink-0 {{ task.urgency == 'overdue' ? 'text-red-500' : 'text-forest-600' }}">{{ ux_icon(icon, {class: 'h-5 w-5'}) }}</span>
+            <span class="mt-0.5 shrink-0 {{ task.urgency == 'overdue' ? 'text-red-500' : 'text-forest-600' }}">{{ ux_icon(q.task_icon(task), {class: 'h-5 w-5'}) }}</span>
             <span class="min-w-0 flex-1">
                 <span class="block truncate text-sm font-medium text-gray-900">{{ ('task.' ~ task.type)|trans({}, 'quality') }}: {{ task.label }}</span>
                 <span class="block truncate text-xs text-gray-500">
-                    {{ task.code ?? 'finding.no_code'|trans({}, 'quality') }}
-                    {%- if task.finding and task.action %} · {{ task.finding.title }}{% elseif not task.finding %} · {{ 'plan.title'|trans({}, 'quality') }}{% endif %}
+                    {{ q.task_context(task) }}
                     {%- if task.dueDate %} · {{ ('task.due.' ~ task.urgency)|trans({'%date%': task.dueDate|date('d/m/Y')}, 'quality') }}{% endif %}
                 </span>
             </span>
@@ -81,9 +74,32 @@
     </li>
 {%- endmacro %}
 
-{# Where a task (QualityTask) is done: its finding's page (at the action, if any) or the plan action's own page. absolute: for emails. #}
+{# The icon of a task (QualityTask), by its type. #}
+{% macro task_icon(task) -%}
+    {{- {
+        'classify': 'heroicons:inbox-arrow-down',
+        'analyze':  'heroicons:magnifying-glass',
+        'action':   'heroicons:wrench-screwdriver',
+        'verify':   'heroicons:check-badge',
+        'measure':  'heroicons:chart-bar',
+        'review':   'heroicons:exclamation-triangle',
+    }[task.type] -}}
+{%- endmacro %}
+
+{# What a task is about, under its label: "NC-2026-001 · <finding>", "PM-2026-003 · Plan de mejora", "1.ª evaluación · Indicador". #}
+{% macro task_context(task) -%}
+    {{- task.code ?? 'finding.no_code'|trans({}, 'quality') -}}
+    {%- if task.indicator %} · {{ 'indicator.one'|trans({}, 'quality') }}
+    {%- elseif task.finding and task.action %} · {{ task.finding.title }}
+    {%- elseif not task.finding %} · {{ 'plan.title'|trans({}, 'quality') }}
+    {%- endif -%}
+{%- endmacro %}
+
+{# Where a task (QualityTask) is done: its finding's page (at the action, if any), the plan action's own page, or the indicator's (at the period). absolute: for emails. #}
 {% macro task_url(task, absolute) -%}
-    {%- if task.finding -%}
+    {%- if task.indicator -%}
+        {{ absolute ? url('app_quality_indicator', {id: task.indicator.id.toRfc4122}) : path('app_quality_indicator', {id: task.indicator.id.toRfc4122}) }}#periodo-{{ task.period.id.toRfc4122 }}
+    {%- elseif task.finding -%}
         {{ absolute ? url('app_quality_finding', {id: task.finding.id.toRfc4122}) : path('app_quality_finding', {id: task.finding.id.toRfc4122}) }}{{ task.action ? '#accion-' ~ task.action.id.toRfc4122 : '' }}
     {%- else -%}
         {{ absolute ? url('app_quality_action', {id: task.action.id.toRfc4122}) : path('app_quality_action', {id: task.action.id.toRfc4122}) }}
@@ -108,4 +124,32 @@
     {%- else -%}
         —
     {%- endif -%}
+{%- endmacro %}
+
+{# An indicator's status (IndicatorStatus) as a pill: En meta, Alerta, Fuera de meta, Sin dato. #}
+{% macro indicator_status_pill(status) -%}
+    {%- set classes = {
+        'on_target':  'bg-forest-50 text-forest-700',
+        'alert':      'bg-amber-50 text-amber-700',
+        'off_target': 'bg-red-50 text-red-700',
+        'no_data':    'bg-gray-100 text-gray-600',
+    } -%}
+    <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium {{ classes[status.value] }}">{{ ('indicator.status.' ~ status.value)|trans({}, 'quality') }}</span>
+{%- endmacro %}
+
+{#
+   An indicator's chart (IndicatorRow::chart, in a 100 × 40 box): the target (green, dashed), the
+   alert threshold (amber, dashed), last year's line (grey) and this year's (green, with its points).
+   It keeps its 5:2 proportions; class sets its width. Lines keep their width in pixels whatever
+   its size; dot is the points' radius in the 100 × 40 box (bigger for a small chart).
+#}
+{% macro indicator_chart(chart, class, dot) -%}
+    {%- set dot = dot ?? 1.2 -%}
+    <svg viewBox="0 0 100 40" class="aspect-[5/2] overflow-visible {{ class }}" aria-hidden="true">
+        {%- if chart.targetY is not null %}<line x1="0" x2="100" y1="{{ chart.targetY }}" y2="{{ chart.targetY }}" stroke="#5d7a4e" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>{% endif -%}
+        {%- if chart.thresholdY is not null %}<line x1="0" x2="100" y1="{{ chart.thresholdY }}" y2="{{ chart.thresholdY }}" stroke="#d97706" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>{% endif -%}
+        {%- if chart.previous|length > 1 %}<polyline fill="none" stroke="#c9bfae" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" points="{% for p in chart.previous %}{{ p.x }},{{ p.y }} {% endfor %}"/>{% endif -%}
+        {%- if chart.points|length > 1 %}<polyline fill="none" stroke="#3f5a33" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke" points="{% for p in chart.points %}{{ p.x }},{{ p.y }} {% endfor %}"/>{% endif -%}
+        {%- for p in chart.points %}<circle cx="{{ p.x }}" cy="{{ p.y }}" r="{{ dot }}" fill="#3f5a33"/>{% endfor -%}
+    </svg>
 {%- endmacro %}

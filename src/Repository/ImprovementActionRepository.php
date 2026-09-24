@@ -94,6 +94,30 @@ class ImprovementActionRepository extends ServiceEntityRepository
     }
 
     /**
+     * The plan actions proposed from any of $measurements.
+     *
+     * @param list<\App\Entity\Measurement> $measurements
+     *
+     * @return list<ImprovementAction>
+     */
+    public function findByMeasurements(array $measurements): array
+    {
+        if ($measurements === []) {
+            return [];
+        }
+
+        // One uuid parameter each: a list of entities isn't bound as uuids.
+        $qb           = $this->createQueryBuilder('a');
+        $placeholders = [];
+        foreach ($measurements as $i => $measurement) {
+            $placeholders[] = ":m{$i}";
+            $qb->setParameter("m{$i}", $measurement->getId(), 'uuid');
+        }
+
+        return $qb->where('a.measurement IN (' . implode(', ', $placeholders) . ')')->getQuery()->getResult();
+    }
+
+    /**
      * The centre's action codes starting with $prefix ("PM-2026-"), for FindingCodeGenerator.
      *
      * @return list<string>

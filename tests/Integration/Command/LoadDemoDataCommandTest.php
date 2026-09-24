@@ -84,6 +84,14 @@ final class LoadDemoDataCommandTest extends RepositoryTestCase
         self::assertCount(1, $actions->findPlan($centre, $year, ['status' => 'done']));
         self::assertCount(1, $actions->findPlan($centre, $year, ['status' => 'overdue']));
 
+        // ...and five indicators, with last year's values and this year's first one off target.
+        /** @var \App\Service\IndicatorBoardBuilder $board */
+        $board = self::getContainer()->get(\App\Service\IndicatorBoardBuilder::class);
+        $rows  = array_merge(...array_values($board->board($centre, $year)));
+        self::assertCount(5, $rows);
+        self::assertSame(['off_target'], array_values(array_unique(array_filter(array_map(static fn ($r): ?string => $r->status?->value, $rows)))));
+        self::assertCount(5, array_filter($rows, static fn ($r): bool => $r->previous !== null));
+
         /** @var ListItemRepository $items */
         $items = self::getContainer()->get(ListItemRepository::class);
         $roots = $items->findRootsByCentre($centre);

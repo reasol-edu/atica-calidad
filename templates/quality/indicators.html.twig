@@ -1,0 +1,119 @@
+{% extends 'layouts/app.html.twig' %}
+{% import 'quality/_macros.html.twig' as q %}
+
+{% block title %}{{ 'indicator.title'|trans({}, 'quality') }} · {{ app_name }}{% endblock %}
+
+{#
+   The indicators board of the year being viewed: a card per indicator, grouped by process, with
+   its latest value and status, its chart and last year's value. Made to be projected in the
+   quality team's meeting.
+#}
+{% block content %}
+<div class="px-4 sm:px-6 py-8 max-w-7xl mx-auto space-y-6">
+
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                {% include 'components/_breadcrumb_home.html.twig' %}
+                <a href="{{ path('app_quality_index') }}" class="hover:text-forest-600 transition-colors">{{ 'quality'|trans({}, 'navigation') }}</a>
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ 'indicator.title'|trans({}, 'quality') }}{% if year %} <span class="font-normal text-gray-500">{{ year.name }}</span>{% endif %}</h1>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ 'indicator.intro'|trans({}, 'quality') }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            {% if year %}
+                <a href="{{ path('app_reports_indicators', {centreId: centre.id.toRfc4122, _format: 'pdf', curso: year.id.toRfc4122}) }}" target="_blank" rel="noopener"
+                   class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    {{ ux_icon('heroicons:document-arrow-down', {class: 'h-4 w-4'}) }}PDF
+                </a>
+                <a href="{{ path('app_reports_indicators', {centreId: centre.id.toRfc4122, _format: 'xlsx', curso: year.id.toRfc4122}) }}"
+                   class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    {{ ux_icon('heroicons:table-cells', {class: 'h-4 w-4'}) }}Excel
+                </a>
+            {% endif %}
+            {% if canManage %}
+                <a href="{{ path('app_quality_calendars') }}"
+                   class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    {{ ux_icon('heroicons:calendar-days', {class: 'h-4 w-4'}) }}{{ 'calendar.title'|trans({}, 'quality') }}
+                </a>
+                {% if writable %}
+                    <a href="{{ path('app_quality_indicator_new') }}"
+                       class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                        {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}{{ 'indicator.add'|trans({}, 'quality') }}
+                    </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    {% if canManage and writable and not hasCalendars %}
+        <p class="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {{ ux_icon('heroicons:calendar-days', {class: 'h-5 w-5 shrink-0'}) }}
+            <span>{{ 'indicator.no_calendars'|trans({}, 'quality') }} <a href="{{ path('app_quality_calendars') }}" class="font-medium underline">{{ 'calendar.title'|trans({}, 'quality') }}</a></span>
+        </p>
+    {% endif %}
+
+    {# ── Counts by status, also filters ─────────────────────────────────────── #}
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {% for key, tone in {
+            on_target:  ['border-forest-100 bg-forest-50 hover:border-forest-200', 'text-forest-700', 'ring-forest-500'],
+            alert:      ['border-amber-100 bg-amber-50 hover:border-amber-200', 'text-amber-700', 'ring-amber-500'],
+            off_target: ['border-red-100 bg-red-50 hover:border-red-200', 'text-red-700', 'ring-red-500'],
+            no_data:    ['border-gray-200 bg-gray-50 hover:border-gray-300', 'text-gray-600', 'ring-gray-400'],
+        } %}
+            {% set selected = status and status.value == key %}
+            <a href="{{ selected ? path('app_quality_indicators') : path('app_quality_indicators', {estado: key}) }}"
+               class="rounded-xl border px-4 py-3 transition-colors {{ tone[0] }} {{ selected ? 'ring-2 ' ~ tone[2] : '' }}">
+                <p class="text-2xl font-bold {{ tone[1] }}">{{ counts[key] }}</p>
+                <p class="text-xs font-medium {{ tone[1] }}">{{ ('indicator.status.' ~ key)|trans({}, 'quality') }}</p>
+            </a>
+        {% endfor %}
+    </div>
+
+    {% if groups is empty %}
+        <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-sm text-gray-500">
+            {{ (status ? 'indicator.empty_filtered' : 'indicator.empty')|trans({}, 'quality') }}
+        </div>
+    {% endif %}
+
+    {% for process, rows in groups %}
+        <section class="space-y-3">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500">{{ process ?: 'indicator.no_process'|trans({}, 'quality') }}</h2>
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {% for row in rows %}
+                    {% set ind = row.indicator %}
+                    <a href="{{ path('app_quality_indicator', {id: ind.id.toRfc4122}) }}"
+                       class="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-xs transition-colors hover:border-forest-300">
+                        <div class="flex items-start justify-between gap-3">
+                            <h3 class="text-sm font-semibold text-gray-900">{{ ind.name }}</h3>
+                            {% if row.status %}{{ q.indicator_status_pill(row.status) }}{% endif %}
+                        </div>
+                        <div class="flex items-end justify-between gap-3">
+                            <div>
+                                <p class="text-3xl font-bold tabular-nums text-gray-900">{{ row.latest ? ind.format(row.latest.value) : '—' }}</p>
+                                <p class="text-xs text-gray-500">
+                                    {%- if row.latest %}{{ row.latest.period.name }}{% else %}{{ 'indicator.no_values_yet'|trans({}, 'quality') }}{% endif -%}
+                                    {%- if row.target and row.target.target is not null %} · {{ 'indicator.target_short'|trans({'%value%': ind.format(row.target.target)}, 'quality') }}{% endif -%}
+                                </p>
+                            </div>
+                            {% if row.chart.points is not empty or row.chart.previous|length > 1 %}
+                                {{ q.indicator_chart(row.chart, 'w-28 shrink-0', 3) }}
+                            {% endif %}
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-2 text-xs text-gray-500">
+                            <span>{{ 'indicator.measured'|trans({'%done%': row.measuredCount, '%count%': row.cells|length}, 'quality') }}</span>
+                            {% if row.previous %}
+                                <span>{{ row.previous.label }}: <span class="font-medium text-gray-700">{{ ind.format(row.previous.value) }}</span></span>
+                            {% endif %}
+                            {% if row.pendingReviewCount > 0 and canManage %}
+                                <span class="w-full font-medium text-red-700">{{ 'indicator.pending_review'|trans({'%count%': row.pendingReviewCount}, 'quality') }}</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        </section>
+    {% endfor %}
+</div>
+{% endblock %}

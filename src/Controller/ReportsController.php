@@ -22,6 +22,7 @@ use App\Security\Voter\EducationalCentreVoter;
 use App\Service\ActivityStatusReportBuilder;
 use App\Service\DocumentMasterListBuilder;
 use App\Service\DocumentReviewSchedule;
+use App\Service\IndicatorBoardBuilder;
 use App\Service\PdfRenderer;
 use App\Service\ReadAcknowledgementService;
 use App\Service\XlsxExporter;
@@ -40,7 +41,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * - documents whose review is overdue or coming up (DocumentMasterListBuilder::reviewsDue());
  * - how every activity stands this academic year (ActivityStatusReportBuilder);
  * - who has read the documents that require it (ReadAcknowledgementService);
- * - the nonconformity log and each year's improvement plan ("Mejora continua").
+ * - the nonconformity log, each year's improvement plan and its indicators board ("Mejora continua").
  *
  * For the centre's admins, quality managers and internal auditors (EducationalCentreVoter::REPORTS),
  * who can already see every document.
@@ -59,6 +60,7 @@ class ReportsController extends AbstractController
         private readonly FindingRepository $findingRepository,
         private readonly ImprovementActionRepository $actionRepository,
         private readonly AcademicYearRepository $academicYears,
+        private readonly IndicatorBoardBuilder $indicatorBoard,
         private readonly PdfRenderer $pdf,
         private readonly XlsxExporter $xlsx,
         private readonly TranslatorInterface $translator,
@@ -80,6 +82,7 @@ class ReportsController extends AbstractController
             'readAckCount'    => \count($this->documents->findRequiringReadAcknowledgementByCentre($centre)),
             'findingCounts'   => $this->findingRepository->countByStatus($centre),
             'planActions'     => $centre->getActiveAcademicYear() === null ? [] : $this->actionRepository->findPlan($centre, $centre->getActiveAcademicYear()),
+            'indicatorGroups' => $centre->getActiveAcademicYear() === null ? [] : $this->indicatorBoard->board($centre, $centre->getActiveAcademicYear()),
             'reviewHorizon'   => DocumentMasterListBuilder::REVIEW_HORIZON_DAYS,
         ]);
     }
@@ -260,6 +263,50 @@ class ReportsController extends AbstractController
         ));
     }
 
+    /**
+     * The indicators board of an academic year — the active one, or ?curso= — by process: each
+     * indicator's target, its value for every period and how it stands, and last year's value.
+     * The Excel has a row per indicator and period, to work with the data.
+     */
+    #[Route('/indicadores.{_format}', name: 'app_reports_indicators', requirements: ['_format' => self::FORMATS])]
+    public function indicators(string $centreId, string $_format, Request $request): Response
+    {
+        $centre = $this->requireCentre($centreId);
+        $yearId = $request->query->getString('curso');
+        $year   = $yearId !== '' ? $this->academicYears->findByCentreAndId($centre, $yearId) : $centre->getActiveAcademicYear();
+        if ($year === null) {
+            throw $this->createNotFoundException();
+        }
+        $groups = $this->indicatorBoard->board($centre, $year);
+
+        if ($_format === 'pdf') {
+            return $this->pdfResponse('reports/pdf/indicators.html.twig', 'indicators', 'indicators', $centre, ['groups' => $groups, 'year' => $year]);
+        }
+
+        $headers = array_map(fn (string $key): string => $this->t('indicators.col.' . $key), ['process', 'indicator', 'unit', 'target', 'threshold', 'period', 'value', 'status', 'recorded']);
+        $rows    = [];
+        foreach ($groups as $process => $indicatorRows) {
+            foreach ($indicatorRows as $row) {
+                foreach ($row->cells as $cell) {
+                    $status = $cell->status();
+                    $rows[] = [
+                        $process,
+                        $row->indicator->getName(),
+                        $row->indicator->getUnit(),
+                        $row->target?->getTarget(),
+                        $row->target?->getAlertThreshold(),
+                        $cell->period->getName(),
+                        $cell->measurement?->getValue(),
+                        $status === null ? null : $this->translator->trans('indicator.status.' . $status->value, [], 'quality'),
+                        $cell->measurement?->getRecordedAt()->format('d/m/Y'),
+                    ];
+                }
+            }
+        }
+
+        return $this->xlsx->createResponse($this->filename('indicators', 'xlsx'), $headers, $rows);
+    }
+
     /** "8. Operación › 8.1 Planificación" for the document's section and its ancestors. */
     private function sectionPath(Document $document): string
     {
@@ -272,7 +319,7 @@ class ReportsController extends AbstractController
     }
 
     /**
-     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings'|'improvement_plan' $reportType
+     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings'|'improvement_plan'|'indicators' $reportType
      * @param array<string, mixed>                                                                $context
      */
     private function pdfResponse(string $template, string $reportType, string $key, EducationalCentre $centre, array $context): Response

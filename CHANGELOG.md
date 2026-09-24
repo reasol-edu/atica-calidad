@@ -37,13 +37,33 @@ forma, lanza `php bin/console doctrine:migrations:migrate` tras actualizar.
   las empieza y las marca como hechas contando qué se ha hecho. La página muestra el avance del curso
   («1 de 4 acciones hechas · 1 vencida»), con filtros, y se descarga en PDF o Excel; también en
   **Informes → Plan de mejora**.
+- **Indicadores** (Mejora continua → Indicadores):
+  - Cada indicador tiene nombre, cómo se calcula, proceso, unidad, si más o menos es mejor y quién lo
+    registra (un docente o un perfil); y en cada curso, su **meta**, su **umbral de alerta** y su
+    **calendario de medición**.
+  - Los **calendarios de medición** son de cada curso y se personalizan por completo: listas de
+    periodos con nombre y fechas —por ejemplo 1.ª, 2.ª, 3.ª, Final 1 y Final 2—, creadas desde una
+    plantilla (por evaluación, por trimestre, mensual o anual) o en blanco. Un curso nuevo puede
+    copiar los del anterior, con las fechas un año después y las metas de sus indicadores.
+  - Al terminar cada periodo, quien registra el indicador tiene la tarea **Registrar** (panel
+    principal, campana, calendario y recordatorio diario) durante 15 días (ajustable); pasado ese
+    plazo, consta como **Sin dato**.
+  - Cada valor queda **En meta**, en **Alerta** o **Fuera de meta**. Uno fuera de meta avisa a la
+    coordinación de calidad, que decide desde el indicador: **abrir una no conformidad** o **proponer
+    una acción de mejora** (con los datos ya escritos y enlazadas al valor), o anotar que **no
+    requiere actuación**.
+  - Un **cuadro** por curso, agrupado por proceso, con el último valor de cada indicador, su estado,
+    una gráfica y el valor del curso anterior; y la página de cada indicador, con la evolución del
+    curso frente al anterior, la meta y el umbral. Se descarga en PDF o Excel; también en
+    **Informes → Cuadro de indicadores**.
 - **Las tareas de Mejora continua, donde ya se mira**: clasificar, analizar causas, hacer una acción
   (de una ficha o del plan de mejora) y verificar la eficacia aparecen también en la **campana**, en
   el **calendario** (el día en que vencen, y las acciones ya hechas, tachadas) y en el
   **recordatorio diario por correo** de actividades pendientes, que llega también a quien solo tiene
   tareas de Mejora continua. Quien desactiva los avisos de Mejora continua no las recibe en el correo.
-- **Datos de demostración**: cinco fichas de ejemplo de Mejora continua, una en cada paso, y un plan
-  de mejora con cuatro acciones.
+- **Datos de demostración**: cinco fichas de ejemplo de Mejora continua, una en cada paso, un plan
+  de mejora con cuatro acciones y cinco indicadores, con los valores de todo el curso anterior y la
+  evaluación inicial del actual.
 - **Manual**: nuevo capítulo [Mejora continua](docs/manual/09-mejora-continua.md), con sus capturas.
 
 ### Fixed

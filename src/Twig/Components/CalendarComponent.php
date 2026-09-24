@@ -90,7 +90,9 @@ class CalendarComponent extends AbstractCalendarComponent
                     'end'   => $item->endDate,
                 ],
                 $item instanceof QualityTask => [
-                    'id'    => 'quality-' . $item->type . '-' . ($item->action?->getId()->toRfc4122() ?? $item->finding?->getId()->toRfc4122() ?? ''),
+                    'id'    => 'quality-' . $item->type . '-' . ($item->period !== null
+                        ? ($item->indicator?->getId()->toRfc4122() ?? '') . '-' . $item->period->getId()->toRfc4122()
+                        : ($item->action?->getId()->toRfc4122() ?? $item->finding?->getId()->toRfc4122() ?? '')),
                     'start' => $item->dueDate ?? new \DateTimeImmutable(),
                     'end'   => $item->dueDate ?? new \DateTimeImmutable(),
                 ],
@@ -106,7 +108,11 @@ class CalendarComponent extends AbstractCalendarComponent
                         'label'   => $this->translator->trans('task.' . $item->type, [], 'quality') . ': ' . $item->label(),
                         'details' => $item->code() ?? '',
                         'color'   => $item->urgency === 'overdue' ? self::OVERDUE_QUALITY_COLOR : self::QUALITY_COLOR,
-                        'icon'    => $item->urgency === 'done' ? 'heroicons:check-circle' : 'heroicons:wrench-screwdriver',
+                        'icon'    => match (true) {
+                            $item->urgency === 'done'              => 'heroicons:check-circle',
+                            $item->type === QualityTask::MEASURE   => 'heroicons:chart-bar',
+                            default                                => 'heroicons:wrench-screwdriver',
+                        },
                         'muted'   => $item->urgency === 'done',
                     ];
                 }

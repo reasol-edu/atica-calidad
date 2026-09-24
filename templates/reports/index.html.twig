@@ -72,6 +72,14 @@
             'improvement_plan.summary'|trans({'%count%': planActions|length, '%done%': planActions|filter(a => a.done)|length}, 'reports'),
         ) }}
 
+        {% set indicator_rows = indicatorGroups|reduce((all, rows) => all|merge(rows), []) %}
+        {{ _self.report_card(
+            'heroicons:chart-bar', 'indicators', 'app_reports_indicators', centre,
+            'indicators.description'|trans({}, 'reports'),
+            'indicators.summary'|trans({'%count%': indicator_rows|length, '%off%': indicator_rows|filter(r => r.status and r.status.value == 'off_target')|length}, 'reports'),
+            (indicator_rows|filter(r => r.status and r.status.value == 'off_target')|length) > 0 ? 'text-red-600' : null,
+        ) }}
+
         {{ _self.report_card(
             'heroicons:check-badge', 'read_acknowledgements', 'app_reports_read_acknowledgements', centre,
             'read_acknowledgements.description'|trans({}, 'reports'),

@@ -1,0 +1,47 @@
+{% extends 'pdf/layout.html.twig' %}
+{% import 'reports/pdf/_macros.html.twig' as report %}
+
+{# groups: array<process name, list<IndicatorRow>> of year #}
+{% block content %}
+{% set rows = groups|reduce((all, r) => all|merge(r), []) %}
+{{ report.header(pdfTitle ~ ' · ' ~ 'improvement_plan.year'|trans({'%year%': year.name}, 'reports'), centre, pdfGeneratedAt, 'indicators.pdf_count'|trans({'%count%': rows|length}, 'reports')) }}
+
+{% if rows is empty %}
+    <p>{{ 'none'|trans({}, 'reports') }}</p>
+{% else %}
+    {% set badge = {'on_target': 'badge-green', 'alert': 'badge-amber', 'off_target': 'badge-red', 'no_data': 'badge-gray'} %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{{ 'indicators.col.indicator'|trans({}, 'reports') }}</th>
+                <th>{{ 'indicators.col.target'|trans({}, 'reports') }}</th>
+                <th>{{ 'indicators.col.values'|trans({}, 'reports') }}</th>
+                <th>{{ 'indicators.col.status'|trans({}, 'reports') }}</th>
+                <th>{{ 'indicators.col.previous'|trans({}, 'reports') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for process, processRows in groups %}
+                <tr><td colspan="5" style="background:#f7f3ea;font-weight:600;">{{ process ?: 'indicator.no_process'|trans({}, 'quality') }}</td></tr>
+                {% for row in processRows %}
+                    {% set ind = row.indicator %}
+                    <tr>
+                        <td>{{ ind.name }}<br><span style="font-size:7.5pt;color:#93826a;">{{ (ind.higherBetter ? 'indicator.direction.higher' : 'indicator.direction.lower')|trans({}, 'quality') }}</span></td>
+                        <td>
+                            {{- row.target and row.target.target is not null ? ind.format(row.target.target) : '—' -}}
+                            {%- if row.target and row.target.alertThreshold is not null %}<br><span style="font-size:7.5pt;color:#93826a;">{{ 'indicators.threshold'|trans({'%value%': ind.format(row.target.alertThreshold)}, 'reports') }}</span>{% endif -%}
+                        </td>
+                        <td>
+                            {%- for cell in row.cells -%}
+                                {{ cell.period.name }}: <strong>{{ cell.measurement ? ind.format(cell.measurement.value) : '—' }}</strong>{{ not loop.last ? ' · ' : '' }}
+                            {%- endfor -%}
+                        </td>
+                        <td>{% if row.status %}<span class="badge {{ badge[row.status.value] }}">{{ ('indicator.status.' ~ row.status.value)|trans({}, 'quality') }}</span>{% else %}—{% endif %}</td>
+                        <td>{{ row.previous ? ind.format(row.previous.value) ~ ' (' ~ row.previous.label ~ ')' : '—' }}</td>
+                    </tr>
+                {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

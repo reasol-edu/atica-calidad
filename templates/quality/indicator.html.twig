@@ -1,0 +1,204 @@
+{% extends 'layouts/app.html.twig' %}
+{% import 'quality/_macros.html.twig' as q %}
+
+{% block title %}{{ indicator.name }} · {{ 'indicator.title'|trans({}, 'quality') }} · {{ app_name }}{% endblock %}
+
+{#
+   An indicator in the year being viewed: what it is, its target and chart, and each period with
+   its value — or the form to record it, for its responsible — and, for a value off target, what
+   was done about it (or the buttons to decide, for whoever manages "Mejora continua").
+#}
+{% block content %}
+{% set secondary = 'inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors' %}
+{% set iid = indicator.id.toRfc4122 %}
+{% set target = row ? row.target : null %}
+<div class="px-4 sm:px-6 py-8 max-w-5xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-2">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_quality_index') }}" class="hover:text-forest-600 transition-colors">{{ 'quality'|trans({}, 'navigation') }}</a>
+            {% if canList %}
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+                <a href="{{ path('app_quality_indicators') }}" class="hover:text-forest-600 transition-colors">{{ 'indicator.title'|trans({}, 'quality') }}</a>
+            {% endif %}
+        </div>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h1 class="text-2xl font-bold text-gray-900">{{ indicator.name }}</h1>
+                    {% if row and row.status %}{{ q.indicator_status_pill(row.status) }}{% endif %}
+                    {% if not indicator.active %}<span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{{ 'indicator.inactive'|trans({}, 'quality') }}</span>{% endif %}
+                </div>
+                <p class="mt-1 text-sm text-gray-500">
+                    {{ indicator.section ? indicator.section.name : 'indicator.no_process'|trans({}, 'quality') }}
+                    · {{ (indicator.higherBetter ? 'indicator.direction.higher' : 'indicator.direction.lower')|trans({}, 'quality') }}
+                    · {{ 'indicator.recorded_by'|trans({'%name%': q.responsible(indicator)}, 'quality') }}
+                </p>
+            </div>
+            {% if canManage and writable %}
+                <a href="{{ path('app_quality_indicator_edit', {id: iid}) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4'}) }}{{ 'plan.edit'|trans({}, 'quality') }}
+                </a>
+            {% endif %}
+        </div>
+        {% if indicator.description %}
+            <p class="mt-3 rounded-lg bg-gray-50 px-3.5 py-2.5 text-sm text-gray-700 whitespace-pre-line"><span class="font-medium">{{ 'indicator.how'|trans({}, 'quality') }}</span> {{ indicator.description }}</p>
+        {% endif %}
+    </div>
+
+    {% if row is null or target is null or target.calendar is null %}
+        <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-8 text-center text-sm text-gray-500">
+            {{ 'indicator.not_measured'|trans({'%year%': year ? year.name : '—'}, 'quality') }}
+            {% if canManage and writable %}<a href="{{ path('app_quality_indicator_edit', {id: iid}) }}" class="ml-1 font-medium text-forest-700 hover:underline">{{ 'indicator.set_up'|trans({}, 'quality') }}</a>{% endif %}
+        </div>
+    {% else %}
+        {# ── Target and chart ─────────────────────────────────────────────────── #}
+        <section class="grid gap-6 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs md:grid-cols-[14rem_1fr]">
+            <dl class="space-y-3 text-sm">
+                <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'indicator.target'|trans({}, 'quality') }} {{ year.name }}</dt>
+                    <dd class="mt-0.5 text-lg font-semibold text-gray-900">{{ target.target is not null ? indicator.format(target.target) : '—' }}</dd>
+                </div>
+                {% if target.alertThreshold is not null %}
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'indicator.threshold'|trans({}, 'quality') }}</dt>
+                        <dd class="mt-0.5 text-gray-800">{{ indicator.format(target.alertThreshold) }}</dd>
+                    </div>
+                {% endif %}
+                <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'indicator.calendar'|trans({}, 'quality') }}</dt>
+                    <dd class="mt-0.5 text-gray-800">{{ target.calendar.name }}</dd>
+                </div>
+                {% if row.previous %}
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ 'indicator.previous'|trans({}, 'quality') }}</dt>
+                        <dd class="mt-0.5 text-gray-800">{{ indicator.format(row.previous.value) }} <span class="text-xs text-gray-500">({{ row.previous.label }})</span></dd>
+                    </div>
+                {% endif %}
+            </dl>
+            <div class="w-full max-w-2xl">
+                {% if row.chart.points is empty and row.chart.previous is empty %}
+                    <p class="flex h-full items-center justify-center rounded-lg bg-gray-50 px-4 py-8 text-sm text-gray-500">{{ 'indicator.no_values_yet'|trans({}, 'quality') }}</p>
+                {% else %}
+                    {{ q.indicator_chart(row.chart, 'w-full') }}
+                    <div class="mt-1 grid text-center text-[11px] text-gray-500" style="grid-template-columns: repeat({{ row.cells|length }}, minmax(0, 1fr));">
+                        {% for cell in row.cells %}<span class="truncate">{{ cell.period.name }}</span>{% endfor %}
+                    </div>
+                    <p class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                        <span class="inline-flex items-center gap-1.5"><span class="h-0.5 w-4 bg-forest-700"></span>{{ year.name }}</span>
+                        {% if row.chart.previous is not empty %}<span class="inline-flex items-center gap-1.5"><span class="h-0.5 w-4 bg-[#c9bfae]"></span>{{ 'indicator.legend_previous'|trans({}, 'quality') }}</span>{% endif %}
+                        {% if row.chart.targetY is not null %}<span class="inline-flex items-center gap-1.5"><span class="h-0 w-4 border-t border-dashed border-forest-600"></span>{{ 'indicator.target'|trans({}, 'quality') }}</span>{% endif %}
+                        {% if row.chart.thresholdY is not null %}<span class="inline-flex items-center gap-1.5"><span class="h-0 w-4 border-t border-dashed border-amber-600"></span>{{ 'indicator.threshold'|trans({}, 'quality') }}</span>{% endif %}
+                    </p>
+                {% endif %}
+            </div>
+        </section>
+
+        {# ── Periods ──────────────────────────────────────────────────────────── #}
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+            <h2 class="border-b border-gray-100 px-5 py-4 text-base font-semibold text-gray-900">{{ 'indicator.periods'|trans({}, 'quality') }}</h2>
+            <ul class="divide-y divide-gray-100">
+                {% for cell in row.cells %}
+                    {% set m = cell.measurement %}
+                    {% set pid = cell.period.id.toRfc4122 %}
+                    {% set status = cell.status %}
+                    <li id="periodo-{{ pid }}" class="scroll-mt-24 px-5 py-4 space-y-3 {{ cell.state == 'late' ? 'bg-red-50/40' : (cell.state == 'pending' ? 'bg-amber-50/40' : '') }}">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ cell.period.name }}</p>
+                                <p class="text-xs text-gray-500">{{ cell.period.startDate|date('d/m/Y') }} – {{ cell.period.endDate|date('d/m/Y') }}</p>
+                            </div>
+                            <div class="flex items-center gap-3 text-right">
+                                {% if m %}
+                                    <span class="text-lg font-semibold tabular-nums text-gray-900">{{ indicator.format(m.value) }}</span>
+                                    {{ q.indicator_status_pill(status) }}
+                                {% elseif cell.state == 'late' %}
+                                    <span class="text-xs font-medium text-red-700">{{ 'indicator.cell.late'|trans({'%date%': cell.dueDate|date('d/m/Y')}, 'quality') }}</span>
+                                {% elseif cell.state == 'pending' %}
+                                    <span class="text-xs font-medium text-amber-700">{{ 'indicator.cell.pending'|trans({'%date%': cell.dueDate|date('d/m/Y')}, 'quality') }}</span>
+                                {% else %}
+                                    <span class="text-xs text-gray-400">{{ 'indicator.cell.future'|trans({'%date%': cell.period.endDate|date('d/m/Y')}, 'quality') }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if m %}
+                            <p class="text-xs text-gray-500">
+                                {{ 'indicator.recorded'|trans({'%name%': m.recordedBy ? m.recordedBy.name.firstName ~ ' ' ~ m.recordedBy.name.lastName : '—', '%date%': m.recordedAt|date('d/m/Y')}, 'quality') }}
+                                {%- if m.notes %} · <span class="text-gray-700">{{ m.notes }}</span>{% endif %}
+                            </p>
+                        {% endif %}
+
+                        {# What was done about a value off target #}
+                        {% if m and status and status.value == 'off_target' %}
+                            {% set done = followUps[m.id.toRfc4122] ?? [] %}
+                            {% if done is not empty %}
+                                <p class="text-xs text-gray-600">
+                                    {{ 'indicator.followed_up'|trans({}, 'quality') }}
+                                    {% for item in done %}
+                                        <a href="{{ item.url }}" class="font-medium text-forest-700 hover:underline">{{ item.label }}</a>{{ not loop.last ? ', ' : '' }}
+                                    {% endfor %}
+                                </p>
+                            {% elseif m.reviewed %}
+                                <p class="text-xs text-gray-600">{{ 'indicator.dismissed'|trans({'%name%': m.reviewedBy ? m.reviewedBy.name.firstName ~ ' ' ~ m.reviewedBy.name.lastName : '—', '%date%': m.reviewedAt|date('d/m/Y')}, 'quality') }}{% if m.reviewNote %}: <span class="text-gray-800">{{ m.reviewNote }}</span>{% endif %}</p>
+                            {% elseif canManage and writable %}
+                                <div class="rounded-lg bg-red-50 px-3.5 py-3 space-y-2">
+                                    <p class="text-xs font-medium text-red-800">{{ 'indicator.decide'|trans({}, 'quality') }}</p>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <form method="post" action="{{ path('app_quality_measurement_finding', {id: m.id.toRfc4122}) }}">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('quality_review_' ~ m.id.toRfc4122) }}">
+                                            <button type="submit" class="{{ secondary }}">{{ ux_icon('heroicons:megaphone', {class: 'h-4 w-4'}) }}{{ 'indicator.open_finding'|trans({}, 'quality') }}</button>
+                                        </form>
+                                        <a href="{{ path('app_quality_plan_new', {medicion: m.id.toRfc4122}) }}" class="{{ secondary }}">{{ ux_icon('heroicons:rocket-launch', {class: 'h-4 w-4'}) }}{{ 'indicator.propose_action'|trans({}, 'quality') }}</a>
+                                        <details class="w-full sm:w-auto">
+                                            <summary class="cursor-pointer list-none text-xs font-medium text-gray-600 hover:text-gray-800 [&::-webkit-details-marker]:hidden">{{ 'indicator.dismiss'|trans({}, 'quality') }}</summary>
+                                            <form method="post" action="{{ path('app_quality_measurement_dismiss', {id: m.id.toRfc4122}) }}" class="mt-2 flex flex-wrap items-center gap-2">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('quality_review_' ~ m.id.toRfc4122) }}">
+                                                <input type="text" name="note" required placeholder="{{ 'indicator.dismiss_placeholder'|trans({}, 'quality') }}"
+                                                       class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                                                <button type="submit" class="{{ secondary }}">{{ 'indicator.dismiss_submit'|trans({}, 'quality') }}</button>
+                                            </form>
+                                        </details>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+
+                        {# Recording (or correcting) the value #}
+                        {% if canRecord and cell.state != 'future' %}
+                            {# A value to record: the form, open. One to correct: behind "Corregir el valor". #}
+                            {% set record_form %}
+                                <form method="post" action="{{ path('app_quality_measurement_record', {id: iid, periodId: pid}) }}" class="{{ m ? 'mt-2' : '' }} flex flex-wrap items-end gap-2">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('quality_measurement_' ~ iid) }}">
+                                    <label class="flex flex-col gap-1 text-xs font-medium text-gray-500">
+                                        {{ 'indicator.value'|trans({}, 'quality') }}{% if indicator.unit %} ({{ indicator.unit }}){% endif %}
+                                        <input type="text" inputmode="decimal" name="value" required value="{{ m ? indicator.number(m.value) : '' }}"
+                                               class="w-28 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm tabular-nums focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                                    </label>
+                                    <label class="flex min-w-48 flex-1 flex-col gap-1 text-xs font-medium text-gray-500">
+                                        {{ 'indicator.notes'|trans({}, 'quality') }}
+                                        <input type="text" name="notes" value="{{ m ? m.notes : '' }}" placeholder="{{ 'indicator.notes_placeholder'|trans({}, 'quality') }}"
+                                               class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                                    </label>
+                                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-forest-700">
+                                        {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ (m ? 'plan.save' : 'indicator.record')|trans({}, 'quality') }}
+                                    </button>
+                                </form>
+                            {% endset %}
+                            {% if m %}
+                                <details>
+                                    <summary class="cursor-pointer list-none text-xs font-medium text-forest-700 hover:text-forest-800 [&::-webkit-details-marker]:hidden">{{ 'indicator.correct'|trans({}, 'quality') }}</summary>
+                                    {{ record_form }}
+                                </details>
+                            {% else %}
+                                {{ record_form }}
+                            {% endif %}
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

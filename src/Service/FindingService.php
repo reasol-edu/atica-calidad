@@ -16,6 +16,7 @@ use App\Entity\FindingStatus;
 use App\Entity\FindingTimelineEntry;
 use App\Entity\ImprovementAction;
 use App\Entity\ImprovementActionType;
+use App\Entity\Measurement;
 use App\Entity\QualityAttachment;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
@@ -181,9 +182,11 @@ final class FindingService
         ?Teacher $responsibleTeacher,
         ?SpecificProfile $responsibleProfile,
         ?\DateTimeImmutable $dueDate,
+        ?Measurement $measurement = null,
     ): ImprovementAction {
         $now    = $this->clock->now();
         $action = (new ImprovementAction($centre, null, $type, trim($description), $actor, $now))
+            ->setMeasurement($measurement)
             ->setCode($this->codes->nextPlanAction($centre, $now))
             ->setAcademicYear($year)
             ->setGoal(self::nullIfBlank($goal))
@@ -191,6 +194,8 @@ final class FindingService
             ->assignTo($responsibleTeacher ?? ($responsibleProfile === null ? $actor : null), $responsibleProfile)
             ->setDueDate($dueDate);
         $this->em->persist($action);
+        // Proposed from an off-target indicator value: that value is dealt with.
+        $measurement?->markReviewed($actor, $now);
         $this->em->flush();
 
         $this->activityLogger->record('improvement_action.create', ['action' => $action->getCode() . ' ' . $action->getDescription()], $centre);

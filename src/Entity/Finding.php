@@ -52,6 +52,11 @@ class Finding
     #[ORM\Column(enumType: FindingOrigin::class)]
     private FindingOrigin $origin = FindingOrigin::InternalReport;
 
+    /** The off-target indicator value it was opened from, if any. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Measurement $measurement = null;
+
     #[ORM\Column(enumType: FindingStatus::class)]
     private FindingStatus $status = FindingStatus::Reported;
 
@@ -186,6 +191,18 @@ class Finding
     public function getSection(): ?DocumentSection
     {
         return $this->section;
+    }
+
+    public function getMeasurement(): ?Measurement
+    {
+        return $this->measurement;
+    }
+
+    public function setMeasurement(?Measurement $measurement): static
+    {
+        $this->measurement = $measurement;
+
+        return $this;
     }
 
     public function setSection(?DocumentSection $section): static

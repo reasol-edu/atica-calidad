@@ -45,6 +45,9 @@ settings.key.audit_log_retention_days.description: 'Días que se conservan las e
 settings.key.quality_verification_days.label: 'Días hasta la verificación de eficacia'
 settings.key.quality_verification_days.description: 'Cuando se terminan todas las acciones de una no conformidad, días que se dejan pasar antes de comprobar si han sido eficaces. Es la fecha que se propone a la coordinación de calidad; puede verificarse antes.'
 
+settings.key.quality_measurement_days.label: 'Días para registrar el valor de un indicador'
+settings.key.quality_measurement_days.description: 'Desde que termina un periodo de medición, días que tiene su responsable para registrar el valor antes de que conste como «Sin dato».'
+
 settings.key.notifications_quality_notifications_enabled.label: 'Avisos de Mejora continua'
 settings.key.notifications_quality_notifications_enabled.description: 'Avisa por correo cuando te toca algo en Mejora continua (clasificar, analizar, hacer una acción, verificar) y cuando se resuelve una incidencia que comunicaste.'
 

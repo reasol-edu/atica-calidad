@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Entity\EducationalCentre;
 use App\Entity\Finding;
 use App\Entity\ImprovementAction;
+use App\Entity\Measurement;
 use App\Entity\Teacher;
 use App\Repository\SpecificProfileAssignmentRepository;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -69,6 +70,25 @@ final class QualityNotifier
             'url'     => $this->urls->generate('app_quality_action', ['id' => $action->getId()->toRfc4122()], UrlGeneratorInterface::ABSOLUTE_URL),
             'cta'     => $this->translator->trans('email.cta_action', [], 'quality'),
         ], $action->getGoal(), $params + ['%code%' => $action->getCode() ?? '']);
+    }
+
+    /** To the quality managers: an indicator's value came out off target, to decide what to do. */
+    public function measurementOffTarget(Measurement $measurement): void
+    {
+        $indicator = $measurement->getIndicator();
+        $target    = $indicator->targetFor($measurement->getPeriod()->getCalendar()->getAcademicYear());
+
+        $this->deliver($this->qualityManagers($indicator->getEducationalCentre()), $indicator->getEducationalCentre(), 'measurement_off_target', [
+            'code'    => '',
+            'title'   => $indicator->getName() . ' · ' . $measurement->getPeriod()->getName(),
+            'section' => $indicator->getSection()?->getName(),
+            'url'     => $this->urls->generate('app_quality_indicator', ['id' => $indicator->getId()->toRfc4122()], UrlGeneratorInterface::ABSOLUTE_URL),
+            'cta'     => $this->translator->trans('email.cta_indicator', [], 'quality'),
+        ], $measurement->getNotes(), [
+            '%indicator%' => $indicator->getName(),
+            '%value%'     => $indicator->format($measurement->getValue()),
+            '%target%'    => $indicator->format($target?->getTarget()),
+        ]);
     }
 
     /** To the quality managers: every action done, time to check whether it worked. */

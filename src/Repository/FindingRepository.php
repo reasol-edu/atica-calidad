@@ -115,6 +115,30 @@ class FindingRepository extends ServiceEntityRepository
     }
 
     /**
+     * The findings opened from any of $measurements.
+     *
+     * @param list<\App\Entity\Measurement> $measurements
+     *
+     * @return list<Finding>
+     */
+    public function findByMeasurements(array $measurements): array
+    {
+        if ($measurements === []) {
+            return [];
+        }
+
+        // One uuid parameter each: a list of entities isn't bound as uuids.
+        $qb           = $this->createQueryBuilder('f');
+        $placeholders = [];
+        foreach ($measurements as $i => $measurement) {
+            $placeholders[] = ":m{$i}";
+            $qb->setParameter("m{$i}", $measurement->getId(), 'uuid');
+        }
+
+        return $qb->where('f.measurement IN (' . implode(', ', $placeholders) . ')')->getQuery()->getResult();
+    }
+
+    /**
      * The codes already given with $prefix in $year ("NC-2026-…"), to number the next one.
      *
      * @return list<string>

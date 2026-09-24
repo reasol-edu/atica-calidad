@@ -63,6 +63,11 @@ class ImprovementAction
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $goal = null;
 
+    /** The off-target indicator value it was proposed from, if any (plan actions). */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Measurement $measurement = null;
+
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Teacher $responsibleTeacher = null;
@@ -201,6 +206,18 @@ class ImprovementAction
     public function setGoal(?string $goal): static
     {
         $this->goal = $goal;
+
+        return $this;
+    }
+
+    public function getMeasurement(): ?Measurement
+    {
+        return $this->measurement;
+    }
+
+    public function setMeasurement(?Measurement $measurement): static
+    {
+        $this->measurement = $measurement;
 
         return $this;
     }

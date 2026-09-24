@@ -12,24 +12,30 @@ use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
+use App\Entity\Finding;
 use App\Entity\FindingKind;
 use App\Entity\FindingOrigin;
 use App\Entity\FindingSeverity;
 use App\Entity\Folder;
 use App\Entity\ImprovementAction;
 use App\Entity\ImprovementActionType;
+use App\Entity\Indicator;
 use App\Entity\ListItem;
+use App\Entity\Measurement;
+use App\Entity\MeasurementCalendar;
 use App\Entity\PersonName;
 use App\Entity\SchoolEvent;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Repository\EducationalCentreRepository;
+use App\Repository\FindingRepository;
 use App\Repository\ListItemRepository;
 use App\Repository\TeacherRepository;
 use App\Service\CentreProvisioner;
 use App\Service\ActivityDeadlineChecker;
 use App\Service\DocumentCreationService;
 use App\Service\FindingService;
+use App\Service\IndicatorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -92,6 +98,8 @@ class LoadDemoDataCommand extends Command
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
         private readonly FindingService $findingService,
+        private readonly IndicatorService $indicatorService,
+        private readonly FindingRepository $findingRepository,
     ) {
         parent::__construct();
     }
@@ -172,6 +180,7 @@ class LoadDemoDataCommand extends Command
         $this->em->flush();
         $this->seedFindings($centre, $folders, $io);
         $this->seedImprovementPlan($centre, $folders, $io);
+        $this->seedIndicators($centre, $folders, $io);
 
         $this->em->flush();
 
@@ -896,6 +905,102 @@ class LoadDemoDataCommand extends Command
         $plan(ImprovementActionType::Improvement, 'Preparar una guía de acogida para el profesorado de nueva incorporación', 'Que el profesorado nuevo conozca el sistema de calidad en su primera semana.', $folders['politica']->getDocumentSection(), $direccion, '+25 days');
 
         $io->text('4 acciones de ejemplo en el plan de mejora: una hecha, otra en curso y fuera de plazo, y dos pendientes.');
+    }
+
+    /**
+     * Five indicators with a whole previous year of values ("2025-2026" before "2026-2027"), to
+     * compare with and to see a full board, copied into the active year — whose "Evaluaciones"
+     * starts with an "Evaluación inicial" just over: one indicator waits for Ana to record it, and
+     * another came out off target, waiting for the quality manager to decide.
+     *
+     * @param array{programaciones: Folder, pat: Folder, etcp: Folder, politica: Folder} $folders
+     */
+    private function seedIndicators(EducationalCentre $centre, array $folders, SymfonyStyle $io): void
+    {
+        $year = $centre->getActiveAcademicYear();
+        if ($year === null || preg_match('/(\d{4})/', $year->getName(), $m) !== 1) {
+            return;
+        }
+        $first    = (int) $m[1];
+        $previous = (new AcademicYear())->setName(($first - 1) . '-' . $first)->setEducationalCentre($centre);
+        $this->em->persist($previous);
+        $this->em->flush();
+
+        $quality   = $this->teachers['calidad'];
+        $direccion = $this->teachers['direccion'];
+        $ana       = $this->teacherNamed('Ruiz Molina');
+        $pablo     = $this->teacherNamed('Sánchez Vidal');
+
+        $evaluations = $this->indicatorService->createCalendar($centre, $previous, 'Evaluaciones', 'evaluations');
+        $terms       = $this->indicatorService->createCalendar($centre, $previous, 'Trimestral', 'terms');
+        $annual      = $this->indicatorService->createCalendar($centre, $previous, 'Anual', 'year');
+
+        $define = fn (string $name, string $how, ?DocumentSection $section, string $unit, bool $higher, Teacher $who, MeasurementCalendar $calendar, float $target, float $threshold): Indicator => $this->indicatorService->saveIndicator($centre, null, $previous, [
+            'name' => $name, 'description' => $how, 'section' => $section, 'unit' => $unit, 'higherIsBetter' => $higher,
+            'teacher' => $who, 'profile' => null, 'active' => true, 'calendar' => $calendar, 'target' => $target, 'alertThreshold' => $threshold,
+        ]);
+        $record = $this->recordValues(...);
+
+        $programaciones = $folders['programaciones']->getDocumentSection();
+        $approved = $define('Alumnado con todas las materias aprobadas', 'Alumnado con todas las materias aprobadas / alumnado evaluado × 100', $programaciones, '%', true, $ana, $evaluations, 60, 50);
+        [$approvedFirst] = $record($approved, $evaluations, [48, 52, 58, 63, 66], $ana);
+        $failing = $define('Alumnado con tres o más materias suspensas', 'Alumnado con tres o más materias suspensas / alumnado evaluado × 100', $programaciones, '%', false, $direccion, $evaluations, 15, 20);
+        [$failingFirst] = $record($failing, $evaluations, [22, 19, 16, 13, 12], $direccion);
+        // Last year's 1st evaluation, off target in both, was looked at in the evaluation sessions.
+        foreach ([$approvedFirst, $failingFirst] as $offTarget) {
+            $this->indicatorService->dismiss($offTarget, $quality, 'Se analizó en las sesiones de evaluación: los grupos recuperaron en la 2.ª.');
+        }
+        $absence = $define('Absentismo del alumnado', 'Faltas sin justificar / sesiones lectivas × 100', null, '%', false, $pablo, $terms, 5, 7);
+        $absenceValues = $record($absence, $terms, [4.8, 6.2, 7.6], $pablo);
+        $this->indicatorService->dismiss($absenceValues[2], $quality, 'Coincidió con la epidemia de gripe de marzo; se vigila en el curso siguiente.');
+        $families = $define('Satisfacción de las familias', 'Media de la encuesta de satisfacción de las familias (de 1 a 10)', null, 'puntos', true, $quality, $annual, 7.5, 7);
+        $record($families, $annual, [7.8], $quality);
+        $delivered = $define('Programaciones entregadas en plazo', 'Programaciones subidas antes de la fecha límite / programaciones esperadas × 100', $programaciones, '%', true, $quality, $annual, 100, 95);
+        [$late] = $record($delivered, $annual, [88], $quality);
+        // That value is what the demo nonconformity about late programaciones answers to.
+        $finding = $this->findingRepository->findOneBy(['educationalCentre' => $centre, 'title' => 'Programaciones didácticas entregadas fuera de plazo']);
+        if ($finding instanceof Finding) {
+            $finding->setOrigin(FindingOrigin::Indicator)->setMeasurement($late);
+            $late->markReviewed($quality, $this->clock->now());
+            $this->em->flush();
+        }
+
+        // This year: the same, plus an "Evaluación inicial" just over.
+        $this->indicatorService->copyYear($centre, $previous, $year);
+        $current = $failing->targetFor($year)?->getCalendar();
+        if ($current !== null) {
+            $today = $this->clock->now()->setTime(0, 0);
+            $this->indicatorService->saveCalendar($current, $current->getName(), [
+                ['id' => null, 'name' => 'Evaluación inicial', 'start' => $today->modify('-30 days'), 'end' => $today->modify('-3 days')],
+                ...array_map(static fn ($p): array => ['id' => $p->getId()->toRfc4122(), 'name' => $p->getName(), 'start' => $p->getStartDate(), 'end' => $p->getEndDate()], $current->getPeriods()->toArray()),
+            ]);
+            foreach ($current->getPeriods() as $period) {
+                if ($period->getName() === 'Evaluación inicial') {
+                    $this->indicatorService->record($failing, $period, 24, 'Dato de las sesiones de evaluación inicial.', $direccion);
+                }
+            }
+        }
+
+        $io->text('5 indicadores de ejemplo, con los valores del curso ' . $previous->getName() . ' y la evaluación inicial de este: uno por registrar y otro fuera de meta.');
+    }
+
+    /**
+     * Records $values for $calendar's periods, in order.
+     *
+     * @param list<float> $values
+     *
+     * @return list<Measurement>
+     */
+    private function recordValues(Indicator $indicator, MeasurementCalendar $calendar, array $values, Teacher $who): array
+    {
+        $recorded = [];
+        foreach (array_values($calendar->getPeriods()->toArray()) as $i => $period) {
+            if (isset($values[$i])) {
+                $recorded[] = $this->indicatorService->record($indicator, $period, $values[$i], null, $who);
+            }
+        }
+
+        return $recorded;
     }
 
     private function teacherNamed(string $lastName): Teacher

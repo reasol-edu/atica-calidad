@@ -8,14 +8,15 @@ use App\Attribute\CurrentCentre;
 use App\Entity\EducationalCentre;
 use App\Entity\ImprovementAction;
 use App\Entity\ImprovementActionType;
+use App\Entity\Measurement;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Repository\DocumentSectionRepository;
 use App\Repository\ImprovementActionRepository;
-use App\Repository\SpecificProfileRepository;
-use App\Repository\TeacherRepository;
+use App\Repository\MeasurementRepository;
 use App\Security\Voter\QualityVoter;
 use App\Service\FindingService;
+use App\Service\ResponsibleChoices;
 use App\Service\SectionChoiceBuilder;
 use App\Service\TenantContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -41,8 +42,8 @@ class ImprovementPlanController extends AbstractController
     public function __construct(
         private readonly ImprovementActionRepository $actions,
         private readonly DocumentSectionRepository $sections,
-        private readonly TeacherRepository $teachers,
-        private readonly SpecificProfileRepository $profiles,
+        private readonly MeasurementRepository $measurements,
+        private readonly ResponsibleChoices $responsibles,
         private readonly FindingService $findingService,
         private readonly SectionChoiceBuilder $sectionChoices,
         private readonly TenantContext $tenantContext,
@@ -94,20 +95,33 @@ class ImprovementPlanController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $values = ['type' => ImprovementActionType::Improvement->value, 'description' => '', 'goal' => '', 'section' => '', 'responsible' => '', 'dueDate' => ''];
+        // Proposed from an off-target indicator value: start from what it's about.
+        $measurement = $this->measurementFrom($request, $centre);
+        $indicator   = $measurement?->getIndicator();
+        $values      = [
+            'type'        => ImprovementActionType::Improvement->value,
+            'description' => '',
+            'goal'        => $indicator === null ? '' : $this->translator->trans('indicator.action_goal', [
+                '%indicator%' => $indicator->getName(),
+                '%target%'    => $indicator->format($indicator->targetFor($measurement->getPeriod()->getCalendar()->getAcademicYear())?->getTarget()),
+            ], 'quality'),
+            'section'     => $indicator?->getSection()?->getId()->toRfc4122() ?? '',
+            'responsible' => '',
+            'dueDate'     => '',
+        ];
         $errors = [];
         if ($request->isMethod('POST')) {
             $this->checkToken($request, 'quality_plan_action');
             [$values, $errors, $data] = $this->readForm($request, $centre);
             if ($data !== null) {
-                $action = $this->findingService->createPlanAction($centre, $year, $this->teacher(), $data['type'], $data['description'], $data['goal'], $data['section'], $data['teacher'], $data['profile'], $data['dueDate']);
+                $action = $this->findingService->createPlanAction($centre, $year, $this->teacher(), $data['type'], $data['description'], $data['goal'], $data['section'], $data['teacher'], $data['profile'], $data['dueDate'], $measurement);
                 $this->addFlash('success', $this->t('plan.flash.added'));
 
                 return $this->redirectToRoute('app_quality_action', ['id' => $action->getId()->toRfc4122()]);
             }
         }
 
-        return $this->renderForm($centre, null, $values, $errors);
+        return $this->renderForm($centre, null, $values, $errors, $measurement);
     }
 
     #[Route('/acciones/{id}', name: 'app_quality_action')]
@@ -139,8 +153,7 @@ class ImprovementPlanController extends AbstractController
             'description' => $action->getDescription(),
             'goal'        => $action->getGoal() ?? '',
             'section'     => $action->getSection()?->getId()->toRfc4122() ?? '',
-            'responsible' => $action->getResponsibleTeacher() !== null ? 't:' . $action->getResponsibleTeacher()->getId()->toRfc4122()
-                : ($action->getResponsibleProfile() !== null ? 'p:' . $action->getResponsibleProfile()->getId()->toRfc4122() : ''),
+            'responsible' => ResponsibleChoices::value($action->getResponsibleTeacher(), $action->getResponsibleProfile()),
             'dueDate'     => $action->getDueDate()?->format('Y-m-d') ?? '',
         ];
         $errors = [];
@@ -217,20 +230,11 @@ class ImprovementPlanController extends AbstractController
         }
         $section = $values['section'] === '' ? null : $this->sections->findByIdAndCentre($values['section'], $centre);
 
-        [$teacher, $profile] = [null, null];
-        if (str_starts_with($values['responsible'], 't:')) {
-            $teacher = $this->teacherChoice(substr($values['responsible'], 2), $centre, $editing);
-            if ($teacher === null) {
-                $errors['responsible'] = $this->t('classify.error.responsible');
-            }
-        } elseif (str_starts_with($values['responsible'], 'p:')) {
-            $profile = $this->profiles->findByIdAndCentre(substr($values['responsible'], 2), $centre);
-            if ($profile === null) {
-                $errors['responsible'] = $this->t('classify.error.responsible');
-            }
-        } else {
-            $teacher = $this->teacher();
+        $responsible = $this->responsibles->resolve($values['responsible'], $centre, $this->teacher(), $editing?->getResponsibleTeacher());
+        if ($responsible === null) {
+            $errors['responsible'] = $this->t('classify.error.responsible');
         }
+        [$teacher, $profile] = $responsible ?? [null, null];
 
         $dueDate = \DateTimeImmutable::createFromFormat('!Y-m-d', $values['dueDate']);
         if ($dueDate === false) {
@@ -256,48 +260,27 @@ class ImprovementPlanController extends AbstractController
      * @param array<string, string> $values
      * @param array<string, string> $errors
      */
-    private function renderForm(EducationalCentre $centre, ?ImprovementAction $action, array $values, array $errors): Response
+    private function renderForm(EducationalCentre $centre, ?ImprovementAction $action, array $values, array $errors, ?Measurement $measurement = null): Response
     {
-        $teachers = $this->teacherChoices($centre);
-        $current  = $action?->getResponsibleTeacher();
-        if ($current !== null && $this->teacherChoice($current->getId()->toRfc4122(), $centre, null) === null) {
-            array_unshift($teachers, $current);
-        }
-
         return $this->render('quality/plan_form.html.twig', [
-            'centre'   => $centre,
-            'action'   => $action,
-            'values'   => $values,
-            'errors'   => $errors,
-            'types'    => self::PLAN_TYPES,
-            'sections' => $this->sectionChoices->choices($this->teacher(), $centre),
-            'teachers' => $teachers,
-            'profiles' => array_values(array_filter($this->profiles->findByCentre($centre), static fn (SpecificProfile $p): bool => $p->isActive())),
+            'centre'      => $centre,
+            'action'      => $action,
+            'values'      => $values,
+            'errors'      => $errors,
+            'measurement' => $measurement,
+            'types'       => self::PLAN_TYPES,
+            'sections'    => $this->sectionChoices->choices($this->teacher(), $centre),
+            'teachers'    => $this->responsibles->teachers($centre, $action?->getResponsibleTeacher()),
+            'profiles'    => $this->responsibles->profiles($centre),
         ], new Response(status: $errors === [] ? 200 : 422));
     }
 
-    /** @return list<Teacher> the active year's active teachers, by name */
-    private function teacherChoices(EducationalCentre $centre): array
+    /** The off-target value an action is being proposed from (?medicion= or the form's "measurement"), if any. */
+    private function measurementFrom(Request $request, EducationalCentre $centre): ?Measurement
     {
-        $year = $centre->getActiveAcademicYear();
+        $id = $request->isMethod('POST') ? $request->request->getString('measurement') : $request->query->getString('medicion');
 
-        return $year === null ? [] : array_values(array_filter($this->teachers->findByAcademicYearOrderedByName($year), static fn (Teacher $t): bool => $t->isActive()));
-    }
-
-    /** One of the choices — or, when editing, the teacher it already had, even if no longer among them. */
-    private function teacherChoice(string $id, EducationalCentre $centre, ?ImprovementAction $editing): ?Teacher
-    {
-        $current = $editing?->getResponsibleTeacher();
-        if ($current !== null && $current->getId()->toRfc4122() === $id) {
-            return $current;
-        }
-        foreach ($this->teacherChoices($centre) as $teacher) {
-            if ($teacher->getId()->toRfc4122() === $id) {
-                return $teacher;
-            }
-        }
-
-        return null;
+        return $id === '' ? null : $this->measurements->findByIdAndCentre($id, $centre);
     }
 
     private function requireAction(string $id, EducationalCentre $centre, string $attribute): ImprovementAction

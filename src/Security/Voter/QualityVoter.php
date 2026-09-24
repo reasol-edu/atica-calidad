@@ -7,6 +7,7 @@ namespace App\Security\Voter;
 use App\Entity\EducationalCentre;
 use App\Entity\Finding;
 use App\Entity\ImprovementAction;
+use App\Entity\Indicator;
 use App\Entity\Teacher;
 use App\Service\DocumentTreeAccessChecker;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
@@ -25,8 +26,10 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
  * - FINDING_ANALYZE: MANAGE, or its analysis responsible.
  * - ACTION_WORK: MANAGE, or the action's responsible teacher, or anyone holding its profile.
  * - ACTION_VIEW: VIEW_ALL or ACTION_WORK; for a finding's action, also its FINDING_VIEW.
+ * - INDICATOR_VIEW: VIEW_ALL, or the indicator's responsible (teacher, or anyone holding its profile).
+ * - INDICATOR_RECORD (record its values): MANAGE, or its responsible.
  *
- * @extends Voter<string, EducationalCentre|Finding|ImprovementAction>
+ * @extends Voter<string, EducationalCentre|Finding|ImprovementAction|Indicator>
  */
 final class QualityVoter extends Voter
 {
@@ -36,6 +39,8 @@ final class QualityVoter extends Voter
     public const string FINDING_ANALYZE = 'quality.finding_analyze';
     public const string ACTION_WORK     = 'quality.action_work';
     public const string ACTION_VIEW     = 'quality.action_view';
+    public const string INDICATOR_VIEW   = 'quality.indicator_view';
+    public const string INDICATOR_RECORD = 'quality.indicator_record';
 
     public function __construct(
         private readonly DocumentTreeAccessChecker $access,
@@ -47,6 +52,7 @@ final class QualityVoter extends Voter
             self::MANAGE, self::VIEW_ALL              => $subject instanceof EducationalCentre,
             self::FINDING_VIEW, self::FINDING_ANALYZE => $subject instanceof Finding,
             self::ACTION_WORK, self::ACTION_VIEW       => $subject instanceof ImprovementAction,
+            self::INDICATOR_VIEW, self::INDICATOR_RECORD => $subject instanceof Indicator,
             default                                    => false,
         };
     }
@@ -62,6 +68,8 @@ final class QualityVoter extends Voter
             $subject instanceof EducationalCentre => $attribute === self::MANAGE ? $this->manages($user, $subject) : $this->seesAll($user, $subject),
             $subject instanceof Finding           => $attribute === self::FINDING_ANALYZE ? $this->canAnalyze($user, $subject) : $this->canView($user, $subject),
             $subject instanceof ImprovementAction => $attribute === self::ACTION_VIEW ? $this->canViewAction($user, $subject) : $this->canWork($user, $subject),
+            $subject instanceof Indicator         => $this->isIndicatorResponsible($user, $subject)
+                || ($attribute === self::INDICATOR_VIEW ? $this->seesAll($user, $subject->getEducationalCentre()) : $this->manages($user, $subject->getEducationalCentre())),
         };
     }
 
@@ -109,6 +117,17 @@ final class QualityVoter extends Voter
         return $this->seesAll($teacher, $action->getEducationalCentre())
             || $this->canWork($teacher, $action)
             || ($finding !== null && $this->canView($teacher, $finding));
+    }
+
+    private function isIndicatorResponsible(Teacher $teacher, Indicator $indicator): bool
+    {
+        if (self::same($teacher, $indicator->getResponsibleTeacher())) {
+            return true;
+        }
+
+        $profile = $indicator->getResponsibleProfile();
+
+        return $profile !== null && $this->access->holdsProfile($teacher, $profile, null);
     }
 
     private function isResponsible(Teacher $teacher, ImprovementAction $action): bool
