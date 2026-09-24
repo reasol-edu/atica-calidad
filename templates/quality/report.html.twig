@@ -1,0 +1,66 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'report.title'|trans({}, 'quality') }} · {{ app_name }}{% endblock %}
+
+{# "Comunicar incidencia": three fields, 30 seconds, from any device. Classifying it is the quality manager's job. #}
+{% block content %}
+<div class="px-4 sm:px-6 py-8 max-w-2xl mx-auto">
+
+    <div class="mb-6">
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_quality_index') }}" class="hover:text-forest-600 transition-colors">{{ 'quality'|trans({}, 'navigation') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'report.title'|trans({}, 'quality') }}</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ 'report.intro'|trans({}, 'quality') }}</p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="space-y-5 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
+        <input type="hidden" name="_token" value="{{ csrf_token('quality_report') }}">
+
+        <div class="space-y-1.5">
+            <label for="report-description" class="block text-sm font-semibold text-gray-900">{{ 'report.description'|trans({}, 'quality') }}</label>
+            <textarea id="report-description" name="description" rows="5" required autofocus
+                      placeholder="{{ 'report.description_placeholder'|trans({}, 'quality') }}"
+                      aria-describedby="report-description-help"
+                      class="block w-full rounded-xl border {{ errors.description is defined ? 'border-red-300' : 'border-gray-200' }} bg-white px-3.5 py-2.5 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">{{ values.description }}</textarea>
+            <p id="report-description-help" class="text-xs text-gray-500">{{ 'report.description_help'|trans({}, 'quality') }}</p>
+            {% if errors.description is defined %}<p class="text-xs text-red-600">{{ errors.description }}</p>{% endif %}
+        </div>
+
+        <div class="space-y-1.5">
+            <label for="report-section" class="block text-sm font-semibold text-gray-900">{{ 'report.section'|trans({}, 'quality') }}</label>
+            <select id="report-section" name="section"
+                    class="block w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-base sm:text-sm text-gray-900 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                <option value="">{{ 'report.section_unknown'|trans({}, 'quality') }}</option>
+                {% for choice in sections %}
+                    <option value="{{ choice.id }}" {{ values.section == choice.id ? 'selected' : '' }}>{{ choice.indented }}</option>
+                {% endfor %}
+            </select>
+            <p class="text-xs text-gray-500">{{ 'report.section_help'|trans({}, 'quality') }}</p>
+        </div>
+
+        <div class="space-y-1.5">
+            <label for="report-files" class="block text-sm font-semibold text-gray-900">{{ 'report.files'|trans({}, 'quality') }} <span class="font-normal text-gray-500">{{ 'report.optional'|trans({}, 'quality') }}</span></label>
+            <input id="report-files" type="file" name="files[]" multiple
+                   class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-forest-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-forest-700 hover:file:bg-forest-100">
+            <p class="text-xs text-gray-500">{{ 'report.files_help'|trans({'%max%': maxFiles}, 'quality') }}</p>
+            {% if errors.files is defined %}<p class="text-xs text-red-600">{{ errors.files }}</p>{% endif %}
+        </div>
+
+        <p class="flex items-start gap-2 rounded-xl bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
+            {{ ux_icon('heroicons:shield-exclamation', {class: 'h-4 w-4 shrink-0 mt-px'}) }}
+            {{ 'report.privacy'|trans({}, 'quality') }}
+        </p>
+
+        <div class="flex flex-wrap items-center justify-end gap-3">
+            <a href="{{ path('app_quality_index') }}" class="text-sm font-medium text-gray-500 hover:text-gray-700">{{ 'cancel'|trans({}, 'quality') }}</a>
+            <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                {{ ux_icon('heroicons:paper-airplane', {class: 'h-4 w-4'}) }}
+                {{ 'report.submit'|trans({}, 'quality') }}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

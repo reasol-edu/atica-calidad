@@ -4,7 +4,9 @@
    (linked below) — not repeated here.
 #}
 {% import 'components/_activity_status.html.twig' as activity_status %}
+{% import 'quality/_macros.html.twig' as quality %}
 {% set summary = this.summary %}
+{% set quality_tasks = this.qualityTasks %}
 
 <div class="rounded-2xl border border-gray-200 bg-white shadow-xs">
     <div class="flex flex-wrap items-center justify-between gap-2 px-6 py-5 border-b border-gray-100">
@@ -81,4 +83,19 @@
             {% endif %}
         {% endif %}
     </div>
+
+    {% if quality_tasks is not empty %}
+        {# ── Mejora continua: tasks next to the activities ──────────────────── #}
+        <div class="border-t border-gray-100">
+            <h3 class="flex items-center justify-between px-6 pt-4 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {{ 'task.section_title'|trans({}, 'quality') }}
+                <a href="{{ path('app_quality_index') }}" class="normal-case tracking-normal text-sm font-medium text-forest-600 hover:text-forest-700">{{ 'task.view_all'|trans({}, 'quality') }} →</a>
+            </h3>
+            <ul class="divide-y divide-gray-100 pb-2">
+                {% for task in quality_tasks|slice(0, constant('App\\Twig\\Components\\DashboardActivitySummaryComponent::MAX_QUALITY_TASKS')) %}
+                    {{ quality.task_row(task, true) }}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
 </div>

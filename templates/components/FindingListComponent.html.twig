@@ -1,0 +1,144 @@
+{% import 'quality/_macros.html.twig' as q %}
+{% import 'components/_pagination_live.html.twig' as pager %}
+{% set select = 'rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-sm text-gray-900 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
+
+<div {{ attributes }} class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+
+    {# ── Filters ──────────────────────────────────────────────────────────── #}
+    <div class="flex flex-wrap items-end gap-3 border-b border-gray-100 bg-gray-50/50 px-4 sm:px-6 py-4">
+        <div class="relative min-w-48 flex-1">
+            <label for="findings-query" class="mb-1 block text-xs font-medium text-gray-500">{{ 'list.search'|trans({}, 'quality') }}</label>
+            <input id="findings-query" type="search" data-model="debounce(300)|query" value="{{ query }}" placeholder="{{ 'list.search_placeholder'|trans({}, 'quality') }}"
+                   class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+        </div>
+        {% if view == 'table' %}
+            <div>
+                <label for="findings-status" class="mb-1 block text-xs font-medium text-gray-500">{{ 'list.status'|trans({}, 'quality') }}</label>
+                <select id="findings-status" data-model="status" class="{{ select }}">
+                    <option value="open" {{ status == 'open' ? 'selected' }}>{{ 'status.open'|trans({}, 'quality') }}</option>
+                    <option value="" {{ status == '' ? 'selected' }}>{{ 'list.all'|trans({}, 'quality') }}</option>
+                    {% for s in this.statuses %}
+                        <option value="{{ s.value }}" {{ status == s.value ? 'selected' }}>{{ ('status.' ~ s.value)|trans({}, 'quality') }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+        <div>
+            <label for="findings-kind" class="mb-1 block text-xs font-medium text-gray-500">{{ 'list.kind'|trans({}, 'quality') }}</label>
+            <select id="findings-kind" data-model="kind" class="{{ select }}">
+                <option value="">{{ 'list.all'|trans({}, 'quality') }}</option>
+                {% for k in this.kinds %}
+                    <option value="{{ k.value }}" {{ kind == k.value ? 'selected' }}>{{ ('kind.' ~ k.value)|trans({}, 'quality') }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="findings-origin" class="mb-1 block text-xs font-medium text-gray-500">{{ 'list.origin'|trans({}, 'quality') }}</label>
+            <select id="findings-origin" data-model="origin" class="{{ select }}">
+                <option value="">{{ 'list.all'|trans({}, 'quality') }}</option>
+                {% for o in this.origins %}
+                    <option value="{{ o.value }}" {{ origin == o.value ? 'selected' }}>{{ ('origin.' ~ o.value)|trans({}, 'quality') }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="max-w-64">
+            <label for="findings-section" class="mb-1 block text-xs font-medium text-gray-500">{{ 'list.section'|trans({}, 'quality') }}</label>
+            <select id="findings-section" data-model="section" class="{{ select }} w-full">
+                <option value="">{{ 'list.all'|trans({}, 'quality') }}</option>
+                {% for choice in this.sectionChoices %}
+                    <option value="{{ choice.id }}" {{ section == choice.id ? 'selected' }}>{{ choice.indented }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="findings-year" class="mb-1 block text-xs font-medium text-gray-500">{{ 'list.year'|trans({}, 'quality') }}</label>
+            <select id="findings-year" data-model="year" class="{{ select }}">
+                <option value="">{{ 'list.all'|trans({}, 'quality') }}</option>
+                {% for y in this.years %}
+                    <option value="{{ y }}" {{ year == y ~ '' ? 'selected' }}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex items-center gap-2 pb-0.5">
+            {% if this.hasFilters %}
+                <button type="button" data-action="live#action" data-live-action-param="clearFilters" class="text-xs font-medium text-gray-500 hover:text-gray-700">{{ 'list.clear'|trans({}, 'quality') }}</button>
+            {% endif %}
+            <div class="inline-flex rounded-lg border border-gray-200 bg-white p-0.5" role="group" aria-label="{{ 'list.view'|trans({}, 'quality') }}">
+                {% for v, icon in {table: 'heroicons:table-cells', board: 'heroicons:view-columns'} %}
+                    <button type="button" data-action="live#action" data-live-action-param="setView" data-live-view-param="{{ v }}" aria-pressed="{{ view == v ? 'true' : 'false' }}"
+                            class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium {{ view == v ? 'bg-forest-600 text-white' : 'text-gray-600 hover:bg-gray-50' }}">
+                        {{ ux_icon(icon, {class: 'h-4 w-4'}) }}{{ ('list.view_' ~ v)|trans({}, 'quality') }}
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div data-loading="addClass(opacity-50)" class="transition-opacity">
+    {% if view == 'board' %}
+        {# ── Board: one column per open status ─────────────────────────── #}
+        <div class="overflow-x-auto">
+            <div class="grid min-w-[880px] grid-cols-4 gap-4 p-4 sm:p-6">
+                {% for s, items in this.board %}
+                    <section aria-label="{{ ('status.' ~ s)|trans({}, 'quality') }}" class="rounded-xl bg-gray-50 p-3">
+                        <h2 class="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            {{ ('status.' ~ s)|trans({}, 'quality') }}
+                            <span class="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-600">{{ items|length }}</span>
+                        </h2>
+                        <ul class="space-y-2">
+                            {% for f in items %}
+                                <li>
+                                    <a href="{{ path('app_quality_finding', {id: f.id.toRfc4122}) }}" class="block rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-xs hover:border-forest-300">
+                                        <span class="flex items-center gap-2">{{ q.code(f) }}{{ q.kind_chip(f) }}</span>
+                                        <span class="mt-1 block font-medium text-gray-900">{{ f.title }}</span>
+                                        <span class="mt-1 block text-xs text-gray-500">
+                                            {{ 'list.days_open'|trans({'%count%': date().diff(f.reportedAt).days}, 'quality') }}
+                                            {%- if f.analysisResponsible and s == 'analysis' %} · {{ f.analysisResponsible.name.firstName }} {{ f.analysisResponsible.name.lastName }}{% endif %}
+                                        </span>
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="px-1 py-2 text-xs italic text-gray-400">{{ 'list.column_empty'|trans({}, 'quality') }}</li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        {% set pagination = this.pagination %}
+        {% if pagination.totalItems == 0 %}
+            <p class="px-6 py-12 text-center text-sm text-gray-500">{{ 'list.empty'|trans({}, 'quality') }}</p>
+        {% else %}
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[720px] text-sm">
+                    <thead class="border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">{{ 'list.col.code'|trans({}, 'quality') }}</th>
+                            <th scope="col" class="px-6 py-3">{{ 'list.col.title'|trans({}, 'quality') }}</th>
+                            <th scope="col" class="px-6 py-3">{{ 'list.col.kind'|trans({}, 'quality') }}</th>
+                            <th scope="col" class="px-6 py-3">{{ 'list.col.status'|trans({}, 'quality') }}</th>
+                            <th scope="col" class="px-6 py-3">{{ 'list.col.reported'|trans({}, 'quality') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for f in pagination.items %}
+                            <tr class="align-top hover:bg-gray-50">
+                                <td class="px-6 py-3 whitespace-nowrap">{{ q.code(f) }}</td>
+                                <td class="px-6 py-3">
+                                    <a href="{{ path('app_quality_finding', {id: f.id.toRfc4122}) }}" class="font-medium text-gray-900 hover:text-forest-700">{{ f.title }}</a>
+                                    {% if f.section %}<span class="block text-xs text-gray-500">{{ f.section.name }}</span>{% endif %}
+                                </td>
+                                <td class="px-6 py-3 whitespace-nowrap">{{ q.kind_chip(f) ?: '—' }}</td>
+                                <td class="px-6 py-3 whitespace-nowrap">{{ q.status_pill(f.status) }}</td>
+                                <td class="px-6 py-3 whitespace-nowrap text-gray-500">{{ f.reportedAt|date('d/m/Y') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {{ pager.nav(pagination) }}
+        {% endif %}
+    {% endif %}
+    </div>
+</div>

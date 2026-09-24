@@ -1,0 +1,20 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ finding.code ?? 'finding.no_code'|trans({}, 'quality') }} · {{ finding.title }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 py-8 max-w-5xl mx-auto">
+    <div class="flex items-center gap-2 text-sm text-gray-500 mb-3 flex-wrap">
+        {% include 'components/_breadcrumb_home.html.twig' %}
+        <a href="{{ path('app_quality_index') }}" class="hover:text-forest-600 transition-colors">{{ 'quality'|trans({}, 'navigation') }}</a>
+        {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        {% if is_granted('quality.view_all', centre) %}
+            <a href="{{ path('app_quality_findings') }}" class="hover:text-forest-600 transition-colors">{{ 'list.title'|trans({}, 'quality') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        {% endif %}
+        <span aria-current="page" class="text-gray-700 font-medium">{{ finding.code ?? 'finding.no_code'|trans({}, 'quality') }}</span>
+    </div>
+
+    <twig:FindingDetailComponent :finding="finding" />
+</div>
+{% endblock %}

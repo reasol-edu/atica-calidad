@@ -7,7 +7,9 @@ namespace App\Twig\Components;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Model\ActivityDashboardSummary;
+use App\Model\QualityTask;
 use App\Service\ActivityDashboardSummaryBuilder;
+use App\Service\QualityTaskFinder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
@@ -28,8 +30,12 @@ class DashboardActivitySummaryComponent extends AbstractController
     #[LiveProp]
     public EducationalCentre $centre;
 
+    /** Most "Mejora continua" tasks listed here; the rest are on its hub. */
+    public const int MAX_QUALITY_TASKS = 5;
+
     public function __construct(
         private readonly ActivityDashboardSummaryBuilder $builder,
+        private readonly QualityTaskFinder $qualityTasks,
     ) {}
 
     public function mount(EducationalCentre $centre): void
@@ -40,6 +46,17 @@ class DashboardActivitySummaryComponent extends AbstractController
     public function getSummary(): ActivityDashboardSummary
     {
         return $this->builder->build($this->teacher(), $this->centre);
+    }
+
+    /**
+     * What the teacher has to do in "Mejora continua" (QualityTaskFinder), shown under the
+     * activities in the same card — so it's found where they already look.
+     *
+     * @return list<QualityTask>
+     */
+    public function getQualityTasks(): array
+    {
+        return $this->qualityTasks->forTeacher($this->teacher(), $this->centre);
     }
 
     private function teacher(): Teacher

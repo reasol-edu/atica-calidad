@@ -6,9 +6,11 @@
 {% set active_year = active_centre ? active_centre.activeAcademicYear : null %}
 {% set vy = view_year() %}
 {% set viewing_past = is_viewing_past_year() %}
-{% set palette_actions = can_switch_year() ? [
+{% set palette_actions = (active_centre ? [
+    {label: 'actions.report_incident'|trans({}, 'search'), url: path('app_quality_report')},
+] : [])|merge(can_switch_year() ? [
     {label: 'actions.change_year'|trans({}, 'search'), url: path('app_select_year_page')},
-] : [] %}
+] : []) %}
 <div data-controller="sidebar command-palette confirm"
      data-command-palette-url-value="{{ path('app_search') }}"
      data-command-palette-actions-value="{{ palette_actions|json_encode }}"
@@ -136,6 +138,17 @@
                 current_route,
                 'app_document_tree'
             ) }}
+
+            {# Continuous improvement — everyone in the centre can report an incident #}
+            {% if active_centre %}
+                {{ _self.nav_item(
+                    'quality'|trans({}, 'navigation'),
+                    path('app_quality_index'),
+                    'heroicons:arrow-trending-up',
+                    current_route,
+                    'app_quality_'
+                ) }}
+            {% endif %}
 
             {# Reports — admins, management team, quality managers and internal auditors #}
             {% if active_centre and is_granted('educational_centre.reports', active_centre) %}

@@ -6,12 +6,15 @@ namespace App\Controller;
 
 use App\Entity\Document;
 use App\Entity\EducationalCentre;
+use App\Entity\Finding;
+use App\Entity\FindingStatus;
 use App\Entity\Teacher;
 use App\Model\ActivityStatusReportRow;
 use App\Model\DocumentMasterListRow;
 use App\Model\ReadAcknowledgementStatus;
 use App\Repository\DocumentRepository;
 use App\Repository\EducationalCentreRepository;
+use App\Repository\FindingRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Service\ActivityStatusReportBuilder;
 use App\Service\DocumentMasterListBuilder;
@@ -48,6 +51,7 @@ class ReportsController extends AbstractController
         private readonly ActivityStatusReportBuilder $activityStatus,
         private readonly ReadAcknowledgementService $readAcknowledgements,
         private readonly DocumentRepository $documents,
+        private readonly FindingRepository $findingRepository,
         private readonly PdfRenderer $pdf,
         private readonly XlsxExporter $xlsx,
         private readonly TranslatorInterface $translator,
@@ -67,6 +71,7 @@ class ReportsController extends AbstractController
             'reviewsOverdue'  => \count(array_filter($reviewsDue, static fn (DocumentMasterListRow $r): bool => $r->reviewState === DocumentReviewSchedule::OVERDUE)),
             'activityCount'   => \count($this->activityStatus->build($centre)),
             'readAckCount'    => \count($this->documents->findRequiringReadAcknowledgementByCentre($centre)),
+            'findingCounts'   => $this->findingRepository->countByStatus($centre),
             'reviewHorizon'   => DocumentMasterListBuilder::REVIEW_HORIZON_DAYS,
         ]);
     }
@@ -160,6 +165,47 @@ class ReportsController extends AbstractController
         ));
     }
 
+    /**
+     * Every finding of the centre but the discarded ones, most recent first: kind, process,
+     * status, dates, actions and effectiveness — the nonconformity log an audit asks for.
+     */
+    #[Route('/no-conformidades.{_format}', name: 'app_reports_findings', requirements: ['_format' => self::FORMATS])]
+    public function findings(string $centreId, string $_format): Response
+    {
+        $centre   = $this->requireCentre($centreId);
+        $findings = array_values(array_filter(
+            $this->findingRepository->createFilteredQuery($centre)->getResult(),
+            static fn (Finding $f): bool => $f->getStatus() !== FindingStatus::Discarded,
+        ));
+
+        if ($_format === 'pdf') {
+            return $this->pdfResponse('reports/pdf/findings.html.twig', 'findings', 'findings', $centre, ['findings' => $findings]);
+        }
+
+        $headers = array_map(fn (string $key): string => $this->t('findings.col.' . $key), ['code', 'title', 'kind', 'section', 'origin', 'status', 'reported', 'actions', 'closed', 'effective']);
+
+        return $this->xlsx->createResponse($this->filename('findings', 'xlsx'), $headers, array_map(
+            fn (Finding $f): array => [
+                $f->getCode(),
+                $f->getTitle(),
+                $f->getKind() === null ? null : $this->translator->trans('kind.' . $f->getKind()->value, [], 'quality')
+                    . ($f->getSeverity() === null ? '' : ' · ' . $this->translator->trans('severity.' . $f->getSeverity()->value, [], 'quality')),
+                $f->getSection()?->getName(),
+                $this->translator->trans('origin.' . $f->getOrigin()->value, [], 'quality'),
+                $this->translator->trans('status.' . $f->getStatus()->value, [], 'quality'),
+                $f->getReportedAt()->format('d/m/Y'),
+                ($f->getActions()->count() - $f->countPendingActions()) . '/' . $f->getActions()->count(),
+                $f->getClosedAt()?->format('d/m/Y'),
+                match ($f->isEffective()) {
+                    true    => $this->t('findings.effective.yes'),
+                    false   => $this->t('findings.effective.no'),
+                    default => null,
+                },
+            ],
+            $findings,
+        ));
+    }
+
     /** "8. Operación › 8.1 Planificación" for the document's section and its ancestors. */
     private function sectionPath(Document $document): string
     {
@@ -172,7 +218,7 @@ class ReportsController extends AbstractController
     }
 
     /**
-     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements' $reportType
+     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings' $reportType
      * @param array<string, mixed>                                                                $context
      */
     private function pdfResponse(string $template, string $reportType, string $key, EducationalCentre $centre, array $context): Response

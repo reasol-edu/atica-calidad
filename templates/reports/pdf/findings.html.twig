@@ -1,0 +1,43 @@
+{% extends 'pdf/layout.html.twig' %}
+{% import 'reports/pdf/_macros.html.twig' as report %}
+
+{# findings: list<Finding>, most recent first, without the discarded ones #}
+{% block content %}
+{{ report.header(pdfTitle, centre, pdfGeneratedAt, 'findings.pdf_count'|trans({'%count%': findings|length}, 'reports')) }}
+
+{% if findings is empty %}
+    <p>{{ 'none'|trans({}, 'reports') }}</p>
+{% else %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{{ 'findings.col.code'|trans({}, 'reports') }}</th>
+                <th>{{ 'findings.col.title'|trans({}, 'reports') }}</th>
+                <th>{{ 'findings.col.kind'|trans({}, 'reports') }}</th>
+                <th>{{ 'findings.col.section'|trans({}, 'reports') }}</th>
+                <th>{{ 'findings.col.status'|trans({}, 'reports') }}</th>
+                <th>{{ 'findings.col.reported'|trans({}, 'reports') }}</th>
+                <th>{{ 'findings.col.actions'|trans({}, 'reports') }}</th>
+                <th>{{ 'findings.col.closed'|trans({}, 'reports') }}</th>
+                <th>{{ 'findings.col.effective'|trans({}, 'reports') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for f in findings %}
+                {% set total = f.actions|length %}
+                <tr>
+                    <td>{{ f.code ?? '—' }}</td>
+                    <td>{{ f.title }}{% if f.rootCause %}<br><span style="font-size:7.5pt;color:#93826a;">{{ 'findings.root_cause'|trans({}, 'reports') }}: {{ f.rootCause }}</span>{% endif %}</td>
+                    <td>{{ f.kind ? ('kind.' ~ f.kind.value)|trans({}, 'quality') : '—' }}{% if f.severity %} · {{ ('severity.' ~ f.severity.value)|trans({}, 'quality') }}{% endif %}</td>
+                    <td>{{ f.section ? f.section.name : '—' }}</td>
+                    <td><span class="badge {{ f.status.value == 'closed' ? 'badge-green' : (f.status.value == 'reported' ? 'badge-gray' : 'badge-amber') }}">{{ ('status.' ~ f.status.value)|trans({}, 'quality') }}</span></td>
+                    <td>{{ f.reportedAt|date('d/m/Y') }}</td>
+                    <td>{{ total - f.countPendingActions }}/{{ total }}</td>
+                    <td>{{ f.closedAt ? f.closedAt|date('d/m/Y') : '—' }}</td>
+                    <td>{{ f.effective is same as(true) ? 'findings.effective.yes'|trans({}, 'reports') : (f.effective is same as(false) ? 'findings.effective.no'|trans({}, 'reports') : '—') }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

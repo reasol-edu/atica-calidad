@@ -1,0 +1,440 @@
+{#
+   A finding's page (FindingDetailComponent). "Lo siguiente" comes first: the one step the finding
+   is waiting for, with its form for whoever may take it, or who it's waiting on for everyone else.
+   Then what was reported, the analysis, the actions and the timeline.
+#}
+{% import 'quality/_macros.html.twig' as q %}
+{% set f = finding %}
+{% set status = f.status.value %}
+{% set can_manage = this.canManage %}
+{% set can_analyze = this.canAnalyze %}
+{% set next_steps = this.nextSteps %}
+{% set input = 'block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
+{% set label = 'block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1' %}
+{% set primary = 'inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-4 py-2 text-sm font-semibold text-white hover:bg-forest-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50' %}
+{% set secondary = 'inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors' %}
+
+{% macro person(teacher) -%}
+    {{- teacher ? teacher.name.firstName ~ ' ' ~ teacher.name.lastName : '—' -}}
+{%- endmacro %}
+
+<div {{ attributes }} class="space-y-6">
+
+    {# ── Header ─────────────────────────────────────────────────────────── #}
+    <header class="space-y-2">
+        <div class="flex flex-wrap items-center gap-2">
+            {{ q.code(f) }}
+            {{ q.status_pill(f.status) }}
+            {{ q.kind_chip(f) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ f.title }}</h1>
+        <p class="text-sm text-gray-500">
+            {{ 'hub.reported_by'|trans({'%name%': _self.person(f.reportedBy), '%date%': f.reportedAt|date('d/m/Y H:i')}, 'quality') }}
+            {%- if f.section %} · {{ f.section.name }}{% endif %}
+            · {{ ('origin.' ~ f.origin.value)|trans({}, 'quality') }}
+        </p>
+    </header>
+
+    {% if errors.step is defined %}
+        <p role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errors.step }}</p>
+    {% endif %}
+
+    {# ── Lo siguiente ─────────────────────────────────────────────────── #}
+    <section aria-labelledby="next-step" class="rounded-2xl border-2 border-forest-200 bg-forest-50/40 p-5 sm:p-6 space-y-4">
+        <h2 id="next-step" class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-forest-700">
+            {{ ux_icon('heroicons:arrow-right-circle', {class: 'h-5 w-5'}) }}
+            {{ 'next.title'|trans({}, 'quality') }}
+        </h2>
+
+        {% if status == 'reported' %}
+            {% if can_manage %}
+                {% if not discarding %}
+                    <form data-action="submit->live#action:prevent" data-live-action-param="classify" class="space-y-4">
+                        <fieldset>
+                            <legend class="{{ label }}">{{ 'classify.kind'|trans({}, 'quality') }}</legend>
+                            <div class="grid gap-2 sm:grid-cols-3">
+                                {% for k in this.kinds %}
+                                    <label class="flex cursor-pointer flex-col gap-1 rounded-xl border bg-white p-3 text-sm {{ kind == k.value ? 'border-forest-500 ring-2 ring-forest-500/20' : 'border-gray-200 hover:border-gray-300' }}">
+                                        <span class="flex items-center gap-2 font-semibold text-gray-900">
+                                            <input type="radio" name="kind" value="{{ k.value }}" data-model="kind" {{ kind == k.value ? 'checked' : '' }} class="text-forest-600 focus:ring-forest-500">
+                                            {{ ('kind.' ~ k.value)|trans({}, 'quality') }}
+                                        </span>
+                                        <span class="text-xs text-gray-500">{{ ('kind.help.' ~ k.value)|trans({}, 'quality') }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                            {% if errors.kind is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.kind }}</p>{% endif %}
+                        </fieldset>
+
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <div class="sm:col-span-2">
+                                <label for="classify-title" class="{{ label }}">{{ 'classify.title'|trans({}, 'quality') }}</label>
+                                <input id="classify-title" type="text" data-model="norender|title" value="{{ title }}" maxlength="255" class="{{ input }}">
+                                {% if errors.title is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.title }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label for="classify-section" class="{{ label }}">{{ 'classify.section'|trans({}, 'quality') }}</label>
+                                <select id="classify-section" data-model="norender|sectionId" class="{{ input }}">
+                                    <option value="">{{ 'report.section_unknown'|trans({}, 'quality') }}</option>
+                                    {% for choice in this.sectionChoices %}
+                                        <option value="{{ choice.id }}" {{ sectionId == choice.id ? 'selected' : '' }}>{{ choice.indented }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="classify-origin" class="{{ label }}">{{ 'classify.origin'|trans({}, 'quality') }}</label>
+                                <select id="classify-origin" data-model="norender|origin" class="{{ input }}">
+                                    {% for o in this.origins %}
+                                        <option value="{{ o.value }}" {{ origin == o.value ? 'selected' : '' }}>{{ ('origin.' ~ o.value)|trans({}, 'quality') }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% if kind == 'nonconformity' %}
+                                <fieldset>
+                                    <legend class="{{ label }}">{{ 'classify.severity'|trans({}, 'quality') }}</legend>
+                                    <div class="flex gap-4 text-sm">
+                                        {% for s in ['minor', 'major'] %}
+                                            <label class="inline-flex items-center gap-2">
+                                                <input type="radio" name="severity" value="{{ s }}" data-model="norender|severity" {{ severity == s ? 'checked' : '' }} class="text-forest-600 focus:ring-forest-500">
+                                                {{ ('severity.' ~ s)|trans({}, 'quality') }}
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                    <p class="mt-1 text-xs text-gray-500">{{ 'severity.help'|trans({}, 'quality') }}</p>
+                                </fieldset>
+                                <div></div>
+                                <div>
+                                    <label for="classify-responsible" class="{{ label }}">{{ 'classify.responsible'|trans({}, 'quality') }}</label>
+                                    <select id="classify-responsible" data-model="norender|responsibleId" class="{{ input }}">
+                                        <option value="">{{ 'classify.responsible_quality'|trans({}, 'quality') }}</option>
+                                        {% for t in this.teacherChoices %}
+                                            <option value="{{ t.id.toRfc4122 }}" {{ responsibleId == t.id.toRfc4122 ? 'selected' : '' }}>{{ t.name.lastName }}, {{ t.name.firstName }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if errors.responsible is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.responsible }}</p>{% endif %}
+                                </div>
+                                <div>
+                                    <label for="classify-due" class="{{ label }}">{{ 'classify.analysis_due'|trans({}, 'quality') }}</label>
+                                    <input id="classify-due" type="date" data-model="norender|analysisDueDate" value="{{ analysisDueDate }}" class="{{ input }}">
+                                    {% if errors.analysisDueDate is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.analysisDueDate }}</p>{% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button type="submit" class="{{ primary }}">{{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'classify.submit'|trans({}, 'quality') }}</button>
+                            <button type="button" data-action="live#action" data-live-action-param="toggleDiscard" class="text-sm font-medium text-gray-500 hover:text-red-600">{{ 'discard.button'|trans({}, 'quality') }}</button>
+                        </div>
+                    </form>
+                {% else %}
+                    <form data-action="submit->live#action:prevent" data-live-action-param="discard" class="space-y-3">
+                        <label for="discard-reason" class="{{ label }}">{{ 'discard.reason'|trans({}, 'quality') }}</label>
+                        <textarea id="discard-reason" rows="3" data-model="norender|discardReason" class="{{ input }}" placeholder="{{ 'discard.reason_placeholder'|trans({}, 'quality') }}">{{ discardReason }}</textarea>
+                        <p class="text-xs text-gray-500">{{ 'discard.help'|trans({}, 'quality') }}</p>
+                        {% if errors.discardReason is defined %}<p class="text-xs text-red-600">{{ errors.discardReason }}</p>{% endif %}
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">{{ 'discard.submit'|trans({}, 'quality') }}</button>
+                            <button type="button" data-action="live#action" data-live-action-param="toggleDiscard" class="text-sm font-medium text-gray-500 hover:text-gray-700">{{ 'cancel'|trans({}, 'quality') }}</button>
+                        </div>
+                    </form>
+                {% endif %}
+            {% else %}
+                <p class="text-sm text-gray-700">{{ 'next.reported_wait'|trans({}, 'quality') }}</p>
+            {% endif %}
+
+        {% elseif status == 'analysis' %}
+            {% if can_analyze %}
+                <p class="text-sm text-gray-700">{{ 'next.analysis'|trans({'%date%': f.analysisDueDate ? f.analysisDueDate|date('d/m/Y') : '—'}, 'quality') }}</p>
+                <form data-action="submit->live#action:prevent" data-live-action-param="saveAnalysis" class="space-y-3">
+                    <fieldset class="space-y-2">
+                        <legend class="{{ label }}">{{ 'analysis.whys'|trans({}, 'quality') }}</legend>
+                        <p class="text-xs text-gray-500">{{ 'analysis.whys_help'|trans({}, 'quality') }}</p>
+                        {% for i in 0..4 %}
+                            <div class="flex items-center gap-2">
+                                <span class="w-24 shrink-0 text-xs font-medium text-gray-500">{{ 'analysis.why_n'|trans({'%n%': i + 1}, 'quality') }}</span>
+                                <input type="text" data-model="norender|whys.{{ i }}" value="{{ whys[i] ?? '' }}" aria-label="{{ 'analysis.why_n'|trans({'%n%': i + 1}, 'quality') }}" class="{{ input }}">
+                            </div>
+                        {% endfor %}
+                    </fieldset>
+                    <div>
+                        <label for="analysis-root" class="{{ label }}">{{ 'analysis.root_cause'|trans({}, 'quality') }}</label>
+                        <textarea id="analysis-root" rows="3" data-model="norender|rootCause" class="{{ input }}" placeholder="{{ 'analysis.root_cause_placeholder'|trans({}, 'quality') }}">{{ rootCause }}</textarea>
+                    </div>
+                    <button type="submit" class="{{ secondary }}">{{ ux_icon('heroicons:bookmark', {class: 'h-4 w-4'}) }}{{ 'analysis.save'|trans({}, 'quality') }}</button>
+                </form>
+                <p class="text-sm text-gray-700">{{ 'next.analysis_actions'|trans({}, 'quality') }}</p>
+                {% set blockers = this.blockers('submit_analysis') %}
+                <div class="flex flex-wrap items-center gap-3 border-t border-forest-100 pt-4">
+                    <button type="button" data-action="live#action" data-live-action-param="submitAnalysis" class="{{ primary }}" {{ 'submit_analysis' in next_steps ? '' : 'disabled' }}>
+                        {{ ux_icon('heroicons:arrow-right', {class: 'h-4 w-4'}) }}{{ 'transition.submit_analysis'|trans({}, 'quality') }}
+                    </button>
+                    {% for b in blockers %}<span class="text-xs text-amber-700">{{ b }}</span>{% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-gray-700">{{ 'next.analysis_wait'|trans({'%name%': f.analysisResponsible ? _self.person(f.analysisResponsible) : 'classify.responsible_quality'|trans({}, 'quality'), '%date%': f.analysisDueDate ? f.analysisDueDate|date('d/m/Y') : '—'}, 'quality') }}</p>
+            {% endif %}
+
+        {% elseif status == 'execution' %}
+            {% set total = f.actions|length %}
+            {% set pending = f.countPendingActions %}
+            <p class="text-sm text-gray-700">{{ 'next.execution'|trans({'%done%': total - pending, '%total%': total}, 'quality') }}</p>
+            {% if total > 0 %}
+                <div class="h-2 w-full max-w-md overflow-hidden rounded-full bg-white" role="img" aria-label="{{ 'next.execution'|trans({'%done%': total - pending, '%total%': total}, 'quality') }}">
+                    <div class="h-full bg-forest-500" style="width: {{ (total - pending) / total * 100 }}%"></div>
+                </div>
+            {% endif %}
+            {% if f.nonconformity %}
+                <p class="text-xs text-gray-500">{{ 'next.execution_nc'|trans({}, 'quality') }}</p>
+            {% elseif can_manage %}
+                <form data-action="submit->live#action:prevent" data-live-action-param="close" class="space-y-3 border-t border-forest-100 pt-4">
+                    <label for="close-notes" class="{{ label }}">{{ 'close.notes'|trans({}, 'quality') }}</label>
+                    <textarea id="close-notes" rows="2" data-model="norender|closeNotes" class="{{ input }}">{{ closeNotes }}</textarea>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button type="submit" class="{{ primary }}" {{ 'close' in next_steps ? '' : 'disabled' }}>{{ ux_icon('heroicons:check-circle', {class: 'h-4 w-4'}) }}{{ 'transition.close'|trans({}, 'quality') }}</button>
+                        {% for b in this.blockers('close') %}<span class="text-xs text-amber-700">{{ b }}</span>{% endfor %}
+                    </div>
+                </form>
+            {% endif %}
+
+        {% elseif status == 'verification' %}
+            {% if can_manage %}
+                <p class="text-sm text-gray-700">{{ 'next.verification'|trans({'%date%': f.verificationDueDate ? f.verificationDueDate|date('d/m/Y') : '—'}, 'quality') }}</p>
+                <div class="space-y-3">
+                    <label for="verify-notes" class="{{ label }}">{{ 'verify.notes'|trans({}, 'quality') }}</label>
+                    <textarea id="verify-notes" rows="3" data-model="norender|verifyNotes" class="{{ input }}" placeholder="{{ 'verify.notes_placeholder'|trans({}, 'quality') }}">{{ verifyNotes }}</textarea>
+                    {% if errors.verifyNotes is defined %}<p class="text-xs text-red-600">{{ errors.verifyNotes }}</p>{% endif %}
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button type="button" data-action="live#action" data-live-action-param="verify" data-live-outcome-param="effective" class="{{ primary }}">
+                            {{ ux_icon('heroicons:check-badge', {class: 'h-4 w-4'}) }}{{ 'transition.verify_effective'|trans({}, 'quality') }}
+                        </button>
+                        <button type="button" data-action="live#action" data-live-action-param="verify" data-live-outcome-param="ineffective" class="{{ secondary }}">
+                            {{ ux_icon('heroicons:arrow-uturn-left', {class: 'h-4 w-4'}) }}{{ 'transition.verify_ineffective'|trans({}, 'quality') }}
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500">{{ 'verify.help'|trans({}, 'quality') }}</p>
+                </div>
+            {% else %}
+                <p class="text-sm text-gray-700">{{ 'next.verification_wait'|trans({'%date%': f.verificationDueDate ? f.verificationDueDate|date('d/m/Y') : '—'}, 'quality') }}</p>
+            {% endif %}
+
+        {% elseif status == 'closed' %}
+            <p class="flex items-center gap-2 text-sm font-medium text-forest-700">
+                {{ ux_icon('heroicons:check-circle', {class: 'h-5 w-5'}) }}
+                {{ 'next.closed'|trans({'%date%': f.closedAt ? f.closedAt|date('d/m/Y') : '—'}, 'quality') }}
+            </p>
+        {% else %}
+            <p class="text-sm text-gray-700">{{ 'next.discarded'|trans({}, 'quality') }}</p>
+            {% if f.discardReason %}<blockquote class="border-l-2 border-gray-300 pl-3 text-sm text-gray-600 whitespace-pre-line">{{ f.discardReason }}</blockquote>{% endif %}
+        {% endif %}
+    </section>
+
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div class="min-w-0 space-y-6">
+
+            {# ── Qué ha pasado ─────────────────────────────────────────── #}
+            <section id="adjuntos" class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+                <h2 class="text-base font-semibold text-gray-900">{{ 'finding.description'|trans({}, 'quality') }}</h2>
+                <p class="text-sm text-gray-700 whitespace-pre-line">{{ f.description }}</p>
+                {% if f.attachments is not empty %}
+                    <ul class="flex flex-wrap gap-2">
+                        {% for a in f.attachments %}
+                            <li>
+                                <a href="{{ path('app_quality_attachment', {id: a.id.toRfc4122}) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-50">
+                                    {{ ux_icon('heroicons:paper-clip', {class: 'h-3.5 w-3.5'}) }}{{ a.filename }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if f.status.open %}
+                    <form method="post" action="{{ path('app_quality_finding_attach', {id: f.id.toRfc4122}) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4">
+                        <input type="hidden" name="_token" value="{{ csrf_token('quality_attach_' ~ f.id.toRfc4122) }}">
+                        <label class="sr-only" for="finding-files">{{ 'attachment.add'|trans({}, 'quality') }}</label>
+                        <input id="finding-files" type="file" name="files[]" multiple class="min-w-0 flex-1 text-xs text-gray-600 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-gray-700">
+                        <button type="submit" class="{{ secondary }} text-xs">{{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}{{ 'attachment.add'|trans({}, 'quality') }}</button>
+                    </form>
+                {% endif %}
+            </section>
+
+            {# ── Análisis de causas (read-only once submitted, or for others) ─ #}
+            {% if (f.whys is not empty or f.rootCause) and not (status == 'analysis' and can_analyze) %}
+                <section class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs space-y-3">
+                    <h2 class="text-base font-semibold text-gray-900">{{ 'analysis.title'|trans({}, 'quality') }}</h2>
+                    {% if f.whys is not empty %}
+                        <ol class="list-decimal space-y-1 pl-5 text-sm text-gray-700">
+                            {% for why in f.whys %}<li>{{ why }}</li>{% endfor %}
+                        </ol>
+                    {% endif %}
+                    {% if f.rootCause %}
+                        <p class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-900"><span class="font-semibold">{{ 'analysis.root_cause'|trans({}, 'quality') }}:</span> {{ f.rootCause }}</p>
+                    {% endif %}
+                </section>
+            {% endif %}
+
+            {# ── Acciones ──────────────────────────────────────────────── #}
+            <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 sm:px-6 py-4">
+                    <h2 class="text-base font-semibold text-gray-900">{{ 'action.title'|trans({}, 'quality') }}</h2>
+                    {% if this.canAddActions and not addingAction %}
+                        <button type="button" data-action="live#action" data-live-action-param="toggleAddAction" class="{{ secondary }} text-xs">{{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}{{ 'action.add'|trans({}, 'quality') }}</button>
+                    {% endif %}
+                </div>
+
+                {% if addingAction %}
+                    <form data-action="submit->live#action:prevent" data-live-action-param="addAction" class="space-y-4 border-b border-gray-100 bg-gray-50/60 px-5 sm:px-6 py-4">
+                        <fieldset>
+                            <legend class="{{ label }}">{{ 'action.type'|trans({}, 'quality') }}</legend>
+                            <div class="grid gap-2 sm:grid-cols-2">
+                                {% for t in this.actionTypes %}
+                                    <label class="flex cursor-pointer flex-col gap-0.5 rounded-lg border bg-white p-2.5 text-sm {{ actionType == t.value ? 'border-forest-500 ring-2 ring-forest-500/20' : 'border-gray-200' }}">
+                                        <span class="flex items-center gap-2 font-medium text-gray-900">
+                                            <input type="radio" name="actionType" value="{{ t.value }}" data-model="actionType" {{ actionType == t.value ? 'checked' : '' }} class="text-forest-600 focus:ring-forest-500">
+                                            {{ ('action_type.' ~ t.value)|trans({}, 'quality') }}
+                                        </span>
+                                        <span class="text-xs text-gray-500">{{ ('action_type.help.' ~ t.value)|trans({}, 'quality') }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+                        <div>
+                            <label for="action-description" class="{{ label }}">{{ 'action.description'|trans({}, 'quality') }}</label>
+                            <textarea id="action-description" rows="2" data-model="norender|actionDescription" class="{{ input }}" placeholder="{{ 'action.description_placeholder'|trans({}, 'quality') }}">{{ actionDescription }}</textarea>
+                            {% if errors.actionDescription is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.actionDescription }}</p>{% endif %}
+                        </div>
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" data-model="actionAlreadyDone" {{ actionAlreadyDone ? 'checked' : '' }} class="rounded text-forest-600 focus:ring-forest-500">
+                            {{ 'action.already_done'|trans({}, 'quality') }}
+                        </label>
+                        {% if actionAlreadyDone %}
+                            <div>
+                                <label for="action-result" class="{{ label }}">{{ 'action.result'|trans({}, 'quality') }}</label>
+                                <textarea id="action-result" rows="2" data-model="norender|actionResult" class="{{ input }}">{{ actionResult }}</textarea>
+                            </div>
+                        {% else %}
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <label for="action-responsible" class="{{ label }}">{{ 'action.responsible'|trans({}, 'quality') }}</label>
+                                    <select id="action-responsible" data-model="norender|actionResponsible" class="{{ input }}">
+                                        <option value="">{{ 'action.responsible_me'|trans({}, 'quality') }}</option>
+                                        <optgroup label="{{ 'action.responsible_teachers'|trans({}, 'quality') }}">
+                                            {% for t in this.teacherChoices %}
+                                                <option value="t:{{ t.id.toRfc4122 }}" {{ actionResponsible == 't:' ~ t.id.toRfc4122 ? 'selected' : '' }}>{{ t.name.lastName }}, {{ t.name.firstName }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                        <optgroup label="{{ 'action.responsible_profiles'|trans({}, 'quality') }}">
+                                            {% for p in this.profileChoices %}
+                                                <option value="p:{{ p.id.toRfc4122 }}" {{ actionResponsible == 'p:' ~ p.id.toRfc4122 ? 'selected' : '' }}>{{ p.name }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    </select>
+                                    {% if errors.actionResponsible is defined or errors.responsible is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.actionResponsible ?? errors.responsible }}</p>{% endif %}
+                                </div>
+                                <div>
+                                    <label for="action-due" class="{{ label }}">{{ 'action.due'|trans({}, 'quality') }}</label>
+                                    <input id="action-due" type="date" data-model="norender|actionDueDate" value="{{ actionDueDate }}" class="{{ input }}">
+                                    {% if errors.actionDueDate is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.actionDueDate }}</p>{% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button type="submit" class="{{ primary }}">{{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}{{ 'action.add'|trans({}, 'quality') }}</button>
+                            <button type="button" data-action="live#action" data-live-action-param="toggleAddAction" class="text-sm font-medium text-gray-500 hover:text-gray-700">{{ 'cancel'|trans({}, 'quality') }}</button>
+                        </div>
+                    </form>
+                {% endif %}
+
+                {% if f.actions is empty %}
+                    <p class="px-5 sm:px-6 py-5 text-sm text-gray-500">{{ 'action.none'|trans({}, 'quality') }}</p>
+                {% else %}
+                    <ul class="divide-y divide-gray-100">
+                        {% for a in f.actions %}
+                            {% set aid = a.id.toRfc4122 %}
+                            {% set can_work = this.canWorkOn(a) and f.status.open %}
+                            <li id="accion-{{ aid }}" class="px-5 sm:px-6 py-4 space-y-2">
+                                <div class="flex flex-wrap items-start gap-2">
+                                    <span class="shrink-0 rounded-md border border-gray-200 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">{{ ('action_type.' ~ a.type.value)|trans({}, 'quality') }}</span>
+                                    <p class="min-w-0 flex-1 text-sm text-gray-900">{{ a.description }}</p>
+                                    <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium {{ {'pending': 'bg-amber-50 text-amber-700', 'in_progress': 'bg-sky-50 text-sky-700', 'done': 'bg-forest-50 text-forest-700'}[a.status.value] }}">{{ ('action_status.' ~ a.status.value)|trans({}, 'quality') }}</span>
+                                </div>
+                                <p class="text-xs text-gray-500">
+                                    {{ 'action.who'|trans({'%name%': a.responsibleTeacher ? _self.person(a.responsibleTeacher) : (a.responsibleProfile ? a.responsibleProfile.name : '—')}, 'quality') }}
+                                    {%- if a.dueDate and not a.done %} · {{ 'action.due_on'|trans({'%date%': a.dueDate|date('d/m/Y')}, 'quality') }}{% endif %}
+                                    {%- if a.done %} · {{ 'action.done_by'|trans({'%name%': _self.person(a.doneBy), '%date%': a.doneAt|date('d/m/Y')}, 'quality') }}{% endif %}
+                                </p>
+                                {% if a.result %}<p class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700 whitespace-pre-line">{{ a.result }}</p>{% endif %}
+                                {% if a.attachments is not empty %}
+                                    <ul class="flex flex-wrap gap-2">
+                                        {% for att in a.attachments %}
+                                            <li><a href="{{ path('app_quality_attachment', {id: att.id.toRfc4122}) }}" class="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-50">{{ ux_icon('heroicons:paper-clip', {class: 'h-3 w-3'}) }}{{ att.filename }}</a></li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+
+                                {% if can_work and not a.done %}
+                                    {% if completingActionId == aid %}
+                                        <form data-action="submit->live#action:prevent" data-live-action-param="completeAction" class="space-y-2 rounded-lg border border-forest-100 bg-forest-50/40 p-3">
+                                            <label for="complete-{{ aid }}" class="{{ label }}">{{ 'action.result'|trans({}, 'quality') }}</label>
+                                            <textarea id="complete-{{ aid }}" rows="2" data-model="norender|completeResult" class="{{ input }}" placeholder="{{ 'action.result_placeholder'|trans({}, 'quality') }}">{{ completeResult }}</textarea>
+                                            {% if errors.completeResult is defined %}<p class="text-xs text-red-600">{{ errors.completeResult }}</p>{% endif %}
+                                            <div class="flex flex-wrap items-center gap-3">
+                                                <button type="submit" class="{{ primary }}">{{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'action.mark_done'|trans({}, 'quality') }}</button>
+                                                <button type="button" data-action="live#action" data-live-action-param="toggleCompleteAction" data-live-id-param="{{ aid }}" class="text-sm font-medium text-gray-500 hover:text-gray-700">{{ 'cancel'|trans({}, 'quality') }}</button>
+                                            </div>
+                                        </form>
+                                    {% else %}
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            {% if a.status.value == 'pending' %}
+                                                <button type="button" data-action="live#action" data-live-action-param="startAction" data-live-id-param="{{ aid }}" class="{{ secondary }} text-xs">{{ 'action.start'|trans({}, 'quality') }}</button>
+                                            {% endif %}
+                                            <button type="button" data-action="live#action" data-live-action-param="toggleCompleteAction" data-live-id-param="{{ aid }}" class="{{ primary }} text-xs">{{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'action.mark_done'|trans({}, 'quality') }}</button>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                                {% if can_work %}
+                                    <form method="post" action="{{ path('app_quality_action_attach', {id: aid}) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('quality_attach_' ~ aid) }}">
+                                        <label class="sr-only" for="action-files-{{ aid }}">{{ 'attachment.evidence'|trans({}, 'quality') }}</label>
+                                        <input id="action-files-{{ aid }}" type="file" name="files[]" multiple class="min-w-0 flex-1 text-xs text-gray-600 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-gray-700">
+                                        <button type="submit" class="{{ secondary }} text-xs">{{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}{{ 'attachment.evidence'|trans({}, 'quality') }}</button>
+                                    </form>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </section>
+
+            {% if f.verifiedAt %}
+                <section class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs space-y-2">
+                    <h2 class="text-base font-semibold text-gray-900">{{ 'verify.title'|trans({}, 'quality') }}</h2>
+                    <p class="text-sm font-medium {{ f.effective ? 'text-forest-700' : 'text-rose-700' }}">{{ (f.effective ? 'verify.result_effective' : 'verify.result_ineffective')|trans({'%name%': _self.person(f.verifiedBy), '%date%': f.verifiedAt|date('d/m/Y')}, 'quality') }}</p>
+                    {% if f.verificationNotes %}<p class="text-sm text-gray-700 whitespace-pre-line">{{ f.verificationNotes }}</p>{% endif %}
+                </section>
+            {% endif %}
+        </div>
+
+        {# ── Línea de tiempo ───────────────────────────────────────────── #}
+        <aside class="space-y-4">
+            <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs space-y-4">
+                <h2 class="text-base font-semibold text-gray-900">{{ 'timeline.title'|trans({}, 'quality') }}</h2>
+                <ol class="space-y-3 border-l-2 border-gray-100 pl-4">
+                    {% for e in f.timeline|reverse %}
+                        <li class="relative">
+                            <span class="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full {{ e.kind.value == 'comment' ? 'bg-sky-400' : 'bg-forest-400' }}"></span>
+                            <p class="text-sm text-gray-800">
+                                {{ ('timeline.' ~ e.kind.value)|trans({'%action%': e.data.action ?? '', '%file%': e.data.file ?? ''}, 'quality') }}
+                            </p>
+                            {% if e.text %}<p class="mt-0.5 text-sm text-gray-600 whitespace-pre-line">{{ e.text }}</p>{% endif %}
+                            <p class="text-xs text-gray-400">{{ _self.person(e.actor) }} · {{ e.occurredAt|date('d/m/Y H:i') }}</p>
+                        </li>
+                    {% endfor %}
+                </ol>
+                <form data-action="submit->live#action:prevent" data-live-action-param="addComment" class="space-y-2 border-t border-gray-100 pt-4">
+                    <label for="finding-comment" class="sr-only">{{ 'timeline.add_comment'|trans({}, 'quality') }}</label>
+                    <textarea id="finding-comment" rows="2" data-model="norender|comment" class="{{ input }}" placeholder="{{ 'timeline.comment_placeholder'|trans({}, 'quality') }}">{{ comment }}</textarea>
+                    <button type="submit" class="{{ secondary }} text-xs">{{ ux_icon('heroicons:chat-bubble-left', {class: 'h-4 w-4'}) }}{{ 'timeline.add_comment'|trans({}, 'quality') }}</button>
+                </form>
+            </section>
+        </aside>
+    </div>
+</div>

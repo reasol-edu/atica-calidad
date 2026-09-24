@@ -1,0 +1,49 @@
+framework:
+    workflows:
+        # Life cycle of a finding (incident, nonconformity, observation or improvement opportunity).
+        # The marking is the App\Entity\FindingStatus enum; who may take each step, and when, is
+        # decided by App\EventSubscriber\FindingWorkflowSubscriber (guards), which also writes the
+        # timeline, the activity log and the notifications once a step is taken.
+        # Diagram for the manual: php bin/console workflow:dump finding --dump-format=mermaid
+        finding:
+            type: state_machine
+            audit_trail:
+                enabled: false
+            marking_store:
+                type: method
+                property: status
+            supports:
+                - App\Entity\Finding
+            initial_marking: reported
+            places:
+                - reported
+                - analysis
+                - execution
+                - verification
+                - closed
+                - discarded
+            transitions:
+                classify_nonconformity:
+                    from: reported
+                    to: analysis
+                classify_other:
+                    from: reported
+                    to: execution
+                discard:
+                    from: reported
+                    to: discarded
+                submit_analysis:
+                    from: analysis
+                    to: execution
+                request_verification:
+                    from: execution
+                    to: verification
+                verify_effective:
+                    from: verification
+                    to: closed
+                verify_ineffective:
+                    from: verification
+                    to: analysis
+                close:
+                    from: execution
+                    to: closed

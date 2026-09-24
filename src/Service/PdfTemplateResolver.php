@@ -18,10 +18,10 @@ final class PdfTemplateResolver
     ) {}
 
     /**
-     * A report without a template setting of its own ("read_acknowledgements") always gets the
-     * general one for its orientation.
+     * A report without a template setting of its own ("read_acknowledgements", "findings") always
+     * gets the general one for its orientation.
      *
-     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements' $reportType
+     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings' $reportType
      */
     public function resolve(string $reportType, string $orientation, EducationalCentre $centre): ?ResolvedSettingFile
     {

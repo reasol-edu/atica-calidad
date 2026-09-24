@@ -1,0 +1,81 @@
+{#
+   How a finding's status, kind and tasks look everywhere in "Mejora continua" — the hub, the list,
+   the finding page and "Tus próximos pasos" share these macros, so they always read the same.
+#}
+
+{% macro status_pill(status) -%}
+    {%- set classes = {
+        'reported':     'bg-amber-50 text-amber-700',
+        'analysis':     'bg-rose-50 text-rose-700',
+        'execution':    'bg-sky-50 text-sky-700',
+        'verification': 'bg-violet-50 text-violet-700',
+        'closed':       'bg-forest-50 text-forest-700',
+        'discarded':    'bg-gray-100 text-gray-600',
+    } -%}
+    <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium {{ classes[status.value] ?? 'bg-gray-100 text-gray-600' }}">
+        {{- ('status.' ~ status.value)|trans({}, 'quality') -}}
+    </span>
+{%- endmacro %}
+
+{% macro kind_chip(finding) -%}
+    {%- if finding.kind -%}
+        <span class="shrink-0 rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-gray-600">
+            {{- ('kind.' ~ finding.kind.value)|trans({}, 'quality') }}{% if finding.severity %} · {{ ('severity.' ~ finding.severity.value)|trans({}, 'quality') }}{% endif -%}
+        </span>
+    {%- endif -%}
+{%- endmacro %}
+
+{# "NC-2026-014" in a monospace chip, or nothing while unclassified. #}
+{% macro code(finding) -%}
+    {%- if finding.code -%}
+        <span class="shrink-0 font-mono text-xs font-semibold text-gray-500">{{ finding.code }}</span>
+    {%- endif -%}
+{%- endmacro %}
+
+{# One finding as a list row, linking to its page. #}
+{% macro finding_row(finding) -%}
+    {% import _self as q %}
+    <li>
+        <a href="{{ path('app_quality_finding', {id: finding.id.toRfc4122}) }}" class="flex items-start gap-3 px-6 py-3 transition-colors hover:bg-gray-50">
+            <span class="min-w-0 flex-1">
+                <span class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    {{ q.code(finding) }}
+                    <span class="min-w-0 truncate text-sm font-medium text-gray-900">{{ finding.title }}</span>
+                </span>
+                <span class="mt-0.5 block truncate text-xs text-gray-500">
+                    {{ 'finding.reported_on'|trans({'%date%': finding.reportedAt|date('d/m/Y')}, 'quality') }}
+                    {%- if finding.section %} · {{ finding.section.name }}{% endif %}
+                </span>
+            </span>
+            <span class="flex shrink-0 items-center gap-2 self-center">
+                {{ q.kind_chip(finding) }}
+                {{ q.status_pill(finding.status) }}
+            </span>
+        </a>
+    </li>
+{%- endmacro %}
+
+{# One task (QualityTask) as a list row, with the urgency colours of the activities. compact: the dashboard's tighter padding. #}
+{% macro task_row(task, compact) -%}
+    {%- set bg = {'overdue': 'bg-red-50 hover:bg-red-100', 'soon': 'bg-amber-50 hover:bg-amber-100'}[task.urgency] ?? 'hover:bg-gray-50' -%}
+    {%- set icon = {
+        'classify': 'heroicons:inbox-arrow-down',
+        'analyze':  'heroicons:magnifying-glass',
+        'action':   'heroicons:wrench-screwdriver',
+        'verify':   'heroicons:check-badge',
+    }[task.type] -%}
+    <li>
+        <a href="{{ path('app_quality_finding', {id: task.finding.id.toRfc4122}) }}{{ task.action ? '#accion-' ~ task.action.id.toRfc4122 : '' }}"
+           class="flex items-start gap-3 {{ compact ? 'px-6 py-3' : 'px-6 py-3' }} transition-colors {{ bg }}">
+            <span class="mt-0.5 shrink-0 {{ task.urgency == 'overdue' ? 'text-red-500' : 'text-forest-600' }}">{{ ux_icon(icon, {class: 'h-5 w-5'}) }}</span>
+            <span class="min-w-0 flex-1">
+                <span class="block truncate text-sm font-medium text-gray-900">{{ ('task.' ~ task.type)|trans({}, 'quality') }}: {{ task.label }}</span>
+                <span class="block truncate text-xs text-gray-500">
+                    {{ task.finding.code ?? 'finding.no_code'|trans({}, 'quality') }}
+                    {%- if task.action %} · {{ task.finding.title }}{% endif %}
+                    {%- if task.dueDate %} · {{ ('task.due.' ~ task.urgency)|trans({'%date%': task.dueDate|date('d/m/Y')}, 'quality') }}{% endif %}
+                </span>
+            </span>
+        </a>
+    </li>
+{%- endmacro %}

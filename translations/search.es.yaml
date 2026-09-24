@@ -11,3 +11,4 @@ groups:
     activities: 'Actividades'
 actions:
     change_year: 'Cambiar de curso'
+    report_incident: 'Comunicar incidencia'

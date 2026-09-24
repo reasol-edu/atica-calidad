@@ -24,6 +24,7 @@ settings.category.report_templates.label: 'Plantillas de informes'
 settings.category.audit.label: 'Registro de actividad'
 settings.category.security.label: 'Seguridad'
 settings.category.trash.label: 'Papelera'
+settings.category.quality.label: 'Mejora continua'
 
 # ── Definiciones de ajustes ───────────────────────────────────────────────────
 settings.key.page_size.label: 'Resultados por página'
@@ -40,6 +41,12 @@ settings.key.audit_log_enabled.description: 'Guarda un registro de auditoría de
 
 settings.key.audit_log_retention_days.label: 'Retención del registro de actividad'
 settings.key.audit_log_retention_days.description: 'Días que se conservan las entradas del registro de actividad antes de eliminarse automáticamente. Un valor de 0 desactiva esta eliminación automática.'
+
+settings.key.quality_verification_days.label: 'Días hasta la verificación de eficacia'
+settings.key.quality_verification_days.description: 'Cuando se terminan todas las acciones de una no conformidad, días que se dejan pasar antes de comprobar si han sido eficaces. Es la fecha que se propone a la coordinación de calidad; puede verificarse antes.'
+
+settings.key.notifications_quality_notifications_enabled.label: 'Avisos de Mejora continua'
+settings.key.notifications_quality_notifications_enabled.description: 'Avisa por correo cuando te toca algo en Mejora continua (clasificar, analizar, hacer una acción, verificar) y cuando se resuelve una incidencia que comunicaste.'
 
 settings.key.trash_retention_days.label: 'Días en la papelera'
 settings.key.trash_retention_days.description: 'Días que se conservan en la papelera los documentos y las actividades eliminados antes de borrarse para siempre. Un valor de 0 desactiva el vaciado automático: solo se borran a mano desde la papelera.'

@@ -59,6 +59,13 @@
             'activity_status.summary'|trans({'%count%': activityCount}, 'reports'),
         ) }}
 
+        {% set open_findings = (findingCounts.reported ?? 0) + (findingCounts.analysis ?? 0) + (findingCounts.execution ?? 0) + (findingCounts.verification ?? 0) %}
+        {{ _self.report_card(
+            'heroicons:arrow-trending-up', 'findings', 'app_reports_findings', centre,
+            'findings.description'|trans({}, 'reports'),
+            'findings.summary'|trans({'%count%': open_findings, '%closed%': findingCounts.closed ?? 0}, 'reports'),
+        ) }}
+
         {{ _self.report_card(
             'heroicons:check-badge', 'read_acknowledgements', 'app_reports_read_acknowledgements', centre,
             'read_acknowledgements.description'|trans({}, 'reports'),

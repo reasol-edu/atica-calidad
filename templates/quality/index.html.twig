@@ -1,0 +1,120 @@
+{% extends 'layouts/app.html.twig' %}
+{% import 'quality/_macros.html.twig' as q %}
+
+{% block title %}{{ 'quality'|trans({}, 'navigation') }} · {{ app_name }}{% endblock %}
+
+{#
+   Hub of "Mejora continua". Everyone: report an incident, what's theirs to do, what they reported.
+   Quality managers: the inbox of reports to classify, and counts by status. Whoever sees
+   everything: a link to the full list.
+#}
+{% block content %}
+<div class="px-6 py-8 max-w-5xl mx-auto space-y-6">
+
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                {% include 'components/_breadcrumb_home.html.twig' %}
+                <span aria-current="page" class="text-gray-700 font-medium">{{ 'quality'|trans({}, 'navigation') }}</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ 'quality'|trans({}, 'navigation') }}</h1>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ 'hub.intro'|trans({}, 'quality') }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            {% if seesAll %}
+                <a href="{{ path('app_quality_findings') }}"
+                   class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    {{ ux_icon('heroicons:queue-list', {class: 'h-4 w-4'}) }}
+                    {{ 'hub.all'|trans({}, 'quality') }}
+                </a>
+            {% endif %}
+            <a href="{{ path('app_quality_report') }}"
+               class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                {{ ux_icon('heroicons:megaphone', {class: 'h-4 w-4'}) }}
+                {{ 'report.button'|trans({}, 'quality') }}
+            </a>
+        </div>
+    </div>
+
+    {% if seesAll %}
+        {# ── Counts by status ─────────────────────────────────────────────── #}
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {# Literal classes, one set per status: Tailwind only generates what it finds written out. #}
+            {% for status, tone in {
+                reported:     ['border-amber-100 bg-amber-50 hover:border-amber-200', 'text-amber-700', 'text-amber-600'],
+                analysis:     ['border-rose-100 bg-rose-50 hover:border-rose-200', 'text-rose-700', 'text-rose-600'],
+                execution:    ['border-sky-100 bg-sky-50 hover:border-sky-200', 'text-sky-700', 'text-sky-600'],
+                verification: ['border-violet-100 bg-violet-50 hover:border-violet-200', 'text-violet-700', 'text-violet-600'],
+            } %}
+                <a href="{{ path('app_quality_findings', {status: status}) }}" class="rounded-xl border px-4 py-3 transition-colors {{ tone[0] }}">
+                    <p class="text-2xl font-bold {{ tone[1] }}">{{ counts[status] ?? 0 }}</p>
+                    <p class="text-xs font-medium {{ tone[2] }}">{{ ('status.' ~ status)|trans({}, 'quality') }}</p>
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if isManager %}
+        {# ── Inbox ────────────────────────────────────────────────────────── #}
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+            <h2 class="flex items-center gap-2 border-b border-gray-100 px-6 py-4 text-base font-semibold text-gray-900">
+                {{ ux_icon('heroicons:inbox-arrow-down', {class: 'h-5 w-5 text-forest-600'}) }}
+                {{ 'hub.inbox'|trans({}, 'quality') }}
+                {% if inbox is not empty %}<span class="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">{{ inbox|length }}</span>{% endif %}
+            </h2>
+            {% if inbox is empty %}
+                <p class="px-6 py-5 text-sm text-gray-500">{{ 'hub.inbox_empty'|trans({}, 'quality') }}</p>
+            {% else %}
+                <ul class="divide-y divide-gray-100">
+                    {% for finding in inbox %}
+                        <li>
+                            <a href="{{ path('app_quality_finding', {id: finding.id.toRfc4122}) }}" class="flex items-start gap-3 px-6 py-3 transition-colors hover:bg-gray-50">
+                                <span class="mt-0.5 shrink-0 text-amber-500">{{ ux_icon('heroicons:megaphone', {class: 'h-5 w-5'}) }}</span>
+                                <span class="min-w-0 flex-1">
+                                    <span class="block truncate text-sm font-medium text-gray-900">{{ finding.title }}</span>
+                                    <span class="block truncate text-xs text-gray-500">
+                                        {{ 'hub.reported_by'|trans({'%name%': finding.reportedBy ? finding.reportedBy.name.firstName ~ ' ' ~ finding.reportedBy.name.lastName : '—', '%date%': finding.reportedAt|date('d/m/Y H:i')}, 'quality') }}
+                                        {%- if finding.section %} · {{ finding.section.name }}{% endif %}
+                                    </span>
+                                </span>
+                                <span class="shrink-0 self-center text-xs font-medium text-forest-600">{{ 'hub.classify'|trans({}, 'quality') }} →</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    {# ── What's yours to do ───────────────────────────────────────────────── #}
+    {% set my_tasks = tasks|filter(t => t.type != 'classify') %}
+    <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+        <h2 class="flex items-center gap-2 border-b border-gray-100 px-6 py-4 text-base font-semibold text-gray-900">
+            {{ ux_icon('heroicons:check-circle', {class: 'h-5 w-5 text-forest-600'}) }}
+            {{ 'hub.tasks'|trans({}, 'quality') }}
+        </h2>
+        {% if my_tasks is empty %}
+            <p class="px-6 py-5 text-sm text-gray-500">{{ 'hub.tasks_empty'|trans({}, 'quality') }}</p>
+        {% else %}
+            <ul class="divide-y divide-gray-100">
+                {% for task in my_tasks %}{{ q.task_row(task) }}{% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+
+    {# ── What you reported ────────────────────────────────────────────────── #}
+    <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+        <h2 class="flex items-center gap-2 border-b border-gray-100 px-6 py-4 text-base font-semibold text-gray-900">
+            {{ ux_icon('heroicons:megaphone', {class: 'h-5 w-5 text-forest-600'}) }}
+            {{ 'hub.mine'|trans({}, 'quality') }}
+        </h2>
+        {% if mine is empty %}
+            <p class="px-6 py-5 text-sm text-gray-500">{{ 'hub.mine_empty'|trans({}, 'quality') }}</p>
+        {% else %}
+            <ul class="divide-y divide-gray-100">
+                {% for finding in mine %}{{ q.finding_row(finding) }}{% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
