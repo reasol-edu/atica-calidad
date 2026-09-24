@@ -110,6 +110,28 @@ final class ActivityBulkReviewAndReminderTest extends ControllerTestCase
         ];
     }
 
+    /** A submission left pending from last year's occurrence comes apart, with its year and unticked. */
+    public function testSubmissionsFromEarlierYearsComeApartAndUnticked(): void
+    {
+        [$centre, $activity, $reviewer, $one, $two] = $this->reviewScenario();
+        /** @var ActivityDeadlineChecker $deadline */
+        $deadline = self::getContainer()->get(ActivityDeadlineChecker::class);
+        $last     = $deadline->currentCycleKey($activity) - 1;
+        $two->getDocument()->setActivityCycleYear($last);
+        $this->flush();
+        $aid = $activity->getId()->toRfc4122();
+
+        $this->loginAs($reviewer, $centre);
+        $this->client->request('GET', '/actividades?category=' . $activity->getCategory()->getId()->toRfc4122() . '&activity=' . $aid);
+        $content = (string) $this->client->getResponse()->getContent();
+
+        self::assertStringContainsString('1 entrega por revisar', $content);
+        self::assertStringContainsString('1 entrega de un curso anterior', $content);
+        self::assertStringContainsString(ActivityDeadlineChecker::academicYearLabel($last), $content);
+        self::assertMatchesRegularExpression('/value="' . $one->getId()->toRfc4122() . '"\s+checked/', $content);
+        self::assertDoesNotMatchRegularExpression('/value="' . $two->getId()->toRfc4122() . '"\s+checked/', $content);
+    }
+
     public function testApprovesTheTickedSubmissionsOfTheActivityAndIgnoresAnyOtherId(): void
     {
         [$centre, $activity, $reviewer, $one, $two, $foreign] = $this->reviewScenario();

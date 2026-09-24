@@ -887,18 +887,33 @@ class ActivityBrowserComponent extends AbstractController
 
     /**
      * The activity's submissions awaiting review, for its bulk review box — only for whoever
-     * reviews its folder; empty for everyone else.
+     * reviews its folder; empty for everyone else. Split between the current occurrence's and
+     * those left from earlier ones (by their document's cycle key, see
+     * DocumentActivityCycleListener), so last year's are never approved or rejected along with
+     * this year's by mistake; the latter carry the academic year they belong to.
      *
-     * @return list<DocumentRevision>
+     * @return array{current: list<DocumentRevision>, older: list<array{revision: DocumentRevision, year: ?string}>}
      */
     public function getPendingReviews(Activity $activity): array
     {
         $folder = $activity->getFolder();
         if ($folder === null || !$this->canReviewFolder($folder)) {
-            return [];
+            return ['current' => [], 'older' => []];
         }
 
-        return $this->revisions->findPendingReviewByFolder($folder);
+        $cycle   = $this->deadline->currentCycleKey($activity);
+        $current = [];
+        $older   = [];
+        foreach ($this->revisions->findPendingReviewByFolder($folder) as $revision) {
+            $year = $revision->getDocument()->getActivityCycleYear();
+            if ($year === $cycle) {
+                $current[] = $revision;
+            } else {
+                $older[] = ['revision' => $revision, 'year' => $year === null ? null : ActivityDeadlineChecker::academicYearLabel($year)];
+            }
+        }
+
+        return ['current' => $current, 'older' => $older];
     }
 
     /** "Recordar a pendientes": same rule as ActivityController::canRemind(). */

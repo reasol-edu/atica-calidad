@@ -1,31 +1,54 @@
 {# The activity's submissions awaiting review, to approve or reject several at once
-   (ActivityController::bulkReview) — for whoever reviews its folder. All ticked by default;
-   rejecting asks for confirmation, since each uploader gets an email. activity, pending: list<DocumentRevision> #}
+   (ActivityController::bulkReview) — for whoever reviews its folder. This year's are all ticked
+   by default; those left from earlier years come apart, with their academic year and unticked, so
+   they're never decided along with this year's by mistake. Rejecting asks for confirmation, since
+   each uploader gets an email.
+   activity, pending: list<DocumentRevision>, older: list<{revision: DocumentRevision, year: ?string}> #}
 {% set aid = activity.id.toRfc4122 %}
+
+{% macro row(revision, checked, year) %}
+    {% set document = revision.document %}
+    <li>
+        <label class="flex items-center gap-2 rounded-md bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50">
+            <input type="checkbox" name="revisions[]" value="{{ revision.id.toRfc4122 }}" {{ checked ? 'checked' : '' }}
+                   class="h-3.5 w-3.5 rounded border-gray-300 text-forest-600 focus:ring-forest-500/30">
+            <span class="min-w-0 flex-1 truncate">{{ document.name }} <span class="text-gray-400">· v{{ revision.version }}</span></span>
+            {% if year is not same as(false) %}
+                <span class="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">{{ year ?? 'bulk_review.no_year'|trans({}, 'activity_content') }}</span>
+            {% endif %}
+            <span class="shrink-0 text-gray-400">{{ revision.uploadedBy.name.lastName }}, {{ revision.uploadedBy.name.firstName }} · {{ revision.revisedAt|date('d/m/Y') }}</span>
+            <a href="{{ path('app_folder_document_revision_download', {folderId: document.folder.id.toRfc4122, documentId: document.id.toRfc4122, revisionId: revision.id.toRfc4122}) }}"
+               class="shrink-0 text-gray-300 hover:text-forest-600" title="{{ 'download'|trans({}, 'document_content') }}">
+                {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-3.5 w-3.5'}) }}
+            </a>
+        </label>
+    </li>
+{% endmacro %}
+
 <form method="post" action="{{ path('app_activity_bulk_review', {activityId: aid}) }}"
       class="js-confirm-form rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2.5 space-y-2">
     <input type="hidden" name="_token" value="{{ csrf_token('activity_bulk_review_' ~ aid) }}">
-    <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-800">
-        {{ ux_icon('heroicons:document-magnifying-glass', {class: 'h-4 w-4'}) }}
-        {{ 'bulk_review.title'|trans({'%count%': pending|length}, 'activity_content') }}
-    </p>
-    <ul class="space-y-1">
-        {% for revision in pending %}
-            {% set document = revision.document %}
-            <li>
-                <label class="flex items-center gap-2 rounded-md bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50">
-                    <input type="checkbox" name="revisions[]" value="{{ revision.id.toRfc4122 }}" checked
-                           class="h-3.5 w-3.5 rounded border-gray-300 text-forest-600 focus:ring-forest-500/30">
-                    <span class="min-w-0 flex-1 truncate">{{ document.name }} <span class="text-gray-400">· v{{ revision.version }}</span></span>
-                    <span class="shrink-0 text-gray-400">{{ revision.uploadedBy.name.lastName }}, {{ revision.uploadedBy.name.firstName }} · {{ revision.revisedAt|date('d/m/Y') }}</span>
-                    <a href="{{ path('app_folder_document_revision_download', {folderId: document.folder.id.toRfc4122, documentId: document.id.toRfc4122, revisionId: revision.id.toRfc4122}) }}"
-                       class="shrink-0 text-gray-300 hover:text-forest-600" title="{{ 'download'|trans({}, 'document_content') }}">
-                        {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-3.5 w-3.5'}) }}
-                    </a>
-                </label>
-            </li>
-        {% endfor %}
-    </ul>
+    {% if pending is not empty %}
+        <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-800">
+            {{ ux_icon('heroicons:document-magnifying-glass', {class: 'h-4 w-4'}) }}
+            {{ 'bulk_review.title'|trans({'%count%': pending|length}, 'activity_content') }}
+        </p>
+        <ul class="space-y-1">
+            {% for revision in pending %}{{ _self.row(revision, true, false) }}{% endfor %}
+        </ul>
+    {% endif %}
+    {% if older is not empty %}
+        <div class="space-y-1">
+            <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-600">
+                {{ ux_icon('heroicons:clock', {class: 'h-4 w-4'}) }}
+                {{ 'bulk_review.older_title'|trans({'%count%': older|length}, 'activity_content') }}
+            </p>
+            <p class="text-xs text-gray-500">{{ 'bulk_review.older_help'|trans({}, 'activity_content') }}</p>
+            <ul class="space-y-1">
+                {% for item in older %}{{ _self.row(item.revision, false, item.year) }}{% endfor %}
+            </ul>
+        </div>
+    {% endif %}
     <div class="flex flex-wrap items-center gap-2">
         <input type="text" name="reviewResult" placeholder="{{ 'bulk_review.result_placeholder'|trans({}, 'activity_content') }}"
                class="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-forest-500/20">

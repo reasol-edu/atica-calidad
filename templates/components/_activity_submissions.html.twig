@@ -91,8 +91,8 @@
 
     {# ── Pending review, all at once ──────────────────────────────────── #}
     {% set pending_reviews = this.getPendingReviews(activity) %}
-    {% if pending_reviews is not empty %}
-        {% include 'components/_activity_bulk_review.html.twig' with {activity: activity, pending: pending_reviews} %}
+    {% if pending_reviews.current is not empty or pending_reviews.older is not empty %}
+        {% include 'components/_activity_bulk_review.html.twig' with {activity: activity, pending: pending_reviews.current, older: pending_reviews.older} %}
     {% endif %}
 
     {# ── All submissions ──────────────────────────────────────────────── #}
