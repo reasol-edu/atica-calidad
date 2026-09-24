@@ -8,6 +8,7 @@ use App\Entity\Audit;
 use App\Entity\AuditItem;
 use App\Entity\EducationalCentre;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
 
@@ -56,6 +57,25 @@ class AuditRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
 
         return $result instanceof AuditItem ? $result : null;
+    }
+
+    /**
+     * The centre's audits planned for a month that overlaps [$from, $to], in month order.
+     *
+     * @return list<Audit>
+     */
+    public function findPlannedBetween(EducationalCentre $centre, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.educationalCentre = :centre')
+            ->andWhere('a.plannedMonth >= :from AND a.plannedMonth <= :to')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('from', $from->modify('first day of this month')->setTime(0, 0), Types::DATE_IMMUTABLE)
+            ->setParameter('to', $to->setTime(0, 0), Types::DATE_IMMUTABLE)
+            ->orderBy('a.plannedMonth', 'ASC')
+            ->addOrderBy('a.code', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 
     /** @return list<string> the centre's audit codes starting with $prefix ("AI-2026-") */

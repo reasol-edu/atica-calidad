@@ -1,0 +1,368 @@
+{% extends 'layouts/app.html.twig' %}
+{% import 'quality/_macros.html.twig' as q %}
+
+{% block title %}{{ review.title }} · {{ app_name }}{% endblock %}
+
+{#
+   A management review, in the order of ISO 9001 9.3.2 but in the centre's words: what became of
+   the previous review's decisions, the context, satisfaction and complaints, indicators,
+   nonconformities, audits, activities and documents, providers, resources, the improvement plan
+   and its opportunities; then the conclusions and the decisions. What the application knows is
+   compiled live while it's open and frozen when it's closed (inputs); the texts are the
+   management team's; the decisions are improvement plan actions, always shown as they are now.
+#}
+{% block content %}
+{% set rid = review.id.toRfc4122 %}
+{% set secondary = 'inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors' %}
+{% set card = 'rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs space-y-4' %}
+{% set h2 = 'flex items-baseline gap-2 text-base font-semibold text-gray-900' %}
+{% set clause = 'font-mono text-[11px] font-medium text-gray-400' %}
+{% set stat = 'rounded-xl bg-gray-50 px-3 py-2.5' %}
+{% set findings = inputs.findings %}
+
+{% macro text_block(review, name, canManage) -%}
+    {%- set value = attribute(review, name) -%}
+    {%- if value -%}
+        <div class="whitespace-pre-line text-sm text-gray-800">{{ value }}</div>
+    {%- else -%}
+        <p class="text-sm italic text-gray-400">
+            {{- 'review.not_written'|trans({}, 'quality') -}}
+            {%- if canManage %} · <a href="{{ path('app_quality_review_edit', {id: review.id.toRfc4122}) }}#review-{{ name }}" class="not-italic font-medium text-forest-700 hover:underline">{{ 'review.write'|trans({}, 'quality') }}</a>{% endif -%}
+        </p>
+    {%- endif -%}
+{%- endmacro %}
+
+{# A plain finding (as the inputs keep it) as a list row. #}
+{% macro finding_item(f) -%}
+    {% import 'quality/_macros.html.twig' as q %}
+    <li>
+        <a href="{{ path('app_quality_finding', {id: f.id}) }}" class="flex items-start gap-3 py-2 text-sm hover:text-forest-700">
+            {% if f.code %}<span class="shrink-0 font-mono text-xs font-semibold text-gray-500 mt-0.5">{{ f.code }}</span>{% endif %}
+            <span class="min-w-0 flex-1 text-gray-800">{{ f.title }}</span>
+            {{ q.status_pill({value: f.status}) }}
+        </a>
+    </li>
+{%- endmacro %}
+
+{# A plain action (as the inputs keep it) as a list row. #}
+{% macro action_item(a) -%}
+    <li class="flex flex-wrap items-start gap-x-3 gap-y-1 py-2 text-sm">
+        <a href="{{ path('app_quality_action', {id: a.id}) }}" class="min-w-0 flex-1 hover:text-forest-700">
+            {% if a.code %}<span class="font-mono text-xs font-semibold text-gray-500">{{ a.code }}</span> {% endif %}
+            <span class="text-gray-800">{{ a.description }}</span>
+            <span class="block text-xs text-gray-500">{{ a.responsible ?? '—' }}{% if a.dueDate %} · {{ 'task.due.open'|trans({'%date%': a.dueDate|date('d/m/Y')}, 'quality') }}{% endif %}</span>
+        </a>
+        {% if a.overdue %}
+            <span class="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">{{ 'action_status.overdue'|trans({}, 'quality') }}</span>
+        {% else %}
+            <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium {{ {'pending': 'bg-amber-50 text-amber-700', 'in_progress': 'bg-sky-50 text-sky-700', 'done': 'bg-forest-50 text-forest-700'}[a.status] }}">{{ ('action_status.' ~ a.status)|trans({}, 'quality') }}</span>
+        {% endif %}
+    </li>
+{%- endmacro %}
+
+<div class="px-4 sm:px-6 py-8 max-w-4xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_quality_index') }}" class="hover:text-forest-600 transition-colors">{{ 'quality'|trans({}, 'navigation') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            <a href="{{ path('app_quality_reviews') }}" class="hover:text-forest-600 transition-colors">{{ 'review.title'|trans({}, 'quality') }}</a>
+        </div>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0">
+                <h1 class="text-2xl font-bold text-gray-900">{{ review.title }}</h1>
+                <p class="mt-1 text-sm text-gray-500">
+                    {{ 'review.held_on'|trans({'%date%': review.heldOn|date('d/m/Y')}, 'quality') }}
+                    · {{ 'review.period_short'|trans({'%from%': review.periodStart|date('d/m/Y'), '%to%': review.periodEnd|date('d/m/Y')}, 'quality') }}
+                </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ path('app_quality_review_pdf', {id: rid}) }}" target="_blank" rel="noopener" class="{{ secondary }}">
+                    {{ ux_icon('heroicons:document-arrow-down', {class: 'h-4 w-4'}) }}{{ 'review.minutes'|trans({}, 'quality') }}
+                </a>
+                {% if canManage %}
+                    <a href="{{ path('app_quality_review_edit', {id: rid}) }}" class="{{ secondary }}">{{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4'}) }}{{ 'review.write'|trans({}, 'quality') }}</a>
+                    <details class="relative">
+                        <summary class="{{ secondary }} cursor-pointer list-none text-red-700 [&::-webkit-details-marker]:hidden" title="{{ 'review.delete'|trans({}, 'quality') }}">{{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}</summary>
+                        <form method="post" action="{{ path('app_quality_review_delete', {id: rid}) }}" class="absolute right-0 z-10 mt-2 w-64 space-y-2 rounded-lg border border-red-100 bg-white p-3 shadow-lg">
+                            <input type="hidden" name="_token" value="{{ csrf_token('quality_review_' ~ rid) }}">
+                            <p class="text-xs text-red-800">{{ 'review.delete_confirm'|trans({}, 'quality') }}</p>
+                            <button type="submit" class="w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">{{ 'review.delete'|trans({}, 'quality') }}</button>
+                        </form>
+                    </details>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ── Where it stands ──────────────────────────────────────────────────────── #}
+    {% if review.closed %}
+        <p class="flex items-start gap-2 rounded-xl bg-forest-50 px-4 py-3 text-sm text-forest-800">
+            {{ ux_icon('heroicons:lock-closed', {class: 'h-5 w-5 shrink-0'}) }}
+            {{ 'review.closed_by'|trans({'%name%': q.person(review.closedBy), '%date%': review.closedAt|date('d/m/Y')}, 'quality') }}
+        </p>
+    {% else %}
+        <section class="rounded-2xl border-2 border-forest-200 bg-forest-50/40 p-5 sm:p-6 space-y-3">
+            <p class="text-sm text-gray-700">{{ 'review.live_help'|trans({'%date%': inputs.compiledAt|date('d/m/Y H:i')}, 'quality') }}</p>
+            {% if blockers is not empty %}
+                <ul class="space-y-1">
+                    {% for key in blockers %}
+                        <li class="flex items-center gap-2 text-sm text-amber-800">{{ ux_icon('heroicons:exclamation-circle', {class: 'h-4 w-4 shrink-0'}) }}{{ key|trans({}, 'quality') }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {% if canClose %}
+                <form method="post" action="{{ path('app_quality_review_close', {id: rid}) }}" class="flex flex-wrap items-center gap-3">
+                    <input type="hidden" name="_token" value="{{ csrf_token('quality_review_' ~ rid) }}">
+                    <button type="submit" {{ blockers is not empty ? 'disabled' : '' }}
+                            class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 disabled:cursor-not-allowed disabled:opacity-50">
+                        {{ ux_icon('heroicons:lock-closed', {class: 'h-4 w-4'}) }}{{ 'review.close'|trans({}, 'quality') }}
+                    </button>
+                    <span class="text-xs text-gray-500">{{ 'review.close_help'|trans({}, 'quality') }}</span>
+                </form>
+            {% else %}
+                <p class="text-xs text-gray-500">{{ 'review.close_who'|trans({}, 'quality') }}</p>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    {% if review.attendees %}
+        <section class="{{ card }}">
+            <h2 class="{{ h2 }}">{{ 'review.text.attendees'|trans({}, 'quality') }}</h2>
+            <div class="whitespace-pre-line text-sm text-gray-800">{{ review.attendees }}</div>
+        </section>
+    {% endif %}
+
+    {# ── a. The previous review's decisions ───────────────────────────────────── #}
+    <section class="{{ card }}">
+        <h2 class="{{ h2 }}"><span class="{{ clause }}">9.3.2 a</span>{{ 'review.section.previous'|trans({}, 'quality') }}</h2>
+        {% if inputs.previousActions.review is null %}
+            <p class="text-sm text-gray-500">{{ 'review.previous_none'|trans({}, 'quality') }}</p>
+        {% elseif inputs.previousActions.items is empty %}
+            <p class="text-sm text-gray-500">{{ 'review.previous_no_decisions'|trans({'%review%': inputs.previousActions.review}, 'quality') }}</p>
+        {% else %}
+            <p class="text-sm text-gray-500">{{ 'review.previous_of'|trans({'%review%': inputs.previousActions.review, '%date%': inputs.previousActions.heldOn|date('d/m/Y')}, 'quality') }}</p>
+            <ul class="divide-y divide-gray-100">{% for a in inputs.previousActions.items %}{{ _self.action_item(a) }}{% endfor %}</ul>
+        {% endif %}
+    </section>
+
+    {# ── b. Context ───────────────────────────────────────────────────────────── #}
+    <section class="{{ card }}">
+        <h2 class="{{ h2 }}"><span class="{{ clause }}">9.3.2 b</span>{{ 'review.text.contextChanges'|trans({}, 'quality') }}</h2>
+        {{ _self.text_block(review, 'contextChanges', canManage) }}
+    </section>
+
+    {# ── c1 / c2. Satisfaction and complaints ─────────────────────────────────── #}
+    <section class="{{ card }}">
+        <h2 class="{{ h2 }}"><span class="{{ clause }}">9.3.2 c 1-2</span>{{ 'review.text.satisfaction'|trans({}, 'quality') }}</h2>
+        {{ _self.text_block(review, 'satisfaction', canManage) }}
+        <div>
+            <h3 class="text-sm font-semibold text-gray-700">{{ 'review.complaints'|trans({'%count%': findings.complaints|length}, 'quality') }}</h3>
+            {% if findings.complaints is not empty %}
+                <ul class="divide-y divide-gray-100">{% for f in findings.complaints %}{{ _self.finding_item(f) }}{% endfor %}</ul>
+            {% endif %}
+        </div>
+    </section>
+
+    {# ── c3. Indicators, activities and documents ─────────────────────────────── #}
+    <section class="{{ card }}">
+        <h2 class="{{ h2 }}"><span class="{{ clause }}">9.3.2 c 3</span>{{ 'review.section.indicators'|trans({}, 'quality') }}</h2>
+        {% if inputs.indicators.rows is empty %}
+            <p class="text-sm text-gray-500">{{ 'review.indicators_none'|trans({}, 'quality') }}</p>
+        {% else %}
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {% for key, color in {'on_target': 'text-forest-700', 'alert': 'text-amber-700', 'off_target': 'text-red-700', 'no_data': 'text-gray-600'} %}
+                    <div class="{{ stat }}"><p class="text-xl font-bold {{ color }}">{{ inputs.indicators.counts[key] }}</p><p class="text-xs text-gray-500">{{ ('indicator.status.' ~ key)|trans({}, 'quality') }}</p></div>
+                {% endfor %}
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[36rem] text-sm">
+                    <thead class="text-left text-xs text-gray-500">
+                        <tr>
+                            <th class="py-2 pr-3 font-medium">{{ 'review.col.indicator'|trans({}, 'quality') }}</th>
+                            <th class="py-2 pr-3 font-medium">{{ 'review.col.target'|trans({}, 'quality') }}</th>
+                            <th class="py-2 pr-3 font-medium">{{ 'review.col.latest'|trans({}, 'quality') }}</th>
+                            <th class="py-2 pr-3 font-medium">{{ 'review.col.previous'|trans({}, 'quality') }}</th>
+                            <th class="py-2 font-medium"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for row in inputs.indicators.rows %}
+                            <tr>
+                                <td class="py-2 pr-3">
+                                    <span class="text-gray-900">{{ row.name }}</span>
+                                    {% if row.process %}<span class="block text-xs text-gray-500">{{ row.process }}</span>{% endif %}
+                                </td>
+                                <td class="py-2 pr-3 whitespace-nowrap text-gray-700">{{ row.target ? (row.higherIsBetter ? '≥ ' : '≤ ') ~ row.target : '—' }}</td>
+                                <td class="py-2 pr-3 whitespace-nowrap text-gray-900">{{ row.latest ?? '—' }}{% if row.latestPeriod %}<span class="block text-xs text-gray-500">{{ row.latestPeriod }}</span>{% endif %}</td>
+                                <td class="py-2 pr-3 whitespace-nowrap text-gray-500">{{ row.previous ?? '—' }}</td>
+                                <td class="py-2 text-right">{% if row.status %}{{ q.indicator_status_pill({value: row.status}) }}{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        <div class="grid gap-4 border-t border-gray-100 pt-4 sm:grid-cols-2">
+            <div class="space-y-2">
+                <h3 class="text-sm font-semibold text-gray-700">{{ 'review.section.activities'|trans({}, 'quality') }}</h3>
+                {% if inputs.activities is null %}
+                    <p class="text-sm text-gray-500">{{ 'review.activities_other_year'|trans({}, 'quality') }}</p>
+                {% elseif inputs.activities.due == 0 %}
+                    <p class="text-sm text-gray-500">{{ 'review.activities_none'|trans({}, 'quality') }}</p>
+                {% else %}
+                    <p class="text-sm text-gray-700">{{ 'review.activities_summary'|trans({'%count%': inputs.activities.due, '%percentage%': inputs.activities.percentage ?? 0}, 'quality') }}</p>
+                    {% if inputs.activities.incomplete is not empty %}
+                        <ul class="space-y-1 text-xs text-gray-600">
+                            {% for a in inputs.activities.incomplete|slice(0, 8) %}
+                                <li>{{ a.title }} <span class="text-gray-400">· {{ a.done }}/{{ a.expected }} · {{ a.deadline|date('d/m/Y') }}</span></li>
+                            {% endfor %}
+                            {% if inputs.activities.incomplete|length > 8 %}<li class="text-gray-400">{{ 'review.and_more'|trans({'%count%': inputs.activities.incomplete|length - 8}, 'quality') }}</li>{% endif %}
+                        </ul>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <div class="space-y-2">
+                <h3 class="text-sm font-semibold text-gray-700">{{ 'review.section.documents'|trans({}, 'quality') }}</h3>
+                <p class="text-sm text-gray-700">{{ 'review.documents_reviews'|trans({'%overdue%': inputs.documents.reviewsOverdue|length, '%soon%': inputs.documents.reviewsSoon}, 'quality') }}</p>
+                {% if inputs.documents.reviewsOverdue is not empty %}
+                    <ul class="space-y-1 text-xs text-gray-600">
+                        {% for d in inputs.documents.reviewsOverdue|slice(0, 8) %}
+                            <li>{{ d.name }} <span class="text-gray-400">· {{ d.folder }} · {{ d.nextReviewAt|date('d/m/Y') }}</span></li>
+                        {% endfor %}
+                        {% if inputs.documents.reviewsOverdue|length > 8 %}<li class="text-gray-400">{{ 'review.and_more'|trans({'%count%': inputs.documents.reviewsOverdue|length - 8}, 'quality') }}</li>{% endif %}
+                    </ul>
+                {% endif %}
+                {% if inputs.documents.readDocuments > 0 %}
+                    <p class="text-sm text-gray-700">{{ 'review.documents_read'|trans({'%count%': inputs.documents.readDocuments, '%complete%': inputs.documents.readComplete, '%percentage%': inputs.documents.readPercentage ?? 0}, 'quality') }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    {# ── c4 / c5. Nonconformities and corrective actions ──────────────────────── #}
+    <section class="{{ card }}">
+        <h2 class="{{ h2 }}"><span class="{{ clause }}">9.3.2 c 4-5</span>{{ 'review.section.findings'|trans({}, 'quality') }}</h2>
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div class="{{ stat }}"><p class="text-xl font-bold text-gray-900">{{ findings.reported }}</p><p class="text-xs text-gray-500">{{ 'review.findings_reported'|trans({}, 'quality') }}</p></div>
+            <div class="{{ stat }}"><p class="text-xl font-bold text-red-700">{{ findings.byKind.nonconformity }}</p><p class="text-xs text-gray-500">{{ 'kind.nonconformity'|trans({}, 'quality') }}</p></div>
+            <div class="{{ stat }}"><p class="text-xl font-bold text-forest-700">{{ findings.effective }}</p><p class="text-xs text-gray-500">{{ 'review.effective'|trans({}, 'quality') }}</p></div>
+            <div class="{{ stat }}"><p class="text-xl font-bold {{ findings.ineffective > 0 ? 'text-red-700' : 'text-gray-900' }}">{{ findings.ineffective }}</p><p class="text-xs text-gray-500">{{ 'review.ineffective'|trans({}, 'quality') }}</p></div>
+        </div>
+        {% if findings.reported > 0 %}
+            <p class="text-xs text-gray-500">
+                {{ 'review.by_kind'|trans({}, 'quality') }}
+                {% for kind, n in findings.byKind|filter(n => n > 0) %}{{ (kind == 'unclassified' ? 'kind.none' : (kind == 'discarded' ? 'status.discarded' : 'kind.' ~ kind))|trans({}, 'quality') }}: {{ n }}{{ not loop.last ? ' · ' }}{% endfor %}.
+                {{ 'review.by_origin'|trans({}, 'quality') }}
+                {% for origin, n in findings.byOrigin %}{{ ('origin.' ~ origin)|trans({}, 'quality') }}: {{ n }}{{ not loop.last ? ' · ' }}{% endfor %}.
+            </p>
+        {% endif %}
+        <div>
+            <h3 class="text-sm font-semibold text-gray-700">{{ 'review.open_nonconformities'|trans({'%count%': findings.openNonconformities|length}, 'quality') }}</h3>
+            {% if findings.openNonconformities is not empty %}
+                <ul class="divide-y divide-gray-100">{% for f in findings.openNonconformities %}{{ _self.finding_item(f) }}{% endfor %}</ul>
+            {% endif %}
+        </div>
+    </section>
+
+    {# ── c6. Audits ───────────────────────────────────────────────────────────── #}
+    <section class="{{ card }}">
+        <h2 class="{{ h2 }}"><span class="{{ clause }}">9.3.2 c 6</span>{{ 'review.section.audits'|trans({}, 'quality') }}</h2>
+        <p class="text-sm text-gray-500">{{ (inputs.audits.programApproved ? 'review.program_approved' : 'review.program_not_approved')|trans({'%count%': inputs.audits.planned}, 'quality') }}</p>
+        {% if inputs.audits.items is empty %}
+            <p class="text-sm text-gray-500">{{ 'review.audits_none'|trans({}, 'quality') }}</p>
+        {% else %}
+            <ul class="divide-y divide-gray-100">
+                {% for a in inputs.audits.items %}
+                    <li class="py-2.5">
+                        <a href="{{ path('app_quality_audit', {id: a.id}) }}" class="flex flex-wrap items-start gap-x-3 gap-y-1 text-sm hover:text-forest-700">
+                            <span class="font-mono text-xs font-semibold text-gray-500 mt-0.5">{{ a.code }}</span>
+                            <span class="min-w-0 flex-1 text-gray-800">{{ a.title }}
+                                <span class="block text-xs text-gray-500">
+                                    {{- 'review.audit_findings'|trans({'%nc%': a.findings.nonconformity, '%ob%': a.findings.observation, '%om%': a.findings.improvement_opportunity}, 'quality') -}}
+                                </span>
+                            </span>
+                            {{ q.audit_status_pill({value: a.status}) }}
+                        </a>
+                        {% if a.conclusion %}<p class="mt-1 whitespace-pre-line pl-0 text-xs text-gray-600 sm:pl-24">{{ a.conclusion }}</p>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+
+    {# ── c7. Providers ────────────────────────────────────────────────────────── #}
+    <section class="{{ card }}">
+        <h2 class="{{ h2 }}"><span class="{{ clause }}">9.3.2 c 7</span>{{ 'review.text.suppliers'|trans({}, 'quality') }}</h2>
+        {{ _self.text_block(review, 'suppliers', canManage) }}
+    </section>
+
+    {# ── d. Resources ─────────────────────────────────────────────────────────── #}
+    <section class="{{ card }}">
+        <h2 class="{{ h2 }}"><span class="{{ clause }}">9.3.2 d</span>{{ 'review.text.resources'|trans({}, 'quality') }}</h2>
+        {{ _self.text_block(review, 'resources', canManage) }}
+    </section>
+
+    {# ── e / f. The improvement plan and opportunities ────────────────────────── #}
+    <section class="{{ card }}">
+        <h2 class="{{ h2 }}"><span class="{{ clause }}">9.3.2 e-f</span>{{ 'review.section.plan'|trans({}, 'quality') }}</h2>
+        {% if inputs.plan.total == 0 %}
+            <p class="text-sm text-gray-500">{{ 'review.plan_none'|trans({'%year%': review.academicYear.name}, 'quality') }}</p>
+        {% else %}
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div class="{{ stat }}"><p class="text-xl font-bold text-gray-900">{{ inputs.plan.total }}</p><p class="text-xs text-gray-500">{{ 'review.plan_total'|trans({'%year%': review.academicYear.name}, 'quality') }}</p></div>
+                <div class="{{ stat }}"><p class="text-xl font-bold text-forest-700">{{ inputs.plan.counts.done }}</p><p class="text-xs text-gray-500">{{ 'action_status.done'|trans({}, 'quality') }}</p></div>
+                <div class="{{ stat }}"><p class="text-xl font-bold text-sky-700">{{ inputs.plan.counts.in_progress + inputs.plan.counts.pending }}</p><p class="text-xs text-gray-500">{{ 'review.plan_open'|trans({}, 'quality') }}</p></div>
+                <div class="{{ stat }}"><p class="text-xl font-bold {{ inputs.plan.counts.overdue > 0 ? 'text-red-700' : 'text-gray-900' }}">{{ inputs.plan.counts.overdue }}</p><p class="text-xs text-gray-500">{{ 'action_status.overdue'|trans({}, 'quality') }}</p></div>
+            </div>
+            {% if inputs.plan.overdue is not empty %}
+                <ul class="divide-y divide-gray-100">{% for a in inputs.plan.overdue %}{{ _self.action_item(a) }}{% endfor %}</ul>
+            {% endif %}
+        {% endif %}
+        <div>
+            <h3 class="text-sm font-semibold text-gray-700">{{ 'review.opportunities'|trans({'%count%': findings.opportunities|length}, 'quality') }}</h3>
+            {% if findings.opportunities is not empty %}
+                <ul class="divide-y divide-gray-100">{% for f in findings.opportunities %}{{ _self.finding_item(f) }}{% endfor %}</ul>
+            {% endif %}
+        </div>
+    </section>
+
+    {# ── 9.3.3 Conclusions ───────────────────────────────────────────────────── #}
+    <section class="{{ card }} border-forest-200">
+        <h2 class="{{ h2 }}"><span class="{{ clause }}">9.3.3</span>{{ 'review.text.conclusions'|trans({}, 'quality') }}</h2>
+        {{ _self.text_block(review, 'conclusions', canManage) }}
+    </section>
+
+    {# ── 9.3.3 Decisions ─────────────────────────────────────────────────────── #}
+    <section id="decisiones" class="{{ card }} border-forest-200">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="{{ h2 }}"><span class="{{ clause }}">9.3.3</span>{{ 'review.section.decisions'|trans({}, 'quality') }}</h2>
+            {% if canDecide %}
+                <a href="{{ path('app_quality_plan_new', {revision: rid}) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-3.5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                    {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}{{ 'review.add_decision'|trans({}, 'quality') }}
+                </a>
+            {% endif %}
+        </div>
+        <p class="text-xs text-gray-500">{{ 'review.decisions_help'|trans({}, 'quality') }}</p>
+        {% if decisions is empty %}
+            <p class="text-sm text-gray-500">{{ 'review.decisions_none'|trans({}, 'quality') }}</p>
+        {% else %}
+            <ul class="divide-y divide-gray-100">
+                {% for action in decisions %}
+                    <li>
+                        <a href="{{ path('app_quality_action', {id: action.id.toRfc4122}) }}" class="flex flex-wrap items-start gap-x-3 gap-y-1 py-2 text-sm hover:text-forest-700">
+                            <span class="font-mono text-xs font-semibold text-gray-500 mt-0.5">{{ action.code }}</span>
+                            <span class="min-w-0 flex-1 text-gray-800">{{ action.description }}
+                                <span class="block text-xs text-gray-500">{{ q.responsible(action) }}{% if action.dueDate %} · {{ 'task.due.open'|trans({'%date%': action.dueDate|date('d/m/Y')}, 'quality') }}{% endif %}</span>
+                            </span>
+                            {{ q.action_status_pill(action, today) }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

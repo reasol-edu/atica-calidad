@@ -17,6 +17,7 @@ use App\Entity\FindingStatus;
 use App\Entity\FindingTimelineEntry;
 use App\Entity\ImprovementAction;
 use App\Entity\ImprovementActionType;
+use App\Entity\ManagementReview;
 use App\Entity\Measurement;
 use App\Entity\QualityAttachment;
 use App\Entity\SpecificProfile;
@@ -224,10 +225,12 @@ final class FindingService
         ?SpecificProfile $responsibleProfile,
         ?\DateTimeImmutable $dueDate,
         ?Measurement $measurement = null,
+        ?ManagementReview $review = null,
     ): ImprovementAction {
         $now    = $this->clock->now();
         $action = (new ImprovementAction($centre, null, $type, trim($description), $actor, $now))
             ->setMeasurement($measurement)
+            ->setManagementReview($review)
             ->setCode($this->codes->nextPlanAction($centre, $now))
             ->setAcademicYear($year)
             ->setGoal(self::nullIfBlank($goal))

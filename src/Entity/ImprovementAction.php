@@ -68,6 +68,11 @@ class ImprovementAction
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Measurement $measurement = null;
 
+    /** The management review that decided it, if any (plan actions). */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?ManagementReview $managementReview = null;
+
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Teacher $responsibleTeacher = null;
@@ -206,6 +211,18 @@ class ImprovementAction
     public function setGoal(?string $goal): static
     {
         $this->goal = $goal;
+
+        return $this;
+    }
+
+    public function getManagementReview(): ?ManagementReview
+    {
+        return $this->managementReview;
+    }
+
+    public function setManagementReview(?ManagementReview $managementReview): static
+    {
+        $this->managementReview = $managementReview;
 
         return $this;
     }

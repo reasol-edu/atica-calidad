@@ -19,10 +19,10 @@ final class PdfTemplateResolver
 
     /**
      * A report without a template setting of its own ("read_acknowledgements", "findings",
-     * "improvement_plan", "indicators", "audit_program", "audit_report") always gets the general
-     * one for its orientation.
+     * "improvement_plan", "indicators", "audit_program", "audit_report", "management_review")
+     * always gets the general one for its orientation.
      *
-     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings'|'improvement_plan'|'indicators'|'audit_program'|'audit_report' $reportType
+     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings'|'improvement_plan'|'indicators'|'audit_program'|'audit_report'|'management_review' $reportType
      */
     public function resolve(string $reportType, string $orientation, EducationalCentre $centre): ?ResolvedSettingFile
     {

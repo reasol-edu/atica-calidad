@@ -9,6 +9,7 @@ use App\Entity\Finding;
 use App\Entity\FindingStatus;
 use App\Entity\Teacher;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
@@ -126,6 +127,26 @@ class FindingRepository extends ServiceEntityRepository
             ->where('i.audit = :audit')
             ->setParameter('audit', $audit->getId(), 'uuid')
             ->orderBy('i.position', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * What a management review looks back on: the findings reported in [$from, $to] (days,
+     * inclusive), those verified in it, and those still open from before, oldest first.
+     *
+     * @return list<Finding>
+     */
+    public function findForReview(EducationalCentre $centre, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        return $this->createQueryBuilder('f')
+            ->where('f.educationalCentre = :centre')
+            ->andWhere('(f.reportedAt >= :from AND f.reportedAt < :to) OR (f.verifiedAt >= :from AND f.verifiedAt < :to) OR (f.reportedAt < :from AND f.status NOT IN (:finished))')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('from', $from->setTime(0, 0), Types::DATETIME_IMMUTABLE)
+            ->setParameter('to', $to->setTime(0, 0)->modify('+1 day'), Types::DATETIME_IMMUTABLE)
+            ->setParameter('finished', [FindingStatus::Closed->value, FindingStatus::Discarded->value])
+            ->orderBy('f.reportedAt', 'ASC')
             ->getQuery()
             ->getResult();
     }

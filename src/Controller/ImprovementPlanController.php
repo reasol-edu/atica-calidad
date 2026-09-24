@@ -8,11 +8,13 @@ use App\Attribute\CurrentCentre;
 use App\Entity\EducationalCentre;
 use App\Entity\ImprovementAction;
 use App\Entity\ImprovementActionType;
+use App\Entity\ManagementReview;
 use App\Entity\Measurement;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Repository\DocumentSectionRepository;
 use App\Repository\ImprovementActionRepository;
+use App\Repository\ManagementReviewRepository;
 use App\Repository\MeasurementRepository;
 use App\Security\Voter\QualityVoter;
 use App\Service\FindingService;
@@ -43,6 +45,7 @@ class ImprovementPlanController extends AbstractController
         private readonly ImprovementActionRepository $actions,
         private readonly DocumentSectionRepository $sections,
         private readonly MeasurementRepository $measurements,
+        private readonly ManagementReviewRepository $reviews,
         private readonly ResponsibleChoices $responsibles,
         private readonly FindingService $findingService,
         private readonly SectionChoiceBuilder $sectionChoices,
@@ -97,6 +100,8 @@ class ImprovementPlanController extends AbstractController
 
         // Proposed from an off-target indicator value: start from what it's about.
         $measurement = $this->measurementFrom($request, $centre);
+        // Or decided by a management review still open: it goes back there when saved.
+        $review = $this->reviewFrom($request, $centre);
         $indicator   = $measurement?->getIndicator();
         $values      = [
             'type'        => ImprovementActionType::Improvement->value,
@@ -114,14 +119,19 @@ class ImprovementPlanController extends AbstractController
             $this->checkToken($request, 'quality_plan_action');
             [$values, $errors, $data] = $this->readForm($request, $centre);
             if ($data !== null) {
-                $action = $this->findingService->createPlanAction($centre, $year, $this->teacher(), $data['type'], $data['description'], $data['goal'], $data['section'], $data['teacher'], $data['profile'], $data['dueDate'], $measurement);
+                $action = $this->findingService->createPlanAction($centre, $year, $this->teacher(), $data['type'], $data['description'], $data['goal'], $data['section'], $data['teacher'], $data['profile'], $data['dueDate'], $measurement, $review);
+                if ($review !== null) {
+                    $this->addFlash('success', $this->t('review.flash.decision_added'));
+
+                    return $this->redirectToRoute('app_quality_review', ['id' => $review->getId()->toRfc4122(), '_fragment' => 'decisiones']);
+                }
                 $this->addFlash('success', $this->t('plan.flash.added'));
 
                 return $this->redirectToRoute('app_quality_action', ['id' => $action->getId()->toRfc4122()]);
             }
         }
 
-        return $this->renderForm($centre, null, $values, $errors, $measurement);
+        return $this->renderForm($centre, null, $values, $errors, $measurement, $review);
     }
 
     #[Route('/acciones/{id}', name: 'app_quality_action')]
@@ -260,7 +270,7 @@ class ImprovementPlanController extends AbstractController
      * @param array<string, string> $values
      * @param array<string, string> $errors
      */
-    private function renderForm(EducationalCentre $centre, ?ImprovementAction $action, array $values, array $errors, ?Measurement $measurement = null): Response
+    private function renderForm(EducationalCentre $centre, ?ImprovementAction $action, array $values, array $errors, ?Measurement $measurement = null, ?ManagementReview $review = null): Response
     {
         return $this->render('quality/plan_form.html.twig', [
             'centre'      => $centre,
@@ -268,6 +278,7 @@ class ImprovementPlanController extends AbstractController
             'values'      => $values,
             'errors'      => $errors,
             'measurement' => $measurement,
+            'review'      => $review,
             'types'       => self::PLAN_TYPES,
             'sections'    => $this->sectionChoices->choices($this->teacher(), $centre),
             'teachers'    => $this->responsibles->teachers($centre, $action?->getResponsibleTeacher()),
@@ -281,6 +292,15 @@ class ImprovementPlanController extends AbstractController
         $id = $request->isMethod('POST') ? $request->request->getString('measurement') : $request->query->getString('medicion');
 
         return $id === '' ? null : $this->measurements->findByIdAndCentre($id, $centre);
+    }
+
+    /** The management review deciding the action (?revision= or the form's "review"), if any and still open. */
+    private function reviewFrom(Request $request, EducationalCentre $centre): ?ManagementReview
+    {
+        $id     = $request->isMethod('POST') ? $request->request->getString('review') : $request->query->getString('revision');
+        $review = $id === '' ? null : $this->reviews->findByIdAndCentre($id, $centre);
+
+        return $review !== null && !$review->isClosed() ? $review : null;
     }
 
     private function requireAction(string $id, EducationalCentre $centre, string $attribute): ImprovementAction

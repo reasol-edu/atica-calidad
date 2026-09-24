@@ -35,6 +35,16 @@
             {%- if action.section %} · {{ action.section.name }}{% endif %}
             {%- if action.createdBy %} · {{ 'plan.created_by'|trans({'%name%': action.createdBy.name.firstName ~ ' ' ~ action.createdBy.name.lastName, '%date%': action.createdAt|date('d/m/Y')}, 'quality') }}{% endif %}
         </p>
+        {% if action.managementReview %}
+            <p class="mt-2 inline-flex items-center gap-1.5 text-sm text-sky-800">
+                {{ ux_icon('heroicons:presentation-chart-line', {class: 'h-4 w-4'}) }}
+                {% if canList %}
+                    <a href="{{ path('app_quality_review', {id: action.managementReview.id.toRfc4122}) }}" class="font-medium hover:underline">{{ 'review.decided_in'|trans({'%review%': action.managementReview.title}, 'quality') }}</a>
+                {% else %}
+                    {{ 'review.decided_in'|trans({'%review%': action.managementReview.title}, 'quality') }}
+                {% endif %}
+            </p>
+        {% endif %}
     </div>
 
     {# ── What's next ──────────────────────────────────────────────────────────── #}

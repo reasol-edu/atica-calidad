@@ -35,6 +35,8 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
  * - AUDIT_WORK: prepare and carry out an audit, and issue its report — MANAGE, or its team.
  * - AUDIT_VIEW: VIEW_ALL, its team, or anyone audited (holding a responsible profile on a folder
  *   of its scope).
+ * - REVIEW_CLOSE (centre): close a management review, freezing it — the management team, as
+ *   AUDIT_APPROVE. Preparing it and recording its decisions is MANAGE; reading it, VIEW_ALL.
  *
  * @extends Voter<string, EducationalCentre|Finding|ImprovementAction|Indicator|Audit>
  */
@@ -51,6 +53,7 @@ final class QualityVoter extends Voter
     public const string AUDIT_APPROVE    = 'quality.audit_approve';
     public const string AUDIT_WORK       = 'quality.audit_work';
     public const string AUDIT_VIEW       = 'quality.audit_view';
+    public const string REVIEW_CLOSE     = 'quality.review_close';
 
     public function __construct(
         private readonly DocumentTreeAccessChecker $access,
@@ -59,7 +62,7 @@ final class QualityVoter extends Voter
     protected function supports(string $attribute, mixed $subject): bool
     {
         return match ($attribute) {
-            self::MANAGE, self::VIEW_ALL, self::AUDIT_APPROVE => $subject instanceof EducationalCentre,
+            self::MANAGE, self::VIEW_ALL, self::AUDIT_APPROVE, self::REVIEW_CLOSE => $subject instanceof EducationalCentre,
             self::AUDIT_WORK, self::AUDIT_VIEW         => $subject instanceof Audit,
             self::FINDING_VIEW, self::FINDING_ANALYZE => $subject instanceof Finding,
             self::ACTION_WORK, self::ACTION_VIEW       => $subject instanceof ImprovementAction,
@@ -77,9 +80,9 @@ final class QualityVoter extends Voter
 
         return match (true) {
             $subject instanceof EducationalCentre => match ($attribute) {
-                self::MANAGE        => $this->manages($user, $subject),
-                self::AUDIT_APPROVE => $user->isAdmin() || self::among($user, $subject->getAdmins()),
-                default             => $this->seesAll($user, $subject),
+                self::MANAGE                            => $this->manages($user, $subject),
+                self::AUDIT_APPROVE, self::REVIEW_CLOSE => $user->isAdmin() || self::among($user, $subject->getAdmins()),
+                default                                 => $this->seesAll($user, $subject),
             },
             $subject instanceof Audit => $this->manages($user, $subject->getEducationalCentre()) || $subject->isInTeam($user)
                 || ($attribute === self::AUDIT_VIEW && ($this->seesAll($user, $subject->getEducationalCentre()) || $this->isAudited($user, $subject))),

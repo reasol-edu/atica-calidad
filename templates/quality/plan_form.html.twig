@@ -35,6 +35,13 @@
                 {{ 'indicator.proposed_from'|trans({'%indicator%': measurement.indicator.name, '%period%': measurement.period.name, '%value%': measurement.indicator.format(measurement.value)}, 'quality') }}
             </p>
         {% endif %}
+        {% if review|default(null) %}
+            <input type="hidden" name="review" value="{{ review.id.toRfc4122 }}">
+            <p class="flex items-start gap-2 rounded-xl bg-sky-50 px-3.5 py-2.5 text-sm text-sky-800">
+                {{ ux_icon('heroicons:presentation-chart-line', {class: 'h-4 w-4 shrink-0 mt-0.5'}) }}
+                {{ 'review.decision_of'|trans({'%review%': review.title}, 'quality') }}
+            </p>
+        {% endif %}
 
         <fieldset class="space-y-1.5">
             <legend class="mb-1.5 block text-sm font-semibold text-gray-900">{{ 'action.type'|trans({}, 'quality') }}</legend>
@@ -106,7 +113,7 @@
         </div>
 
         <div class="flex flex-wrap items-center justify-end gap-3">
-            <a href="{{ action ? path('app_quality_action', {id: action.id.toRfc4122}) : path('app_quality_plan') }}" class="text-sm font-medium text-gray-500 hover:text-gray-700">{{ 'cancel'|trans({}, 'quality') }}</a>
+            <a href="{{ action ? path('app_quality_action', {id: action.id.toRfc4122}) : (review|default(null) ? path('app_quality_review', {id: review.id.toRfc4122}) : path('app_quality_plan')) }}" class="text-sm font-medium text-gray-500 hover:text-gray-700">{{ 'cancel'|trans({}, 'quality') }}</a>
             <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
                 {{ ux_icon(action ? 'heroicons:check' : 'heroicons:plus', {class: 'h-4 w-4'}) }}
                 {{ (action ? 'plan.save' : 'plan.submit')|trans({}, 'quality') }}

@@ -1,0 +1,57 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'review.title'|trans({}, 'quality') }} · {{ app_name }}{% endblock %}
+
+{#
+   The centre's management reviews, most recent first: when each was held, the period it looked
+   back on, whether it's closed and how many decisions it took.
+#}
+{% block content %}
+<div class="px-4 sm:px-6 py-8 max-w-4xl mx-auto space-y-6">
+
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                {% include 'components/_breadcrumb_home.html.twig' %}
+                <a href="{{ path('app_quality_index') }}" class="hover:text-forest-600 transition-colors">{{ 'quality'|trans({}, 'navigation') }}</a>
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ 'review.title'|trans({}, 'quality') }}</h1>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ 'review.intro'|trans({}, 'quality') }}</p>
+        </div>
+        {% if canAdd %}
+            <a href="{{ path('app_quality_review_new') }}"
+               class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}{{ 'review.add'|trans({}, 'quality') }}
+            </a>
+        {% endif %}
+    </div>
+
+    {% if reviews is empty %}
+        <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-sm text-gray-500">{{ 'review.empty'|trans({}, 'quality') }}</div>
+    {% else %}
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+            <ul class="divide-y divide-gray-100">
+                {% for review in reviews %}
+                    <li>
+                        <a href="{{ path('app_quality_review', {id: review.id.toRfc4122}) }}" class="flex flex-col gap-2 px-5 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:gap-4">
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-sm font-medium text-gray-900">{{ review.title }}</span>
+                                <span class="mt-0.5 block text-xs text-gray-500">
+                                    {{ 'review.held_on'|trans({'%date%': review.heldOn|date('d/m/Y')}, 'quality') }}
+                                    · {{ 'review.period_short'|trans({'%from%': review.periodStart|date('d/m/Y'), '%to%': review.periodEnd|date('d/m/Y')}, 'quality') }}
+                                </span>
+                            </span>
+                            {% if review.closed %}
+                                <span class="shrink-0 rounded-full bg-forest-50 px-2 py-0.5 text-xs font-medium text-forest-700">{{ 'review.status.closed'|trans({}, 'quality') }}</span>
+                            {% else %}
+                                <span class="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">{{ 'review.status.open'|trans({}, 'quality') }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

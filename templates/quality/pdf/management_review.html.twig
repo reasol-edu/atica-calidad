@@ -1,0 +1,215 @@
+{% extends 'pdf/layout.html.twig' %}
+{% import 'reports/pdf/_macros.html.twig' as report %}
+
+{#
+   The minutes of a management review: when, the period, who took part; its inputs (ISO 9001
+   9.3.2) — the compiled data, frozen when it was closed, and what the management team wrote —
+   and its outputs (9.3.3): the conclusions and the decisions, as they stand now. An open review
+   comes out as a draft.
+   review: ManagementReview; inputs: ManagementReviewBuilder data; decisions: list<ImprovementAction>.
+#}
+{% block content %}
+{% import 'quality/_macros.html.twig' as q %}
+{% set findings = inputs.findings %}
+{% set note = review.closed
+    ? 'review.pdf.closed_note'|trans({'%name%': q.person(review.closedBy), '%date%': review.closedAt|date('d/m/Y')}, 'quality')
+    : 'review.pdf.draft_note'|trans({'%date%': inputs.compiledAt|date('d/m/Y H:i')}, 'quality') %}
+{{ report.header(pdfTitle, centre, pdfGeneratedAt, note) }}
+<style>p { margin: 3px 0 6px; } .data-table { margin-bottom: 6px; }</style>
+
+{% macro text(value) -%}
+    {%- if value -%}<p style="white-space: pre-line;">{{ value }}</p>{%- else -%}<p style="color:#8a7f72;"><i>{{ 'review.not_written'|trans({}, 'quality') }}</i></p>{%- endif -%}
+{%- endmacro %}
+
+{% macro actions(items) -%}
+    <table class="data-table">
+        <thead><tr>
+            <th style="width:14%;">{{ 'audit.pdf.code'|trans({}, 'quality') }}</th>
+            <th>{{ 'action.description'|trans({}, 'quality') }}</th>
+            <th style="width:20%;">{{ 'action.responsible'|trans({}, 'quality') }}</th>
+            <th style="width:12%;">{{ 'action.due'|trans({}, 'quality') }}</th>
+            <th style="width:12%;">{{ 'list.status'|trans({}, 'quality') }}</th>
+        </tr></thead>
+        <tbody>
+            {% for a in items %}
+                <tr>
+                    <td>{{ a.code }}</td>
+                    <td>{{ a.description }}{% if a.result %}<br><span style="font-size:7.5pt;color:#5a4f42;">{{ a.result }}</span>{% endif %}</td>
+                    <td>{{ a.responsible ?? '—' }}</td>
+                    <td>{{ a.dueDate ? a.dueDate|date('d/m/Y') : '—' }}</td>
+                    <td>{{ (a.overdue ? 'action_status.overdue' : 'action_status.' ~ a.status)|trans({}, 'quality') }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{%- endmacro %}
+
+{% macro findings_table(items) -%}
+    <table class="data-table">
+        <tbody>
+            {% for f in items %}
+                <tr>
+                    <td style="width:18%;">{{ f.code ?? '—' }}</td>
+                    <td>{{ f.title }}</td>
+                    <td style="width:22%;">{{ ('status.' ~ f.status)|trans({}, 'quality') }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{%- endmacro %}
+
+<table class="data-table">
+    <tbody>
+        <tr><th style="width:28%;">{{ 'review.heldOn'|trans({}, 'quality') }}</th><td>{{ review.heldOn|date('d/m/Y') }}</td></tr>
+        <tr><th>{{ 'review.periodStart'|trans({}, 'quality') }} – {{ 'review.periodEnd'|trans({}, 'quality')|lower }}</th><td>{{ review.periodStart|date('d/m/Y') }} – {{ review.periodEnd|date('d/m/Y') }}</td></tr>
+        <tr><th>{{ 'review.text.attendees'|trans({}, 'quality') }}</th><td style="white-space: pre-line;">{{ review.attendees ?: '—' }}</td></tr>
+    </tbody>
+</table>
+
+<div class="section-title">{{ 'review.pdf.inputs'|trans({}, 'quality') }}</div>
+
+<div class="subsection-title">1. {{ 'review.section.previous'|trans({}, 'quality') }}</div>
+{% if inputs.previousActions.review is null %}
+    <p>{{ 'review.previous_none'|trans({}, 'quality') }}</p>
+{% elseif inputs.previousActions.items is empty %}
+    <p>{{ 'review.previous_no_decisions'|trans({'%review%': inputs.previousActions.review}, 'quality') }}</p>
+{% else %}
+    <p>{{ 'review.previous_of'|trans({'%review%': inputs.previousActions.review, '%date%': inputs.previousActions.heldOn|date('d/m/Y')}, 'quality') }}</p>
+    {{ _self.actions(inputs.previousActions.items) }}
+{% endif %}
+
+<div class="subsection-title">2. {{ 'review.text.contextChanges'|trans({}, 'quality') }}</div>
+{{ _self.text(review.contextChanges) }}
+
+<div class="subsection-title">3. {{ 'review.text.satisfaction'|trans({}, 'quality') }}</div>
+{{ _self.text(review.satisfaction) }}
+<p>{{ 'review.complaints'|trans({'%count%': findings.complaints|length}, 'quality') }}</p>
+{% if findings.complaints is not empty %}{{ _self.findings_table(findings.complaints) }}{% endif %}
+
+<div class="subsection-title">4. {{ 'review.section.indicators'|trans({}, 'quality') }}</div>
+{% if inputs.indicators.rows is empty %}
+    <p>{{ 'review.indicators_none'|trans({}, 'quality') }}</p>
+{% else %}
+    <p>{% for key in ['on_target', 'alert', 'off_target', 'no_data'] %}{{ ('indicator.status.' ~ key)|trans({}, 'quality') }}: <b>{{ inputs.indicators.counts[key] }}</b>{{ not loop.last ? ' · ' }}{% endfor %}</p>
+    <table class="data-table">
+        <thead><tr>
+            <th>{{ 'review.col.indicator'|trans({}, 'quality') }}</th>
+            <th style="width:13%;">{{ 'review.col.target'|trans({}, 'quality') }}</th>
+            <th style="width:17%;">{{ 'review.col.latest'|trans({}, 'quality') }}</th>
+            <th style="width:13%;">{{ 'review.col.previous'|trans({}, 'quality') }}</th>
+            <th style="width:13%;"></th>
+        </tr></thead>
+        <tbody>
+            {% for row in inputs.indicators.rows %}
+                <tr>
+                    <td>{{ row.name }}{% if row.process %}<br><span style="font-size:7.5pt;color:#5a4f42;">{{ row.process }}</span>{% endif %}</td>
+                    <td>{{ row.target ? (row.higherIsBetter ? '≥ ' : '≤ ') ~ row.target : '—' }}</td>
+                    <td>{{ row.latest ?? '—' }}{% if row.latestPeriod %}<br><span style="font-size:7.5pt;color:#5a4f42;">{{ row.latestPeriod }}</span>{% endif %}</td>
+                    <td>{{ row.previous ?? '—' }}</td>
+                    <td>{{ row.status ? ('indicator.status.' ~ row.status)|trans({}, 'quality') : '' }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+<p><b>{{ 'review.section.activities'|trans({}, 'quality') }}.</b>
+    {% if inputs.activities is null %}{{ 'review.activities_other_year'|trans({}, 'quality') }}
+    {% elseif inputs.activities.due == 0 %}{{ 'review.activities_none'|trans({}, 'quality') }}
+    {% else %}{{ 'review.activities_summary'|trans({'%count%': inputs.activities.due, '%percentage%': inputs.activities.percentage ?? 0}, 'quality') }}{% endif %}
+</p>
+<p><b>{{ 'review.section.documents'|trans({}, 'quality') }}.</b>
+    {{ 'review.documents_reviews'|trans({'%overdue%': inputs.documents.reviewsOverdue|length, '%soon%': inputs.documents.reviewsSoon}, 'quality') }}
+    {% if inputs.documents.readDocuments > 0 %}{{ 'review.documents_read'|trans({'%count%': inputs.documents.readDocuments, '%complete%': inputs.documents.readComplete, '%percentage%': inputs.documents.readPercentage ?? 0}, 'quality') }}{% endif %}
+</p>
+
+<div class="subsection-title">5. {{ 'review.section.findings'|trans({}, 'quality') }}</div>
+<table class="data-table">
+    <thead><tr>
+        <th>{{ 'review.findings_reported'|trans({}, 'quality') }}</th>
+        <th>{{ 'kind.nonconformity'|trans({}, 'quality') }}</th>
+        <th>{{ 'kind.observation'|trans({}, 'quality') }}</th>
+        <th>{{ 'kind.improvement_opportunity'|trans({}, 'quality') }}</th>
+        <th>{{ 'review.effective'|trans({}, 'quality') }}</th>
+        <th>{{ 'review.ineffective'|trans({}, 'quality') }}</th>
+    </tr></thead>
+    <tbody><tr>
+        <td style="text-align:center;">{{ findings.reported }}</td>
+        <td style="text-align:center;">{{ findings.byKind.nonconformity }}</td>
+        <td style="text-align:center;">{{ findings.byKind.observation }}</td>
+        <td style="text-align:center;">{{ findings.byKind.improvement_opportunity }}</td>
+        <td style="text-align:center;">{{ findings.effective }}</td>
+        <td style="text-align:center;">{{ findings.ineffective }}</td>
+    </tr></tbody>
+</table>
+{% if findings.byOrigin is not empty %}
+    <p>{{ 'review.by_origin'|trans({}, 'quality') }} {% for origin, n in findings.byOrigin %}{{ ('origin.' ~ origin)|trans({}, 'quality') }}: {{ n }}{{ not loop.last ? ' · ' }}{% endfor %}.</p>
+{% endif %}
+<p>{{ 'review.open_nonconformities'|trans({'%count%': findings.openNonconformities|length}, 'quality') }}</p>
+{% if findings.openNonconformities is not empty %}{{ _self.findings_table(findings.openNonconformities) }}{% endif %}
+
+<div class="subsection-title">6. {{ 'review.section.audits'|trans({}, 'quality') }}</div>
+<p>{{ (inputs.audits.programApproved ? 'review.program_approved' : 'review.program_not_approved')|trans({'%count%': inputs.audits.planned}, 'quality') }}</p>
+{% if inputs.audits.items is empty %}
+    <p>{{ 'review.audits_none'|trans({}, 'quality') }}</p>
+{% else %}
+    <table class="data-table">
+        <tbody>
+            {% for a in inputs.audits.items %}
+                <tr>
+                    <td style="width:14%;">{{ a.code }}</td>
+                    <td>{{ a.title }}{% if a.conclusion %}<br><span style="font-size:7.5pt;color:#5a4f42;">{{ a.conclusion }}</span>{% endif %}</td>
+                    <td style="width:20%;">{{ 'review.audit_findings'|trans({'%nc%': a.findings.nonconformity, '%ob%': a.findings.observation, '%om%': a.findings.improvement_opportunity}, 'quality') }}</td>
+                    <td style="width:16%;">{{ ('audit.status.' ~ a.status)|trans({}, 'quality') }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+<div class="subsection-title">7. {{ 'review.text.suppliers'|trans({}, 'quality') }}</div>
+{{ _self.text(review.suppliers) }}
+
+<div class="subsection-title">8. {{ 'review.text.resources'|trans({}, 'quality') }}</div>
+{{ _self.text(review.resources) }}
+
+<div class="subsection-title">9. {{ 'review.section.plan'|trans({}, 'quality') }}</div>
+{% if inputs.plan.total == 0 %}
+    <p>{{ 'review.plan_none'|trans({'%year%': review.academicYear.name}, 'quality') }}</p>
+{% else %}
+    <p>{{ 'review.plan_total'|trans({'%year%': review.academicYear.name}, 'quality') }}: <b>{{ inputs.plan.total }}</b> · {{ 'action_status.done'|trans({}, 'quality') }}: <b>{{ inputs.plan.counts.done }}</b> · {{ 'review.plan_open'|trans({}, 'quality') }}: <b>{{ inputs.plan.counts.pending + inputs.plan.counts.in_progress }}</b> · {{ 'action_status.overdue'|trans({}, 'quality') }}: <b>{{ inputs.plan.counts.overdue }}</b></p>
+    {% if inputs.plan.overdue is not empty %}{{ _self.actions(inputs.plan.overdue) }}{% endif %}
+{% endif %}
+<p>{{ 'review.opportunities'|trans({'%count%': findings.opportunities|length}, 'quality') }}</p>
+{% if findings.opportunities is not empty %}{{ _self.findings_table(findings.opportunities) }}{% endif %}
+
+<div class="section-title">{{ 'review.pdf.outputs'|trans({}, 'quality') }}</div>
+
+<div class="subsection-title">{{ 'review.text.conclusions'|trans({}, 'quality') }}</div>
+{{ _self.text(review.conclusions) }}
+
+<div class="subsection-title">{{ 'review.section.decisions'|trans({}, 'quality') }}</div>
+{% if decisions is empty %}
+    <p>{{ 'review.decisions_none'|trans({}, 'quality') }}</p>
+{% else %}
+    <table class="data-table">
+        <thead><tr>
+            <th style="width:14%;">{{ 'audit.pdf.code'|trans({}, 'quality') }}</th>
+            <th>{{ 'action.description'|trans({}, 'quality') }}</th>
+            <th style="width:20%;">{{ 'action.responsible'|trans({}, 'quality') }}</th>
+            <th style="width:12%;">{{ 'action.due'|trans({}, 'quality') }}</th>
+            <th style="width:12%;">{{ 'list.status'|trans({}, 'quality') }}</th>
+        </tr></thead>
+        <tbody>
+            {% for action in decisions %}
+                <tr>
+                    <td>{{ action.code }}</td>
+                    <td>{{ action.description }}{% if action.goal %}<br><span style="font-size:7.5pt;color:#5a4f42;">{{ action.goal }}</span>{% endif %}</td>
+                    <td>{{ q.responsible(action) }}</td>
+                    <td>{{ action.dueDate ? action.dueDate|date('d/m/Y') : '—' }}</td>
+                    <td>{{ (action.overdue(today) ? 'action_status.overdue' : 'action_status.' ~ action.status.value)|trans({}, 'quality') }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

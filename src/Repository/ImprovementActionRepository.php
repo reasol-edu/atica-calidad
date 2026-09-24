@@ -10,6 +10,7 @@ use App\Entity\FindingStatus;
 use App\Entity\ImprovementAction;
 use App\Entity\ImprovementActionStatus;
 use App\Entity\ImprovementActionType;
+use App\Entity\ManagementReview;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
@@ -158,6 +159,24 @@ class ImprovementActionRepository extends ServiceEntityRepository
             ->setParameter('to', $to->setTime(0, 0), Types::DATE_IMMUTABLE)
             ->setParameter('discarded', FindingStatus::Discarded->value)
             ->orderBy('a.dueDate', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * The decisions of a management review: the plan actions linked to it, by code.
+     *
+     * @return list<ImprovementAction>
+     */
+    public function findByManagementReview(ManagementReview $review): array
+    {
+        return $this->createQueryBuilder('a')
+            ->addSelect('t', 'p')
+            ->leftJoin('a.responsibleTeacher', 't')
+            ->leftJoin('a.responsibleProfile', 'p')
+            ->where('a.managementReview = :review')
+            ->setParameter('review', $review->getId(), 'uuid')
+            ->orderBy('a.code', 'ASC')
             ->getQuery()
             ->getResult();
     }

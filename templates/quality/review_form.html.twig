@@ -1,0 +1,70 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% set heading = review ? 'review.edit_title'|trans({}, 'quality') : 'review.new_title'|trans({}, 'quality') %}
+{% block title %}{{ heading }} · {{ app_name }}{% endblock %}
+
+{#
+   A management review: when it's held and the period it looks back on; once scheduled, also what
+   the management team writes during it — who took part, what the application can't know
+   (changes in the context, satisfaction, providers, resources) and its conclusions.
+#}
+{% block content %}
+{% set field = 'block w-full rounded-xl border bg-white px-3.5 py-2.5 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
+{% set label = 'block text-sm font-semibold text-gray-900' %}
+<div class="px-4 sm:px-6 py-8 max-w-3xl mx-auto">
+
+    <div class="mb-6">
+        <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_quality_reviews') }}" class="hover:text-forest-600 transition-colors">{{ 'review.title'|trans({}, 'quality') }}</a>
+            {% if review %}
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+                <a href="{{ path('app_quality_review', {id: review.id.toRfc4122}) }}" class="hover:text-forest-600 transition-colors">{{ review.title }}</a>
+            {% endif %}
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ heading }}</h1>
+        {% if not review %}<p class="mt-1 text-sm text-gray-500">{{ 'review.new_intro'|trans({}, 'quality') }}</p>{% endif %}
+    </div>
+
+    <form method="post" class="space-y-5 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
+        <input type="hidden" name="_token" value="{{ csrf_token('quality_review') }}">
+
+        <div class="space-y-1.5">
+            <label for="review-title" class="{{ label }}">{{ 'review.title_field'|trans({}, 'quality') }}</label>
+            <input id="review-title" name="title" value="{{ values.title }}" required maxlength="255"
+                   class="{{ field }} {{ errors.title is defined ? 'border-red-300' : 'border-gray-200' }}">
+            {% if errors.title is defined %}<p class="text-xs text-red-600">{{ errors.title }}</p>{% endif %}
+        </div>
+
+        <div class="grid gap-5 sm:grid-cols-3">
+            {% for name in ['heldOn', 'periodStart', 'periodEnd'] %}
+                <div class="space-y-1.5">
+                    <label for="review-{{ name }}" class="{{ label }}">{{ ('review.' ~ name)|trans({}, 'quality') }}</label>
+                    <input id="review-{{ name }}" type="date" name="{{ name }}" value="{{ values[name] }}" required
+                           class="{{ field }} {{ errors[name] is defined ? 'border-red-300' : 'border-gray-200' }}">
+                    {% if errors[name] is defined %}<p class="text-xs text-red-600">{{ errors[name] }}</p>{% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <p class="-mt-2 text-xs text-gray-500">{{ 'review.period_help'|trans({}, 'quality') }}</p>
+
+        {% if review %}
+            {% for name in ['attendees', 'contextChanges', 'satisfaction', 'suppliers', 'resources', 'conclusions'] %}
+                <div class="space-y-1.5">
+                    <label for="review-{{ name }}" class="{{ label }}">{{ ('review.text.' ~ name)|trans({}, 'quality') }}</label>
+                    <p class="text-xs text-gray-500">{{ ('review.text_help.' ~ name)|trans({}, 'quality') }}</p>
+                    <textarea id="review-{{ name }}" name="{{ name }}" rows="{{ name == 'conclusions' ? 5 : 3 }}" class="{{ field }} border-gray-200">{{ values[name] }}</textarea>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="flex flex-wrap items-center justify-end gap-3">
+            <a href="{{ review ? path('app_quality_review', {id: review.id.toRfc4122}) : path('app_quality_reviews') }}" class="text-sm font-medium text-gray-500 hover:text-gray-700">{{ 'cancel'|trans({}, 'quality') }}</a>
+            <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                {{ ux_icon(review ? 'heroicons:check' : 'heroicons:plus', {class: 'h-4 w-4'}) }}{{ (review ? 'plan.save' : 'review.add')|trans({}, 'quality') }}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

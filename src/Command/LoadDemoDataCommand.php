@@ -28,10 +28,12 @@ use App\Entity\SchoolEvent;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Entity\AuditResult;
+use App\Repository\AcademicYearRepository;
 use App\Repository\AuditChecklistTemplateRepository;
 use App\Repository\DocumentSectionRepository;
 use App\Repository\EducationalCentreRepository;
 use App\Repository\FindingRepository;
+use App\Repository\ImprovementActionRepository;
 use App\Repository\ListItemRepository;
 use App\Repository\TeacherRepository;
 use App\Service\AuditChecklistLibrary;
@@ -41,6 +43,8 @@ use App\Service\ActivityDeadlineChecker;
 use App\Service\DocumentCreationService;
 use App\Service\FindingService;
 use App\Service\IndicatorService;
+use App\Service\ManagementReviewBuilder;
+use App\Service\ManagementReviewService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -109,6 +113,10 @@ class LoadDemoDataCommand extends Command
         private readonly AuditChecklistLibrary $checklistLibrary,
         private readonly AuditChecklistTemplateRepository $checklists,
         private readonly DocumentSectionRepository $sectionRepository,
+        private readonly ManagementReviewService $reviewService,
+        private readonly ManagementReviewBuilder $reviewBuilder,
+        private readonly AcademicYearRepository $yearRepository,
+        private readonly ImprovementActionRepository $actionRepository,
     ) {
         parent::__construct();
     }
@@ -191,6 +199,7 @@ class LoadDemoDataCommand extends Command
         $this->seedImprovementPlan($centre, $folders, $io);
         $this->seedIndicators($centre, $folders, $io);
         $this->seedAudits($centre, $io);
+        $this->seedManagementReviews($centre, $io);
 
         $this->em->flush();
 
@@ -1089,6 +1098,61 @@ class LoadDemoDataCommand extends Command
         }
 
         return $recorded;
+    }
+
+    /**
+     * Last year's management review, closed at the end of June, whose decisions are two actions
+     * of this year's plan (the families' survey and the welcome guide); and this year's, just
+     * held and still open — its conclusions aren't written yet, so it can't be closed.
+     */
+    private function seedManagementReviews(EducationalCentre $centre, SymfonyStyle $io): void
+    {
+        $year = $centre->getActiveAcademicYear();
+        if ($year === null || preg_match('/(\d{4})/', $year->getName(), $m) !== 1) {
+            return;
+        }
+        $first    = (int) $m[1];
+        $previous = null;
+        foreach ($this->yearRepository->findByCentreOrderedByName($centre) as $candidate) {
+            $previous = $candidate->getName() === ($first - 1) . '-' . $first ? $candidate : $previous;
+        }
+        if ($previous === null) {
+            return;
+        }
+        $quality   = $this->teachers['calidad'];
+        $direccion = $this->teachers['direccion'];
+        $attendees = "Javier Morales Peña (director)\nLaura Jiménez Soto (coordinadora de calidad)\nJefatura de estudios\nSecretaría";
+
+        $held = new \DateTimeImmutable($first . '-06-30');
+        $last = $this->reviewService->create($centre, $previous, $quality, 'Revisión por la dirección ' . $previous->getName(), $held, new \DateTimeImmutable(($first - 1) . '-09-01'), $held);
+        $this->reviewService->save(
+            $last,
+            $last->getTitle(),
+            $held,
+            $last->getPeriodStart(),
+            $held,
+            $attendees,
+            'Nueva normativa de evaluación en ESO y Bachillerato. Se incorporan dos grupos de FP básica y seis profesores nuevos.',
+            'Encuesta al alumnado de 4.º de ESO: 7,4 sobre 10 (7,1 el curso anterior). No se ha preguntado a las familias.',
+            'El servicio de transporte escolar ha tenido retrasos en el primer trimestre; se resolvieron tras hablar con la empresa.',
+            'Falta un aula de informática para los nuevos grupos de FP básica. El profesorado nuevo necesita formación en el sistema de calidad.',
+            "El sistema de calidad es adecuado y eficaz: los indicadores de resultados mejoran a lo largo del curso y no quedan no conformidades abiertas.\nHay que conocer mejor la opinión de las familias y acoger mejor al profesorado nuevo.",
+        );
+        $this->em->flush();
+        $last->close($direccion, $held->setTime(13, 30), $this->reviewBuilder->build($last));
+        $decided = ['Pasar una encuesta de satisfacción a las familias tras la primera evaluación', 'Preparar una guía de acogida para el profesorado de nueva incorporación'];
+        foreach ($this->actionRepository->findPlan($centre, $year) as $action) {
+            if (\in_array($action->getDescription(), $decided, true)) {
+                $action->setManagementReview($last);
+            }
+        }
+        $this->em->flush();
+
+        $today   = $this->clock->now()->setTime(0, 0);
+        $current = $this->reviewService->create($centre, $year, $quality, 'Revisión por la dirección de inicio de curso', $today, $held->modify('+1 day'), $today);
+        $this->reviewService->save($current, $current->getTitle(), $today, $current->getPeriodStart(), $today, $attendees, 'Comienza el curso con la plantilla completa. Se amplía el horario de la biblioteca por las tardes.', null, null, null, null);
+
+        $io->text('2 revisiones por la dirección: la del curso pasado, cerrada, con dos decisiones en el plan de mejora; y la de inicio de curso, abierta.');
     }
 
     private function teacherNamed(string $lastName): Teacher
