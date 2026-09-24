@@ -60,6 +60,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   (copiándolos de un curso anterior en un clic), los días no lectivos y revisar las asignaciones de
   perfiles de quien ya no está.
 - **Registro de actividad**: se puede **exportar a CSV o PDF** con los filtros aplicados.
+- **Árbol documental**: **acuse de lectura**. Una carpeta puede requerir que quien la ve confirme
+  que ha leído la versión en vigor de cada documento («Confirmar lectura»); cada versión nueva hay
+  que volver a leerla. Quien gestiona la carpeta ve «Leído X/Y» y quién falta, el panel principal
+  muestra una tarjeta «Documentos por leer» y hay un informe nuevo, **Acuses de lectura**, en PDF y
+  Excel. En los datos de demostración, la carpeta «Política de Calidad y Objetivos» lo tiene activo.
+- **Administración**: aviso en el panel y en el registro de actividad cuando la aplicación está
+  detrás de un proxy que no figura en `SYMFONY_TRUSTED_PROXIES`, con el valor que hay que poner, o
+  cuando esa variable confía en cualquier dirección.
 
 ### Changed
 
@@ -86,6 +94,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   académico al que corresponde, p. ej. «2026-2027 - Programación didáctica - Tutor/a.pdf», también
   dentro del ZIP de la carpeta. El propio ZIP se llama igual, precedido del curso (o del rango de
   cursos, p. ej. «2024-2025 a 2026-2027 - Programaciones.zip»).
+
+### Removed
+
+- **Árbol documental**: el ajuste de carpeta **«Archivado automático»**, que nunca llegó a tener
+  efecto.
 
 ### Fixed
 

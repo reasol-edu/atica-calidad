@@ -581,14 +581,15 @@ class LoadDemoDataCommand extends Command
 
                 if ($subclauseName === '5.2 Política') {
                     $politica = new Folder();
-                    $politica->setName('Política de Calidad y Objetivos')->setDocumentSection($subclause);
+                    // Everyone has to confirm they've read the policy: the read-acknowledgement example.
+                    $politica->setName('Política de Calidad y Objetivos')->setDocumentSection($subclause)->setRequiresReadAcknowledgement(true);
                     $this->em->persist($politica);
                 }
             }
         }
 
         $io->text(\sprintf('%d secciones ISO 9001:2015 creadas (7 capítulos, %d apartados).', $sections, $sections - 7));
-        $io->text('Carpetas: "Programaciones didácticas" y "Planes de Acción Tutorial" en 8.1, "Actas del ETCP" (visible solo a equipo directivo y orientación) en 7.4, "Política de Calidad y Objetivos" en 5.2.');
+        $io->text('Carpetas: "Programaciones didácticas" y "Planes de Acción Tutorial" en 8.1, "Actas del ETCP" (visible solo a equipo directivo y orientación) en 7.4, "Política de Calidad y Objetivos" (con acuse de lectura) en 5.2.');
 
         return [
             'programaciones' => $programaciones ?? throw new \LogicException('Programaciones didácticas folder was not created.'),

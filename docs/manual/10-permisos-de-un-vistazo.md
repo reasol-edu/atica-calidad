@@ -7,6 +7,8 @@
 | Ver y completar/entregar sus propias actividades (ver [Actividades](08-actividades.md#permisos-de-un-vistazo)) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Crear o editar categorías y actividades | — | — | ✅ | ✅ | ✅ |
 | Gestionar Responsabilidades (listas y perfiles específicos) | — | — | ✅ | ✅ | ✅ |
+| Confirmar la lectura de los documentos con [acuse de lectura](07-arbol-documental.md#acuse-de-lectura) de las carpetas que ve | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Ver quién ha leído cada documento (en la carpeta, si la gestiona; o en el informe) | — | ✅ (informe) | ✅ | ✅ | ✅ |
 | Recuperar o eliminar definitivamente lo que está en la [papelera](07-arbol-documental.md#papelera) | — | — | ✅ | ✅ | ✅ |
 | Crear eventos en el calendario | — | — | — | ✅ | ✅ |
 | Administrar cursos académicos, docentes, días no lectivos y perfiles del centro (incluido [Preparar el nuevo curso](02-preparar-el-curso-academico.md#preparar-el-nuevo-curso)) | — | — | — | ✅ | ✅ |

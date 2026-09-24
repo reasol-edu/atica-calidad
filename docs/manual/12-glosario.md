@@ -120,6 +120,10 @@ perfil/subperfil) o **individual** (cada docente entrega la suya).
 : Modo de una actividad con carpeta en el que no hay botón de completar: se considera hecha en
 cuanto el documento esperado está aprobado.
 
+**Acuse de lectura**
+: Confirmación de que un docente ha leído la versión en vigor de un documento. Se activa por carpeta
+— ver [Acuse de lectura](07-arbol-documental.md#acuse-de-lectura).
+
 **Papelera**
 : Donde quedan los documentos y las actividades eliminados antes de borrarse para siempre (30 días
 por defecto, configurable). Desde ella, la dirección y la coordinación de calidad pueden recuperarlos

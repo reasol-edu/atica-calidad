@@ -1,7 +1,8 @@
 /**
  * Captures the desktop screenshots of the centre-management screens in the manual
- * (docs/manual/img/): "Preparar el nuevo curso", the trash ("Papelera") and the activity log
- * with its export buttons, against the demo data from `app:load-demo-data` (IES Ada Lovelace).
+ * (docs/manual/img/): "Preparar el nuevo curso", the trash ("Papelera"), read acknowledgement
+ * (it confirms the reading of the demo policy as "calidad") and the activity log with its export
+ * buttons, against the demo data from `app:load-demo-data` (IES Ada Lovelace).
  *
  * To have something in the trash, it DELETES an activity ("Auditoría interna (planificación)")
  * and a submission of "Plan de Acción Tutorial (PAT)" first — so it requires a server already
@@ -90,7 +91,41 @@ await page.waitForSelector('[data-trash-item]');
 await hideToolbar();
 await page.screenshot({ path: `${outDir}/papelera.png` });
 
-// ── 4. Activity log, with a filter applied and the export buttons ────────────
+// ── 4. Read acknowledgement: the policy (uploaded by "direccion") ────────────
+async function openPolicyFolder() {
+    await page.goto(`${baseUrl}/arbol-documental`);
+    await page.waitForLoadState('networkidle');
+    await page.click('text=5. Liderazgo');
+    await page.click('text=5.2 Política');
+    await page.locator('button[data-live-action-param="toggleFolder"]', { hasText: 'Política de Calidad y Objetivos' }).click();
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(300);
+}
+
+// A reader: the dashboard card, then the document in the tree, still to read.
+await login('calidad');
+await page.goto(`${baseUrl}/`);
+await page.waitForLoadState('networkidle');
+await page.locator('h2:has-text("Documentos por leer")').evaluate(el => el.scrollIntoView({ block: 'center' }));
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/lectura-panel.png` });
+
+await openPolicyFolder();
+await page.waitForSelector('button:has-text("Confirmar lectura")');
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/lectura-confirmar.png` });
+await page.click('button:has-text("Confirmar lectura")');
+await page.waitForSelector('text=Leído el');
+
+// Whoever manages the folder: who has read it and who hasn't.
+await login('direccion');
+await openPolicyFolder();
+await page.click('button[data-live-action-param="toggleReadStatus"]');
+await page.waitForSelector('text=Sin leer');
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/lectura-estado.png` });
+
+// ── 5. Activity log, with a filter applied and the export buttons ────────────
 await login('admin');
 await page.goto(`${baseUrl}/admin/registro-actividad`);
 await page.waitForLoadState('networkidle');

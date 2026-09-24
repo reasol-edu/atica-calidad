@@ -85,6 +85,8 @@ ajustes de la carpeta (**⚙ Ajustes de la carpeta**):
 - **Organizar por perfil de subida** — si se activa, los documentos de la carpeta se agrupan
   visualmente por el perfil con el que se subieron (ver [Subir un documento](#subir-un-documento)),
   en vez de mostrarse todos juntos.
+- **Requiere acuse de lectura** — quien puede ver la carpeta tiene que confirmar que ha leído cada
+  documento (ver [Acuse de lectura](#acuse-de-lectura)). No aparece en las carpetas de actividades.
 - **Descripción** — texto con formato (negrita, listas, enlaces...) que se muestra sobre el
   contenido de la carpeta a todo el que la vea. Útil para dejar instrucciones o contexto sin tener
   que subirlos como un documento más.
@@ -233,6 +235,31 @@ quien subió su revisión activa, aunque no sea responsable (ver
 [la excepción de arriba](#permisos-sobre-una-carpeta)). El documento no se borra en el acto: pasa a
 la [papelera](#papelera), desde donde se puede recuperar tal como estaba. Eliminar una revisión
 suelta, en cambio, la borra directamente.
+
+## Acuse de lectura {#acuse-de-lectura}
+
+Algunos documentos no basta con publicarlos: hay que asegurarse de que el profesorado los ha leído
+(la política de calidad, un protocolo, unas normas de convivencia…). Para eso, activa **Requiere
+acuse de lectura** en los ajustes de su carpeta.
+
+- **Quién debe leerlos:** los docentes del curso activo que pueden ver la carpeta, salvo quien subió
+  la versión en vigor. Si la carpeta o alguna de sus secciones está restringida a unos perfiles,
+  solo deben leerlos quienes los tengan.
+- **Qué se confirma:** la versión en vigor. Cuando haya una nueva, habrá que volver a confirmar la
+  lectura.
+- **Cómo se confirma:** cada documento pendiente muestra **Por leer** y un botón **Confirmar
+  lectura**; al pulsarlo pasa a **Leído el …**. El panel principal muestra además una tarjeta
+  **Documentos por leer** con enlace a cada uno, mientras quede alguno.
+
+![Un documento con acuse de lectura, pendiente de leer: «Por leer» y el botón «Confirmar lectura»](img/lectura-confirmar.png)
+
+![Tarjeta «Documentos por leer» en el panel principal](img/lectura-panel.png)
+
+Quien gestiona la carpeta ve junto a cada documento **Leído X/Y**; al pulsarlo aparece quién lo ha
+leído (con la fecha) y quién no. El informe [Acuses de lectura](04-informes.md#acuses-de-lectura)
+reúne lo mismo para todos los documentos del centro, en PDF o Excel.
+
+![Quién ha leído un documento y quién no](img/lectura-estado.png)
 
 ## Papelera {#papelera}
 

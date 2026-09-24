@@ -43,3 +43,11 @@ Cómo va cada [actividad](08-actividades.md) en el curso actual:
 
 La columna **% hecho** resume el avance (entregas aceptadas o docentes que la han completado,
 sobre el total esperado).
+
+## Acuses de lectura {#acuses-de-lectura}
+
+Para cada documento de las carpetas con [acuse de lectura](07-arbol-documental.md#acuse-de-lectura),
+en el orden del árbol: la versión en vigor, cuántos docentes la han leído de los que deben leerla
+y **quiénes faltan**. En Excel incluye además el porcentaje leído. Sirve para demostrar en una
+auditoría que la política de calidad o un protocolo se han difundido, y para saber a quién
+recordárselo.
