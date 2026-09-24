@@ -55,6 +55,13 @@ las descartadas.
 Es la evidencia habitual, en una auditoría, del tratamiento de las no conformidades y de la
 eficacia de las acciones correctivas.
 
+## Plan de mejora {#plan-de-mejora}
+
+El [plan de mejora](09-mejora-continua.md#plan-de-mejora) del curso activo: cada acción preventiva o
+de mejora con su código, lo que se quiere conseguir, el proceso, su responsable, el plazo, su estado
+(*Vencida* si se ha pasado de plazo sin hacerse) y qué se ha hecho. Desde la página del plan se
+descarga el del curso que se esté viendo, también de cursos anteriores.
+
 ## Acuses de lectura {#acuses-de-lectura}
 
 Para cada documento de las carpetas con [acuse de lectura](07-arbol-documental.md#acuse-de-lectura),

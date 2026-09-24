@@ -11,8 +11,9 @@
 | Ver quién ha leído cada documento (en la carpeta, si la gestiona; o en el informe) | — | ✅ (informe) | ✅ | ✅ | ✅ |
 | Recuperar o eliminar definitivamente lo que está en la [papelera](07-arbol-documental.md#papelera) | — | — | ✅ | ✅ | ✅ |
 | Comunicar incidencias y hacer los análisis y acciones de [Mejora continua](09-mejora-continua.md#permisos-de-un-vistazo) que se le asignen | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Ver todas las fichas de Mejora continua | — | ✅ | ✅ | ✅ | ✅ |
+| Ver todas las fichas de Mejora continua y el plan de mejora | — | ✅ | ✅ | ✅ | ✅ |
 | Clasificar incidencias, asignar el análisis, verificar la eficacia y cerrar | — | — | ✅ | ✅ | ✅ |
+| Preparar el [plan de mejora](09-mejora-continua.md#plan-de-mejora) (añadir, editar y eliminar acciones) | — | — | ✅ | ✅ | ✅ |
 | Crear eventos en el calendario | — | — | — | ✅ | ✅ |
 | Administrar cursos académicos, docentes, días no lectivos y perfiles del centro (incluido [Preparar el nuevo curso](02-preparar-el-curso-academico.md#preparar-el-nuevo-curso)) | — | — | — | ✅ | ✅ |
 | Consultar el registro de avisos por correo del centro | — | — | — | ✅ | ✅ |

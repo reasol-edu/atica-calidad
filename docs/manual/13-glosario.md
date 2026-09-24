@@ -158,6 +158,11 @@ buscarse con la técnica de los **5 porqués**.
 ocurrir; la preventiva evita un problema que aún no ha ocurrido; la de mejora mejora algo que ya
 funciona — ver [Acciones](09-mejora-continua.md#acciones).
 
+**Plan de mejora**
+: Las acciones preventivas y de mejora que el centro se propone en un curso, sin que haya una
+incidencia detrás, cada una con su código (`PM-AAAA-NNN`), responsable, plazo y evidencias — ver
+[Plan de mejora](09-mejora-continua.md#plan-de-mejora).
+
 **Verificación de eficacia**
 : Comprobación, pasado un tiempo desde que se terminan las acciones de una no conformidad, de que el
 problema se ha resuelto de verdad. Si no, la no conformidad vuelve al análisis de causas.

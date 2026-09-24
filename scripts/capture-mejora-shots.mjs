@@ -1,7 +1,8 @@
 /**
  * Captures the desktop screenshots of the "Mejora continua" chapter of the manual
  * (docs/manual/img/mejora-*.png), against the demo data from `app:load-demo-data` (IES Ada
- * Lovelace), whose five sample findings cover every step. Read-only: it opens forms but submits
+ * Lovelace), whose five sample findings cover every step and whose improvement plan has an action
+ * in each state. Read-only: it opens forms but submits
  * nothing, so it can run in any order with the other capture scripts — still, only against a
  * disposable database (see docs/manual/README.md).
  */
@@ -42,7 +43,7 @@ async function shot(name, options = {}) {
 async function openFinding(title) {
     await page.goto(`${baseUrl}/mejora/fichas`);
     await page.waitForLoadState('networkidle');
-    await page.click(`a:has-text("${title}")`);
+    await page.click(`a:has-text("${title}") >> visible=true`);
     await page.waitForLoadState('networkidle');
 }
 
@@ -57,7 +58,8 @@ await login('calidad');
 await page.goto(`${baseUrl}/mejora`);
 await shot('mejora-portada');
 
-await page.click('a:has-text("El proyector del aula 12")');
+// ">> visible=true": the bell's closed dropdown has the same links.
+await page.click('a:has-text("El proyector del aula 12") >> visible=true');
 await page.waitForLoadState('networkidle');
 await page.check('input[name="kind"][value="nonconformity"]');
 await page.waitForSelector('#classify-responsible');
@@ -69,14 +71,36 @@ await shot('mejora-tablero');
 await openFinding('La Política de Calidad no llega');
 await shot('mejora-ficha', { fullPage: true });
 
+// ── The quality manager: the improvement plan ────────────────────────────────
+await page.goto(`${baseUrl}/mejora/plan`);
+await shot('mejora-plan', { fullPage: true });
+
+await page.goto(`${baseUrl}/mejora/plan/nueva`);
+await page.fill('#plan-description', 'Organizar una jornada de buenas prácticas entre departamentos');
+await page.fill('#plan-goal', 'Que cada departamento comparta al menos una práctica que le haya funcionado.');
+await shot('mejora-plan-nueva', { fullPage: true });
+
 // ── The analyst: "Tus próximos pasos" and the cause analysis ────────────────
 await login('a.ruiz', 'prueba');
 await page.goto(`${baseUrl}/`);
 await shot('mejora-proximos-pasos');
 
-await page.click('a:has-text("Programaciones didácticas entregadas fuera de plazo")');
+await page.click('a:has-text("Programaciones didácticas entregadas fuera de plazo") >> visible=true');
 await page.waitForLoadState('networkidle');
 await shot('mejora-analisis', { fullPage: true });
+
+// Her plan action: its page, the bell and the calendar.
+await page.goto(`${baseUrl}/mejora`);
+await page.click('a:has-text("Revisar con cada departamento el calendario de entregas") >> visible=true');
+await page.waitForLoadState('networkidle');
+await shot('mejora-accion', { fullPage: true });
+
+await page.click('button[aria-label="Notificaciones"]');
+await page.waitForTimeout(300);
+await shot('mejora-campana');
+
+await page.goto(`${baseUrl}/calendario`);
+await shot('mejora-calendario');
 
 await browser.close();
 console.log('Capturas guardadas en', outDir);
