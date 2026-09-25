@@ -105,12 +105,18 @@
                                 <div></div>
                                 <div>
                                     <label for="classify-responsible" class="{{ label }}">{{ 'classify.responsible'|trans({}, 'quality') }}</label>
-                                    <select id="classify-responsible" data-model="norender|responsibleId" class="{{ input }}">
-                                        <option value="">{{ 'classify.responsible_quality'|trans({}, 'quality') }}</option>
-                                        {% for t in this.teacherChoices %}
-                                            <option value="{{ t.id.toRfc4122 }}" {{ responsibleId == t.id.toRfc4122 ? 'selected' : '' }}>{{ t.name.lastName }}, {{ t.name.firstName }}</option>
-                                        {% endfor %}
-                                    </select>
+                                    {# Stable id: responsibleId is only ever set once, at mount() — data-live-ignore alone
+                                       is enough to survive re-renders from unrelated fields (severity, due date...). #}
+                                    <div id="classify-responsible-picker" data-live-ignore>
+                                        <select id="classify-responsible" data-model="norender|responsibleId" data-controller="tom-select"
+                                                data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
+                                                class="w-full text-sm ts-local">
+                                            <option value="">{{ 'classify.responsible_quality'|trans({}, 'quality') }}</option>
+                                            {% for t in this.teacherChoices %}
+                                                <option value="{{ t.id.toRfc4122 }}" {{ responsibleId == t.id.toRfc4122 ? 'selected' : '' }}>{{ t.name.lastName }}, {{ t.name.firstName }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
                                     {% if errors.responsible is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.responsible }}</p>{% endif %}
                                 </div>
                                 <div>
@@ -319,19 +325,26 @@
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <label for="action-responsible" class="{{ label }}">{{ 'action.responsible'|trans({}, 'quality') }}</label>
-                                    <select id="action-responsible" data-model="norender|actionResponsible" class="{{ input }}">
-                                        <option value="">{{ 'action.responsible_me'|trans({}, 'quality') }}</option>
-                                        <optgroup label="{{ 'action.responsible_teachers'|trans({}, 'quality') }}">
-                                            {% for t in this.teacherChoices %}
-                                                <option value="t:{{ t.id.toRfc4122 }}" {{ actionResponsible == 't:' ~ t.id.toRfc4122 ? 'selected' : '' }}>{{ t.name.lastName }}, {{ t.name.firstName }}</option>
-                                            {% endfor %}
-                                        </optgroup>
-                                        <optgroup label="{{ 'action.responsible_profiles'|trans({}, 'quality') }}">
-                                            {% for p in this.profileChoices %}
-                                                <option value="p:{{ p.id.toRfc4122 }}" {{ actionResponsible == 'p:' ~ p.id.toRfc4122 ? 'selected' : '' }}>{{ p.name }}</option>
-                                            {% endfor %}
-                                        </optgroup>
-                                    </select>
+                                    {# Stable id: the whole add-action block (this included) only ever exists in the DOM
+                                       while addingAction is true, torn down and rebuilt fresh — with actionResponsible
+                                       reset to '' — each time it's toggled back open, so data-live-ignore alone is enough. #}
+                                    <div id="action-responsible-picker" data-live-ignore>
+                                        <select id="action-responsible" data-model="norender|actionResponsible" data-controller="tom-select"
+                                                data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
+                                                class="w-full text-sm ts-local">
+                                            <option value="">{{ 'action.responsible_me'|trans({}, 'quality') }}</option>
+                                            <optgroup label="{{ 'action.responsible_teachers'|trans({}, 'quality') }}">
+                                                {% for t in this.teacherChoices %}
+                                                    <option value="t:{{ t.id.toRfc4122 }}" {{ actionResponsible == 't:' ~ t.id.toRfc4122 ? 'selected' : '' }}>{{ t.name.lastName }}, {{ t.name.firstName }}</option>
+                                                {% endfor %}
+                                            </optgroup>
+                                            <optgroup label="{{ 'action.responsible_profiles'|trans({}, 'quality') }}">
+                                                {% for p in this.profileChoices %}
+                                                    <option value="p:{{ p.id.toRfc4122 }}" {{ actionResponsible == 'p:' ~ p.id.toRfc4122 ? 'selected' : '' }}>{{ p.name }}</option>
+                                                {% endfor %}
+                                            </optgroup>
+                                        </select>
+                                    </div>
                                     {% if errors.actionResponsible is defined or errors.responsible is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.actionResponsible ?? errors.responsible }}</p>{% endif %}
                                 </div>
                                 <div>

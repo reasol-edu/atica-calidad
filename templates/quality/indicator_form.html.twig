@@ -44,7 +44,9 @@
             <div class="grid gap-5 sm:grid-cols-2">
                 <div class="space-y-1.5">
                     <label for="ind-section" class="{{ label }}">{{ 'classify.section'|trans({}, 'quality') }} {{ optional }}</label>
-                    <select id="ind-section" name="section" class="{{ field }} border-gray-200">
+                    <select id="ind-section" name="section" data-controller="tom-select"
+                            data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
+                            class="w-full text-sm ts-local">
                         <option value="">—</option>
                         {% for choice in sections %}
                             <option value="{{ choice.id }}" {{ values.section == choice.id ? 'selected' : '' }}>{{ choice.indented }}</option>
@@ -53,7 +55,9 @@
                 </div>
                 <div class="space-y-1.5">
                     <label for="ind-responsible" class="{{ label }}">{{ 'indicator.responsible'|trans({}, 'quality') }}</label>
-                    <select id="ind-responsible" name="responsible" class="{{ field }} {{ errors.responsible is defined ? 'border-red-300' : 'border-gray-200' }}">
+                    <select id="ind-responsible" name="responsible" data-controller="tom-select"
+                            data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
+                            class="w-full text-sm ts-local">
                         <option value="">{{ 'action.responsible_me'|trans({}, 'quality') }}</option>
                         <optgroup label="{{ 'action.responsible_teachers'|trans({}, 'quality') }}">
                             {% for t in teachers %}

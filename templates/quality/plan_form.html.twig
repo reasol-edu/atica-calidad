@@ -76,7 +76,9 @@
 
         <div class="space-y-1.5">
             <label for="plan-section" class="block text-sm font-semibold text-gray-900">{{ 'classify.section'|trans({}, 'quality') }} <span class="font-normal text-gray-500">{{ 'report.optional'|trans({}, 'quality') }}</span></label>
-            <select id="plan-section" name="section" class="{{ field }} border-gray-200">
+            <select id="plan-section" name="section" data-controller="tom-select"
+                    data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
+                    class="w-full text-sm ts-local">
                 <option value="">—</option>
                 {% for choice in sections %}
                     <option value="{{ choice.id }}" {{ values.section == choice.id ? 'selected' : '' }}>{{ choice.indented }}</option>
@@ -87,7 +89,9 @@
         <div class="grid gap-5 sm:grid-cols-2">
             <div class="space-y-1.5">
                 <label for="plan-responsible" class="block text-sm font-semibold text-gray-900">{{ 'action.responsible'|trans({}, 'quality') }}</label>
-                <select id="plan-responsible" name="responsible" class="{{ field }} {{ errors.responsible is defined ? 'border-red-300' : 'border-gray-200' }}">
+                <select id="plan-responsible" name="responsible" data-controller="tom-select"
+                        data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
+                        class="w-full text-sm ts-local">
                     <option value="">{{ 'action.responsible_me'|trans({}, 'quality') }}</option>
                     <optgroup label="{{ 'action.responsible_teachers'|trans({}, 'quality') }}">
                         {% for t in teachers %}
