@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.7.3] - 2026-09-25
+
+### Fixed
+
+- **Índice del árbol documental**: no se podía hacer scroll para ver ni seleccionar las secciones
+  que no cabían en la pantalla; ahora el índice se desplaza verticalmente como el resto de la
+  aplicación.
+
 ## [1.7.2] - 2026-09-25
 
 ### Fixed
