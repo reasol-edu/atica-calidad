@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-09-25
+
+### Fixed
+
+- **Índice del árbol documental**: el botón para ocultarlo o mostrarlo estaba descentrado respecto
+  al buscador de al lado; ahora queda alineado con él. El buscador de una sección ("Buscar en esta
+  sección") también se ensancha un poco, para que quepa el texto completo.
+
 ## [1.7.1] - 2026-09-25
 
 ### Added
