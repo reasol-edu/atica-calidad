@@ -8,6 +8,7 @@ use App\Entity\AcademicYear;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\ActivityCompletion;
+use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
 use App\Entity\DocumentFile;
 use App\Entity\DocumentRevision;
@@ -130,6 +131,59 @@ final class ActivityBulkReviewAndReminderTest extends ControllerTestCase
         self::assertStringContainsString(ActivityDeadlineChecker::academicYearLabel($last), $content);
         self::assertMatchesRegularExpression('/value="' . $one->getId()->toRfc4122() . '"\s+checked/', $content);
         self::assertDoesNotMatchRegularExpression('/value="' . $two->getId()->toRfc4122() . '"\s+checked/', $content);
+        // Each group ("por revisar" and "de cursos anteriores") gets its own mark/unmark-all toggle.
+        self::assertSame(2, substr_count($content, 'data-controller="check-all"'));
+        self::assertSame(2, substr_count($content, 'data-action="check-all#toggle"'));
+        self::assertSame(2, substr_count($content, 'data-check-all-target="checkbox"'));
+    }
+
+    /**
+     * A by-profile submission's document is named for itself, and stays the primary label with the
+     * uploader as secondary — see the next test for the opposite, individual-scope case.
+     */
+    public function testByProfileSubmissionsKeepTheDocumentNameAsThePrimaryLabel(): void
+    {
+        [$centre, $activity, $reviewer, $one] = $this->reviewScenario();
+        $this->loginAs($reviewer, $centre);
+        $this->client->request('GET', '/actividades?category=' . $activity->getCategory()->getId()->toRfc4122() . '&activity=' . $activity->getId()->toRfc4122());
+        $content = (string) $this->client->getResponse()->getContent();
+
+        $namePos = strpos($content, 'subidor, Nombre');
+        $docPos  = strpos($content, '>' . $one->getDocument()->getName());
+        self::assertNotFalse($namePos);
+        self::assertNotFalse($docPos);
+        self::assertLessThan($namePos, $docPos, 'the document name comes first, the uploader after it');
+    }
+
+    /**
+     * An individual submission's document is only ever named after the role it covers (the same
+     * label the group heading above it already carries) — the uploader is what actually tells one
+     * row apart from the next, so it leads; the role moves to where the uploader used to be.
+     */
+    public function testIndividualSubmissionsLeadWithTheUploaderAndMoveTheRoleAside(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Entregas');
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Revisor');
+        $folder->addReviewProfile($profile);
+        $activity = (new Activity())->setCategory($category)->setTitle('Plan de Acción Tutorial')->setStart(1, 9)->setEnd(30, 6)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::Individual);
+        $reviewer = $this->teacher('revisor');
+        $uploader = $this->teacher('subidor');
+        $this->persist($centre, $category, $section, $folder, $profile, $activity, $reviewer, $uploader, new SpecificProfileAssignment($profile, null, $reviewer));
+        $this->pendingRevision($folder, 'Tutor/a 1º ESO A', $uploader);
+
+        $this->loginAs($reviewer, $centre);
+        $this->client->request('GET', '/actividades?category=' . $activity->getCategory()->getId()->toRfc4122() . '&activity=' . $activity->getId()->toRfc4122());
+        $content = (string) $this->client->getResponse()->getContent();
+
+        self::assertStringContainsString(' checked', $content);
+        $namePos = strpos($content, 'subidor, Nombre');
+        $rolePos = strpos($content, 'Tutor/a 1º ESO A');
+        self::assertNotFalse($namePos);
+        self::assertNotFalse($rolePos);
+        self::assertLessThan($rolePos, $namePos, 'the uploader comes first, the role after it');
     }
 
     public function testApprovesTheTickedSubmissionsOfTheActivityAndIgnoresAnyOtherId(): void

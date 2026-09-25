@@ -158,12 +158,18 @@ aparece encima de «Mis entregas».
 ### Revisar varias entregas a la vez {#revisar-varias-entregas}
 
 Quien revisa la carpeta de la actividad ve, además, un recuadro **«N entregas por revisar»** con
-todas las entregas pendientes de visto bueno, cada una con quién la subió, la fecha y su descarga.
-Todas vienen marcadas: basta con desmarcar las que no se quieran tocar, escribir si se quiere un
-comentario común y pulsar **Aprobar seleccionadas** o **Rechazar seleccionadas**. Rechazar pide
+todas las entregas del curso actual pendientes de visto bueno, cada una con quién la subió, la
+fecha y su descarga (en una entrega individual, quién la subió es lo primero que se ve; el grupo o
+perfil al que corresponde queda al lado, en un tono más discreto). Todas vienen marcadas: basta con
+desmarcar las que no se quieran tocar —o pulsar **Marcar/desmarcar todo**—, escribir si se quiere
+un comentario común y pulsar **Aprobar seleccionadas** o **Rechazar seleccionadas**. Rechazar pide
 confirmación, porque cada docente recibe un aviso para volver a entregarla. El efecto es el mismo
 que revisar una por una: cambia la versión en vigor, se anota en el registro de actividad y se avisa
 a quien la subió.
+
+Si queda alguna pendiente de un curso anterior, aparece aparte, con su curso y sin marcar —para no
+aprobarla o rechazarla sin querer junto con las del curso actual—, con su propio **Marcar/desmarcar
+todo**.
 
 ![Recuadro de revisión en bloque, con las entregas pendientes marcadas y los botones de aprobar y rechazar](img/actividades-revision-bloque.png)
 
