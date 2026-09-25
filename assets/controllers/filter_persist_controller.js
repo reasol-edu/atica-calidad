@@ -27,8 +27,12 @@ export default class extends Controller {
     }
 
     async connect() {
+        // There's no "live:render" DOM event on this LiveComponent version — "render:finished" is
+        // a hook registered on the component object itself (getComponent()), not a bubbling event
+        // a plain addEventListener() would ever catch.
         this.onRender = () => this.persist();
-        this.element.addEventListener('live:render', this.onRender);
+        this.component = await getComponent(this.element);
+        this.component.on('render:finished', this.onRender);
 
         if (this.activeValue) {
             return;
@@ -39,22 +43,21 @@ export default class extends Controller {
             return;
         }
 
-        const component = await getComponent(this.element);
         const defaults = this.effectiveDefaults;
         let changed = false;
         for (const [prop, value] of Object.entries(saved)) {
             if (value !== defaults[prop]) {
-                component.set(prop, value, false);
+                this.component.set(prop, value, false);
                 changed = true;
             }
         }
         if (changed) {
-            component.render();
+            this.component.render();
         }
     }
 
     disconnect() {
-        this.element.removeEventListener('live:render', this.onRender);
+        this.component?.off('render:finished', this.onRender);
     }
 
     persist() {
