@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-09-25
+
 ### Added
 
 - **Índice del árbol documental**: se ensancha o se estrecha arrastrando el borde con el
