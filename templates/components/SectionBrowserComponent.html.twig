@@ -15,7 +15,7 @@
              class="lg:grid lg:grid-cols-[var(--tree-sidebar-width,18rem)_1.25rem_minmax(0,1fr)]"{% endif %}>
         {% if tree is not empty %}
             <aside data-tree-sidebar-target="aside"
-                   class="hidden lg:block lg:min-w-0 lg:overflow-hidden lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)]">
+                   class="hidden lg:block lg:min-w-0 lg:overflow-hidden lg:sticky lg:top-4 lg:self-start lg:h-[calc(100vh-2rem)]">
                 <div class="h-full overflow-y-auto pr-3">
                     <p class="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{{ 'sidebar.title'|trans({}, 'document_content') }}</p>
                     <ul class="space-y-0.5 text-sm">
