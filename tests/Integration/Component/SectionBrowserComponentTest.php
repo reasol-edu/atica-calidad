@@ -1174,6 +1174,30 @@ final class SectionBrowserComponentTest extends ControllerTestCase
 
         self::assertStringNotContainsString('sidebar.title', $html);
         self::assertStringNotContainsString('<aside', $html);
+        // Nothing to resize or collapse either, then.
+        self::assertStringNotContainsString('data-controller="tree-sidebar"', $html);
+    }
+
+    /** The sidebar is resizable (drag the gutter) and collapsible (the button on it) — 18rem by default. */
+    public function testTheSidebarIsResizableAndCollapsible(): void
+    {
+        $centre  = $this->centre();
+        $section = $this->section($centre);
+        $teacher = $this->teacher('docente');
+        $this->persist($centre, $section, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $html = (string) $this->createLiveComponent('SectionBrowserComponent', ['centre' => $centre], $this->client)->render()->crawler()->html();
+
+        self::assertStringContainsString('data-controller="tree-sidebar"', $html);
+        self::assertStringContainsString('--tree-sidebar-width: 18rem;', $html);
+        self::assertStringContainsString('data-tree-sidebar-target="container"', $html);
+        self::assertStringContainsString('data-tree-sidebar-target="aside"', $html);
+        // Twig/LiveComponent renders every "data-action" value with its "->" HTML-entity-escaped
+        // (harmless — browsers decode "&gt;" back when parsing the attribute) — matches every
+        // other data-action in this same markup, e.g. the search form's "submit->live#action".
+        self::assertStringContainsString('data-action="mousedown-&gt;tree-sidebar#startDrag"', $html);
+        self::assertStringContainsString('data-action="tree-sidebar#toggle"', $html);
     }
 
     // ── Remembering the last section visited ────────────────────────────────

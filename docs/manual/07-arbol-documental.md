@@ -290,8 +290,11 @@ confirmación.
 
 En pantallas anchas, un **índice** fijo a la izquierda muestra toda la estructura de secciones del
 centro de un vistazo (solo las que cada docente puede ver), con la sección actual resaltada; tocar
-cualquiera lleva directamente a ella, sin tener que volver antes a la Raíz. En pantallas estrechas
-no aparece: ahí se navega con las migas de pan de siempre.
+cualquiera lleva directamente a ella, sin tener que volver antes a la Raíz. Se ensancha o se
+estrecha arrastrando el borde entre el índice y el contenido, y el botón redondo sobre ese mismo
+borde lo oculta del todo (o lo vuelve a mostrar) sin perder el ancho elegido — la aplicación
+recuerda ambas cosas para la próxima vez, en este navegador. En pantallas estrechas no aparece: ahí
+se navega con las migas de pan de siempre.
 
 Dentro de una sección, se pueden tener **varias carpetas abiertas a la vez** — abrir una no cierra
 las demás — para comparar el contenido de dos carpetas sin ir abriendo y cerrando.

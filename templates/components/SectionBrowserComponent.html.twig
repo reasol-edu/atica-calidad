@@ -11,25 +11,43 @@
     {% set current_id = current ? current.id.toRfc4122 : '' %}
     {% set ancestor_ids = breadcrumb|map(s => s.id.toRfc4122) %}
 
-    <div class="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-6">
+    <div {% if tree is not empty %}data-controller="tree-sidebar" data-tree-sidebar-target="container" style="--tree-sidebar-width: 18rem;"
+             class="lg:grid lg:grid-cols-[var(--tree-sidebar-width,18rem)_1.25rem_minmax(0,1fr)]"{% endif %}>
         {% if tree is not empty %}
-            <aside class="hidden lg:block lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:border-r lg:border-gray-100 lg:pr-4">
-                <p class="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{{ 'sidebar.title'|trans({}, 'document_content') }}</p>
-                <ul class="space-y-0.5 text-sm">
-                    <li>
-                        <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param=""
-                                style="padding-left: 0.5rem"
-                                class="flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 text-left transition-colors
-                                       {{ current is null ? 'bg-forest-50 font-medium text-forest-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700' }}">
-                            {{ ux_icon('heroicons:home', {class: 'h-3.5 w-3.5 shrink-0'}) }}
-                            {{ 'breadcrumb.root'|trans({}, 'document_content') }}
-                        </button>
-                    </li>
-                    {% for node in tree %}
-                        {% include 'components/_document_tree_sidebar_node.html.twig' with {node: node, depth: 0, current_id: current_id, ancestor_ids: ancestor_ids} %}
-                    {% endfor %}
-                </ul>
+            <aside data-tree-sidebar-target="aside"
+                   class="hidden lg:block lg:min-w-0 lg:overflow-hidden lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)]">
+                <div class="h-full overflow-y-auto pr-3">
+                    <p class="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{{ 'sidebar.title'|trans({}, 'document_content') }}</p>
+                    <ul class="space-y-0.5 text-sm">
+                        <li>
+                            <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param=""
+                                    style="padding-left: 0.5rem"
+                                    class="flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 text-left transition-colors
+                                           {{ current is null ? 'bg-forest-50 font-medium text-forest-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700' }}">
+                                {{ ux_icon('heroicons:home', {class: 'h-3.5 w-3.5 shrink-0'}) }}
+                                {{ 'breadcrumb.root'|trans({}, 'document_content') }}
+                            </button>
+                        </li>
+                        {% for node in tree %}
+                            {% include 'components/_document_tree_sidebar_node.html.twig' with {node: node, depth: 0, current_id: current_id, ancestor_ids: ancestor_ids} %}
+                        {% endfor %}
+                    </ul>
+                </div>
             </aside>
+
+            {# The gutter: dragging anywhere in it resizes the sidebar; the round button on top of
+               it — always in the same place, sidebar open or not — hides or brings it back. #}
+            <div class="relative hidden lg:block">
+                <div data-action="mousedown->tree-sidebar#startDrag"
+                     class="absolute inset-y-0 left-1/2 w-2.5 -translate-x-1/2 cursor-col-resize rounded-full transition-colors hover:bg-forest-100"></div>
+                <button type="button" data-action="tree-sidebar#toggle"
+                        class="absolute left-1/2 top-4 z-10 flex h-6 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 shadow-xs transition-colors hover:border-forest-300 hover:text-forest-600"
+                        title="{{ 'sidebar.toggle'|trans({}, 'document_content') }}">
+                    <span data-tree-sidebar-target="icon" class="transition-transform">
+                        {{ ux_icon('heroicons:chevron-left', {class: 'h-3 w-3'}) }}
+                    </span>
+                </button>
+            </div>
         {% endif %}
 
         <div class="min-w-0 space-y-4">

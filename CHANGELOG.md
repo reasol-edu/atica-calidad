@@ -7,6 +7,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Índice del árbol documental**: se ensancha o se estrecha arrastrando el borde con el
+  contenido, y el botón sobre ese borde lo oculta del todo (o lo recupera) sin perder el ancho
+  elegido — la aplicación recuerda ambas cosas para la próxima vez, en ese navegador. Por defecto
+  es algo más ancho que antes.
+
 ## [1.7.0] - 2026-09-25
 
 ### Added
