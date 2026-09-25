@@ -174,6 +174,7 @@ await page.waitForLoadState('networkidle');
 await shot('mejora-revision', { fullPage: true });
 
 await page.goto(page.url() + '/editar');
+await page.waitForSelector('.ql-toolbar'); // the six rich-text editors mount asynchronously
 await shot('mejora-revision-anotar', { fullPage: true });
 
 await page.goto(`${baseUrl}/mejora/revisiones`);

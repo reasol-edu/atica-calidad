@@ -1121,7 +1121,8 @@ class LoadDemoDataCommand extends Command
         }
         $quality   = $this->teachers['calidad'];
         $direccion = $this->teachers['direccion'];
-        $attendees = "Javier Morales Peña (director)\nLaura Jiménez Soto (coordinadora de calidad)\nJefatura de estudios\nSecretaría";
+        // Rich text (Quill), like a teacher would actually leave it: paragraphs, a list, a bit of emphasis.
+        $attendees = '<ul><li>Javier Morales Peña (director)</li><li>Laura Jiménez Soto (coordinadora de calidad)</li><li>Jefatura de estudios</li><li>Secretaría</li></ul>';
 
         $held = new \DateTimeImmutable($first . '-06-30');
         $last = $this->reviewService->create($centre, $previous, $quality, 'Revisión por la dirección ' . $previous->getName(), $held, new \DateTimeImmutable(($first - 1) . '-09-01'), $held);
@@ -1132,11 +1133,11 @@ class LoadDemoDataCommand extends Command
             $last->getPeriodStart(),
             $held,
             $attendees,
-            'Nueva normativa de evaluación en ESO y Bachillerato. Se incorporan dos grupos de FP básica y seis profesores nuevos.',
-            'Encuesta al alumnado de 4.º de ESO: 7,4 sobre 10 (7,1 el curso anterior). No se ha preguntado a las familias.',
-            'El servicio de transporte escolar ha tenido retrasos en el primer trimestre; se resolvieron tras hablar con la empresa.',
-            'Falta un aula de informática para los nuevos grupos de FP básica. El profesorado nuevo necesita formación en el sistema de calidad.',
-            "El sistema de calidad es adecuado y eficaz: los indicadores de resultados mejoran a lo largo del curso y no quedan no conformidades abiertas.\nHay que conocer mejor la opinión de las familias y acoger mejor al profesorado nuevo.",
+            '<p>Nueva normativa de evaluación en ESO y Bachillerato. Se incorporan dos grupos de FP básica y seis profesores nuevos.</p>',
+            '<p>Encuesta al alumnado de 4.º de ESO: <strong>7,4 sobre 10</strong> (7,1 el curso anterior). No se ha preguntado a las familias.</p>',
+            '<p>El servicio de transporte escolar ha tenido retrasos en el primer trimestre; se resolvieron tras hablar con la empresa.</p>',
+            '<p>Falta un aula de informática para los nuevos grupos de FP básica. El profesorado nuevo necesita formación en el sistema de calidad.</p>',
+            '<p>El sistema de calidad es <strong>adecuado y eficaz</strong>: los indicadores de resultados mejoran a lo largo del curso y no quedan no conformidades abiertas.</p><p>Queda pendiente:</p><ul><li>Conocer mejor la opinión de las familias.</li><li>Acoger mejor al profesorado nuevo.</li></ul>',
         );
         $this->em->flush();
         $last->close($direccion, $held->setTime(13, 30), $this->reviewBuilder->build($last));
@@ -1150,7 +1151,7 @@ class LoadDemoDataCommand extends Command
 
         $today   = $this->clock->now()->setTime(0, 0);
         $current = $this->reviewService->create($centre, $year, $quality, 'Revisión por la dirección de inicio de curso', $today, $held->modify('+1 day'), $today);
-        $this->reviewService->save($current, $current->getTitle(), $today, $current->getPeriodStart(), $today, $attendees, 'Comienza el curso con la plantilla completa. Se amplía el horario de la biblioteca por las tardes.', null, null, null, null);
+        $this->reviewService->save($current, $current->getTitle(), $today, $current->getPeriodStart(), $today, $attendees, '<p>Comienza el curso con la plantilla completa. Se amplía el horario de la biblioteca por las tardes.</p>', null, null, null, null);
 
         $io->text('2 revisiones por la dirección: la del curso pasado, cerrada, con dos decisiones en el plan de mejora; y la de inicio de curso, abierta.');
     }

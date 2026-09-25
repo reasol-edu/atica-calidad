@@ -51,11 +51,13 @@
 
         {% if review %}
             {% for name in ['attendees', 'contextChanges', 'satisfaction', 'suppliers', 'resources', 'conclusions'] %}
-                <div class="space-y-1.5">
-                    <label for="review-{{ name }}" class="{{ label }}">{{ ('review.text.' ~ name)|trans({}, 'quality') }}</label>
-                    <p class="text-xs text-gray-500">{{ ('review.text_help.' ~ name)|trans({}, 'quality') }}</p>
-                    <textarea id="review-{{ name }}" name="{{ name }}" rows="{{ name == 'conclusions' ? 5 : 3 }}" class="{{ field }} border-gray-200">{{ values[name] }}</textarea>
-                </div>
+                <twig:Form:RichEditor
+                    id="review-{{ name }}"
+                    name="{{ name }}"
+                    label="{{ ('review.text.' ~ name)|trans({}, 'quality') }}"
+                    help="{{ ('review.text_help.' ~ name)|trans({}, 'quality') }}"
+                    value="{{ values[name] }}"
+                />
             {% endfor %}
         {% endif %}
 

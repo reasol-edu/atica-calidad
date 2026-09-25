@@ -162,6 +162,47 @@ final class ManagementReviewControllerTest extends ControllerTestCase
         self::assertStringNotContainsString('Decisión de «Revisión de octubre»', (string) $this->client->getResponse()->getContent());
     }
 
+    /**
+     * The six texts are HTML from the Quill rich-text editor (see Form:RichEditor), like
+     * Folder::$description: stored raw, sanitized with app.rich_text on every render — the
+     * review page and the PDF alike — never on write.
+     */
+    public function testTheTextsSupportRichTextAndAreSanitizedOnRender(): void
+    {
+        $id = $this->schedule();
+        $this->client->request('GET', '/mejora/revisiones/' . $id . '/editar');
+        $this->client->request('POST', '/mejora/revisiones/' . $id . '/editar', [
+            '_token'      => $this->csrfToken('quality_review'),
+            'title'       => 'Revisión de octubre',
+            'heldOn'      => '2026-10-05',
+            'periodStart' => '2026-09-01',
+            'periodEnd'   => '2026-10-05',
+            'attendees'   => '<p><strong>Dirección</strong> y calidad</p><ul><li>Ana</li><li>Pablo</li></ul>',
+            'conclusions' => '<p onclick="alert(1)">El sistema es <script>alert(1)</script>adecuado</p><img src=x onerror=alert(1)>',
+        ]);
+        self::assertTrue($this->client->getResponse()->isRedirect('/mejora/revisiones/' . $id));
+
+        // Stored exactly as submitted — sanitizing happens on render, never on write.
+        $review = $this->review($id);
+        self::assertStringContainsString('<script>', (string) $review->getConclusions());
+
+        $this->client->request('GET', '/mejora/revisiones/' . $id);
+        $content = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('<strong>Dirección</strong>', $content);
+        self::assertStringContainsString('<li>Ana</li>', $content);
+        // The disallowed tag/attribute are stripped (the layout's own unrelated <script> for flash
+        // messages is always there, so it's the payload itself, not the tag name, that must be gone);
+        // the safe text around them survives.
+        self::assertStringNotContainsString('alert(1)', $content);
+        self::assertStringNotContainsString('onclick=', $content);
+        self::assertStringContainsString('El sistema es', $content);
+        self::assertStringContainsString('adecuado', $content);
+
+        // The same sanitizer is applied in the PDF template.
+        $this->client->request('GET', '/mejora/revisiones/' . $id . '/acta.pdf');
+        self::assertSame('application/pdf', $this->client->getResponse()->headers->get('Content-Type'));
+    }
+
     public function testWhoCanDoWhat(): void
     {
         $id = $this->schedule();

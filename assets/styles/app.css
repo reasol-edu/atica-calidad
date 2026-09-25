@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* Inter font served locally (without relying on Google Fonts): avoids an
    external request that would expose teachers' IP addresses to a third party

@@ -15,10 +15,19 @@
     ? 'review.pdf.closed_note'|trans({'%name%': q.person(review.closedBy), '%date%': review.closedAt|date('d/m/Y')}, 'quality')
     : 'review.pdf.draft_note'|trans({'%date%': inputs.compiledAt|date('d/m/Y H:i')}, 'quality') %}
 {{ report.header(pdfTitle, centre, pdfGeneratedAt, note) }}
-<style>p { margin: 3px 0 6px; } .data-table { margin-bottom: 6px; }</style>
+<style>
+    p { margin: 3px 0 6px; }
+    .data-table { margin-bottom: 6px; }
+    /* The management team's own texts (Quill rich-text editor, sanitized with app.rich_text) */
+    h2 { font-size: 10pt; color: #2e3b27; margin: 6px 0 3px; }
+    ul, ol { margin: 3px 0 6px 16px; }
+    li { margin-bottom: 2px; }
+    blockquote { margin: 3px 0 6px; padding-left: 8px; border-left: 2px solid #c7d8bc; color: #5e5044; }
+    a { color: #46603d; }
+</style>
 
 {% macro text(value) -%}
-    {%- if value -%}<p style="white-space: pre-line;">{{ value }}</p>{%- else -%}<p style="color:#8a7f72;"><i>{{ 'review.not_written'|trans({}, 'quality') }}</i></p>{%- endif -%}
+    {%- if value -%}{{ value|sanitize_html('app.rich_text') }}{%- else -%}<p style="color:#8a7f72;"><i>{{ 'review.not_written'|trans({}, 'quality') }}</i></p>{%- endif -%}
 {%- endmacro %}
 
 {% macro actions(items) -%}
@@ -62,7 +71,7 @@
     <tbody>
         <tr><th style="width:28%;">{{ 'review.heldOn'|trans({}, 'quality') }}</th><td>{{ review.heldOn|date('d/m/Y') }}</td></tr>
         <tr><th>{{ 'review.periodStart'|trans({}, 'quality') }} – {{ 'review.periodEnd'|trans({}, 'quality')|lower }}</th><td>{{ review.periodStart|date('d/m/Y') }} – {{ review.periodEnd|date('d/m/Y') }}</td></tr>
-        <tr><th>{{ 'review.text.attendees'|trans({}, 'quality') }}</th><td style="white-space: pre-line;">{{ review.attendees ?: '—' }}</td></tr>
+        <tr><th>{{ 'review.text.attendees'|trans({}, 'quality') }}</th><td>{{ review.attendees ? review.attendees|sanitize_html('app.rich_text') : '—' }}</td></tr>
     </tbody>
 </table>
 

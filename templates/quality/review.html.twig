@@ -23,7 +23,7 @@
 {% macro text_block(review, name, canManage) -%}
     {%- set value = attribute(review, name) -%}
     {%- if value -%}
-        <div class="whitespace-pre-line text-sm text-gray-800">{{ value }}</div>
+        <div class="prose prose-sm max-w-none text-gray-800">{{ value|sanitize_html('app.rich_text') }}</div>
     {%- else -%}
         <p class="text-sm italic text-gray-400">
             {{- 'review.not_written'|trans({}, 'quality') -}}
@@ -130,7 +130,7 @@
     {% if review.attendees %}
         <section class="{{ card }}">
             <h2 class="{{ h2 }}">{{ 'review.text.attendees'|trans({}, 'quality') }}</h2>
-            <div class="whitespace-pre-line text-sm text-gray-800">{{ review.attendees }}</div>
+            <div class="prose prose-sm max-w-none text-gray-800">{{ review.attendees|sanitize_html('app.rich_text') }}</div>
         </section>
     {% endif %}
 

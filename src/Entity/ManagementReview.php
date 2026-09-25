@@ -46,6 +46,12 @@ class ManagementReview
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private \DateTimeImmutable $periodEnd;
 
+    /**
+     * The six texts below (attendees, contextChanges, satisfaction, suppliers, resources,
+     * conclusions) hold HTML from the Quill rich-text editor, same as Folder::$description and a
+     * richtext-typed setting value; stored raw, sanitize with sanitize_html('app.rich_text') at
+     * every render site, never on write.
+     */
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $attendees = null;
 
