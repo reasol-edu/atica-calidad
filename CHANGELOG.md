@@ -7,6 +7,29 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-09-25
+
+### Added
+
+- **Árbol documental**: en pantallas anchas, un índice lateral con toda la estructura de secciones
+  (solo las visibles para cada docente) permite saltar a cualquier sección sin volver antes a la
+  Raíz. Dentro de una sección se pueden tener varias carpetas abiertas a la vez, en vez de una sola.
+  La aplicación recuerda además, por centro, la última sección visitada: entrar en «Árbol
+  documental» desde el menú lleva ahí en vez de a la Raíz.
+- **Revisión por la dirección**: los apartados que anota el equipo directivo (asistentes, contexto,
+  satisfacción, proveedores, recursos, conclusiones) admiten ahora texto con formato (negrita,
+  listas, enlaces...), igual que la descripción de una carpeta.
+- **Revisar varias entregas a la vez** (Actividades): un botón **Marcar/desmarcar todo** por grupo
+  (las del curso actual, y aparte las de cursos anteriores si quedaba alguna). En una entrega
+  individual, ahora se ve primero quién la subió, y el grupo o perfil al que corresponde queda al
+  lado en un tono más discreto.
+
+### Fixed
+
+- **Recordar tus filtros** (Calendario → Eventos del centro, y cualquier otra pantalla que use el
+  mismo mecanismo) no guardaba nada: escuchaba un evento del navegador que esta versión de los
+  componentes en vivo nunca llega a lanzar. Ahora sí se guarda y se restaura al volver.
+
 ## [1.6.1] - 2026-09-24
 
 **Al actualizar:** esta versión corrige datos de la base de datos (el curso de algunas entregas y
