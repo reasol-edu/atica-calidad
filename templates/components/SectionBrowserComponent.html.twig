@@ -41,7 +41,7 @@
                 <div data-action="mousedown->tree-sidebar#startDrag"
                      class="absolute inset-y-0 left-1/2 w-2.5 -translate-x-1/2 cursor-col-resize rounded-full transition-colors hover:bg-forest-100"></div>
                 <button type="button" data-action="tree-sidebar#toggle"
-                        class="absolute left-1/2 top-4 z-10 flex h-6 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 shadow-xs transition-colors hover:border-forest-300 hover:text-forest-600"
+                        class="absolute left-1/2 top-2 z-10 flex h-6 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 shadow-xs transition-colors hover:border-forest-300 hover:text-forest-600"
                         title="{{ 'sidebar.toggle'|trans({}, 'document_content') }}">
                     <span data-tree-sidebar-target="icon" class="transition-transform">
                         {{ ux_icon('heroicons:chevron-left', {class: 'h-3 w-3'}) }}
@@ -179,7 +179,7 @@
                             {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400'}) }}
                             <input type="search" data-model="debounce(300)|localSearchQuery" value="{{ localSearchQuery }}"
                                    placeholder="{{ 'search.local_placeholder'|trans({}, 'document_content') }}"
-                                   class="w-40 rounded-lg border border-gray-200 bg-white py-1.5 pl-8 {{ localSearchQuery is not empty ? 'pr-7' : 'pr-2' }} text-xs focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                                   class="w-64 rounded-lg border border-gray-200 bg-white py-1.5 pl-8 {{ localSearchQuery is not empty ? 'pr-7' : 'pr-2' }} text-xs focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                             {% if localSearchQuery is not empty %}
                                 <button type="button" data-action="live#action" data-live-action-param="clearLocalSearch"
                                         class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-600">
