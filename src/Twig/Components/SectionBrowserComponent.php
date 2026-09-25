@@ -64,8 +64,13 @@ class SectionBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $currentSectionId = '';
 
+    /**
+     * Several folders can be expanded at once within a section — see toggleFolder().
+     *
+     * @var string[]
+     */
     #[LiveProp(writable: true)]
-    public string $expandedFolderId = '';
+    public array $expandedFolderIds = [];
 
     #[LiveProp(writable: true)]
     public bool $showObsoleteFolders = false;
@@ -173,12 +178,15 @@ class SectionBrowserComponent extends AbstractController
     public string $localSearchQuery = '';
 
     /**
-     * Which academic year's submissions the expanded folder shows, when it backs an activity: ""
-     * for the current one, ActivityFolderCycleFilter::ALL for every year, or a cycle key ("2025").
-     * Also what its ZIP download holds. Back to "" whenever another folder is expanded.
+     * Which academic year's submissions an expanded activity folder shows: "" for the current
+     * one, ActivityFolderCycleFilter::ALL for every year, or a cycle key ("2025") — keyed by
+     * folder id, since several folders can be expanded (and so selecting independently) at once.
+     * Also what that folder's ZIP download holds. Back to "" whenever the folder is toggled.
+     *
+     * @var array<string, string>
      */
     #[LiveProp(writable: true)]
-    public string $folderCycle = '';
+    public array $folderCycles = [];
 
     /** @var array<string, string> */
     #[LiveProp]
@@ -187,6 +195,9 @@ class SectionBrowserComponent extends AbstractController
     /** Document whose "who has read it" list is open, for a folder manager (read acknowledgement). */
     #[LiveProp(writable: true)]
     public string $readStatusDocumentId = '';
+
+    /** @var DocumentSection[]|null memoised per render — see getSectionTree() */
+    private ?array $allSectionsCache = null;
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -239,7 +250,7 @@ class SectionBrowserComponent extends AbstractController
         if ($folderId !== '') {
             $folder = $this->folders->findByIdAndSection($folderId, $section);
             if ($folder !== null && $this->access->canViewFolder($this->teacher(), $folder)) {
-                $this->expandedFolderId = $folderId;
+                $this->expandedFolderIds[] = $folderId;
                 if ($documentId !== '' && $this->documents->findByIdAndFolder($documentId, $folder) !== null) {
                     $this->revisionPanelDocumentId = $documentId;
                 }
@@ -276,10 +287,19 @@ class SectionBrowserComponent extends AbstractController
     {
         $this->dispatchBrowserEvent('document-tree:location', [
             'section'  => $this->currentSectionId,
-            'folder'   => $this->expandedFolderId,
+            'folder'   => $this->primaryExpandedFolderId(),
             'document' => $this->revisionPanelDocumentId,
             'settings' => $this->folderSettingsPanelId,
         ]);
+    }
+
+    /**
+     * The most recently expanded folder, for the URL/back-button: several can be open at once
+     * (see toggleFolder()), but a reloaded or shared link only ever needs to restore one of them.
+     */
+    private function primaryExpandedFolderId(): string
+    {
+        return $this->expandedFolderIds === [] ? '' : $this->expandedFolderIds[array_key_last($this->expandedFolderIds)];
     }
 
     private function teacher(): Teacher
@@ -376,6 +396,54 @@ class SectionBrowserComponent extends AbstractController
         return $trail;
     }
 
+    /**
+     * The whole tree this teacher can browse, nested and permission-filtered — for the sidebar
+     * shown alongside the breadcrumb/cards browsing on wide screens (see the template). A section
+     * this teacher can't view is pruned along with its entire subtree: there's no way to reach a
+     * hidden section's children by browsing either, restrictions never cascading notwithstanding
+     * (DocumentTreeAccessChecker) — a subsection of a hidden one simply has no door left open to it.
+     *
+     * @return array<int, array{section: DocumentSection, children: array<mixed>}>
+     */
+    public function getSectionTree(): array
+    {
+        $byParent = [];
+        foreach ($this->allSectionsForTree() as $section) {
+            $key              = $section->getParent()?->getId()->toRfc4122() ?? '';
+            $byParent[$key][] = $section;
+        }
+
+        return $this->buildVisibleTreeNodes('', $byParent);
+    }
+
+    /** @return DocumentSection[] every section of the centre, loaded once per render (profile restrictions eager-loaded, for canViewSection()) */
+    private function allSectionsForTree(): array
+    {
+        return $this->allSectionsCache ??= $this->sections->findAllByCentre($this->centre);
+    }
+
+    /**
+     * @param array<string, DocumentSection[]> $byParent
+     *
+     * @return array<int, array{section: DocumentSection, children: array<mixed>}>
+     */
+    private function buildVisibleTreeNodes(string $parentKey, array $byParent): array
+    {
+        $teacher = $this->teacher();
+        $nodes   = [];
+        foreach ($byParent[$parentKey] ?? [] as $section) {
+            if (!$this->access->canViewSection($teacher, $section)) {
+                continue;
+            }
+            $nodes[] = [
+                'section'  => $section,
+                'children' => $this->buildVisibleTreeNodes($section->getId()->toRfc4122(), $byParent),
+            ];
+        }
+
+        return $nodes;
+    }
+
     #[LiveAction]
     public function openLevel(#[LiveArg] string $id): void
     {
@@ -386,7 +454,8 @@ class SectionBrowserComponent extends AbstractController
 
     private function resetTransientState(): void
     {
-        $this->expandedFolderId          = '';
+        $this->expandedFolderIds         = [];
+        $this->folderCycles              = [];
         $this->addingFolder              = false;
         $this->renamingFolderId          = '';
         $this->confirmingDeleteFolderId  = '';
@@ -400,7 +469,6 @@ class SectionBrowserComponent extends AbstractController
         $this->editingRevisionId         = '';
         $this->confirmingDeleteRevisionId = '';
         $this->localSearchQuery          = '';
-        $this->folderCycle               = '';
         $this->errors                    = [];
     }
 
@@ -435,11 +503,16 @@ class SectionBrowserComponent extends AbstractController
         return $folders;
     }
 
+    /** Expanding and collapsing is independent per folder — several can be open in the same section at once. */
     #[LiveAction]
     public function toggleFolder(#[LiveArg] string $id): void
     {
-        $this->expandedFolderId = $this->expandedFolderId === $id ? '' : $id;
-        $this->folderCycle      = '';
+        if (in_array($id, $this->expandedFolderIds, true)) {
+            $this->expandedFolderIds = array_values(array_diff($this->expandedFolderIds, [$id]));
+        } else {
+            $this->expandedFolderIds[] = $id;
+        }
+        unset($this->folderCycles[$id]);
         $this->renamingDocumentId         = '';
         $this->confirmingDeleteDocumentId = '';
         $this->movingDocumentId           = '';
@@ -876,7 +949,8 @@ class SectionBrowserComponent extends AbstractController
      */
     public function getFolderDocumentGroups(Folder $folder): array
     {
-        $selection = $folder->getId()->toRfc4122() === $this->expandedFolderId ? $this->folderCycle : '';
+        $fid       = $folder->getId()->toRfc4122();
+        $selection = in_array($fid, $this->expandedFolderIds, true) ? ($this->folderCycles[$fid] ?? '') : '';
         $all       = $this->cycleFilter->filter($folder, $this->documents->findByFolder($folder), $selection);
         if ($all === []) {
             return [];
@@ -1485,7 +1559,7 @@ class SectionBrowserComponent extends AbstractController
         $folder = $document->getFolder();
         $this->currentSectionId = $folder->getDocumentSection()->getId()->toRfc4122();
         $this->resetTransientState();
-        $this->expandedFolderId       = $folder->getId()->toRfc4122();
+        $this->expandedFolderIds      = [$folder->getId()->toRfc4122()];
         $this->highlightedDocumentId  = $documentId;
         $this->searchQuery            = '';
         $this->showCycleOf($document);
@@ -1515,7 +1589,7 @@ class SectionBrowserComponent extends AbstractController
     /** The ZIP link's selection: the same as on screen, but always explicit (never "") so the download can't drift if the academic year rolls over meanwhile. */
     public function getFolderZipCycle(Folder $folder): string
     {
-        $selected = $this->cycleFilter->selectedCycle($folder, $this->folderCycle);
+        $selected = $this->cycleFilter->selectedCycle($folder, $this->folderCycles[$folder->getId()->toRfc4122()] ?? '');
         if ($selected !== null) {
             return (string) $selected;
         }
@@ -1526,10 +1600,11 @@ class SectionBrowserComponent extends AbstractController
     /** Switches the selector to $document's own academic year when it isn't the current one, so jumping to it never lands on a list that hides it. */
     private function showCycleOf(Document $document): void
     {
+        $folder  = $document->getFolder();
         $cycle   = $document->getActivityCycleYear();
-        $current = $this->cycleFilter->currentCycle($document->getFolder());
+        $current = $this->cycleFilter->currentCycle($folder);
         if ($cycle !== null && $current !== null && $cycle !== $current) {
-            $this->folderCycle = (string) $cycle;
+            $this->folderCycles[$folder->getId()->toRfc4122()] = (string) $cycle;
         }
     }
 
@@ -1546,10 +1621,10 @@ class SectionBrowserComponent extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $this->currentSectionId = $folder->getDocumentSection()->getId()->toRfc4122();
+        $this->currentSectionId  = $folder->getDocumentSection()->getId()->toRfc4122();
         $this->resetTransientState();
-        $this->expandedFolderId = $folder->getId()->toRfc4122();
-        $this->searchQuery      = '';
+        $this->expandedFolderIds = [$folder->getId()->toRfc4122()];
+        $this->searchQuery       = '';
         $this->dispatchLocation();
     }
 

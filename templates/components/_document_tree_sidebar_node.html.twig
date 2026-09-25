@@ -1,0 +1,22 @@
+{# node: {section: DocumentSection, children: [...]}, depth: int, current_id: string, ancestor_ids: string[]
+   — inherits the parent component's context (this). A pure navigation aid (SectionBrowserComponent::getSectionTree()):
+   clicking a row opens that section, same as its card or a breadcrumb crumb would. #}
+{% set section = node.section %}
+{% set sid = section.id.toRfc4122 %}
+{% set is_current = sid == current_id %}
+<li>
+    <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ sid }}"
+            style="padding-left: {{ depth * 1 + 0.5 }}rem"
+            class="flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 text-left transition-colors
+                   {{ is_current ? 'bg-forest-50 font-medium text-forest-700' : (sid in ancestor_ids ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700') }}">
+        {{ ux_icon('heroicons:rectangle-stack', {class: 'h-3.5 w-3.5 shrink-0 ' ~ (is_current ? 'text-forest-500' : 'text-gray-300')}) }}
+        <span class="min-w-0 truncate">{{ section.name }}</span>
+    </button>
+    {% if node.children is not empty %}
+        <ul>
+            {% for child in node.children %}
+                {% include 'components/_document_tree_sidebar_node.html.twig' with {node: child, depth: depth + 1, current_id: current_id, ancestor_ids: ancestor_ids} %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+</li>

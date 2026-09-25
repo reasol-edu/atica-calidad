@@ -1,6 +1,9 @@
 {# folder: Folder, can_manage: bool, can_upload: bool — inherits the parent component's context #}
 {% set fid = folder.id.toRfc4122 %}
 {% set groups = this.getVisibleFolderDocumentGroups(folder) %}
+{# This folder's own academic-year selection — folderCycles is keyed by folder id since several
+   folders (each with their own selector) can be expanded at once. #}
+{% set selected_cycle = folderCycles[fid] ?? '' %}
 {# The direct-upload dropzone below only ever shows when the folder has no activity of its own
    (see the {% if folder.activity %} branch further down) — the notice mirrors that condition, or
    it would promise a restriction on a dropzone that isn't actually there. #}
@@ -24,15 +27,15 @@
                 <label class="inline-flex items-center gap-1.5 text-xs text-gray-500">
                     {{ ux_icon('heroicons:calendar-days', {class: 'h-3.5 w-3.5 text-gray-400'}) }}
                     <span>{{ 'folder.cycle.label'|trans({}, 'document_content') }}</span>
-                    <select data-model="folderCycle"
+                    <select data-model="folderCycles.{{ fid }}"
                             class="rounded-md border border-gray-200 bg-white py-1 pl-2 pr-7 text-xs text-gray-700 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                         {# The current academic year is always listed; earlier ones only if they have submissions. #}
                         {% for option in cycle_options %}
-                            <option value="{{ option.value }}" {{ folderCycle == option.value ? 'selected' : '' }}>
+                            <option value="{{ option.value }}" {{ selected_cycle == option.value ? 'selected' : '' }}>
                                 {{ option.current ? 'folder.cycle.current'|trans({'%year%': option.label}, 'document_content') : option.label }}
                             </option>
                         {% endfor %}
-                        <option value="{{ all_value }}" {{ folderCycle == all_value ? 'selected' : '' }}>{{ 'folder.cycle.all'|trans({}, 'document_content') }}</option>
+                        <option value="{{ all_value }}" {{ selected_cycle == all_value ? 'selected' : '' }}>{{ 'folder.cycle.all'|trans({}, 'document_content') }}</option>
                     </select>
                 </label>
             {% endif %}
@@ -49,7 +52,7 @@
 
     {% if groups is empty %}
         <p class="px-4 py-6 text-center text-sm text-gray-400">
-            {{ (cycle_options is empty ? 'empty' : (folderCycle == '' ? 'folder.cycle.empty_current' : 'folder.cycle.empty'))|trans({}, 'document_content') }}
+            {{ (cycle_options is empty ? 'empty' : (selected_cycle == '' ? 'folder.cycle.empty_current' : 'folder.cycle.empty'))|trans({}, 'document_content') }}
         </p>
     {% endif %}
 

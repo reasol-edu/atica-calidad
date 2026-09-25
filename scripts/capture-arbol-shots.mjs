@@ -51,13 +51,21 @@ await page.click('text=8.1 Planificación y control operacional');
 await page.waitForSelector('text=Programaciones didácticas');
 await page.waitForLoadState('networkidle');
 
-// Expand the "Programaciones didácticas" folder (collapsed by default)
+// Expand the "Programaciones didácticas" folder (collapsed by default) — and, just for this one
+// screenshot, "Planes de Acción Tutorial" too, to show that several folders can stay open at
+// once. Closed again right after, so the rest of the script (which opens it fresh at step 4)
+// keeps working unchanged.
 await page.locator('button[data-live-action-param="toggleFolder"]', { hasText: 'Programaciones didácticas' }).click();
 await page.waitForSelector('text=Lengua Castellana y Literatura');
+await page.locator('button[data-live-action-param="toggleFolder"]', { hasText: 'Planes de Acción Tutorial' }).click();
+await page.waitForSelector('text=Tutor/a 1º ESO A');
 await hideToolbar();
 
-// ── 2. Contents of a folder, with a pending revision ─────────────────────────
+// ── 2. Contents of a folder, with a pending revision, sidebar and several folders open ───────
 await page.screenshot({ path: `${outDir}/arbol-carpeta-contenido.png` });
+
+await page.locator('button[data-live-action-param="toggleFolder"]', { hasText: 'Planes de Acción Tutorial' }).click();
+await page.waitForTimeout(200);
 
 // ── 3. Folder settings (toggles + profile lists) ──────────────────────────────
 await page.click('button[data-live-action-param="toggleFolderSettings"]');

@@ -284,6 +284,22 @@ confirmación.
   actividad la ha ocupado mientras tanto, vuelven sin carpeta, y se avisa para asignarle una desde
   «Editar».
 
+## Navegar por el árbol documental
+
+![El índice lateral y varias carpetas abiertas a la vez](img/arbol-carpeta-contenido.png)
+
+En pantallas anchas, un **índice** fijo a la izquierda muestra toda la estructura de secciones del
+centro de un vistazo (solo las que cada docente puede ver), con la sección actual resaltada; tocar
+cualquiera lleva directamente a ella, sin tener que volver antes a la Raíz. En pantallas estrechas
+no aparece: ahí se navega con las migas de pan de siempre.
+
+Dentro de una sección, se pueden tener **varias carpetas abiertas a la vez** — abrir una no cierra
+las demás — para comparar el contenido de dos carpetas sin ir abriendo y cerrando.
+
+La aplicación recuerda, por centro, **la última sección que se visitó**: entrar en «Árbol
+documental» desde el menú lateral lleva directamente ahí en vez de a la Raíz. Basta con volver a
+la Raíz para que deje de recordarla.
+
 ## Buscar en el árbol documental
 
 ![Resultados de la búsqueda global, agrupados en Secciones, Carpetas y Documentos, con las coincidencias resaltadas](img/arbol-busqueda-global.png)

@@ -1,9 +1,38 @@
-<div {{ attributes.defaults(stimulus_controller('document-tree-url')) }} class="js-section-browser space-y-4">
+<div {{ attributes.defaults(stimulus_controller('document-tree-url', {centreId: centre.id.toRfc4122})) }} class="js-section-browser">
     {% set breadcrumb = this.getBreadcrumb %}
     {% set child_sections = this.getVisibleSections %}
     {% set current = this.getCurrentSection %}
     {% set can_edit = this.canEditStructure %}
     {% set available_profile_rows = this.getAvailableProfileRows %}
+    {# The sidebar (wide screens only — see the "hidden lg:block" below) is a plain jump-to-any-branch
+       aid alongside the breadcrumb/cards browsing beneath it; it changes nothing about how browsing
+       itself works, so every LiveAction and every bit of state further down stays untouched. #}
+    {% set tree = this.getSectionTree %}
+    {% set current_id = current ? current.id.toRfc4122 : '' %}
+    {% set ancestor_ids = breadcrumb|map(s => s.id.toRfc4122) %}
+
+    <div class="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-6">
+        {% if tree is not empty %}
+            <aside class="hidden lg:block lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:border-r lg:border-gray-100 lg:pr-4">
+                <p class="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{{ 'sidebar.title'|trans({}, 'document_content') }}</p>
+                <ul class="space-y-0.5 text-sm">
+                    <li>
+                        <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param=""
+                                style="padding-left: 0.5rem"
+                                class="flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 text-left transition-colors
+                                       {{ current is null ? 'bg-forest-50 font-medium text-forest-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700' }}">
+                            {{ ux_icon('heroicons:home', {class: 'h-3.5 w-3.5 shrink-0'}) }}
+                            {{ 'breadcrumb.root'|trans({}, 'document_content') }}
+                        </button>
+                    </li>
+                    {% for node in tree %}
+                        {% include 'components/_document_tree_sidebar_node.html.twig' with {node: node, depth: 0, current_id: current_id, ancestor_ids: ancestor_ids} %}
+                    {% endfor %}
+                </ul>
+            </aside>
+        {% endif %}
+
+        <div class="min-w-0 space-y-4">
 
     {# ── Search across the whole tree ── #}
     <form data-action="submit->live#action:prevent" class="relative">
@@ -192,4 +221,7 @@
             </p>
         {% endif %}
     {% endif %}
+
+        </div>
+    </div>
 </div>

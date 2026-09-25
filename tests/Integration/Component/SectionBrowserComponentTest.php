@@ -538,7 +538,7 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         $component->call('openSearchResult', ['documentId' => $documentId]);
 
         self::assertSame($section->getId()->toRfc4122(), $this->stringProp($component, 'currentSectionId'));
-        self::assertSame($folder->getId()->toRfc4122(), $this->stringProp($component, 'expandedFolderId'));
+        self::assertSame([$folder->getId()->toRfc4122()], $this->stringListProp($component, 'expandedFolderIds'));
         self::assertSame($documentId, $this->stringProp($component, 'highlightedDocumentId'));
     }
 
@@ -931,7 +931,7 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         self::assertStringContainsString('Entrega 2026', $html);
         self::assertStringNotContainsString('Entrega 2025', $html);
 
-        $options = $crawler->filter('select[data-model="folderCycle"] option')->each(static fn ($o): array => [(string) $o->attr('value'), trim($o->text())]);
+        $options = $crawler->filter('select[data-model^="folderCycles."] option')->each(static fn ($o): array => [(string) $o->attr('value'), trim($o->text())]);
         self::assertSame([['', '2026-2027 (curso actual)'], ['2025', '2025-2026'], ['todos', 'Todos los cursos']], $options);
         self::assertStringContainsString('descargar-zip?curso=2026', (string) $crawler->filter('a[href*="descargar-zip"]')->attr('href'));
     }
@@ -940,7 +940,7 @@ final class SectionBrowserComponentTest extends ControllerTestCase
     {
         [$centre, $section, $folder, $teacher] = $this->activityFolderWithSubmissions([2025, 2026]);
         $component = $this->openFolder($centre, $section, $folder, $teacher);
-        $component->set('folderCycle', '2025');
+        $component->set('folderCycles.' . $folder->getId()->toRfc4122(), '2025');
         $crawler = $component->render()->crawler();
         $html    = (string) $crawler->html();
 
@@ -954,7 +954,7 @@ final class SectionBrowserComponentTest extends ControllerTestCase
     {
         [$centre, $section, $folder, $teacher] = $this->activityFolderWithSubmissions([2025, 2026]);
         $component = $this->openFolder($centre, $section, $folder, $teacher);
-        $component->set('folderCycle', 'todos');
+        $component->set('folderCycles.' . $folder->getId()->toRfc4122(), 'todos');
         $crawler = $component->render()->crawler();
         $html    = (string) $crawler->html();
 
@@ -972,7 +972,7 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         [$centre, $section, $folder, $teacher] = $this->activityFolderWithSubmissions([2023]);
         $crawler = $this->openFolder($centre, $section, $folder, $teacher)->render()->crawler();
 
-        $values = $crawler->filter('select[data-model="folderCycle"] option')->each(static fn ($o): string => (string) $o->attr('value'));
+        $values = $crawler->filter('select[data-model^="folderCycles."] option')->each(static fn ($o): string => (string) $o->attr('value'));
         self::assertSame(['', '2023', 'todos'], $values);
         self::assertStringContainsString('Todavía no hay documentos del curso actual', (string) $crawler->html());
     }
@@ -982,7 +982,7 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         [$centre, $section, $folder, $teacher] = $this->activityFolderWithSubmissions([2026]);
         $crawler = $this->openFolder($centre, $section, $folder, $teacher)->render()->crawler();
 
-        self::assertCount(0, $crawler->filter('select[data-model="folderCycle"]'));
+        self::assertCount(0, $crawler->filter('select[data-model^="folderCycles."]'));
     }
 
     public function testJumpingToAnEarlierYearsSubmissionSwitchesTheSelectorToItsYear(): void
@@ -992,18 +992,51 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
         $component->call('openSearchResult', ['documentId' => $documents[2025]->getId()->toRfc4122()]);
 
-        self::assertSame('2025', $this->stringProp($component, 'folderCycle'));
+        self::assertSame('2025', $this->props($component)['folderCycles'][$folder->getId()->toRfc4122()] ?? null);
         self::assertStringContainsString('Entrega 2025', (string) $component->render()->crawler()->html());
     }
 
-    public function testExpandingAnotherFolderGoesBackToTheCurrentAcademicYear(): void
+    public function testTogglingAFolderResetsItsAcademicYearSelector(): void
     {
         [$centre, $section, $folder, $teacher] = $this->activityFolderWithSubmissions([2025, 2026]);
+        $fid       = $folder->getId()->toRfc4122();
         $component = $this->openFolder($centre, $section, $folder, $teacher);
-        $component->set('folderCycle', '2025');
-        $component->call('toggleFolder', ['id' => $folder->getId()->toRfc4122()]);
+        $component->set('folderCycles.' . $fid, '2025');
+        // Collapsing it, then re-expanding it, both drop its stored selection.
+        $component->call('toggleFolder', ['id' => $fid]);
+        $component->call('toggleFolder', ['id' => $fid]);
 
-        self::assertSame('', $this->stringProp($component, 'folderCycle'));
+        self::assertArrayNotHasKey($fid, $this->props($component)['folderCycles']);
+        self::assertStringContainsString('Entrega 2026', (string) $component->render()->crawler()->html());
+    }
+
+    /** Several folders — even several activity folders — can be open at once, each with its own academic-year selector. */
+    public function testSeveralFoldersCanBeExpandedAtOnceWithIndependentSelectors(): void
+    {
+        [$centre, $section, $folderA, $teacher] = $this->activityFolderWithSubmissions([2025, 2026]);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Otra categoría');
+        $folderB  = $this->folder($section, 'Otra carpeta');
+        $activityB = (new Activity())->setCategory($category)->setTitle('Otra actividad')->setStart(1, 10)->setEnd(31, 10)->setFolder($folderB);
+        $this->documentWithApprovedRevision($folderB, $teacher, 'Entrega B')->setActivityCycleYear(2025);
+        $this->persist($category, $folderB, $activityB);
+
+        $fidA = $folderA->getId()->toRfc4122();
+        $fidB = $folderB->getId()->toRfc4122();
+
+        $component = $this->openFolder($centre, $section, $folderA, $teacher);
+        $component->call('toggleFolder', ['id' => $fidB]);
+        $component->set('folderCycles.' . $fidB, '2025');
+        $html = (string) $component->render()->crawler()->html();
+
+        self::assertSame([$fidA, $fidB], $this->stringListProp($component, 'expandedFolderIds'));
+        // A's selector is untouched (still the current year) while B's shows 2025's submission.
+        self::assertStringContainsString('Entrega 2026', $html);
+        self::assertStringContainsString('Entrega B', $html);
+
+        // Collapsing A leaves B (and its selection) open.
+        $component->call('toggleFolder', ['id' => $fidA]);
+        self::assertSame([$fidB], $this->stringListProp($component, 'expandedFolderIds'));
+        self::assertStringContainsString('Entrega B', (string) $component->render()->crawler()->html());
     }
 
     // ── Next review date ─────────────────────────────────────────────────────
@@ -1082,5 +1115,100 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         )->render()->crawler()->html();
 
         self::assertStringContainsString('Revisión vencida (01/09/2025)', $html);
+    }
+
+    // ── Sidebar tree ─────────────────────────────────────────────────────────
+
+    public function testTheSidebarListsEveryVisibleSectionNestedAndHighlightsTheCurrentOne(): void
+    {
+        $centre = $this->centre();
+        $root   = $this->section($centre, 'Calidad');
+        $child  = $this->section($centre, 'Procesos');
+        $child->setParent($root);
+        $this->persist($centre, $root, $child);
+
+        $teacher = $this->teacher('docente');
+        $this->persist($teacher);
+        $this->loginAs($teacher, $centre);
+        $html = (string) $this->createLiveComponent(
+            'SectionBrowserComponent',
+            $this->inSection($child, $centre),
+            $this->client,
+        )->render()->crawler()->html();
+
+        self::assertStringContainsString('Calidad', $html);
+        self::assertStringContainsString('Procesos', $html);
+        // The current section's sidebar entry is highlighted.
+        self::assertMatchesRegularExpression('/data-live-id-param="' . $child->getId()->toRfc4122() . '"[^>]*class="[^"]*bg-forest-50/s', $html);
+    }
+
+    public function testTheSidebarPrunesARestrictedSectionsWholeSubtree(): void
+    {
+        $centre  = $this->centre();
+        $visible = $this->section($centre, 'Visible');
+        $hidden  = $this->section($centre, 'Oculta');
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil');
+        $hidden->addProfileRestriction($profile);
+        $grandchild = $this->section($centre, 'Nieta sin restricción propia');
+        $grandchild->setParent($hidden);
+        $this->persist($centre, $visible, $hidden, $profile, $grandchild);
+
+        $teacher = $this->teacher('docente');
+        $this->persist($teacher);
+        $this->loginAs($teacher, $centre);
+        /** @var SectionBrowserComponent $instance */
+        $instance = $this->createLiveComponent('SectionBrowserComponent', ['centre' => $centre], $this->client)->component();
+
+        $names = array_map(static fn (array $node): string => $node['section']->getName(), $instance->getSectionTree());
+        self::assertSame(['Visible'], $names, 'a restricted section, and everything below it, never reaches the sidebar — there is no way to browse into it either');
+    }
+
+    public function testNoSidebarWhenTheCentreHasNoSections(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher('docente');
+        $this->persist($centre, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $html = (string) $this->createLiveComponent('SectionBrowserComponent', ['centre' => $centre], $this->client)->render()->crawler()->html();
+
+        self::assertStringNotContainsString('sidebar.title', $html);
+        self::assertStringNotContainsString('<aside', $html);
+    }
+
+    // ── Remembering the last section visited ────────────────────────────────
+
+    /**
+     * The actual "remember it" part (localStorage) lives in the document-tree-url Stimulus
+     * controller, which reads it back and restores it through this same syncFromUrl action —
+     * there's no JS test harness in this project (see StimulusControllerFilesExistTest), so this
+     * covers the two ends the PHP side can: the controller is wired with what it needs to key its
+     * storage per centre, and syncFromUrl actually opens a bare section by itself.
+     */
+    public function testTheWrapperCarriesWhatTheUrlControllerNeedsToRememberTheSectionPerCentre(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher('docente');
+        $this->persist($centre, $teacher);
+        $this->loginAs($teacher, $centre);
+
+        $html = (string) $this->createLiveComponent('SectionBrowserComponent', ['centre' => $centre], $this->client)->render()->crawler()->html();
+
+        self::assertStringContainsString('data-controller="document-tree-url live"', $html);
+        self::assertStringContainsString('data-document-tree-url-centre-id-value="' . $centre->getId()->toRfc4122() . '"', $html);
+    }
+
+    public function testSyncFromUrlWithOnlyASectionOpensIt(): void
+    {
+        $centre  = $this->centre();
+        $section = $this->section($centre);
+        $teacher = $this->teacher('docente');
+        $this->persist($centre, $section, $teacher);
+        $this->loginAs($teacher, $centre);
+
+        $component = $this->createLiveComponent('SectionBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('syncFromUrl', ['section' => $section->getId()->toRfc4122()]);
+
+        self::assertSame($section->getId()->toRfc4122(), $this->stringProp($component, 'currentSectionId'));
     }
 }
