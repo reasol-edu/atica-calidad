@@ -7,6 +7,32 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-09-27
+
+**Al actualizar:** esta versión cambia la base de datos (generador de calendarios). Los cambios se
+aplican solos al arrancar la aplicación (Docker, binario o instalador de Ubuntu); si la ejecutas de
+otra forma, lanza `php bin/console doctrine:migrations:migrate` tras actualizar.
+
+### Added
+
+- **Utilidades**, nueva sección del menú lateral con herramientas personales ajenas al sistema de
+  gestión de la calidad — hoy, el **generador de calendarios**: cada docente puede crear tantos
+  calendarios como quiera para un curso académico del centro, con periodos y fechas destacadas de
+  su elección (color y descripción propios), y descargarlos en PDF con dos meses por fila. Un
+  periodo se define con una fecha de inicio y una de fin, o con uno de esos extremos más un total
+  de horas y las horas de cada día de la semana (lunes a viernes) — el PDF marca solo los días
+  laborables con horas asignadas, saltando fines de semana y días no lectivos del curso, y muestra
+  un resumen de jornadas y horas cuando se pide. Los días no lectivos y los fines de semana se
+  resaltan con un color propio (redefinible por calendario), y cada mes —en su propio recuadro,
+  todos con las mismas columnas— lleva a su lado, en un recuadro propio, los días destacados de ese
+  mes. El PDF puede generarse en formato vertical (más compacto) o apaisado, y la letra se puede
+  agrandar o reducir entre el 50% y el 200% del tamaño por defecto de cada formato. Cada calendario
+  es privado: solo lo ve y edita quien lo creó.
+- **Generador de calendarios**: se puede duplicar un calendario existente, y exportarlo o importarlo
+  como un fichero JSON — útil para reutilizarlo en otro curso académico o compartirlo con otro
+  docente. La descripción admite alinear cada párrafo (izquierda, centro, derecha o justificado), y
+  el formulario de edición incluye un botón para guardar los cambios y generar el PDF en un solo paso.
+
 ## [1.7.3] - 2026-09-25
 
 ### Fixed
