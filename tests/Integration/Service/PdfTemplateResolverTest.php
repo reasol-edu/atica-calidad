@@ -92,6 +92,40 @@ final class PdfTemplateResolverTest extends RepositoryTestCase
         self::assertSame('incidencia.pdf', $resolved->filename);
     }
 
+    public function testResolvePrintableCalendarUsesItsOwnPortraitTemplateNotTheGeneralOne(): void
+    {
+        $centre = $this->centre();
+        $def    = $this->pdfDefinition('reports.printable_calendar_pdf_template_portrait');
+        $file   = new SettingFile('hash-calendar-portrait', 'contenido', 'application/pdf', 9);
+        $value  = (new CentreSettingValue())->setDefinition($def)->setCentre($centre)->setValue('calendario-vertical.pdf')->setFile($file);
+        $this->persist($centre, $def, $file, $value);
+
+        $resolved = $this->resolver->resolve('printable_calendar', 'P', $centre);
+
+        self::assertNotNull($resolved);
+        self::assertSame('calendario-vertical.pdf', $resolved->filename);
+    }
+
+    /** The two orientations are independent settings, not one shared between both — configuring
+     * one must never affect the other. */
+    public function testResolvePrintableCalendarKeepsPortraitAndLandscapeTemplatesIndependent(): void
+    {
+        $centre = $this->centre();
+
+        $portraitDef   = $this->pdfDefinition('reports.printable_calendar_pdf_template_portrait');
+        $portraitFile  = new SettingFile('hash-calendar-portrait-2', 'vertical', 'application/pdf', 8);
+        $portraitValue = (new CentreSettingValue())->setDefinition($portraitDef)->setCentre($centre)->setValue('vertical.pdf')->setFile($portraitFile);
+
+        $landscapeDef   = $this->pdfDefinition('reports.printable_calendar_pdf_template_landscape');
+        $landscapeFile  = new SettingFile('hash-calendar-landscape', 'apaisado', 'application/pdf', 8);
+        $landscapeValue = (new CentreSettingValue())->setDefinition($landscapeDef)->setCentre($centre)->setValue('apaisado.pdf')->setFile($landscapeFile);
+
+        $this->persist($centre, $portraitDef, $portraitFile, $portraitValue, $landscapeDef, $landscapeFile, $landscapeValue);
+
+        self::assertSame('vertical.pdf', $this->resolver->resolve('printable_calendar', 'P', $centre)?->filename);
+        self::assertSame('apaisado.pdf', $this->resolver->resolve('printable_calendar', 'L', $centre)?->filename);
+    }
+
     public function testResolveUsesTheGeneralTemplateForAReportTypeWithoutItsOwnSpecificOne(): void
     {
         $centre = $this->centre();

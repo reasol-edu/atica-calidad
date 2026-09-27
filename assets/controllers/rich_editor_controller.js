@@ -2,6 +2,13 @@ import { Controller } from '@hotwired/stimulus';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 
+// Quill's align format is class-based by default ("ql-align-center"…), which the app.rich_text
+// sanitizer (config/packages/html_sanitizer.yaml) never lets through — class is always dropped.
+// Registering the style-based attributor here makes Quill write "text-align: center" inline
+// instead, which the sanitizer explicitly allows (RichTextAlignAttributeSanitizer) on the block
+// elements this editor can produce.
+Quill.register(Quill.import('attributors/style/align'), true);
+
 /* stimulusFetch: 'lazy' */
 export default class extends Controller {
     static targets = ['editor', 'input'];
@@ -11,13 +18,14 @@ export default class extends Controller {
         this.quill = new Quill(this.editorTarget, {
             theme: 'snow',
             placeholder: this.placeholderValue,
-            formats: ['header', 'bold', 'italic', 'underline', 'blockquote', 'list', 'link'],
+            formats: ['header', 'bold', 'italic', 'underline', 'blockquote', 'list', 'link', 'align'],
             modules: {
                 toolbar: [
                     [{ header: [2, false] }],
                     ['bold', 'italic', 'underline'],
                     ['blockquote'],
                     [{ list: 'ordered' }, { list: 'bullet' }],
+                    [{ align: [] }],
                     ['link'],
                     ['clean'],
                 ],

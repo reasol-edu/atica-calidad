@@ -1,0 +1,64 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'calendar_generator.import'|trans({}, 'utilities') }} · {{ 'calendar_generator.title'|trans({}, 'utilities') }} · {{ app_name }}{% endblock %}
+
+{#
+   Imports a calendar from a JSON file produced by CalendarGeneratorController::export() (the
+   "Exportar" link on the edit form) — the file never carries an academic year (it's meant to be
+   portable across centres and years), so this form asks for the target year the same way new()
+   does. Validation happens entirely server-side (readImportPayload): the errors shown here are
+   deliberately generic, since a hand-edited or foreign file can fail for many small reasons at once.
+#}
+{% block content %}
+<div class="px-4 sm:px-6 py-8 max-w-xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_utilities_index') }}" class="hover:text-forest-600 transition-colors">{{ 'title'|trans({}, 'utilities') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            <a href="{{ path('app_utilities_calendar_generator_index') }}" class="hover:text-forest-600 transition-colors">{{ 'calendar_generator.title'|trans({}, 'utilities') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'calendar_generator.import'|trans({}, 'utilities') }}</h1>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="space-y-6 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
+        <input type="hidden" name="_token" value="{{ csrf_token('utilities_calendar_import') }}">
+
+        <div class="space-y-1.5">
+            <label for="cal-import-year" class="block text-sm font-semibold text-gray-900">{{ 'calendar_generator.year'|trans({}, 'utilities') }}</label>
+            <select id="cal-import-year" name="academicYear" class="block w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 {{ errors.academicYear is defined ? 'border-red-300' : '' }}">
+                {% for ay in academicYears %}
+                    <option value="{{ ay.id.toRfc4122 }}" {{ academicYear == ay.id.toRfc4122 ? 'selected' : '' }}>{{ ay.name }}</option>
+                {% endfor %}
+            </select>
+            {% if errors.academicYear is defined %}<p class="text-xs text-red-600">{{ errors.academicYear }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="json"
+                   class="flex flex-col items-center justify-center gap-3 w-full rounded-xl border-2 border-dashed
+                          {{ errors.file is defined ? 'border-red-300' : 'border-gray-300' }} bg-gray-50 px-6 py-8 cursor-pointer
+                          hover:border-forest-400 hover:bg-forest-50/40 transition-colors group">
+                {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-8 w-8 text-gray-400 group-hover:text-forest-500 transition-colors'}) }}
+                <span class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2
+                             text-sm font-medium text-gray-700 shadow-xs group-hover:border-forest-300 group-hover:text-forest-700 transition-colors">
+                    {{ 'import.choose_file'|trans({}, 'utilities') }}
+                </span>
+                <span id="json-filename" class="text-xs text-gray-400">{{ 'import.no_file_chosen'|trans({}, 'utilities') }}</span>
+            </label>
+            <input type="file" id="json" name="json" accept=".json,application/json" class="sr-only hidden"
+                   onchange="document.getElementById('json-filename').textContent = this.files[0]?.name ?? '{{ 'import.no_file_chosen'|trans({}, 'utilities')|e('js') }}'">
+            {% if errors.file is defined %}<p class="mt-2 text-xs text-red-600">{{ errors.file }}</p>{% endif %}
+        </div>
+
+        <div class="flex items-center justify-between border-t border-gray-100 pt-5">
+            <a href="{{ path('app_utilities_calendar_generator_index') }}" class="text-sm font-medium text-gray-500 hover:text-gray-700">{{ 'form.cancel'|trans({}, 'utilities') }}</a>
+            <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}{{ 'calendar_generator.import'|trans({}, 'utilities') }}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

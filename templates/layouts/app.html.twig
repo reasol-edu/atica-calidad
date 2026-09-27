@@ -173,6 +173,17 @@
                     <span class="truncate">{{ 'responsibilities'|trans({}, 'navigation') }}</span>
                 </a>
 
+                {# Utilities — personal tools, everyone in the centre (calendar generator today) #}
+                {% if active_centre %}
+                    {{ _self.nav_item(
+                        'utilities'|trans({}, 'navigation'),
+                        path('app_utilities_index'),
+                        'heroicons:wrench-screwdriver',
+                        current_route,
+                        'app_utilities_'
+                    ) }}
+                {% endif %}
+
                 {# Trash — same people: whoever can restore what others deleted #}
                 {% set trash_active = current_route starts with 'app_trash_' %}
                 <a href="{{ path('app_trash_index', {centreId: active_centre.id}) }}"

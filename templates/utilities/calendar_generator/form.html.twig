@@ -1,0 +1,301 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% set heading = calendar ? calendar.title : 'calendar_generator.add'|trans({}, 'utilities') %}
+{% block title %}{{ heading }} · {{ 'calendar_generator.title'|trans({}, 'utilities') }} · {{ app_name }}{% endblock %}
+
+{#
+   Create/edit a printable calendar: title, description, an optional explicit date range (left
+   blank, PrintableCalendarPdfBuilder computes it from the periods and dates below), the two
+   override colours, its individual highlighted dates and its periods. Same "always show extra
+   blank rows so filling them in adds an entry" pattern as templates/quality/calendar.html.twig —
+   no JS needed for adding a row, only for showing the right fields for a period's chosen mode
+   (printable_calendar_period_controller.js).
+#}
+{% block content %}
+{% set field = 'block w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
+{% set label = 'block text-xs font-medium text-gray-600' %}
+{% set cid = calendar ? calendar.id.toRfc4122 : '' %}
+
+{% macro weekday_hours(i, row) %}
+    <div class="grid grid-cols-5 gap-2">
+        {% for key, prop in {1: 'mondayHours', 2: 'tuesdayHours', 3: 'wednesdayHours', 4: 'thursdayHours', 5: 'fridayHours'} %}
+            <div class="space-y-1">
+                <label class="block text-[11px] font-medium text-gray-500">{{ ('weekday.' ~ key)|trans({}, 'calendar') }}</label>
+                <input name="periods[{{ i }}][{{ prop }}]" value="{{ row[prop] }}" inputmode="decimal" placeholder="0"
+                       class="block w-full rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+            </div>
+        {% endfor %}
+    </div>
+{% endmacro %}
+
+<div class="px-4 sm:px-6 py-8 max-w-4xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_utilities_index') }}" class="hover:text-forest-600 transition-colors">{{ 'title'|trans({}, 'utilities') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            <a href="{{ path('app_utilities_calendar_generator_index') }}" class="hover:text-forest-600 transition-colors">{{ 'calendar_generator.title'|trans({}, 'utilities') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ heading }}</h1>
+    </div>
+
+    <form method="post" class="space-y-6 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
+        <input type="hidden" name="_token" value="{{ csrf_token(calendar ? 'utilities_calendar_' ~ cid : 'utilities_calendar') }}">
+
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="space-y-1.5 sm:col-span-2">
+                <label for="cal-title" class="block text-sm font-semibold text-gray-900">{{ 'form.title'|trans({}, 'utilities') }}</label>
+                <input id="cal-title" name="title" value="{{ values.title }}" required maxlength="255" autofocus
+                       class="{{ field }} {{ errors.title is defined ? 'border-red-300' : '' }}">
+                {% if errors.title is defined %}<p class="text-xs text-red-600">{{ errors.title }}</p>{% endif %}
+            </div>
+
+            <div class="sm:col-span-2">
+                <twig:Form:RichEditor
+                    id="cal-description"
+                    name="description"
+                    label="{{ 'form.description'|trans({}, 'utilities') }} ({{ 'form.optional'|trans({}, 'utilities') }})"
+                    help="{{ 'form.description_help'|trans({}, 'utilities') }}"
+                    value="{{ values.description }}"
+                />
+            </div>
+
+            <div class="space-y-1.5">
+                <label for="cal-year" class="block text-sm font-semibold text-gray-900">{{ 'calendar_generator.year'|trans({}, 'utilities') }}</label>
+                <select id="cal-year" name="academicYear" class="{{ field }} {{ errors.academicYear is defined ? 'border-red-300' : '' }}">
+                    {% for ay in academicYears %}
+                        <option value="{{ ay.id.toRfc4122 }}" {{ values.academicYear == ay.id.toRfc4122 ? 'selected' : '' }}>{{ ay.name }}</option>
+                    {% endfor %}
+                </select>
+                {% if errors.academicYear is defined %}<p class="text-xs text-red-600">{{ errors.academicYear }}</p>{% endif %}
+            </div>
+
+            <div></div>
+
+            <div class="space-y-1.5">
+                <label for="cal-start" class="{{ label }}">{{ 'form.start_date'|trans({}, 'utilities') }} <span class="text-gray-400">{{ 'form.auto'|trans({}, 'utilities') }}</span></label>
+                <input id="cal-start" type="date" name="startDate" value="{{ values.startDate }}" class="{{ field }}">
+            </div>
+            <div class="space-y-1.5">
+                <label for="cal-end" class="{{ label }}">{{ 'form.end_date'|trans({}, 'utilities') }} <span class="text-gray-400">{{ 'form.auto'|trans({}, 'utilities') }}</span></label>
+                <input id="cal-end" type="date" name="endDate" value="{{ values.endDate }}" class="{{ field }} {{ errors.endDate is defined ? 'border-red-300' : '' }}">
+                {% if errors.endDate is defined %}<p class="text-xs text-red-600">{{ errors.endDate }}</p>{% endif %}
+            </div>
+
+            <div class="space-y-1.5">
+                <label for="cal-nonworking" class="{{ label }}">{{ 'form.non_working_day_color'|trans({}, 'utilities') }}</label>
+                <input id="cal-nonworking" type="color" name="nonWorkingDayColor" value="{{ values.nonWorkingDayColor }}" class="h-9 w-16 rounded-lg border border-gray-200">
+            </div>
+            <div class="space-y-1.5">
+                <label for="cal-weekend" class="{{ label }}">{{ 'form.weekend_color'|trans({}, 'utilities') }}</label>
+                <input id="cal-weekend" type="color" name="weekendColor" value="{{ values.weekendColor }}" class="h-9 w-16 rounded-lg border border-gray-200">
+            </div>
+
+            <fieldset class="space-y-1.5" data-controller="radio-card">
+                <legend class="{{ label }}">{{ 'form.orientation'|trans({}, 'utilities') }}</legend>
+                <div class="flex gap-2">
+                    {% for o in orientations %}
+                        <label class="flex-1 cursor-pointer rounded-lg border px-3 py-2 text-center text-sm font-medium transition-colors {{ values.orientation == o.value ? 'border-forest-500 bg-forest-50 text-forest-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50' }}">
+                            <input type="radio" name="orientation" value="{{ o.value }}" {{ values.orientation == o.value ? 'checked' : '' }}
+                                   data-radio-card-target="option" data-action="change->radio-card#update" class="sr-only">
+                            {{ ('form.orientation_option.' ~ o.value)|trans({}, 'utilities') }}
+                        </label>
+                    {% endfor %}
+                </div>
+                {% if errors.orientation is defined %}<p class="text-xs text-red-600">{{ errors.orientation }}</p>{% endif %}
+            </fieldset>
+
+            <div class="space-y-1.5">
+                <label for="cal-font-scale" class="{{ label }}">{{ 'form.font_size_scale'|trans({}, 'utilities') }}</label>
+                <div class="flex items-center gap-2">
+                    <input id="cal-font-scale" type="number" name="fontSizeScale" value="{{ values.fontSizeScale }}" min="50" max="200" step="10"
+                           class="{{ field }} {{ errors.fontSizeScale is defined ? 'border-red-300' : '' }}">
+                    <span class="text-sm text-gray-500">%</span>
+                </div>
+                <p class="text-xs text-gray-500">{{ 'form.font_size_scale_help'|trans({}, 'utilities') }}</p>
+                {% if errors.fontSizeScale is defined %}<p class="text-xs text-red-600">{{ errors.fontSizeScale }}</p>{% endif %}
+            </div>
+
+            <div class="space-y-2 sm:col-span-2">
+                <span class="{{ label }}">{{ 'form.pdf_layout'|trans({}, 'utilities') }}</span>
+                <div class="flex flex-wrap gap-x-6 gap-y-2">
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" name="showHeader" value="1" {{ values.showHeader ? 'checked' : '' }} class="rounded text-forest-600 focus:ring-forest-500">
+                        {{ 'form.show_header'|trans({}, 'utilities') }}
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" name="showFooter" value="1" {{ values.showFooter ? 'checked' : '' }} class="rounded text-forest-600 focus:ring-forest-500">
+                        {{ 'form.show_footer'|trans({}, 'utilities') }}
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" name="showHours" value="1" {{ values.showHours ? 'checked' : '' }} class="rounded text-forest-600 focus:ring-forest-500">
+                        {{ 'form.show_hours'|trans({}, 'utilities') }}
+                    </label>
+                </div>
+                <p class="text-xs text-gray-500">{{ 'form.show_header_footer_help'|trans({}, 'utilities') }}</p>
+            </div>
+        </div>
+
+        {# ── Individual dates ───────────────────────────────────────────────── #}
+        <div class="space-y-2">
+            <h2 class="text-sm font-semibold text-gray-900">{{ 'form.dates.title'|trans({}, 'utilities') }}</h2>
+            <p class="text-xs text-gray-500">{{ 'form.dates.help'|trans({}, 'utilities') }}</p>
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[28rem] text-sm">
+                    <thead>
+                        <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <th class="pb-2 pr-2">{{ 'form.date'|trans({}, 'utilities') }}</th>
+                            <th class="pb-2 pr-2">{{ 'form.color'|trans({}, 'utilities') }}</th>
+                            <th class="pb-2 pr-2">{{ 'form.description'|trans({}, 'utilities') }}</th>
+                            <th class="pb-2">{{ 'form.remove'|trans({}, 'utilities') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="align-top">
+                        {% for row in dateRows %}
+                            <tr>
+                                <td class="py-1 pr-2">
+                                    <input type="hidden" name="dates[{{ loop.index0 }}][id]" value="{{ row.id }}">
+                                    <input type="date" name="dates[{{ loop.index0 }}][date]" value="{{ row.date }}" class="{{ field }}">
+                                </td>
+                                <td class="py-1 pr-2"><input type="color" name="dates[{{ loop.index0 }}][color]" value="{{ row.color }}" class="h-9 w-14 rounded-lg border border-gray-200"></td>
+                                <td class="py-1 pr-2"><input name="dates[{{ loop.index0 }}][description]" value="{{ row.description }}" maxlength="255" placeholder="{{ row.id ? '' : 'form.dates.new'|trans({}, 'utilities') }}" class="{{ field }}"></td>
+                                <td class="py-1 text-center">
+                                    {% if row.id %}<input type="checkbox" name="dates[{{ loop.index0 }}][remove]" value="1" aria-label="{{ 'form.remove'|trans({}, 'utilities') }}" class="mt-2 rounded text-red-600 focus:ring-red-500">{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if errors.dates is defined %}<p class="text-xs text-red-600">{{ errors.dates }}</p>{% endif %}
+        </div>
+
+        {# ── Periods ─────────────────────────────────────────────────────────── #}
+        <div class="space-y-3">
+            <h2 class="text-sm font-semibold text-gray-900">{{ 'form.periods.title'|trans({}, 'utilities') }}</h2>
+            <p class="text-xs text-gray-500">{{ 'form.periods.help'|trans({}, 'utilities') }}</p>
+
+            {% for row in periodRows %}
+                {% set i = loop.index0 %}
+                <div data-controller="printable-calendar-period" class="space-y-3 rounded-xl border border-gray-200 p-4">
+                    <input type="hidden" name="periods[{{ i }}][id]" value="{{ row.id }}">
+
+                    <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
+                        <div class="space-y-1.5">
+                            <label class="{{ label }}">{{ 'form.description'|trans({}, 'utilities') }}</label>
+                            <input name="periods[{{ i }}][description]" value="{{ row.description }}" maxlength="255"
+                                   placeholder="{{ row.id ? '' : 'form.periods.new'|trans({}, 'utilities') }}" class="{{ field }}">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="{{ label }}">{{ 'form.color'|trans({}, 'utilities') }}</label>
+                            <input type="color" name="periods[{{ i }}][color]" value="{{ row.color }}" class="h-9 w-14 rounded-lg border border-gray-200">
+                        </div>
+                    </div>
+
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" name="periods[{{ i }}][showJourneySummary]" value="1" {{ row.showJourneySummary ? 'checked' : '' }} class="rounded text-forest-600 focus:ring-forest-500">
+                        {{ 'form.periods.show_journey_summary'|trans({}, 'utilities') }}
+                    </label>
+
+                    <fieldset class="flex flex-wrap gap-2" data-controller="radio-card">
+                        <legend class="sr-only">{{ 'form.periods.mode_legend'|trans({}, 'utilities') }}</legend>
+                        {% for mode in modes %}
+                            <label class="flex-1 min-w-[10rem] cursor-pointer rounded-lg border px-3 py-2 text-center text-xs font-medium transition-colors {{ row.mode == mode.value ? 'border-forest-500 bg-forest-50 text-forest-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50' }}">
+                                <input type="radio" name="periods[{{ i }}][mode]" value="{{ mode.value }}" {{ row.mode == mode.value ? 'checked' : '' }}
+                                       data-printable-calendar-period-target="mode" data-radio-card-target="option"
+                                       data-action="change->printable-calendar-period#update change->radio-card#update" class="sr-only">
+                                {{ ('form.periods.mode.' ~ mode.value)|trans({}, 'utilities') }}
+                            </label>
+                        {% endfor %}
+                    </fieldset>
+
+                    <div data-printable-calendar-period-target="fields" data-printable-calendar-period-mode="date_range" {{ row.mode == 'date_range' ? '' : 'hidden' }} class="grid gap-3 sm:grid-cols-2">
+                        <div class="space-y-1.5">
+                            <label class="{{ label }}">{{ 'form.start_date'|trans({}, 'utilities') }}</label>
+                            <input type="date" name="periods[{{ i }}][startDate]" value="{{ row.startDate }}" class="{{ field }}">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="{{ label }}">{{ 'form.end_date'|trans({}, 'utilities') }}</label>
+                            <input type="date" name="periods[{{ i }}][endDate]" value="{{ row.endDate }}" class="{{ field }}">
+                        </div>
+                    </div>
+
+                    <div data-printable-calendar-period-target="fields" data-printable-calendar-period-mode="start_with_hours" {{ row.mode == 'start_with_hours' ? '' : 'hidden' }} class="space-y-3">
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div class="space-y-1.5">
+                                <label class="{{ label }}">{{ 'form.start_date'|trans({}, 'utilities') }}</label>
+                                <input type="date" name="periods[{{ i }}][startDate]" value="{{ row.startDate }}" class="{{ field }}">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="{{ label }}">{{ 'form.periods.total_hours'|trans({}, 'utilities') }}</label>
+                                <input name="periods[{{ i }}][totalHours]" value="{{ row.totalHours }}" inputmode="decimal" class="{{ field }}">
+                            </div>
+                        </div>
+                        {{ _self.weekday_hours(i, row) }}
+                    </div>
+
+                    <div data-printable-calendar-period-target="fields" data-printable-calendar-period-mode="end_with_hours" {{ row.mode == 'end_with_hours' ? '' : 'hidden' }} class="space-y-3">
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div class="space-y-1.5">
+                                <label class="{{ label }}">{{ 'form.end_date'|trans({}, 'utilities') }}</label>
+                                <input type="date" name="periods[{{ i }}][endDate]" value="{{ row.endDate }}" class="{{ field }}">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="{{ label }}">{{ 'form.periods.total_hours'|trans({}, 'utilities') }}</label>
+                                <input name="periods[{{ i }}][totalHours]" value="{{ row.totalHours }}" inputmode="decimal" class="{{ field }}">
+                            </div>
+                        </div>
+                        {{ _self.weekday_hours(i, row) }}
+                    </div>
+
+                    {% if row.id %}
+                        <label class="flex items-center gap-2 text-xs font-medium text-red-600">
+                            <input type="checkbox" name="periods[{{ i }}][remove]" value="1" class="rounded text-red-600 focus:ring-red-500">
+                            {{ 'form.remove'|trans({}, 'utilities') }}
+                        </label>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            {% if errors.periods is defined %}<p class="text-xs text-red-600">{{ errors.periods }}</p>{% endif %}
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-5">
+            <span></span>
+            <div class="flex items-center gap-3">
+                <a href="{{ path('app_utilities_calendar_generator_index') }}" class="text-sm font-medium text-gray-500 hover:text-gray-700">{{ 'form.cancel'|trans({}, 'utilities') }}</a>
+                {% if calendar %}
+                    <button type="submit" name="action" value="save_and_pdf" class="inline-flex items-center gap-1.5 rounded-xl border border-forest-600 px-5 py-2.5 text-sm font-semibold text-forest-700 hover:bg-forest-50 transition-colors">
+                        {{ ux_icon('heroicons:document-arrow-down', {class: 'h-4 w-4'}) }}{{ 'form.save_and_pdf'|trans({}, 'utilities') }}
+                    </button>
+                {% endif %}
+                <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                    {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'form.save'|trans({}, 'utilities') }}
+                </button>
+            </div>
+        </div>
+    </form>
+
+    {% if calendar %}
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-4">
+                <a href="{{ path('app_utilities_calendar_generator_export', {id: cid}) }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-800">
+                    {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-4 w-4'}) }}{{ 'calendar_generator.export'|trans({}, 'utilities') }}
+                </a>
+                <form method="post" action="{{ path('app_utilities_calendar_generator_duplicate', {id: cid}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('utilities_calendar_duplicate_' ~ cid) }}">
+                    <button type="submit" class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-800">
+                        {{ ux_icon('heroicons:document-duplicate', {class: 'h-4 w-4'}) }}{{ 'calendar_generator.duplicate'|trans({}, 'utilities') }}
+                    </button>
+                </form>
+            </div>
+            <form method="post" action="{{ path('app_utilities_calendar_generator_delete', {id: cid}) }}"
+                  class="js-confirm-form" data-confirm="{{ 'form.delete_confirm'|trans({}, 'utilities')|e('html_attr') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('utilities_calendar_' ~ cid) }}">
+                <button type="submit" class="js-confirm-trigger text-sm font-medium text-red-700 hover:text-red-800">{{ 'form.delete'|trans({}, 'utilities') }}</button>
+            </form>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -14,6 +14,9 @@ use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
 
+/**
+ * @phpstan-type ReportType 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings'|'improvement_plan'|'indicators'|'audit_program'|'audit_report'|'management_review'|'printable_calendar'
+ */
 class PdfRenderer
 {
     public function __construct(
@@ -25,13 +28,14 @@ class PdfRenderer
 
     /**
      * Renders a Twig template to a PDF response via mPDF, with a shared running
-     * header/footer (pdf/_header.html.twig, pdf/_footer.html.twig).
+     * header/footer (pdf/_header.html.twig, pdf/_footer.html.twig) — unless $showHeader/
+     * $showFooter say to skip one, freeing up its margin for content instead.
      *
-     * @param array<string, mixed>                                     $context        Must include 'centre' (EducationalCentre); merged into header/footer/content.
-     * @param PdfHeader|null                                           $header         Custom header content and top margin; falls back to pdfTitle / centre name.
-     * @param bool                                                     $draftWatermark Shows a diagonal "BORRADOR" watermark on every page.
-     * @param 'P'|'L'                                                  $orientation    'P' (portrait, default) or 'L' (landscape).
-     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings'|'improvement_plan'|'indicators'|'audit_program'|'audit_report'|'management_review'|null $reportType   Together with $centre, resolves and stamps the configured PDF template as the background of every page (see PdfTemplateResolver).
+     * @param array<string, mixed> $context        Must include 'centre' (EducationalCentre); merged into header/footer/content.
+     * @param PdfHeader|null       $header         Custom header content and top margin; falls back to pdfTitle / centre name.
+     * @param bool                 $draftWatermark Shows a diagonal "BORRADOR" watermark on every page.
+     * @param 'P'|'L'              $orientation    'P' (portrait, default) or 'L' (landscape).
+     * @param ReportType|null      $reportType     Together with $centre, resolves and stamps the configured PDF template as the background of every page (see PdfTemplateResolver).
      */
     public function render(
         string $template,
@@ -44,6 +48,8 @@ class PdfRenderer
         string $orientation = 'P',
         ?EducationalCentre $centre = null,
         ?string $reportType = null,
+        bool $showHeader = true,
+        bool $showFooter = true,
     ): Response {
         $context += [
             'pdfTitle'       => $title,
@@ -57,8 +63,8 @@ class PdfRenderer
             'orientation'   => $orientation,
             'margin_left'   => 15,
             'margin_right'  => 15,
-            'margin_top'    => $header->marginTopMm ?? 22,
-            'margin_bottom' => 18,
+            'margin_top'    => $showHeader ? ($header->marginTopMm ?? 22) : 12,
+            'margin_bottom' => $showFooter ? 18 : 10,
             'margin_header' => 8,
             'margin_footer' => 8,
             'tempDir'       => sys_get_temp_dir(),
@@ -82,8 +88,12 @@ class PdfRenderer
                 $mpdf->showWatermarkText = true;
             }
 
-            $mpdf->SetHTMLHeader($this->twig->render('pdf/_header.html.twig', $context));
-            $mpdf->SetHTMLFooter($this->twig->render('pdf/_footer.html.twig', $context));
+            if ($showHeader) {
+                $mpdf->SetHTMLHeader($this->twig->render('pdf/_header.html.twig', $context));
+            }
+            if ($showFooter) {
+                $mpdf->SetHTMLFooter($this->twig->render('pdf/_footer.html.twig', $context));
+            }
             $mpdf->WriteHTML($this->twig->render($template, $context));
 
             $content = $mpdf->Output('', Destination::STRING_RETURN);
@@ -113,7 +123,7 @@ class PdfRenderer
      * generated page. Returns the temp file's path for later cleanup,
      * or null if no template is configured.
      *
-     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings'|'improvement_plan'|'indicators'|'audit_program'|'audit_report'|'management_review' $reportType
+     * @param ReportType $reportType
      */
     private function applyDocTemplate(Mpdf $mpdf, string $reportType, string $orientation, EducationalCentre $centre): ?string
     {

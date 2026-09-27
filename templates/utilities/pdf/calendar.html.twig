@@ -1,0 +1,148 @@
+{% extends 'pdf/layout.html.twig' %}
+
+{#
+   calendar: PrintableCalendar. data: PrintableCalendarRenderData (PrintableCalendarPdfBuilder) —
+   every colour, day, annotation and font size (data.sizes, PrintableCalendarPdfSizes) is already
+   computed; this template only lays it out. The centre can configure its own letterhead for this
+   PDF (reportType 'printable_calendar', falling back to the general one — PdfTemplateResolver);
+   the running page header (pdf/_header.html.twig) already shows the title and centre name, so
+   this content skips repeating it — unless the teacher turned that running header off
+   (calendar.showHeader false, for more room), in which case the title would otherwise appear
+   nowhere at all: it's then shown here instead, centred, right before the description (if any,
+   rich HTML — sanitize_html at render, per Folder::$description's convention).
+
+   Each month is its own bordered box with a fixed-layout, 7-equal-column grid (table-layout:
+   fixed — mPDF otherwise sizes each nested table's columns from its own content, so a month with
+   different content could render with visibly different column widths/font size than the rest).
+   A month's side annotations are one two-column table per side (chip, then text): a real table
+   column, not an inline chip before wrapped text, so a long description's second line indents
+   under the first line's text and never slides under the chip.
+#}
+{#
+   The border goes on a <td> (month-wrap-cell), not a <div>: mPDF reliably draws table-cell
+   borders (see table.month-grid td below) but was silently dropping the border on a plain <div>
+   nested this deep — a table is the one wrapper mPDF is guaranteed to box correctly here.
+#}
+{% macro month_box(month, sizes) %}
+    <table class="month-wrap">
+        <tr>
+            <td class="month-wrap-cell">
+                <div class="month-title" style="font-size: {{ sizes.monthCaption }}pt;">{{ ('month.' ~ month.month)|trans({}, 'calendar') }} {{ month.year }}</div>
+                <table class="month-grid">
+                    <thead>
+                        <tr>
+                            {% for wd in 1..7 %}<th style="font-size: {{ sizes.weekdayHeader }}pt;">{{ ('weekday.' ~ wd)|trans({}, 'calendar')|slice(0, 2) }}</th>{% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for week in month.weeks %}
+                            <tr>
+                                {% for day in week %}
+                                    {% if day is null %}
+                                        <td class="pad"></td>
+                                    {% else %}
+                                        <td style="font-size: {{ sizes.dayCell }}pt;{{ day.backgroundColor ? ' background-color: ' ~ day.backgroundColor ~ ';' : '' }}">
+                                            {{ day.date|date('j') }}
+                                            {% if day.hoursLabel %}<span class="hours" style="font-size: {{ sizes.hoursLabel }}pt;">{{ day.hoursLabel }}h</span>{% endif %}
+                                        </td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+{% endmacro %}
+
+{% macro annotations(list, sizes) %}
+    {% if list is not empty %}
+        <table class="annotation-table" style="font-size: {{ sizes.annotation }}pt;">
+            {% for a in list %}
+                <tr>
+                    <td class="annotation-chip-cell"><span class="chip" style="background-color: {{ a.color }};">{{ a.label }}</span></td>
+                    <td class="annotation-text-cell">{{ a.description }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+{% endmacro %}
+
+{% block content %}
+<style>
+    .cal-title { font-size: {{ data.sizes.h1 }}pt; font-weight: bold; text-align: center; color: #2e2822; margin-bottom: 8px; }
+    .cal-description { font-size: {{ data.sizes.description }}pt; color: #5e5044; margin-bottom: 10px; }
+    .cal-description p { margin: 0 0 5px; }
+    .cal-description ul, .cal-description ol { margin: 0 0 5px 16px; }
+    .cal-description a { color: #46603d; }
+    .cal-description strong, .cal-description b { color: #2e2822; }
+
+    table.journey-row { border: none; width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
+    td.journey-box-cell { width: 70%; border: 0.75pt dotted #d9cdb8; padding: 6px 8px; }
+    .journey { font-size: {{ data.sizes.journey }}pt; margin-bottom: 4px; }
+    .journey .title { font-weight: bold; color: #2e2822; }
+    .journey .lines { color: #5e5044; }
+
+    table.month-row { border: none; width: 100%; border-collapse: collapse; margin-bottom: 8px; table-layout: fixed; page-break-inside: avoid; }
+    table.month-row td { vertical-align: top; }
+    td.annotation-col { width: 15%; padding: 2px 4px; }
+    td.month-col { width: 35%; padding: 0 3px; }
+
+    table.month-wrap { border: none; width: 100%; border-collapse: collapse; }
+    td.month-wrap-cell { border: 1pt solid #c9b896; padding: 5px; }
+    .month-title { font-weight: bold; text-transform: capitalize; padding-bottom: 3px; text-align: center; color: #2e2822; }
+
+    /* border: none on the <table> itself — mPDF's own default table border otherwise leaks
+       through on just the very first cell (its outer top/left edge has nothing to collapse
+       with), a stray border-collapse quirk unrelated to any td border declared below. */
+    table.month-grid { border: none; width: 100%; border-collapse: collapse; table-layout: fixed; }
+    table.month-grid th { width: 14.2857%; color: #93826a; padding: 2px; text-align: center; font-weight: normal; }
+    table.month-grid td { text-align: center; vertical-align: middle; padding: 2px 1px; border: 0.5pt solid #e5decf; height: 20px; }
+    .pad { border: 0.5pt solid transparent; }
+    table.month-grid td .hours { display: block; color: #453b32; }
+
+    table.annotation-table { border: none; width: 100%; border-collapse: collapse; }
+    table.annotation-table td { vertical-align: top; padding: 0 0 3px 0; }
+    td.annotation-chip-cell { width: 20pt; padding-right: 3px; }
+    .chip { display: block; padding: 0 2px; border-radius: 2px; font-weight: bold; text-align: center; }
+</style>
+
+{% if not calendar.showHeader %}<h1 class="cal-title">{{ calendar.title }}</h1>{% endif %}
+{% if calendar.description %}<div class="cal-description">{{ calendar.description|sanitize_html('app.rich_text') }}</div>{% endif %}
+
+{% if data.journeySummaries is not empty %}
+    {# Same 4-column layout as table.month-row below (empty outer annotation-col cells, the
+       journey box spanning both month-col cells) so its width lines up with the two months.
+       Known limitation: if a side annotation's text has no room to wrap (a long run with no
+       spaces), mPDF's table-layout: fixed can still widen that column beyond its declared
+       percentage, which then shifts everything to its right and throws this off — not worth
+       chasing further; it requires wrappable text in annotation descriptions. #}
+    <table class="journey-row">
+        <tr>
+            <td class="annotation-col"></td>
+            <td class="journey-box-cell" colspan="2">
+                {% for line in data.journeySummaries %}
+                    <div class="journey">
+                        <span class="title">{{ line.description }}</span>
+                        — {{ line.startDate|date('d/m/Y') }}{% if line.endDate != line.startDate %} - {{ line.endDate|date('d/m/Y') }}{% endif %}
+                        {% if line.hoursLines is not empty %}<span class="lines">· {{ line.hoursLines|join(' · ') }}</span>{% endif %}
+                    </div>
+                {% endfor %}
+            </td>
+            <td class="annotation-col"></td>
+        </tr>
+    </table>
+{% endif %}
+
+{% for pair in data.months|batch(2, null, false) %}
+    <table class="month-row">
+        <tr>
+            <td class="annotation-col">{{ _self.annotations(pair[0].annotations, data.sizes) }}</td>
+            <td class="month-col">{{ _self.month_box(pair[0], data.sizes) }}</td>
+            <td class="month-col">{{ pair[1] is defined ? _self.month_box(pair[1], data.sizes) : '' }}</td>
+            <td class="annotation-col">{{ pair[1] is defined ? _self.annotations(pair[1].annotations, data.sizes) : '' }}</td>
+        </tr>
+    </table>
+{% endfor %}
+{% endblock %}

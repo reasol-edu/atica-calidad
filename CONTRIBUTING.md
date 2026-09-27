@@ -116,6 +116,7 @@ Las distintas áreas funcionales de ÁTICA Calidad, alineadas con sus controlado
 | `activities`       | Actividades: plazos y tareas periódicas, categorías, entregas y completado |
 | `improvement`      | Mejora continua: incidencias, no conformidades, acciones correctivas, preventivas, reparadoras y de mejora, auditoría interna e indicadores |
 | `audit`            | Registro de actividad: traza de auditoría de acciones de usuario, su captura, retención y consulta |
+| `utilities`        | Utilidades: herramientas personales ajenas al sistema de gestión de la calidad, como el generador de calendarios |
 
 ### Referencias a incidencias
 

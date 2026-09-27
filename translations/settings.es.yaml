@@ -102,6 +102,12 @@ settings.key.reports_pdf_template_portrait.description: 'PDF de una sola página
 settings.key.reports_pdf_template_landscape.label: 'Plantilla PDF general (apaisada)'
 settings.key.reports_pdf_template_landscape.description: 'PDF de una sola página que se usa como fondo de cada página de los informes en orientación apaisada que no tengan una plantilla propia. Si no se sube ninguna, esos informes se generan sin fondo.'
 
+settings.key.reports_printable_calendar_pdf_template_portrait.label: 'Plantilla PDF del generador de calendarios (vertical)'
+settings.key.reports_printable_calendar_pdf_template_portrait.description: 'PDF de una sola página que se usa como fondo de los calendarios generados en Utilidades en formato vertical. Si no se sube ninguna, se usa la plantilla PDF general (vertical).'
+
+settings.key.reports_printable_calendar_pdf_template_landscape.label: 'Plantilla PDF del generador de calendarios (apaisada)'
+settings.key.reports_printable_calendar_pdf_template_landscape.description: 'PDF de una sola página que se usa como fondo de los calendarios generados en Utilidades en formato apaisado. Si no se sube ninguna, se usa la plantilla PDF general (apaisada).'
+
 # ── Errores de validación ──────────────────────────────────────────────────────
 settings.error.integer_range: 'Debe ser un número entre %min% y %max%'
 settings.error.invalid_value: 'Valor no válido'

@@ -1,0 +1,87 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'calendar_generator.title'|trans({}, 'utilities') }} · {{ app_name }}{% endblock %}
+
+{#
+   The teacher's own printable calendars for one academic year (PrintableCalendarRepository::
+   findByOwnerAndYear — nobody else's calendars ever show up here). The year selector is a plain
+   GET form, like year_selection/index.html.twig, not tied to the app-wide "viewed year": a
+   calendar can reasonably be made for any year of the centre.
+#}
+{% block content %}
+<div class="px-4 sm:px-6 py-8 max-w-5xl mx-auto space-y-6">
+
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
+                {% include 'components/_breadcrumb_home.html.twig' %}
+                <a href="{{ path('app_utilities_index') }}" class="hover:text-forest-600 transition-colors">{{ 'title'|trans({}, 'utilities') }}</a>
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ 'calendar_generator.title'|trans({}, 'utilities') }}</h1>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ 'calendar_generator.description'|trans({}, 'utilities') }}</p>
+        </div>
+        {% if year %}
+            <div class="flex items-center gap-2">
+                <a href="{{ path('app_utilities_calendar_generator_import', {curso: year.id.toRfc4122}) }}"
+                   class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                    {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}{{ 'calendar_generator.import'|trans({}, 'utilities') }}
+                </a>
+                <a href="{{ path('app_utilities_calendar_generator_new', {curso: year.id.toRfc4122}) }}"
+                   class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                    {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}{{ 'calendar_generator.add'|trans({}, 'utilities') }}
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if academicYears|length > 1 %}
+        <form method="get" class="flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3">
+            <label for="cal-year" class="text-sm font-medium text-gray-700">{{ 'calendar_generator.year'|trans({}, 'utilities') }}</label>
+            <select id="cal-year" name="curso" class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm">
+                {% for ay in academicYears %}
+                    <option value="{{ ay.id.toRfc4122 }}" {{ year and year.id == ay.id ? 'selected' : '' }}>{{ ay.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">{{ 'calendar_generator.view'|trans({}, 'utilities') }}</button>
+        </form>
+    {% endif %}
+
+    {% if year is null %}
+        <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-sm text-gray-500">{{ 'calendar_generator.no_year'|trans({}, 'utilities') }}</div>
+    {% elseif calendars is empty %}
+        <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-sm text-gray-500">{{ 'calendar_generator.empty'|trans({}, 'utilities') }}</div>
+    {% else %}
+        <div class="space-y-2">
+            {% for calendar in calendars %}
+                <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-xs">
+                    <div class="min-w-0">
+                        <a href="{{ path('app_utilities_calendar_generator_edit', {id: calendar.id.toRfc4122}) }}" class="block truncate text-sm font-semibold text-gray-900 hover:text-forest-700">{{ calendar.title }}</a>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                        <a href="{{ path('app_utilities_calendar_generator_pdf', {id: calendar.id.toRfc4122}) }}" target="_blank" rel="noopener"
+                           class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                            {{ ux_icon('heroicons:document-arrow-down', {class: 'h-3.5 w-3.5'}) }}PDF
+                        </a>
+                        <a href="{{ path('app_utilities_calendar_generator_export', {id: calendar.id.toRfc4122}) }}"
+                           class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                            {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-3.5 w-3.5'}) }}{{ 'calendar_generator.export'|trans({}, 'utilities') }}
+                        </a>
+                        <form method="post" action="{{ path('app_utilities_calendar_generator_duplicate', {id: calendar.id.toRfc4122}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('utilities_calendar_duplicate_' ~ calendar.id.toRfc4122) }}">
+                            <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                {{ ux_icon('heroicons:document-duplicate', {class: 'h-3.5 w-3.5'}) }}{{ 'calendar_generator.duplicate'|trans({}, 'utilities') }}
+                            </button>
+                        </form>
+                        <a href="{{ path('app_utilities_calendar_generator_edit', {id: calendar.id.toRfc4122}) }}"
+                           class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                            {{ ux_icon('heroicons:pencil-square', {class: 'h-3.5 w-3.5'}) }}{{ 'calendar_generator.edit'|trans({}, 'utilities') }}
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

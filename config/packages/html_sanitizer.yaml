@@ -26,8 +26,30 @@ framework:
                     - http
                     - https
                     - mailto
+                # `style` is allowed only on the block elements the Quill editor's align toolbar
+                # button can write it on, and only ever reaches the page through
+                # RichTextAlignAttributeSanitizer (with_attribute_sanitizers below), which keeps
+                # nothing but a safe "text-align: …" out of it — the sanitizer itself has no
+                # CSS-property-level filtering of its own, so a bare `allow_attributes: style`
+                # would let any other declaration (background/url(), position, …) straight through.
+                allow_attributes:
+                    style:
+                        - p
+                        - h2
+                        - blockquote
+                        - li
                 drop_attributes:
-                    '*':
-                        - style
-                        - class
-                        - id
+                    class: '*'
+                    id: '*'
+                    style:
+                        - br
+                        - strong
+                        - b
+                        - em
+                        - i
+                        - u
+                        - ol
+                        - ul
+                        - a
+                with_attribute_sanitizers:
+                    - App\HtmlSanitizer\RichTextAlignAttributeSanitizer
