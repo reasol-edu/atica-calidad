@@ -72,7 +72,7 @@ form:
     title: 'Periodos'
     help: 'Un periodo se define con una fecha de inicio y una de fin, o con uno de esos extremos más un total de horas y las horas de cada día de la semana (lunes a viernes).'
     new: 'Nuevo periodo'
-    show_journey_summary: 'Mostrar el resumen de jornadas encima del calendario'
+    show_journey_summary: 'Mostrar el resumen de jornadas debajo del calendario'
     mode_legend: 'Cómo se definen sus fechas'
     mode:
       date_range: 'Fecha de inicio y de fin'

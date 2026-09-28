@@ -78,7 +78,7 @@
     .cal-description a { color: #46603d; }
     .cal-description strong, .cal-description b { color: #2e2822; }
 
-    table.journey-row { border: none; width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
+    table.journey-row { border: none; width: 100%; border-collapse: collapse; margin-top: 8px; table-layout: fixed; }
     td.journey-box-cell { width: 70%; border: 0.75pt dotted #d9cdb8; padding: 6px 8px; }
     .journey { font-size: {{ data.sizes.journey }}pt; margin-bottom: 4px; }
     .journey .title { font-weight: bold; color: #2e2822; }
@@ -111,8 +111,19 @@
 {% if not calendar.showHeader %}<h1 class="cal-title">{{ calendar.title }}</h1>{% endif %}
 {% if calendar.description %}<div class="cal-description">{{ calendar.description|sanitize_html('app.rich_text') }}</div>{% endif %}
 
+{% for pair in data.months|batch(2, null, false) %}
+    <table class="month-row">
+        <tr>
+            <td class="annotation-col">{{ _self.annotations(pair[0].annotations, data.sizes) }}</td>
+            <td class="month-col">{{ _self.month_box(pair[0], data.sizes) }}</td>
+            <td class="month-col">{{ pair[1] is defined ? _self.month_box(pair[1], data.sizes) : '' }}</td>
+            <td class="annotation-col">{{ pair[1] is defined ? _self.annotations(pair[1].annotations, data.sizes) : '' }}</td>
+        </tr>
+    </table>
+{% endfor %}
+
 {% if data.journeySummaries is not empty %}
-    {# Same 4-column layout as table.month-row below (empty outer annotation-col cells, the
+    {# Same 4-column layout as table.month-row above (empty outer annotation-col cells, the
        journey box spanning both month-col cells) so its width lines up with the two months.
        Known limitation: if a side annotation's text has no room to wrap (a long run with no
        spaces), mPDF's table-layout: fixed can still widen that column beyond its declared
@@ -134,15 +145,4 @@
         </tr>
     </table>
 {% endif %}
-
-{% for pair in data.months|batch(2, null, false) %}
-    <table class="month-row">
-        <tr>
-            <td class="annotation-col">{{ _self.annotations(pair[0].annotations, data.sizes) }}</td>
-            <td class="month-col">{{ _self.month_box(pair[0], data.sizes) }}</td>
-            <td class="month-col">{{ pair[1] is defined ? _self.month_box(pair[1], data.sizes) : '' }}</td>
-            <td class="annotation-col">{{ pair[1] is defined ? _self.annotations(pair[1].annotations, data.sizes) : '' }}</td>
-        </tr>
-    </table>
-{% endfor %}
 {% endblock %}
