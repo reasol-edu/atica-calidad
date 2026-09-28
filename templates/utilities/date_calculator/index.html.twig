@@ -10,6 +10,11 @@
    both tools. The weekday-hours pattern applies to all three modes here (unlike a period's plain
    date_range, which has no hours), so it's shown once below the mode fields, not duplicated per
    mode.
+
+   Everything below the calculation inputs — the result summary, the monthly calendar
+   (result.months, DateCalculatorService::buildMonths) and the Excel export options — lives in the
+   same <form> as those inputs, further down the page, so a single POST (either the "Calcular" or
+   the "Exportar a Excel" button) submits it all together.
 #}
 {% block content %}
 {% set field = 'block w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
@@ -27,10 +32,10 @@
         <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ 'date_calculator.description'|trans({}, 'utilities') }}</p>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-[1fr_auto]">
-        <form method="post" data-controller="mode-switch" class="space-y-5 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
-            <input type="hidden" name="_token" value="{{ csrf_token('utilities_date_calculator') }}">
+    <form method="post" data-controller="mode-switch" class="space-y-6">
+        <input type="hidden" name="_token" value="{{ csrf_token('utilities_date_calculator') }}">
 
+        <div class="space-y-5 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
             <div class="space-y-1.5">
                 <label for="calc-year" class="block text-sm font-semibold text-gray-900">{{ 'calendar_generator.year'|trans({}, 'utilities') }}</label>
                 <select id="calc-year" name="academicYear" class="{{ field }} {{ errors.academicYear is defined ? 'border-red-300' : '' }}">
@@ -100,38 +105,104 @@
             </div>
             {% if errors.form is defined %}<p class="text-xs text-red-600">{{ errors.form }}</p>{% endif %}
 
-            <div class="flex justify-end gap-3 border-t border-gray-100 pt-5">
-                {% if result %}
-                    <button type="submit" name="action" value="export_excel" class="inline-flex items-center gap-1.5 rounded-xl border border-forest-600 px-5 py-2.5 text-sm font-semibold text-forest-700 hover:bg-forest-50 transition-colors">
-                        {{ ux_icon('heroicons:table-cells', {class: 'h-4 w-4'}) }}{{ 'date_calculator.export.button'|trans({}, 'utilities') }}
-                    </button>
-                {% endif %}
+            <div class="flex justify-end border-t border-gray-100 pt-5">
                 <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
                     {{ ux_icon('heroicons:calculator', {class: 'h-4 w-4'}) }}{{ 'date_calculator.calculate'|trans({}, 'utilities') }}
                 </button>
             </div>
-        </form>
+        </div>
 
         {% if result %}
-            <div class="lg:w-72 rounded-2xl border border-gray-200 bg-white p-5 shadow-xs h-fit space-y-3">
+            <div class="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs space-y-3">
                 <h2 class="text-sm font-semibold text-gray-900">{{ 'date_calculator.result.title'|trans({}, 'utilities') }}</h2>
                 {% if result.completed is defined and not result.completed %}
                     <p class="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">{{ 'date_calculator.result.not_completed'|trans({}, 'utilities') }}</p>
                 {% endif %}
-                <dl class="space-y-2 text-sm">
+                <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                     {% if result.end is defined %}
-                        <div class="flex justify-between gap-3"><dt class="text-gray-500">{{ 'date_calculator.result.end_date'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ result.end|date('d/m/Y') }}</dd></div>
+                        <div><dt class="text-gray-500 text-xs">{{ 'date_calculator.result.end_date'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ result.end|date('d/m/Y') }}</dd></div>
                     {% endif %}
                     {% if result.start is defined %}
-                        <div class="flex justify-between gap-3"><dt class="text-gray-500">{{ 'date_calculator.result.start_date'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ result.start|date('d/m/Y') }}</dd></div>
+                        <div><dt class="text-gray-500 text-xs">{{ 'date_calculator.result.start_date'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ result.start|date('d/m/Y') }}</dd></div>
                     {% endif %}
-                    <div class="flex justify-between gap-3"><dt class="text-gray-500">{{ 'date_calculator.result.total_days'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ result.totalDays }}</dd></div>
-                    <div class="flex justify-between gap-3"><dt class="text-gray-500">{{ 'date_calculator.result.working_days'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ result.workingDays }}</dd></div>
-                    <div class="flex justify-between gap-3"><dt class="text-gray-500">{{ 'date_calculator.result.total_hours'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ totalHoursLabel }} h</dd></div>
+                    <div><dt class="text-gray-500 text-xs">{{ 'date_calculator.result.total_days'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ result.totalDays }}</dd></div>
+                    <div><dt class="text-gray-500 text-xs">{{ 'date_calculator.result.working_days'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ result.workingDays }}</dd></div>
+                    <div><dt class="text-gray-500 text-xs">{{ 'date_calculator.result.total_hours'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ totalHoursLabel }} h</dd></div>
                 </dl>
             </div>
+
+            <div class="space-y-3">
+                <h2 class="text-sm font-semibold text-gray-900">{{ 'date_calculator.result.calendar'|trans({}, 'utilities') }}</h2>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    {% for month in result.months %}
+                        <div class="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                            <div class="bg-gray-50 border-b border-gray-200 px-3 py-2 text-sm font-semibold text-gray-900">
+                                {{ ('month.' ~ month.month)|trans({}, 'calendar')|capitalize }} {{ month.year }}
+                            </div>
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="text-gray-500">
+                                        {% for wd in 1..7 %}<th class="py-1.5 font-medium">{{ ('weekday.' ~ wd)|trans({}, 'calendar')|slice(0, 2) }}</th>{% endfor %}
+                                        <th class="py-1.5 font-medium border-l border-gray-100">{{ 'date_calculator.export.hours'|trans({}, 'utilities') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for week in month.weeks %}
+                                        <tr class="border-t border-gray-100">
+                                            {% for day in week.days %}
+                                                <td class="text-center py-1.5 {{ day and day.hours > 0 ? 'bg-forest-50' : '' }}">
+                                                    {% if day %}
+                                                        <div class="{{ day.hours > 0 ? 'font-medium text-gray-900' : 'text-gray-400' }}">{{ day.date|date('j') }}</div>
+                                                        {% if day.hoursLabel %}<div class="text-[10px] text-forest-700">{{ day.hoursLabel }} h</div>{% endif %}
+                                                    {% endif %}
+                                                </td>
+                                            {% endfor %}
+                                            <td class="text-center py-1.5 text-gray-500 border-l border-gray-100">{{ week.totalHoursLabel }} h</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="bg-gray-50 border-t border-gray-200">
+                                        <td colspan="7" class="text-right py-2 px-3 font-semibold text-gray-700">{{ 'date_calculator.result.month_total'|trans({}, 'utilities') }}:</td>
+                                        <td class="text-center py-2 font-semibold text-gray-900 border-l border-gray-100">{{ month.totalHoursLabel }} h</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
+                <h2 class="text-sm font-semibold text-gray-900">{{ 'date_calculator.export.button'|trans({}, 'utilities') }}</h2>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="space-y-1.5">
+                        <label for="calc-extra-columns" class="{{ label }}">{{ 'date_calculator.export.extra_columns'|trans({}, 'utilities') }}</label>
+                        <input id="calc-extra-columns" type="number" name="extraColumns" value="{{ values.extraColumns }}" min="0" max="20" class="{{ field }}">
+                    </div>
+                    <div class="flex flex-col justify-center gap-2">
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" name="showAllDates" value="1" {{ values.showAllDates ? 'checked' : '' }} class="rounded text-forest-600 focus:ring-forest-500">
+                            {{ 'date_calculator.export.show_all_dates'|trans({}, 'utilities') }}
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" name="separateByMonths" value="1" {{ values.separateByMonths ? 'checked' : '' }} class="rounded text-forest-600 focus:ring-forest-500">
+                            {{ 'date_calculator.export.separate_by_months'|trans({}, 'utilities') }}
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" name="separateWeeksVisually" value="1" {{ values.separateWeeksVisually ? 'checked' : '' }} class="rounded text-forest-600 focus:ring-forest-500">
+                            {{ 'date_calculator.export.separate_weeks_visually'|trans({}, 'utilities') }}
+                        </label>
+                    </div>
+                </div>
+                <div class="flex justify-end border-t border-gray-100 pt-4">
+                    <button type="submit" name="action" value="export_excel" class="inline-flex items-center gap-1.5 rounded-xl border border-forest-600 px-5 py-2.5 text-sm font-semibold text-forest-700 hover:bg-forest-50 transition-colors">
+                        {{ ux_icon('heroicons:table-cells', {class: 'h-4 w-4'}) }}{{ 'date_calculator.export.button'|trans({}, 'utilities') }}
+                    </button>
+                </div>
+            </div>
         {% endif %}
-    </div>
+    </form>
 
 </div>
 {% endblock %}

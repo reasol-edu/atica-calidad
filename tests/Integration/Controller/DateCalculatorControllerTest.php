@@ -9,6 +9,7 @@ use App\Entity\EducationalCentre;
 use App\Entity\PersonName;
 use App\Entity\Teacher;
 use App\Tests\Integration\ControllerTestCase;
+use OpenSpout\Reader\XLSX\Reader;
 
 /** Utilidades › Calculadora de fechas: stateless, no ownership — just a request in, a result out. */
 final class DateCalculatorControllerTest extends ControllerTestCase
@@ -96,6 +97,51 @@ final class DateCalculatorControllerTest extends ControllerTestCase
 
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
         self::assertSame('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $this->client->getResponse()->headers->get('Content-Type'));
+    }
+
+    public function testExportingWithMonthSeparationAndExtraColumnsAppliesBothOptions(): void
+    {
+        $this->client->request('GET', '/utilidades/calculadora-fechas');
+        $this->client->request('POST', '/utilidades/calculadora-fechas', $this->baseValues([
+            '_token'           => $this->csrfToken(),
+            'action'           => 'export_excel',
+            'startDate'        => '2026-03-02',
+            'endDate'          => '2026-03-06',
+            'extraColumns'     => '1',
+            'separateByMonths' => '1',
+        ]));
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+
+        $path = $this->writtenFilePath();
+        $reader = new Reader();
+        $reader->open($path);
+        $rows = [];
+        foreach ($reader->getSheetIterator() as $sheet) {
+            foreach ($sheet->getRowIterator() as $row) {
+                $rows[] = $row->toArray();
+            }
+        }
+        $reader->close();
+
+        self::assertSame(['Fecha', 'Día', 'Horas', 'Previsto / realizado', 'Extra 1'], $rows[0]);
+        self::assertSame('Marzo 2026', $rows[1][0]);
+        // Header + month title + 5 working days + subtotal + extra-columns grand total = 9 rows.
+        self::assertCount(9, $rows);
+        self::assertSame('=SUM(E3:E7)', $rows[8][4]);
+    }
+
+    /**
+     * BinaryFileResponse::sendContent() deletes its temp file as soon as the test client filters the
+     * response, so by the time we can inspect it the file is gone; the bytes it wrote are captured
+     * instead in the client's internal (BrowserKit) response, from which we rewrite a fresh temp file.
+     */
+    private function writtenFilePath(): string
+    {
+        $path = tempnam(sys_get_temp_dir(), 'date_calculator_export_test_') . '.xlsx';
+        file_put_contents($path, (string) $this->client->getInternalResponse()->getContent());
+
+        return $path;
     }
 
     public function testExportingAnInvalidFormShowsTheFormErrorInsteadOfAFile(): void

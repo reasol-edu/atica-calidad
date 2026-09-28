@@ -97,6 +97,8 @@ date_calculator:
     end_date: 'Fecha de fin'
     start_date: 'Fecha de inicio'
     not_completed: 'No se alcanzan las horas indicadas dentro del límite calculado (unos 10 años); se muestran los datos hasta donde ha llegado el cálculo.'
+    calendar: 'Calendario mensual'
+    month_total: 'Total horas lectivas'
   error:
     form: 'Revisa los datos: hace falta una fecha de inicio y de fin (o una de ellas más un total de horas), y horas asignadas al menos un día de la semana.'
   export:
@@ -105,7 +107,15 @@ date_calculator:
     date: 'Fecha'
     weekday: 'Día'
     hours: 'Horas'
+    notes: 'Previsto / realizado'
     total: 'Total'
+    working_days_suffix: 'jornadas con horas'
+    extra_column: 'Extra %number%'
+    extra_columns_total: 'Total columnas extra'
+    extra_columns: 'Nº de columnas extra'
+    show_all_dates: 'Mostrar todas las fechas (no solo las que tengan horas)'
+    separate_by_months: 'Separar por meses'
+    separate_weeks_visually: 'Separar semanas visualmente'
 
 pdf:
   non_working_day: 'Día no lectivo'

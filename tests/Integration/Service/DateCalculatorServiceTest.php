@@ -85,6 +85,37 @@ final class DateCalculatorServiceTest extends RepositoryTestCase
         self::assertSame(16.0, $result['totalHours']);
     }
 
+    public function testWorkingDaysBetweenBuildsAMonthlyGridWithWeeklyAndMonthlyTotals(): void
+    {
+        $centre = $this->centre();
+        $year   = $this->year($centre);
+        $this->persist($centre, $year);
+
+        // Monday 2026-03-02 to Friday 2026-03-06: one week, fully inside March 2026.
+        $result = $this->calculator->workingDaysBetween(
+            $year,
+            new \DateTimeImmutable('2026-03-02'),
+            new \DateTimeImmutable('2026-03-06'),
+            $this->uniformWeek(6.0),
+        );
+
+        self::assertCount(1, $result['months']);
+        $month = $result['months'][0];
+        self::assertSame(2026, $month->year);
+        self::assertSame(3, $month->month);
+        self::assertSame(30.0, $month->totalHours);
+        self::assertSame(5, $month->workingDays);
+
+        // The week containing 2026-03-02..08 is the only one with any hours.
+        $week = current(array_filter($month->weeks, static fn ($w) => $w->totalHours > 0.0));
+        self::assertNotFalse($week);
+        self::assertSame(30.0, $week->totalHours);
+        self::assertSame('6', $week->days[0]->hoursLabel); // Monday
+        self::assertSame(6.0, $week->days[0]->hours);
+        self::assertNull($week->days[5]->hoursLabel); // Saturday: no hours assigned
+        self::assertSame(0.0, $week->days[5]->hours);
+    }
+
     public function testEndDateForHoursWalksForwardFromTheStartDateUntilTheTargetIsReached(): void
     {
         $centre = $this->centre();

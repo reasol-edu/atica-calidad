@@ -9,9 +9,9 @@ use App\Entity\EducationalCentre;
 use App\Entity\Indicator;
 use App\Entity\PrintableCalendarPeriodMode;
 use App\Repository\AcademicYearRepository;
+use App\Service\DateCalculatorExcelExporter;
 use App\Service\DateCalculatorService;
 use App\Service\TenantContext;
-use App\Service\XlsxExporter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -36,7 +36,7 @@ class DateCalculatorController extends AbstractController
         private readonly AcademicYearRepository $academicYears,
         private readonly TenantContext $tenantContext,
         private readonly DateCalculatorService $calculator,
-        private readonly XlsxExporter $xlsx,
+        private readonly DateCalculatorExcelExporter $excelExporter,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
     ) {}
@@ -53,7 +53,7 @@ class DateCalculatorController extends AbstractController
             [$values, $errors, $result] = $this->readAndCalculate($request, $centre);
 
             if ($errors === [] && $result !== null && $request->request->getString('action') === 'export_excel') {
-                return $this->exportExcel($result);
+                return $this->exportExcel($values, $result);
             }
         }
 
@@ -68,43 +68,51 @@ class DateCalculatorController extends AbstractController
         ], new Response(status: $errors === [] ? 200 : 422));
     }
 
-    /** @return array{academicYear: string, mode: string, startDate: string, endDate: string, totalHours: string, mondayHours: string, tuesdayHours: string, wednesdayHours: string, thursdayHours: string, fridayHours: string} */
+    /** @return array{academicYear: string, mode: string, startDate: string, endDate: string, totalHours: string, mondayHours: string, tuesdayHours: string, wednesdayHours: string, thursdayHours: string, fridayHours: string, extraColumns: string, showAllDates: string, separateByMonths: string, separateWeeksVisually: string} */
     private function blankValues(EducationalCentre $centre): array
     {
         return [
-            'academicYear'   => ($this->tenantContext->getViewYear($centre) ?? $centre->getActiveAcademicYear())?->getId()->toRfc4122() ?? '',
-            'mode'           => PrintableCalendarPeriodMode::DateRange->value,
-            'startDate'      => '',
-            'endDate'        => '',
-            'totalHours'     => '',
-            'mondayHours'    => '',
-            'tuesdayHours'   => '',
-            'wednesdayHours' => '',
-            'thursdayHours'  => '',
-            'fridayHours'    => '',
+            'academicYear'          => ($this->tenantContext->getViewYear($centre) ?? $centre->getActiveAcademicYear())?->getId()->toRfc4122() ?? '',
+            'mode'                  => PrintableCalendarPeriodMode::DateRange->value,
+            'startDate'             => '',
+            'endDate'               => '',
+            'totalHours'            => '',
+            'mondayHours'           => '',
+            'tuesdayHours'          => '',
+            'wednesdayHours'        => '',
+            'thursdayHours'         => '',
+            'fridayHours'           => '',
+            'extraColumns'          => '0',
+            'showAllDates'          => '',
+            'separateByMonths'      => '1',
+            'separateWeeksVisually' => '',
         ];
     }
 
     /**
      * @return array{
-     *     0: array{academicYear: string, mode: string, startDate: string, endDate: string, totalHours: string, mondayHours: string, tuesdayHours: string, wednesdayHours: string, thursdayHours: string, fridayHours: string},
+     *     0: array{academicYear: string, mode: string, startDate: string, endDate: string, totalHours: string, mondayHours: string, tuesdayHours: string, wednesdayHours: string, thursdayHours: string, fridayHours: string, extraColumns: string, showAllDates: string, separateByMonths: string, separateWeeksVisually: string},
      *     1: array<string, string>,
-     *     2: null|array{workingDays: int, totalHours: float, totalDays: int, days: list<array{date: \DateTimeImmutable, hours: float, quota: float}>, end?: \DateTimeImmutable, start?: \DateTimeImmutable, completed?: bool},
+     *     2: null|array{workingDays: int, totalHours: float, totalDays: int, days: list<array{date: \DateTimeImmutable, hours: float, quota: float}>, months: list<\App\Model\DateCalculatorMonth>, end?: \DateTimeImmutable, start?: \DateTimeImmutable, completed?: bool},
      * }
      */
     private function readAndCalculate(Request $request, EducationalCentre $centre): array
     {
         $values = [
-            'academicYear'   => $request->request->getString('academicYear'),
-            'mode'           => $request->request->getString('mode'),
-            'startDate'      => $request->request->getString('startDate'),
-            'endDate'        => $request->request->getString('endDate'),
-            'totalHours'     => $request->request->getString('totalHours'),
-            'mondayHours'    => $request->request->getString('mondayHours'),
-            'tuesdayHours'   => $request->request->getString('tuesdayHours'),
-            'wednesdayHours' => $request->request->getString('wednesdayHours'),
-            'thursdayHours'  => $request->request->getString('thursdayHours'),
-            'fridayHours'    => $request->request->getString('fridayHours'),
+            'academicYear'          => $request->request->getString('academicYear'),
+            'mode'                  => $request->request->getString('mode'),
+            'startDate'             => $request->request->getString('startDate'),
+            'endDate'               => $request->request->getString('endDate'),
+            'totalHours'            => $request->request->getString('totalHours'),
+            'mondayHours'           => $request->request->getString('mondayHours'),
+            'tuesdayHours'          => $request->request->getString('tuesdayHours'),
+            'wednesdayHours'        => $request->request->getString('wednesdayHours'),
+            'thursdayHours'         => $request->request->getString('thursdayHours'),
+            'fridayHours'           => $request->request->getString('fridayHours'),
+            'extraColumns'          => $request->request->getString('extraColumns', '0'),
+            'showAllDates'          => $request->request->getString('showAllDates') === '1' ? '1' : '',
+            'separateByMonths'      => $request->request->getString('separateByMonths') === '1' ? '1' : '',
+            'separateWeeksVisually' => $request->request->getString('separateWeeksVisually') === '1' ? '1' : '',
         ];
         $errors = [];
 
@@ -155,28 +163,23 @@ class DateCalculatorController extends AbstractController
         return [$values, $errors, $result];
     }
 
-    /** @param array{workingDays: int, totalHours: float, totalDays: int, days: list<array{date: \DateTimeImmutable, hours: float, quota: float}>} $result */
-    private function exportExcel(array $result): Response
+    /**
+     * @param array{extraColumns: string, showAllDates: string, separateByMonths: string, separateWeeksVisually: string} $values
+     * @param array{months: list<\App\Model\DateCalculatorMonth>}                                                       $result
+     */
+    private function exportExcel(array $values, array $result): Response
     {
-        $headers = [
-            $this->t('date_calculator.export.date'),
-            $this->t('date_calculator.export.weekday'),
-            $this->t('date_calculator.export.hours'),
-        ];
+        $extraColumns = filter_var($values['extraColumns'], \FILTER_VALIDATE_INT) ?: 0;
+        $filename     = $this->t('date_calculator.export.filename') . '-' . $this->clock->now()->format('Y-m-d') . '.xlsx';
 
-        $rows = [];
-        foreach ($result['days'] as $day) {
-            $rows[] = [
-                $day['date']->format('d/m/Y'),
-                $this->translator->trans('weekday.' . $day['date']->format('N'), [], 'calendar'),
-                Indicator::number($day['hours']),
-            ];
-        }
-        $rows[] = [$this->t('date_calculator.export.total'), '', Indicator::number($result['totalHours'])];
-
-        $filename = $this->t('date_calculator.export.filename') . '-' . $this->clock->now()->format('Y-m-d') . '.xlsx';
-
-        return $this->xlsx->createResponse($filename, $headers, $rows);
+        return $this->excelExporter->export(
+            $result['months'],
+            $filename,
+            $extraColumns,
+            $values['showAllDates'] === '1',
+            $values['separateByMonths'] === '1',
+            $values['separateWeeksVisually'] === '1',
+        );
     }
 
     private function translationDomain(): string
