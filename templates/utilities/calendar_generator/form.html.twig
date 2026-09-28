@@ -9,7 +9,7 @@
    override colours, its individual highlighted dates and its periods. Same "always show extra
    blank rows so filling them in adds an entry" pattern as templates/quality/calendar.html.twig —
    no JS needed for adding a row, only for showing the right fields for a period's chosen mode
-   (printable_calendar_period_controller.js).
+   (mode_switch_controller.js, shared with the date calculator's own mode switch).
 #}
 {% block content %}
 {% set field = 'block w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
@@ -179,7 +179,7 @@
 
             {% for row in periodRows %}
                 {% set i = loop.index0 %}
-                <div data-controller="printable-calendar-period" class="space-y-3 rounded-xl border border-gray-200 p-4">
+                <div data-controller="mode-switch" class="space-y-3 rounded-xl border border-gray-200 p-4">
                     <input type="hidden" name="periods[{{ i }}][id]" value="{{ row.id }}">
 
                     <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
@@ -204,14 +204,14 @@
                         {% for mode in modes %}
                             <label class="flex-1 min-w-[10rem] cursor-pointer rounded-lg border px-3 py-2 text-center text-xs font-medium transition-colors {{ row.mode == mode.value ? 'border-forest-500 bg-forest-50 text-forest-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50' }}">
                                 <input type="radio" name="periods[{{ i }}][mode]" value="{{ mode.value }}" {{ row.mode == mode.value ? 'checked' : '' }}
-                                       data-printable-calendar-period-target="mode" data-radio-card-target="option"
-                                       data-action="change->printable-calendar-period#update change->radio-card#update" class="sr-only">
+                                       data-mode-switch-target="mode" data-radio-card-target="option"
+                                       data-action="change->mode-switch#update change->radio-card#update" class="sr-only">
                                 {{ ('form.periods.mode.' ~ mode.value)|trans({}, 'utilities') }}
                             </label>
                         {% endfor %}
                     </fieldset>
 
-                    <div data-printable-calendar-period-target="fields" data-printable-calendar-period-mode="date_range" {{ row.mode == 'date_range' ? '' : 'hidden' }} class="grid gap-3 sm:grid-cols-2">
+                    <div data-mode-switch-target="fields" data-mode-switch-mode="date_range" {{ row.mode == 'date_range' ? '' : 'hidden' }} class="grid gap-3 sm:grid-cols-2">
                         <div class="space-y-1.5">
                             <label class="{{ label }}">{{ 'form.start_date'|trans({}, 'utilities') }}</label>
                             <input type="date" name="periods[{{ i }}][startDate]" value="{{ row.startDate }}" class="{{ field }}">
@@ -222,7 +222,7 @@
                         </div>
                     </div>
 
-                    <div data-printable-calendar-period-target="fields" data-printable-calendar-period-mode="start_with_hours" {{ row.mode == 'start_with_hours' ? '' : 'hidden' }} class="space-y-3">
+                    <div data-mode-switch-target="fields" data-mode-switch-mode="start_with_hours" {{ row.mode == 'start_with_hours' ? '' : 'hidden' }} class="space-y-3">
                         <div class="grid gap-3 sm:grid-cols-2">
                             <div class="space-y-1.5">
                                 <label class="{{ label }}">{{ 'form.start_date'|trans({}, 'utilities') }}</label>
@@ -236,7 +236,7 @@
                         {{ _self.weekday_hours(i, row) }}
                     </div>
 
-                    <div data-printable-calendar-period-target="fields" data-printable-calendar-period-mode="end_with_hours" {{ row.mode == 'end_with_hours' ? '' : 'hidden' }} class="space-y-3">
+                    <div data-mode-switch-target="fields" data-mode-switch-mode="end_with_hours" {{ row.mode == 'end_with_hours' ? '' : 'hidden' }} class="space-y-3">
                         <div class="grid gap-3 sm:grid-cols-2">
                             <div class="space-y-1.5">
                                 <label class="{{ label }}">{{ 'form.end_date'|trans({}, 'utilities') }}</label>

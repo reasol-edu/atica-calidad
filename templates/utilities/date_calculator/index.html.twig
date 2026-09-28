@@ -1,0 +1,137 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'date_calculator.title'|trans({}, 'utilities') }} · {{ app_name }}{% endblock %}
+
+{#
+   Stateless: one POST in, one result out, nothing persisted. The three calculations are exactly
+   PrintableCalendarPeriodMode's three modes (reused here as the mode selector, same labels), run
+   through DateCalculatorService — built on WeekdayHoursWalker, the calendar generator's own
+   day-walking algorithm (PrintableCalendarPdfBuilder), so a "working day" means the same thing in
+   both tools. The weekday-hours pattern applies to all three modes here (unlike a period's plain
+   date_range, which has no hours), so it's shown once below the mode fields, not duplicated per
+   mode.
+#}
+{% block content %}
+{% set field = 'block w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
+{% set label = 'block text-xs font-medium text-gray-600' %}
+
+<div class="px-4 sm:px-6 py-8 max-w-4xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_utilities_index') }}" class="hover:text-forest-600 transition-colors">{{ 'title'|trans({}, 'utilities') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'date_calculator.title'|trans({}, 'utilities') }}</h1>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ 'date_calculator.description'|trans({}, 'utilities') }}</p>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-[1fr_auto]">
+        <form method="post" data-controller="mode-switch" class="space-y-5 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
+            <input type="hidden" name="_token" value="{{ csrf_token('utilities_date_calculator') }}">
+
+            <div class="space-y-1.5">
+                <label for="calc-year" class="block text-sm font-semibold text-gray-900">{{ 'calendar_generator.year'|trans({}, 'utilities') }}</label>
+                <select id="calc-year" name="academicYear" class="{{ field }} {{ errors.academicYear is defined ? 'border-red-300' : '' }}">
+                    {% for ay in academicYears %}
+                        <option value="{{ ay.id.toRfc4122 }}" {{ values.academicYear == ay.id.toRfc4122 ? 'selected' : '' }}>{{ ay.name }}</option>
+                    {% endfor %}
+                </select>
+                {% if errors.academicYear is defined %}<p class="text-xs text-red-600">{{ errors.academicYear }}</p>{% endif %}
+            </div>
+
+            <fieldset class="flex flex-wrap gap-2" data-controller="radio-card">
+                <legend class="{{ label }} mb-1">{{ 'form.periods.mode_legend'|trans({}, 'utilities') }}</legend>
+                {% for mode in modes %}
+                    <label class="flex-1 min-w-[10rem] cursor-pointer rounded-lg border px-3 py-2 text-center text-xs font-medium transition-colors {{ values.mode == mode.value ? 'border-forest-500 bg-forest-50 text-forest-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50' }}">
+                        <input type="radio" name="mode" value="{{ mode.value }}" {{ values.mode == mode.value ? 'checked' : '' }}
+                               data-mode-switch-target="mode" data-radio-card-target="option"
+                               data-action="change->mode-switch#update change->radio-card#update" class="sr-only">
+                        {{ ('form.periods.mode.' ~ mode.value)|trans({}, 'utilities') }}
+                    </label>
+                {% endfor %}
+            </fieldset>
+            {% if errors.mode is defined %}<p class="text-xs text-red-600">{{ errors.mode }}</p>{% endif %}
+
+            <div data-mode-switch-target="fields" data-mode-switch-mode="date_range" {{ values.mode == 'date_range' ? '' : 'hidden' }} class="grid gap-3 sm:grid-cols-2">
+                <div class="space-y-1.5">
+                    <label class="{{ label }}">{{ 'form.start_date'|trans({}, 'utilities') }}</label>
+                    <input type="date" name="startDate" value="{{ values.startDate }}" class="{{ field }}">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="{{ label }}">{{ 'form.end_date'|trans({}, 'utilities') }}</label>
+                    <input type="date" name="endDate" value="{{ values.endDate }}" class="{{ field }}">
+                </div>
+            </div>
+
+            <div data-mode-switch-target="fields" data-mode-switch-mode="start_with_hours" {{ values.mode == 'start_with_hours' ? '' : 'hidden' }} class="grid gap-3 sm:grid-cols-2">
+                <div class="space-y-1.5">
+                    <label class="{{ label }}">{{ 'form.start_date'|trans({}, 'utilities') }}</label>
+                    <input type="date" name="startDate" value="{{ values.startDate }}" class="{{ field }}">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="{{ label }}">{{ 'form.periods.total_hours'|trans({}, 'utilities') }}</label>
+                    <input name="totalHours" value="{{ values.totalHours }}" inputmode="decimal" class="{{ field }}">
+                </div>
+            </div>
+
+            <div data-mode-switch-target="fields" data-mode-switch-mode="end_with_hours" {{ values.mode == 'end_with_hours' ? '' : 'hidden' }} class="grid gap-3 sm:grid-cols-2">
+                <div class="space-y-1.5">
+                    <label class="{{ label }}">{{ 'form.end_date'|trans({}, 'utilities') }}</label>
+                    <input type="date" name="endDate" value="{{ values.endDate }}" class="{{ field }}">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="{{ label }}">{{ 'form.periods.total_hours'|trans({}, 'utilities') }}</label>
+                    <input name="totalHours" value="{{ values.totalHours }}" inputmode="decimal" class="{{ field }}">
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <span class="{{ label }}">{{ 'date_calculator.weekday_hours'|trans({}, 'utilities') }}</span>
+                <div class="grid grid-cols-5 gap-2">
+                    {% for key, prop in {1: 'mondayHours', 2: 'tuesdayHours', 3: 'wednesdayHours', 4: 'thursdayHours', 5: 'fridayHours'} %}
+                        <div class="space-y-1">
+                            <label class="block text-[11px] font-medium text-gray-500">{{ ('weekday.' ~ key)|trans({}, 'calendar') }}</label>
+                            <input name="{{ prop }}" value="{{ values[prop] }}" inputmode="decimal" placeholder="0" class="{{ field }} px-2">
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% if errors.form is defined %}<p class="text-xs text-red-600">{{ errors.form }}</p>{% endif %}
+
+            <div class="flex justify-end gap-3 border-t border-gray-100 pt-5">
+                {% if result %}
+                    <button type="submit" name="action" value="export_excel" class="inline-flex items-center gap-1.5 rounded-xl border border-forest-600 px-5 py-2.5 text-sm font-semibold text-forest-700 hover:bg-forest-50 transition-colors">
+                        {{ ux_icon('heroicons:table-cells', {class: 'h-4 w-4'}) }}{{ 'date_calculator.export.button'|trans({}, 'utilities') }}
+                    </button>
+                {% endif %}
+                <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">
+                    {{ ux_icon('heroicons:calculator', {class: 'h-4 w-4'}) }}{{ 'date_calculator.calculate'|trans({}, 'utilities') }}
+                </button>
+            </div>
+        </form>
+
+        {% if result %}
+            <div class="lg:w-72 rounded-2xl border border-gray-200 bg-white p-5 shadow-xs h-fit space-y-3">
+                <h2 class="text-sm font-semibold text-gray-900">{{ 'date_calculator.result.title'|trans({}, 'utilities') }}</h2>
+                {% if result.completed is defined and not result.completed %}
+                    <p class="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">{{ 'date_calculator.result.not_completed'|trans({}, 'utilities') }}</p>
+                {% endif %}
+                <dl class="space-y-2 text-sm">
+                    {% if result.end is defined %}
+                        <div class="flex justify-between gap-3"><dt class="text-gray-500">{{ 'date_calculator.result.end_date'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ result.end|date('d/m/Y') }}</dd></div>
+                    {% endif %}
+                    {% if result.start is defined %}
+                        <div class="flex justify-between gap-3"><dt class="text-gray-500">{{ 'date_calculator.result.start_date'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ result.start|date('d/m/Y') }}</dd></div>
+                    {% endif %}
+                    <div class="flex justify-between gap-3"><dt class="text-gray-500">{{ 'date_calculator.result.total_days'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ result.totalDays }}</dd></div>
+                    <div class="flex justify-between gap-3"><dt class="text-gray-500">{{ 'date_calculator.result.working_days'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ result.workingDays }}</dd></div>
+                    <div class="flex justify-between gap-3"><dt class="text-gray-500">{{ 'date_calculator.result.total_hours'|trans({}, 'utilities') }}</dt><dd class="font-semibold text-gray-900">{{ totalHoursLabel }} h</dd></div>
+                </dl>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

@@ -28,6 +28,14 @@
             </h2>
             <p class="mt-2 text-sm text-gray-600">{{ 'calendar_generator.description'|trans({}, 'utilities') }}</p>
         </a>
+        <a href="{{ path('app_utilities_date_calculator') }}"
+           class="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-xs hover:border-forest-300 hover:bg-forest-50/30 transition-colors">
+            <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900">
+                {{ ux_icon('heroicons:calculator', {class: 'h-5 w-5 text-forest-600'}) }}
+                {{ 'date_calculator.title'|trans({}, 'utilities') }}
+            </h2>
+            <p class="mt-2 text-sm text-gray-600">{{ 'date_calculator.description'|trans({}, 'utilities') }}</p>
+        </a>
     </div>
 
 </div>

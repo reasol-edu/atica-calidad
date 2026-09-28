@@ -49,6 +49,7 @@ final class PrintableCalendarPdfBuilder
     public function __construct(
         private readonly NonWorkingDayChecker $nonWorkingDays,
         private readonly NonWorkingDayRepository $nonWorkingDayRepository,
+        private readonly WeekdayHoursWalker $dayWalker,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
     ) {}
@@ -123,8 +124,9 @@ final class PrintableCalendarPdfBuilder
 
     /**
      * Walks day by day from the known end towards the unknown one, skipping weekends and the
-     * academic year's non-working days (NonWorkingDayChecker), assigning each remaining weekday's
-     * configured quota (or whatever is left of totalHours, if less) until it's exhausted.
+     * academic year's non-working days, assigning each remaining weekday's configured quota (or
+     * whatever is left of totalHours, if less) until it's exhausted — WeekdayHoursWalker, shared
+     * with the date calculator (Utilidades › Calculadora de fechas).
      *
      * @return list<PeriodDay>
      */
@@ -136,28 +138,8 @@ final class PrintableCalendarPdfBuilder
         if ($cursor === null || $remaining === null || $remaining <= 0.0) {
             return [];
         }
-        $weekdayHours = $period->weekdayHours();
 
-        $days = [];
-        // A day per iteration, capped generously (10 years) so a misconfigured period (e.g. every
-        // weekday quota left empty) can never loop forever instead of just yielding no days.
-        for ($i = 0; $i < 3660 && $remaining > 0.0001; ++$i) {
-            if (!$this->nonWorkingDays->isNonWorkingDay($year, $cursor)) {
-                $quota = $weekdayHours[(int) $cursor->format('N')] ?? null;
-                if ($quota !== null && $quota > 0.0) {
-                    $take        = min($quota, $remaining);
-                    $days[]      = ['date' => $cursor, 'hours' => $take, 'quota' => $quota];
-                    $remaining -= $take;
-                }
-            }
-            $cursor = $cursor->modify($forward ? '+1 day' : '-1 day');
-        }
-
-        if (!$forward) {
-            $days = array_reverse($days);
-        }
-
-        return $days;
+        return $this->dayWalker->walk($year, $cursor, $forward, $period->weekdayHours(), $remaining)['days'];
     }
 
     /**

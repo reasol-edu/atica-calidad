@@ -30,6 +30,7 @@ form:
     end_before_start: 'La fecha de fin no puede ser anterior a la de inicio.'
     color: 'El color no es válido.'
     orientation: 'Selecciona un formato de página.'
+    mode: 'Selecciona un tipo de cálculo.'
     font_size_scale: 'El tamaño de letra debe estar entre el 50% y el 200%.'
     dates: 'Revisa las fechas: cada una necesita una fecha, un color y una descripción.'
     periods: 'Revisa los periodos: cada uno necesita una descripción, un color y sus fechas (u horas) completas.'
@@ -82,6 +83,29 @@ form:
 import:
   choose_file: 'Seleccionar archivo'
   no_file_chosen: 'Ningún archivo seleccionado'
+
+date_calculator:
+  title: 'Calculadora de fechas'
+  description: 'Calcula las jornadas y horas lectivas entre dos fechas, o la fecha que completa un número de horas desde un extremo conocido — el mismo cálculo que usan los periodos del generador de calendarios.'
+  weekday_hours: 'Horas por día de la semana'
+  calculate: 'Calcular'
+  result:
+    title: 'Resultado'
+    total_days: 'Días totales del periodo'
+    working_days: 'Jornadas lectivas'
+    total_hours: 'Horas lectivas totales'
+    end_date: 'Fecha de fin'
+    start_date: 'Fecha de inicio'
+    not_completed: 'No se alcanzan las horas indicadas dentro del límite calculado (unos 10 años); se muestran los datos hasta donde ha llegado el cálculo.'
+  error:
+    form: 'Revisa los datos: hace falta una fecha de inicio y de fin (o una de ellas más un total de horas), y horas asignadas al menos un día de la semana.'
+  export:
+    button: 'Exportar a Excel'
+    filename: 'jornadas'
+    date: 'Fecha'
+    weekday: 'Día'
+    hours: 'Horas'
+    total: 'Total'
 
 pdf:
   non_working_day: 'Día no lectivo'
