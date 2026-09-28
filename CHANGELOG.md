@@ -7,6 +7,20 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-09-28
+
+### Added
+
+- La **calculadora de fechas** muestra ahora un calendario mensual con las horas de cada jornada, el
+  total semanal y, al final de cada mes, las jornadas y horas totales. El listado de jornadas se
+  puede exportar a Excel con columnas extra, separación por meses y separación visual de semanas, y
+  con las fórmulas de suma y recuento ya calculadas.
+
+### Fixed
+
+- En el PDF del generador de calendarios, el resumen de jornadas de un periodo aparece ahora debajo
+  del calendario en lugar de encima.
+
 ## [1.8.1] - 2026-09-28
 
 ### Added
