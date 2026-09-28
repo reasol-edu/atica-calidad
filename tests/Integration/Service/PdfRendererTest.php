@@ -28,13 +28,12 @@ final class PdfRendererTest extends RepositoryTestCase
     {
         parent::setUp();
 
-        // PdfRenderer has no other consumer yet (the reports feature is only a
-        // stub), so the compiled container inlines it away — build it directly.
         $this->renderer = new PdfRenderer(
             self::getContainer()->get(Environment::class),
             self::getContainer()->get(TranslatorInterface::class),
             self::getContainer()->get('clock'),
             new PdfTemplateResolver(self::getContainer()->get(\App\Service\AppSettingsInterface::class)),
+            self::getContainer()->getParameter('kernel.project_dir') . '/config/pdf/fonts',
         );
     }
 

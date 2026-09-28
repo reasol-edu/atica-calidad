@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\EducationalCentre;
+use Mpdf\Config\ConfigVariables;
+use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
 use Mpdf\WatermarkText;
 use Symfony\Component\Clock\ClockInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -19,11 +22,16 @@ use Twig\Environment;
  */
 class PdfRenderer
 {
+    /** mPDF fontdata key: lowercase, no spaces — matches how mPDF's own bundled fonts (dejavusans...) are keyed. */
+    private const string FONT_NAME = 'sourcesanspro';
+
     public function __construct(
         private readonly Environment $twig,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
         private readonly PdfTemplateResolver $templateResolver,
+        #[Autowire('%kernel.project_dir%/config/pdf/fonts')]
+        private readonly string $fontDir,
     ) {}
 
     /**
@@ -58,7 +66,7 @@ class PdfRenderer
             'headerRight'    => $header?->rightHtml,
         ];
 
-        $mpdf = new Mpdf([
+        $mpdf = new Mpdf($this->fontConfig() + [
             'format'        => 'A4',
             'orientation'   => $orientation,
             'margin_left'   => 15,
@@ -83,7 +91,7 @@ class PdfRenderer
                     45,
                     '#999999',
                     0.15,
-                    'dejavusans',
+                    self::FONT_NAME,
                 ));
                 $mpdf->showWatermarkText = true;
             }
@@ -115,6 +123,36 @@ class PdfRenderer
         ));
 
         return $response;
+    }
+
+    /**
+     * Registers Source Sans Pro (config/pdf/fonts/) as an mPDF custom font and makes it the
+     * document default, so every PDF export uses it without each template having to ask for it —
+     * templates/pdf/_styles.html.twig (and the header/footer partials) also name it explicitly in
+     * their own font-family, for templates rendered outside the shared body style.
+     *
+     * @return array<string, mixed>
+     */
+    private function fontConfig(): array
+    {
+        $configDefaults = (new ConfigVariables())->getDefaults();
+        $fontDefaults   = (new FontVariables())->getDefaults();
+
+        $fontDirs = \is_array($configDefaults) && \is_array($configDefaults['fontDir'] ?? null) ? $configDefaults['fontDir'] : [];
+        $fontData = \is_array($fontDefaults) && \is_array($fontDefaults['fontdata'] ?? null) ? $fontDefaults['fontdata'] : [];
+
+        return [
+            'fontDir'      => array_merge($fontDirs, [$this->fontDir]),
+            'fontdata'     => $fontData + [
+                self::FONT_NAME => [
+                    'R'  => 'SourceSansPro-Regular.ttf',
+                    'B'  => 'SourceSansPro-Bold.ttf',
+                    'I'  => 'SourceSansPro-It.ttf',
+                    'BI' => 'SourceSansPro-BoldIt.ttf',
+                ],
+            ],
+            'default_font' => self::FONT_NAME,
+        ];
     }
 
     /**
