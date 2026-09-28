@@ -7,6 +7,20 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-09-28
+
+### Added
+
+- **Calculadora de fechas**, nueva herramienta en Utilidades: calcula las jornadas y horas lectivas
+  entre dos fechas, o la fecha que completa un número de horas desde un extremo conocido — el mismo
+  cálculo que ya hacían los periodos del generador de calendarios. El resultado se puede exportar a
+  Excel.
+
+### Changed
+
+- Las exportaciones a PDF (informes, auditorías, revisión por la dirección, registro de actividad y
+  el generador de calendarios) usan ahora Source Sans Pro como tipo de letra.
+
 ## [1.8.0] - 2026-09-27
 
 **Al actualizar:** esta versión cambia la base de datos (generador de calendarios). Los cambios se
