@@ -3,6 +3,7 @@
 | Puede... | Docente | Auditor/a interno/a | Responsable de calidad | Equipo directivo / Admin. del centro | Admin. de la plataforma |
 | --- | :-: | :-: | :-: | :-: | :-: |
 | Iniciar sesión y consultar el calendario del centro | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Usar las [Utilidades](12-utilidades.md) personales (generador de calendarios, calculadora de fechas) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Acceder al árbol documental (contenido según perfiles y restricciones — ver [Árbol documental](07-arbol-documental.md#permisos-de-un-vistazo)) | ✅¹ | ✅ | ✅ | ✅ | ✅ |
 | Ver y completar/entregar sus propias actividades (ver [Actividades](08-actividades.md#permisos-de-un-vistazo)) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Crear o editar categorías y actividades | — | — | ✅ | ✅ | ✅ |
