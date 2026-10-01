@@ -170,7 +170,8 @@
                                 data-model="norender|{{ entry.list }}ProfileKeys"
                                 class="w-full text-sm ts-local">
                             {% for row in available_profile_rows %}
-                                <option value="{{ row.key }}" {{ row.key in entry.selected ? 'selected' : '' }}>{{ row.displayName }}</option>
+                                <option value="{{ row.key }}" {{ row.key in entry.selected ? 'selected' : '' }}
+                                        data-always-visible="{{ row.listItem is null and row.profile.listItem is not null ? '1' : '' }}">{{ row.displayName }}</option>
                             {% endfor %}
                         </select>
                     </div>

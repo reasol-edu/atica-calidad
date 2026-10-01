@@ -177,6 +177,54 @@ final class ActivityCompletionCheckerTest extends RepositoryTestCase
         self::assertSame('', $obligations[0]['key']);
     }
 
+    public function testGetMyOwnedObligationsRestrictsAManualActivityToItsProfileHolders(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $activity = (new Activity())->setCategory($category)->setTitle('Actividad manual')->setStart(1, 9)->setEnd(30, 9)
+            ->setGeneral(false)->addProfileRestriction($profile);
+        $holder   = $this->teacher('tutor');
+        $assign   = new SpecificProfileAssignment($profile, null, $holder);
+        $outsider = $this->teacher('otro');
+
+        $this->persist($centre, $category, $profile, $activity, $holder, $assign, $outsider);
+
+        self::assertCount(1, $this->checker->getMyOwnedObligations($holder, $activity));
+        self::assertSame([], $this->checker->getMyOwnedObligations($outsider, $activity));
+    }
+
+    /** A restriction on the whole profile (no subprofile pinned) matches a teacher holding any of its leaves. */
+    public function testGetMyOwnedObligationsWholeProfileRestrictionMatchesAnyLeaf(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $root     = (new ListItem())->setEducationalCentre($centre)->setName('Grupo');
+        $leaf     = (new ListItem())->setEducationalCentre($centre)->setName('1º DAW A');
+        $leaf->setParent($root);
+        $tutor    = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a')->setListItem($root);
+        $activity = (new Activity())->setCategory($category)->setTitle('Actividad manual')->setStart(1, 9)->setEnd(30, 9)
+            ->setGeneral(false)->addProfileRestriction($tutor);
+        $holder   = $this->teacher('tutor');
+        $assign   = new SpecificProfileAssignment($tutor, $leaf, $holder);
+
+        $this->persist($centre, $category, $root, $leaf, $tutor, $activity, $holder, $assign);
+
+        self::assertCount(1, $this->checker->getMyOwnedObligations($holder, $activity));
+    }
+
+    public function testIsApplicableToTeacherIsTrueForAFolderBackedActivityRegardlessOfGeneral(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $activity = $this->activity($category)->setFolder($folder)->setGeneral(false);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $activity, $teacher);
+
+        self::assertTrue($this->checker->isApplicableToTeacher($teacher, $activity));
+    }
+
     public function testGetMyOwnedObligationsForIndividualScopeRequiresAHeldSlot(): void
     {
         $centre   = $this->centre();

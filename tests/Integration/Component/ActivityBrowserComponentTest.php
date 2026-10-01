@@ -393,6 +393,70 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertCount(0, $activities->findByCategory($reloadedCategory), 'autoComplete without a folder must be rejected before ever reaching Activity::setAutoComplete()');
     }
 
+    public function testSaveActivityRejectsARestrictedManualActivityWithoutAnyProfile(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $component
+            ->set('formTitle', 'Actividad')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formFolderId', '')
+            ->set('formGeneral', false)
+            ->set('formProfileKeys', [])
+            ->call('saveActivity');
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedCategory = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        self::assertCount(0, $activities->findByCategory($reloadedCategory), 'a restricted activity without any chosen profile must be rejected');
+    }
+
+    public function testSaveActivityPersistsProfileRestrictions(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $profile, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $component
+            ->set('formTitle', 'Actividad restringida')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formFolderId', '')
+            ->set('formGeneral', false)
+            ->set('formProfileKeys', [$profile->getId()->toRfc4122()])
+            ->call('saveActivity');
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedCategory = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        $created = $activities->findByCategory($reloadedCategory);
+        self::assertCount(1, $created);
+        self::assertFalse($created[0]->isGeneral());
+        self::assertCount(1, $created[0]->getProfileRestrictions());
+    }
+
     public function testActivityCrudActionsAreDeniedWithoutResponsibilitiesPermission(): void
     {
         $centre   = $this->centre();
@@ -2193,6 +2257,53 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         try {
             $component->call('markCompleted', ['activityId' => $activity->getId()->toRfc4122(), 'profileId' => $profile->getId()->toRfc4122()]);
             self::fail('completing a profile the teacher does not hold must be refused');
+        } catch (AccessDeniedException) {
+        }
+
+        self::assertSame(0, $this->completionCount());
+    }
+
+    /** @return array{0: Activity, 1: SpecificProfile} */
+    private function restrictedManualActivityHeldBy(EducationalCentre $centre, Teacher $holder): array
+    {
+        $category = $this->category($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $activity = $this->activity($category)->setGeneral(false)->addProfileRestriction($profile);
+        $assignment = new SpecificProfileAssignment($profile, null, $holder);
+        $this->persist($category, $profile, $activity, $holder, $assignment);
+
+        return [$activity, $profile];
+    }
+
+    public function testMarkCompletedIsGrantedForARestrictedManualActivityTheTeacherAppliesTo(): void
+    {
+        $centre = $this->centre();
+        $this->persist($centre);
+        $tutor = $this->teacher('tutor');
+        [$activity] = $this->restrictedManualActivityHeldBy($centre, $tutor);
+
+        $this->loginAs($tutor, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('markCompleted', ['activityId' => $activity->getId()->toRfc4122()]);
+
+        self::assertSame(1, $this->completionCount());
+    }
+
+    /** The button only renders when the activity applies to the viewer, but the activity id is client-supplied: a crafted call must not complete a restricted activity the teacher is not one of the restricted profiles for. */
+    public function testMarkCompletedIsDeniedForARestrictedManualActivityTheTeacherDoesNotApplyTo(): void
+    {
+        $centre = $this->centre();
+        $this->persist($centre);
+        [$activity] = $this->restrictedManualActivityHeldBy($centre, $this->teacher('tutor'));
+        $outsider = $this->teacher('ajeno');
+        $this->persist($outsider);
+
+        $this->loginAs($outsider, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+
+        try {
+            $component->call('markCompleted', ['activityId' => $activity->getId()->toRfc4122()]);
+            self::fail('completing a restricted activity the teacher does not apply to must be refused');
         } catch (AccessDeniedException) {
         }
 

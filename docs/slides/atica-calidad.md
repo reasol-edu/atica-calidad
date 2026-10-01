@@ -182,6 +182,8 @@ Tres formas de buscar según el contexto —global sobre todo el árbol, local d
 - Fecha límite (día y mes, se repite cada curso) y, opcionalmente, una **carpeta**
   vinculada: entonces se completa **entregando un documento** (mismo flujo de
   aprobar/rechazar); sin carpeta, se completa a mano.
+- Sin carpeta, puede restringirse a uno o varios perfiles/subperfiles: solo es
+  pendiente para quien los tenga.
 - **Mis actividades** resume lo pendiente y lo vencido; el panel principal y el
   calendario avisan también de los próximos plazos.
 

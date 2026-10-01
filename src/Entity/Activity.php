@@ -16,7 +16,9 @@ use Symfony\Component\Uid\Uuid;
  * one-to-one, optional link), submissions are literally the Documents/DocumentRevisions of that
  * folder — the activity's own permissions are exactly the folder's (FolderVoter/
  * DocumentTreeAccessChecker), not a separate permission model. Without a folder, an activity is
- * just a reminder with a deadline and manual completion (see setAutoComplete()).
+ * just a reminder with a deadline and manual completion (see setAutoComplete()) — by default it
+ * applies to every teacher of the centre, but can instead be restricted to one or more
+ * profiles/subprofiles ($general = false, see $profileRestrictions).
  */
 #[ORM\Entity(repositoryClass: ActivityRepository::class)]
 class Activity implements Trashable
@@ -94,6 +96,19 @@ class Activity implements Trashable
     #[ORM\Column]
     private bool $autoComplete = false;
 
+    /**
+     * Meaningful only for a manual (folder-less) activity: when false, it only applies to —
+     * and only counts as pending for — teachers holding one of $profileRestrictions. Always true
+     * for a folder-backed activity, whose ownership already comes from the folder's own upload
+     * profiles (see ActivityCompletionChecker::isApplicableToTeacher()).
+     */
+    #[ORM\Column]
+    private bool $general = true;
+
+    /** @var Collection<int, ActivityProfile> */
+    #[ORM\OneToMany(targetEntity: ActivityProfile::class, mappedBy: 'activity', cascade: ['persist'], orphanRemoval: true)]
+    private Collection $profileRestrictions;
+
     /** When true, submissions and manual completion are refused before the yearly start date. */
     #[ORM\Column]
     private bool $startDateEnforced = false;
@@ -125,8 +140,9 @@ class Activity implements Trashable
 
     public function __construct()
     {
-        $this->tags             = new ArrayCollection();
-        $this->relatedDocuments = new ArrayCollection();
+        $this->tags                = new ArrayCollection();
+        $this->relatedDocuments    = new ArrayCollection();
+        $this->profileRestrictions = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -281,6 +297,58 @@ class Activity implements Trashable
     public function requiresSubmissions(): bool
     {
         return $this->folder !== null;
+    }
+
+    public function isGeneral(): bool
+    {
+        return $this->general;
+    }
+
+    public function setGeneral(bool $general): static
+    {
+        $this->general = $general;
+
+        return $this;
+    }
+
+    /** @return Collection<int, ActivityProfile> */
+    public function getProfileRestrictions(): Collection
+    {
+        return $this->profileRestrictions;
+    }
+
+    public function hasProfileRestriction(SpecificProfile $profile, ?ListItem $listItem): bool
+    {
+        return $this->profileRestrictions->exists(
+            static fn (int $i, ActivityProfile $r): bool =>
+                $r->getSpecificProfile() === $profile && $r->getListItem() === $listItem
+        );
+    }
+
+    public function addProfileRestriction(SpecificProfile $profile, ?ListItem $listItem = null): static
+    {
+        if (!$this->hasProfileRestriction($profile, $listItem)) {
+            $this->profileRestrictions->add(new ActivityProfile($this, $profile, $listItem));
+        }
+
+        return $this;
+    }
+
+    public function removeProfileRestriction(ActivityProfile $restriction): static
+    {
+        $this->profileRestrictions->removeElement($restriction);
+
+        return $this;
+    }
+
+    /** Drops every restriction row — used when the activity becomes general or gains a folder. */
+    public function clearProfileRestrictions(): static
+    {
+        foreach (iterator_to_array($this->profileRestrictions) as $restriction) {
+            $this->removeProfileRestriction($restriction);
+        }
+
+        return $this;
     }
 
     public function getListItem(): ?ListItem

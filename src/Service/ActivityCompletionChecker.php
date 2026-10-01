@@ -88,6 +88,29 @@ final class ActivityCompletionChecker
         return !$activity->requiresSubmissions() || $activity->getSubmissionScope() === ActivitySubmissionScope::Individual;
     }
 
+    /**
+     * Whether a manual (folder-less) activity even applies to $teacher — general activities and
+     * folder-backed ones (ownership instead comes from the folder's own upload profiles, checked
+     * separately) always do. A restricted activity applies to a teacher holding ANY of its
+     * profile/subprofile restrictions, using the exact same holdsProfile() semantics folders use
+     * for their own upload-profile matching (a "whole profile" restriction — $listItem === null on
+     * a list-associated profile — matches a teacher holding any of its leaves).
+     */
+    public function isApplicableToTeacher(Teacher $teacher, Activity $activity): bool
+    {
+        if ($activity->requiresSubmissions() || $activity->isGeneral()) {
+            return true;
+        }
+
+        foreach ($activity->getProfileRestrictions() as $restriction) {
+            if ($this->access->holdsProfile($teacher, $restriction->getSpecificProfile(), $restriction->getListItem())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** @return list<array{profile: SpecificProfile, listItem: ?ListItem}> distinct upload rows $teacher holds among this activity's slots (ByProfile scope only). */
     public function getMyCompletionOwners(Teacher $teacher, Activity $activity): array
     {
@@ -142,6 +165,10 @@ final class ActivityCompletionChecker
     public function getMyOwnedObligations(Teacher $teacher, Activity $activity): array
     {
         if (!$activity->requiresSubmissions()) {
+            if (!$this->isApplicableToTeacher($teacher, $activity)) {
+                return [];
+            }
+
             return [['profile' => null, 'listItem' => null, 'teacher' => $teacher, 'label' => null, 'key' => '']];
         }
 

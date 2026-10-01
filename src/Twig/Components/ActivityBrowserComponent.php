@@ -6,6 +6,7 @@ namespace App\Twig\Components;
 
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
+use App\Entity\ActivityProfile;
 use App\Entity\ActivitySubmissionScope;
 use App\Entity\AllowedFileFormat;
 use App\Entity\Document;
@@ -39,6 +40,7 @@ use App\Service\ActivitySubmissionProgressCalculator;
 use App\Service\ActivityWindowChecker;
 use App\Service\DocumentFileGarbageCollector;
 use App\Service\DocumentTreeAccessChecker;
+use App\Service\ProfileAssignmentRowBuilder;
 use App\Service\TrashService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -149,6 +151,14 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $formScope = 'by_profile';
 
+    /** Meaningful only when formFolderId === '' (a manual activity): applies to every teacher when true. */
+    #[LiveProp(writable: true)]
+    public bool $formGeneral = true;
+
+    /** @var string[] ProfileAssignmentRow keys, meaningful only when formFolderId === '' and !formGeneral. */
+    #[LiveProp(writable: true)]
+    public array $formProfileKeys = [];
+
     #[LiveProp(writable: true)]
     public string $confirmingDeleteActivityId = '';
 
@@ -214,6 +224,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly DocumentFileGarbageCollector $garbageCollector,
         private readonly ActivityObligationFinder $obligations,
         private readonly ActivitySubmissionProgressCalculator $progress,
+        private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly TrashService $trash,
     ) {}
 
@@ -418,6 +429,18 @@ class ActivityBrowserComponent extends AbstractController
         return $this->tags->findByCentre($this->centre);
     }
 
+    /**
+     * Profile/subprofile rows offered to restrict a manual activity to — includes the "(todos)"
+     * whole-profile wildcard for a list-associated profile, exactly like a folder's own
+     * upload-profile picker (see DocumentTreeAccessChecker::allowedUploadProfileRows()).
+     *
+     * @return ProfileAssignmentRow[]
+     */
+    public function getAvailableProfileRows(): array
+    {
+        return $this->rowBuilder->buildActiveRowsWithWholeProfileOption($this->centre);
+    }
+
     /** @return Document[] currently staged related documents, in the order they were added. */
     public function getFormRelatedDocuments(): array
     {
@@ -551,6 +574,8 @@ class ActivityBrowserComponent extends AbstractController
         $this->formEndDateEnforced   = false;
         $this->formEndDateGraceDays  = '0';
         $this->formScope       = 'by_profile';
+        $this->formGeneral     = true;
+        $this->formProfileKeys = [];
         $this->activityFormOpen = true;
         $this->errors           = [];
     }
@@ -583,6 +608,11 @@ class ActivityBrowserComponent extends AbstractController
         $this->formEndDateEnforced   = $activity->isEndDateEnforced();
         $this->formEndDateGraceDays  = (string) $activity->getEndDateGraceDays();
         $this->formScope        = $activity->getSubmissionScope()->value;
+        $this->formGeneral      = $activity->isGeneral();
+        $this->formProfileKeys  = array_map(
+            static fn (ActivityProfile $r): string => ProfileAssignmentRow::keyFor($r->getSpecificProfile(), $r->getListItem()),
+            $activity->getProfileRestrictions()->toArray(),
+        );
         $this->activityFormOpen = true;
         $this->errors           = [];
     }
@@ -627,6 +657,15 @@ class ActivityBrowserComponent extends AbstractController
             return;
         }
 
+        // Restriction only applies to manual activities — a folder-backed one's ownership already
+        // comes from the folder's own upload profiles, so $folder !== null always means general.
+        $restricted = $folder === null && !$this->formGeneral;
+        if ($restricted && $this->formProfileKeys === []) {
+            $this->errors = ['profiles' => $this->t('activity.error.profiles_required')];
+
+            return;
+        }
+
         $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
         $scope    = ActivitySubmissionScope::from($this->formScope === 'individual' ? 'individual' : 'by_profile');
 
@@ -660,6 +699,21 @@ class ActivityBrowserComponent extends AbstractController
         // Safe unconditionally: the guard above already ensures $folder isn't null whenever
         // $this->formAutoComplete is true, and setAutoComplete(false) never throws either way.
         $activity->setAutoComplete($this->formAutoComplete);
+
+        $activity->setGeneral(!$restricted);
+        $activity->clearProfileRestrictions();
+        if ($restricted) {
+            $rowsByKey = [];
+            foreach ($this->getAvailableProfileRows() as $row) {
+                $rowsByKey[$row->key()] = $row;
+            }
+            foreach ($this->formProfileKeys as $key) {
+                $row = $rowsByKey[$key] ?? null;
+                if ($row !== null) {
+                    $activity->addProfileRestriction($row->profile, $row->listItem);
+                }
+            }
+        }
 
         foreach (iterator_to_array($activity->getTags()) as $tag) {
             if (!in_array($tag->getId()->toRfc4122(), $this->formTagIds, true)) {
@@ -1093,6 +1147,9 @@ class ActivityBrowserComponent extends AbstractController
 
         if ($profile === null) {
             if ($listItem !== null || !$this->completion->hasIndividualCompletionOwner($activity)) {
+                throw $this->createAccessDeniedException();
+            }
+            if (!$this->completion->isApplicableToTeacher($this->teacher(), $activity)) {
                 throw $this->createAccessDeniedException();
             }
 

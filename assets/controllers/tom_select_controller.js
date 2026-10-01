@@ -23,6 +23,14 @@ export default class extends Controller {
             render: noResultsText
                 ? { no_results: () => `<div class="no-results px-3 py-2 text-sm">${noResultsText}</div>` }
                 : {},
+            // An <option data-always-visible="1"> (e.g. a profile's "(todos)" whole-profile row)
+            // stays in the list no matter what's typed, instead of being filtered out like a
+            // regular option whose text doesn't match the query.
+            score: function (search) {
+                const score = this.getScoreFunction(search);
+
+                return (item) => (item.alwaysVisible ? 1 : score(item));
+            },
         });
     }
 

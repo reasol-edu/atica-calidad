@@ -14,7 +14,11 @@ Una actividad puede llevar, o no, una **carpeta del árbol documental** vinculad
   [Permisos sobre una carpeta](07-arbol-documental.md#permisos-sobre-una-carpeta)) gobiernan
   también quién entrega y quién revisa la actividad.
 - **Sin carpeta** — es un simple recordatorio con fecha límite, que se completa a mano con un
-  botón (ver [Completar una actividad manual](#completar-una-actividad-manual)).
+  botón (ver [Completar una actividad manual](#completar-una-actividad-manual)). Por defecto le
+  corresponde a todo el profesorado del centro, pero puede restringirse a uno o varios
+  [perfiles o subperfiles](06-responsabilidades.md#asignar-perfiles): solo le es pendiente —y solo
+  puede completarla— quien tenga alguno de ellos (ver [Campos de una
+  actividad](#campos-de-una-actividad)).
 
 La sección tiene tres pestañas: **Mis actividades** (vista personal, la que se abre por defecto),
 **Ver** (navegación por categorías, con lo que le corresponde a cada uno y, opcionalmente, lo de
@@ -135,6 +139,7 @@ Una actividad eliminada, con sus completados, pasa a la
 | Documentos relacionados | Documentos del árbol documental enlazados como lectura de apoyo, independientes de la carpeta de entregas. |
 | Obligatoria / Opcional | Solo informativo: se muestra como etiqueta, no cambia ningún permiso. |
 | Ámbito de entrega | **Por perfil** (una entrega compartida por todo el que tenga el perfil/subperfil) o **Individual** (cada docente con ese perfil entrega la suya). |
+| A quién se le pide | Solo si **no** hay carpeta (con carpeta, lo deciden sus propios perfiles de subida — ver [Permisos sobre una carpeta](07-arbol-documental.md#permisos-sobre-una-carpeta)). **A todo el profesorado** (por defecto) o **Solo a ciertos perfiles**, eligiendo uno o varios perfiles o subperfiles en un desplegable con buscador — igual que al [restringir un evento del calendario](03-calendario.md). El resto del profesorado la sigue viendo en **Ver**, pero no le es pendiente ni puede completarla. |
 | Completado automático | Solo si hay carpeta: la actividad se da por completada en cuanto el documento esperado está aprobado, sin botón de completar manual. |
 | Prefijo de entrega | Opcional. Sustituye al título como lo primero que lleva el nombre del fichero al descargar una entrega — ver [Nombre del fichero descargado](#nombre-del-fichero-descargado). Vacío por defecto: se usa el título. Un guion («-») a solas quita el prefijo del todo. |
 

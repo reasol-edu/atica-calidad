@@ -199,6 +199,37 @@
             </div>
 
             <div class="sm:col-span-2">
+                <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.visibility'|trans({}, 'admin') }}</span>
+                {% if formFolderId != '' %}
+                    <p class="text-xs italic text-gray-400">{{ 'activity.field.visibility_disabled_hint'|trans({}, 'admin') }}</p>
+                {% else %}
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <twig:Form:RadioCard name="activity_visibility" value="1"
+                            label="{{ 'activity.field.visibility_general'|trans({}, 'admin') }}"
+                            help="{{ 'activity.field.visibility_general_help'|trans({}, 'admin') }}"
+                            :checked="formGeneral" data-model="formGeneral" />
+                        <twig:Form:RadioCard name="activity_visibility" value="0"
+                            label="{{ 'activity.field.visibility_restricted'|trans({}, 'admin') }}"
+                            help="{{ 'activity.field.visibility_restricted_help'|trans({}, 'admin') }}"
+                            :checked="not formGeneral" data-model="formGeneral" />
+                    </div>
+                    {% if not formGeneral %}
+                        <select multiple data-controller="tom-select"
+                                data-tom-select-placeholder-value="{{ 'activity.field.visibility_profiles_placeholder'|trans({}, 'admin') }}"
+                                data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
+                                data-model="norender|formProfileKeys" class="mt-2 w-full text-sm ts-local">
+                            {% for row in this.getAvailableProfileRows %}
+                                <option value="{{ row.key }}" {{ row.key in formProfileKeys ? 'selected' : '' }}
+                                        data-always-visible="{{ row.listItem is null and row.profile.listItem is not null ? '1' : '' }}">{{ row.displayName }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.visibility_profiles_help'|trans({}, 'admin') }}</p>
+                        {% if errors.profiles is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.profiles }}</p>{% endif %}
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <div class="sm:col-span-2">
                 <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.auto_complete'|trans({}, 'admin') }}</span>
                 {% if formFolderId == '' %}
                     <p class="text-xs italic text-gray-400">{{ 'activity.field.auto_complete_disabled_hint'|trans({}, 'admin') }}</p>
