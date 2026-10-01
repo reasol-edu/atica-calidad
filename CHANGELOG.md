@@ -7,6 +7,21 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-10-02
+
+### Added
+
+- Una **actividad** sin carpeta asociada puede restringirse a uno o varios perfiles o
+  subperfiles: deja de ser pendiente —y de poder completarse— para quien no tenga ninguno de
+  ellos, aunque el resto del profesorado la siga viendo. Se eligen con un desplegable con
+  buscador, igual que al restringir un evento del calendario.
+
+### Fixed
+
+- En los desplegables de perfiles/subperfiles con buscador (actividades, eventos del calendario,
+  permisos de carpeta), la opción «(todos)» de un perfil con subperfiles ya no desaparece al
+  escribir para filtrar.
+
 ## [1.8.2] - 2026-09-28
 
 ### Added
