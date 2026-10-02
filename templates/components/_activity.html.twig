@@ -189,7 +189,7 @@
                                                                     {{ (row.completed ? 'manual_stats.completed' : 'manual_stats.pending')|trans({}, 'activity_content') }}
                                                                 </span>
                                                             </td>
-                                                            {% if can_edit %}
+                                                            {% if can_manage_activity %}
                                                                 <td class="px-3 py-1.5 text-right whitespace-nowrap">
                                                                     <button type="button" data-action="live#action" data-live-action-param="toggleManualCompletionForTeacher"
                                                                             data-live-activity-id-param="{{ aid }}" data-live-teacher-id-param="{{ row.teacher.id.toRfc4122 }}"

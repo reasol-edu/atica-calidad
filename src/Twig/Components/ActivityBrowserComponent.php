@@ -1190,21 +1190,21 @@ class ActivityBrowserComponent extends AbstractController
     }
 
     /**
-     * Marks or unmarks another teacher's completion of a manual activity — only a responsable de
-     * calidad/admin may act on someone else's behalf (requireEditPermission(), not the broader
-     * canManageActivity(): the user asked specifically for "un responsable de calidad o
-     * administrador", not every activity-responsible teacher). Deliberately bypasses
+     * Marks or unmarks another teacher's completion of a manual activity — anyone who manages it
+     * may act on someone else's behalf (canManageActivity(): a responsable de calidad/admin, or a
+     * teacher holding one of the activity's own responsible profiles). Deliberately bypasses
      * ActivityWindowChecker: unlike the teacher's own self-service button, a manager correcting
      * someone else's record is not meant to be blocked by the deadline window.
      */
     #[LiveAction]
     public function toggleManualCompletionForTeacher(#[LiveArg] string $activityId, #[LiveArg] string $teacherId): void
     {
-        $this->requireEditPermission();
-
         $activity = $this->findActivity($activityId);
         if ($activity === null || $activity->requiresSubmissions() || $activity->isAutoComplete()) {
             return;
+        }
+        if (!$this->canManageActivity($activity)) {
+            throw $this->createAccessDeniedException();
         }
 
         $year    = $this->centre->getActiveAcademicYear();

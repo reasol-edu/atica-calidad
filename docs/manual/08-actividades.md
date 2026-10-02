@@ -257,11 +257,10 @@ los [perfiles responsables](#campos-de-una-actividad) de la actividad pueden abr
 —toda la plantilla si es general, o solo los perfiles elegidos si está restringida— y su estado:
 **Pendiente** o **Completada**.
 
-Además, responsable de calidad y equipo directivo/admin. (no quien solo tenga un perfil
-responsable) pueden **Marcar**/**Desmarcar** la completada de cualquier docente de la lista
-directamente desde esa tabla, sin esperar a que lo haga él mismo y sin las restricciones de fecha
-que sí se aplican al propio docente (ver [Campos de una actividad](#campos-de-una-actividad),
-«Fecha de inicio / Fecha de fin»). Queda anotado en el
+Quien puede ver esa tabla también puede **Marcar**/**Desmarcar** en ella la completada de
+cualquiera de esos docentes directamente, sin esperar a que lo haga él mismo y sin las
+restricciones de fecha que sí se aplican al propio docente (ver [Campos de una
+actividad](#campos-de-una-actividad), «Fecha de inicio / Fecha de fin»). Queda anotado en el
 [registro de actividad](10-administrar-la-plataforma.md#registro-de-actividad).
 
 ## Actividades en el calendario
@@ -306,7 +305,7 @@ avisos por correo —al instante o en un resumen diario— se configura en
 | Aprobar o rechazar una entrega pendiente, una a una o varias a la vez | — | — | ✅ (con perfil de revisión) | ✅ |
 | Recordar a pendientes | — | — | ✅ | ✅ |
 | Ver las estadísticas de completado (actividad sin carpeta) | — | — | ✅ (con perfil responsable de la actividad) | ✅ |
-| Marcar/desmarcar la completada de otro docente (actividad sin carpeta) | — | — | — | ✅ |
+| Marcar/desmarcar la completada de otro docente (actividad sin carpeta) | — | — | ✅ (con perfil responsable de la actividad) | ✅ |
 | Crear/editar categorías y actividades | — | — | — | ✅ |
 | Recuperar de la papelera lo eliminado | — | — | — | ✅ (responsable de calidad y equipo directivo) |
 

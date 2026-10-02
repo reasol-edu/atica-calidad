@@ -2609,8 +2609,8 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertSame(0, $this->completionCount());
     }
 
-    /** The user asked specifically for "un responsable de calidad o administrador" — a teacher who only holds the activity's own responsible profile (and so can see its stats) must not be able to act on someone else's behalf. */
-    public function testToggleManualCompletionForTeacherIsDeniedForATeacherHoldingOnlyTheResponsibleProfile(): void
+    /** A teacher holding the activity's own responsible profile (not RESPONSIBILITIES) may also act on someone else's behalf, same as a responsable de calidad/admin. */
+    public function testToggleManualCompletionForTeacherIsGrantedForATeacherHoldingOnlyTheResponsibleProfile(): void
     {
         $centre   = $this->centre();
         $year     = (new AcademicYear())->setName('2026-2027')->setEducationalCentre($centre);
@@ -2626,14 +2626,9 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
 
         $this->loginAs($manager, $centre);
         $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleManualCompletionForTeacher', ['activityId' => $activity->getId()->toRfc4122(), 'teacherId' => $target->getId()->toRfc4122()]);
 
-        try {
-            $component->call('toggleManualCompletionForTeacher', ['activityId' => $activity->getId()->toRfc4122(), 'teacherId' => $target->getId()->toRfc4122()]);
-            self::fail('a responsible-profile holder without RESPONSIBILITIES must not toggle another teacher\'s completion');
-        } catch (AccessDeniedException) {
-        }
-
-        self::assertSame(0, $this->completionCount());
+        self::assertSame(1, $this->completionCount());
     }
 
     public function testToggleManualCompletionForTeacherIsDeniedForARandomTeacher(): void
