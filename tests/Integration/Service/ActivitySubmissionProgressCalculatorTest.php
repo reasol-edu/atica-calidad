@@ -78,6 +78,23 @@ final class ActivitySubmissionProgressCalculatorTest extends RepositoryTestCase
         return [$centre, $folder, $activity, $list];
     }
 
+    public function testOverdueCountsEachElementAgainstItsOwnDeadline(): void
+    {
+        self::mockTime('2025-11-05 10:00:00'); // past the activity's own Oct 31, before Química's Dec 31
+        [$centre, , $activity] = $this->byProfileActivity(1);
+        $root    = (new \App\Entity\ListItem())->setName('Materias')->setEducationalCentre($centre);
+        $fisica  = (new \App\Entity\ListItem())->setName('Física')->setEducationalCentre($centre)->setParent($root);
+        $quimica = (new \App\Entity\ListItem())->setName('Química')->setEducationalCentre($centre)->setParent($root);
+        $activity->setListItem($root)->setDeadlineOverride($quimica, 1, 12, 31, 12);
+        $this->persist($root, $fisica, $quimica);
+
+        $progress = $this->calculator->forActivity($activity);
+
+        self::assertNotNull($progress);
+        self::assertSame(2, $progress->total);
+        self::assertSame(1, $progress->overdue, 'only Física, whose own deadline (Oct 31) has passed, is overdue');
+    }
+
     public function testCountsEachSlotByTheStateOfItsSubmission(): void
     {
         [, $folder, $activity, $profiles] = $this->byProfileActivity(5);

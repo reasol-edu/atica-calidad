@@ -122,7 +122,7 @@ class ReportsController extends AbstractController
             return $this->pdfResponse('reports/pdf/activity_status.html.twig', 'activity_status', 'activity_status', $centre, ['rows' => $rows]);
         }
 
-        $headers = array_map(fn (string $key): string => $this->t('activity_status.col.' . $key), ['category', 'activity', 'opens', 'deadline', 'kind', 'expected', 'delivered', 'done', 'in_review', 'rejected', 'percent']);
+        $headers = array_map(fn (string $key): string => $this->t('activity_status.col.' . $key), ['category', 'activity', 'opens', 'deadline', 'kind', 'expected', 'delivered', 'done', 'in_review', 'rejected', 'overdue', 'percent']);
 
         return $this->xlsx->createResponse($this->filename('activity_status', 'xlsx'), $headers, array_map(
             fn (ActivityStatusReportRow $r): array => [
@@ -136,6 +136,7 @@ class ReportsController extends AbstractController
                 $r->done,
                 $r->inReview,
                 $r->rejected,
+                $r->overdue,
                 $r->donePercentage(),
             ],
             $rows,

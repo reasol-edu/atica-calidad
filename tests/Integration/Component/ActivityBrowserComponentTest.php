@@ -586,6 +586,69 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertSame('', $instance->formOverrideStartDay[$fisicaId]);
     }
 
+    /** @return array{ActivityBrowserComponent|\Symfony\UX\LiveComponent\Test\TestLiveComponent, \App\Entity\ListItem, \App\Entity\ListItem, \App\Entity\ListItem, ActivityCategory, EducationalCentre} */
+    private function formWithTwoElements(): array
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $root     = (new \App\Entity\ListItem())->setName('Materias')->setEducationalCentre($centre);
+        $fisica   = (new \App\Entity\ListItem())->setName('Física')->setEducationalCentre($centre)->setParent($root);
+        $quimica  = (new \App\Entity\ListItem())->setName('Química')->setEducationalCentre($centre)->setParent($root);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $root, $fisica, $quimica, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        return [$component, $root, $fisica, $quimica, $category, $centre];
+    }
+
+    public function testGeneralDeadlineMayBeBlankWhenEveryElementHasItsOwn(): void
+    {
+        [$component, $root, $fisica, $quimica, $category, $centre] = $this->formWithTwoElements();
+        $fId = $fisica->getId()->toRfc4122();
+        $qId = $quimica->getId()->toRfc4122();
+
+        $component
+            ->set('formTitle', 'Sin plazo general')
+            ->set('formListItemId', $root->getId()->toRfc4122())
+            ->set('formOverrideStartDay', [$fId => '1', $qId => '1'])
+            ->set('formOverrideStartMonth', [$fId => '1', $qId => '10'])
+            ->set('formOverrideEndDay', [$fId => '28', $qId => '31'])
+            ->set('formOverrideEndMonth', [$fId => '2', $qId => '12'])
+            ->call('saveActivity');
+
+        $this->em->clear();
+        $reloaded = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloaded);
+        $created = self::getContainer()->get(\App\Repository\ActivityRepository::class)->findByCategory($reloaded);
+        self::assertCount(1, $created);
+        // The activity's own dates span the elements': Oct 1 (academic-year first) to Feb 28 (last).
+        self::assertSame([1, 10, 28, 2], [$created[0]->getStartDay(), $created[0]->getStartMonth(), $created[0]->getEndDay(), $created[0]->getEndMonth()]);
+    }
+
+    public function testGeneralDeadlineIsRequiredWhenSomeElementHasNoneOfItsOwn(): void
+    {
+        [$component, $root, $fisica] = $this->formWithTwoElements();
+        $fId = $fisica->getId()->toRfc4122();
+
+        $component
+            ->set('formTitle', 'Plazo a medias')
+            ->set('formListItemId', $root->getId()->toRfc4122())
+            ->set('formOverrideStartDay', [$fId => '1'])
+            ->set('formOverrideStartMonth', [$fId => '1'])
+            ->set('formOverrideEndDay', [$fId => '28'])
+            ->set('formOverrideEndMonth', [$fId => '2'])
+            ->call('saveActivity');
+
+        /** @var ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertArrayHasKey('dates', $instance->errors);
+    }
+
     // ── Creating a folder inline from the activity form ─────────────────────
 
     public function testCreateFolderForActivityCreatesAndSelectsANewFolder(): void

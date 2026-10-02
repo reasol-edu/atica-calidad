@@ -128,6 +128,33 @@ final class ActivityDeadlineChecker implements ResetInterface
         return $range['startDay'] === $range['endDay'] && $range['startMonth'] === $range['endMonth'];
     }
 
+    /**
+     * The day/month range spanning all of $ranges — the earliest start and the latest end, ordered
+     * by where each falls in the centre's academic year (so Sep–Dec come before Jan–Jun). Used to
+     * give an activity whose every list element has its own deadline a meaningful general one.
+     *
+     * @param  non-empty-list<array{startDay: int, startMonth: int, endDay: int, endMonth: int}> $ranges
+     * @return array{startDay: int, startMonth: int, endDay: int, endMonth: int}
+     */
+    public function envelopeOf(EducationalCentre $centre, array $ranges): array
+    {
+        $start    = $this->academicYearStart($centre);
+        $boundary = $start->month * 100 + $start->day;
+        $order    = static fn (int $month, int $day): int => $month * 100 + $day < $boundary ? $month * 100 + $day + 1200 : $month * 100 + $day;
+
+        $first = $last = $ranges[0];
+        foreach ($ranges as $range) {
+            if ($order($range['startMonth'], $range['startDay']) < $order($first['startMonth'], $first['startDay'])) {
+                $first = $range;
+            }
+            if ($order($range['endMonth'], $range['endDay']) > $order($last['endMonth'], $last['endDay'])) {
+                $last = $range;
+            }
+        }
+
+        return ['startDay' => $first['startDay'], 'startMonth' => $first['startMonth'], 'endDay' => $last['endDay'], 'endMonth' => $last['endMonth']];
+    }
+
     /** @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable, 2: int} the [start, end, cycle key] of the cycle $reference belongs to. */
     private function cycleNear(Activity $activity, \DateTimeImmutable $reference, ?ListItem $leaf = null): array
     {

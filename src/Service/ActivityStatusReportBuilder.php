@@ -27,6 +27,8 @@ final class ActivityStatusReportBuilder
         private readonly ActivityDeadlineChecker $deadline,
         private readonly ActivityCompletionRepository $completions,
         private readonly TeacherRepository $teachers,
+        private readonly ActivityDeadlineSummaryBuilder $summaries,
+        private readonly \Symfony\Component\Clock\ClockInterface $clock,
     ) {}
 
     /** @return list<ActivityStatusReportRow> */
@@ -48,17 +50,20 @@ final class ActivityStatusReportBuilder
     private function row(Activity $activity, int $teachers): ActivityStatusReportRow
     {
         $path     = $this->categoryPath($activity->getCategory());
-        $startsAt = $this->deadline->currentCycleStartDate($activity);
-        $deadline = $this->deadline->currentCycleEndDate($activity);
+        $summary  = $this->summaries->for($activity);
+        // With a deadline of its own for every element the general one is unused: show their span.
+        $startsAt = $summary->coversAll && $summary->firstStart !== null ? $summary->firstStart : $this->deadline->currentCycleStartDate($activity);
+        $deadline = $summary->coversAll && $summary->lastEnd !== null ? $summary->lastEnd : $this->deadline->currentCycleEndDate($activity);
 
         $progress = $this->progress->forActivity($activity);
         if ($progress !== null) {
-            return new ActivityStatusReportRow($path, $activity->getTitle(), $startsAt, $deadline, true, $progress->total, $progress->delivered, $progress->accepted, $progress->inReview, $progress->rejected);
+            return new ActivityStatusReportRow($path, $activity->getTitle(), $startsAt, $deadline, true, $progress->total, $progress->delivered, $progress->accepted, $progress->inReview, $progress->rejected, $progress->overdue, $summary->ownCount);
         }
 
-        $done = $this->completions->countByActivityAndCycle($activity, $this->deadline->currentCycleKey($activity));
+        $done    = $this->completions->countByActivityAndCycle($activity, $this->deadline->currentCycleKey($activity));
+        $overdue = $this->clock->now() > $deadline ? max(0, $teachers - $done) : 0;
 
-        return new ActivityStatusReportRow($path, $activity->getTitle(), $startsAt, $deadline, false, $teachers, $done, $done, 0, 0);
+        return new ActivityStatusReportRow($path, $activity->getTitle(), $startsAt, $deadline, false, $teachers, $done, $done, 0, 0, $overdue);
     }
 
     private function categoryPath(ActivityCategory $category): string

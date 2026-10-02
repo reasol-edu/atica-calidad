@@ -23,6 +23,8 @@ final readonly class ActivitySubmissionProgress
         public int $inReview,
         /** Of those, the ones rejected and not submitted again yet. */
         public int $rejected,
+        /** Slots still to hand in (nothing sent, or rejected) whose own deadline has already passed. */
+        public int $overdue = 0,
     ) {}
 
     public function deliveredPercentage(): int

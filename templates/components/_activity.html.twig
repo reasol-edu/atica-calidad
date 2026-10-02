@@ -14,10 +14,19 @@
                 <div class="min-w-0 flex-1 space-y-1">
                     <h3 class="text-base font-semibold text-gray-900">{{ activity.title }}</h3>
                     <p class="text-xs text-gray-500">
-                        {{ 'activity.deadline'|trans({
-                            '%start%': '%02d/%02d'|format(activity.startDay, activity.startMonth),
-                            '%end%': '%02d/%02d'|format(activity.endDay, activity.endMonth),
-                        }, 'activity_content') }}
+                        {% set deadline_summary = this.getDeadlineSummary(activity) %}
+                        {% if deadline_summary.coversAll %}
+                            {{ 'activity.deadline_per_element'|trans({
+                                '%start%': deadline_summary.firstStart|date('d/m'),
+                                '%end%': deadline_summary.lastEnd|date('d/m'),
+                            }, 'activity_content') }}
+                        {% else %}
+                            {{ 'activity.deadline'|trans({
+                                '%start%': '%02d/%02d'|format(activity.startDay, activity.startMonth),
+                                '%end%': '%02d/%02d'|format(activity.endDay, activity.endMonth),
+                            }, 'activity_content') }}
+                            {%- if deadline_summary.hasOwnDeadlines %} · {{ 'activity.own_deadlines'|trans({'%count%': deadline_summary.ownCount}, 'activity_content') }}{% endif %}
+                        {% endif %}
                     </p>
                     {% set activity_window = this.getActivityWindow(activity) %}
                     {% if activity_window.notStarted %}

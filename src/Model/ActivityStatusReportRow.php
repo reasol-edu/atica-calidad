@@ -22,6 +22,10 @@ final readonly class ActivityStatusReportRow
         public int $done,
         public int $inReview,
         public int $rejected,
+        /** Expected submissions (or teachers, for a manual one) still pending past their own deadline. */
+        public int $overdue = 0,
+        /** How many list elements have a deadline of their own (they can differ from $deadline). */
+        public int $elementsWithOwnDeadline = 0,
     ) {}
 
     public function donePercentage(): int

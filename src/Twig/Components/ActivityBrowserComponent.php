@@ -20,6 +20,7 @@ use App\Entity\SpecificProfile;
 use App\Entity\Tag;
 use App\Entity\Teacher;
 use App\Model\ActivitySubmissionProgress;
+use App\Model\ActivityDeadlineSummary;
 use App\Model\ActivitySubmissionSlot;
 use App\Model\ActivityWindow;
 use App\Model\ProfileAssignmentRow;
@@ -37,6 +38,7 @@ use App\Security\Voter\EducationalCentreVoter;
 use App\Security\Voter\FolderVoter;
 use App\Service\ActivityCompletionChecker;
 use App\Service\ActivityDeadlineChecker;
+use App\Service\ActivityDeadlineSummaryBuilder;
 use App\Service\ActivityLogger;
 use App\Service\ActivityObligationFinder;
 use App\Service\ActivitySubmissionProgressCalculator;
@@ -268,6 +270,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly DocumentTreeAccessChecker $access,
         private readonly ActivityCompletionChecker $completion,
         private readonly ActivityDeadlineChecker $deadline,
+        private readonly ActivityDeadlineSummaryBuilder $deadlineSummaries,
         private readonly ActivityWindowChecker $windowChecker,
         private readonly ActivityLogger $activityLogger,
         private readonly DocumentFileGarbageCollector $garbageCollector,
@@ -535,6 +538,11 @@ class ActivityBrowserComponent extends AbstractController
         }
 
         return implode(' › ', $trail);
+    }
+
+    public function getDeadlineSummary(Activity $activity): ActivityDeadlineSummary
+    {
+        return $this->deadlineSummaries->for($activity);
     }
 
     /** @return ListItem[] */
@@ -905,19 +913,31 @@ class ActivityBrowserComponent extends AbstractController
             return;
         }
 
-        $startDay   = (int) $this->formStartDay;
-        $startMonth = (int) $this->formStartMonth;
-        $endDay     = (int) $this->formEndDay;
-        $endMonth   = (int) $this->formEndMonth;
-        if ($startDay < 1 || $startDay > 31 || $startMonth < 1 || $startMonth > 12 || $endDay < 1 || $endDay > 31 || $endMonth < 1 || $endMonth > 12) {
+        $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
+        $leaves   = $listItem === null ? [] : $this->listItems->findLeafDescendants($listItem);
+        $overridesByLeafId = $this->readDeadlineOverrides($leaves);
+        if ($overridesByLeafId === false) {
             $this->errors = ['dates' => $this->t('activity.error.invalid_date')];
 
             return;
         }
 
-        $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
-        $overridesByLeafId = $listItem === null ? [] : $this->readDeadlineOverrides($this->listItems->findLeafDescendants($listItem));
-        if ($overridesByLeafId === false) {
+        $startDay   = (int) $this->formStartDay;
+        $startMonth = (int) $this->formStartMonth;
+        $endDay     = (int) $this->formEndDay;
+        $endMonth   = (int) $this->formEndMonth;
+        $generalBlank = $this->formStartDay === '' && $this->formStartMonth === '' && $this->formEndDay === '' && $this->formEndMonth === '';
+        if ($generalBlank) {
+            // No general deadline is needed when every element of the list has its own: the
+            // activity's own dates then just span theirs (they're what calendars etc. fall back on).
+            if ($leaves === [] || count($overridesByLeafId) !== count($leaves)) {
+                $this->errors = ['dates' => $this->t('activity.error.dates_required_unless_all_elements')];
+
+                return;
+            }
+            $envelope = $this->deadline->envelopeOf($this->centre, array_values($overridesByLeafId));
+            ['startDay' => $startDay, 'startMonth' => $startMonth, 'endDay' => $endDay, 'endMonth' => $endMonth] = $envelope;
+        } elseif ($startDay < 1 || $startDay > 31 || $startMonth < 1 || $startMonth > 12 || $endDay < 1 || $endDay > 31 || $endMonth < 1 || $endMonth > 12) {
             $this->errors = ['dates' => $this->t('activity.error.invalid_date')];
 
             return;

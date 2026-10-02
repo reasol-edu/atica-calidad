@@ -416,6 +416,20 @@ final class ActivityDeadlineCheckerTest extends TestCase
         self::assertTrue($this->checker()->isSingleDate($activity, $leaf));
     }
 
+    public function testEnvelopeSpansTheEarliestStartAndLatestEndInAcademicYearOrder(): void
+    {
+        $centre = $this->activity(1, 1, 1, 1)->getCategory()->getEducationalCentre();
+
+        // With the default Sep 15 start, Oct comes before Jan — not after it, as plain month order would say.
+        $envelope = $this->checker()->envelopeOf($centre, [
+            ['startDay' => 10, 'startMonth' => 1, 'endDay' => 28, 'endMonth' => 2],
+            ['startDay' => 1, 'startMonth' => 10, 'endDay' => 31, 'endMonth' => 10],
+            ['startDay' => 1, 'startMonth' => 3, 'endDay' => 15, 'endMonth' => 6],
+        ]);
+
+        self::assertSame(['startDay' => 1, 'startMonth' => 10, 'endDay' => 15, 'endMonth' => 6], $envelope);
+    }
+
     public function testRemovingAnOverrideFallsBackToTheActivitysOwnDates(): void
     {
         self::mockTime('2026-10-10 10:00:00');

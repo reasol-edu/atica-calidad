@@ -20,6 +20,7 @@
                 <th>{{ 'activity_status.col.done'|trans({}, 'reports') }}</th>
                 <th>{{ 'activity_status.col.in_review'|trans({}, 'reports') }}</th>
                 <th>{{ 'activity_status.col.rejected'|trans({}, 'reports') }}</th>
+                <th>{{ 'activity_status.col.overdue'|trans({}, 'reports') }}</th>
                 <th>{{ 'activity_status.col.percent'|trans({}, 'reports') }}</th>
             </tr>
         </thead>
@@ -30,13 +31,14 @@
                     <td>{{ row.categoryPath }}</td>
                     <td>{{ row.title }}</td>
                     <td>{{ row.startsAt|date('d/m/Y') }}</td>
-                    <td>{{ row.deadline|date('d/m/Y') }}</td>
+                    <td>{{ row.deadline|date('d/m/Y') }}{% if row.elementsWithOwnDeadline > 0 %}*{% endif %}</td>
                     <td>{{ (row.withSubmissions ? 'activity_status.kind.submissions' : 'activity_status.kind.manual')|trans({}, 'reports') }}</td>
                     <td>{{ row.expected }}</td>
                     <td>{{ row.delivered }}</td>
                     <td>{{ row.done }}</td>
                     <td>{{ row.withSubmissions ? row.inReview : '—' }}</td>
                     <td>{{ row.withSubmissions ? row.rejected : '—' }}</td>
+                    <td>{{ row.overdue }}</td>
                     <td><span class="badge {{ percent >= 100 ? 'badge-green' : (percent >= 50 ? 'badge-amber' : 'badge-red') }}">{{ percent }} %</span></td>
                 </tr>
             {% endfor %}

@@ -9,6 +9,7 @@ use App\Entity\Document;
 use App\Model\ActivitySubmissionProgress;
 use App\Model\ActivitySubmissionSlot;
 use App\Repository\DocumentRepository;
+use Symfony\Component\Clock\ClockInterface;
 
 /**
  * An activity's overall submission progress (see ActivitySubmissionProgress) for its current
@@ -24,6 +25,8 @@ final class ActivitySubmissionProgressCalculator
         private readonly ActivityCompletionChecker $completion,
         private readonly ActivityDeadlineChecker $deadline,
         private readonly DocumentRepository $documents,
+        private readonly ActivitySubmissionSlotBuilder $slotBuilder,
+        private readonly ClockInterface $clock,
     ) {}
 
     /** Null for an activity without a folder: there's nothing to submit. */
@@ -34,16 +37,32 @@ final class ActivitySubmissionProgressCalculator
             return null;
         }
 
-        /** @var array<string, list<Document>> $byKey */
-        $byKey = [];
-        foreach ($this->documents->findSubmissionsWithRevisions($folder, $this->deadline->currentCycleKey($activity)) as $document) {
-            $byKey[$this->key($document->getUploadProfile()?->getId()->toRfc4122(), $document->getUploadListItem()?->getId()->toRfc4122(), $document->getName())][] = $document;
+        $slots = $this->completion->getAllSlots($activity);
+
+        // One query per distinct cycle: a list element with its own deadline override can belong to
+        // a different academic-year occurrence than the activity's own (see ActivityDeadlineChecker).
+        /** @var array<int, array<string, list<Document>>> $byCycle */
+        $byCycle = [];
+        foreach ($slots as $slot) {
+            $cycle = $this->slotBuilder->cycleKeyFor($activity, $slot);
+            if (isset($byCycle[$cycle])) {
+                continue;
+            }
+            $byCycle[$cycle] = [];
+            foreach ($this->documents->findSubmissionsWithRevisions($folder, $cycle) as $document) {
+                $byCycle[$cycle][$this->key($document->getUploadProfile()?->getId()->toRfc4122(), $document->getUploadListItem()?->getId()->toRfc4122(), $document->getName())][] = $document;
+            }
         }
 
-        $total = $delivered = $accepted = $inReview = $rejected = 0;
-        foreach ($this->completion->getAllSlots($activity) as $slot) {
+        $now   = $this->clock->now();
+        $total = $delivered = $accepted = $inReview = $rejected = $overdue = 0;
+        foreach ($slots as $slot) {
             ++$total;
-            $document = $this->match($slot, $byKey);
+            $document = $this->match($slot, $byCycle[$this->slotBuilder->cycleKeyFor($activity, $slot)] ?? []);
+            $pending  = $document === null || (!$document->isPendingApproval() && $document->getActiveRevision() === null);
+            if ($pending && $now > $this->deadline->currentCycleEndDate($activity, $slot->nameListItem)) {
+                ++$overdue;
+            }
             if ($document === null) {
                 continue;
             }
@@ -55,7 +74,7 @@ final class ActivitySubmissionProgressCalculator
             };
         }
 
-        return new ActivitySubmissionProgress($total, $delivered, $accepted, $inReview, $rejected);
+        return new ActivitySubmissionProgress($total, $delivered, $accepted, $inReview, $rejected, $overdue);
     }
 
     /** @param array<string, list<Document>> $byKey */
