@@ -7,6 +7,35 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-10-02
+
+### Added
+
+- Una **actividad** con elemento de lista asociado puede tener ahora un plazo propio para alguno
+  de sus elementos, distinto del plazo general — por ejemplo, si un departamento necesita más
+  tiempo que el resto para entregar. Se configura en «Plazos por elemento», dentro del formulario
+  de la actividad; a partir de ahí, el plazo, el estado y el marcado de completada de cada
+  elemento son independientes entre sí, aunque compartan el mismo perfil de subida.
+- La pestaña **«Ver»** de Actividades tiene ahora un índice de categorías en una barra lateral,
+  igual que el árbol documental: lista todas las categorías y subcategorías del centro para saltar
+  directamente a cualquiera de ellas.
+
+### Changed
+
+- La pestaña **«Ver»** de Actividades muestra ahora todas las categorías y actividades por
+  defecto; el botón «Solo mis perfiles» es el que restringe la vista a lo propio (antes era al
+  revés).
+- Se renombra «Solo lo que me toca» a «Lo que tengo que hacer ahora», en «Mis actividades».
+
+### Fixed
+
+- En una actividad manual, quien tenga uno de sus perfiles responsables ya puede marcar o
+  desmarcar la completada de otro docente, igual que ya podía ver sus estadísticas (antes solo
+  podían responsable de calidad y admin.).
+- El resaltado de un documento o entrega al abrirlo desde el buscador (⌘K o «Buscar en todo el
+  árbol») es ahora más visible (45% de opacidad y una barra de acento) y permanece mientras ese
+  siga siendo el documento abierto, en vez de desvanecerse a los pocos segundos.
+
 ## [1.9.1] - 2026-10-02
 
 ### Added
