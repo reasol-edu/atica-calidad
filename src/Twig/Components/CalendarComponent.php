@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Twig\Components;
 
 use App\Entity\AcademicYear;
-use App\Entity\Activity;
 use App\Entity\EducationalCentre;
 use App\Entity\SchoolEvent;
 use App\Entity\Teacher;
@@ -181,15 +180,17 @@ class CalendarComponent extends AbstractCalendarComponent
 
         $items = [];
         foreach ($this->activityRepository->findAllByCentre($centre) as $activity) {
-            $end   = $this->activityDeadline->cycleEndDateNear($activity, $reference);
-            // A real start–end range fills every day between the two; an activity whose start and
-            // end day/month are the same pair keeps its single-date marker (on that one date).
-            $start = $this->isSingleDate($activity)
-                ? $end
-                : $this->activityDeadline->cycleStartDateNear($activity, $reference);
-
             foreach ($this->activityCompletion->getMyOwnedObligations($user, $activity) as $owner) {
-                $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $end);
+                $leaf = $owner['leaf'];
+                $end  = $this->activityDeadline->cycleEndDateNear($activity, $reference, $leaf);
+                // A real start–end range fills every day between the two; an obligation whose
+                // start and end day/month are the same pair keeps its single-date marker (on that
+                // one date) — a leaf with its own override resolves this independently.
+                $start = $this->activityDeadline->isSingleDate($activity, $leaf)
+                    ? $end
+                    : $this->activityDeadline->cycleStartDateNear($activity, $reference, $leaf);
+
+                $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $leaf, $end);
                 $items[]   = new ActivityDeadlineOccurrence($activity, $start, $end, $owner['label'], $owner['key'], $completed);
             }
         }
@@ -212,11 +213,5 @@ class CalendarComponent extends AbstractCalendarComponent
         $first = (new \DateTimeImmutable())->setDate($this->year, $this->month, 1)->setTime(0, 0);
 
         return $this->qualityTasks->dueBetween($user, $centre, $first->modify('-7 days'), $first->modify('last day of this month')->modify('+7 days'));
-    }
-
-    private function isSingleDate(Activity $activity): bool
-    {
-        return $activity->getStartDay() === $activity->getEndDay()
-            && $activity->getStartMonth() === $activity->getEndMonth();
     }
 }

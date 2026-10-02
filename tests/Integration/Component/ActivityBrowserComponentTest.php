@@ -501,6 +501,91 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertCount(1, $created[0]->getProfileRestrictions());
     }
 
+    public function testSaveActivityPersistsAListItemDeadlineOverrideForOneLeafOnly(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $root     = (new \App\Entity\ListItem())->setName('Materias')->setEducationalCentre($centre);
+        $fisica   = (new \App\Entity\ListItem())->setName('Física')->setEducationalCentre($centre)->setParent($root);
+        $quimica  = (new \App\Entity\ListItem())->setName('Química')->setEducationalCentre($centre)->setParent($root);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $root, $fisica, $quimica, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $fisicaId = $fisica->getId()->toRfc4122();
+        $component
+            ->set('formTitle', 'Actividad con elementos')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formFolderId', '')
+            ->set('formListItemId', $root->getId()->toRfc4122())
+            ->set('formOverrideStartDay', [$fisicaId => '1'])
+            ->set('formOverrideStartMonth', [$fisicaId => '11'])
+            ->set('formOverrideEndDay', [$fisicaId => '30'])
+            ->set('formOverrideEndMonth', [$fisicaId => '11'])
+            ->call('saveActivity');
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedCategory = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        $created = $activities->findByCategory($reloadedCategory);
+        self::assertCount(1, $created);
+        $activity = $created[0];
+        self::assertCount(1, $activity->getListItemDeadlines(), 'only Física has an override — Química was left blank');
+
+        $override = $activity->getListItemDeadlines()->first();
+        self::assertNotFalse($override);
+        self::assertSame('Física', $override->getListItem()->getName());
+        self::assertSame([1, 11, 30, 11], [$override->getStartDay(), $override->getStartMonth(), $override->getEndDay(), $override->getEndMonth()]);
+
+        // Reopening the form reloads the override into the per-leaf props.
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()]);
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertSame('1', $instance->formOverrideStartDay[$fisicaId] ?? null);
+        self::assertSame('11', $instance->formOverrideStartMonth[$fisicaId] ?? null);
+        // A blank, present key (not an absent one) is what lets the browser's array-prop
+        // bracket binding (data-model="...[leafId]") target this leaf at all — see
+        // ActivityBrowserComponent::seedOverrideArraysForCurrentListItem().
+        $quimicaId = $quimica->getId()->toRfc4122();
+        self::assertArrayHasKey($quimicaId, $instance->formOverrideStartDay, 'Química must be addressable even with no override yet');
+        self::assertSame('', $instance->formOverrideStartDay[$quimicaId]);
+    }
+
+    /**
+     * The seeding the browser's array-prop bracket binding depends on (see the test above) must
+     * also happen when the list item is picked interactively on an open form, not only when
+     * reopening an activity that already has one — otherwise adding a brand new override on a
+     * freshly added activity would be unreachable from the browser.
+     */
+    public function testPickingAListItemSeedsBlankOverrideEntriesForEveryLeaf(): void
+    {
+        $centre  = $this->centre();
+        $root    = (new \App\Entity\ListItem())->setName('Materias')->setEducationalCentre($centre);
+        $fisica  = (new \App\Entity\ListItem())->setName('Física')->setEducationalCentre($centre)->setParent($root);
+        $admin   = $this->admin();
+        $this->persist($centre, $this->category($centre), $root, $fisica, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('startAddActivity');
+
+        $component->set('formListItemId', $root->getId()->toRfc4122());
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        $fisicaId = $fisica->getId()->toRfc4122();
+        self::assertArrayHasKey($fisicaId, $instance->formOverrideStartDay);
+        self::assertSame('', $instance->formOverrideStartDay[$fisicaId]);
+    }
+
     public function testActivityCrudActionsAreDeniedWithoutResponsibilitiesPermission(): void
     {
         $centre   = $this->centre();
@@ -1137,7 +1222,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $teachers = self::getContainer()->get(\App\Repository\TeacherRepository::class);
         $reloadedTeacher = $teachers->findById($teacher->getId()->toRfc4122());
         self::assertNotNull($reloadedTeacher);
-        self::assertNotNull($completions->findOneForOwner($reloadedActivity, $reloadedTeacher, null, null, $this->cycleKey($reloadedActivity)));
+        self::assertNotNull($completions->findOneForOwner($reloadedActivity, $reloadedTeacher, null, null, null, $this->cycleKey($reloadedActivity)));
     }
 
     public function testMarkCompletedIsANoOpForAnAutoCompleteActivity(): void
@@ -1165,7 +1250,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $teachers = self::getContainer()->get(\App\Repository\TeacherRepository::class);
         $reloadedTeacher = $teachers->findById($teacher->getId()->toRfc4122());
         self::assertNotNull($reloadedTeacher);
-        self::assertNull($completions->findOneForOwner($reloadedActivity, $reloadedTeacher, null, null, $this->cycleKey($reloadedActivity)));
+        self::assertNull($completions->findOneForOwner($reloadedActivity, $reloadedTeacher, null, null, null, $this->cycleKey($reloadedActivity)));
     }
 
     public function testMarkCompletedDoesNotDuplicateAnExistingCompletion(): void
@@ -1207,7 +1292,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
 
         /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
         $instance = $component->component();
-        self::assertSame($activityId . '::', $instance->confirmingCompleteKey);
+        self::assertSame($activityId . ':::', $instance->confirmingCompleteKey);
 
         $this->em->clear();
         /** @var \App\Repository\ActivityCompletionRepository $completions */

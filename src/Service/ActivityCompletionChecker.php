@@ -128,43 +128,52 @@ final class ActivityCompletionChecker
         return false;
     }
 
-    /** @return list<array{profile: SpecificProfile, listItem: ?ListItem}> distinct upload rows $teacher holds among this activity's slots (ByProfile scope only). */
+    /**
+     * Distinct upload rows $teacher holds among this activity's slots (ByProfile scope only) — one
+     * per (profile, listItem, leaf): a list-backed activity names each leaf separately even when
+     * several share the very same upload row, so each is tracked (and can be marked done) on its
+     * own, with its own deadline — see ActivityObligationFinder.
+     *
+     * @return list<array{profile: SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, displayName: string}>
+     */
     public function getMyCompletionOwners(Teacher $teacher, Activity $activity): array
     {
         if ($this->hasIndividualCompletionOwner($activity)) {
             return [];
         }
 
-        $seen   = [];
-        $owners = [];
-        foreach ($this->getMySlots($teacher, $activity) as $slot) {
-            $key = ProfileAssignmentRow::keyFor($slot->profile, $slot->listItem);
-            if (isset($seen[$key])) {
-                continue;
-            }
-            $seen[$key] = true;
-            $owners[]   = ['profile' => $slot->profile, 'listItem' => $slot->listItem];
-        }
-
-        return $owners;
+        return $this->groupSlotsByOwner($this->getMySlots($teacher, $activity));
     }
 
-    /** @return list<array{profile: SpecificProfile, listItem: ?ListItem}> distinct upload rows $teacher personally holds among this activity's slots (ByProfile scope only), ignoring any folder-management rights — see getMyOwnedSlots(). */
+    /**
+     * @return list<array{profile: SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, displayName: string}>
+     *         distinct upload rows $teacher personally holds among this activity's slots (ByProfile
+     *         scope only), ignoring any folder-management rights — see getMyOwnedSlots().
+     */
     public function getMyOwnedCompletionOwners(Teacher $teacher, Activity $activity): array
     {
         if ($this->hasIndividualCompletionOwner($activity)) {
             return [];
         }
 
+        return $this->groupSlotsByOwner($this->getMyOwnedSlots($teacher, $activity));
+    }
+
+    /**
+     * @param  ActivitySubmissionSlot[] $slots
+     * @return list<array{profile: SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, displayName: string}>
+     */
+    private function groupSlotsByOwner(array $slots): array
+    {
         $seen   = [];
         $owners = [];
-        foreach ($this->getMyOwnedSlots($teacher, $activity) as $slot) {
-            $key = ProfileAssignmentRow::keyFor($slot->profile, $slot->listItem);
+        foreach ($slots as $slot) {
+            $key = ProfileAssignmentRow::keyFor($slot->profile, $slot->listItem) . ':' . ($slot->nameListItem?->getId()->toRfc4122() ?? '');
             if (isset($seen[$key])) {
                 continue;
             }
             $seen[$key] = true;
-            $owners[]   = ['profile' => $slot->profile, 'listItem' => $slot->listItem];
+            $owners[]   = ['profile' => $slot->profile, 'listItem' => $slot->listItem, 'leaf' => $slot->nameListItem, 'displayName' => $slot->displayName];
         }
 
         return $owners;
@@ -174,10 +183,12 @@ final class ActivityCompletionChecker
      * Every obligation $teacher personally owns for $activity, by upload profile — a no-folder
      * activity applies to every teacher individually; a folder-backed one only if $teacher
      * actually holds an upload slot (ignoring folder-management rights, see getMyOwnedSlots());
-     * ByProfile scope can yield more than one owner row (e.g. head of two departments). Shared by
-     * the dashboard activity summary and the calendar.
+     * ByProfile scope can yield more than one owner row (e.g. head of two departments), and a
+     * list-backed activity yields one per leaf even when several share the same upload row — each
+     * is an independent obligation, with its own deadline and status (see ActivityObligationFinder).
+     * Shared by the dashboard activity summary and the calendar.
      *
-     * @return list<array{profile: ?SpecificProfile, listItem: ?ListItem, teacher: ?Teacher, label: ?string, key: string}>
+     * @return list<array{profile: ?SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, teacher: ?Teacher, label: ?string, key: string}>
      */
     public function getMyOwnedObligations(Teacher $teacher, Activity $activity): array
     {
@@ -186,7 +197,7 @@ final class ActivityCompletionChecker
                 return [];
             }
 
-            return [['profile' => null, 'listItem' => null, 'teacher' => $teacher, 'label' => null, 'key' => '']];
+            return [['profile' => null, 'listItem' => null, 'leaf' => null, 'teacher' => $teacher, 'label' => null, 'key' => '']];
         }
 
         if ($this->hasIndividualCompletionOwner($activity)) {
@@ -194,16 +205,18 @@ final class ActivityCompletionChecker
                 return [];
             }
 
-            return [['profile' => null, 'listItem' => null, 'teacher' => $teacher, 'label' => null, 'key' => '']];
+            return [['profile' => null, 'listItem' => null, 'leaf' => null, 'teacher' => $teacher, 'label' => null, 'key' => '']];
         }
 
         return array_map(
             static fn (array $owner): array => [
                 'profile'  => $owner['profile'],
                 'listItem' => $owner['listItem'],
+                'leaf'     => $owner['leaf'],
                 'teacher'  => null,
-                'label'    => $owner['profile']->getName() . ($owner['listItem'] !== null ? ' ' . $owner['listItem']->getName() : ''),
-                'key'      => ProfileAssignmentRow::keyFor($owner['profile'], $owner['listItem']),
+                'label'    => $owner['profile']->getName() . ($owner['listItem'] !== null ? ' ' . $owner['listItem']->getName() : '')
+                              . ($owner['leaf'] !== null ? ' · ' . $owner['displayName'] : ''),
+                'key'      => ProfileAssignmentRow::keyFor($owner['profile'], $owner['listItem']) . ':' . ($owner['leaf']?->getId()->toRfc4122() ?? ''),
             ],
             $this->getMyOwnedCompletionOwners($teacher, $activity),
         );
@@ -212,16 +225,17 @@ final class ActivityCompletionChecker
     /**
      * Whether the owner has completed the occurrence of $activity that $reference belongs to
      * ("now" if null — the calendar passes the day it's showing, which may be in another
-     * academic year).
+     * academic year). $leaf narrows a ByProfile owner down to one specific leaf of a list-backed
+     * activity, when its upload row covers more than one — each is tracked independently.
      */
-    public function isCompletedFor(Activity $activity, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher, ?\DateTimeImmutable $reference = null): bool
+    public function isCompletedFor(Activity $activity, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher, ?ListItem $leaf = null, ?\DateTimeImmutable $reference = null): bool
     {
         if ($activity->isAutoComplete()) {
             foreach ($this->getAllSlots($activity) as $slot) {
                 $owns = $teacher !== null
                     ? $slot->teacher === $teacher
                     : ($slot->profile === $profile && $slot->listItem === $listItem && $slot->teacher === null);
-                if (!$owns) {
+                if (!$owns || ($leaf !== null && $slot->nameListItem !== $leaf)) {
                     continue;
                 }
                 if ($this->resolveSlot($activity, $slot, $reference)?->getActiveRevision() === null) {
@@ -232,30 +246,30 @@ final class ActivityCompletionChecker
             return true;
         }
 
-        return $this->completions->findOneForOwner($activity, $teacher, $profile, $listItem, $this->cycleKey($activity, $reference)) !== null;
+        return $this->completions->findOneForOwner($activity, $teacher, $profile, $listItem, $leaf, $this->cycleKey($activity, $leaf, $reference)) !== null;
     }
 
-    private function cycleKey(Activity $activity, ?\DateTimeImmutable $reference = null): int
+    private function cycleKey(Activity $activity, ?ListItem $leaf = null, ?\DateTimeImmutable $reference = null): int
     {
-        return $reference === null ? $this->deadline->currentCycleKey($activity) : $this->deadline->cycleKeyNear($activity, $reference);
+        return $reference === null ? $this->deadline->currentCycleKey($activity, $leaf) : $this->deadline->cycleKeyNear($activity, $reference, $leaf);
     }
 
     /**
      * Creates an ActivityCompletion for the given owner unless the activity is auto-complete or
      * one already exists. Does not flush — the caller decides when. Returns whether it created one.
      */
-    public function markCompleted(Activity $activity, ?Teacher $targetTeacher, ?SpecificProfile $profile, ?ListItem $listItem, Teacher $completedBy): bool
+    public function markCompleted(Activity $activity, ?Teacher $targetTeacher, ?SpecificProfile $profile, ?ListItem $listItem, Teacher $completedBy, ?ListItem $leaf = null): bool
     {
         if ($activity->isAutoComplete()) {
             return false;
         }
 
-        $cycleYear = $this->cycleKey($activity);
-        if ($this->completions->findOneForOwner($activity, $targetTeacher, $profile, $listItem, $cycleYear) !== null) {
+        $cycleYear = $this->cycleKey($activity, $leaf);
+        if ($this->completions->findOneForOwner($activity, $targetTeacher, $profile, $listItem, $leaf, $cycleYear) !== null) {
             return false;
         }
 
-        $this->em->persist(new ActivityCompletion($activity, $targetTeacher, $profile, $listItem, $completedBy, $cycleYear));
+        $this->em->persist(new ActivityCompletion($activity, $targetTeacher, $profile, $listItem, $completedBy, $cycleYear, $leaf));
 
         return true;
     }
@@ -265,13 +279,13 @@ final class ActivityCompletionChecker
      * nothing persisted to remove — their status is always computed, never stored. Does not
      * flush — the caller decides when. Returns whether it removed one.
      */
-    public function unmarkCompleted(Activity $activity, ?Teacher $targetTeacher, ?SpecificProfile $profile, ?ListItem $listItem): bool
+    public function unmarkCompleted(Activity $activity, ?Teacher $targetTeacher, ?SpecificProfile $profile, ?ListItem $listItem, ?ListItem $leaf = null): bool
     {
         if ($activity->isAutoComplete()) {
             return false;
         }
 
-        $completion = $this->completions->findOneForOwner($activity, $targetTeacher, $profile, $listItem, $this->cycleKey($activity));
+        $completion = $this->completions->findOneForOwner($activity, $targetTeacher, $profile, $listItem, $leaf, $this->cycleKey($activity, $leaf));
         if ($completion === null) {
             return false;
         }

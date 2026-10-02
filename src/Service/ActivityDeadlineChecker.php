@@ -6,6 +6,7 @@ namespace App\Service;
 
 use App\Entity\Activity;
 use App\Entity\EducationalCentre;
+use App\Entity\ListItem;
 use App\Model\DayMonth;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Contracts\Service\ResetInterface;
@@ -49,10 +50,14 @@ final class ActivityDeadlineChecker implements ResetInterface
         $this->academicYearStarts = [];
     }
 
-    /** The real calendar date the activity's deadline falls on for the cycle "now" belongs to. */
-    public function currentCycleEndDate(Activity $activity): \DateTimeImmutable
+    /**
+     * The real calendar date the activity's deadline falls on for the cycle "now" belongs to.
+     * $leaf, when given, is the specific list-item leaf whose own override (if it has one — see
+     * Activity::getDeadlineOverride()) takes precedence over the activity's own day/month pair.
+     */
+    public function currentCycleEndDate(Activity $activity, ?ListItem $leaf = null): \DateTimeImmutable
     {
-        return $this->cycleEndDateNear($activity, $this->clock->now());
+        return $this->cycleEndDateNear($activity, $this->clock->now(), $leaf);
     }
 
     /**
@@ -60,41 +65,41 @@ final class ActivityDeadlineChecker implements ResetInterface
      * to — same anchoring as currentCycleEndDate(), just anchored to an arbitrary date instead of
      * "now". Used by the calendar, which can be browsed to any month.
      */
-    public function cycleEndDateNear(Activity $activity, \DateTimeImmutable $reference): \DateTimeImmutable
+    public function cycleEndDateNear(Activity $activity, \DateTimeImmutable $reference, ?ListItem $leaf = null): \DateTimeImmutable
     {
-        return $this->cycleNear($activity, $reference)[1];
+        return $this->cycleNear($activity, $reference, $leaf)[1];
     }
 
-    public function isOverdue(Activity $activity): bool
+    public function isOverdue(Activity $activity, ?ListItem $leaf = null): bool
     {
-        return $this->clock->now() > $this->currentCycleEndDate($activity);
+        return $this->clock->now() > $this->currentCycleEndDate($activity, $leaf);
     }
 
     /** The real calendar date the activity's period opens on for the cycle "now" belongs to. */
-    public function currentCycleStartDate(Activity $activity): \DateTimeImmutable
+    public function currentCycleStartDate(Activity $activity, ?ListItem $leaf = null): \DateTimeImmutable
     {
-        return $this->cycleStartDateNear($activity, $this->clock->now());
+        return $this->cycleStartDateNear($activity, $this->clock->now(), $leaf);
     }
 
     /**
      * The real calendar date the activity's period opens on for the cycle $reference belongs to —
      * same anchoring as cycleEndDateNear(), mirrored for the start side.
      */
-    public function cycleStartDateNear(Activity $activity, \DateTimeImmutable $reference): \DateTimeImmutable
+    public function cycleStartDateNear(Activity $activity, \DateTimeImmutable $reference, ?ListItem $leaf = null): \DateTimeImmutable
     {
-        return $this->cycleNear($activity, $reference)[0];
+        return $this->cycleNear($activity, $reference, $leaf)[0];
     }
 
     /** Whether the activity's current cycle has already opened — false while still waiting for its yearly start date. */
-    public function hasStarted(Activity $activity): bool
+    public function hasStarted(Activity $activity, ?ListItem $leaf = null): bool
     {
-        return $this->clock->now() >= $this->currentCycleStartDate($activity);
+        return $this->clock->now() >= $this->currentCycleStartDate($activity, $leaf);
     }
 
     /** Whole days remaining until the current cycle's deadline. Meaningful only when not overdue — see isOverdue(). */
-    public function daysUntilDeadline(Activity $activity): int
+    public function daysUntilDeadline(Activity $activity, ?ListItem $leaf = null): int
     {
-        return (int) $this->clock->now()->diff($this->currentCycleEndDate($activity))->days;
+        return (int) $this->clock->now()->diff($this->currentCycleEndDate($activity, $leaf))->days;
     }
 
     /** The academic year a cycle key stands for, as shown to users: 2026 → "2026-2027". */
@@ -104,28 +109,64 @@ final class ActivityDeadlineChecker implements ResetInterface
     }
 
     /** Cycle key (first calendar year of its academic year, e.g. 2026 for 2026-2027) of the occurrence "now" belongs to. */
-    public function currentCycleKey(Activity $activity): int
+    public function currentCycleKey(Activity $activity, ?ListItem $leaf = null): int
     {
-        return $this->cycleKeyNear($activity, $this->clock->now());
+        return $this->cycleKeyNear($activity, $this->clock->now(), $leaf);
     }
 
     /** Cycle key of the occurrence $reference belongs to — see currentCycleKey(). */
-    public function cycleKeyNear(Activity $activity, \DateTimeImmutable $reference): int
+    public function cycleKeyNear(Activity $activity, \DateTimeImmutable $reference, ?ListItem $leaf = null): int
     {
-        return $this->cycleNear($activity, $reference)[2];
+        return $this->cycleNear($activity, $reference, $leaf)[2];
+    }
+
+    /** Whether $activity's (or $leaf's own override) start and end day/month are the same pair — a single-date deadline rather than a real range. */
+    public function isSingleDate(Activity $activity, ?ListItem $leaf = null): bool
+    {
+        $range = $this->effectiveRange($activity, $leaf);
+
+        return $range['startDay'] === $range['endDay'] && $range['startMonth'] === $range['endMonth'];
     }
 
     /** @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable, 2: int} the [start, end, cycle key] of the cycle $reference belongs to. */
-    private function cycleNear(Activity $activity, \DateTimeImmutable $reference): array
+    private function cycleNear(Activity $activity, \DateTimeImmutable $reference, ?ListItem $leaf = null): array
     {
+        $range = $this->effectiveRange($activity, $leaf);
+
         return self::cycleOf(
-            $activity->getStartMonth(),
-            $activity->getStartDay(),
-            $activity->getEndMonth(),
-            $activity->getEndDay(),
+            $range['startMonth'],
+            $range['startDay'],
+            $range['endMonth'],
+            $range['endDay'],
             $this->academicYearStart($activity->getCategory()->getEducationalCentre()),
             $reference,
         );
+    }
+
+    /**
+     * $leaf's own override day/month pair when it has one, otherwise $activity's own — the single
+     * point every cycle computation resolves its range through.
+     *
+     * @return array{startDay: int, startMonth: int, endDay: int, endMonth: int}
+     */
+    private function effectiveRange(Activity $activity, ?ListItem $leaf): array
+    {
+        $override = $leaf !== null ? $activity->getDeadlineOverride($leaf) : null;
+        if ($override !== null) {
+            return [
+                'startDay'   => $override->getStartDay(),
+                'startMonth' => $override->getStartMonth(),
+                'endDay'     => $override->getEndDay(),
+                'endMonth'   => $override->getEndMonth(),
+            ];
+        }
+
+        return [
+            'startDay'   => $activity->getStartDay(),
+            'startMonth' => $activity->getStartMonth(),
+            'endDay'     => $activity->getEndDay(),
+            'endMonth'   => $activity->getEndMonth(),
+        ];
     }
 
     /**

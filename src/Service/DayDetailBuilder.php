@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\AcademicYear;
-use App\Entity\Activity;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Model\ActivityDeadlineOccurrence;
@@ -51,42 +50,41 @@ class DayDetailBuilder
         );
     }
 
-    /** @return list<ActivityDeadlineOccurrence> */
+    /**
+     * @return list<ActivityDeadlineOccurrence>
+     */
     private function activityDeadlinesForDate(Teacher $viewer, EducationalCentre $centre, \DateTimeImmutable $date): array
     {
         $day = $date->format('Y-m-d');
 
         $items = [];
         foreach ($this->activities->findAllByCentre($centre) as $activity) {
-            $end = $this->activityDeadline->cycleEndDateNear($activity, $date);
-
-            // Single-date activities (same start and end day/month) still only surface on their
-            // deadline day; an activity with a real range surfaces on every day it covers.
-            if ($this->isSingleDate($activity)) {
-                if ($end->format('Y-m-d') !== $day) {
-                    continue;
-                }
-                $start = $end;
-            } else {
-                $start = $this->activityDeadline->cycleStartDateNear($activity, $date);
-                if ($day < $start->format('Y-m-d') || $day > $end->format('Y-m-d')) {
-                    continue;
-                }
-            }
-
             foreach ($this->activityCompletion->getMyOwnedObligations($viewer, $activity) as $owner) {
-                $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $end);
+                $leaf = $owner['leaf'];
+                $end  = $this->activityDeadline->cycleEndDateNear($activity, $date, $leaf);
+
+                // Single-date obligations (same start and end day/month) still only surface on
+                // their deadline day; one with a real range surfaces on every day it covers. A
+                // leaf with its own override (Activity::getDeadlineOverride()) resolves this
+                // independently of the activity's own default and of its sibling leaves.
+                if ($this->activityDeadline->isSingleDate($activity, $leaf)) {
+                    if ($end->format('Y-m-d') !== $day) {
+                        continue;
+                    }
+                    $start = $end;
+                } else {
+                    $start = $this->activityDeadline->cycleStartDateNear($activity, $date, $leaf);
+                    if ($day < $start->format('Y-m-d') || $day > $end->format('Y-m-d')) {
+                        continue;
+                    }
+                }
+
+                $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $leaf, $end);
                 $items[]   = new ActivityDeadlineOccurrence($activity, $start, $end, $owner['label'], $owner['key'], $completed);
             }
         }
 
         return $items;
-    }
-
-    private function isSingleDate(Activity $activity): bool
-    {
-        return $activity->getStartDay() === $activity->getEndDay()
-            && $activity->getStartMonth() === $activity->getEndMonth();
     }
 
     private function nonWorkingDayLabel(AcademicYear $year, \DateTimeImmutable $date): string

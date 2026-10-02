@@ -26,8 +26,15 @@ class ActivityCompletionRepository extends ServiceEntityRepository
      * Whether $activity has already been marked completed for this exact owner — either a teacher
      * (Individual scope) or a profile/subprofile (ByProfile scope), matched by identity including
      * NULL (a plain, non-list profile has $listItem === null, which must match exactly, not "any").
+     *
+     * $leaf narrows a ByProfile owner down to one specific leaf of a list-backed activity, when its
+     * upload row covers more than one (see ActivityCompletionChecker::getMyCompletionOwners()). A
+     * completion with a NULL leaf matches ANY $leaf, never just a strict NULL === NULL: every row
+     * created before this column existed has a NULL leaf and is meant to keep covering its whole
+     * owner, so splitting an existing owner into independent leaves never undoes an already
+     * recorded completion.
      */
-    public function findOneForOwner(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem, int $cycleYear): ?ActivityCompletion
+    public function findOneForOwner(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem, ?ListItem $leaf, int $cycleYear): ?ActivityCompletion
     {
         $qb = $this->createQueryBuilder('c')
             ->where('c.activity = :activity')
@@ -51,6 +58,12 @@ class ActivityCompletionRepository extends ServiceEntityRepository
             $qb->andWhere('c.listItem = :listItem')->setParameter('listItem', $listItem->getId(), 'uuid');
         } else {
             $qb->andWhere('c.listItem IS NULL');
+        }
+
+        if ($leaf !== null) {
+            $qb->andWhere('c.leafListItem IS NULL OR c.leafListItem = :leaf')->setParameter('leaf', $leaf->getId(), 'uuid');
+        } else {
+            $qb->andWhere('c.leafListItem IS NULL');
         }
 
         $result = $qb->getQuery()->getOneOrNullResult();

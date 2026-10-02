@@ -1,13 +1,16 @@
+{% set leaf = leaf|default(null) %}
+{% set leaf_label = leaf_label|default(null) %}
 {% set profile_id = profile ? profile.id.toRfc4122 : '' %}
 {% set list_item_id = list_item ? list_item.id.toRfc4122 : '' %}
+{% set leaf_id = leaf ? leaf.id.toRfc4122 : '' %}
 {% set owner_teacher = teacher_owned ? app.user : null %}
-{% set completed = this.isCompletedFor(activity, profile, list_item, owner_teacher) %}
-{% set completion_key = activity.id.toRfc4122 ~ ':' ~ profile_id ~ ':' ~ list_item_id %}
-{% set window = this.getActivityWindow(activity) %}
+{% set completed = this.isCompletedFor(activity, profile, list_item, owner_teacher, leaf) %}
+{% set completion_key = activity.id.toRfc4122 ~ ':' ~ profile_id ~ ':' ~ list_item_id ~ ':' ~ leaf_id %}
+{% set window = this.getActivityWindow(activity, leaf) %}
 
 <div class="flex items-center gap-2">
     {% if not teacher_owned %}
-        <span class="text-xs text-gray-500">{{ profile.name }}{{ list_item ? ' ' ~ list_item.name : '' }}:</span>
+        <span class="text-xs text-gray-500">{{ profile.name }}{{ list_item ? ' ' ~ list_item.name : '' }}{{ leaf ? ' · ' ~ leaf_label : '' }}:</span>
     {% endif %}
     {% if not completed and not activity.autoComplete and window.blocked %}
         <span class="inline-flex items-center gap-1 text-xs italic text-gray-400">
@@ -26,6 +29,7 @@
                     data-live-activity-id-param="{{ activity.id.toRfc4122 }}"
                     data-live-profile-id-param="{{ profile_id }}"
                     data-live-list-item-id-param="{{ list_item_id }}"
+                    data-live-leaf-id-param="{{ leaf_id }}"
                     class="text-xs text-gray-400 hover:text-gray-600 transition-colors">
                 {{ 'completion.undo'|trans({}, 'activity_content') }}
             </button>
@@ -37,6 +41,7 @@
                     data-live-activity-id-param="{{ activity.id.toRfc4122 }}"
                     data-live-profile-id-param="{{ profile_id }}"
                     data-live-list-item-id-param="{{ list_item_id }}"
+                    data-live-leaf-id-param="{{ leaf_id }}"
                     class="inline-flex items-center gap-1 rounded-lg bg-forest-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
                 {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
                 {{ 'completion.confirm_yes'|trans({}, 'activity_content') }}
@@ -50,6 +55,7 @@
                     data-live-activity-id-param="{{ activity.id.toRfc4122 }}"
                     data-live-profile-id-param="{{ profile_id }}"
                     data-live-list-item-id-param="{{ list_item_id }}"
+                    data-live-leaf-id-param="{{ leaf_id }}"
                     class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
                 {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
                 {{ 'completion.mark_done'|trans({}, 'activity_content') }}

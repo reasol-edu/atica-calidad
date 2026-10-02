@@ -231,7 +231,43 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
             $slot->listItem,
             $slot->displayName,
             $slot->teacher,
-            $reference === null ? $this->deadline->currentCycleKey($activity) : $this->deadline->cycleKeyNear($activity, $reference),
+            $this->cycleKeyFor($activity, $slot, $reference),
         );
+    }
+
+    /** The cycle key a document uploaded for $slot right now (or at $reference) would be stamped with — see resolveSlot(). */
+    public function cycleKeyFor(Activity $activity, ActivitySubmissionSlot $slot, ?\DateTimeImmutable $reference = null): int
+    {
+        return $reference === null
+            ? $this->deadline->currentCycleKey($activity, $slot->nameListItem)
+            : $this->deadline->cycleKeyNear($activity, $reference, $slot->nameListItem);
+    }
+
+    /**
+     * The leaf of $activity's own list item that a persisted $document was named after — matched
+     * by recomputing submissionName() for every leaf and comparing against $document's own name,
+     * the same naming rule listItemRowSlots() uses, just backwards. Used wherever something about
+     * $document needs to know which leaf (if any) it belongs to — e.g. stamping its cycle year at
+     * creation time with that leaf's own deadline override, or deciding whether it's a past
+     * occurrence's submission. Deliberately lighter than matching a full ActivitySubmissionSlot
+     * (buildSlots()): it never touches the folder's upload-row/profile resolution, which runs from
+     * a Doctrine entity listener (see DocumentActivityCycleListener) where other entities in the
+     * same flush may not have their id assigned yet. Null when the activity has no list item, or
+     * $document's name matches no current leaf (the list item changed after it was uploaded).
+     */
+    public function findLeafForDocument(Activity $activity, Document $document): ?ListItem
+    {
+        $listItem = $activity->getListItem();
+        if ($listItem === null) {
+            return null;
+        }
+
+        foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
+            if ($this->submissionName($listItem, $leaf) === $document->getName()) {
+                return $leaf;
+            }
+        }
+
+        return null;
     }
 }

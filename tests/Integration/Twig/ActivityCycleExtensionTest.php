@@ -11,6 +11,7 @@ use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Service\ActivityDeadlineChecker;
+use App\Service\ActivitySubmissionSlotBuilder;
 use App\Tests\Integration\RepositoryTestCase;
 use App\Twig\ActivityCycleExtension;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -23,8 +24,10 @@ final class ActivityCycleExtensionTest extends RepositoryTestCase
     {
         /** @var ActivityDeadlineChecker $deadline */
         $deadline = self::getContainer()->get(ActivityDeadlineChecker::class);
+        /** @var ActivitySubmissionSlotBuilder $slotBuilder */
+        $slotBuilder = self::getContainer()->get(ActivitySubmissionSlotBuilder::class);
 
-        return new ActivityCycleExtension($deadline);
+        return new ActivityCycleExtension($deadline, $slotBuilder);
     }
 
     /** @return array{Folder, EducationalCentre, DocumentSection} */

@@ -61,7 +61,7 @@
                 <div class="space-y-1.5">
                     {% for slot in my_slots %}
                         {% set document = this.resolveSlot(activity, slot) %}
-                        {% include 'components/_activity_submission_row.html.twig' with {activity: activity, folder: folder, slot: slot, document: document, index: loop.index0, form_id: upload_form_id, read_only: window.blocked} %}
+                        {% include 'components/_activity_submission_row.html.twig' with {activity: activity, folder: folder, slot: slot, document: document, index: loop.index0, form_id: upload_form_id, read_only: this.getActivityWindow(activity, slot.nameListItem).blocked} %}
                         {% if document and document.id.toRfc4122 == revisionPanelDocumentId %}
                             {% include 'components/_activity_submission_panel.html.twig' with {activity: activity, folder: folder, document: document} %}
                         {% endif %}
@@ -84,7 +84,7 @@
     {% else %}
         <div class="flex flex-wrap items-center gap-3">
             {% for owner in this.getMyCompletionOwners(activity) %}
-                {% include 'components/_activity_completion.html.twig' with {activity: activity, profile: owner.profile, list_item: owner.listItem, teacher_owned: false} %}
+                {% include 'components/_activity_completion.html.twig' with {activity: activity, profile: owner.profile, list_item: owner.listItem, leaf: owner.leaf, leaf_label: owner.displayName, teacher_owned: false} %}
             {% endfor %}
         </div>
     {% endif %}

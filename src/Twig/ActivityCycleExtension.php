@@ -6,6 +6,7 @@ namespace App\Twig;
 
 use App\Entity\Document;
 use App\Service\ActivityDeadlineChecker;
+use App\Service\ActivitySubmissionSlotBuilder;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
@@ -18,6 +19,7 @@ final class ActivityCycleExtension extends AbstractExtension
 {
     public function __construct(
         private readonly ActivityDeadlineChecker $deadline,
+        private readonly ActivitySubmissionSlotBuilder $slotBuilder,
     ) {}
 
     public function getFunctions(): array
@@ -32,7 +34,12 @@ final class ActivityCycleExtension extends AbstractExtension
     {
         $cycleYear = $document->getActivityCycleYear();
         $activity  = $document->getFolder()->getActivity();
-        if ($cycleYear === null || $activity === null || $cycleYear === $this->deadline->currentCycleKey($activity)) {
+        if ($cycleYear === null || $activity === null) {
+            return null;
+        }
+
+        $leaf = $this->slotBuilder->findLeafForDocument($activity, $document);
+        if ($cycleYear === $this->deadline->currentCycleKey($activity, $leaf)) {
             return null;
         }
 

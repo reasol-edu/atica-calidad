@@ -75,6 +75,16 @@ class Activity implements Trashable
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?ListItem $listItem = null;
 
+    /**
+     * Per-leaf deadline overrides of $listItem's leaf descendants — a leaf with no row here uses
+     * the activity's own $startDay/$startMonth/$endDay/$endMonth instead. See
+     * ActivityDeadlineChecker.
+     *
+     * @var Collection<int, ActivityListItemDeadline>
+     */
+    #[ORM\OneToMany(targetEntity: ActivityListItemDeadline::class, mappedBy: 'activity', cascade: ['persist'], orphanRemoval: true)]
+    private Collection $listItemDeadlines;
+
     /** @var Collection<int, Tag> */
     #[ORM\ManyToMany(targetEntity: Tag::class)]
     #[ORM\JoinTable(name: 'activity_tag')]
@@ -156,6 +166,7 @@ class Activity implements Trashable
         $this->relatedDocuments    = new ArrayCollection();
         $this->profileRestrictions = new ArrayCollection();
         $this->responsibleProfiles = new ArrayCollection();
+        $this->listItemDeadlines   = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -412,6 +423,56 @@ class Activity implements Trashable
     public function setListItem(?ListItem $listItem): static
     {
         $this->listItem = $listItem;
+
+        return $this;
+    }
+
+    /** @return Collection<int, ActivityListItemDeadline> */
+    public function getListItemDeadlines(): Collection
+    {
+        return $this->listItemDeadlines;
+    }
+
+    public function getDeadlineOverride(ListItem $leaf): ?ActivityListItemDeadline
+    {
+        foreach ($this->listItemDeadlines as $override) {
+            if ($override->getListItem() === $leaf) {
+                return $override;
+            }
+        }
+
+        return null;
+    }
+
+    /** Creates or updates $leaf's override. */
+    public function setDeadlineOverride(ListItem $leaf, int $startDay, int $startMonth, int $endDay, int $endMonth): static
+    {
+        $existing = $this->getDeadlineOverride($leaf);
+        if ($existing !== null) {
+            $existing->setRange($startDay, $startMonth, $endDay, $endMonth);
+        } else {
+            $this->listItemDeadlines->add(new ActivityListItemDeadline($this, $leaf, $startDay, $startMonth, $endDay, $endMonth));
+        }
+
+        return $this;
+    }
+
+    public function removeDeadlineOverrideFor(ListItem $leaf): static
+    {
+        $existing = $this->getDeadlineOverride($leaf);
+        if ($existing !== null) {
+            $this->listItemDeadlines->removeElement($existing);
+        }
+
+        return $this;
+    }
+
+    /** Drops every override row — used when the activity loses its list item. */
+    public function clearListItemDeadlines(): static
+    {
+        foreach (iterator_to_array($this->listItemDeadlines) as $override) {
+            $this->listItemDeadlines->removeElement($override);
+        }
 
         return $this;
     }

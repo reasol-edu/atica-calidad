@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Activity;
+use App\Entity\ListItem;
 use App\Entity\Teacher;
 use App\Model\ActivityWindow;
 use App\Model\ActivityWindowBlock;
@@ -27,11 +28,12 @@ final class ActivityWindowChecker
         private readonly DocumentTreeAccessChecker $access,
     ) {}
 
-    public function for(Activity $activity, Teacher $teacher): ActivityWindow
+    /** $leaf, when given, resolves to its own deadline override (see Activity::getDeadlineOverride()) instead of the activity's own. */
+    public function for(Activity $activity, Teacher $teacher, ?ListItem $leaf = null): ActivityWindow
     {
         $now   = $this->clock->now();
-        $start = $this->deadline->currentCycleStartDate($activity);
-        $end   = $this->deadline->currentCycleEndDate($activity);
+        $start = $this->deadline->currentCycleStartDate($activity, $leaf);
+        $end   = $this->deadline->currentCycleEndDate($activity, $leaf);
 
         $graceUntil = $activity->isEndDateEnforced() && $activity->getEndDateGraceDays() > 0
             ? $end->modify('+' . $activity->getEndDateGraceDays() . ' days')

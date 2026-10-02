@@ -124,8 +124,31 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $formFolderId = '';
 
-    #[LiveProp(writable: true)]
+    #[LiveProp(writable: true, onUpdated: 'onFormListItemIdChanged')]
     public string $formListItemId = '';
+
+    /**
+     * Per-leaf deadline overrides of $formListItemId's leaf descendants, keyed by leaf id — see
+     * Activity::getDeadlineOverride(). A leaf absent here (or with any of its 4 fields blank) uses
+     * the activity's own $formStartDay/etc instead; only a leaf with all 4 fields filled gets a
+     * row in ActivityListItemDeadline on save.
+     *
+     * @var array<string, string>
+     */
+    #[LiveProp(writable: true)]
+    public array $formOverrideStartDay = [];
+
+    /** @var array<string, string> */
+    #[LiveProp(writable: true)]
+    public array $formOverrideStartMonth = [];
+
+    /** @var array<string, string> */
+    #[LiveProp(writable: true)]
+    public array $formOverrideEndDay = [];
+
+    /** @var array<string, string> */
+    #[LiveProp(writable: true)]
+    public array $formOverrideEndMonth = [];
 
     /** @var string[] tag ids */
     #[LiveProp(writable: true)]
@@ -501,6 +524,65 @@ class ActivityBrowserComponent extends AbstractController
         return implode(' › ', $trail);
     }
 
+    /**
+     * Leaf descendants of the activity form's currently selected list item — one deadline-override
+     * row is offered per leaf (see Activity::getDeadlineOverride()). Empty while the form has no
+     * list item selected, same as an activity without one never splitting its submissions by leaf.
+     *
+     * @return ListItem[]
+     */
+    public function getFormListItemLeaves(): array
+    {
+        if ($this->formListItemId === '') {
+            return [];
+        }
+
+        $root = $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
+
+        return $root === null ? [] : $this->listItems->findLeafDescendants($root);
+    }
+
+    /**
+     * Re-keys the four override LiveProps to exactly the current $formListItemId's leaves — every
+     * leaf gets an entry (blank unless it already had one), and a leaf that's no longer under the
+     * selected list item is dropped. Needed because LiveComponent's array-prop bracket binding
+     * (data-model="...[leafId]") can only ever target a key the prop's *initial, server-rendered*
+     * JSON for that leaf already has: an empty array serialises as JSON `[]`, not `{}`, so a brand
+     * new leaf with no prior entry is otherwise unreachable from the browser. Called by
+     * onFormListItemIdChanged() (see LiveProp(onUpdated:) above) whenever the list item changes
+     * interactively, and once more from startEditActivity() for the form's very first render.
+     */
+    private function seedOverrideArraysForCurrentListItem(): void
+    {
+        $leafIds = array_map(static fn (ListItem $l): string => $l->getId()->toRfc4122(), $this->getFormListItemLeaves());
+
+        $this->formOverrideStartDay   = $this->reseedOverrideArray($this->formOverrideStartDay, $leafIds);
+        $this->formOverrideStartMonth = $this->reseedOverrideArray($this->formOverrideStartMonth, $leafIds);
+        $this->formOverrideEndDay     = $this->reseedOverrideArray($this->formOverrideEndDay, $leafIds);
+        $this->formOverrideEndMonth   = $this->reseedOverrideArray($this->formOverrideEndMonth, $leafIds);
+    }
+
+    /**
+     * @param  array<string, string> $current
+     * @param  string[]              $leafIds
+     * @return array<string, string>
+     */
+    private function reseedOverrideArray(array $current, array $leafIds): array
+    {
+        $seeded = [];
+        foreach ($leafIds as $leafId) {
+            $seeded[$leafId] = $current[$leafId] ?? '';
+        }
+
+        return $seeded;
+    }
+
+    /** LiveProp(onUpdated:) hook for $formListItemId — see seedOverrideArraysForCurrentListItem(). */
+    public function onFormListItemIdChanged(): void
+    {
+        $this->seedOverrideArraysForCurrentListItem();
+    }
+
     /** @return Tag[] */
     public function getAvailableTags(): array
     {
@@ -643,6 +725,10 @@ class ActivityBrowserComponent extends AbstractController
         $this->formEndMonth    = '';
         $this->formFolderId    = '';
         $this->formListItemId  = '';
+        $this->formOverrideStartDay   = [];
+        $this->formOverrideStartMonth = [];
+        $this->formOverrideEndDay     = [];
+        $this->formOverrideEndMonth   = [];
         $this->formTagIds      = [];
         $this->formRelatedDocumentIds     = [];
         $this->relatedDocumentSearchQuery = '';
@@ -678,6 +764,18 @@ class ActivityBrowserComponent extends AbstractController
         $this->formEndMonth     = (string) $activity->getEndMonth();
         $this->formFolderId     = $activity->getFolder()?->getId()->toRfc4122() ?? '';
         $this->formListItemId   = $activity->getListItem()?->getId()->toRfc4122() ?? '';
+        $this->formOverrideStartDay   = [];
+        $this->formOverrideStartMonth = [];
+        $this->formOverrideEndDay     = [];
+        $this->formOverrideEndMonth   = [];
+        foreach ($activity->getListItemDeadlines() as $override) {
+            $leafId = $override->getListItem()->getId()->toRfc4122();
+            $this->formOverrideStartDay[$leafId]   = (string) $override->getStartDay();
+            $this->formOverrideStartMonth[$leafId] = (string) $override->getStartMonth();
+            $this->formOverrideEndDay[$leafId]     = (string) $override->getEndDay();
+            $this->formOverrideEndMonth[$leafId]   = (string) $override->getEndMonth();
+        }
+        $this->seedOverrideArraysForCurrentListItem();
         $this->formTagIds       = array_map(static fn (Tag $t): string => $t->getId()->toRfc4122(), $activity->getTags()->toArray());
         $this->formRelatedDocumentIds     = array_map(static fn (Document $d): string => $d->getId()->toRfc4122(), $activity->getRelatedDocuments()->toArray());
         $this->relatedDocumentSearchQuery = '';
@@ -733,6 +831,14 @@ class ActivityBrowserComponent extends AbstractController
             return;
         }
 
+        $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
+        $overridesByLeafId = $listItem === null ? [] : $this->readDeadlineOverrides($this->listItems->findLeafDescendants($listItem));
+        if ($overridesByLeafId === false) {
+            $this->errors = ['dates' => $this->t('activity.error.invalid_date')];
+
+            return;
+        }
+
         $folder = $this->formFolderId === '' ? null : $this->resolveAvailableFolder($this->formFolderId);
         if ($this->formAutoComplete && $folder === null) {
             $this->errors = ['autoComplete' => $this->t('activity.error.auto_complete_requires_folder')];
@@ -749,8 +855,7 @@ class ActivityBrowserComponent extends AbstractController
             return;
         }
 
-        $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
-        $scope    = ActivitySubmissionScope::from($this->formScope === 'individual' ? 'individual' : 'by_profile');
+        $scope = ActivitySubmissionScope::from($this->formScope === 'individual' ? 'individual' : 'by_profile');
 
         $activity = null;
         if ($this->formActivityId !== '') {
@@ -772,6 +877,13 @@ class ActivityBrowserComponent extends AbstractController
         $activity->setStart($startDay, $startMonth);
         $activity->setEnd($endDay, $endMonth);
         $activity->setListItem($listItem);
+        $activity->clearListItemDeadlines();
+        foreach ($overridesByLeafId as $leafId => $range) {
+            $leaf = $this->listItems->findByIdAndCentre($leafId, $this->centre);
+            if ($leaf !== null) {
+                $activity->setDeadlineOverride($leaf, $range['startDay'], $range['startMonth'], $range['endDay'], $range['endMonth']);
+            }
+        }
         $activity->setRequired($this->formRequired);
         $activity->setSubmissionScope($scope);
         $activity->setStartDateEnforced($this->formStartDateEnforced);
@@ -846,6 +958,45 @@ class ActivityBrowserComponent extends AbstractController
         $this->activityFormOpen = false;
         $this->errors           = [];
         $this->flashSuccess($this->t('activity.flash.saved'));
+    }
+
+    /**
+     * Reads the formOverrideStartDay/StartMonth/EndDay/EndMonth props for $leaves into one
+     * validated {leafId: {startDay, startMonth, endDay, endMonth}} map — a leaf with all 4 fields blank is
+     * simply left out (meaning "use the activity's own dates"); one with any field filled must have
+     * all 4 valid, or the whole form is rejected (returns false) exactly like the activity's own
+     * date fields.
+     *
+     * @param  ListItem[] $leaves
+     * @return array<string, array{startDay: int, startMonth: int, endDay: int, endMonth: int}>|false
+     */
+    private function readDeadlineOverrides(array $leaves): array|false
+    {
+        $overrides = [];
+        foreach ($leaves as $leaf) {
+            $leafId = $leaf->getId()->toRfc4122();
+            $raw    = [
+                $this->formOverrideStartDay[$leafId] ?? '',
+                $this->formOverrideStartMonth[$leafId] ?? '',
+                $this->formOverrideEndDay[$leafId] ?? '',
+                $this->formOverrideEndMonth[$leafId] ?? '',
+            ];
+            if ($raw === ['', '', '', '']) {
+                continue;
+            }
+            if (in_array('', $raw, true)) {
+                return false;
+            }
+
+            [$startDay, $startMonth, $endDay, $endMonth] = array_map(static fn (string $v): int => (int) $v, $raw);
+            if ($startDay < 1 || $startDay > 31 || $startMonth < 1 || $startMonth > 12 || $endDay < 1 || $endDay > 31 || $endMonth < 1 || $endMonth > 12) {
+                return false;
+            }
+
+            $overrides[$leafId] = ['startDay' => $startDay, 'startMonth' => $startMonth, 'endDay' => $endDay, 'endMonth' => $endMonth];
+        }
+
+        return $overrides;
     }
 
     private function resolveAvailableFolder(string $id): ?Folder
@@ -1146,15 +1297,15 @@ class ActivityBrowserComponent extends AbstractController
         return $this->completion->getMyCompletionOwners($this->teacher(), $activity);
     }
 
-    public function isCompletedFor(Activity $activity, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher): bool
+    public function isCompletedFor(Activity $activity, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher, ?ListItem $leaf = null): bool
     {
-        return $this->completion->isCompletedFor($activity, $profile, $listItem, $teacher);
+        return $this->completion->isCompletedFor($activity, $profile, $listItem, $teacher, $leaf);
     }
 
-    /** Submission/completion window state for the current teacher — drives the deadline notices. */
-    public function getActivityWindow(Activity $activity): ActivityWindow
+    /** Submission/completion window state for the current teacher — drives the deadline notices. $leaf resolves its own override, when it has one. */
+    public function getActivityWindow(Activity $activity, ?ListItem $leaf = null): ActivityWindow
     {
-        return $this->windowChecker->for($activity, $this->teacher());
+        return $this->windowChecker->for($activity, $this->teacher(), $leaf);
     }
 
     /**
@@ -1172,9 +1323,9 @@ class ActivityBrowserComponent extends AbstractController
     }
 
     #[LiveAction]
-    public function askMarkCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = ''): void
+    public function askMarkCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = '', #[LiveArg] string $leafId = ''): void
     {
-        $this->confirmingCompleteKey = $activityId . ':' . $profileId . ':' . $listItemId;
+        $this->confirmingCompleteKey = $activityId . ':' . $profileId . ':' . $listItemId . ':' . $leafId;
     }
 
     #[LiveAction]
@@ -1184,7 +1335,7 @@ class ActivityBrowserComponent extends AbstractController
     }
 
     #[LiveAction]
-    public function markCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = ''): void
+    public function markCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = '', #[LiveArg] string $leafId = ''): void
     {
         $activity = $this->findActivity($activityId);
         // Auto-complete activities have nothing to mark: their status is always computed.
@@ -1194,19 +1345,19 @@ class ActivityBrowserComponent extends AbstractController
             return;
         }
 
-        $teacher                     = $this->teacher();
-        [$profile, $listItem]        = $this->requireOwnCompletionOwner($activity, $profileId, $listItemId);
-        $targetTeacher               = $profile === null ? $teacher : null;
-        $this->confirmingCompleteKey = '';
+        $teacher                      = $this->teacher();
+        [$profile, $listItem, $leaf]  = $this->requireOwnCompletionOwner($activity, $profileId, $listItemId, $leafId);
+        $targetTeacher                = $profile === null ? $teacher : null;
+        $this->confirmingCompleteKey  = '';
 
-        $window = $this->windowChecker->for($activity, $teacher);
+        $window = $this->windowChecker->for($activity, $teacher, $leaf);
         if ($window->blocked) {
             $this->flashError($this->t('completion.error.out_of_window'));
 
             return;
         }
 
-        if (!$this->completion->markCompleted($activity, $targetTeacher, $profile, $listItem, $teacher)) {
+        if (!$this->completion->markCompleted($activity, $targetTeacher, $profile, $listItem, $teacher, $leaf)) {
             return;
         }
 
@@ -1225,18 +1376,18 @@ class ActivityBrowserComponent extends AbstractController
 
     /** No confirmation required — undoing a completion is low-stakes and easy to redo. */
     #[LiveAction]
-    public function unmarkCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = ''): void
+    public function unmarkCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = '', #[LiveArg] string $leafId = ''): void
     {
         $activity = $this->findActivity($activityId);
         if ($activity === null || $activity->isAutoComplete()) {
             return;
         }
 
-        $teacher               = $this->teacher();
-        [$profile, $listItem]  = $this->requireOwnCompletionOwner($activity, $profileId, $listItemId);
-        $targetTeacher         = $profile === null ? $teacher : null;
+        $teacher                     = $this->teacher();
+        [$profile, $listItem, $leaf] = $this->requireOwnCompletionOwner($activity, $profileId, $listItemId, $leafId);
+        $targetTeacher               = $profile === null ? $teacher : null;
 
-        if (!$this->completion->unmarkCompleted($activity, $targetTeacher, $profile, $listItem)) {
+        if (!$this->completion->unmarkCompleted($activity, $targetTeacher, $profile, $listItem, $leaf)) {
             return;
         }
 
@@ -1294,31 +1445,32 @@ class ActivityBrowserComponent extends AbstractController
      * they hold themselves (getMyCompletionOwners()). The ids are client-supplied LiveArgs, so the
      * template only showing the right buttons is not enough on its own.
      *
-     * @return array{0: ?SpecificProfile, 1: ?ListItem}
+     * @return array{0: ?SpecificProfile, 1: ?ListItem, 2: ?ListItem}
      */
-    private function requireOwnCompletionOwner(Activity $activity, string $profileId, string $listItemId): array
+    private function requireOwnCompletionOwner(Activity $activity, string $profileId, string $listItemId, string $leafId): array
     {
         $profile  = $profileId === '' ? null : $this->profiles->findByIdAndCentre($profileId, $this->centre);
         $listItem = $listItemId === '' ? null : $this->listItems->findByIdAndCentre($listItemId, $this->centre);
+        $leaf     = $leafId === '' ? null : $this->listItems->findByIdAndCentre($leafId, $this->centre);
 
-        if (($profileId !== '' && $profile === null) || ($listItemId !== '' && $listItem === null)) {
+        if (($profileId !== '' && $profile === null) || ($listItemId !== '' && $listItem === null) || ($leafId !== '' && $leaf === null)) {
             throw $this->createAccessDeniedException();
         }
 
         if ($profile === null) {
-            if ($listItem !== null || !$this->completion->hasIndividualCompletionOwner($activity)) {
+            if ($listItem !== null || $leaf !== null || !$this->completion->hasIndividualCompletionOwner($activity)) {
                 throw $this->createAccessDeniedException();
             }
             if (!$this->completion->isApplicableToTeacher($this->teacher(), $activity)) {
                 throw $this->createAccessDeniedException();
             }
 
-            return [null, null];
+            return [null, null, null];
         }
 
         foreach ($this->completion->getMyCompletionOwners($this->teacher(), $activity) as $owner) {
-            if ($owner['profile'] === $profile && $owner['listItem'] === $listItem) {
-                return [$profile, $listItem];
+            if ($owner['profile'] === $profile && $owner['listItem'] === $listItem && $owner['leaf'] === $leaf) {
+                return [$profile, $listItem, $leaf];
             }
         }
 

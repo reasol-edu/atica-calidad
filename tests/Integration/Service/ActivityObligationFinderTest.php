@@ -14,6 +14,7 @@ use App\Entity\DocumentRevision;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
+use App\Entity\ListItem;
 use App\Entity\PersonName;
 use App\Entity\SpecificProfile;
 use App\Entity\SpecificProfileAssignment;
@@ -281,5 +282,45 @@ final class ActivityObligationFinderTest extends RepositoryTestCase
         [$teacher, , $activity] = $this->submissionScenario('2025-11-05 10:00:00', null);
 
         self::assertSame(ActivityObligationStatus::Overdue, $this->finder->worstStatusFor($teacher, $activity));
+    }
+
+    // ── Per-leaf deadline overrides ─────────────────────────────────────────
+
+    /**
+     * Two list leaves sharing the exact same (unassociated) upload row are still tracked as two
+     * independent obligations, each with its own deadline — see ActivityCompletionChecker::
+     * getMyOwnedObligations(). Only one of them has a deadline override, so this also checks that
+     * the other one is untouched, still using the activity's own default dates.
+     */
+    public function testListBackedLeavesSharingAnUploadRowAreIndependentObligations(): void
+    {
+        // Past the activity's own Oct 31 deadline, but before Química's own Dec 31 override.
+        self::mockTime('2025-11-05 10:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Carpeta');
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $folder->addUploadProfile($profile);
+        $root    = (new ListItem())->setName('Materias')->setEducationalCentre($centre);
+        $fisica  = (new ListItem())->setName('Física')->setEducationalCentre($centre)->setParent($root);
+        $quimica = (new ListItem())->setName('Química')->setEducationalCentre($centre)->setParent($root);
+        $activity = $this->activity($category)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile)->setListItem($root);
+        $activity->setDeadlineOverride($quimica, 1, 12, 31, 12);
+        $teacher = $this->teacher('docente');
+        $assign  = new SpecificProfileAssignment($profile, null, $teacher);
+        $this->persist($centre, $category, $section, $folder, $profile, $root, $fisica, $quimica, $activity, $teacher, $assign);
+
+        $items = $this->finder->forTeacher($teacher, $centre);
+        self::assertCount(2, $items, 'each leaf of the shared row is its own obligation');
+
+        $byLabel = [];
+        foreach ($items as $item) {
+            $byLabel[$item->ownerLabel] = $item;
+        }
+        self::assertSame('2025-10-31', $byLabel['Jefatura · Física']->deadline->format('Y-m-d'), 'untouched leaf keeps the activity\'s own deadline');
+        self::assertSame('2025-12-31', $byLabel['Jefatura · Química']->deadline->format('Y-m-d'), 'overridden leaf uses its own, later deadline');
+        self::assertSame(ActivityObligationStatus::Overdue, $byLabel['Jefatura · Física']->status, 'past its own deadline');
+        self::assertSame(ActivityObligationStatus::Upcoming, $byLabel['Jefatura · Química']->status, 'its own, later occurrence has not opened yet');
     }
 }

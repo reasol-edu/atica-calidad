@@ -18,6 +18,13 @@ use function Symfony\Component\Clock\now;
  * ActivitySubmissionSlotBuilder), nothing to persist. Scoped to one yearly occurrence of the
  * activity through $cycleYear (see ActivityDeadlineChecker::currentCycleKey()): last academic
  * year's completion doesn't count for this year's.
+ *
+ * $leafListItem additionally pins a ByProfile completion to one specific leaf of a list-backed
+ * activity (Activity::$listItem), when the owner's upload row covers more than one — see
+ * ActivityObligationFinder, which treats each (profile, listItem, leaf) as an independent
+ * obligation. Null on every row created before this existed (and on activities without a list
+ * item): ActivityCompletionRepository::findOneForOwner() treats a null-leaf row as covering every
+ * leaf of its owner, so nothing already marked complete loses that status.
  */
 #[ORM\Entity(repositoryClass: ActivityCompletionRepository::class)]
 class ActivityCompletion
@@ -44,6 +51,10 @@ class ActivityCompletion
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?ListItem $listItem = null;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?ListItem $leafListItem = null;
+
     /** Who actually pressed the button — may differ from $teacher when the scope is ByProfile. */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -56,15 +67,16 @@ class ActivityCompletion
     #[ORM\Column]
     private int $cycleYear;
 
-    public function __construct(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem, Teacher $completedBy, int $cycleYear)
+    public function __construct(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem, Teacher $completedBy, int $cycleYear, ?ListItem $leafListItem = null)
     {
-        $this->activity    = $activity;
-        $this->cycleYear   = $cycleYear;
-        $this->teacher     = $teacher;
-        $this->profile     = $profile;
-        $this->listItem    = $listItem;
-        $this->completedBy = $completedBy;
-        $this->completedAt = now();
+        $this->activity     = $activity;
+        $this->cycleYear    = $cycleYear;
+        $this->teacher      = $teacher;
+        $this->profile      = $profile;
+        $this->listItem     = $listItem;
+        $this->leafListItem = $leafListItem;
+        $this->completedBy  = $completedBy;
+        $this->completedAt  = now();
     }
 
     public function getId(): Uuid
@@ -90,6 +102,11 @@ class ActivityCompletion
     public function getListItem(): ?ListItem
     {
         return $this->listItem;
+    }
+
+    public function getLeafListItem(): ?ListItem
+    {
+        return $this->leafListItem;
     }
 
     public function getCompletedBy(): Teacher

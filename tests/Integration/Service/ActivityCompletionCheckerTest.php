@@ -552,6 +552,44 @@ final class ActivityCompletionCheckerTest extends RepositoryTestCase
         self::assertFalse($this->checker->unmarkCompleted($activity, $teacher, null, null));
     }
 
+    // ── Per-leaf completion independence ────────────────────────────────────
+
+    public function testMarkCompletedForOneLeafDoesNotCompleteASiblingLeafUnderTheSameOwner(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = $this->activity($category);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $root     = (new ListItem())->setName('Materias')->setEducationalCentre($centre);
+        $fisica   = (new ListItem())->setName('Física')->setEducationalCentre($centre)->setParent($root);
+        $quimica  = (new ListItem())->setName('Química')->setEducationalCentre($centre)->setParent($root);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $activity, $profile, $root, $fisica, $quimica, $teacher);
+
+        self::assertTrue($this->checker->markCompleted($activity, null, $profile, null, $teacher, $fisica));
+        $this->em->flush();
+
+        self::assertTrue($this->checker->isCompletedFor($activity, $profile, null, null, $fisica));
+        self::assertFalse($this->checker->isCompletedFor($activity, $profile, null, null, $quimica), 'completing one leaf leaves its sibling untouched');
+    }
+
+    /** Written before this column existed — must keep covering every leaf of its owner, not just a literal NULL leaf. */
+    public function testALegacyCompletionWithNoLeafStillCountsForEveryLeafOfItsOwner(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = $this->activity($category);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $leaf     = (new ListItem())->setName('Física')->setEducationalCentre($centre);
+        $teacher  = $this->teacher('docente');
+        $this->persist(
+            $centre, $category, $activity, $profile, $leaf, $teacher,
+            new ActivityCompletion($activity, null, $profile, null, $teacher, $this->cycleKey($activity)),
+        );
+
+        self::assertTrue($this->checker->isCompletedFor($activity, $profile, null, null, $leaf));
+    }
+
     // ── Per academic year ─────────────────────────────────────────────────────
 
     /** Oct 1–31: well inside the academic year with the default Sep 15 start, so its occurrence is unambiguous. */
@@ -581,7 +619,7 @@ final class ActivityCompletionCheckerTest extends RepositoryTestCase
         self::assertTrue($this->checker->isCompletedFor($activity, null, null, $teacher));
 
         // Looking back at last year's occurrence (as the calendar does) still finds that one.
-        self::assertTrue($this->checker->isCompletedFor($activity, null, null, $teacher, new \DateTimeImmutable('2025-10-31')));
+        self::assertTrue($this->checker->isCompletedFor($activity, null, null, $teacher, null, new \DateTimeImmutable('2025-10-31')));
     }
 
     public function testUnmarkCompletedOnlyUndoesTheCurrentAcademicYear(): void
@@ -596,7 +634,7 @@ final class ActivityCompletionCheckerTest extends RepositoryTestCase
         self::assertFalse($this->checker->unmarkCompleted($activity, $teacher, null, null), 'nothing to undo this year');
         $this->em->flush();
 
-        self::assertTrue($this->checker->isCompletedFor($activity, null, null, $teacher, new \DateTimeImmutable('2025-10-31')), 'last year\'s completion is untouched');
+        self::assertTrue($this->checker->isCompletedFor($activity, null, null, $teacher, null, new \DateTimeImmutable('2025-10-31')), 'last year\'s completion is untouched');
     }
 
     public function testASubmissionFromLastAcademicYearDoesNotFillThisYearsSlot(): void

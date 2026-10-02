@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Service;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\EducationalCentre;
+use App\Entity\ListItem;
 use App\Service\ActivityDeadlineChecker;
 use App\Service\AppSettingsInterface;
 use PHPUnit\Framework\TestCase;
@@ -362,5 +363,67 @@ final class ActivityDeadlineCheckerTest extends TestCase
         self::mockTime('2026-10-10 10:00:00');
 
         self::assertSame(2024, $this->checker()->cycleKeyNear($this->activity(1, 10, 31, 10), new \DateTimeImmutable('2024-10-31')));
+    }
+
+    // ── Per-leaf deadline overrides ─────────────────────────────────────────
+
+    public function testALeafWithNoOverrideUsesTheActivitysOwnDates(): void
+    {
+        self::mockTime('2026-10-10 10:00:00');
+        $activity = $this->activity(1, 10, 31, 10);
+        $leaf     = (new ListItem())->setName('Física')->setEducationalCentre($activity->getCategory()->getEducationalCentre());
+
+        self::assertSame(
+            $this->checker()->currentCycleEndDate($activity)->format('Y-m-d'),
+            $this->checker()->currentCycleEndDate($activity, $leaf)->format('Y-m-d'),
+        );
+    }
+
+    public function testALeafWithAnOverrideUsesItsOwnDatesInsteadOfTheActivitys(): void
+    {
+        self::mockTime('2026-10-10 10:00:00');
+        $activity = $this->activity(1, 10, 31, 10);
+        $leaf     = (new ListItem())->setName('Física')->setEducationalCentre($activity->getCategory()->getEducationalCentre());
+        $activity->setDeadlineOverride($leaf, 1, 11, 30, 11);
+
+        self::assertSame('2026-10-31', $this->checker()->currentCycleEndDate($activity)->format('Y-m-d'), 'the activity itself is unaffected');
+        self::assertSame('2026-11-30', $this->checker()->currentCycleEndDate($activity, $leaf)->format('Y-m-d'));
+    }
+
+    public function testALeafsOverrideResolvesItsOwnCycleKeyIndependentlyOfTheActivitys(): void
+    {
+        // A range straddling the academic year's start (see
+        // testRangeStraddlingTheAcademicYearStartKeepsTheCalendarYearAnchoring) is keyed
+        // differently than a plain non-wrapping one at the exact same reference — here the leaf's
+        // Jul 15 – Sep 15 override straddles the default Sep 15 start while the activity's own
+        // Oct 1–31 range doesn't, so the two keys genuinely differ.
+        self::mockTime('2026-08-01 10:00:00');
+        $activity = $this->activity(1, 10, 31, 10);
+        $leaf     = (new ListItem())->setName('Física')->setEducationalCentre($activity->getCategory()->getEducationalCentre());
+        $activity->setDeadlineOverride($leaf, 15, 7, 15, 9);
+
+        self::assertSame(2025, $this->checker()->currentCycleKey($activity));
+        self::assertSame(2026, $this->checker()->currentCycleKey($activity, $leaf));
+    }
+
+    public function testIsSingleDateReflectsTheLeafsOwnOverrideRange(): void
+    {
+        $activity = $this->activity(1, 10, 31, 10);
+        $leaf     = (new ListItem())->setName('Física')->setEducationalCentre($activity->getCategory()->getEducationalCentre());
+        $activity->setDeadlineOverride($leaf, 15, 3, 15, 3);
+
+        self::assertFalse($this->checker()->isSingleDate($activity), 'the activity itself is a real range');
+        self::assertTrue($this->checker()->isSingleDate($activity, $leaf));
+    }
+
+    public function testRemovingAnOverrideFallsBackToTheActivitysOwnDates(): void
+    {
+        self::mockTime('2026-10-10 10:00:00');
+        $activity = $this->activity(1, 10, 31, 10);
+        $leaf     = (new ListItem())->setName('Física')->setEducationalCentre($activity->getCategory()->getEducationalCentre());
+        $activity->setDeadlineOverride($leaf, 1, 11, 30, 11);
+        $activity->removeDeadlineOverrideFor($leaf);
+
+        self::assertSame('2026-10-31', $this->checker()->currentCycleEndDate($activity, $leaf)->format('Y-m-d'));
     }
 }

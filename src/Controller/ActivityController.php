@@ -230,15 +230,6 @@ class ActivityController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $window = $this->windowChecker->for($activity, $teacher);
-        if ($window->blocked) {
-            $this->addFlash('error', $this->t($window->reason === ActivityWindowBlock::BeforeStart
-                ? 'submission.error.before_start'
-                : 'submission.error.after_end'));
-
-            return $this->redirectToActivity($activity);
-        }
-
         // Both files[N] and items[N][slotKey] use the SAME explicit N (see
         // _activity_submission_row.html.twig) rather than files[]/items[] — a plain files[]
         // gets renumbered by PHP to only the parts actually present in the request body, and
@@ -260,7 +251,9 @@ class ActivityController extends AbstractController
         /** @var array<int, array{slotKey?: string}> $items */
         $items = $request->request->all('items');
 
-        $created = 0;
+        $created        = 0;
+        $blockedMessage = null;
+        $anyLate        = false;
         foreach ($uploadedFiles as $i => $file) {
             if (!$file instanceof UploadedFile || !$file->isValid()) {
                 continue;
@@ -286,6 +279,18 @@ class ActivityController extends AbstractController
                 continue;
             }
 
+            // Each slot resolves its own window — a list-backed activity can have a leaf with its
+            // own deadline override (see Activity::getDeadlineOverride()), open or closed
+            // independently of the activity's own default window.
+            $window = $this->windowChecker->for($activity, $teacher, $slot->nameListItem);
+            if ($window->blocked) {
+                $blockedMessage ??= $window->reason === ActivityWindowBlock::BeforeStart
+                    ? 'submission.error.before_start'
+                    : 'submission.error.after_end';
+
+                continue;
+            }
+
             $canSubmit = $canManage
                 || ($slot->teacher !== null
                     ? $slot->teacher === $teacher
@@ -308,17 +313,18 @@ class ActivityController extends AbstractController
             // ByProfile-scope slots $slot->teacher is always null, so this is just $teacher.
             $this->documentCreation->createWithFirstRevision($folder, $slot->displayName, $slot->profile, $slot->listItem, $file, $slot->teacher ?? $teacher);
             ++$created;
+            $anyLate = $anyLate || $window->late;
         }
 
         if ($created === 0) {
-            $this->addFlash('error', $this->t('upload.error.no_file'));
+            $this->addFlash('error', $this->t($blockedMessage ?? 'upload.error.no_file'));
 
             return $this->redirectToActivity($activity);
         }
 
         $this->em->flush();
         $logData = ['activity' => $activity->getTitle(), 'count' => $created];
-        if ($window->late) {
+        if ($anyLate) {
             $logData['late'] = true;
         }
         $this->activityLogger->record('activity.submission_upload', $logData, $centre);

@@ -53,7 +53,15 @@ final class ActivityObligationFinder
         return $items;
     }
 
-    /** @return list<ActivityDashboardItem> one per owner row $teacher holds for $activity; empty if it isn't theirs */
+    /**
+     * One item per owner row $teacher holds for $activity; empty if it isn't theirs. A list-backed
+     * activity's owners already come split one per (profile, listItem, leaf) — see
+     * ActivityCompletionChecker::getMyOwnedObligations() — so each leaf gets its own window here
+     * too, resolving its own deadline override (Activity::getDeadlineOverride()) independently of
+     * its siblings under the same upload row.
+     *
+     * @return list<ActivityDashboardItem>
+     */
     public function forActivity(Teacher $teacher, Activity $activity): array
     {
         $owners = $this->completion->getMyOwnedObligations($teacher, $activity);
@@ -61,12 +69,11 @@ final class ActivityObligationFinder
             return [];
         }
 
-        $window       = $this->windows->for($activity, $teacher);
         $categoryPath = $this->categoryPath($activity->getCategory());
-        $daysLeft     = $this->daysUntil($window->endDate);
 
         $items = [];
         foreach ($owners as $owner) {
+            $window = $this->windows->for($activity, $teacher, $owner['leaf']);
             $items[] = new ActivityDashboardItem(
                 $activity,
                 $this->statusOf($activity, $owner, $window),
@@ -75,7 +82,7 @@ final class ActivityObligationFinder
                 $window->endDate,
                 $window->startDate,
                 $window->graceUntil,
-                $daysLeft,
+                $this->daysUntil($window->endDate),
             );
         }
 
@@ -99,10 +106,10 @@ final class ActivityObligationFinder
         return $worst;
     }
 
-    /** @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string} $owner */
+    /** @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string} $owner */
     private function statusOf(Activity $activity, array $owner, ActivityWindow $window): ActivityObligationStatus
     {
-        if ($this->completion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'])) {
+        if ($this->completion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $owner['leaf'])) {
             return ActivityObligationStatus::Completed;
         }
 
@@ -131,7 +138,7 @@ final class ActivityObligationFinder
      * resubmitted; else any missing one is still to do; else any waiting for approval means it's
      * the reviewer's move. An activity without a folder has no submissions: always "missing".
      *
-     * @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string} $owner
+     * @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string} $owner
      */
     private function submissionState(Activity $activity, array $owner): string
     {
@@ -144,7 +151,7 @@ final class ActivityObligationFinder
             $owns = $owner['teacher'] !== null
                 ? $slot->teacher === $owner['teacher']
                 : ($slot->profile === $owner['profile'] && $slot->listItem === $owner['listItem'] && $slot->teacher === null);
-            if ($owns) {
+            if ($owns && ($owner['leaf'] === null || $slot->nameListItem === $owner['leaf'])) {
                 $states[] = $this->documentState($this->completion->resolveSlot($activity, $slot));
             }
         }
