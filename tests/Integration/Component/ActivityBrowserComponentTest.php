@@ -586,6 +586,78 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertSame('', $instance->formOverrideStartDay[$fisicaId]);
     }
 
+    // ── Creating a folder inline from the activity form ─────────────────────
+
+    public function testCreateFolderForActivityCreatesAndSelectsANewFolder(): void
+    {
+        $centre  = $this->centre();
+        $section = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $admin   = $this->admin();
+        $this->persist($centre, $this->category($centre), $section, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('startAddActivity');
+
+        $component
+            ->call('startCreateFolder')
+            ->set('newFolderName', 'Programaciones')
+            ->set('newFolderSectionId', $section->getId()->toRfc4122())
+            ->call('createFolderForActivity');
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertFalse($instance->creatingFolder);
+        self::assertNotSame('', $instance->formFolderId);
+
+        $this->em->clear();
+        /** @var \App\Repository\FolderRepository $folders */
+        $folders = self::getContainer()->get(\App\Repository\FolderRepository::class);
+        $created = $folders->findAllByCentre($centre);
+        self::assertCount(1, $created);
+        self::assertSame('Programaciones', $created[0]->getName());
+        self::assertSame($section->getId()->toRfc4122(), $created[0]->getDocumentSection()->getId()->toRfc4122());
+        self::assertSame($created[0]->getId()->toRfc4122(), $instance->formFolderId);
+        self::assertNull($created[0]->getActivity(), 'not linked to the activity until saveActivity() persists it');
+    }
+
+    public function testCreateFolderForActivityRequiresNameAndSection(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->admin();
+        $this->persist($centre, $this->category($centre), $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('startAddActivity');
+        $component->call('startCreateFolder');
+
+        $component->call('createFolderForActivity');
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertArrayHasKey('newFolder', $instance->errors);
+        self::assertTrue($instance->creatingFolder, 'the panel stays open so the error is visible');
+
+        /** @var \App\Repository\FolderRepository $folders */
+        $folders = self::getContainer()->get(\App\Repository\FolderRepository::class);
+        self::assertSame([], $folders->findAllByCentre($centre));
+    }
+
+    public function testCreateFolderForActivityIsDeniedWithoutResponsibilitiesPermission(): void
+    {
+        $centre  = $this->centre();
+        $section = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $teacher = $this->teacher('docente');
+        $this->persist($centre, $this->category($centre), $section, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+
+        $this->expectException(AccessDeniedException::class);
+        $component->call('startCreateFolder');
+    }
+
     public function testActivityCrudActionsAreDeniedWithoutResponsibilitiesPermission(): void
     {
         $centre   = $this->centre();

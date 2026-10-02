@@ -12,6 +12,7 @@ use App\Entity\ActivitySubmissionScope;
 use App\Entity\AllowedFileFormat;
 use App\Entity\Document;
 use App\Entity\DocumentRevision;
+use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Entity\ListItem;
@@ -26,6 +27,7 @@ use App\Repository\ActivityCategoryRepository;
 use App\Repository\ActivityRepository;
 use App\Repository\DocumentRepository;
 use App\Repository\DocumentRevisionRepository;
+use App\Repository\DocumentSectionRepository;
 use App\Repository\FolderRepository;
 use App\Repository\ListItemRepository;
 use App\Repository\SpecificProfileRepository;
@@ -123,6 +125,16 @@ class ActivityBrowserComponent extends AbstractController
 
     #[LiveProp(writable: true)]
     public string $formFolderId = '';
+
+    /** Whether the inline "create a new folder" panel is open, in place of picking an existing one. */
+    #[LiveProp(writable: true)]
+    public bool $creatingFolder = false;
+
+    #[LiveProp(writable: true)]
+    public string $newFolderName = '';
+
+    #[LiveProp(writable: true)]
+    public string $newFolderSectionId = '';
 
     #[LiveProp(writable: true, onUpdated: 'onFormListItemIdChanged')]
     public string $formListItemId = '';
@@ -246,6 +258,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly ActivityCategoryRepository $categories,
         private readonly ActivityRepository $activities,
         private readonly FolderRepository $folders,
+        private readonly DocumentSectionRepository $sections,
         private readonly ListItemRepository $listItems,
         private readonly SpecificProfileRepository $profiles,
         private readonly TagRepository $tags,
@@ -508,6 +521,22 @@ class ActivityBrowserComponent extends AbstractController
         return implode(' › ', $trail);
     }
 
+    /** @return DocumentSection[] every section of the centre's document tree — where a new folder created from this form can be placed. */
+    public function getAvailableDocumentSections(): array
+    {
+        return $this->sections->findAllByCentre($this->centre);
+    }
+
+    public function getSectionLabel(DocumentSection $section): string
+    {
+        $trail = [];
+        for ($node = $section; $node !== null; $node = $node->getParent()) {
+            array_unshift($trail, $node->getName());
+        }
+
+        return implode(' › ', $trail);
+    }
+
     /** @return ListItem[] */
     public function getAvailableListItems(): array
     {
@@ -724,6 +753,9 @@ class ActivityBrowserComponent extends AbstractController
         $this->formEndDay      = '';
         $this->formEndMonth    = '';
         $this->formFolderId    = '';
+        $this->creatingFolder       = false;
+        $this->newFolderName       = '';
+        $this->newFolderSectionId  = '';
         $this->formListItemId  = '';
         $this->formOverrideStartDay   = [];
         $this->formOverrideStartMonth = [];
@@ -763,6 +795,9 @@ class ActivityBrowserComponent extends AbstractController
         $this->formEndDay       = (string) $activity->getEndDay();
         $this->formEndMonth     = (string) $activity->getEndMonth();
         $this->formFolderId     = $activity->getFolder()?->getId()->toRfc4122() ?? '';
+        $this->creatingFolder      = false;
+        $this->newFolderName      = '';
+        $this->newFolderSectionId = '';
         $this->formListItemId   = $activity->getListItem()?->getId()->toRfc4122() ?? '';
         $this->formOverrideStartDay   = [];
         $this->formOverrideStartMonth = [];
@@ -803,6 +838,55 @@ class ActivityBrowserComponent extends AbstractController
     {
         $this->activityFormOpen = false;
         $this->errors           = [];
+    }
+
+    /**
+     * Opens the inline "create a new folder" panel in place of the existing-folder picker — lets
+     * an activity be given a brand-new folder without leaving the activity form. Mirrors
+     * SectionBrowserComponent::addFolder(): just name + document section, the same minimal set a
+     * folder needs to exist; everything else (upload/visibility/review profiles, allowed formats…)
+     * is configured afterwards from the document tree, same as for any other folder.
+     */
+    #[LiveAction]
+    public function startCreateFolder(): void
+    {
+        $this->requireEditPermission();
+        $this->creatingFolder      = true;
+        $this->newFolderName      = '';
+        $this->newFolderSectionId = '';
+    }
+
+    #[LiveAction]
+    public function cancelCreateFolder(): void
+    {
+        $this->creatingFolder = false;
+        $this->errors         = [];
+    }
+
+    #[LiveAction]
+    public function createFolderForActivity(): void
+    {
+        $this->requireEditPermission();
+        $name    = trim($this->newFolderName);
+        $section = $this->newFolderSectionId === '' ? null : $this->sections->findByIdAndCentre($this->newFolderSectionId, $this->centre);
+        if ($name === '' || $section === null) {
+            $this->errors = ['newFolder' => $this->t('activity.error.folder_name_and_section_required')];
+
+            return;
+        }
+
+        $folder = (new Folder())
+            ->setDocumentSection($section)
+            ->setName($name)
+            ->setPosition($this->folders->nextPosition($section));
+        $this->em->persist($folder);
+        $this->em->flush();
+
+        // Immediately picked as the activity's own folder — getAvailableFolders() already
+        // includes it (its activity is still null), so the picker just renders it selected.
+        $this->formFolderId   = $folder->getId()->toRfc4122();
+        $this->creatingFolder = false;
+        $this->errors         = [];
     }
 
     #[LiveAction]
