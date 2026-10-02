@@ -7,6 +7,21 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-10-02
+
+### Added
+
+- Una **actividad** sin carpeta asociada muestra ahora, a quien la gestiona, estadísticas de qué
+  docentes la tienen pendiente y cuáles ya la han completado. Un nuevo campo opcional «Perfiles
+  responsables» permite delegar esa visibilidad en perfiles concretos, además de responsable de
+  calidad y equipo directivo/admin., que además pueden marcar o desmarcar la completada de
+  cualquier otro docente directamente desde ahí.
+
+### Fixed
+
+- En una actividad manual restringida a ciertos perfiles, el botón de completar ya no se ofrece a
+  quien no le corresponde (antes solo se bloqueaba al confirmar).
+
 ## [1.9.0] - 2026-10-02
 
 ### Added
