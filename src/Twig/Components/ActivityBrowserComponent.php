@@ -214,6 +214,9 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp]
     public array $errors = [];
 
+    /** @var ActivityCategory[]|null memoised per render — see getCategoryTree() */
+    private ?array $allCategoriesCache = null;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
@@ -388,6 +391,54 @@ class ActivityBrowserComponent extends AbstractController
         }
 
         return false;
+    }
+
+    /**
+     * The whole category tree, for the sidebar shown alongside the breadcrumb/cards browsing on
+     * wide screens (mirrors SectionBrowserComponent::getSectionTree()) — every category of the
+     * centre (any teacher may browse the full tree, there's no per-category access gate the way
+     * DocumentSection has), pruned to ones with a relevant activity (in themselves or a descendant)
+     * when showAllProfiles is off, exactly like getVisibleCategories() prunes the card grid.
+     *
+     * @return array<int, array{category: ActivityCategory, children: array<mixed>}>
+     */
+    public function getCategoryTree(): array
+    {
+        $byParent = [];
+        foreach ($this->allCategoriesForTree() as $category) {
+            $key              = $category->getParent()?->getId()->toRfc4122() ?? '';
+            $byParent[$key][] = $category;
+        }
+
+        return $this->buildCategoryTreeNodes('', $byParent);
+    }
+
+    /** @return ActivityCategory[] every category of the centre, loaded once per render. */
+    private function allCategoriesForTree(): array
+    {
+        return $this->allCategoriesCache ??= $this->categories->findAllByCentre($this->centre);
+    }
+
+    /**
+     * @param array<string, ActivityCategory[]> $byParent
+     *
+     * @return array<int, array{category: ActivityCategory, children: array<mixed>}>
+     */
+    private function buildCategoryTreeNodes(string $parentKey, array $byParent): array
+    {
+        $teacher = $this->showAllProfiles ? null : $this->teacher();
+        $nodes   = [];
+        foreach ($byParent[$parentKey] ?? [] as $category) {
+            if ($teacher !== null && !$this->categoryHasRelevantActivity($category, $teacher)) {
+                continue;
+            }
+            $nodes[] = [
+                'category' => $category,
+                'children' => $this->buildCategoryTreeNodes($category->getId()->toRfc4122(), $byParent),
+            ];
+        }
+
+        return $nodes;
     }
 
     // ── Activities in the current category ───────────────────────────────────

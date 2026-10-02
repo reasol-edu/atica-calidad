@@ -7,6 +7,9 @@ tabs.edit_categories: 'Editar categorías'
 
 breadcrumb.root: 'Raíz'
 
+sidebar.title: 'Índice'
+sidebar.toggle: 'Mostrar/ocultar el índice — arrastra para cambiar su ancho'
+
 categories_empty: 'Todavía no hay ninguna categoría.'
 activities_empty: 'No hay actividades de esta categoría relevantes para tus perfiles.'
 show_all_profiles: 'Solo mis perfiles'

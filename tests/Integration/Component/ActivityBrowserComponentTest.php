@@ -140,7 +140,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
 
     // ── Category navigation / relevance filtering ────────────────────────────
 
-    public function testVisibleCategoriesAreFilteredToRelevantOnesByDefault(): void
+    public function testAllCategoriesAreVisibleByDefault(): void
     {
         $centre  = $this->centre();
         $relevantCategory   = $this->category($centre, 'Relevante');
@@ -172,10 +172,16 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
 
         $rendered = $component->render();
         self::assertStringContainsString('Relevante', (string) $rendered->crawler()->html());
-        self::assertStringNotContainsString('Irrelevante', (string) $rendered->crawler()->html());
+        self::assertStringContainsString('Irrelevante', (string) $rendered->crawler()->html());
+
+        $component->call('toggleShowAllProfiles');
+        $restricted = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('Relevante', $restricted);
+        self::assertStringNotContainsString('Irrelevante', $restricted);
     }
 
-    public function testShowAllProfilesRevealsIrrelevantCategoriesToo(): void
+    /** Showing everything is the default now; toggling it off is how a teacher narrows the tree down to just their own profiles. */
+    public function testTogglingShowAllProfilesOffHidesIrrelevantCategories(): void
     {
         $centre    = $this->centre();
         $category  = $this->category($centre, 'Sin relación conmigo');
@@ -192,11 +198,48 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
 
         $before = (string) $component->render()->crawler()->html();
-        self::assertStringNotContainsString('Sin relación conmigo', $before);
+        self::assertStringContainsString('Sin relación conmigo', $before);
 
         $component->call('toggleShowAllProfiles');
         $after = (string) $component->render()->crawler()->html();
-        self::assertStringContainsString('Sin relación conmigo', $after);
+        self::assertStringNotContainsString('Sin relación conmigo', $after);
+    }
+
+    /** The sidebar ("ÍNDICE") lists the whole category tree, nested, regardless of the current level — unlike getVisibleCategories(), which only lists the current level's children. */
+    public function testCategoryTreeListsNestedCategoriesRegardlessOfCurrentLevel(): void
+    {
+        $centre = $this->centre();
+        $root   = $this->category($centre, 'Raíz propia');
+        $child  = (new ActivityCategory())->setEducationalCentre($centre)->setName('Hija')->setParent($root);
+        $admin  = $this->admin();
+        $this->persist($centre, $root, $child, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('Raíz propia', $html);
+        self::assertStringContainsString('Hija', $html);
+    }
+
+    /** With the relevance filter on ("Solo mis perfiles"), the sidebar prunes a category with no relevant activity in itself or any descendant. */
+    public function testCategoryTreeIsPrunedWhenRestrictedToOwnProfiles(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre, 'Sin relación conmigo');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil ajeno');
+        $folder->addUploadProfile($profile);
+        $activity = $this->activity($category)->setFolder($folder);
+        $stranger = $this->teacher('ajeno');
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $stranger);
+
+        $this->loginAs($stranger, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleShowAllProfiles');
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringNotContainsString('Sin relación conmigo', $html);
     }
 
     public function testOpenLevelNavigatesIntoACategory(): void

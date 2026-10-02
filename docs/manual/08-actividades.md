@@ -98,10 +98,11 @@ un tono más suave:
 
 ![Pestaña «Ver», con las categorías de actividades del centro](img/actividades-ver.png)
 
-Navegación por migas de pan, igual que en el árbol documental: categorías con subcategorías y,
-dentro de cada una, sus actividades. Por defecto solo se ven las actividades de los perfiles que
-tiene el docente; **Mostrar lo de todos los perfiles** añade también las demás, atenuadas, para
-quien necesite una vista completa sin tener que asumir esos perfiles.
+Navegación por migas de pan, igual que en el árbol documental, con un **índice** lateral (en
+pantallas anchas) que lista todas las categorías y subcategorías para saltar directamente a
+cualquiera de ellas. Por defecto se ven todas las categorías y actividades del centro; el botón
+**Solo mis perfiles** las restringe a las que le corresponden al docente por sus propios perfiles,
+tanto en el índice como en las tarjetas.
 
 Quien **gestiona o revisa la carpeta** de una actividad ve además, en su tarjeta, el **avance
 global** de las entregas de este curso: una barra y una línea como «14/20 entregadas · 3 en
