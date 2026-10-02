@@ -53,8 +53,8 @@ documento. Los documentos de carpetas que no son de ninguna actividad siguen apa
 ![Pestaña «Mis actividades»: el resumen personal y la lista, con una actividad de cada estado y su color de fondo](img/actividades-mias.png)
 
 Lista plana de todas las actividades que le corresponden al docente, en cualquier categoría, con
-buscador, un interruptor **Solo lo que me toca** (oculta lo que no requiere nada del docente ahora
-mismo: lo que está en revisión, lo que aún no se ha abierto, lo cerrado y lo hecho) y filtros por
+buscador, un interruptor **Lo que tengo que hacer ahora** (oculta lo que no requiere nada del
+docente ahora mismo: lo que está en revisión, lo que aún no se ha abierto, lo cerrado y lo hecho) y filtros por
 fecha límite, perfil, categoría y estado. Es la vista pensada para el día a día: «¿qué me queda por
 hacer?», sin tener que navegar por la estructura de categorías.
 
