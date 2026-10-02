@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Service;
 
+use App\Entity\AcademicYear;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\ActivityCompletion;
@@ -223,6 +224,88 @@ final class ActivityCompletionCheckerTest extends RepositoryTestCase
         $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $activity, $teacher);
 
         self::assertTrue($this->checker->isApplicableToTeacher($teacher, $activity));
+    }
+
+    public function testIsResponsibleForIsTrueWhenTeacherHoldsAResponsibleProfile(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura de Estudios');
+        $activity = $this->activity($category)->addResponsibleProfile($profile);
+        $teacher  = $this->teacher('jefatura');
+        $assign   = new SpecificProfileAssignment($profile, null, $teacher);
+
+        $this->persist($centre, $category, $profile, $activity, $teacher, $assign);
+
+        self::assertTrue($this->checker->isResponsibleFor($teacher, $activity));
+    }
+
+    public function testIsResponsibleForIsFalseWithoutAMatchingProfile(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura de Estudios');
+        $activity = $this->activity($category)->addResponsibleProfile($profile);
+        $teacher  = $this->teacher('docente');
+
+        $this->persist($centre, $category, $profile, $activity, $teacher);
+
+        self::assertFalse($this->checker->isResponsibleFor($teacher, $activity));
+    }
+
+    private function activeYear(EducationalCentre $centre): AcademicYear
+    {
+        $year = (new AcademicYear())->setName('2026-2027')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+
+        return $year;
+    }
+
+    public function testManualCompletionStatsListsApplicableTeachersWithCompletionState(): void
+    {
+        $centre   = $this->centre();
+        $year     = $this->activeYear($centre);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = $this->activity($category);
+        $done     = $this->teacher('hecha');
+        $pending  = $this->teacher('pendiente');
+        $done->addAcademicYear($year);
+        $pending->addAcademicYear($year);
+        $completion = new ActivityCompletion($activity, $done, null, null, $done, $this->cycleKey($activity));
+
+        $this->persist($centre, $year, $category, $activity, $done, $pending, $completion);
+
+        $stats = $this->checker->manualCompletionStats($activity, [$done, $pending]);
+
+        self::assertCount(2, $stats);
+        $byUsername = [];
+        foreach ($stats as $row) {
+            $byUsername[$row['teacher']->getUsername()] = $row['completed'];
+        }
+        self::assertTrue($byUsername['hecha']);
+        self::assertFalse($byUsername['pendiente']);
+    }
+
+    public function testManualCompletionStatsExcludesTeachersOutsideARestriction(): void
+    {
+        $centre   = $this->centre();
+        $year     = $this->activeYear($centre);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $activity = $this->activity($category)->setGeneral(false)->addProfileRestriction($profile);
+        $holder   = $this->teacher('tutor');
+        $outsider = $this->teacher('ajeno');
+        $holder->addAcademicYear($year);
+        $outsider->addAcademicYear($year);
+        $assign = new SpecificProfileAssignment($profile, null, $holder);
+
+        $this->persist($centre, $year, $category, $profile, $activity, $holder, $outsider, $assign);
+
+        $stats = $this->checker->manualCompletionStats($activity, [$holder, $outsider]);
+
+        self::assertCount(1, $stats);
+        self::assertSame('tutor', $stats[0]['teacher']->getUsername());
+        self::assertFalse($stats[0]['completed']);
     }
 
     public function testGetMyOwnedObligationsForIndividualScopeRequiresAHeldSlot(): void

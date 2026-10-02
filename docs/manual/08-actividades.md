@@ -140,6 +140,7 @@ Una actividad eliminada, con sus completados, pasa a la
 | Obligatoria / Opcional | Solo informativo: se muestra como etiqueta, no cambia ningún permiso. |
 | Ámbito de entrega | **Por perfil** (una entrega compartida por todo el que tenga el perfil/subperfil) o **Individual** (cada docente con ese perfil entrega la suya). |
 | A quién se le pide | Solo si **no** hay carpeta (con carpeta, lo deciden sus propios perfiles de subida — ver [Permisos sobre una carpeta](07-arbol-documental.md#permisos-sobre-una-carpeta)). **A todo el profesorado** (por defecto) o **Solo a ciertos perfiles**, eligiendo uno o varios perfiles o subperfiles en un desplegable con buscador — igual que al [restringir un evento del calendario](03-calendario.md). El resto del profesorado la sigue viendo en **Ver**, pero no le es pendiente ni puede completarla. |
+| Perfiles responsables | Solo si **no** hay carpeta (con carpeta, lo deciden sus propios perfiles responsables). Opcional: uno o varios perfiles o subperfiles que, además de responsable de calidad y equipo directivo/admin., pueden ver las **estadísticas de completado** de la actividad (ver [Completar una actividad manual](#completar-una-actividad-manual)). |
 | Completado automático | Solo si hay carpeta: la actividad se da por completada en cuanto el documento esperado está aprobado, sin botón de completar manual. |
 | Prefijo de entrega | Opcional. Sustituye al título como lo primero que lleva el nombre del fichero al descargar una entrega — ver [Nombre del fichero descargado](#nombre-del-fichero-descargado). Vacío por defecto: se usa el título. Un guion («-») a solas quita el prefijo del todo. |
 
@@ -245,7 +246,23 @@ Una actividad sin carpeta se completa con el botón **Marcar como completada**, 
 confirmación antes de darla por hecha (para evitar marcarla sin querer). Una vez completada, un
 botón **Deshacer** la revierte sin pedir confirmación —deshacer no tiene el mismo riesgo que
 completar por error—. Si el ámbito es **por perfil**, hay un botón de completar independiente por
-cada perfil/subperfil que tenga el docente.
+cada perfil/subperfil que tenga el docente. El botón solo aparece a quien le corresponda la
+actividad (ver [A quién se le pide](#campos-de-una-actividad)); al resto no se le ofrece.
+
+### Estadísticas y completar por otro docente
+
+Responsable de calidad, equipo directivo/admin. del centro y, si se han elegido, quien tenga uno de
+los [perfiles responsables](#campos-de-una-actividad) de la actividad pueden abrir
+**Estadísticas**, bajo el botón de completar, con una fila por cada docente al que le corresponde
+—toda la plantilla si es general, o solo los perfiles elegidos si está restringida— y su estado:
+**Pendiente** o **Completada**.
+
+Además, responsable de calidad y equipo directivo/admin. (no quien solo tenga un perfil
+responsable) pueden **Marcar**/**Desmarcar** la completada de cualquier docente de la lista
+directamente desde esa tabla, sin esperar a que lo haga él mismo y sin las restricciones de fecha
+que sí se aplican al propio docente (ver [Campos de una actividad](#campos-de-una-actividad),
+«Fecha de inicio / Fecha de fin»). Queda anotado en el
+[registro de actividad](10-administrar-la-plataforma.md#registro-de-actividad).
 
 ## Actividades en el calendario
 
@@ -288,7 +305,12 @@ avisos por correo —al instante o en un resumen diario— se configura en
 | Deshacer un completado manual | — | ✅ (la propia) | ✅ | ✅ |
 | Aprobar o rechazar una entrega pendiente, una a una o varias a la vez | — | — | ✅ (con perfil de revisión) | ✅ |
 | Recordar a pendientes | — | — | ✅ | ✅ |
+| Ver las estadísticas de completado (actividad sin carpeta) | — | — | ✅ (con perfil responsable de la actividad) | ✅ |
+| Marcar/desmarcar la completada de otro docente (actividad sin carpeta) | — | — | — | ✅ |
 | Crear/editar categorías y actividades | — | — | — | ✅ |
 | Recuperar de la papelera lo eliminado | — | — | — | ✅ (responsable de calidad y equipo directivo) |
+
+En una actividad sin carpeta, la tercera columna corresponde a quien tenga uno de sus
+[perfiles responsables](#campos-de-una-actividad), no a ningún perfil de una carpeta (no la tiene).
 
 Volver a [Permisos de un vistazo](11-permisos-de-un-vistazo.md) para el resto de la aplicación.

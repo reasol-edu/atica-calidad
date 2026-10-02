@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Component;
 
+use App\Entity\AcademicYear;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\ActivityCompletion;
@@ -2481,5 +2482,200 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertSame($category->getId()->toRfc4122(), $this->stringProp($component, 'currentCategoryId'));
         self::assertContains($activity->getId()->toRfc4122(), $this->stringListProp($component, 'expandedAllSubmissions'));
         self::assertSame($submission->getId()->toRfc4122(), $this->stringProp($component, 'highlightedDocumentId'));
+    }
+
+    // ── Responsible profiles / manual completion stats ──────────────────────────
+
+    public function testSaveActivitySavesResponsibleProfiles(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura de Estudios');
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $profile, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $component
+            ->set('formTitle', 'Actividad con responsable')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formFolderId', '')
+            ->set('formResponsibleProfileKeys', [$profile->getId()->toRfc4122()])
+            ->call('saveActivity');
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedCategory = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        $created = $activities->findByCategory($reloadedCategory);
+        self::assertCount(1, $created);
+        self::assertCount(1, $created[0]->getResponsibleProfiles());
+    }
+
+    public function testSaveActivityClearsResponsibleProfilesWhenAFolderIsSet(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura de Estudios');
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $component
+            ->set('formTitle', 'Actividad con carpeta')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formFolderId', $folder->getId()->toRfc4122())
+            ->set('formResponsibleProfileKeys', [$profile->getId()->toRfc4122()])
+            ->call('saveActivity');
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloadedCategory = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        $created = $activities->findByCategory($reloadedCategory);
+        self::assertCount(1, $created);
+        self::assertCount(0, $created[0]->getResponsibleProfiles(), 'a folder-backed activity has no responsible profiles of its own');
+    }
+
+    public function testManualCompletionButtonIsHiddenFromATeacherTheActivityDoesNotApplyTo(): void
+    {
+        $centre = $this->centre();
+        $this->persist($centre);
+        [$activity] = $this->restrictedManualActivityHeldBy($centre, $this->teacher('tutor'));
+        $outsider = $this->teacher('ajeno');
+        $this->persist($outsider);
+
+        $this->loginAs($outsider, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $activity->getCategory()->getId()->toRfc4122(),
+        ], $this->client);
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringNotContainsString('Marcar como completada', $html);
+    }
+
+    public function testManualCompletionButtonIsShownForAnApplicableTeacher(): void
+    {
+        $centre = $this->centre();
+        $this->persist($centre);
+        $tutor = $this->teacher('tutor');
+        [$activity] = $this->restrictedManualActivityHeldBy($centre, $tutor);
+
+        $this->loginAs($tutor, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $activity->getCategory()->getId()->toRfc4122(),
+        ], $this->client);
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringContainsString('Marcar como completada', $html);
+    }
+
+    public function testToggleManualCompletionForTeacherIsGrantedForAnAdmin(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2026-2027')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = $this->category($centre);
+        $activity = $this->activity($category);
+        $target   = $this->teacher('docente');
+        $target->addAcademicYear($year);
+        $admin = $this->admin();
+        $this->persist($centre, $year, $category, $activity, $target, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleManualCompletionForTeacher', ['activityId' => $activity->getId()->toRfc4122(), 'teacherId' => $target->getId()->toRfc4122()]);
+
+        self::assertSame(1, $this->completionCount());
+
+        // Toggling again undoes it.
+        $component->call('toggleManualCompletionForTeacher', ['activityId' => $activity->getId()->toRfc4122(), 'teacherId' => $target->getId()->toRfc4122()]);
+        self::assertSame(0, $this->completionCount());
+    }
+
+    /** The user asked specifically for "un responsable de calidad o administrador" — a teacher who only holds the activity's own responsible profile (and so can see its stats) must not be able to act on someone else's behalf. */
+    public function testToggleManualCompletionForTeacherIsDeniedForATeacherHoldingOnlyTheResponsibleProfile(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2026-2027')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = $this->category($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura de Estudios');
+        $activity = $this->activity($category)->addResponsibleProfile($profile);
+        $manager  = $this->teacher('jefatura');
+        $assign   = new SpecificProfileAssignment($profile, null, $manager);
+        $target   = $this->teacher('docente');
+        $target->addAcademicYear($year);
+        $this->persist($centre, $year, $category, $profile, $activity, $manager, $assign, $target);
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+
+        try {
+            $component->call('toggleManualCompletionForTeacher', ['activityId' => $activity->getId()->toRfc4122(), 'teacherId' => $target->getId()->toRfc4122()]);
+            self::fail('a responsible-profile holder without RESPONSIBILITIES must not toggle another teacher\'s completion');
+        } catch (AccessDeniedException) {
+        }
+
+        self::assertSame(0, $this->completionCount());
+    }
+
+    public function testToggleManualCompletionForTeacherIsDeniedForARandomTeacher(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2026-2027')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = $this->category($centre);
+        $activity = $this->activity($category);
+        $target   = $this->teacher('docente');
+        $target->addAcademicYear($year);
+        $stranger = $this->teacher('ajeno');
+        $this->persist($centre, $year, $category, $activity, $target, $stranger);
+
+        $this->loginAs($stranger, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+
+        try {
+            $component->call('toggleManualCompletionForTeacher', ['activityId' => $activity->getId()->toRfc4122(), 'teacherId' => $target->getId()->toRfc4122()]);
+            self::fail('a teacher without RESPONSIBILITIES must not toggle another teacher\'s completion');
+        } catch (AccessDeniedException) {
+        }
+
+        self::assertSame(0, $this->completionCount());
+    }
+
+    public function testToggleManualCompletionForTeacherIsANoOpForATeacherOutsideARestriction(): void
+    {
+        $centre = $this->centre();
+        $year   = (new AcademicYear())->setName('2026-2027')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $this->persist($centre, $year);
+        [$activity] = $this->restrictedManualActivityHeldBy($centre, $this->teacher('tutor'));
+        $outsider = $this->teacher('ajeno');
+        $outsider->addAcademicYear($year);
+        $admin = $this->admin();
+        $this->persist($outsider, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleManualCompletionForTeacher', ['activityId' => $activity->getId()->toRfc4122(), 'teacherId' => $outsider->getId()->toRfc4122()]);
+
+        self::assertSame(0, $this->completionCount(), 'an admin cannot complete a restricted activity on behalf of a teacher it does not apply to');
     }
 }

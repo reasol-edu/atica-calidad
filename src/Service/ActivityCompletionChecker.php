@@ -111,6 +111,23 @@ final class ActivityCompletionChecker
         return false;
     }
 
+    /**
+     * Whether $teacher holds one of a manual activity's own responsible profiles — who can see its
+     * completion stats alongside a responsable de calidad/admin (see
+     * ActivityBrowserComponent::canManageActivity()), independent of any folder-management rights.
+     * Always false for a folder-backed activity, which has no responsible profiles of its own.
+     */
+    public function isResponsibleFor(Teacher $teacher, Activity $activity): bool
+    {
+        foreach ($activity->getResponsibleProfiles() as $responsible) {
+            if ($this->access->holdsProfile($teacher, $responsible->getSpecificProfile(), $responsible->getListItem())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** @return list<array{profile: SpecificProfile, listItem: ?ListItem}> distinct upload rows $teacher holds among this activity's slots (ByProfile scope only). */
     public function getMyCompletionOwners(Teacher $teacher, Activity $activity): array
     {
@@ -262,5 +279,40 @@ final class ActivityCompletionChecker
         $this->em->remove($completion);
 
         return true;
+    }
+
+    /**
+     * Completion breakdown of a manual (folder-less) activity across $candidateTeachers — for
+     * whoever manages it (see ActivityBrowserComponent::canManageActivity()), who has no folder to
+     * delegate "who's done it" to otherwise. $candidateTeachers is filtered down to the ones the
+     * activity actually applies to (see isApplicableToTeacher()), so a restricted activity's stats
+     * never list an irrelevant teacher. Matches findOneForOwner()'s exact-identity predicate (an
+     * Individual-scope completion: teacher set, profile and listItem both null) for this
+     * occurrence's cycle year, so a stats row never disagrees with what the mark/unmark buttons see.
+     *
+     * @param  Teacher[] $candidateTeachers
+     * @return list<array{teacher: Teacher, completed: bool}>
+     */
+    public function manualCompletionStats(Activity $activity, array $candidateTeachers): array
+    {
+        $cycleYear           = $this->cycleKey($activity);
+        $completedTeacherIds = [];
+        foreach ($this->completions->findByActivity($activity) as $completion) {
+            $teacher = $completion->getTeacher();
+            if ($teacher !== null && $completion->getProfile() === null && $completion->getListItem() === null
+                && $completion->getCycleYear() === $cycleYear) {
+                $completedTeacherIds[$teacher->getId()->toRfc4122()] = true;
+            }
+        }
+
+        $rows = [];
+        foreach ($candidateTeachers as $teacher) {
+            if (!$this->isApplicableToTeacher($teacher, $activity)) {
+                continue;
+            }
+            $rows[] = ['teacher' => $teacher, 'completed' => isset($completedTeacherIds[$teacher->getId()->toRfc4122()])];
+        }
+
+        return $rows;
     }
 }

@@ -7,6 +7,7 @@ namespace App\Twig\Components;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\ActivityProfile;
+use App\Entity\ActivityResponsibleProfile;
 use App\Entity\ActivitySubmissionScope;
 use App\Entity\AllowedFileFormat;
 use App\Entity\Document;
@@ -159,6 +160,10 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public array $formProfileKeys = [];
 
+    /** @var string[] ProfileAssignmentRow keys of the activity's own responsible profiles, meaningful only when formFolderId === ''. */
+    #[LiveProp(writable: true)]
+    public array $formResponsibleProfileKeys = [];
+
     #[LiveProp(writable: true)]
     public string $confirmingDeleteActivityId = '';
 
@@ -267,6 +272,23 @@ class ActivityBrowserComponent extends AbstractController
     public function canEdit(): bool
     {
         return $this->isGranted(EducationalCentreVoter::RESPONSIBILITIES, $this->centre);
+    }
+
+    /**
+     * Whether the viewer manages $activity — a responsable de calidad/admin, or (for a manual
+     * activity) a teacher holding one of its own responsible profiles — who can see its
+     * completion stats. Narrower than canEdit() alone; the per-teacher mark/unmark-for-someone-
+     * else action still requires canEdit() specifically (see toggleManualCompletionForTeacher()).
+     */
+    public function canManageActivity(Activity $activity): bool
+    {
+        return $this->canEdit() || $this->completion->isResponsibleFor($this->teacher(), $activity);
+    }
+
+    /** Whether this manual (folder-less) activity even applies to the viewer — see ActivityCompletionChecker::isApplicableToTeacher(). */
+    public function isApplicableToTeacher(Activity $activity): bool
+    {
+        return $this->completion->isApplicableToTeacher($this->teacher(), $activity);
     }
 
     // ── Category navigation ──────────────────────────────────────────────────
@@ -576,6 +598,7 @@ class ActivityBrowserComponent extends AbstractController
         $this->formScope       = 'by_profile';
         $this->formGeneral     = true;
         $this->formProfileKeys = [];
+        $this->formResponsibleProfileKeys = [];
         $this->activityFormOpen = true;
         $this->errors           = [];
     }
@@ -612,6 +635,10 @@ class ActivityBrowserComponent extends AbstractController
         $this->formProfileKeys  = array_map(
             static fn (ActivityProfile $r): string => ProfileAssignmentRow::keyFor($r->getSpecificProfile(), $r->getListItem()),
             $activity->getProfileRestrictions()->toArray(),
+        );
+        $this->formResponsibleProfileKeys = array_map(
+            static fn (ActivityResponsibleProfile $r): string => ProfileAssignmentRow::keyFor($r->getSpecificProfile(), $r->getListItem()),
+            $activity->getResponsibleProfiles()->toArray(),
         );
         $this->activityFormOpen = true;
         $this->errors           = [];
@@ -700,17 +727,30 @@ class ActivityBrowserComponent extends AbstractController
         // $this->formAutoComplete is true, and setAutoComplete(false) never throws either way.
         $activity->setAutoComplete($this->formAutoComplete);
 
+        $rowsByKey = [];
+        foreach ($this->getAvailableProfileRows() as $row) {
+            $rowsByKey[$row->key()] = $row;
+        }
+
         $activity->setGeneral(!$restricted);
         $activity->clearProfileRestrictions();
         if ($restricted) {
-            $rowsByKey = [];
-            foreach ($this->getAvailableProfileRows() as $row) {
-                $rowsByKey[$row->key()] = $row;
-            }
             foreach ($this->formProfileKeys as $key) {
                 $row = $rowsByKey[$key] ?? null;
                 if ($row !== null) {
                     $activity->addProfileRestriction($row->profile, $row->listItem);
+                }
+            }
+        }
+
+        // Responsible profiles are meaningful only for a manual activity — a folder-backed one's
+        // management already comes from the folder's own FolderResponsibleProfile rows.
+        $activity->clearResponsibleProfiles();
+        if ($folder === null) {
+            foreach ($this->formResponsibleProfileKeys as $key) {
+                $row = $rowsByKey[$key] ?? null;
+                if ($row !== null) {
+                    $activity->addResponsibleProfile($row->profile, $row->listItem);
                 }
             }
         }
@@ -940,6 +980,28 @@ class ActivityBrowserComponent extends AbstractController
     }
 
     /**
+     * Per-teacher completion breakdown of a manual (folder-less) activity, this academic year —
+     * the no-folder equivalent of getSubmissionProgress(), for whoever manages the activity (see
+     * canManageActivity()); null for a folder-backed activity, for anyone who doesn't manage it, or
+     * when the centre has no active academic year.
+     *
+     * @return ?list<array{teacher: Teacher, completed: bool}>
+     */
+    public function getManualCompletionStats(Activity $activity): ?array
+    {
+        if ($activity->requiresSubmissions() || !$this->canManageActivity($activity)) {
+            return null;
+        }
+
+        $year = $this->centre->getActiveAcademicYear();
+        if ($year === null) {
+            return [];
+        }
+
+        return $this->completion->manualCompletionStats($activity, $this->teachers->findByAcademicYearOrderedByName($year));
+    }
+
+    /**
      * The activity's submissions awaiting review, for its bulk review box — only for whoever
      * reviews its folder; empty for everyone else. Split between the current occurrence's and
      * those left from earlier ones (by their document's cycle key, see
@@ -1125,6 +1187,48 @@ class ActivityBrowserComponent extends AbstractController
         $this->em->flush();
 
         $this->flashSuccess($this->t('activity.flash.completion_undone'));
+    }
+
+    /**
+     * Marks or unmarks another teacher's completion of a manual activity — only a responsable de
+     * calidad/admin may act on someone else's behalf (requireEditPermission(), not the broader
+     * canManageActivity(): the user asked specifically for "un responsable de calidad o
+     * administrador", not every activity-responsible teacher). Deliberately bypasses
+     * ActivityWindowChecker: unlike the teacher's own self-service button, a manager correcting
+     * someone else's record is not meant to be blocked by the deadline window.
+     */
+    #[LiveAction]
+    public function toggleManualCompletionForTeacher(#[LiveArg] string $activityId, #[LiveArg] string $teacherId): void
+    {
+        $this->requireEditPermission();
+
+        $activity = $this->findActivity($activityId);
+        if ($activity === null || $activity->requiresSubmissions() || $activity->isAutoComplete()) {
+            return;
+        }
+
+        $year    = $this->centre->getActiveAcademicYear();
+        $teacher = $year === null ? null : $this->teachers->findByAcademicYearAndId($year, $teacherId);
+        if ($teacher === null || !$this->completion->isApplicableToTeacher($teacher, $activity)) {
+            return;
+        }
+
+        $completing = !$this->completion->isCompletedFor($activity, null, null, $teacher);
+        if ($completing) {
+            $created = $this->completion->markCompleted($activity, $teacher, null, null, $this->teacher());
+        } else {
+            $created = $this->completion->unmarkCompleted($activity, $teacher, null, null);
+        }
+        if (!$created) {
+            return;
+        }
+
+        $this->em->flush();
+
+        $logData = ['activity' => $activity->getTitle(), 'teacher' => $teacher->getName()->getLastName() . ', ' . $teacher->getName()->getFirstName()];
+        $this->activityLogger->record($completing ? 'activity.mark_complete' : 'activity.unmark_complete', $logData, $this->centre);
+
+        $this->flashSuccess($this->t($completing ? 'activity.flash.completed' : 'activity.flash.completion_undone'));
     }
 
     /**

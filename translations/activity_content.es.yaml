@@ -89,6 +89,13 @@ completion.window.blocked_before: 'No se puede marcar como completada hasta el %
 completion.window.blocked_after: 'El plazo para marcar como completada terminó el %date%.'
 completion.window.late_hint: 'con retraso'
 
+manual_stats.toggle: 'Estadísticas'
+manual_stats.empty: 'No hay ningún docente al que se le pida esta actividad.'
+manual_stats.completed: 'Completada'
+manual_stats.pending: 'Pendiente'
+manual_stats.mark_done: 'Marcar'
+manual_stats.mark_undone: 'Desmarcar'
+
 upload.error.too_large: 'El fichero supera el tamaño máximo permitido.'
 upload.error.no_file: 'No se ha seleccionado ningún fichero.'
 upload.error.file_too_large: '%filename% supera el tamaño máximo permitido (20 MB).'

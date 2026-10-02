@@ -109,6 +109,18 @@ class Activity implements Trashable
     #[ORM\OneToMany(targetEntity: ActivityProfile::class, mappedBy: 'activity', cascade: ['persist'], orphanRemoval: true)]
     private Collection $profileRestrictions;
 
+    /**
+     * Meaningful only for a manual (folder-less) activity: a teacher holding one of these profiles
+     * can see its completion stats and mark/unmark another teacher's completion, same as a
+     * responsable de calidad/admin — see ActivityCompletionChecker::isResponsibleFor(). Always
+     * empty for a folder-backed activity, whose management already comes from the folder's own
+     * FolderResponsibleProfile rows.
+     *
+     * @var Collection<int, ActivityResponsibleProfile>
+     */
+    #[ORM\OneToMany(targetEntity: ActivityResponsibleProfile::class, mappedBy: 'activity', cascade: ['persist'], orphanRemoval: true)]
+    private Collection $responsibleProfiles;
+
     /** When true, submissions and manual completion are refused before the yearly start date. */
     #[ORM\Column]
     private bool $startDateEnforced = false;
@@ -143,6 +155,7 @@ class Activity implements Trashable
         $this->tags                = new ArrayCollection();
         $this->relatedDocuments    = new ArrayCollection();
         $this->profileRestrictions = new ArrayCollection();
+        $this->responsibleProfiles = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -346,6 +359,46 @@ class Activity implements Trashable
     {
         foreach (iterator_to_array($this->profileRestrictions) as $restriction) {
             $this->removeProfileRestriction($restriction);
+        }
+
+        return $this;
+    }
+
+    /** @return Collection<int, ActivityResponsibleProfile> */
+    public function getResponsibleProfiles(): Collection
+    {
+        return $this->responsibleProfiles;
+    }
+
+    public function hasResponsibleProfile(SpecificProfile $profile, ?ListItem $listItem): bool
+    {
+        return $this->responsibleProfiles->exists(
+            static fn (int $i, ActivityResponsibleProfile $r): bool =>
+                $r->getSpecificProfile() === $profile && $r->getListItem() === $listItem
+        );
+    }
+
+    public function addResponsibleProfile(SpecificProfile $profile, ?ListItem $listItem = null): static
+    {
+        if (!$this->hasResponsibleProfile($profile, $listItem)) {
+            $this->responsibleProfiles->add(new ActivityResponsibleProfile($this, $profile, $listItem));
+        }
+
+        return $this;
+    }
+
+    public function removeResponsibleProfile(ActivityResponsibleProfile $responsible): static
+    {
+        $this->responsibleProfiles->removeElement($responsible);
+
+        return $this;
+    }
+
+    /** Drops every responsible-profile row — used when the activity gains a folder. */
+    public function clearResponsibleProfiles(): static
+    {
+        foreach (iterator_to_array($this->responsibleProfiles) as $responsible) {
+            $this->removeResponsibleProfile($responsible);
         }
 
         return $this;

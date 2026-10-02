@@ -156,9 +156,59 @@
             {% if has_submissions %}
                 {% include 'components/_activity_submissions.html.twig' with {activity: activity, folder: folder} %}
             {% else %}
-                <div class="border-t border-gray-100 pt-3">
-                    {% include 'components/_activity_completion.html.twig' with {activity: activity, profile: null, list_item: null, teacher_owned: true} %}
-                </div>
+                {% set is_applicable = this.isApplicableToTeacher(activity) %}
+                {% set can_manage_activity = this.canManageActivity(activity) %}
+                {% if is_applicable or can_manage_activity %}
+                    <div class="border-t border-gray-100 pt-3 space-y-3">
+                        {% if is_applicable %}
+                            {% include 'components/_activity_completion.html.twig' with {activity: activity, profile: null, list_item: null, teacher_owned: true} %}
+                        {% endif %}
+                        {% if can_manage_activity %}
+                            <div>
+                                <button type="button" data-action="live#action" data-live-action-param="toggleStats" data-live-activity-id-param="{{ aid }}"
+                                        class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700">
+                                    {{ ux_icon('heroicons:chart-bar', {class: 'h-3.5 w-3.5'}) }}
+                                    {{ 'manual_stats.toggle'|trans({}, 'activity_content') }}
+                                    {{ ux_icon(aid in statsShown ? 'heroicons:chevron-up' : 'heroicons:chevron-down', {class: 'h-3.5 w-3.5'}) }}
+                                </button>
+                                {% if aid in statsShown %}
+                                    {% set manual_stats = this.getManualCompletionStats(activity) %}
+                                    {% if manual_stats is empty %}
+                                        <p class="mt-2 rounded-lg border border-gray-100 bg-gray-50/50 px-3 py-2 text-xs italic text-gray-500">
+                                            {{ 'manual_stats.empty'|trans({}, 'activity_content') }}
+                                        </p>
+                                    {% else %}
+                                        <div class="mt-2 overflow-hidden rounded-lg border border-gray-100">
+                                            <table class="w-full text-xs">
+                                                <tbody class="divide-y divide-gray-50">
+                                                    {% for row in manual_stats %}
+                                                        <tr>
+                                                            <td class="px-3 py-1.5 text-gray-600">{{ row.teacher.name.lastName }}, {{ row.teacher.name.firstName }}</td>
+                                                            <td class="px-3 py-1.5 text-right whitespace-nowrap">
+                                                                <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium {{ row.completed ? 'bg-forest-50 text-forest-700' : 'bg-gray-100 text-gray-500' }}">
+                                                                    {{ (row.completed ? 'manual_stats.completed' : 'manual_stats.pending')|trans({}, 'activity_content') }}
+                                                                </span>
+                                                            </td>
+                                                            {% if can_edit %}
+                                                                <td class="px-3 py-1.5 text-right whitespace-nowrap">
+                                                                    <button type="button" data-action="live#action" data-live-action-param="toggleManualCompletionForTeacher"
+                                                                            data-live-activity-id-param="{{ aid }}" data-live-teacher-id-param="{{ row.teacher.id.toRfc4122 }}"
+                                                                            class="text-xs text-gray-400 hover:text-forest-600">
+                                                                        {{ (row.completed ? 'manual_stats.mark_undone' : 'manual_stats.mark_done')|trans({}, 'activity_content') }}
+                                                                    </button>
+                                                                </td>
+                                                            {% endif %}
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
             {% endif %}
         {% endif %}
     </div>
