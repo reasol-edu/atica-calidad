@@ -290,15 +290,18 @@ summary:focus-visible {
   0%   { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-/* Search-result "you just landed here" flash: a few gentle background pulses that settle back to
-   transparent, applied to a document row when jumped to from the tree-wide search or ⌘K (instead
-   of forcing its revision panel open). */
+/* Search-result "you just landed here" marker, applied to a document row when jumped to from the
+   tree-wide search or ⌘K (instead of forcing its revision panel open): fades in to a clearly
+   visible tint plus a solid left accent bar, then stays that way — it's tied to the component's own
+   highlightedDocumentId, so it already only goes away once that's no longer the row in question
+   (e.g. the viewer opens a different search result); the animation just needs to not undo that by
+   fading itself back out. */
 @keyframes document-highlight-pulse {
-  0%, 100% { background-color: transparent; }
-  50%      { background-color: color-mix(in srgb, var(--color-forest-500) 20%, transparent); }
+  0%   { background-color: transparent; box-shadow: inset 3px 0 0 0 transparent; }
+  100% { background-color: color-mix(in srgb, var(--color-forest-500) 45%, transparent); box-shadow: inset 3px 0 0 0 var(--color-forest-500); }
 }
 .document-highlight-pulse {
-  animation: document-highlight-pulse 1.4s ease-in-out 3;
+  animation: document-highlight-pulse 0.6s ease-out 1 forwards;
 }
 /* Our search boxes render their own "×" clear button; hide the browser's native one
    (WebKit/Blink's search-cancel button, Edge's clear-button) so it isn't shown twice. */
