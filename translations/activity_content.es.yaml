@@ -9,7 +9,7 @@ breadcrumb.root: 'Raíz'
 
 categories_empty: 'Todavía no hay ninguna categoría.'
 activities_empty: 'No hay actividades de esta categoría relevantes para tus perfiles.'
-show_all_profiles: 'Mostrar lo de todos los perfiles'
+show_all_profiles: 'Solo mis perfiles'
 
 mine.stat.todo: 'Por hacer'
 mine.stat.overdue_within: '{1}1 vencida|]1,Inf[%count% vencidas'

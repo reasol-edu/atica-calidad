@@ -55,10 +55,10 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
  * "Ver" tab of Actividades: browses the category tree (any teacher) and, within a category, lists
- * its activities — filtered to whichever are relevant to the current teacher's own folder
- * profiles/roles, unless $showAllProfiles widens it (a relevance filter, never an access gate: a
- * category/activity's own folder visibility is still always enforced underneath, see
- * DocumentTreeAccessChecker::isActivityRelevantToTeacher()). Activity CRUD is reserved to
+ * its activities — the whole tree by default; turning $showAllProfiles off narrows both down to
+ * whichever are relevant to the current teacher's own folder profiles/roles (a relevance filter,
+ * never an access gate: a category/activity's own folder visibility is still always enforced
+ * underneath, see DocumentTreeAccessChecker::isActivityRelevantToTeacher()). Activity CRUD is reserved to
  * EducationalCentreVoter::RESPONSIBILITIES, done inline here (not in the separate "Editar
  * categorías" tab) — mirrors exactly how Folder creation/editing lives in Document Tree's "Ver"
  * tab, not its "Editar árbol" tab. Everything about a submission's underlying Document (new
@@ -79,9 +79,14 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $currentCategoryId = '';
 
-    /** Relevance-widening toggle, available to any teacher — never bypasses folder/section visibility. */
+    /**
+     * Relevance filter, available to any teacher — never an access gate (a category/activity's own
+     * folder/section visibility is still always enforced underneath). On by default: the "Ver" tab
+     * shows the whole tree to begin with, and turning this off is how a teacher narrows it down to
+     * just what's relevant to their own profiles.
+     */
     #[LiveProp(writable: true)]
-    public bool $showAllProfiles = false;
+    public bool $showAllProfiles = true;
 
     #[LiveProp(writable: true)]
     public string $searchQuery = '';

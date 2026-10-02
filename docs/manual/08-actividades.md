@@ -87,7 +87,7 @@ los recordatorios por correo se basan en él:
 
 Si un docente tiene varias obligaciones en la misma actividad (por ejemplo, dos perfiles), la
 tarjeta de la pestaña **Ver** muestra la más urgente. Una actividad que no le corresponde al
-docente —la ve con «Mostrar lo de todos los perfiles»— no se colorea: su fecha no es asunto suyo.
+docente no se colorea: su fecha no es asunto suyo.
 
 En la pestaña **Ver**, dentro de una categoría, las tarjetas de actividad llevan el mismo color en
 un tono más suave:
@@ -297,7 +297,7 @@ avisos por correo —al instante o en un resumen diario— se configura en
 
 | Puede... | Docente sin el perfil de la actividad | Docente con el perfil de la actividad | Perfil responsable/de revisión de la carpeta vinculada | Responsable de calidad / equipo directivo / admin. |
 | --- | :-: | :-: | :-: | :-: |
-| Ver la actividad en «Ver» (atenuada, con «Mostrar lo de todos los perfiles») | ✅ | ✅ | ✅ | ✅ |
+| Ver la actividad en «Ver» (visible por defecto a todo el profesorado) | ✅ | ✅ | ✅ | ✅ |
 | Verla en «Mis actividades», el panel principal y el calendario | — | ✅ | según corresponda | ✅ |
 | Entregar (con carpeta) / marcar como completada (sin carpeta) | — | ✅ | ✅ | ✅ |
 | Retirar o sustituir su propia entrega, mientras esté pendiente o rechazada | — | ✅ (la propia) | ✅ | ✅ |

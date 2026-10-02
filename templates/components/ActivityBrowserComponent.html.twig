@@ -113,8 +113,8 @@
             </nav>
             <button type="button" data-action="live#action" data-live-action-param="toggleShowAllProfiles"
                     class="shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors
-                           {{ showAllProfiles ? 'border-forest-300 bg-forest-50 text-forest-700' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50' }}">
-                {{ ux_icon('heroicons:eye', {class: 'h-3.5 w-3.5'}) }}
+                           {{ not showAllProfiles ? 'border-forest-300 bg-forest-50 text-forest-700' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50' }}">
+                {{ ux_icon(showAllProfiles ? 'heroicons:funnel' : 'heroicons:eye', {class: 'h-3.5 w-3.5'}) }}
                 {{ 'show_all_profiles'|trans({}, 'activity_content') }}
             </button>
         </div>
