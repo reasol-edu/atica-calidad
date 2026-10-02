@@ -7,6 +7,29 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-10-02
+
+### Added
+
+- Al crear o editar una **actividad** se puede crear una carpeta nueva desde el propio formulario
+  («Crear carpeta nueva», junto a «Carpeta asociada»): basta con su nombre y la sección del árbol
+  documental donde colocarla, y queda asociada a la actividad. El resto de su configuración se
+  sigue ajustando desde el árbol documental.
+- El informe **Estado de las actividades** tiene una nueva columna «Vencidas»: las entregas sin
+  enviar (o rechazadas) cuyo plazo ya ha pasado, contando para cada elemento con su propio plazo.
+- Una actividad puede dejar vacío el **plazo general** si todos los elementos de su lista tienen
+  un plazo propio; en ese caso se toma como general el tramo que abarcan.
+
+### Changed
+
+- La cabecera de una actividad indica cuántos de sus elementos tienen plazo propio; si los tienen
+  todos, muestra el tramo que abarcan en lugar del plazo general.
+
+### Fixed
+
+- La barra de progreso de una actividad y el informe de su estado contaban como no entregado un
+  elemento con plazo propio que cayera en otro curso académico que el plazo general.
+
 ## [1.10.0] - 2026-10-02
 
 ### Added
