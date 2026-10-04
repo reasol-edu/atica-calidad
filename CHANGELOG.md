@@ -7,6 +7,18 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.10.2] - 2026-10-04
+
+### Added
+
+- La **importación de docentes desde Séneca** muestra ahora una vista previa antes de aplicar nada:
+  una casilla por docente (todos marcados, con «Seleccionar todo» y «Seleccionar nada») y lo que se
+  haría con cada uno. Si el fichero trae la columna «Cuenta Google/Microsoft», se puede importar como
+  correo del docente, solo cuando no tiene ninguno y nadie más usa esa dirección. También se puede
+  retirar del curso a los docentes que no figuran en el listado, salvo a quien tenga alguna
+  responsabilidad vigente (administración, calidad, auditoría interna, perfiles asignados, o
+  acciones de mejora, indicadores, fichas o auditorías abiertos a su cargo).
+
 ## [1.10.1] - 2026-10-02
 
 ### Added
