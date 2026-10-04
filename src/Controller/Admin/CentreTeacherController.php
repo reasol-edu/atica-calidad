@@ -11,8 +11,10 @@ use App\Entity\PersonName;
 use App\Entity\Teacher;
 use App\Repository\EducationalCentreRepository;
 use App\Repository\TeacherRepository;
-use App\Service\CsvReader;
+use App\Service\CentreTeacherImporter;
+use App\Service\TeacherImportRow;
 use App\Service\TenantContext;
+use Symfony\Component\Uid\Uuid;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -36,7 +38,7 @@ class CentreTeacherController extends AbstractController
         private readonly UserPasswordHasherInterface $hasher,
         private readonly TranslatorInterface $translator,
         private readonly TenantContext $tenantContext,
-        private readonly CsvReader $csvReader,
+        private readonly CentreTeacherImporter $importer,
     ) {}
 
     #[Route('', name: 'app_centre_teachers_index')]
@@ -87,6 +89,61 @@ class CentreTeacherController extends AbstractController
             return $this->render('admin/centre_teacher/import.html.twig', ['centre' => $centre]);
         }
 
+        $year = $centre->getActiveAcademicYear();
+        $user = $this->getUser();
+        if ($year === null || !$user instanceof Teacher) {
+            throw $this->createNotFoundException();
+        }
+
+        // ── Paso 2: confirmación de la vista previa ──────────────────────────
+        if ($request->request->getString('import_confirmed') === '1') {
+            if (!$this->isCsrfTokenValid('import_centre_teachers_confirm', $request->request->getString('_token'))) {
+                throw $this->createAccessDeniedException();
+            }
+
+            $importId = $request->request->getString('import_id');
+            $path     = $this->getTempImportPath($importId);
+            if ($importId === '' || $importId !== $request->getSession()->get('teacher_import_id') || !is_file($path)) {
+                $this->addFlash('error', $this->t('centre_teachers.import.error.expired'));
+
+                return $this->redirectToRoute('app_centre_teachers_import', ['centreId' => $centre->getId()]);
+            }
+
+            $content = (string) file_get_contents($path);
+            @unlink($path);
+            $request->getSession()->remove('teacher_import_id');
+
+            try {
+                $parsed = $this->importer->parse($content);
+            } catch (\InvalidArgumentException) {
+                $this->addFlash('error', $this->t('centre_teachers.import.error.expired'));
+
+                return $this->redirectToRoute('app_centre_teachers_import', ['centreId' => $centre->getId()]);
+            }
+
+            $summary = $this->importer->apply(
+                $year,
+                $this->importer->plan($year, $parsed['rows']),
+                $this->stringList($request, 'usernames'),
+                $request->request->getBoolean('import_email'),
+                $request->request->getBoolean('remove_missing'),
+                $this->stringList($request, 'remove_teachers'),
+                $user,
+            );
+            $this->em->flush();
+
+            $this->addFlash('success', $this->translator->trans('centre_teachers.import.flash.summary', [
+                '%created%' => $summary['created'],
+                '%added%'   => $summary['added'],
+                '%emails%'  => $summary['emails'],
+                '%removed%' => $summary['removed'],
+                '%skipped%' => $parsed['skipped'],
+            ], 'admin'));
+
+            return $this->redirectToRoute('app_centre_teachers_index', ['centreId' => $centre->getId()]);
+        }
+
+        // ── Paso 1: subida del fichero → vista previa ────────────────────────
         if (!$this->isCsrfTokenValid('import_centre_teachers', $request->request->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
@@ -99,67 +156,55 @@ class CentreTeacherController extends AbstractController
         }
 
         $content = (string) file_get_contents($file->getPathname());
-        $parsed  = $this->csvReader->parse($content);
 
-        if ($parsed['headers'] === []) {
-            $this->addFlash('error', $this->t('centre_teachers.import.error.empty_file'));
-
-            return $this->redirectToRoute('app_centre_teachers_import', ['centreId' => $centre->getId()]);
-        }
-
-        $required = ['Empleado/a', 'Usuario IdEA'];
-        $missing  = $this->csvReader->findMissingColumn($parsed['headers'], $required);
-        if ($missing !== null) {
-            $this->addFlash('error', $this->t('centre_teachers.import.error.missing_column') . ' «' . $missing . '»');
+        try {
+            $parsed = $this->importer->parse($content);
+        } catch (\InvalidArgumentException $e) {
+            $missing = str_starts_with($e->getMessage(), 'missing:') ? substr($e->getMessage(), 8) : null;
+            $this->addFlash('error', $missing !== null
+                ? $this->t('centre_teachers.import.error.missing_column') . ' «' . $missing . '»'
+                : $this->t('centre_teachers.import.error.empty_file'));
 
             return $this->redirectToRoute('app_centre_teachers_import', ['centreId' => $centre->getId()]);
         }
 
-        $year    = $centre->getActiveAcademicYear();
-        $created = 0;
-        $added   = 0;
-        $skipped = 0;
+        $plan = $this->importer->plan($year, $parsed['rows']);
 
-        if ($year === null) {
-            return $this->redirectToRoute('app_centre_teachers_import', ['centreId' => $centre->getId()]);
+        // El fichero se guarda tal cual y se vuelve a leer al confirmar: lo que se aplica nunca depende
+        // de datos reenviados por el formulario, solo de qué filas se marcan.
+        $importId = Uuid::v4()->toRfc4122();
+        $path     = $this->getTempImportPath($importId);
+        if (!is_dir(dirname($path))) {
+            mkdir(dirname($path), 0700, true);
         }
+        file_put_contents($path, $content);
+        $request->getSession()->set('teacher_import_id', $importId);
 
-        foreach ($parsed['rows'] as $row) {
-            $username  = $row['Usuario IdEA'] ?? '';
-            $fullName  = $row['Empleado/a'] ?? '';
-            $nameParts = explode(', ', $fullName, 2);
-            $lastName  = $nameParts[0];
-            $firstName = $nameParts[1] ?? '';
+        return $this->render('admin/centre_teacher/import_preview.html.twig', [
+            'centre'     => $centre,
+            'importId'   => $importId,
+            'plan'       => $plan,
+            'skipped'    => $parsed['skipped'],
+            'hasEmail'   => array_filter($plan, static fn (TeacherImportRow $r): bool => $r->fillsEmail()) !== [],
+            'candidates' => $this->importer->findRemovalCandidates($year, $plan, $user),
+        ]);
+    }
 
-            if ($username === '' || $firstName === '' || $lastName === '') {
-                $skipped++;
-                continue;
-            }
-            $teacher  = $this->teachers->findByUsername($username);
+    /** @return list<string> */
+    private function stringList(Request $request, string $key): array
+    {
+        return array_values(array_map(
+            static fn (mixed $value): string => is_scalar($value) ? (string) $value : '',
+            $request->request->all($key),
+        ));
+    }
 
-            if ($teacher === null) {
-                $teacher = new Teacher(new PersonName($firstName, $lastName));
-                $teacher->setUsername($username)
-                    ->setExternal(true)
-                    ->setActive(true);
-                $this->em->persist($teacher);
-                $year->addTeacher($teacher);
-                $created++;
-            } elseif (!$year->getTeachers()->contains($teacher)) {
-                $year->addTeacher($teacher);
-                $added++;
-            }
-        }
+    private function getTempImportPath(string $importId): string
+    {
+        // El id viene del formulario: solo se admite un UUID para impedir rutas arbitrarias.
+        $safe = Uuid::isValid($importId) ? $importId : '00000000-0000-0000-0000-000000000000';
 
-        $this->em->flush();
-
-        $this->addFlash('success', $this->translator->trans('centre_teachers.import.flash.summary', [
-            '%created%' => $created,
-            '%added%'   => $added,
-            '%skipped%' => $skipped,
-        ], 'admin'));
-
-        return $this->redirectToRoute('app_centre_teachers_index', ['centreId' => $centre->getId()]);
+        return sys_get_temp_dir() . '/atica-teacher-imports/' . $safe . '.csv';
     }
 
     #[Route('/registrar', name: 'app_centre_teachers_register')]

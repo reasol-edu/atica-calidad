@@ -44,6 +44,26 @@ trabajar con la aplicación este curso, bien buscando su usuario si ya existe en
 curso anterior o de otro centro), bien registrándolo, o importando el listado completo desde un CSV
 exportado de Séneca.
 
+### Importar el listado desde Séneca
+
+La importación tiene dos pasos. Al subir el CSV (**Personal › Personal del centro › Exportar
+datos**) no se cambia nada todavía: se muestra una **vista previa** con una casilla por docente
+—todos marcados, con *Seleccionar todo* y *Seleccionar nada*— y lo que se haría con cada uno:
+registrarlo y añadirlo al curso, añadirlo (si ya existía en el sistema) o solo rellenarle el correo.
+Al confirmar se aplica únicamente lo que hayas dejado marcado.
+
+Dos opciones en la vista previa:
+
+- **Importar el correo electrónico.** Si el fichero trae la columna *Cuenta Google/Microsoft*, se
+  usa como correo del docente, pero solo cuando no tiene ninguno: nunca se sobrescribe uno
+  existente ni se usa uno que ya tenga otro docente.
+- **Retirar del curso a los docentes que no figuran en el listado.** Se muestra la lista de quienes
+  se retirarían, para desmarcar a quien quieras conservar. Nunca se ofrece a quien tenga alguna
+  responsabilidad vigente —administración, responsable de calidad o auditoría interna del centro,
+  un perfil asignado, o una acción de mejora, indicador, análisis de ficha o auditoría abiertos a
+  su cargo— ni a quien está importando. Los docentes retirados siguen existiendo en el sistema y en
+  otros cursos.
+
 ## Días no lectivos
 
 Desde **Centro educativo → Días no lectivos** registras los festivos, puentes y días de libre

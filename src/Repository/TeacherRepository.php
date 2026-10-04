@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\AcademicYear;
+use App\Entity\AuditStatus;
+use App\Entity\FindingStatus;
+use App\Entity\ImprovementActionStatus;
 use App\Entity\Teacher;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
@@ -12,6 +15,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @extends ServiceEntityRepository<Teacher>
@@ -249,5 +253,55 @@ class TeacherRepository extends ServiceEntityRepository implements PasswordUpgra
             ->getResult();
 
         return $result;
+    }
+
+    /**
+     * Docentes con alguna responsabilidad vigente en el centro del curso: administran el centro, son
+     * responsables de calidad o auditores internos, tienen asignado algún perfil (o subperfil),
+     * son responsables de una acción de mejora sin terminar de este curso, de un indicador activo
+     * o del análisis de una ficha abierta, o forman parte del equipo de una auditoría sin cerrar.
+     * Las asignaciones de perfil no dependen del curso: se cuentan siempre, por si acaso.
+     * Quedan fuera la autoría histórica (quién subió, creó, revisó o completó algo): si no, casi
+     * nadie podría retirarse del curso.
+     *
+     * @return array<string, true> ids (RFC 4122) de los docentes vinculados
+     */
+    public function findConnectedIdsForYear(AcademicYear $year): array
+    {
+        $centre = $year->getEducationalCentre();
+        $ids    = [];
+
+        foreach ([$centre->getAdmins(), $centre->getQualityManagers(), $centre->getInternalAuditors()] as $holders) {
+            foreach ($holders as $teacher) {
+                $ids[$teacher->getId()->toRfc4122()] = true;
+            }
+        }
+
+        $queries = [
+            ['SELECT t FROM App\Entity\Teacher t WHERE EXISTS(SELECT 1 FROM App\Entity\SpecificProfileAssignment a JOIN a.specificProfile p WHERE a.teacher = t AND p.educationalCentre = :centre)',
+                ['centre' => $centre->getId()]],
+            ['SELECT t FROM App\Entity\Teacher t WHERE EXISTS(SELECT 1 FROM App\Entity\ImprovementAction ia WHERE ia.responsibleTeacher = t AND ia.educationalCentre = :centre AND (ia.academicYear = :year OR ia.academicYear IS NULL) AND ia.status != :done)',
+                ['centre' => $centre->getId(), 'year' => $year->getId(), 'done' => ImprovementActionStatus::Done]],
+            ['SELECT t FROM App\Entity\Teacher t WHERE EXISTS(SELECT 1 FROM App\Entity\Indicator i WHERE i.responsibleTeacher = t AND i.educationalCentre = :centre AND i.active = true)',
+                ['centre' => $centre->getId()]],
+            ['SELECT t FROM App\Entity\Teacher t WHERE EXISTS(SELECT 1 FROM App\Entity\Finding f WHERE f.analysisResponsible = t AND f.educationalCentre = :centre AND f.status NOT IN (:closed))',
+                ['centre' => $centre->getId(), 'closed' => [FindingStatus::Closed, FindingStatus::Discarded]]],
+            ['SELECT t FROM App\Entity\Teacher t WHERE EXISTS(SELECT 1 FROM App\Entity\Audit au WHERE au.educationalCentre = :centre AND au.status != :closedAudit AND (au.leadAuditor = t OR t MEMBER OF au.auditors))',
+                ['centre' => $centre->getId(), 'closedAudit' => AuditStatus::Closed]],
+        ];
+
+        foreach ($queries as [$dql, $parameters]) {
+            $query = $this->getEntityManager()->createQuery($dql);
+            foreach ($parameters as $name => $value) {
+                $query->setParameter($name, $value, $value instanceof Uuid ? 'uuid' : null);
+            }
+            /** @var list<Teacher> $linked */
+            $linked = $query->getResult();
+            foreach ($linked as $teacher) {
+                $ids[$teacher->getId()->toRfc4122()] = true;
+            }
+        }
+
+        return $ids;
     }
 }
