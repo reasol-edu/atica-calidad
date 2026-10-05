@@ -7,6 +7,16 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.10.3] - 2026-10-05
+
+### Added
+
+- Una **actividad** se puede **ocultar** desde su formulario («Ocultar la actividad»). Solo la ven
+  quienes pueden editar actividades, con un fondo rayado y la etiqueta «Oculta» para distinguirla
+  de un vistazo; para el resto no existe ni cuenta en el panel de inicio, «Mis actividades», la
+  campana, los recordatorios, el calendario, las revisiones pendientes ni los informes. Sirve para
+  preparar una actividad antes de publicarla o para retirarla sin borrarla.
+
 ## [1.10.2] - 2026-10-04
 
 ### Added
