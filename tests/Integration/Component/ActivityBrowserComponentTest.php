@@ -721,6 +721,56 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component->call('startCreateFolder');
     }
 
+    public function testSaveActivityCanHideAnActivity(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component
+            ->set('formTitle', 'Reservada')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formHidden', true)
+            ->call('saveActivity');
+
+        $this->em->clear();
+        $reloaded = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloaded);
+        $created = self::getContainer()->get(\App\Repository\ActivityRepository::class)->findByCategory($reloaded, true);
+        self::assertCount(1, $created);
+        self::assertTrue($created[0]->isHidden());
+    }
+
+    public function testHiddenActivitiesAreOnlyListedForWhoCanEditActivities(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $shown    = $this->activity($category, 'Visible');
+        $hidden   = $this->activity($category, 'Oculta')->setHidden(true);
+        $admin    = $this->admin();
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $shown, $hidden, $admin, $teacher);
+        $params = ['centre' => $centre, 'initialCategoryId' => $category->getId()->toRfc4122()];
+        $titles = static fn (ActivityBrowserComponent $c): array => array_map(static fn (Activity $a): string => $a->getTitle(), $c->getVisibleActivities());
+
+        $this->loginAs($admin, $centre);
+        /** @var ActivityBrowserComponent $asAdmin */
+        $asAdmin = $this->createLiveComponent('ActivityBrowserComponent', $params, $this->client)->component();
+        self::assertSame(['Visible', 'Oculta'], $titles($asAdmin));
+
+        $this->loginAs($teacher, $centre);
+        /** @var ActivityBrowserComponent $asTeacher */
+        $asTeacher = $this->createLiveComponent('ActivityBrowserComponent', $params, $this->client)->component();
+        self::assertSame(['Visible'], $titles($asTeacher));
+    }
+
     public function testActivityCrudActionsAreDeniedWithoutResponsibilitiesPermission(): void
     {
         $centre   = $this->centre();

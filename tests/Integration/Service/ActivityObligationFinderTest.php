@@ -284,6 +284,21 @@ final class ActivityObligationFinderTest extends RepositoryTestCase
         self::assertSame(ActivityObligationStatus::Overdue, $this->finder->worstStatusFor($teacher, $activity));
     }
 
+    public function testAHiddenActivityIsNobodysObligation(): void
+    {
+        self::mockTime('2025-10-10 10:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $visible  = $this->activity($category, 'Visible');
+        $hidden   = $this->activity($category, 'Oculta')->setHidden(true);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $visible, $hidden, $teacher);
+
+        $titles = array_map(static fn ($i) => $i->activity->getTitle(), $this->finder->forTeacher($teacher, $centre));
+
+        self::assertSame(['Visible'], $titles);
+    }
+
     // ── Per-leaf deadline overrides ─────────────────────────────────────────
 
     /**

@@ -339,6 +339,10 @@ class ActivityController extends AbstractController
         if ($activity === null || $activity->getCategory()->getEducationalCentre()->getId()->toRfc4122() !== $centre->getId()->toRfc4122()) {
             throw $this->createNotFoundException();
         }
+        // A hidden activity doesn't exist for anyone but whoever can edit activities.
+        if ($activity->isHidden() && !$this->isGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre)) {
+            throw $this->createNotFoundException();
+        }
 
         return $activity;
     }

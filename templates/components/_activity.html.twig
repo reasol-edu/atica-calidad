@@ -4,6 +4,10 @@
 {% set has_submissions = activity.requiresSubmissions %}
 {% set editing = activityFormOpen and formActivityId == aid %}
 {% set card_classes = editing ? 'border-gray-200 bg-white' : activity_status.card_bg(this.getActivityStatus(activity)) %}
+{# Una actividad oculta (solo la ve quien puede editar actividades) se distingue a simple vista: borde discontinuo y fondo rayado gris, sea cual sea su estado. #}
+{% if activity.hidden and not editing %}
+    {% set card_classes = 'activity-hidden-card border-dashed border-gray-400' %}
+{% endif %}
 
 <div class="overflow-hidden rounded-2xl border shadow-xs {{ card_classes }}">
     <div class="px-4 py-4 sm:px-6 space-y-3">
@@ -104,6 +108,13 @@
                         </div>
                     {% endif %}
                     <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                        {% if activity.hidden %}
+                            <span title="{{ 'activity.hidden_help'|trans({}, 'activity_content') }}"
+                                  class="inline-flex items-center gap-1 rounded-full bg-gray-700 px-2 py-0.5 text-xs font-medium text-white">
+                                {{ ux_icon('heroicons:eye-slash', {class: 'h-3.5 w-3.5'}) }}
+                                {{ 'activity.hidden'|trans({}, 'activity_content') }}
+                            </span>
+                        {% endif %}
                         <span title="{{ (activity.required ? 'activity.required' : 'activity.optional')|trans({}, 'activity_content') }}"
                               class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium {{ activity.required ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-500' }}">
                             {{ ux_icon(activity.required ? 'heroicons:exclamation-circle' : 'heroicons:minus-circle', {class: 'h-3.5 w-3.5'}) }}

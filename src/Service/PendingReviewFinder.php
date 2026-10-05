@@ -34,7 +34,7 @@ final class PendingReviewFinder
     public function forTeacher(Teacher $teacher, EducationalCentre $centre): array
     {
         $reviewable = [];
-        foreach ($this->revisions->findPendingReviewByCentre($centre) as $revision) {
+        foreach ($this->allPendingForCentre($centre) as $revision) {
             if ($this->access->holdsReviewProfile($teacher, $revision->getDocument()->getFolder())) {
                 $reviewable[] = $revision;
             }
@@ -65,11 +65,16 @@ final class PendingReviewFinder
      * profile — feeds the admin/quality-manager-only "Todas las revisiones pendientes" dashboard
      * section, never the notification bell.
      *
+     * Submissions of a hidden activity (see Activity::isHidden()) don't count anywhere here.
+     *
      * @return list<DocumentRevision> oldest pending first
      */
     public function allPendingForCentre(EducationalCentre $centre): array
     {
-        return $this->revisions->findPendingReviewByCentre($centre);
+        return array_values(array_filter(
+            $this->revisions->findPendingReviewByCentre($centre),
+            static fn (DocumentRevision $revision): bool => $revision->getDocument()->getFolder()->getActivity()?->isHidden() !== true,
+        ));
     }
 
     /**

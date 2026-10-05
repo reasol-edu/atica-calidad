@@ -115,6 +115,14 @@ class Activity implements Trashable
     #[ORM\Column]
     private bool $general = true;
 
+    /**
+     * A hidden activity is invisible to everyone but whoever can edit activities (RESPONSIBILITIES),
+     * and counts for nothing: not in anyone's pending list or the dashboard, nor in the calendar,
+     * the reminders or the reports. Its folder, if any, is left as it is.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $hidden = false;
+
     /** @var Collection<int, ActivityProfile> */
     #[ORM\OneToMany(targetEntity: ActivityProfile::class, mappedBy: 'activity', cascade: ['persist'], orphanRemoval: true)]
     private Collection $profileRestrictions;
@@ -321,6 +329,18 @@ class Activity implements Trashable
     public function requiresSubmissions(): bool
     {
         return $this->folder !== null;
+    }
+
+    public function isHidden(): bool
+    {
+        return $this->hidden;
+    }
+
+    public function setHidden(bool $hidden): static
+    {
+        $this->hidden = $hidden;
+
+        return $this;
     }
 
     public function isGeneral(): bool

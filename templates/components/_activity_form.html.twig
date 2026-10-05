@@ -338,6 +338,19 @@
                 {% endif %}
                 {% if errors.autoComplete is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.autoComplete }}</p>{% endif %}
             </div>
+
+            <div class="sm:col-span-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3">
+                <label class="flex items-start gap-2 text-sm text-gray-700">
+                    <input type="checkbox" data-model="formHidden" {{ formHidden ? 'checked' : '' }}
+                           class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-forest-600 focus:ring-forest-500/30">
+                    <span>
+                        <span class="flex items-center gap-1.5 font-medium">
+                            {{ ux_icon('heroicons:eye-slash', {class: 'h-4 w-4 text-gray-500'}) }}{{ 'activity.field.hidden'|trans({}, 'admin') }}
+                        </span>
+                        <span class="mt-0.5 block text-xs text-gray-500">{{ 'activity.field.hidden_help'|trans({}, 'admin') }}</span>
+                    </span>
+                </label>
+            </div>
         </div>
 
         <div class="flex items-center gap-2 border-t border-gray-100 pt-4">

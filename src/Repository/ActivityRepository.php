@@ -81,11 +81,14 @@ class ActivityRepository extends ServiceEntityRepository
      * folder/section — to render a download link and a tree-location icon) so that rendering a
      * category's activity list doesn't re-query per activity per related document.
      *
+     * Hidden activities (see Activity::isHidden()) are left out unless $includeHidden — pass it
+     * only for whoever may edit activities.
+     *
      * @return Activity[]
      */
-    public function findByCategory(ActivityCategory $category): array
+    public function findByCategory(ActivityCategory $category, bool $includeHidden = false): array
     {
-        return $this->createQueryBuilder('a')
+        $qb = $this->createQueryBuilder('a')
             ->leftJoin('a.relatedDocuments', 'rd')
             ->addSelect('rd')
             ->leftJoin('rd.activeRevision', 'rdr')
@@ -96,17 +99,25 @@ class ActivityRepository extends ServiceEntityRepository
             ->addSelect('rdfs')
             ->where('a.category = :category')
             ->setParameter('category', $category->getId(), 'uuid')
-            ->orderBy('a.position', 'ASC')
-            ->getQuery()
-            ->getResult();
+            ->orderBy('a.position', 'ASC');
+        if (!$includeHidden) {
+            $qb->andWhere('a.hidden = false');
+        }
+
+        return $qb->getQuery()->getResult();
     }
 
-    /** @return list<Activity> every activity across every category of the centre, ordered by category then position. */
+    /**
+     * @return list<Activity> every visible activity across every category of the centre, ordered by
+     *         category then position. Hidden ones (see Activity::isHidden()) never count — every
+     *         caller is an aggregate or a per-teacher listing: dashboard, calendar, reminders, reports.
+     */
     public function findAllByCentre(EducationalCentre $centre): array
     {
         return $this->createQueryBuilder('a')
             ->join('a.category', 'c')
             ->where('c.educationalCentre = :centre')
+            ->andWhere('a.hidden = false')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->orderBy('c.position', 'ASC')
             ->addOrderBy('a.position', 'ASC')
@@ -115,18 +126,21 @@ class ActivityRepository extends ServiceEntityRepository
     }
 
     /** @return list<Activity> whose title matches $query anywhere in the centre's categories, ordered by title */
-    public function searchByCentre(EducationalCentre $centre, string $query, int $limit = 30): array
+    public function searchByCentre(EducationalCentre $centre, string $query, int $limit = 30, bool $includeHidden = false): array
     {
-        return $this->createQueryBuilder('a')
+        $qb = $this->createQueryBuilder('a')
             ->join('a.category', 'c')
             ->where('c.educationalCentre = :centre')
             ->andWhere('UNACCENT(LOWER(a.title)) LIKE UNACCENT(LOWER(:query))')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
             ->orderBy('a.title', 'ASC')
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
+            ->setMaxResults($limit);
+        if (!$includeHidden) {
+            $qb->andWhere('a.hidden = false');
+        }
+
+        return $qb->getQuery()->getResult();
     }
 
     /** Looked up by bare id (the category/centre isn't known ahead of time from the URL); callers must verify ownership. */

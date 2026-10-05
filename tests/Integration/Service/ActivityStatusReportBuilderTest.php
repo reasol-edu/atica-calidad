@@ -26,6 +26,21 @@ final class ActivityStatusReportBuilderTest extends RepositoryTestCase
 {
     use ClockSensitiveTrait;
 
+    public function testAHiddenActivityIsLeftOutOfTheReport(): void
+    {
+        self::mockTime('2025-10-10 10:00:00');
+        $centre   = (new EducationalCentre())->setCode('12345678')->setName('Centro')->setCity('Ciudad');
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Evaluación');
+        $visible  = (new Activity())->setCategory($category)->setTitle('Visible')->setStart(1, 10)->setEnd(31, 10);
+        $hidden   = (new Activity())->setCategory($category)->setTitle('Oculta')->setStart(1, 10)->setEnd(31, 10)->setHidden(true);
+        $this->persist($centre, $category, $visible, $hidden);
+
+        /** @var ActivityStatusReportBuilder $builder */
+        $builder = self::getContainer()->get(ActivityStatusReportBuilder::class);
+
+        self::assertSame(['Visible'], array_map(static fn ($row) => $row->title, $builder->build($centre)));
+    }
+
     public function testMeasuresSubmissionsForAFolderActivityAndCompletionsForAManualOne(): void
     {
         self::mockTime('2025-10-10 10:00:00');

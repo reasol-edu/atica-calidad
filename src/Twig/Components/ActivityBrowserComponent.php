@@ -194,6 +194,10 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $formScope = 'by_profile';
 
+    /** Hidden from everyone but whoever can edit activities, and counted nowhere — see Activity::isHidden(). */
+    #[LiveProp(writable: true)]
+    public bool $formHidden = false;
+
     /** Meaningful only when formFolderId === '' (a manual activity): applies to every teacher when true. */
     #[LiveProp(writable: true)]
     public bool $formGeneral = true;
@@ -418,7 +422,7 @@ class ActivityBrowserComponent extends AbstractController
     /** Whether $category, or any of its descendants, has at least one activity relevant to $teacher. */
     private function categoryHasRelevantActivity(ActivityCategory $category, Teacher $teacher): bool
     {
-        foreach ($this->activities->findByCategory($category) as $activity) {
+        foreach ($this->activities->findByCategory($category, $this->canEdit()) as $activity) {
             if ($this->access->isActivityRelevantToTeacher($teacher, $activity)) {
                 return true;
             }
@@ -490,7 +494,7 @@ class ActivityBrowserComponent extends AbstractController
             return [];
         }
 
-        $all = $this->activities->findByCategory($category);
+        $all = $this->activities->findByCategory($category, $this->canEdit());
         if ($this->showAllProfiles) {
             return $all;
         }
@@ -778,6 +782,7 @@ class ActivityBrowserComponent extends AbstractController
         $this->formEndDateEnforced   = false;
         $this->formEndDateGraceDays  = '0';
         $this->formScope       = 'by_profile';
+        $this->formHidden      = false;
         $this->formGeneral     = true;
         $this->formProfileKeys = [];
         $this->formResponsibleProfileKeys = [];
@@ -828,6 +833,7 @@ class ActivityBrowserComponent extends AbstractController
         $this->formEndDateEnforced   = $activity->isEndDateEnforced();
         $this->formEndDateGraceDays  = (string) $activity->getEndDateGraceDays();
         $this->formScope        = $activity->getSubmissionScope()->value;
+        $this->formHidden       = $activity->isHidden();
         $this->formGeneral      = $activity->isGeneral();
         $this->formProfileKeys  = array_map(
             static fn (ActivityProfile $r): string => ProfileAssignmentRow::keyFor($r->getSpecificProfile(), $r->getListItem()),
@@ -990,6 +996,7 @@ class ActivityBrowserComponent extends AbstractController
         }
         $activity->setRequired($this->formRequired);
         $activity->setSubmissionScope($scope);
+        $activity->setHidden($this->formHidden);
         $activity->setStartDateEnforced($this->formStartDateEnforced);
         $activity->setEndDateEnforced($this->formEndDateEnforced);
         // setEndDateGraceDays() zeroes itself when the end date isn't enforced.
@@ -1844,8 +1851,12 @@ class ActivityBrowserComponent extends AbstractController
     private function findActivity(string $id): ?Activity
     {
         $activity = $this->activities->findById($id);
+        if ($activity === null || $activity->getCategory()->getEducationalCentre() !== $this->centre) {
+            return null;
+        }
 
-        return $activity !== null && $activity->getCategory()->getEducationalCentre() === $this->centre ? $activity : null;
+        // A hidden activity doesn't exist for anyone but whoever can edit activities.
+        return $activity->isHidden() && !$this->canEdit() ? null : $activity;
     }
 
     private function findDocument(string $id): ?Document
@@ -1884,7 +1895,7 @@ class ActivityBrowserComponent extends AbstractController
 
         $teacher = $this->teacher();
         $results = [];
-        foreach ($this->activities->searchByCentre($this->centre, $query) as $activity) {
+        foreach ($this->activities->searchByCentre($this->centre, $query, includeHidden: $this->canEdit()) as $activity) {
             $folder = $activity->getFolder();
             if ($folder !== null && !$this->access->canViewFolder($teacher, $folder)) {
                 continue;
@@ -1908,7 +1919,7 @@ class ActivityBrowserComponent extends AbstractController
         foreach ($this->documents->searchActivitySubmissionsByCentre($this->centre, $query) as $document) {
             $folder   = $document->getFolder();
             $activity = $folder->getActivity();
-            if ($activity === null || !$this->access->canViewFolder($teacher, $folder)) {
+            if ($activity === null || ($activity->isHidden() && !$this->canEdit()) || !$this->access->canViewFolder($teacher, $folder)) {
                 continue;
             }
             $results[] = [

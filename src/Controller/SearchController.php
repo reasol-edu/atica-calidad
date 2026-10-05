@@ -16,6 +16,7 @@ use App\Repository\DocumentRepository;
 use App\Repository\DocumentSectionRepository;
 use App\Repository\FolderRepository;
 use App\Repository\TeacherRepository;
+use App\Security\Voter\EducationalCentreVoter;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\TenantContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -117,7 +118,10 @@ class SearchController extends AbstractController
 
             $documents = [];
             foreach ($this->documentRepository->searchByCentre($centre, $q, 5) as $document) {
-                if ($this->documentTreeAccess->canViewDocument($user, $document)) {
+                // A submission of a hidden activity only turns up for whoever can edit activities.
+                $hiddenSubmission = $document->getFolder()->getActivity()?->isHidden() === true
+                    && !$this->isGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre);
+                if (!$hiddenSubmission && $this->documentTreeAccess->canViewDocument($user, $document)) {
                     $documents[] = $document;
                 }
             }
@@ -141,7 +145,7 @@ class SearchController extends AbstractController
             }
 
             $activities = [];
-            foreach ($this->activityRepository->searchByCentre($centre, $q, 5) as $activity) {
+            foreach ($this->activityRepository->searchByCentre($centre, $q, 5, $this->isGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre)) as $activity) {
                 $folder = $activity->getFolder();
                 if ($folder === null || $this->documentTreeAccess->canViewFolder($user, $folder)) {
                     $activities[] = $activity;
