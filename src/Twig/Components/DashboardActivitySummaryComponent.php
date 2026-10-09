@@ -7,9 +7,9 @@ namespace App\Twig\Components;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Model\ActivityDashboardSummary;
-use App\Model\QualityTask;
+use App\Model\AgendaEntry;
 use App\Service\ActivityDashboardSummaryBuilder;
-use App\Service\QualityTaskFinder;
+use App\Service\TeacherAgendaBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
@@ -30,12 +30,12 @@ class DashboardActivitySummaryComponent extends AbstractController
     #[LiveProp]
     public EducationalCentre $centre;
 
-    /** Most "Mejora continua" tasks listed here; the rest are on its hub. */
-    public const int MAX_QUALITY_TASKS = 5;
+    /** Most lines of the agenda listed here; the rest are in "Mis actividades" and the quality hub. */
+    public const int MAX_AGENDA = 8;
 
     public function __construct(
         private readonly ActivityDashboardSummaryBuilder $builder,
-        private readonly QualityTaskFinder $qualityTasks,
+        private readonly TeacherAgendaBuilder $agenda,
     ) {}
 
     public function mount(EducationalCentre $centre): void
@@ -49,14 +49,22 @@ class DashboardActivitySummaryComponent extends AbstractController
     }
 
     /**
-     * What the teacher has to do in "Mejora continua" (QualityTaskFinder), shown under the
-     * activities in the same card — so it's found where they already look.
+     * What to do now, activities and "Mejora continua" tasks in one list (TeacherAgendaBuilder):
+     * the first MAX_AGENDA lines, how many more there are, how many of all are overdue, and
+     * whether any is a task (to link to the quality hub).
      *
-     * @return list<QualityTask>
+     * @return array{entries: list<AgendaEntry>, hidden: int, overdue: int, hasTasks: bool}
      */
-    public function getQualityTasks(): array
+    public function getAgenda(): array
     {
-        return $this->qualityTasks->forTeacher($this->teacher(), $this->centre);
+        $all = $this->agenda->build($this->teacher(), $this->centre);
+
+        return [
+            'entries'  => \array_slice($all, 0, self::MAX_AGENDA),
+            'hidden'   => max(0, \count($all) - self::MAX_AGENDA),
+            'overdue'  => \count(array_filter($all, static fn (AgendaEntry $e): bool => $e->bucket === AgendaEntry::OVERDUE)),
+            'hasTasks' => array_filter($all, static fn (AgendaEntry $e): bool => $e->task !== null) !== [],
+        ];
     }
 
     private function teacher(): Teacher

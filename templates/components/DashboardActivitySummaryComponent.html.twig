@@ -1,34 +1,39 @@
 {#
-   "Tus próximos pasos": only the few most urgent obligations the teacher can act on right now, plus
-   one line of overall progress. The full list and the totals by status live in "Mis actividades"
-   (linked below) — not repeated here.
+   "Tus próximos pasos": what the teacher has to do now — activity obligations and "Mejora
+   continua" tasks in ONE list, overdue first, then this week, then the rest (TeacherAgendaBuilder) —
+   plus one line of overall progress. The full list and the totals by status live in "Mis
+   actividades" (linked below) and the tasks' hub — not repeated here.
 #}
 {% import 'components/_activity_status.html.twig' as activity_status %}
 {% import 'quality/_macros.html.twig' as quality %}
 {% set summary = this.summary %}
-{% set quality_tasks = this.qualityTasks %}
+{% set agenda = this.agenda %}
 
 <div class="rounded-2xl border border-gray-200 bg-white shadow-xs">
     <div class="flex flex-wrap items-center justify-between gap-2 px-6 py-5 border-b border-gray-100">
         <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900">
             {{ ux_icon('heroicons:check-circle', {class: 'h-5 w-5 text-forest-600'}) }}
             {{ 'activities.title'|trans({}, 'dashboard') }}
-            {% if summary.overdue > 0 %}
-                <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">{{ 'activities.overdue'|trans({'%count%': summary.overdue}, 'dashboard') }}</span>
+            {% if agenda.overdue > 0 %}
+                <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">{{ 'activities.overdue'|trans({'%count%': agenda.overdue}, 'dashboard') }}</span>
             {% endif %}
         </h2>
-        {% if summary.total > 0 %}
-            <a href="{{ path('app_activities') }}" class="text-sm font-medium text-forest-600 hover:text-forest-700">
-                {{ 'activities.view_all'|trans({}, 'dashboard') }} →
-            </a>
-        {% endif %}
+        <span class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium">
+            {% if summary.total > 0 %}
+                <a href="{{ path('app_activities') }}" class="text-forest-600 hover:text-forest-700">{{ 'activities.view_all'|trans({}, 'dashboard') }} →</a>
+            {% endif %}
+            {% if agenda.hasTasks %}
+                <a href="{{ path('app_quality_index') }}" class="text-forest-600 hover:text-forest-700">{{ 'task.view_all'|trans({}, 'quality') }} →</a>
+            {% endif %}
+        </span>
     </div>
 
     <div class="px-6 py-5 space-y-4">
-        {% if summary.total == 0 %}
+        {% if summary.total == 0 and agenda.entries is empty %}
             <p class="text-sm text-gray-500">{{ 'activities.none'|trans({}, 'dashboard') }}</p>
         {% else %}
             {# ── Overall progress, in one line ───────────────────────────────── #}
+            {% if summary.total > 0 %}
             <div>
                 <div class="flex h-2 w-full overflow-hidden rounded-full bg-gray-100"
                      role="img" aria-label="{{ 'activities.progress'|trans({'%done%': summary.completed, '%total%': summary.total, '%percent%': summary.completionPercentage}, 'dashboard') }}">
@@ -41,34 +46,48 @@
                     {%- if summary.overdue > 0 %} · <span class="font-semibold text-red-600">{{ 'activities.overdue'|trans({'%count%': summary.overdue}, 'dashboard') }}</span>{% endif %}
                 </p>
             </div>
+            {% endif %}
 
-            {# ── Next steps ──────────────────────────────────────────────────── #}
-            {% if summary.nextSteps is not empty %}
-                <ul class="-mx-6 divide-y divide-gray-100">
-                    {% for item in summary.nextSteps %}
-                        {% set status = item.status.value %}
-                        <li>
-                            <a href="{{ path('app_activities', {category: item.activity.category.id.toRfc4122, activity: item.activity.id.toRfc4122}) }}"
-                               class="flex items-start gap-3 px-6 py-3 transition-colors {{ activity_status.row_bg(status) }}">
-                                <span class="mt-0.5">{{ activity_status.icon(status) }}</span>
-                                <span class="min-w-0 flex-1">
-                                    <span class="block truncate text-sm font-medium text-gray-900">
-                                        {{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}
+            {# ── What to do now: activities and tasks together ───────────────── #}
+            {% if agenda.entries is not empty %}
+                <div class="-mx-6 space-y-1">
+                    {% set current = null %}
+                    {% for entry in agenda.entries %}
+                        {% if entry.bucket != current %}
+                            {% if current is not null %}</ul>{% endif %}
+                            {% set current = entry.bucket %}
+                            <h3 class="px-6 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide {{ current == 'overdue' ? 'text-red-600' : 'text-gray-500' }}">
+                                {{ ('activities.agenda.' ~ current)|trans({}, 'dashboard') }}
+                            </h3>
+                            <ul class="divide-y divide-gray-100">
+                        {% endif %}
+                        {% if entry.activity is not null %}
+                            {% set item = entry.activity %}
+                            {% set status = item.status.value %}
+                            <li>
+                                <a href="{{ path('app_activities', {category: item.activity.category.id.toRfc4122, activity: item.activity.id.toRfc4122}) }}"
+                                   class="flex items-start gap-3 px-6 py-3 transition-colors {{ activity_status.row_bg(status) }}">
+                                    <span class="mt-0.5">{{ activity_status.icon(status) }}</span>
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block truncate text-sm font-medium text-gray-900">
+                                            {{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}
+                                        </span>
+                                        <span class="block truncate text-xs text-gray-500">
+                                            {{ item.categoryPath }} · {{ activity_status.detail(item) }}
+                                        </span>
+                                        <span class="mt-1 inline-block sm:hidden">{{ activity_status.pill(status) }}</span>
                                     </span>
-                                    <span class="block truncate text-xs text-gray-500">
-                                        {{ item.categoryPath }} · {{ activity_status.detail(item) }}
-                                    </span>
-                                    <span class="mt-1 inline-block sm:hidden">{{ activity_status.pill(status) }}</span>
-                                </span>
-                                <span class="hidden self-center sm:block">{{ activity_status.pill(status) }}</span>
-                            </a>
-                        </li>
+                                    <span class="hidden self-center sm:block">{{ activity_status.pill(status) }}</span>
+                                </a>
+                            </li>
+                        {% else %}
+                            {{ quality.task_row(entry.task, true) }}
+                        {% endif %}
+                        {% if loop.last %}</ul>{% endif %}
                     {% endfor %}
-                </ul>
-                {% if summary.todo > summary.nextSteps|length %}
-                    <p class="text-xs text-gray-500">
-                        {{ 'activities.more_to_do'|trans({'%count%': summary.todo - summary.nextSteps|length}, 'dashboard') }}
-                    </p>
+                </div>
+                {% if agenda.hidden > 0 %}
+                    <p class="text-xs text-gray-500">{{ 'activities.agenda.more'|trans({'%count%': agenda.hidden}, 'dashboard') }}</p>
                 {% endif %}
             {% else %}
                 <div class="rounded-xl border border-forest-100 bg-forest-50 px-4 py-6 text-center">
@@ -86,25 +105,4 @@
             {% endif %}
         {% endif %}
     </div>
-
-    {% if quality_tasks is not empty %}
-        {# ── Mejora continua: tasks next to the activities ──────────────────── #}
-        <div class="border-t border-gray-100">
-            {% set quality_overdue = quality_tasks|filter(t => t.urgency == 'overdue')|length %}
-            <h3 class="flex items-center justify-between px-6 pt-4 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <span class="flex items-center gap-2">
-                    {{ 'task.section_title'|trans({}, 'quality') }}
-                    {% if quality_overdue > 0 %}
-                        <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium normal-case tracking-normal text-red-700">{{ 'activities.overdue'|trans({'%count%': quality_overdue}, 'dashboard') }}</span>
-                    {% endif %}
-                </span>
-                <a href="{{ path('app_quality_index') }}" class="normal-case tracking-normal text-sm font-medium text-forest-600 hover:text-forest-700">{{ 'task.view_all'|trans({}, 'quality') }} →</a>
-            </h3>
-            <ul class="divide-y divide-gray-100 pb-2">
-                {% for task in quality_tasks|slice(0, constant('App\\Twig\\Components\\DashboardActivitySummaryComponent::MAX_QUALITY_TASKS')) %}
-                    {{ quality.task_row(task, true) }}
-                {% endfor %}
-            </ul>
-        </div>
-    {% endif %}
 </div>
