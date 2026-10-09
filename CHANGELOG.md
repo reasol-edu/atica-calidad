@@ -7,6 +7,36 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-10-09
+
+### Added
+
+- **Seguimiento de actividades**: una pestaña «Seguimiento» en Actividades con una fila por
+  actividad (plazo y días que quedan, progreso, pendientes) y, por actividad, quién falta, cuándo
+  se le avisó por última vez y el historial de recordatorios. «Recordar a pendientes» permite ahora
+  elegir a quién avisar, añadir un mensaje propio y dejar registro (a quién, cuándo, quién y con
+  qué texto, y si el correo salió).
+- **Revisión guiada de las actividades** como sexto paso de «Preparar el nuevo curso»: cada
+  actividad con su plazo, a quién se le pide y cuántos docentes del curso tienen cada perfil, con
+  aviso cuando un perfil se ha quedado sin nadie.
+- En el **panel de inicio**, «Tus próximos pasos» es una sola lista que mezcla actividades y tareas
+  de Mejora continua (vencidas, esta semana, más adelante) y permite **marcar hecha** una actividad
+  manual sin abrirla.
+- **Duplicar una actividad** desde su menú (la copia queda oculta y sin carpeta).
+- En el formulario de actividad: **perfiles de la carpeta** (subida, responsables, revisión,
+  visibilidad) visibles y editables al elegir carpeta, **vista previa en vivo del nombre** con el
+  que se descargará una entrega, **resumen** de lo que se pedirá, elección inicial entre
+  recordatorio manual y entrega de documentos, secciones (Qué es, Cuándo, Qué se pide, A quién,
+  opciones avanzadas), botones para aplicar el plazo general a todos los elementos, salto al primer
+  error al guardar y aviso al descartar cambios en los perfiles de una carpeta.
+
+### Changed
+
+- El selector de elementos de la lista del formulario sigue el orden del árbol.
+- Las etiquetas del formulario de actividad van justo encima de «Plazos por elemento».
+- Menos consultas a la base de datos en inicio, actividades, calendario y seguimiento (el detalle
+  de seguimiento pasa de 324 a 37).
+
 ## [1.10.4] - 2026-10-09
 
 ### Changed
