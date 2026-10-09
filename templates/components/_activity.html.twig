@@ -162,6 +162,11 @@
                                     {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
                                     {{ 'activity.edit'|trans({}, 'admin') }}
                                 </button>
+                                <button type="button" data-action="live#action dropdown#toggle" data-live-action-param="duplicateActivity" data-live-id-param="{{ aid }}"
+                                        class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-50">
+                                    {{ ux_icon('heroicons:document-duplicate', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                                    {{ 'activity.duplicate.action'|trans({}, 'admin') }}
+                                </button>
                                 <button type="button" data-action="live#action dropdown#toggle" data-live-action-param="askDeleteActivity" data-live-id-param="{{ aid }}"
                                         class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50">
                                     {{ ux_icon('heroicons:trash', {class: 'h-4 w-4 shrink-0'}) }}

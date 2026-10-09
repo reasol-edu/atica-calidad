@@ -153,6 +153,29 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public array $formFolderReviewKeys = [];
 
+    /**
+     * Whether the activity collects documents (and so has a folder) rather than being a plain
+     * manual reminder — decides which fields the form shows. Switching it off clears the folder.
+     */
+    #[LiveProp(writable: true, onUpdated: 'onFormWithSubmissionsChanged')]
+    public bool $formWithSubmissions = false;
+
+    /** Whether the form's "advanced" section (auto-complete, hidden) is expanded. */
+    #[LiveProp]
+    public bool $advancedOpen = false;
+
+    /** Bumped on every save attempt: lets the form scroll to its first error each time Save fails. */
+    #[LiveProp]
+    public int $saveAttempt = 0;
+
+    /** Shown under the folder picker when picking another folder discarded unsaved folder-profile edits. */
+    #[LiveProp]
+    public string $folderProfilesNotice = '';
+
+    /** The folder whose profiles the four formFolder*Keys lists were loaded from ('' for none). */
+    #[LiveProp]
+    public string $formLoadedFolderId = '';
+
     /** Whether the inline "create a new folder" panel is open, in place of picking an existing one. */
     #[LiveProp(writable: true)]
     public bool $creatingFolder = false;
@@ -580,7 +603,24 @@ class ActivityBrowserComponent extends AbstractController
     /** @return ListItem[] */
     public function getAvailableListItems(): array
     {
-        return $this->listItems->findAllByCentre($this->centre);
+        // findAllByCentre() only orders by position among siblings, which interleaves different
+        // lists and levels: walk the tree instead (each list, then its children by position, depth
+        // first), so the picker reads like the lists themselves — and ties in a search keep that order.
+        $byParent = [];
+        foreach ($this->listItems->findAllByCentre($this->centre) as $item) {
+            $byParent[$item->getParent()?->getId()->toRfc4122() ?? ''][] = $item;
+        }
+
+        $ordered = [];
+        $walk    = static function (string $parentId) use (&$walk, &$ordered, $byParent): void {
+            foreach ($byParent[$parentId] ?? [] as $item) {
+                $ordered[] = $item;
+                $walk($item->getId()->toRfc4122());
+            }
+        };
+        $walk('');
+
+        return $ordered;
     }
 
     public function getListItemLabel(ListItem $item): string
@@ -697,14 +737,97 @@ class ActivityBrowserComponent extends AbstractController
         )) . '.pdf';
     }
 
+    /**
+     * One line saying what the settings in the form would ask for right now — how many submissions
+     * (counted the way the activity itself will, from the folder's upload profiles as they stand in
+     * the form, the list, its tags and the scope) or, for a manual activity, from whom. Null when
+     * there is nothing to say yet (a submission activity with no folder picked).
+     */
+    public function getFormSummary(): ?string
+    {
+        if ($this->formWithSubmissions || $this->formFolderId !== '') {
+            if ($this->formFolderId === '') {
+                return null;
+            }
+            $uploadKeys = $this->formFolderUploadKeys;
+            $rows       = array_values(array_filter(
+                $this->rowBuilder->buildActiveRows($this->centre),
+                static fn (ProfileAssignmentRow $row): bool => \in_array($row->key(), $uploadKeys, true)
+                    || ($row->listItem !== null && \in_array($row->profile->getId()->toRfc4122(), $uploadKeys, true)),
+            ));
+            $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
+            $tags     = array_values(array_filter(array_map(fn (string $id): ?Tag => $this->findTagById($id), $this->formTagIds)));
+            $slots    = $this->submissionSlots->buildSlotsFor(
+                $listItem,
+                $tags,
+                ActivitySubmissionScope::from($this->formScope === 'individual' ? 'individual' : 'by_profile'),
+                $rows,
+            );
+            if ($slots === []) {
+                return $this->t('activity.summary.no_submissions');
+            }
+
+            $summary = $this->translator->trans('activity.summary.submissions', ['%count%' => \count($slots)], 'admin');
+            if ($listItem !== null) {
+                $elements = \count(array_unique(array_map(static fn (ActivitySubmissionSlot $s): string => $s->displayName, $slots)));
+                $summary .= ' ' . $this->translator->trans('activity.summary.of_elements', ['%count%' => $elements], 'admin');
+            }
+
+            return $summary;
+        }
+
+        if ($this->formGeneral) {
+            return $this->t('activity.summary.everyone');
+        }
+
+        return $this->translator->trans('activity.summary.profiles', ['%count%' => \count($this->formProfileKeys)], 'admin');
+    }
+
     /** LiveProp(onUpdated:) hook for $formFolderId: the form now shows the newly picked folder's profiles. */
     public function onFormFolderIdChanged(): void
     {
+        $this->folderProfilesNotice = $this->hasUnsavedFolderProfileEdits() ? $this->t('activity.field.folder_profiles_discarded') : '';
+        if ($this->formFolderId !== '') {
+            $this->formWithSubmissions = true;
+        }
         $this->loadFolderProfileKeys($this->formFolderId === '' ? null : $this->resolveAvailableFolder($this->formFolderId));
+    }
+
+    /** LiveProp(onUpdated:) hook for $formWithSubmissions: a manual activity has no folder. */
+    public function onFormWithSubmissionsChanged(): void
+    {
+        if (!$this->formWithSubmissions) {
+            $this->folderProfilesNotice = $this->hasUnsavedFolderProfileEdits() ? $this->t('activity.field.folder_profiles_discarded') : '';
+            $this->formFolderId         = '';
+            $this->creatingFolder       = false;
+            $this->formAutoComplete     = false;
+            $this->loadFolderProfileKeys(null);
+        }
+    }
+
+    /** Whether the four folder-profile lists differ from what the folder they were loaded from holds now. */
+    private function hasUnsavedFolderProfileEdits(): bool
+    {
+        $loaded = $this->formLoadedFolderId === '' ? null : $this->resolveAvailableFolder($this->formLoadedFolderId);
+        if ($loaded === null) {
+            return false;
+        }
+        $same = static function (array $a, array $b): bool {
+            sort($a);
+            sort($b);
+
+            return $a === $b;
+        };
+
+        return !$same($this->formFolderResponsibleKeys, $this->folderProfiles->keysFor($loaded->getResponsibleProfiles()))
+            || !$same($this->formFolderUploadKeys, $this->folderProfiles->keysFor($loaded->getUploadProfiles()))
+            || !$same($this->formFolderVisibilityKeys, $this->folderProfiles->keysFor($loaded->getVisibilityProfiles()))
+            || !$same($this->formFolderReviewKeys, $this->folderProfiles->keysFor($loaded->getReviewProfiles()));
     }
 
     private function loadFolderProfileKeys(?Folder $folder): void
     {
+        $this->formLoadedFolderId        = $folder?->getId()->toRfc4122() ?? '';
         $this->formFolderResponsibleKeys = $folder === null ? [] : $this->folderProfiles->keysFor($folder->getResponsibleProfiles());
         $this->formFolderUploadKeys      = $folder === null ? [] : $this->folderProfiles->keysFor($folder->getUploadProfiles());
         $this->formFolderVisibilityKeys  = $folder === null ? [] : $this->folderProfiles->keysFor($folder->getVisibilityProfiles());
@@ -859,6 +982,9 @@ class ActivityBrowserComponent extends AbstractController
         $this->formEndMonth    = '';
         $this->formFolderId    = '';
         $this->loadFolderProfileKeys(null);
+        $this->formWithSubmissions  = false;
+        $this->advancedOpen         = false;
+        $this->folderProfilesNotice = '';
         $this->creatingFolder       = false;
         $this->newFolderName       = '';
         $this->newFolderSectionId  = '';
@@ -903,6 +1029,9 @@ class ActivityBrowserComponent extends AbstractController
         $this->formEndMonth     = (string) $activity->getEndMonth();
         $this->formFolderId     = $activity->getFolder()?->getId()->toRfc4122() ?? '';
         $this->loadFolderProfileKeys($activity->getFolder());
+        $this->formWithSubmissions  = $activity->getFolder() !== null;
+        $this->advancedOpen         = $activity->isHidden() || $activity->isAutoComplete();
+        $this->folderProfilesNotice = '';
         $this->creatingFolder      = false;
         $this->newFolderName      = '';
         $this->newFolderSectionId = '';
@@ -940,6 +1069,83 @@ class ActivityBrowserComponent extends AbstractController
         );
         $this->activityFormOpen = true;
         $this->errors           = [];
+    }
+
+    #[LiveAction]
+    public function toggleAdvanced(): void
+    {
+        $this->advancedOpen = !$this->advancedOpen;
+    }
+
+    /** Copies the activity's general deadline onto every element of the chosen list, replacing what they had. */
+    #[LiveAction]
+    public function applyGeneralDeadlineToElements(): void
+    {
+        foreach ($this->getFormListItemLeaves() as $leaf) {
+            $leafId = $leaf->getId()->toRfc4122();
+            $this->formOverrideStartDay[$leafId]   = $this->formStartDay;
+            $this->formOverrideStartMonth[$leafId] = $this->formStartMonth;
+            $this->formOverrideEndDay[$leafId]     = $this->formEndDay;
+            $this->formOverrideEndMonth[$leafId]   = $this->formEndMonth;
+        }
+    }
+
+    /** Back to the general deadline for every element of the list. */
+    #[LiveAction]
+    public function clearElementDeadlines(): void
+    {
+        $this->formOverrideStartDay = $this->formOverrideStartMonth = $this->formOverrideEndDay = $this->formOverrideEndMonth = [];
+        $this->seedOverrideArraysForCurrentListItem();
+    }
+
+    /**
+     * A copy of the activity in the same category, hidden until it's been reviewed and with no
+     * folder (a folder belongs to one activity), opened in the form so what changes can be set
+     * right away — activities repeat from year to year with small variations.
+     */
+    #[LiveAction]
+    public function duplicateActivity(#[LiveArg] string $id): void
+    {
+        $this->requireEditPermission();
+        $source = $this->findActivity($id) ?? throw $this->createNotFoundException();
+
+        $category = $source->getCategory();
+        $copy     = (new Activity())
+            ->setCategory($category)
+            ->setPosition($this->activities->nextPosition($category))
+            ->setTitle($this->translator->trans('activity.duplicate.title', ['%title%' => $source->getTitle()], 'admin'))
+            ->setDescription($source->getDescription())
+            ->setSubmissionPrefix($source->getSubmissionPrefix())
+            ->setStart($source->getStartDay(), $source->getStartMonth())
+            ->setEnd($source->getEndDay(), $source->getEndMonth())
+            ->setListItem($source->getListItem())
+            ->setRequired($source->isRequired())
+            ->setSubmissionScope($source->getSubmissionScope())
+            ->setStartDateEnforced($source->isStartDateEnforced())
+            ->setEndDateEnforced($source->isEndDateEnforced())
+            ->setEndDateGraceDays($source->getEndDateGraceDays())
+            ->setGeneral($source->isGeneral())
+            ->setHidden(true);
+        foreach ($source->getListItemDeadlines() as $override) {
+            $copy->setDeadlineOverride($override->getListItem(), $override->getStartDay(), $override->getStartMonth(), $override->getEndDay(), $override->getEndMonth());
+        }
+        foreach ($source->getTags() as $tag) {
+            $copy->addTag($tag);
+        }
+        foreach ($source->getRelatedDocuments() as $document) {
+            $copy->addRelatedDocument($document);
+        }
+        foreach ($source->getProfileRestrictions() as $restriction) {
+            $copy->addProfileRestriction($restriction->getSpecificProfile(), $restriction->getListItem());
+        }
+        foreach ($source->getResponsibleProfiles() as $responsible) {
+            $copy->addResponsibleProfile($responsible->getSpecificProfile(), $responsible->getListItem());
+        }
+        $this->em->persist($copy);
+        $this->em->flush();
+
+        $this->flashSuccess($this->translator->trans('activity.flash.duplicated', [], 'admin'));
+        $this->startEditActivity($copy->getId()->toRfc4122());
     }
 
     #[LiveAction]
@@ -995,6 +1201,8 @@ class ActivityBrowserComponent extends AbstractController
         // includes it (its activity is still null), so the picker just renders it selected.
         $this->formFolderId   = $folder->getId()->toRfc4122();
         $this->loadFolderProfileKeys($folder);
+        $this->formWithSubmissions  = true;
+        $this->folderProfilesNotice = '';
         $this->creatingFolder = false;
         $this->errors         = [];
     }
@@ -1007,6 +1215,7 @@ class ActivityBrowserComponent extends AbstractController
         if ($category === null) {
             return;
         }
+        ++$this->saveAttempt;
 
         $title = trim($this->formTitle);
         if ($title === '') {
@@ -1046,6 +1255,11 @@ class ActivityBrowserComponent extends AbstractController
         }
 
         $folder = $this->formFolderId === '' ? null : $this->resolveAvailableFolder($this->formFolderId);
+        if ($this->formWithSubmissions && $folder === null) {
+            $this->errors = ['folder' => $this->t('activity.error.folder_required')];
+
+            return;
+        }
         if ($this->formAutoComplete && $folder === null) {
             $this->errors = ['autoComplete' => $this->t('activity.error.auto_complete_requires_folder')];
 

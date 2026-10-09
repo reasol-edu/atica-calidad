@@ -750,6 +750,148 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertStringStartsWith('2025-2026 - Perfil A - ', (string) $component->component()->getSubmissionNamePreview());
     }
 
+    public function testSwitchingToAManualActivityDropsTheFolderAndWarnsOfDiscardedProfileEdits(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $a        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil A');
+        $b        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil B');
+        $folder->addUploadProfile($a);
+        $admin = $this->admin();
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $a, $b, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('startAddActivity')->set('formWithSubmissions', true)->set('formFolderId', $folder->getId()->toRfc4122());
+
+        /** @var ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertTrue($instance->formWithSubmissions);
+        self::assertSame('', $instance->folderProfilesNotice);
+
+        // An unsaved edit to the folder's profiles, then the activity becomes a manual one.
+        $component->set('formFolderUploadKeys', [$b->getId()->toRfc4122()])->set('formWithSubmissions', false);
+        $instance = $component->component();
+        self::assertSame('', $instance->formFolderId);
+        self::assertSame([], $instance->formFolderUploadKeys);
+        self::assertNotSame('', $instance->folderProfilesNotice);
+    }
+
+    public function testASubmissionActivityWithoutAFolderIsRejected(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component
+            ->call('startAddActivity')
+            ->set('formTitle', 'Memoria')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formWithSubmissions', true)
+            ->call('saveActivity');
+
+        /** @var ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertArrayHasKey('folder', $instance->errors);
+        self::assertSame(1, $instance->saveAttempt);
+    }
+
+    public function testTheFormSummarisesHowManySubmissionsItWillAskFor(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $a        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil A');
+        $b        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil B');
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $a, $b, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('startAddActivity');
+        self::assertStringContainsString('todo el profesorado', (string) $component->component()->getFormSummary());
+
+        $component->set('formWithSubmissions', true);
+        self::assertNull($component->component()->getFormSummary(), 'nothing to say until a folder is picked');
+
+        $component->set('formFolderId', $folder->getId()->toRfc4122());
+        self::assertStringContainsString('ninguna entrega', (string) $component->component()->getFormSummary());
+
+        $component->set('formFolderUploadKeys', [$a->getId()->toRfc4122(), $b->getId()->toRfc4122()]);
+        self::assertStringContainsString('2 entregas', (string) $component->component()->getFormSummary());
+    }
+
+    public function testTheListItemPickerFollowsTheTreeOrder(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        // Positions are per level, so a flat sort by position interleaves the lists and their children.
+        $b  = (new \App\Entity\ListItem())->setName('Cursos')->setEducationalCentre($centre)->setPosition(1);
+        $a  = (new \App\Entity\ListItem())->setName('Materias')->setEducationalCentre($centre)->setPosition(0);
+        $a2 = (new \App\Entity\ListItem())->setName('Química')->setEducationalCentre($centre)->setParent($a)->setPosition(1);
+        $a1 = (new \App\Entity\ListItem())->setName('Física')->setEducationalCentre($centre)->setParent($a)->setPosition(0);
+        $b1 = (new \App\Entity\ListItem())->setName('1º ESO')->setEducationalCentre($centre)->setParent($b)->setPosition(0);
+        $admin = $this->admin();
+        $this->persist($centre, $category, $a, $b, $a1, $a2, $b1, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        /** @var ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertSame(
+            ['Materias', 'Física', 'Química', 'Cursos', '1º ESO'],
+            array_map(static fn (\App\Entity\ListItem $i): string => $i->getName(), $instance->getAvailableListItems()),
+        );
+    }
+
+    public function testDuplicatingAnActivityCopiesItHiddenAndWithoutItsFolder(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $original = $this->activity($category, 'Memoria')->setFolder($folder)->setRequired(false);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $original, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('duplicateActivity', ['id' => $original->getId()->toRfc4122()]);
+
+        $this->em->clear();
+        /** @var \App\Repository\ActivityRepository $activities */
+        $activities = self::getContainer()->get(\App\Repository\ActivityRepository::class);
+        $reloaded   = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloaded);
+        $all = $activities->findByCategory($reloaded, true);
+        self::assertCount(2, $all);
+        $copy = array_values(array_filter($all, static fn (Activity $a): bool => $a->getTitle() !== 'Memoria'))[0];
+        self::assertSame('Memoria (copia)', $copy->getTitle());
+        self::assertTrue($copy->isHidden());
+        self::assertFalse($copy->isRequired());
+        self::assertNull($copy->getFolder());
+    }
+
     // ── Creating a folder inline from the activity form ─────────────────────
 
     public function testCreateFolderForActivityCreatesAndSelectsANewFolder(): void

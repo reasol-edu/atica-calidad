@@ -67,14 +67,30 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
             return [];
         }
 
-        $uploadRows = $this->access->getFolderUploadRows($folder);
-        $listItem   = $activity->getListItem();
+        return $this->buildSlotsFor(
+            $activity->getListItem(),
+            $activity->getTags()->toArray(),
+            $activity->getSubmissionScope(),
+            $this->access->getFolderUploadRows($folder),
+        );
+    }
 
+    /**
+     * The slots for an activity described by plain values instead of a saved one — what the
+     * activity form uses to say how many submissions the settings being edited would ask for.
+     *
+     * @param Tag[]                $tags       an element of the list is only asked for when it carries all of them
+     * @param ProfileAssignmentRow[] $uploadRows see DocumentTreeAccessChecker::getFolderUploadRows()
+     *
+     * @return ActivitySubmissionSlot[]
+     */
+    public function buildSlotsFor(?ListItem $listItem, array $tags, ActivitySubmissionScope $scope, array $uploadRows): array
+    {
         $rowSlots = $listItem === null
             ? $this->plainRowSlots($uploadRows)
-            : $this->listItemRowSlots($activity, $listItem, $uploadRows);
+            : $this->listItemRowSlots($tags, $listItem, $uploadRows);
 
-        if ($activity->getSubmissionScope() !== ActivitySubmissionScope::Individual) {
+        if ($scope !== ActivitySubmissionScope::Individual) {
             return $rowSlots;
         }
 
@@ -137,13 +153,12 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
      * among the rows the folder accepts. The activity's tag filter still applies per leaf
      * (inherited ancestor tags included).
      *
+     * @param  Tag[]                  $tags
      * @param  ProfileAssignmentRow[] $uploadRows
      * @return ActivitySubmissionSlot[]
      */
-    private function listItemRowSlots(Activity $activity, ListItem $listItem, array $uploadRows): array
+    private function listItemRowSlots(array $tags, ListItem $listItem, array $uploadRows): array
     {
-        $tags = $activity->getTags()->toArray();
-
         $slots = [];
         foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
             if (!$this->hasAllTags($leaf, $tags)) {

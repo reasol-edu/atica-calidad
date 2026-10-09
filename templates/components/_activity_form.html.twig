@@ -7,8 +7,16 @@
         </span>
     </div>
 
-    <form data-action="submit->live#action:prevent" data-live-action-param="saveActivity" class="px-4 py-4 sm:px-6 space-y-4">
+    {# Sections: what it is · when · what is handed in · who · advanced. A failed save scrolls to the first error. #}
+    <form data-action="submit->live#action:prevent" data-live-action-param="saveActivity" class="px-4 py-4 sm:px-6 space-y-4"
+          data-controller="scroll-to-error" data-scroll-to-error-token-value="{{ saveAttempt }}">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {% macro section(key) %}
+                <h3 class="sm:col-span-2 mt-2 border-b border-gray-100 pb-1 text-xs font-semibold uppercase tracking-wider text-forest-700">{{ ('activity.section.' ~ key)|trans({}, 'admin') }}</h3>
+            {% endmacro %}
+            {% import _self as form %}
+
+            {{ form.section('what') }}
             <div class="sm:col-span-2">
                 <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.title'|trans({}, 'admin') }}</label>
                 <input type="text" data-model="debounce(300)|formTitle" value="{{ formTitle }}"
@@ -23,6 +31,7 @@
                           class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">{{ formDescription }}</textarea>
             </div>
 
+            {{ form.section('when') }}
             <div class="sm:col-span-2 rounded-lg border border-gray-200 p-3 space-y-3">
                 <span class="block text-xs font-semibold uppercase tracking-wider text-gray-500">{{ 'activity.field.deadlines'|trans({}, 'admin') }}</span>
 
@@ -80,7 +89,22 @@
                 </div>
             </div>
 
-            <div>
+            {{ form.section('delivered') }}
+            <div class="sm:col-span-2">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <twig:Form:RadioCard name="activity_kind" value="0"
+                        label="{{ 'activity.field.kind_manual'|trans({}, 'admin') }}"
+                        help="{{ 'activity.field.kind_manual_help'|trans({}, 'admin') }}"
+                        :checked="not formWithSubmissions" data-model="formWithSubmissions" />
+                    <twig:Form:RadioCard name="activity_kind" value="1"
+                        label="{{ 'activity.field.kind_submissions'|trans({}, 'admin') }}"
+                        help="{{ 'activity.field.kind_submissions_help'|trans({}, 'admin') }}"
+                        :checked="formWithSubmissions" data-model="formWithSubmissions" />
+                </div>
+            </div>
+
+            {% if formWithSubmissions %}
+            <div class="sm:col-span-2" id="activity-form-folder-{{ formActivityId ?: 'new' }}">
                 <div class="mb-1 flex items-center justify-between gap-2">
                     <label class="block text-xs font-medium text-gray-600">{{ 'activity.field.folder'|trans({}, 'admin') }}</label>
                     {% if not creatingFolder %}
@@ -97,7 +121,7 @@
                             <input type="text" data-model="norender|newFolderName" value="{{ newFolderName }}" autofocus
                                    class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                         </div>
-                        <div>
+                        <div id="activity-form-new-folder-section" data-live-ignore>
                             <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.new_folder_section'|trans({}, 'admin') }}</label>
                             <select data-controller="tom-select"
                                     data-tom-select-placeholder-value="{{ 'activity.field.new_folder_section_placeholder'|trans({}, 'admin') }}"
@@ -123,6 +147,8 @@
                         </div>
                     </div>
                 {% else %}
+                    {# Not morphed by re-renders (they'd leave TomSelect showing a stale value); a new id per picked folder rebuilds it. #}
+                    <div id="activity-form-folder-picker-{{ formFolderId ?: 'none' }}" data-live-ignore>
                     <select data-controller="tom-select"
                             data-tom-select-placeholder-value="{{ 'activity.field.folder_picker_placeholder'|trans({}, 'admin') }}"
                             data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
@@ -132,9 +158,18 @@
                             <option value="{{ folder.id.toRfc4122 }}" {{ folder.id.toRfc4122 == formFolderId ? 'selected' : '' }}>{{ this.getFolderLabel(folder) }}</option>
                         {% endfor %}
                     </select>
+                    </div>
+                {% endif %}
+                {% if errors.folder is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.folder }}</p>{% endif %}
+                {% if folderProfilesNotice != '' %}
+                    <p class="mt-1 flex items-start gap-1.5 text-xs text-amber-700">
+                        {{ ux_icon('heroicons:exclamation-triangle', {class: 'h-3.5 w-3.5 shrink-0 mt-px'}) }}{{ folderProfilesNotice }}
+                    </p>
                 {% endif %}
             </div>
-            <div>
+            {% endif %}
+
+            <div class="sm:col-span-2" id="activity-form-list-item-{{ formActivityId ?: 'new' }}" data-live-ignore>
                 <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.list_item'|trans({}, 'admin') }}</label>
                 <select data-controller="tom-select"
                         data-tom-select-placeholder-value="{{ 'activity.field.list_item_picker_placeholder'|trans({}, 'admin') }}"
@@ -149,12 +184,12 @@
             </div>
 
             {# Right above the per-element deadlines: a tag narrows which elements of the list the activity asks for. #}
-            <div class="sm:col-span-2">
+            <div class="sm:col-span-2" id="activity-form-tags-{{ formActivityId ?: 'new' }}" data-live-ignore>
                 <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.tags'|trans({}, 'admin') }}</label>
                 <select multiple data-controller="tom-select"
                         data-tom-select-placeholder-value="{{ 'activity.field.tags_placeholder'|trans({}, 'admin') }}"
                         data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
-                        data-model="norender|formTagIds" class="w-full text-sm ts-local">
+                        data-model="formTagIds" class="w-full text-sm ts-local">
                     {% for tag in this.getAvailableTags %}
                         <option value="{{ tag.id.toRfc4122 }}" {{ tag.id.toRfc4122 in formTagIds ? 'selected' : '' }}>{{ tag.name }}</option>
                     {% endfor %}
@@ -167,6 +202,16 @@
                 <div class="sm:col-span-2">
                     <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.list_item_deadlines'|trans({}, 'admin') }}</label>
                     <p class="mb-2 text-xs text-gray-400">{{ 'activity.field.list_item_deadlines_help'|trans({}, 'admin') }}</p>
+                    <div class="mb-2 flex flex-wrap gap-2">
+                        <button type="button" data-action="live#action" data-live-action-param="applyGeneralDeadlineToElements"
+                                class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                            {{ 'activity.field.element_deadlines_use_general'|trans({}, 'admin') }}
+                        </button>
+                        <button type="button" data-action="live#action" data-live-action-param="clearElementDeadlines"
+                                class="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                            {{ 'activity.field.element_deadlines_clear'|trans({}, 'admin') }}
+                        </button>
+                    </div>
                     <div class="space-y-1.5 rounded-lg border border-gray-100 p-2">
                         {% for leaf in form_leaves %}
                             {% set lid = leaf.id.toRfc4122 %}
@@ -193,6 +238,7 @@
                 </div>
             {% endif %}
 
+            {% if formWithSubmissions %}
             <div class="sm:col-span-2">
                 <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.submission_prefix'|trans({}, 'admin') }}</label>
                 <input type="text" data-model="debounce(300)|formSubmissionPrefix" value="{{ formSubmissionPrefix }}"
@@ -207,6 +253,7 @@
                     </div>
                 {% endif %}
             </div>
+            {% endif %}
 
             <div class="sm:col-span-2">
                 <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.related_documents'|trans({}, 'admin') }}</label>
@@ -253,6 +300,7 @@
                 <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.related_documents_help'|trans({}, 'admin') }}</p>
             </div>
 
+            {{ form.section('who') }}
             <div class="sm:col-span-2">
                 <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.required'|trans({}, 'admin') }}</span>
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -280,8 +328,8 @@
             </div>
 
             {# With a folder, who is asked and who manages it come from the folder's own profiles, edited in the block below. #}
-            {% if formFolderId == '' %}
-            <div class="sm:col-span-2">
+            {% if not formWithSubmissions %}
+            <div class="sm:col-span-2" id="activity-form-visibility-{{ formActivityId ?: 'new' }}">
                 <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.visibility'|trans({}, 'admin') }}</span>
                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <twig:Form:RadioCard name="activity_visibility" value="1"
@@ -294,21 +342,23 @@
                             :checked="not formGeneral" data-model="formGeneral" />
                     </div>
                     {% if not formGeneral %}
+                        <div id="activity-form-visibility-profiles-{{ formActivityId ?: 'new' }}" data-live-ignore>
                         <select multiple data-controller="tom-select"
                                 data-tom-select-placeholder-value="{{ 'activity.field.visibility_profiles_placeholder'|trans({}, 'admin') }}"
                                 data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
-                                data-model="norender|formProfileKeys" class="mt-2 w-full text-sm ts-local">
+                                data-model="formProfileKeys" class="mt-2 w-full text-sm ts-local">
                             {% for row in this.getAvailableProfileRows %}
                                 <option value="{{ row.key }}" {{ row.key in formProfileKeys ? 'selected' : '' }}
                                         data-always-visible="{{ row.listItem is null and row.profile.listItem is not null ? '1' : '' }}">{{ row.displayName }}</option>
                             {% endfor %}
                         </select>
+                        </div>
                         <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.visibility_profiles_help'|trans({}, 'admin') }}</p>
                         {% if errors.profiles is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.profiles }}</p>{% endif %}
                     {% endif %}
             </div>
 
-            <div class="sm:col-span-2">
+            <div class="sm:col-span-2" id="activity-form-responsible-{{ formActivityId ?: 'new' }}" data-live-ignore>
                 <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.responsible_profiles'|trans({}, 'admin') }}</span>
                     <select multiple data-controller="tom-select"
                             data-tom-select-placeholder-value="{{ 'activity.field.responsible_profiles_placeholder'|trans({}, 'admin') }}"
@@ -321,9 +371,9 @@
                     </select>
                     <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.responsible_profiles_help'|trans({}, 'admin') }}</p>
             </div>
-            {% else %}
+            {% elseif formFolderId != '' %}
             {# ── The folder's own profiles, edited here and saved onto the folder with the activity ── #}
-            <div class="space-y-3 rounded-xl border border-gray-200 bg-gray-50/50 p-4 sm:col-span-2">
+            <div class="space-y-3 rounded-xl border border-gray-200 bg-gray-50/50 p-4 sm:col-span-2" id="activity-form-folder-profiles-{{ formFolderId }}">
                 <div>
                     <span class="block text-xs font-semibold text-gray-700">{{ 'activity.field.folder_profiles'|trans({}, 'admin') }}</span>
                     <p class="mt-0.5 text-xs text-gray-400">{{ 'activity.field.folder_profiles_help'|trans({}, 'admin') }}</p>
@@ -334,12 +384,12 @@
                     {list: 'Review',      label: 'folder.field.review_profiles',      help: 'activity.field.folder_review_help',      selected: formFolderReviewKeys},
                     {list: 'Visibility',  label: 'folder.field.visibility_profiles',  help: 'activity.field.folder_visibility_help',  selected: formFolderVisibilityKeys},
                 ] %}
-                    <div>
+                    <div id="activity-form-folder-profiles-{{ entry.list|lower }}-{{ formFolderId }}" data-live-ignore>
                         <span class="mb-1 block text-xs font-medium text-gray-600">{{ entry.label|trans({}, 'admin') }}</span>
                         <select multiple data-controller="tom-select"
                                 data-tom-select-placeholder-value="{{ 'folder.profiles.picker_placeholder'|trans({}, 'admin') }}"
                                 data-tom-select-no-results-value="{{ 'folder.profiles.picker_no_results'|trans({}, 'admin') }}"
-                                data-model="norender|formFolder{{ entry.list }}Keys" class="w-full text-sm ts-local">
+                                data-model="{{ entry.list == 'Upload' ? '' : 'norender|' }}formFolder{{ entry.list }}Keys" class="w-full text-sm ts-local">
                             {% for row in this.getAvailableProfileRows %}
                                 <option value="{{ row.key }}" {{ row.key in entry.selected ? 'selected' : '' }}
                                         data-always-visible="{{ row.listItem is null and row.profile.listItem is not null ? '1' : '' }}">{{ row.displayName }}</option>
@@ -351,6 +401,22 @@
             </div>
             {% endif %}
 
+            {% set summary = this.formSummary %}
+            {% if summary is not null %}
+                <div class="sm:col-span-2 flex items-start gap-2 rounded-lg border border-forest-200 bg-forest-50 px-3 py-2 text-sm text-forest-800" role="status">
+                    {{ ux_icon('heroicons:information-circle', {class: 'h-4 w-4 shrink-0 mt-0.5'}) }}
+                    <span>{{ summary }}</span>
+                </div>
+            {% endif %}
+
+            <div class="sm:col-span-2">
+                <button type="button" data-action="live#action" data-live-action-param="toggleAdvanced" aria-expanded="{{ advancedOpen ? 'true' : 'false' }}"
+                        class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 hover:text-gray-700">
+                    {{ ux_icon(advancedOpen ? 'heroicons:chevron-down' : 'heroicons:chevron-right', {class: 'h-3.5 w-3.5'}) }}
+                    {{ 'activity.section.advanced'|trans({}, 'admin') }}
+                </button>
+            </div>
+            {% if advancedOpen %}
             <div class="sm:col-span-2">
                 <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.auto_complete'|trans({}, 'admin') }}</span>
                 {% if formFolderId == '' %}
@@ -382,6 +448,7 @@
                     </span>
                 </label>
             </div>
+            {% endif %}
         </div>
 
         <div class="flex items-center gap-2 border-t border-gray-100 pt-4">
