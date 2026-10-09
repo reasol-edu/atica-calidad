@@ -135,6 +135,19 @@
             {% endif %}
             {% endblock %}
         {% endembed %}
+
+        {# ── 6. Activities ─────────────────────────────────────────────────── #}
+        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 6, step: steps.activities, title: 'year_setup.activities.title'|trans({}, 'admin'),
+            help: steps.activities.count > 0 ? 'year_setup.activities.flagged'|trans({'%count%': steps.activities.count}, 'admin') : 'year_setup.activities.help'|trans({}, 'admin')} %}
+            {% block actions %}
+            {% if not steps.activities.blocked %}
+                <a href="{{ path('app_centre_year_setup_activities', {centreId: centre.id}) }}" class="{{ steps.activities.done ? link : button }}">
+                    {{ ux_icon('heroicons:clipboard-document-check', {class: 'h-4 w-4'}) }}
+                    {{ 'year_setup.activities.review'|trans({}, 'admin') }}
+                </a>
+            {% endif %}
+            {% endblock %}
+        {% endembed %}
     </ol>
 
     <p class="mt-4 flex items-start gap-2 text-xs text-gray-500">

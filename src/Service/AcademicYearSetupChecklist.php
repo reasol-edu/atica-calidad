@@ -16,8 +16,9 @@ use Symfony\Component\Clock\ClockInterface;
 /**
  * "Preparar el nuevo curso": where a centre stands in getting a new academic year ready — the
  * year exists, it's the active one, it has its teachers and its non-working days, and no profile
- * is still assigned to someone who isn't in it any more. Activities and document reviews need no
- * step: they follow the calendar on their own.
+ * is still assigned to someone who isn't in it any more, and no activity asks a profile nobody in
+ * the year holds. Activities and document reviews follow the calendar on their own (their
+ * deadlines and folders carry over); the activities step only checks who they ask.
  *
  * Profiles and their assignments belong to the centre, not to a year, so they carry over; the
  * only thing to check is who left.
@@ -29,11 +30,13 @@ final class AcademicYearSetupChecklist
     public const string STEP_TEACHERS    = 'teachers';
     public const string STEP_DAYS        = 'non_working_days';
     public const string STEP_ASSIGNMENTS = 'assignments';
+    public const string STEP_ACTIVITIES  = 'activities';
 
     public function __construct(
         private readonly AcademicYearRepository $years,
         private readonly NonWorkingDayRepository $nonWorkingDays,
         private readonly SpecificProfileAssignmentRepository $assignments,
+        private readonly ActivityYearReviewBuilder $activityReview,
         private readonly ClockInterface $clock,
     ) {}
 
@@ -87,6 +90,7 @@ final class AcademicYearSetupChecklist
         $teachers = $target?->getTeachers()->count() ?? 0;
         $days     = $target === null ? 0 : \count($this->nonWorkingDays->findByAcademicYearOrdered($target));
         $stale    = $target === null ? 0 : \count($this->staleAssignments($centre, $target));
+        $flagged  = $target === null || $teachers === 0 ? 0 : $this->activityReview->countWithIssues($centre, $target);
 
         return [
             new AcademicYearSetupStep(self::STEP_CREATE, $target !== null),
@@ -94,6 +98,7 @@ final class AcademicYearSetupChecklist
             new AcademicYearSetupStep(self::STEP_TEACHERS, $teachers > 0, $teachers, blocked: !$active),
             new AcademicYearSetupStep(self::STEP_DAYS, $days > 0, $days, blocked: !$active),
             new AcademicYearSetupStep(self::STEP_ASSIGNMENTS, $teachers > 0 && $stale === 0, $stale, blocked: !$active || $teachers === 0),
+            new AcademicYearSetupStep(self::STEP_ACTIVITIES, $teachers > 0 && $flagged === 0, $flagged, blocked: !$active || $teachers === 0),
         ];
     }
 

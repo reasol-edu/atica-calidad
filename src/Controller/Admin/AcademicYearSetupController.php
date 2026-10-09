@@ -7,11 +7,13 @@ namespace App\Controller\Admin;
 use App\Controller\TranslatorTrait;
 use App\Entity\AcademicYear;
 use App\Entity\EducationalCentre;
+use App\Model\ActivityYearReviewRow;
 use App\Repository\AcademicYearRepository;
 use App\Repository\EducationalCentreRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Service\AcademicYearSetupChecklist;
 use App\Service\ActivityLogger;
+use App\Service\ActivityYearReviewBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,6 +37,7 @@ class AcademicYearSetupController extends AbstractController
         private readonly EducationalCentreRepository $centres,
         private readonly AcademicYearRepository $years,
         private readonly AcademicYearSetupChecklist $checklist,
+        private readonly ActivityYearReviewBuilder $activityReview,
         private readonly ActivityLogger $activityLogger,
         private readonly TranslatorInterface $translator,
     ) {}
@@ -52,6 +55,30 @@ class AcademicYearSetupController extends AbstractController
             'suggestedName' => $this->checklist->suggestedName($centre),
             'copySources'   => $this->checklist->copySources($centre, $target),
             'stale'         => $target === null ? [] : $this->checklist->staleAssignments($centre, $target),
+        ]);
+    }
+
+    /**
+     * The guided review of the centre's activities for the year being prepared: what each asks and of
+     * whom, with a flag where the profiles asked have nobody in the year, and a link to adjust it.
+     */
+    #[Route('/actividades', name: 'app_centre_year_setup_activities')]
+    public function activities(string $centreId): Response
+    {
+        $centre = $this->requireCentre($centreId);
+        $target = $this->checklist->targetYear($centre);
+        if ($target === null) {
+            return $this->redirectToRoute('app_centre_year_setup', ['centreId' => $centreId]);
+        }
+
+        $rows = $this->activityReview->build($centre, $target);
+
+        return $this->render('admin/academic_year/setup_activities.html.twig', [
+            'centre'     => $centre,
+            'target'     => $target,
+            'rows'       => $rows,
+            'flagged'    => \count(array_filter($rows, static fn (ActivityYearReviewRow $r): bool => $r->hasIssues())),
+            'canEdit'    => $this->isGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre),
         ]);
     }
 

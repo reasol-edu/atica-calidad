@@ -11,7 +11,7 @@ final readonly class AcademicYearSetupStep
         /** One of the AcademicYearSetupChecklist::STEP_* keys. */
         public string $key,
         public bool $done,
-        /** What the step counts: teachers, non-working days, or stale assignments. */
+        /** What the step counts: teachers, non-working days, or stale assignments, or activities to review. */
         public int $count = 0,
         /** An earlier step has to be done first. */
         public bool $blocked = false,

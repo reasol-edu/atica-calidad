@@ -112,17 +112,19 @@ class ActivityRepository extends ServiceEntityRepository
      *         category then position. Hidden ones (see Activity::isHidden()) never count — every
      *         caller is an aggregate or a per-teacher listing: dashboard, calendar, reminders, reports.
      */
-    public function findAllByCentre(EducationalCentre $centre): array
+    public function findAllByCentre(EducationalCentre $centre, bool $includeHidden = false): array
     {
-        return $this->createQueryBuilder('a')
+        $qb = $this->createQueryBuilder('a')
             ->join('a.category', 'c')
             ->where('c.educationalCentre = :centre')
-            ->andWhere('a.hidden = false')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->orderBy('c.position', 'ASC')
-            ->addOrderBy('a.position', 'ASC')
-            ->getQuery()
-            ->getResult();
+            ->addOrderBy('a.position', 'ASC');
+        if (!$includeHidden) {
+            $qb->andWhere('a.hidden = false');
+        }
+
+        return $qb->getQuery()->getResult();
     }
 
     /** @return list<Activity> whose title matches $query anywhere in the centre's categories, ordered by title */

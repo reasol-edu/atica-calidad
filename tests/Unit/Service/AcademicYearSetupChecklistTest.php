@@ -10,6 +10,7 @@ use App\Repository\AcademicYearRepository;
 use App\Repository\NonWorkingDayRepository;
 use App\Repository\SpecificProfileAssignmentRepository;
 use App\Service\AcademicYearSetupChecklist;
+use App\Service\ActivityYearReviewBuilder;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
@@ -30,6 +31,7 @@ final class AcademicYearSetupChecklistTest extends TestCase
             $years,
             $this->createStub(NonWorkingDayRepository::class),
             $this->createStub(SpecificProfileAssignmentRepository::class),
+            $this->createStub(ActivityYearReviewBuilder::class),
             new MockClock('2026-06-20'),
         );
     }

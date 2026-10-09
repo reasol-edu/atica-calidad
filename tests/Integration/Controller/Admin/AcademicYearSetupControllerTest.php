@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Controller\Admin;
 
 use App\Entity\AcademicYear;
+use App\Entity\Activity;
+use App\Entity\ActivityCategory;
+use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
+use App\Entity\Folder;
 use App\Entity\NonWorkingDay;
 use App\Entity\PersonName;
 use App\Entity\SpecificProfile;
@@ -104,7 +108,7 @@ final class AcademicYearSetupControllerTest extends ControllerTestCase
         $this->client->request('POST', "/centro/{$centreId}/cursos/preparar/crear", ['_token' => $this->csrfToken('year_setup_create_' . $centreId), 'name' => '2026-2027']);
         self::assertTrue($this->client->getResponse()->isRedirect());
         $crawler = $this->page($centre);
-        self::assertSame(['create' => 'done', 'activate' => 'todo', 'teachers' => 'blocked', 'non_working_days' => 'blocked', 'assignments' => 'blocked'], $this->states($crawler));
+        self::assertSame(['create' => 'done', 'activate' => 'todo', 'teachers' => 'blocked', 'non_working_days' => 'blocked', 'assignments' => 'blocked', 'activities' => 'blocked'], $this->states($crawler));
 
         // 2. Activate
         $this->client->submit($crawler->filter('[data-step=activate] form')->form());
@@ -113,7 +117,7 @@ final class AcademicYearSetupControllerTest extends ControllerTestCase
         /** @var EducationalCentreRepository $centres */
         $centres = self::getContainer()->get(EducationalCentreRepository::class);
         self::assertSame('2026-2027', $centres->findByIdWithActiveYear($centreId)?->getActiveAcademicYear()?->getName());
-        self::assertSame(['create' => 'done', 'activate' => 'done', 'teachers' => 'todo', 'non_working_days' => 'todo', 'assignments' => 'blocked'], $this->states($this->page($centre)));
+        self::assertSame(['create' => 'done', 'activate' => 'done', 'teachers' => 'todo', 'non_working_days' => 'todo', 'assignments' => 'blocked', 'activities' => 'blocked'], $this->states($this->page($centre)));
 
         // 3. Copy the teachers of 2025-2026: the assignment of whoever left is then flagged.
         $this->client->request('POST', "/centro/{$centreId}/cursos/preparar/copiar-docentes", ['_token' => $this->csrfToken('year_setup_copy_teachers_' . $centreId), 'source' => $old->getId()->toRfc4122()]);
@@ -136,8 +140,43 @@ final class AcademicYearSetupControllerTest extends ControllerTestCase
         $this->em->flush();
 
         $crawler = $this->page($centre);
-        self::assertSame(['create' => 'done', 'activate' => 'done', 'teachers' => 'done', 'non_working_days' => 'done', 'assignments' => 'todo'], $this->states($crawler));
+        self::assertSame(['create' => 'done', 'activate' => 'done', 'teachers' => 'done', 'non_working_days' => 'done', 'assignments' => 'todo', 'activities' => 'done'], $this->states($crawler));
         self::assertStringContainsString('seva, Nombre · Jefatura', $crawler->filter('[data-step=assignments]')->text());
+    }
+
+    public function testTheActivityReviewFlagsProfilesNobodyHoldsInTheYear(): void
+    {
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2026-2027')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $stays    = $this->teacher('queda');
+        $year->addTeacher($stays);
+        $covered  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $orphaned = (new SpecificProfile())->setEducationalCentre($centre)->setName('Coordinación');
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Seguimiento');
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Memorias');
+        $folder->addUploadProfile($covered)->addUploadProfile($orphaned);
+        $withFolder = (new Activity())->setCategory($category)->setTitle('Memoria')->setStart(1, 9)->setEnd(30, 6)->setFolder($folder);
+        $manual     = (new Activity())->setCategory($category)->setTitle('Lectura del plan')->setStart(1, 9)->setEnd(30, 6);
+        $admin      = $this->teacher('root', admin: true);
+        $this->persist($centre, $year, $stays, $covered, $orphaned, $category, $section, $folder, $withFolder, $manual, $admin, new SpecificProfileAssignment($covered, null, $stays));
+        $centreId = $centre->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $crawler = $this->client->request('GET', "/centro/{$centreId}/cursos/preparar/actividades");
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        $text = $crawler->filter('main, body')->first()->text();
+
+        self::assertStringContainsString('Memoria', $text);
+        self::assertStringContainsString('Alguno de los perfiles a los que se pide no tiene docentes en este curso.', $text);
+        self::assertStringContainsString('Coordinación · 0', $text);
+        self::assertStringContainsString('Jefatura · 1', $text);
+        self::assertStringContainsString('Lectura del plan', $text);
+        self::assertStringContainsString('A todo el profesorado del curso', $text);
+
+        // And the checklist step counts only the flagged one (the manual, general activity is fine).
+        self::assertSame('todo', $this->states($this->page($centre))['activities']);
     }
 
     public function testCreateRejectsANameAlreadyInUse(): void

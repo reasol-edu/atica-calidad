@@ -1,0 +1,106 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'year_setup.activities.page_title'|trans({'%year%': target.name}, 'admin') }} ·{{ centre.name }} · {{ app_name }}{% endblock %}
+
+{#
+   Start-of-year review of the activities (AcademicYearSetupController::activities): one card per
+   activity, grouped by category, saying what it asks, from whom and how many of them are in the
+   year being prepared. Nothing is copied — activities carry over by themselves; what can go wrong
+   is a profile nobody holds any more, flagged here with a link to adjust the activity.
+#}
+{% set link = 'inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors' %}
+
+{% macro people(list, empty) %}
+    {% if list is empty %}
+        <span class="text-gray-400">{{ empty }}</span>
+    {% else %}
+        <ul class="flex flex-wrap gap-1.5">
+            {% for p in list %}
+                <li class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs {{ p.teachers == 0 ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-700' }}">
+                    {{ p.name }}
+                    <span class="font-semibold">· {{ p.teachers }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endmacro %}
+{% import _self as view %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-4xl mx-auto">
+
+    <div class="mb-6">
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_centre_year_setup', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">{{ 'year_setup.title'|trans({}, 'admin') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'year_setup.activities.page_title'|trans({'%year%': target.name}, 'admin') }}</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ 'year_setup.activities.page_intro'|trans({'%year%': target.name}, 'admin') }}</p>
+    </div>
+
+    {% if rows is empty %}
+        <p class="rounded-2xl border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-500">{{ 'year_setup.activities.none'|trans({}, 'admin') }}</p>
+    {% else %}
+        <p class="mb-4 flex items-center gap-2 rounded-xl px-4 py-3 text-sm {{ flagged > 0 ? 'bg-amber-50 text-amber-800' : 'bg-forest-50 text-forest-800' }}" role="status">
+            {{ ux_icon(flagged > 0 ? 'heroicons:exclamation-triangle' : 'heroicons:check-circle', {class: 'h-4 w-4 shrink-0'}) }}
+            {% if flagged > 0 %}{{ 'year_setup.activities.flagged'|trans({'%count%': flagged}, 'admin') }}{% else %}{{ 'year_setup.activities.all_ok'|trans({}, 'admin') }}{% endif %}
+        </p>
+
+        {% set current = null %}
+        {% for row in rows %}
+            {% if row.categoryName != current %}
+                {% if current is not null %}</ul>{% endif %}
+                {% set current = row.categoryName %}
+                <h2 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wider text-gray-500">{{ current }}</h2>
+                <ul class="space-y-3">
+            {% endif %}
+            {% set a = row.activity %}
+            <li class="rounded-2xl border bg-white p-4 shadow-xs {{ row.hasIssues ? 'border-amber-300' : 'border-gray-200' }}">
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <h3 class="flex flex-wrap items-center gap-2 text-sm font-semibold text-gray-900">
+                            {{ a.title }}
+                            {% if a.hidden %}<span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{{ 'year_setup.activities.hidden'|trans({}, 'admin') }}</span>{% endif %}
+                        </h3>
+                        <p class="mt-0.5 text-xs text-gray-500">
+                            {{ 'year_setup.activities.deadline'|trans({'%start%': '%02d/%02d'|format(a.startDay, a.startMonth), '%end%': '%02d/%02d'|format(a.endDay, a.endMonth)}, 'admin') }}
+                            {% if a.listItemDeadlines|length > 0 %} · {{ 'year_setup.activities.own_deadlines'|trans({'%count%': a.listItemDeadlines|length}, 'admin') }}{% endif %}
+                            · {{ (row.withSubmissions ? 'year_setup.activities.kind_submissions' : 'year_setup.activities.kind_manual')|trans({'%count%': row.submissions}, 'admin') }}
+                        </p>
+                    </div>
+                    {% if canEdit %}
+                        <a href="{{ path('app_activities', {category: a.category.id.toRfc4122, activity: a.id.toRfc4122}) }}" class="{{ link }}">
+                            {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4'}) }}
+                            {{ 'year_setup.activities.adjust'|trans({}, 'admin') }}
+                        </a>
+                    {% endif %}
+                </div>
+
+                <dl class="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                    <div>
+                        <dt class="mb-1 text-xs font-medium text-gray-500">{{ 'year_setup.activities.asked'|trans({}, 'admin') }}</dt>
+                        <dd>{% if row.everyone %}<span class="text-gray-700">{{ 'year_setup.activities.everyone'|trans({}, 'admin') }}</span>{% else %}{{ view.people(row.asked, 'year_setup.activities.nobody'|trans({}, 'admin')) }}{% endif %}</dd>
+                    </div>
+                    <div>
+                        <dt class="mb-1 text-xs font-medium text-gray-500">{{ 'year_setup.activities.managers'|trans({}, 'admin') }}</dt>
+                        <dd>{{ view.people(row.responsible, 'year_setup.activities.managers_default'|trans({}, 'admin')) }}</dd>
+                    </div>
+                </dl>
+
+                {% if row.hasIssues %}
+                    <ul class="mt-3 space-y-1">
+                        {% for issue in row.issues %}
+                            <li class="flex items-start gap-1.5 text-xs text-amber-800">
+                                {{ ux_icon('heroicons:exclamation-triangle', {class: 'h-3.5 w-3.5 shrink-0 mt-px'}) }}
+                                {{ ('year_setup.activities.issue.' ~ issue)|trans({}, 'admin') }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </li>
+            {% if loop.last %}</ul>{% endif %}
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}
