@@ -148,6 +148,20 @@
                 <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.list_item_help'|trans({}, 'admin') }}</p>
             </div>
 
+            {# Right above the per-element deadlines: a tag narrows which elements of the list the activity asks for. #}
+            <div class="sm:col-span-2">
+                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.tags'|trans({}, 'admin') }}</label>
+                <select multiple data-controller="tom-select"
+                        data-tom-select-placeholder-value="{{ 'activity.field.tags_placeholder'|trans({}, 'admin') }}"
+                        data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
+                        data-model="norender|formTagIds" class="w-full text-sm ts-local">
+                    {% for tag in this.getAvailableTags %}
+                        <option value="{{ tag.id.toRfc4122 }}" {{ tag.id.toRfc4122 in formTagIds ? 'selected' : '' }}>{{ tag.name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.tags_help'|trans({}, 'admin') }}</p>
+            </div>
+
             {% set form_leaves = this.getFormListItemLeaves %}
             {% if form_leaves is not empty %}
                 <div class="sm:col-span-2">
@@ -192,19 +206,6 @@
                         <code class="mt-0.5 block break-words font-mono text-xs text-gray-800">{{ namePreview }}</code>
                     </div>
                 {% endif %}
-            </div>
-
-            <div class="sm:col-span-2">
-                <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.tags'|trans({}, 'admin') }}</label>
-                <select multiple data-controller="tom-select"
-                        data-tom-select-placeholder-value="{{ 'activity.field.tags_placeholder'|trans({}, 'admin') }}"
-                        data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
-                        data-model="norender|formTagIds" class="w-full text-sm ts-local">
-                    {% for tag in this.getAvailableTags %}
-                        <option value="{{ tag.id.toRfc4122 }}" {{ tag.id.toRfc4122 in formTagIds ? 'selected' : '' }}>{{ tag.name }}</option>
-                    {% endfor %}
-                </select>
-                <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.tags_help'|trans({}, 'admin') }}</p>
             </div>
 
             <div class="sm:col-span-2">
