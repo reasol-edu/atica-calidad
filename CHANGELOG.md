@@ -7,6 +7,24 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.10.4] - 2026-10-09
+
+### Changed
+
+- **Menos consultas a la base de datos** en las pantallas más pesadas: el índice de «Informes»
+  pasa de unas 194 consultas a 36, el listado maestro (PDF y Excel) de 87 a 7, las pantallas de
+  plan, fichas y comunicar de Mejora continua de unas 35 a menos de 10, la vista «Ver» de una
+  categoría de actividades de 83 a 28 y el calendario de 92 a 56.
+- En el **panel de inicio**, cada bloque de «Tus próximos pasos» (actividades y Mejora continua)
+  muestra en su cabecera cuántas tareas tiene vencidas.
+- **Mejora continua** usa el mismo ancho de contenido que el resto de secciones en su portada, el
+  plan de mejora y el programa de auditorías.
+- «Mis actividades» rotula con «Agrupar por» los botones de agrupación, y los nombres truncados de
+  las barras laterales de categorías y del árbol documental muestran el nombre completo al pasar el
+  ratón.
+- **Móvil**: los filtros de las fichas se reparten en dos columnas, las pestañas de «Actividades»
+  caben en una línea y los botones de la lista de docentes ya no se parten.
+
 ## [1.10.3] - 2026-10-05
 
 ### Added
