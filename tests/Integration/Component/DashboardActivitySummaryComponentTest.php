@@ -79,6 +79,80 @@ final class DashboardActivitySummaryComponentTest extends ControllerTestCase
         self::assertStringContainsString('Pendiente', $html);
     }
 
+    public function testAManualActivityOffersMarkingItDoneAndAnUploadOneDoesNot(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $manual   = $this->activity($category, 'Lectura del plan');
+        $section  = (new \App\Entity\DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $folder   = (new \App\Entity\Folder())->setDocumentSection($section)->setName('Memorias');
+        $profile  = (new \App\Entity\SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $folder->addUploadProfile($profile);
+        $withFolder = $this->activity($category, 'Memoria')->setFolder($folder);
+        $teacher    = $this->teacher('docente');
+        $year       = (new \App\Entity\AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $year->addTeacher($teacher);
+        $this->persist($centre, $year, $category, $section, $folder, $profile, $manual, $withFolder, $teacher, new \App\Entity\SpecificProfileAssignment($profile, null, $teacher));
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('DashboardActivitySummaryComponent', ['centre' => $centre], $this->client);
+        $crawler   = $component->render()->crawler();
+
+        self::assertCount(1, $crawler->filter('button[data-live-action-param=markDone]'), 'only the manual activity can be ticked off');
+        self::assertStringContainsString('Memoria', $crawler->html());
+    }
+
+    public function testAManualActivityCanBeMarkedDoneFromTheList(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category, 'Lectura del plan');
+        $teacher  = $this->teacher('docente');
+        $year     = (new \App\Entity\AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $year->addTeacher($teacher);
+        $this->persist($centre, $year, $category, $activity, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('DashboardActivitySummaryComponent', ['centre' => $centre], $this->client);
+
+        // The action goes first: a render() leaves no HTTP response behind to read the props from.
+        $component->call('markDone', ['activityId' => $activity->getId()->toRfc4122()]);
+
+        $html = (string) $component->render()->crawler()->html();
+        self::assertStringNotContainsString('Marcar hecha', $html, 'done: gone from the list');
+        $this->em->clear();
+        $completions = $this->em->getRepository(ActivityCompletion::class)->findAll();
+        self::assertCount(1, $completions);
+        self::assertSame('docente', $completions[0]->getCompletedBy()->getUsername());
+    }
+
+    public function testMarkingDoneIsRefusedForAnOwnerTheTeacherDoesNotHold(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category, 'Lectura del plan');
+        $teacher  = $this->teacher('docente');
+        $year     = (new \App\Entity\AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $year->addTeacher($teacher);
+        $this->persist($centre, $year, $category, $activity, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('DashboardActivitySummaryComponent', ['centre' => $centre], $this->client);
+
+        // A manual general activity has no profile owner: any profile id is somebody else's row.
+        $this->expectException(\Symfony\Component\Security\Core\Exception\AccessDeniedException::class);
+        $component->call('markDone', ['activityId' => $activity->getId()->toRfc4122(), 'profileId' => '01a12220-6291-7582-8306-beae519f8f46']);
+    }
+
     public function testShowsTheOverdueAlertForAnUncompletedActivityPastItsDeadline(): void
     {
         self::mockTime('2025-10-05 10:00:00');

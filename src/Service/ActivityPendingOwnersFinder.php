@@ -22,6 +22,7 @@ final class ActivityPendingOwnersFinder
     public function __construct(
         private readonly TeacherRepository $teachers,
         private readonly ActivityObligationFinder $obligations,
+        private readonly DocumentTreeAccessChecker $access,
     ) {}
 
     /** @return list<array{teacher: Teacher, items: non-empty-list<ActivityDashboardItem>}> by name */
@@ -32,8 +33,12 @@ final class ActivityPendingOwnersFinder
             return [];
         }
 
+        $teachers = $this->teachers->findByAcademicYearOrderedByName($year);
+        // What each teacher holds, in one query for all of them rather than one per teacher and slot.
+        $this->access->preloadHeld($activity->getCategory()->getEducationalCentre(), $teachers);
+
         $pending = [];
-        foreach ($this->teachers->findByAcademicYearOrderedByName($year) as $teacher) {
+        foreach ($teachers as $teacher) {
             $items = array_values(array_filter(
                 $this->obligations->forActivity($teacher, $activity),
                 static fn (ActivityDashboardItem $i): bool => $i->status->group() === ActivityObligationStatus::GROUP_TODO,

@@ -114,8 +114,13 @@ class ActivityRepository extends ServiceEntityRepository
      */
     public function findAllByCentre(EducationalCentre $centre, bool $includeHidden = false): array
     {
+        // Category (and its parent, for the path), folder and tags come along: every caller reads them
+        // for each activity (obligations, status rows), one lazy query apiece otherwise.
         $qb = $this->createQueryBuilder('a')
-            ->join('a.category', 'c')
+            ->join('a.category', 'c')->addSelect('c')
+            ->leftJoin('c.parent', 'cp')->addSelect('cp')
+            ->leftJoin('a.folder', 'f')->addSelect('f')
+            ->leftJoin('a.tags', 't')->addSelect('t')
             ->where('c.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->orderBy('c.position', 'ASC')

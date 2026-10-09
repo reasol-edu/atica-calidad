@@ -9,7 +9,7 @@
 {% set summary = this.summary %}
 {% set agenda = this.agenda %}
 
-<div class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+<div {{ attributes }} class="rounded-2xl border border-gray-200 bg-white shadow-xs">
     <div class="flex flex-wrap items-center justify-between gap-2 px-6 py-5 border-b border-gray-100">
         <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900">
             {{ ux_icon('heroicons:check-circle', {class: 'h-5 w-5 text-forest-600'}) }}
@@ -64,9 +64,9 @@
                         {% if entry.activity is not null %}
                             {% set item = entry.activity %}
                             {% set status = item.status.value %}
-                            <li>
+                            <li class="flex items-stretch transition-colors {{ activity_status.row_bg(status) }}">
                                 <a href="{{ path('app_activities', {category: item.activity.category.id.toRfc4122, activity: item.activity.id.toRfc4122}) }}"
-                                   class="flex items-start gap-3 px-6 py-3 transition-colors {{ activity_status.row_bg(status) }}">
+                                   class="flex min-w-0 flex-1 items-start gap-3 px-6 py-3">
                                     <span class="mt-0.5">{{ activity_status.icon(status) }}</span>
                                     <span class="min-w-0 flex-1">
                                         <span class="block truncate text-sm font-medium text-gray-900">
@@ -79,6 +79,20 @@
                                     </span>
                                     <span class="hidden self-center sm:block">{{ activity_status.pill(status) }}</span>
                                 </a>
+                                {% if item.canMarkDone %}
+                                    {# A manual activity: tick it off without opening it. #}
+                                    <button type="button" data-action="live#action" data-live-action-param="markDone"
+                                            data-live-activity-id-param="{{ item.activity.id.toRfc4122 }}"
+                                            data-live-profile-id-param="{{ item.profileId }}"
+                                            data-live-list-item-id-param="{{ item.listItemId }}"
+                                            data-live-leaf-id-param="{{ item.leafId }}"
+                                            title="{{ 'agenda.mark_done_hint'|trans({}, 'dashboard') }}"
+                                            class="mr-6 inline-flex shrink-0 items-center gap-1 self-center rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:border-forest-300 hover:bg-forest-50 hover:text-forest-700">
+                                        {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
+                                        <span class="hidden sm:inline">{{ 'agenda.mark_done'|trans({}, 'dashboard') }}</span>
+                                        <span class="sr-only sm:hidden">{{ 'agenda.mark_done'|trans({}, 'dashboard') }}</span>
+                                    </button>
+                                {% endif %}
                             </li>
                         {% else %}
                             {{ quality.task_row(entry.task, true) }}

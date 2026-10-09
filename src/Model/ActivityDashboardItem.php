@@ -29,6 +29,12 @@ final readonly class ActivityDashboardItem
         public \DateTimeImmutable $graceUntil,
         /** Whole days from today to $deadline: 0 today, 1 tomorrow, negative once past. */
         public int $daysLeft,
+        /** The owner row this obligation belongs to, as ids ('' when not applicable) — what marking it done needs. */
+        public string $profileId = '',
+        public string $listItemId = '',
+        public string $leafId = '',
+        /** A manual activity the teacher can tick off right now (no folder, not auto-complete, window open). */
+        public bool $canMarkDone = false,
     ) {}
 
     /** Most urgent first (see ActivityObligationStatus::urgency()), then soonest deadline. */

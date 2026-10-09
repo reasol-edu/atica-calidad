@@ -318,6 +318,58 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
         return $qb->getQuery()->getOneOrNullResult() !== null;
     }
 
+    /**
+     * Every profile (and subprofile, '' for none) the teacher holds, in one query: what lets a
+     * loop over many (profile, subprofile) questions about one teacher answer them in memory.
+     *
+     * @return array<string, list<string>> profile id => subprofile ids ('' when the assignment has none)
+     */
+    public function findHeldByTeacher(Teacher $teacher): array
+    {
+        /** @var list<array{profileId: \Symfony\Component\Uid\Uuid, listItemId: \Symfony\Component\Uid\Uuid|null}> $rows */
+        $rows = $this->createQueryBuilder('a')
+            ->select('p.id AS profileId', 'li.id AS listItemId')
+            ->join('a.specificProfile', 'p')
+            ->leftJoin('a.listItem', 'li')
+            ->where('a.teacher = :teacher')
+            ->setParameter('teacher', $teacher->getId(), 'uuid')
+            ->getQuery()
+            ->getArrayResult();
+
+        $held = [];
+        foreach ($rows as $row) {
+            $held[$row['profileId']->toRfc4122()][] = $row['listItemId']?->toRfc4122() ?? '';
+        }
+
+        return $held;
+    }
+
+    /**
+     * The same for every teacher of the centre at once.
+     *
+     * @return array<string, array<string, list<string>>> teacher id => profile id => subprofile ids ('' for none); teachers holding nothing have no entry
+     */
+    public function findHeldByCentre(EducationalCentre $centre): array
+    {
+        /** @var list<array{teacherId: \Symfony\Component\Uid\Uuid, profileId: \Symfony\Component\Uid\Uuid, listItemId: \Symfony\Component\Uid\Uuid|null}> $rows */
+        $rows = $this->createQueryBuilder('a')
+            ->select('t.id AS teacherId', 'p.id AS profileId', 'li.id AS listItemId')
+            ->join('a.teacher', 't')
+            ->join('a.specificProfile', 'p')
+            ->leftJoin('a.listItem', 'li')
+            ->where('p.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->getQuery()
+            ->getArrayResult();
+
+        $held = [];
+        foreach ($rows as $row) {
+            $held[$row['teacherId']->toRfc4122()][$row['profileId']->toRfc4122()][] = $row['listItemId']?->toRfc4122() ?? '';
+        }
+
+        return $held;
+    }
+
     /** Whether any assignment references this list item — blocks its deletion. */
     public function isListItemAssigned(ListItem $item): bool
     {

@@ -23,6 +23,7 @@ use App\Model\ActivitySubmissionProgress;
 use App\Model\ActivityDeadlineSummary;
 use App\Model\ActivitySubmissionSlot;
 use App\Model\ActivityWindow;
+use App\Model\OwnCompletionOutcome;
 use App\Model\ProfileAssignmentRow;
 use App\Repository\ActivityCategoryRepository;
 use App\Repository\ActivityRepository;
@@ -31,7 +32,6 @@ use App\Repository\DocumentRevisionRepository;
 use App\Repository\DocumentSectionRepository;
 use App\Repository\FolderRepository;
 use App\Repository\ListItemRepository;
-use App\Repository\SpecificProfileRepository;
 use App\Repository\TagRepository;
 use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
@@ -48,6 +48,7 @@ use App\Service\ActivityWindowChecker;
 use App\Service\DocumentFileGarbageCollector;
 use App\Service\FolderProfileSynchronizer;
 use App\Service\DocumentTreeAccessChecker;
+use App\Service\OwnCompletionManager;
 use App\Service\ProfileAssignmentRowBuilder;
 use App\Service\TrashService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -314,7 +315,6 @@ class ActivityBrowserComponent extends AbstractController
         private readonly FolderRepository $folders,
         private readonly DocumentSectionRepository $sections,
         private readonly ListItemRepository $listItems,
-        private readonly SpecificProfileRepository $profiles,
         private readonly TagRepository $tags,
         private readonly DocumentRepository $documents,
         private readonly DocumentRevisionRepository $revisions,
@@ -327,6 +327,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly ActivityLogger $activityLogger,
         private readonly DocumentFileGarbageCollector $garbageCollector,
         private readonly ActivityObligationFinder $obligations,
+        private readonly OwnCompletionManager $ownCompletions,
         private readonly ActivitySubmissionProgressCalculator $progress,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly FolderProfileSynchronizer $folderProfiles,
@@ -1778,33 +1779,15 @@ class ActivityBrowserComponent extends AbstractController
             return;
         }
 
-        $teacher                      = $this->teacher();
-        [$profile, $listItem, $leaf]  = $this->requireOwnCompletionOwner($activity, $profileId, $listItemId, $leafId);
-        $targetTeacher                = $profile === null ? $teacher : null;
-        $this->confirmingCompleteKey  = '';
+        $this->confirmingCompleteKey = '';
 
-        $window = $this->windowChecker->for($activity, $teacher, $leaf);
-        if ($window->blocked) {
-            $this->flashError($this->t('completion.error.out_of_window'));
-
-            return;
-        }
-
-        if (!$this->completion->markCompleted($activity, $targetTeacher, $profile, $listItem, $teacher, $leaf)) {
-            return;
-        }
-
-        $this->em->flush();
-
-        // Explicit log entry (with the "late" flag) — this fixes _activity_log_explicit, so the
-        // subscriber's generic component.* capture is suppressed and there is no duplicate.
-        $logData = ['activity' => $activity->getTitle()];
-        if ($window->late) {
-            $logData['late'] = true;
-        }
-        $this->activityLogger->record('activity.mark_complete', $logData, $this->centre);
-
-        $this->flashSuccess($this->t('activity.flash.completed'));
+        // Owner validation, window check, flush and the explicit log entry live in OwnCompletionManager
+        // (shared with the dashboard's "Marcar hecha").
+        match ($this->ownCompletions->mark($this->teacher(), $activity, $this->centre, $profileId, $listItemId, $leafId)) {
+            OwnCompletionOutcome::OutOfWindow => $this->flashError($this->t('completion.error.out_of_window')),
+            OwnCompletionOutcome::Marked      => $this->flashSuccess($this->t('activity.flash.completed')),
+            OwnCompletionOutcome::Unchanged   => null,
+        };
     }
 
     /** No confirmation required — undoing a completion is low-stakes and easy to redo. */
@@ -1817,7 +1800,7 @@ class ActivityBrowserComponent extends AbstractController
         }
 
         $teacher                     = $this->teacher();
-        [$profile, $listItem, $leaf] = $this->requireOwnCompletionOwner($activity, $profileId, $listItemId, $leafId);
+        [$profile, $listItem, $leaf] = $this->ownCompletions->resolveOwner($teacher, $activity, $this->centre, $profileId, $listItemId, $leafId);
         $targetTeacher               = $profile === null ? $teacher : null;
 
         if (!$this->completion->unmarkCompleted($activity, $targetTeacher, $profile, $listItem, $leaf)) {
@@ -1869,45 +1852,6 @@ class ActivityBrowserComponent extends AbstractController
         $this->activityLogger->record($completing ? 'activity.mark_complete' : 'activity.unmark_complete', $logData, $this->centre);
 
         $this->flashSuccess($this->t($completing ? 'activity.flash.completed' : 'activity.flash.completion_undone'));
-    }
-
-    /**
-     * Resolves the owner a (un)mark-completed call targets, and denies it unless it's one the
-     * current teacher is actually offered the button for (_activity_completion.html.twig): their
-     * own individual completion when the activity has one, or one of the profile/list item rows
-     * they hold themselves (getMyCompletionOwners()). The ids are client-supplied LiveArgs, so the
-     * template only showing the right buttons is not enough on its own.
-     *
-     * @return array{0: ?SpecificProfile, 1: ?ListItem, 2: ?ListItem}
-     */
-    private function requireOwnCompletionOwner(Activity $activity, string $profileId, string $listItemId, string $leafId): array
-    {
-        $profile  = $profileId === '' ? null : $this->profiles->findByIdAndCentre($profileId, $this->centre);
-        $listItem = $listItemId === '' ? null : $this->listItems->findByIdAndCentre($listItemId, $this->centre);
-        $leaf     = $leafId === '' ? null : $this->listItems->findByIdAndCentre($leafId, $this->centre);
-
-        if (($profileId !== '' && $profile === null) || ($listItemId !== '' && $listItem === null) || ($leafId !== '' && $leaf === null)) {
-            throw $this->createAccessDeniedException();
-        }
-
-        if ($profile === null) {
-            if ($listItem !== null || $leaf !== null || !$this->completion->hasIndividualCompletionOwner($activity)) {
-                throw $this->createAccessDeniedException();
-            }
-            if (!$this->completion->isApplicableToTeacher($this->teacher(), $activity)) {
-                throw $this->createAccessDeniedException();
-            }
-
-            return [null, null, null];
-        }
-
-        foreach ($this->completion->getMyCompletionOwners($this->teacher(), $activity) as $owner) {
-            if ($owner['profile'] === $profile && $owner['listItem'] === $listItem && $owner['leaf'] === $leaf) {
-                return [$profile, $listItem, $leaf];
-            }
-        }
-
-        throw $this->createAccessDeniedException();
     }
 
     // ── Revision panel (mirrors SectionBrowserComponent's equivalents, scoped to an activity's own folder) ──

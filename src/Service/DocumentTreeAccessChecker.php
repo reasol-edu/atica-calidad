@@ -21,6 +21,7 @@ use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Model\ProfileAssignmentRow;
 use App\Repository\SpecificProfileAssignmentRepository;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Centralises the profile-based access rules shared by document-section navigation and folder
@@ -30,10 +31,13 @@ use App\Repository\SpecificProfileAssignmentRepository;
  * everyone). Restrictions never cascade from a section to its subsections or folders — each node
  * is evaluated on its own.
  */
-final class DocumentTreeAccessChecker
+final class DocumentTreeAccessChecker implements ResetInterface
 {
     /** @var array<string, bool> memoizes holdsProfile() per (teacher, profile, list item) for this request — see its own docblock */
     private array $holdsProfileCache = [];
+
+    /** @var array<string, array<string, list<string>>> teacher id => what they hold, see holds() */
+    private array $heldByTeacher = [];
 
     public function __construct(
         private readonly SpecificProfileAssignmentRepository $assignments,
@@ -275,7 +279,48 @@ final class DocumentTreeAccessChecker
     {
         $key = $teacher->getId()->toRfc4122() . '|' . $profile->getId()->toRfc4122() . '|' . ($listItem?->getId()->toRfc4122() ?? '');
 
-        return $this->holdsProfileCache[$key] ??= $this->assignments->isTeacherAssignedToAny($teacher, [[$profile, $listItem]]);
+        return $this->holdsProfileCache[$key] ??= $this->holds($teacher, $profile, $listItem);
+    }
+
+    /**
+     * The same rule as SpecificProfileAssignmentRepository::isTeacherAssignedToAny() for one pair
+     * — an exact subprofile, any subprofile of a list-associated profile, or a plain profile —
+     * answered from the teacher's assignments, loaded once. Checking a whole activity's slots for
+     * every teacher of the centre (the tracking page) used to be one query per teacher and slot.
+     */
+    private function holds(Teacher $teacher, SpecificProfile $profile, ?ListItem $listItem): bool
+    {
+        $teacherId = $teacher->getId()->toRfc4122();
+        $held      = ($this->heldByTeacher[$teacherId] ??= $this->assignments->findHeldByTeacher($teacher))[$profile->getId()->toRfc4122()] ?? [];
+
+        return match (true) {
+            $listItem !== null                => \in_array($listItem->getId()->toRfc4122(), $held, true),
+            $profile->getListItem() !== null  => $held !== [],
+            default                           => \in_array('', $held, true),
+        };
+    }
+
+    /**
+     * Loads, in one query, what every teacher of the centre holds — so holdsProfile() answers for
+     * all of $teachers without touching the database (see holds()). A teacher holding nothing
+     * is recorded as such, not left to be looked up one by one.
+     *
+     * @param iterable<Teacher> $teachers
+     */
+    public function preloadHeld(EducationalCentre $centre, iterable $teachers): void
+    {
+        $held = $this->assignments->findHeldByCentre($centre);
+        foreach ($teachers as $teacher) {
+            $id = $teacher->getId()->toRfc4122();
+            $this->heldByTeacher[$id] = $held[$id] ?? [];
+        }
+    }
+
+    /** Forgets what was memoized — see ResetInterface (a long-lived worker mustn't carry one request's assignments into the next). */
+    public function reset(): void
+    {
+        $this->holdsProfileCache = [];
+        $this->heldByTeacher     = [];
     }
 
     /**

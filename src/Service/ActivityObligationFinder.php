@@ -13,7 +13,10 @@ use App\Model\ActivityDashboardItem;
 use App\Model\ActivityObligationStatus;
 use App\Model\ActivityWindow;
 use App\Repository\ActivityRepository;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
+use Doctrine\ORM\Events;
 use Symfony\Component\Clock\ClockInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Every activity obligation a teacher owns, and where each one stands (ActivityObligationStatus)
@@ -26,8 +29,28 @@ use Symfony\Component\Clock\ClockInterface;
  * ActivityWindowChecker). A submission waiting for approval is someone else's move, so it's never
  * shown (or reminded about) as overdue.
  */
-final class ActivityObligationFinder
+#[AsDoctrineListener(event: Events::postFlush)]
+final class ActivityObligationFinder implements ResetInterface
 {
+    /**
+     * A page asks for the same teacher's obligations several times (the dashboard's progress, its
+     * list, the bell): kept for the request, dropped by any flush (a completion or an upload changes
+     * them) and by reset().
+     *
+     * @var array<string, list<ActivityDashboardItem>>
+     */
+    private array $forTeacherMemo = [];
+
+    public function postFlush(): void
+    {
+        $this->reset();
+    }
+
+    public function reset(): void
+    {
+        $this->forTeacherMemo = [];
+    }
+
     private const string SUBMISSION_MISSING   = 'missing';
     private const string SUBMISSION_REJECTED  = 'rejected';
     private const string SUBMISSION_IN_REVIEW = 'in_review';
@@ -42,6 +65,12 @@ final class ActivityObligationFinder
 
     /** @return list<ActivityDashboardItem> every obligation $teacher owns in $centre, in no particular order */
     public function forTeacher(Teacher $teacher, EducationalCentre $centre): array
+    {
+        return $this->forTeacherMemo[$teacher->getId()->toRfc4122() . '|' . $centre->getId()->toRfc4122()] ??= $this->computeForTeacher($teacher, $centre);
+    }
+
+    /** @return list<ActivityDashboardItem> */
+    private function computeForTeacher(Teacher $teacher, EducationalCentre $centre): array
     {
         $items = [];
         foreach ($this->activities->findAllByCentre($centre) as $activity) {
@@ -74,15 +103,20 @@ final class ActivityObligationFinder
         $items = [];
         foreach ($owners as $owner) {
             $window = $this->windows->for($activity, $teacher, $owner['leaf']);
+            $status  = $this->statusOf($activity, $owner, $window);
             $items[] = new ActivityDashboardItem(
                 $activity,
-                $this->statusOf($activity, $owner, $window),
+                $status,
                 $categoryPath,
                 $owner['label'],
                 $window->endDate,
                 $window->startDate,
                 $window->graceUntil,
                 $this->daysUntil($window->endDate),
+                $owner['profile']?->getId()->toRfc4122() ?? '',
+                $owner['listItem']?->getId()->toRfc4122() ?? '',
+                $owner['leaf']?->getId()->toRfc4122() ?? '',
+                !$activity->requiresSubmissions() && !$activity->isAutoComplete() && $status->isActionable() && !$window->blocked,
             );
         }
 
