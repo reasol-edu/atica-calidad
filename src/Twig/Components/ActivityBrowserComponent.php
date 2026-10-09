@@ -282,6 +282,13 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $highlightedDocumentId = '';
 
+    /**
+     * The submission row a link (dashboard, bell, "Mis actividades") asked to land on: a slot key,
+     * or 'next' for the first of the teacher's own that still has nothing accepted or waiting.
+     */
+    #[LiveProp]
+    public string $highlightedSlotKey = '';
+
     #[LiveProp(writable: true)]
     public string $confirmingDeleteDocumentId = '';
 
@@ -341,8 +348,11 @@ class ActivityBrowserComponent extends AbstractController
         string $initialCategoryId = '',
         string $initialActivityId = '',
         string $initialHighlightDocumentId = '',
+        string $initialSlotKey = '',
     ): void {
         $this->centre = $centre;
+        // Only a well-formed key (or "next"): it ends up compared, never trusted as an id.
+        $this->highlightedSlotKey = $initialSlotKey === 'next' || preg_match('/^[0-9a-f-]{36}(:[0-9a-f-]{0,36}){3}$/', $initialSlotKey) === 1 ? $initialSlotKey : '';
 
         if ($initialActivityId !== '') {
             $activity = $this->findActivity($initialActivityId);
@@ -1513,6 +1523,23 @@ class ActivityBrowserComponent extends AbstractController
     public function getMySlots(Activity $activity): array
     {
         return $this->completion->getMySlots($this->teacher(), $activity);
+    }
+
+    /** The key of the slot the page was asked to land on ('' for none) — "next" resolved to the first of the teacher's own still to do. */
+    public function getSlotToHighlight(Activity $activity): string
+    {
+        if ($this->highlightedSlotKey !== 'next') {
+            return $this->highlightedSlotKey;
+        }
+
+        foreach ($this->getMySlots($activity) as $slot) {
+            $document = $this->resolveSlot($activity, $slot);
+            if ($document === null || ($document->getActiveRevision() === null && $document->getPendingRevision() === null)) {
+                return $slot->key();
+            }
+        }
+
+        return '';
     }
 
     public function resolveSlot(Activity $activity, ActivitySubmissionSlot $slot): ?Document

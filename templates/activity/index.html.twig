@@ -54,7 +54,8 @@
             <twig:ActivityBrowserComponent :centre="centre"
                 initialCategoryId="{{ app.request.query.get('category', '') }}"
                 initialActivityId="{{ app.request.query.get('activity', '') }}"
-                initialHighlightDocumentId="{{ app.request.query.get('highlight', '') }}" />
+                initialHighlightDocumentId="{{ app.request.query.get('highlight', '') }}"
+                initialSlotKey="{{ app.request.query.get('slot', '') }}" />
         </div>
     {% endif %}
 

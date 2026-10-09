@@ -35,7 +35,25 @@ final readonly class ActivityDashboardItem
         public string $leafId = '',
         /** A manual activity the teacher can tick off right now (no folder, not auto-complete, window open). */
         public bool $canMarkDone = false,
+        /** The submission row still to do ("" when there is none to point at, "next" for the first of several): lets a link land right on it. */
+        public string $slotKey = '',
     ) {}
+
+    /**
+     * Route parameters of "app_activities" opening this obligation's activity — and, for one still
+     * waiting for a file, landing on its row.
+     *
+     * @return array<string, string>
+     */
+    public function linkParams(): array
+    {
+        $params = ['category' => $this->activity->getCategory()->getId()->toRfc4122(), 'activity' => $this->activity->getId()->toRfc4122()];
+        if ($this->slotKey !== '') {
+            $params['slot'] = $this->slotKey;
+        }
+
+        return $params;
+    }
 
     /** Most urgent first (see ActivityObligationStatus::urgency()), then soonest deadline. */
     public static function compareByUrgency(self $a, self $b): int

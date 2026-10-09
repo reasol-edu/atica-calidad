@@ -43,7 +43,7 @@
                         {% for item in activityItems %}
                             {% set entity = item.entity %}
                             <li>
-                                <a href="{{ path('app_activities', {category: entity.activity.category.id.toRfc4122, activity: entity.activity.id.toRfc4122}) }}"
+                                <a href="{{ path('app_activities', entity.linkParams) }}"
                                    class="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
                                     <span class="mt-0.5">{{ activity_status.icon(entity.status.value, 'h-4 w-4') }}</span>
                                     <span class="min-w-0 flex-1">

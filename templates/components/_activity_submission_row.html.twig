@@ -13,7 +13,7 @@
        else — take it back (or, by re-opening the slot, replace it) while nothing has been
        decided on it yet. See ActivityBrowserComponent::canWithdrawOwnSubmission(). #}
     {% set can_withdraw = this.canWithdrawOwnSubmission(document) %}
-    {% set highlighted = highlightedDocumentId == did %}
+    {% set highlighted = highlightedDocumentId == did or (highlightedSlotKey != '' and this.getSlotToHighlight(activity) == slot.key) %}
 
     {% if not read_only %}
         <input type="hidden" name="items[{{ index }}][slotKey]" value="{{ slot.key }}" form="{{ form_id }}">
@@ -104,11 +104,16 @@
         <span class="shrink-0 text-xs italic text-gray-400">{{ 'status.no_revision'|trans({}, 'activity_content') }}</span>
     </div>
 {% else %}
+    {# The row a link landed on (…&slot=…): scrolled to, pulsed, and focused so Enter opens its file chooser. #}
+    {% set slot_landed = highlightedSlotKey != '' and this.getSlotToHighlight(activity) == slot.key %}
     <input type="hidden" name="items[{{ index }}][slotKey]" value="{{ slot.key }}" form="{{ form_id }}">
     <div data-role="submission-row"
          data-activity-submissions-target="dropzone"
-         data-action="dragenter->activity-submissions#dragEnter dragover->activity-submissions#dragOver dragleave->activity-submissions#dragLeave drop->activity-submissions#drop click->activity-submissions#triggerBrowse"
-         class="flex items-center gap-3 rounded-lg border-2 border-dashed border-gray-200 bg-white px-3 py-2.5 cursor-pointer hover:border-forest-300 hover:bg-forest-50/50 transition-colors">
+         data-slot-name="{{ slot.displayName }}"
+         tabindex="0"
+         {{ (slot_landed ? 'data-controller="scroll-into-view" data-scroll-into-view-focus-value="true"' : '')|raw }}
+         data-action="dragenter->activity-submissions#dragEnter dragover->activity-submissions#dragOver dragleave->activity-submissions#dragLeave drop->activity-submissions#drop click->activity-submissions#triggerBrowse keydown->activity-submissions#rowKey"
+         class="flex items-center gap-3 rounded-lg border-2 border-dashed {{ slot_landed ? 'border-forest-400 document-highlight-pulse' : 'border-gray-200' }} bg-white px-3 py-2.5 cursor-pointer hover:border-forest-300 hover:bg-forest-50/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-500/40 transition-colors">
         {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
         <div class="min-w-0 flex-1">
             {% if slot.teacher %}

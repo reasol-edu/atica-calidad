@@ -3,7 +3,7 @@
 {% set status = item.status.value %}
 {% set completed = status == 'completed' %}
 <li>
-    <a href="{{ path('app_activities', {tab: 'view', category: item.activity.category.id.toRfc4122, activity: item.activity.id.toRfc4122}) }}"
+    <a href="{{ path('app_activities', item.linkParams|merge({tab: 'view'})) }}"
        class="flex items-start gap-3 px-4 py-3 transition-colors {{ activity_status.row_bg(status) }} {{ completed ? 'opacity-70' : '' }}">
         <span class="mt-0.5">{{ activity_status.icon(status) }}</span>
         <span class="min-w-0 flex-1">

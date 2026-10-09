@@ -7,8 +7,17 @@ import { Controller } from '@hotwired/stimulus';
 // (e.g. picking a different search result while already on the page) — Stimulus reconnects a
 // controller whenever its name appears in a data-controller attribute, even via a mutation on an
 // element that already existed.
+//
+// With data-scroll-into-view-focus-value="true" the element also takes keyboard focus (it must be
+// focusable, tabindex="0"): the empty submission row an activity link lands on, so Enter opens the
+// file chooser right away — a browser won't open it on its own, it needs a user gesture.
 export default class extends Controller {
+    static values = { focus: Boolean };
+
     connect() {
         this.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (this.focusValue) {
+            this.element.focus({ preventScroll: true });
+        }
     }
 }

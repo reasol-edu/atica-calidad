@@ -65,7 +65,7 @@
                             {% set item = entry.activity %}
                             {% set status = item.status.value %}
                             <li class="flex items-stretch transition-colors {{ activity_status.row_bg(status) }}">
-                                <a href="{{ path('app_activities', {category: item.activity.category.id.toRfc4122, activity: item.activity.id.toRfc4122}) }}"
+                                <a href="{{ path('app_activities', item.linkParams) }}"
                                    class="flex min-w-0 flex-1 items-start gap-3 px-6 py-3">
                                     <span class="mt-0.5">{{ activity_status.icon(status) }}</span>
                                     <span class="min-w-0 flex-1">

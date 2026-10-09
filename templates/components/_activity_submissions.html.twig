@@ -57,7 +57,29 @@
             <form id="{{ upload_form_id }}" action="{{ path('app_activity_submission_upload', {activityId: aid}) }}" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="_token" value="{{ csrf_token('activity_submission_upload_' ~ aid) }}">
             </form>
-            <div data-controller="activity-submissions">
+            <div data-controller="activity-submissions"
+                 data-activity-submissions-matched-label-value="{{ 'submission.bulk.matched'|trans({}, 'activity_content') }}"
+                 data-activity-submissions-unassigned-label-value="{{ 'submission.bulk.unassigned'|trans({}, 'activity_content') }}"
+                 data-activity-submissions-pick-label-value="{{ 'submission.bulk.pick'|trans({}, 'activity_content') }}"
+                 data-activity-submissions-no-room-label-value="{{ 'submission.bulk.no_room'|trans({}, 'activity_content') }}">
+                {# Several files at once: each goes to the empty row it is named after; the rest are placed by hand. #}
+                {% if not window.blocked and (my_slots|filter(s => this.resolveSlot(activity, s) is null)|length) >= 2 %}
+                    <div data-activity-submissions-target="bulk"
+                         data-action="dragenter->activity-submissions#bulkEnter dragover->activity-submissions#bulkOver dragleave->activity-submissions#bulkLeave drop->activity-submissions#bulkDrop"
+                         class="mb-2 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50/60 px-3 py-2.5 transition-colors">
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            {{ ux_icon('heroicons:document-duplicate', {class: 'h-4 w-4 shrink-0 text-gray-400'}) }}
+                            <span class="min-w-0 flex-1 text-xs text-gray-600">{{ 'submission.bulk.hint'|trans({}, 'activity_content') }}</span>
+                            <button type="button" data-action="activity-submissions#bulkBrowse"
+                                    class="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                                {{ 'submission.bulk.browse'|trans({}, 'activity_content') }}
+                            </button>
+                            <input type="file" multiple class="sr-only" tabindex="-1" aria-hidden="true"
+                                   data-activity-submissions-target="bulkInput" data-action="change->activity-submissions#bulkChange">
+                        </div>
+                        <ul data-activity-submissions-target="bulkResult" class="mt-2 hidden space-y-1 text-xs" aria-live="polite"></ul>
+                    </div>
+                {% endif %}
                 <div class="space-y-1.5">
                     {% for slot in my_slots %}
                         {% set document = this.resolveSlot(activity, slot) %}

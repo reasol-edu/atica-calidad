@@ -2987,6 +2987,76 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         return [$centre, $category, $folder, $coordinator];
     }
 
+    /**
+     * @return array{EducationalCentre, ActivityCategory, Teacher, SpecificProfile, SpecificProfile} a teacher holding the two upload
+     *         profiles of an Oct 1–31 by-profile activity: two empty submission rows
+     */
+    private function teacherWithTwoEmptyRows(): array
+    {
+        self::mockTime('2025-10-10 10:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $a        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil A');
+        $b        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil B');
+        $folder->addUploadProfile($a);
+        $folder->addUploadProfile($b);
+        $activity = $this->activity($category, 'Memoria')->setStart(1, 10)->setEnd(31, 10)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile);
+        $teacher  = $this->teacher('docente');
+        $year     = (new \App\Entity\AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $year->addTeacher($teacher);
+        $this->persist($centre, $year, $category, $folder->getDocumentSection(), $folder, $a, $b, $activity, $teacher, new SpecificProfileAssignment($a, null, $teacher), new SpecificProfileAssignment($b, null, $teacher));
+
+        return [$centre, $category, $teacher, $a, $b];
+    }
+
+    public function testALinkWithASlotLandsOnThatEmptyRowAndOffersTheBulkDrop(): void
+    {
+        [$centre, $category, $teacher, , $b] = $this->teacherWithTwoEmptyRows();
+        $this->loginAs($teacher, $centre);
+
+        $crawler = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialSlotKey'    => $b->getId()->toRfc4122() . ':::',
+        ], $this->client)->render()->crawler();
+
+        $landed = $crawler->filter('[data-role=submission-row][data-scroll-into-view-focus-value=true]');
+        self::assertCount(1, $landed, 'only the row asked for is focused');
+        self::assertSame('Perfil B', $landed->attr('data-slot-name'));
+        self::assertCount(1, $crawler->filter('[data-activity-submissions-target=bulk]'), 'two empty rows: the bulk zone is offered');
+        self::assertCount(2, $crawler->filter('[data-activity-submissions-target=dropzone][tabindex="0"]'));
+    }
+
+    public function testNextLandsOnTheFirstEmptyRowAndAMalformedKeyOnNone(): void
+    {
+        [$centre, $category, $teacher] = $this->teacherWithTwoEmptyRows();
+        $this->loginAs($teacher, $centre);
+
+        $render = fn (string $key) => $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialSlotKey'    => $key,
+        ], $this->client)->render()->crawler();
+
+        self::assertCount(1, $render('next')->filter('[data-role=submission-row][data-scroll-into-view-focus-value=true]'));
+        self::assertCount(0, $render('"><script>')->filter('[data-scroll-into-view-focus-value=true]'));
+    }
+
+    public function testAnObligationStillToDoLinksToItsOwnRow(): void
+    {
+        [$centre, , $teacher, $a] = $this->teacherWithTwoEmptyRows();
+
+        /** @var \App\Service\ActivityObligationFinder $finder */
+        $finder = self::getContainer()->get(\App\Service\ActivityObligationFinder::class);
+        $items  = $finder->forTeacher($teacher, $centre);
+
+        self::assertCount(2, $items);
+        $slots = array_map(static fn ($i): string => $i->linkParams()['slot'] ?? '', $items);
+        self::assertContains($a->getId()->toRfc4122() . ':::', $slots);
+    }
+
     public function testTheFolderManagerSeesTheOverallProgressOnTheCard(): void
     {
         [$centre, $category, , $coordinator] = $this->activityWithOneOfTwoSubmitted();

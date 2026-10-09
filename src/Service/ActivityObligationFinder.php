@@ -117,6 +117,7 @@ final class ActivityObligationFinder implements ResetInterface
                 $owner['listItem']?->getId()->toRfc4122() ?? '',
                 $owner['leaf']?->getId()->toRfc4122() ?? '',
                 !$activity->requiresSubmissions() && !$activity->isAutoComplete() && $status->isActionable() && !$window->blocked,
+                $this->slotKeyFor($activity, $owner, $status),
             );
         }
 
@@ -138,6 +139,30 @@ final class ActivityObligationFinder implements ResetInterface
         }
 
         return $worst;
+    }
+
+    /**
+     * The submission row to land on for an obligation still to do with files: its own slot key for
+     * a by-profile owner (profile : subprofile : element : nobody), "next" for an individual one,
+     * who may have several rows. '' for anything that needs no file from them.
+     *
+     * @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string} $owner
+     */
+    private function slotKeyFor(Activity $activity, array $owner, ActivityObligationStatus $status): string
+    {
+        if (!$activity->requiresSubmissions() || !$status->isActionable()) {
+            return '';
+        }
+        if ($owner['profile'] === null) {
+            return 'next';
+        }
+
+        return implode(':', [
+            $owner['profile']->getId()->toRfc4122(),
+            $owner['listItem']?->getId()->toRfc4122() ?? '',
+            $owner['leaf']?->getId()->toRfc4122() ?? '',
+            '',
+        ]);
     }
 
     /** @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string} $owner */
