@@ -193,7 +193,7 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
      * A leaf directly under the selected element — or the selected element itself, when a leaf was
      * picked — is just its own name.
      */
-    private function submissionName(ListItem $selected, ListItem $leaf): string
+    public function submissionName(ListItem $selected, ListItem $leaf): string
     {
         $trail = [];
         for ($node = $leaf; $node !== null && $node !== $selected; $node = $node->getParent()) {

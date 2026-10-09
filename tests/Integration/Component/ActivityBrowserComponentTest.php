@@ -712,6 +712,44 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertSame(['Perfil A'], array_map(static fn ($r) => $r->getSpecificProfile()->getName(), $reloaded->getReviewProfiles()->toArray()));
     }
 
+    public function testTheFormPreviewsTheDownloadNameOfAnExampleSubmission(): void
+    {
+        self::mockTime('2025-10-10 10:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $a        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil A');
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $a, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component
+            ->call('startAddActivity')
+            ->set('formTitle', 'Memoria')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6');
+
+        /** @var ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertNull($instance->getSubmissionNamePreview(), 'a manual activity has no submissions');
+
+        $component->set('formFolderId', $folder->getId()->toRfc4122())->set('formFolderUploadKeys', [$a->getId()->toRfc4122()]);
+        self::assertSame('2025-2026 - Memoria - Perfil A.pdf', $component->component()->getSubmissionNamePreview());
+
+        $component->set('formSubmissionPrefix', 'Mem');
+        self::assertSame('2025-2026 - Mem - Perfil A.pdf', $component->component()->getSubmissionNamePreview());
+
+        $component->set('formSubmissionPrefix', '-');
+        self::assertSame('2025-2026 - Perfil A.pdf', $component->component()->getSubmissionNamePreview());
+
+        $component->set('formScope', 'individual');
+        self::assertStringStartsWith('2025-2026 - Perfil A - ', (string) $component->component()->getSubmissionNamePreview());
+    }
+
     // ── Creating a folder inline from the activity form ─────────────────────
 
     public function testCreateFolderForActivityCreatesAndSelectsANewFolder(): void

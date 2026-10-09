@@ -41,7 +41,9 @@ use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivityDeadlineSummaryBuilder;
 use App\Service\ActivityLogger;
 use App\Service\ActivityObligationFinder;
+use App\Service\ActivitySubmissionFilenameBuilder;
 use App\Service\ActivitySubmissionProgressCalculator;
+use App\Service\ActivitySubmissionSlotBuilder;
 use App\Service\ActivityWindowChecker;
 use App\Service\DocumentFileGarbageCollector;
 use App\Service\FolderProfileSynchronizer;
@@ -305,6 +307,8 @@ class ActivityBrowserComponent extends AbstractController
         private readonly ActivitySubmissionProgressCalculator $progress,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly FolderProfileSynchronizer $folderProfiles,
+        private readonly ActivitySubmissionFilenameBuilder $submissionFilename,
+        private readonly ActivitySubmissionSlotBuilder $submissionSlots,
         private readonly TrashService $trash,
     ) {}
 
@@ -640,6 +644,57 @@ class ActivityBrowserComponent extends AbstractController
         }
 
         return $seeded;
+    }
+
+    /**
+     * What a submission of the activity being edited would be downloaded as, from the form as it
+     * stands (title, prefix, scope, folder upload profiles, list element, deadline): the same
+     * naming rule as a real download (ActivitySubmissionFilenameBuilder::compose()), on an example
+     * submission — the first element of the chosen list, else the first upload profile. Null for a
+     * manual activity, which has no submissions.
+     */
+    public function getSubmissionNamePreview(): ?string
+    {
+        $category = $this->getCurrentCategory();
+        if ($this->formFolderId === '' || $category === null) {
+            return null;
+        }
+
+        $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
+        $leaves   = $listItem === null ? [] : $this->listItems->findLeafDescendants($listItem);
+        if ($listItem !== null && $leaves !== []) {
+            $documentName = $this->submissionSlots->submissionName($listItem, $leaves[0]);
+        } else {
+            $documentName = $this->t('activity.field.submission_preview_example_name');
+            foreach ($this->getAvailableProfileRows() as $row) {
+                if ($this->formFolderUploadKeys !== [] && $row->key() === $this->formFolderUploadKeys[0]) {
+                    $documentName = $row->displayName;
+                    break;
+                }
+            }
+        }
+
+        // A throwaway Activity (never persisted) just to ask which academic year "now" falls in.
+        $startDay = (int) $this->formStartDay;
+        $endDay   = (int) $this->formEndDay;
+        $valid    = $startDay >= 1 && $startDay <= 31 && $endDay >= 1 && $endDay <= 31
+            && (int) $this->formStartMonth >= 1 && (int) $this->formStartMonth <= 12
+            && (int) $this->formEndMonth >= 1 && (int) $this->formEndMonth <= 12;
+        $example = (new Activity())->setCategory($category)->setStart($valid ? $startDay : 1, $valid ? (int) $this->formStartMonth : 9)
+            ->setEnd($valid ? $endDay : 30, $valid ? (int) $this->formEndMonth : 6);
+
+        $teacher      = $this->teacher()->getName();
+        $teacherLabel = $this->formScope === 'individual' ? $teacher->getLastName() . ', ' . $teacher->getFirstName() : null;
+        $title        = trim($this->formTitle);
+        $prefix       = trim($this->formSubmissionPrefix);
+
+        return implode(' - ', $this->submissionFilename->compose(
+            $this->deadline->currentCycleKey($example),
+            $title === '' ? $this->t('activity.field.submission_preview_example_title') : $title,
+            $prefix === '' ? null : $prefix,
+            $documentName,
+            $teacherLabel,
+        )) . '.pdf';
     }
 
     /** LiveProp(onUpdated:) hook for $formFolderId: the form now shows the newly picked folder's profiles. */

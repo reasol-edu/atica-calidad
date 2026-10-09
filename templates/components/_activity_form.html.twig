@@ -11,7 +11,7 @@
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div class="sm:col-span-2">
                 <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.title'|trans({}, 'admin') }}</label>
-                <input type="text" data-model="norender|formTitle" value="{{ formTitle }}"
+                <input type="text" data-model="debounce(300)|formTitle" value="{{ formTitle }}"
                        class="block w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2
                               {{ errors.title is defined ? 'border-red-300 focus:ring-red-400/20' : 'border-gray-200 focus:border-forest-500 focus:ring-forest-500/20' }}">
                 {% if errors.title is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.title }}</p>{% endif %}
@@ -31,10 +31,10 @@
                         <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.deadline_start'|trans({}, 'admin') }}</label>
                         <div class="flex items-center gap-2">
                             <input type="number" min="1" max="31" placeholder="{{ 'activity.field.day'|trans({}, 'admin') }}"
-                                   data-model="norender|formStartDay" value="{{ formStartDay }}"
+                                   data-model="debounce(500)|formStartDay" value="{{ formStartDay }}"
                                    class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                             <input type="number" min="1" max="12" placeholder="{{ 'activity.field.month'|trans({}, 'admin') }}"
-                                   data-model="norender|formStartMonth" value="{{ formStartMonth }}"
+                                   data-model="debounce(500)|formStartMonth" value="{{ formStartMonth }}"
                                    class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                         </div>
                     </div>
@@ -42,10 +42,10 @@
                         <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.deadline_end'|trans({}, 'admin') }}</label>
                         <div class="flex items-center gap-2">
                             <input type="number" min="1" max="31" placeholder="{{ 'activity.field.day'|trans({}, 'admin') }}"
-                                   data-model="norender|formEndDay" value="{{ formEndDay }}"
+                                   data-model="debounce(500)|formEndDay" value="{{ formEndDay }}"
                                    class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                             <input type="number" min="1" max="12" placeholder="{{ 'activity.field.month'|trans({}, 'admin') }}"
-                                   data-model="norender|formEndMonth" value="{{ formEndMonth }}"
+                                   data-model="debounce(500)|formEndMonth" value="{{ formEndMonth }}"
                                    class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                         </div>
                     </div>
@@ -181,10 +181,17 @@
 
             <div class="sm:col-span-2">
                 <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.submission_prefix'|trans({}, 'admin') }}</label>
-                <input type="text" data-model="norender|formSubmissionPrefix" value="{{ formSubmissionPrefix }}"
+                <input type="text" data-model="debounce(300)|formSubmissionPrefix" value="{{ formSubmissionPrefix }}"
                        placeholder="{{ formTitle }}"
                        class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                 <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.submission_prefix_help'|trans({}, 'admin') }}</p>
+                {% set namePreview = this.submissionNamePreview %}
+                {% if namePreview is not null %}
+                    <div class="mt-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2">
+                        <span class="block text-xs font-medium text-gray-500">{{ 'activity.field.submission_preview'|trans({}, 'admin') }}</span>
+                        <code class="mt-0.5 block break-words font-mono text-xs text-gray-800">{{ namePreview }}</code>
+                    </div>
+                {% endif %}
             </div>
 
             <div class="sm:col-span-2">

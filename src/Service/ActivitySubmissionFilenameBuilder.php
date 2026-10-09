@@ -48,20 +48,41 @@ final class ActivitySubmissionFilenameBuilder
             return [$document->getName()];
         }
 
-        // Every document in an activity's folder is stamped when created (see
-        // DocumentActivityCycleListener); the current occurrence is only a safety net.
-        $parts  = [ActivityDeadlineChecker::academicYearLabel($document->getActivityCycleYear() ?? $this->deadline->currentCycleKey($activity))];
-        $prefix = $activity->getSubmissionPrefix();
-        if ($prefix !== self::NO_PREFIX_SENTINEL) {
-            $parts[] = $prefix !== null && $prefix !== '' ? $prefix : $activity->getTitle();
-        }
-        $parts[] = $document->getName();
-
+        $teacherLabel = null;
         if ($activity->getSubmissionScope() === ActivitySubmissionScope::Individual) {
             $uploader = $document->getFirstRevision()?->getUploadedBy();
             if ($uploader !== null) {
-                $parts[] = $uploader->getName()->getLastName() . ', ' . $uploader->getName()->getFirstName();
+                $teacherLabel = $uploader->getName()->getLastName() . ', ' . $uploader->getName()->getFirstName();
             }
+        }
+
+        // Every document in an activity's folder is stamped when created (see
+        // DocumentActivityCycleListener); the current occurrence is only a safety net.
+        return $this->compose(
+            $document->getActivityCycleYear() ?? $this->deadline->currentCycleKey($activity),
+            $activity->getTitle(),
+            $activity->getSubmissionPrefix(),
+            $document->getName(),
+            $teacherLabel,
+        );
+    }
+
+    /**
+     * The naming rule itself, on plain values — so the activity form can preview a download name
+     * from what is being typed, with exactly the parts a real download would get: year, prefix
+     * (or title; nothing for "-"), document name and, for an Individual-scope activity, the teacher.
+     *
+     * @return string[]
+     */
+    public function compose(int $cycleKey, string $title, ?string $prefix, string $documentName, ?string $teacherLabel): array
+    {
+        $parts = [ActivityDeadlineChecker::academicYearLabel($cycleKey)];
+        if ($prefix !== self::NO_PREFIX_SENTINEL) {
+            $parts[] = $prefix !== null && $prefix !== '' ? $prefix : $title;
+        }
+        $parts[] = $documentName;
+        if ($teacherLabel !== null) {
+            $parts[] = $teacherLabel;
         }
 
         return $parts;
