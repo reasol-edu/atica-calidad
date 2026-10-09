@@ -248,7 +248,7 @@ class ActivityController extends AbstractController
         if ($this->isUploadTooLarge($request)) {
             $this->addFlash('error', $this->t('upload.error.too_large'));
 
-            return $this->redirectToActivity($activity);
+            return $this->backAfterUpload($request, $activity);
         }
 
         if (!$this->isCsrfTokenValid('activity_submission_upload_' . $activityId, $request->request->getString('_token'))) {
@@ -264,7 +264,7 @@ class ActivityController extends AbstractController
         if ($uploadedFiles === []) {
             $this->addFlash('error', $this->t('upload.error.no_file'));
 
-            return $this->redirectToActivity($activity);
+            return $this->backAfterUpload($request, $activity);
         }
 
         $slotsByKey = [];
@@ -288,14 +288,14 @@ class ActivityController extends AbstractController
                     '%filename%' => $file->getClientOriginalName(),
                 ], 'activity_content'));
 
-                return $this->redirectToActivity($activity);
+                return $this->backAfterUpload($request, $activity);
             }
             if (!$folder->acceptsFile($file->getClientOriginalName(), $file->getMimeType() ?? '')) {
                 $this->addFlash('error', $this->translator->trans('upload.error.file_format_not_allowed', [
                     '%filename%' => $file->getClientOriginalName(),
                 ], 'activity_content'));
 
-                return $this->redirectToActivity($activity);
+                return $this->backAfterUpload($request, $activity);
             }
 
             $slotKey = (string) ($items[$i]['slotKey'] ?? '');
@@ -344,7 +344,7 @@ class ActivityController extends AbstractController
         if ($created === 0) {
             $this->addFlash('error', $this->t($blockedMessage ?? 'upload.error.no_file'));
 
-            return $this->redirectToActivity($activity);
+            return $this->backAfterUpload($request, $activity);
         }
 
         $this->em->flush();
@@ -355,7 +355,15 @@ class ActivityController extends AbstractController
         $this->activityLogger->record('activity.submission_upload', $logData, $centre);
         $this->addFlash('success', $this->translator->trans('submission.flash.uploaded', ['%count%' => $created], 'activity_content'));
 
-        return $this->redirectToActivity($activity);
+        return $this->backAfterUpload($request, $activity);
+    }
+
+    /** Back to the dashboard when the upload started from its list ("return=dashboard"), else to the activity. */
+    private function backAfterUpload(Request $request, Activity $activity): Response
+    {
+        return $request->request->getString('return') === 'dashboard'
+            ? $this->redirectToRoute('app_dashboard')
+            : $this->redirectToActivity($activity);
     }
 
     private function requireActivity(string $activityId, EducationalCentre $centre): Activity

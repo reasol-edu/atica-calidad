@@ -212,6 +212,33 @@ final class ActivityControllerTest extends ControllerTestCase
         self::assertSame('secretario', $activeRevision->getUploadedBy()->getUsername());
     }
 
+    public function testUploadSubmissionsReturnsToTheDashboardWhenAskedTo(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $folder->addUploadProfile($profile);
+        $activity   = $this->activity($category)->setFolder($folder);
+        $teacher    = $this->teacher('secretario');
+        $assignment = new SpecificProfileAssignment($profile, null, $teacher);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, $assignment);
+        $activityId = $activity->getId()->toRfc4122();
+
+        $this->loginAs($teacher, $centre);
+        $this->client->request('POST', "/actividades/{$activityId}/entregas/subir", [
+            '_token' => $this->csrfToken('activity_submission_upload_' . $activityId),
+            'items'  => [0 => ['slotKey' => $profile->getId()->toRfc4122() . ':::']],
+            'return' => 'dashboard',
+        ], [
+            'files' => [0 => $this->uploadedFile('contenido')],
+        ]);
+
+        self::assertTrue($this->client->getResponse()->isRedirect());
+        self::assertStringEndsWith($this->client->getContainer()->get('router')->generate('app_dashboard'), (string) $this->client->getResponse()->headers->get('Location'));
+    }
+
     public function testUploadSubmissionsRejectedWhenTheFormatIsNotAllowed(): void
     {
         $centre  = $this->centre();

@@ -37,6 +37,12 @@ final readonly class ActivityDashboardItem
         public bool $canMarkDone = false,
         /** The submission row still to do ("" when there is none to point at, "next" for the first of several): lets a link land right on it. */
         public string $slotKey = '',
+        /** What a file can be sent for right from a list: '' (nothing, or not unambiguous), 'new' (one empty row) or 'revision' (a rejected submission). */
+        public string $uploadMode = '',
+        /** The one empty row's key when $uploadMode is 'new'. */
+        public string $uploadSlotKey = '',
+        /** The rejected document when $uploadMode is 'revision'. */
+        public string $uploadDocumentId = '',
     ) {}
 
     /**

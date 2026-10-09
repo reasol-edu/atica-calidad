@@ -104,6 +104,7 @@ final class ActivityObligationFinder implements ResetInterface
         foreach ($owners as $owner) {
             $window = $this->windows->for($activity, $teacher, $owner['leaf']);
             $status  = $this->statusOf($activity, $owner, $window);
+            $upload  = $status->isActionable() && !$window->blocked ? $this->uploadTarget($activity, $owner) : ['mode' => '', 'slotKey' => '', 'documentId' => ''];
             $items[] = new ActivityDashboardItem(
                 $activity,
                 $status,
@@ -118,6 +119,9 @@ final class ActivityObligationFinder implements ResetInterface
                 $owner['leaf']?->getId()->toRfc4122() ?? '',
                 !$activity->requiresSubmissions() && !$activity->isAutoComplete() && $status->isActionable() && !$window->blocked,
                 self::slotKeyFor($activity, $owner, $status->isActionable()),
+                $upload['mode'],
+                $upload['slotKey'],
+                $upload['documentId'],
             );
         }
 
@@ -223,6 +227,39 @@ final class ActivityObligationFinder implements ResetInterface
         }
 
         return $states === [] ? self::SUBMISSION_MISSING : self::SUBMISSION_ACCEPTED;
+    }
+
+    /**
+     * What a single file can fix right now, without opening the activity: the new version of a
+     * rejected submission, or the one empty row. Nothing when it's ambiguous (several empty rows).
+     *
+     * @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string} $owner
+     * @return array{mode: string, slotKey: string, documentId: string}
+     */
+    private function uploadTarget(Activity $activity, array $owner): array
+    {
+        $none = ['mode' => '', 'slotKey' => '', 'documentId' => ''];
+        if ($activity->getFolder() === null || !$activity->requiresSubmissions()) {
+            return $none;
+        }
+
+        $empty = [];
+        foreach ($this->completion->getAllSlots($activity) as $slot) {
+            $owns = $owner['teacher'] !== null
+                ? $slot->teacher === $owner['teacher']
+                : ($slot->profile === $owner['profile'] && $slot->listItem === $owner['listItem'] && $slot->teacher === null);
+            if (!$owns || ($owner['leaf'] !== null && $slot->nameListItem !== $owner['leaf'])) {
+                continue;
+            }
+            $document = $this->completion->resolveSlot($activity, $slot);
+            if ($document === null) {
+                $empty[] = $slot->key();
+            } elseif ($this->documentState($document) === self::SUBMISSION_REJECTED) {
+                return ['mode' => 'revision', 'slotKey' => '', 'documentId' => $document->getId()->toRfc4122()];
+            }
+        }
+
+        return count($empty) === 1 ? ['mode' => 'new', 'slotKey' => $empty[0], 'documentId' => ''] : $none;
     }
 
     private function documentState(?Document $document): string

@@ -216,6 +216,34 @@ final class ActivityObligationFinderTest extends RepositoryTestCase
         self::assertSame(ActivityObligationStatus::Open, $this->onlyStatus($teacher, $centre));
     }
 
+    public function testASingleEmptyRowCanBeUploadedFromTheList(): void
+    {
+        [$teacher, $centre] = $this->submissionScenario('2025-10-10 10:00:00', null);
+
+        $item = $this->finder->forTeacher($teacher, $centre)[0];
+
+        self::assertSame('new', $item->uploadMode);
+        self::assertSame($item->slotKey, $item->uploadSlotKey);
+        self::assertSame('', $item->uploadDocumentId);
+    }
+
+    public function testARejectedSubmissionOffersANewVersionFromTheList(): void
+    {
+        [$teacher, $centre] = $this->submissionScenario('2025-10-10 10:00:00', 'rejected');
+
+        $item = $this->finder->forTeacher($teacher, $centre)[0];
+
+        self::assertSame('revision', $item->uploadMode);
+        self::assertNotSame('', $item->uploadDocumentId);
+    }
+
+    public function testNothingIsOfferedWhileTheSubmissionIsInReview(): void
+    {
+        [$teacher, $centre] = $this->submissionScenario('2025-10-10 10:00:00', 'pending');
+
+        self::assertSame('', $this->finder->forTeacher($teacher, $centre)[0]->uploadMode);
+    }
+
     /** A manual activity still has to be marked done after its submission is accepted. */
     public function testAnAcceptedSubmissionOfAManualActivityIsStillToDo(): void
     {
