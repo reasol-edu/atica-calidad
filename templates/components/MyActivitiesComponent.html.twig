@@ -59,7 +59,8 @@
 
             <span class="hidden sm:block h-4 w-px bg-gray-200"></span>
 
-            <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="{{ 'mine.group.by_deadline'|trans({}, 'activity_content') }}">
+            <span class="text-xs font-medium text-gray-500">{{ 'mine.group.label'|trans({}, 'activity_content') }}</span>
+            <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="{{ 'mine.group.label'|trans({}, 'activity_content') }}">
                 {% for mode in [
                     {key: 'deadline', label: 'mine.group.by_deadline', icon: 'heroicons:clock'},
                     {key: 'profile',  label: 'mine.group.by_profile',  icon: 'heroicons:user'},
