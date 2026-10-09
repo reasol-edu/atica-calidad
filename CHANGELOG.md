@@ -7,6 +7,29 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-10-10
+
+### Added
+
+- **Cola de revisión** (`/revisiones`): las entregas pendientes de visto bueno ordenadas por
+  urgencia (plazo cercano, luego las que más llevan esperando), con aprobación en un clic y rechazo
+  con motivo predefinido más texto libre. Quien gestiona calidad puede ver todas las del centro.
+- **Informe de cumplimiento de actividades** por curso, con comparación entre cursos, en pantalla,
+  PDF y Excel.
+- **Subir desde el Inicio**: en «Tus próximos pasos», un botón «Subir» (o «Nueva versión» si la
+  entrega fue rechazada) entrega el fichero sin abrir la actividad cuando solo hay un hueco por
+  rellenar.
+- **Subida de varios ficheros** en la ficha de la actividad: se asignan a cada hueco por el nombre
+  del fichero y el resto se coloca a mano.
+- Una **entrega rechazada** muestra quién la rechazó y el motivo, con el formulario «Subir nueva
+  versión» en su propia fila. La persona que subió la versión rechazada puede reenviarla aunque no
+  gestione la carpeta.
+
+### Changed
+
+- Los enlaces del Inicio, la campana, «Mis actividades», los correos de aviso y la vista de día del
+  calendario llevan directamente al hueco de la entrega pendiente, lo resaltan y lo enfocan.
+
 ## [1.11.0] - 2026-10-09
 
 ### Added

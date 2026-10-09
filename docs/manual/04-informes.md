@@ -44,6 +44,14 @@ Cómo va cada [actividad](08-actividades.md) en el curso actual:
 La columna **% hecho** resume el avance (entregas aceptadas o docentes que la han completado,
 sobre el total esperado).
 
+## Cumplimiento de actividades
+
+Cómo se han cumplido las [actividades](08-actividades.md) en un curso, con posibilidad de
+**compararlo con otro curso**: entregas esperadas, aceptadas y entregadas en plazo, por actividad.
+Se puede ver en pantalla y descargar en **PDF** o **Excel**. Para cursos pasados, lo «esperado» es
+una aproximación (las entregas de hoy si la actividad tiene carpeta, o los docentes del curso de
+ese año si es manual) y «en plazo» se mide frente al plazo general de la actividad.
+
 ## No conformidades {#no-conformidades}
 
 El registro de [Mejora continua](09-mejora-continua.md): las no conformidades, observaciones y

@@ -32,11 +32,21 @@ documental.
 
 Al entrar, el **Inicio** de la aplicación resume lo que hay pendiente:
 
-- **Tus próximos pasos** — las actividades más urgentes que el docente puede hacer ahora mismo
-  (hasta cinco, primero las vencidas), con una sola línea de progreso: cuántas lleva hechas de su
-  total, cuántas esperan el visto bueno de otra persona y cuántas se le han pasado de plazo. Si no
-  le queda nada por hacer, indica cuál es la próxima actividad que se abrirá. El detalle completo
-  está en [Mis actividades](#mis-actividades).
+- **Tus próximos pasos** — una sola lista con lo más urgente que el docente puede hacer ahora
+  mismo, mezclando actividades y tareas de Mejora continua (hasta ocho líneas, en tres bloques:
+  *Vencidas*, *Esta semana* y *Más adelante*), con una línea de progreso: cuántas lleva hechas de
+  su total, cuántas esperan el visto bueno de otra persona y cuántas se le han pasado de plazo. Si
+  no le queda nada por hacer, indica cuál es la próxima actividad que se abrirá. El detalle
+  completo está en [Mis actividades](#mis-actividades). Desde la propia lista se puede actuar sin
+  abrir la actividad:
+    - **Marcar hecha** una actividad manual (sin carpeta).
+    - **Subir** el fichero cuando la entrega tiene un único hueco por rellenar: al elegir el
+      fichero se envía y se vuelve al Inicio con el aviso del resultado.
+    - **Nueva versión** cuando una entrega ha sido rechazada.
+
+  Si la entrega tiene varios huecos por rellenar, la línea abre la actividad y lleva directamente
+  al primer hueco vacío (lo mismo hacen los enlaces de los correos de aviso, la campana y el
+  calendario).
 - **Revisiones pendientes** — documentos, de cualquier carpeta, que el docente debe revisar
   personalmente (ver [Entregas y revisión](#entregas-y-revision)).
 - **Todas las revisiones pendientes** — solo para responsable de calidad y administración: todas
@@ -109,12 +119,20 @@ global** de las entregas de este curso: una barra y una línea como «14/20 entr
 revisión · 1 rechazada», contando todas las entregas esperadas, no solo las propias. El detalle por
 perfil sigue en **Estadísticas**, dentro de la actividad. El resto del profesorado no ve esta línea.
 
+### Seguimiento {#seguimiento}
+
+La pestaña **Seguimiento** (para quien gestiona las actividades) lista una fila por actividad con
+su plazo y los días que quedan, el progreso y los pendientes. Al abrir una, muestra **quién falta**,
+cuándo se le avisó por última vez y el historial de recordatorios enviados.
+
 ### Recordar a pendientes {#recordar-a-pendientes}
 
-Bajo el plazo de una actividad ya abierta, **Recordar a pendientes** envía un correo a cada docente
-del curso que aún la tiene por hacer: abierta, rechazada, fuera de plazo o vencida. El correo le
-lista sus obligaciones pendientes en esa actividad, con un enlace para abrirla. Quien ya la entregó
-y espera el visto bueno, quien la completó y quien no tiene dirección de correo no lo reciben.
+Bajo el plazo de una actividad ya abierta, **Recordar a pendientes** envía un correo a los docentes
+del curso que aún la tienen por hacer: abierta, rechazada, fuera de plazo o vencida. Se puede
+**elegir a quién avisar** y **añadir un mensaje propio**. El correo le
+lista sus obligaciones pendientes en esa actividad, con un enlace al hueco que le falta. Quien ya la entregó
+y espera el visto bueno, quien la completó y quien no tiene dirección de correo no lo reciben. Cada
+envío queda registrado (a quién, cuándo, quién lo envió, el texto y si el correo salió).
 
 El botón lo ven la dirección, la coordinación de calidad y quien gestiona o revisa la carpeta de la
 actividad. Pide confirmación antes de enviar, y cada actividad admite **un recordatorio por hora**,
@@ -161,6 +179,32 @@ aplica aquí sin cambios: una entrega **es** un documento de esa carpeta. Si la 
 [formatos de fichero aceptados](07-arbol-documental.md#carpetas-pestana-ver) configurados y al
 docente todavía le queda alguna entrega propia por hacer, un aviso **«Formatos aceptados: ...»**
 aparece encima de «Mis entregas».
+
+### Subir varios ficheros a la vez {#subir-varios-ficheros}
+
+Cuando al docente le quedan **dos o más huecos vacíos** en «Mis entregas», aparece una zona para
+**arrastrar o elegir varios ficheros** de golpe. Cada fichero se asigna al hueco cuyo nombre
+coincide con el suyo; los que no se reconocen se colocan a mano con un selector. Nada se envía
+hasta pulsar el botón de subir.
+
+Al llegar desde la campana, el Inicio, «Mis actividades», un correo de aviso o el calendario, la
+página se desplaza hasta el primer hueco pendiente, lo resalta y lo deja enfocado (con Intro se abre
+el selector de ficheros; el navegador no permite abrirlo solo).
+
+### Entregas rechazadas {#entregas-rechazadas}
+
+Bajo la fila de una entrega rechazada y aún no sustituida se muestra **quién la rechazó y el
+motivo**, y un formulario **«Subir nueva versión»**. Puede usarlo quien gestiona la entrega y
+también la persona que subió la versión rechazada, aunque no tenga permiso de gestión.
+
+### Cola de revisión {#cola-de-revision}
+
+La página **Revisiones** (`/revisiones`, enlazada desde las tarjetas de revisiones del Inicio)
+reúne las entregas pendientes de visto bueno **por orden de urgencia**: primero las de actividades
+cuyo plazo vence en siete días o menos, luego las que llevan esperando siete días o más y después el
+resto. Cada una se puede **aprobar en un clic** o **rechazar** eligiendo un motivo predefinido y, si
+se quiere, añadiendo un texto libre. Quien revisa ve «Las mías»; responsabilidad de calidad y
+administración pueden alternar a «Todas del centro».
 
 ### Revisar varias entregas a la vez {#revisar-varias-entregas}
 
