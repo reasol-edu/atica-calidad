@@ -21,8 +21,11 @@ use App\Repository\AuditProgramRepository;
 use App\Repository\FindingRepository;
 use App\Repository\ImprovementActionRepository;
 use App\Security\Voter\QualityVoter;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
+use Doctrine\ORM\Events;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Clock\ClockInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * What a teacher has to do in "Mejora continua" right now, most urgent first:
@@ -35,10 +38,22 @@ use Symfony\Component\Clock\ClockInterface;
  * - an audit team: its audits still to carry out, from AUDIT_NOTICE_DAYS before they're due;
  * - the management team: approving the year's audit programme, while it isn't.
  */
-final class QualityTaskFinder
+#[AsDoctrineListener(event: Events::postFlush)]
+final class QualityTaskFinder implements ResetInterface
 {
     /** How long before an audit is due its team has it as a task. */
     public const int AUDIT_NOTICE_DAYS = 30;
+
+    /**
+     * The bell, the dashboard and the calendar each ask for the same tasks in one request: kept
+     * for the request's duration, dropped by any flush (a write may change them) and by reset().
+     *
+     * @var array<string, list<QualityTask>>
+     */
+    private array $tasksMemo = [];
+
+    /** @var array<string, list<IndicatorRow>> */
+    private array $indicatorRowsMemo = [];
 
     public function __construct(
         private readonly FindingRepository $findings,
@@ -50,8 +65,27 @@ final class QualityTaskFinder
         private readonly ClockInterface $clock,
     ) {}
 
+    public function postFlush(): void
+    {
+        $this->reset();
+    }
+
+    public function reset(): void
+    {
+        $this->tasksMemo         = [];
+        $this->indicatorRowsMemo = [];
+    }
+
     /** @return list<QualityTask> */
     public function forTeacher(Teacher $teacher, EducationalCentre $centre): array
+    {
+        $memoKey = $teacher->getId()->toRfc4122() . '|' . $centre->getId()->toRfc4122();
+
+        return $this->tasksMemo[$memoKey] ??= $this->computeForTeacher($teacher, $centre);
+    }
+
+    /** @return list<QualityTask> */
+    private function computeForTeacher(Teacher $teacher, EducationalCentre $centre): array
     {
         $tasks = [];
 
@@ -174,8 +208,11 @@ final class QualityTaskFinder
     private function indicatorRows(EducationalCentre $centre): array
     {
         $year = $centre->getActiveAcademicYear();
+        if ($year === null) {
+            return [];
+        }
 
-        return $year === null ? [] : array_merge([], ...array_values($this->indicators->board($centre, $year)));
+        return $this->indicatorRowsMemo[$centre->getId()->toRfc4122()] ??= array_merge([], ...array_values($this->indicators->board($centre, $year)));
     }
 
     /** @param list<QualityTask> $tasks */

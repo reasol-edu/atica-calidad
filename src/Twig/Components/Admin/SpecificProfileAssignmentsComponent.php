@@ -78,6 +78,9 @@ class SpecificProfileAssignmentsComponent extends AbstractController
     /** @var ProfileAssignmentRow[]|null */
     private ?array $rowsCache = null;
 
+    /** @var array<string, true>|null ids of the active year's teachers, see isTeacherOffYear() */
+    private ?array $activeYearTeacherIds = null;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
@@ -133,8 +136,17 @@ class SpecificProfileAssignmentsComponent extends AbstractController
     public function isTeacherOffYear(Teacher $teacher): bool
     {
         $year = $this->centre->getActiveAcademicYear();
+        if ($year === null) {
+            return true;
+        }
 
-        return $year === null || !$teacher->getAcademicYears()->contains($year);
+        // The year's teachers once, not one EXTRA_LAZY contains() query per row.
+        $this->activeYearTeacherIds ??= array_fill_keys(
+            $year->getTeachers()->map(static fn (Teacher $t): string => $t->getId()->toRfc4122())->toArray(),
+            true,
+        );
+
+        return !isset($this->activeYearTeacherIds[$teacher->getId()->toRfc4122()]);
     }
 
     // ── Tab "Perfiles" ──────────────────────────────────────────────────────

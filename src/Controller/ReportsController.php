@@ -71,11 +71,12 @@ class ReportsController extends AbstractController
     public function index(string $centreId): Response
     {
         $centre     = $this->requireCentre($centreId);
-        $reviewsDue = $this->masterList->reviewsDue($centre);
+        $rows       = $this->masterList->build($centre);
+        $reviewsDue = $this->masterList->reviewsDue($centre, $rows);
 
         return $this->render('reports/index.html.twig', [
             'centre'          => $centre,
-            'documentCount'   => \count($this->masterList->build($centre)),
+            'documentCount'   => \count($rows),
             'reviewsDueCount' => \count($reviewsDue),
             'reviewsOverdue'  => \count(array_filter($reviewsDue, static fn (DocumentMasterListRow $r): bool => $r->reviewState === DocumentReviewSchedule::OVERDUE)),
             'activityCount'   => \count($this->activityStatus->build($centre)),

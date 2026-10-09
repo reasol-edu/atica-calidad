@@ -42,6 +42,53 @@ class DocumentRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * The documents of an activity's folder stamped with one cycle year, revisions (and their
+     * uploaders) already loaded — what ActivitySubmissionSlotBuilder::resolveSlot() indexes to
+     * resolve every slot of the activity without a query each. Same order the single-slot lookup
+     * (findOneByFolderProfileListItemNameAndFirstUploader) effectively used, made deterministic.
+     *
+     * @return list<Document>
+     */
+    public function findByFolderAndCycleYearWithRevisions(Folder $folder, int $activityCycleYear): array
+    {
+        return $this->createQueryBuilder('d')
+            ->leftJoin('d.revisions', 'r')->addSelect('r')
+            ->leftJoin('r.uploadedBy', 'ub')->addSelect('ub')
+            ->where('d.folder = :folder')
+            ->andWhere('d.activityCycleYear = :cycleYear')
+            ->setParameter('folder', $folder->getId(), 'uuid')
+            ->setParameter('cycleYear', $activityCycleYear)
+            ->orderBy('d.uploadedAt', 'ASC')
+            ->addOrderBy('d.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Every document of the centre's tree with its revisions and the active revision's uploader
+     * already loaded (the master list reads them for each document), in the same order as
+     * findByFolder — grouped by folder by the caller.
+     *
+     * @return list<Document>
+     */
+    public function findAllByCentreForMasterList(EducationalCentre $centre): array
+    {
+        return $this->createQueryBuilder('d')
+            ->join('d.folder', 'f')
+            ->join('f.documentSection', 's')
+            ->leftJoin('d.revisions', 'r')->addSelect('r')
+            ->leftJoin('d.activeRevision', 'ar')->addSelect('ar')
+            ->leftJoin('ar.uploadedBy', 'ub')->addSelect('ub')
+            ->where('s.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('d.position', 'ASC')
+            ->addOrderBy('d.uploadedAt', 'ASC')
+            ->addOrderBy('d.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     /** Position for a document about to be added to $folder: it goes after every existing one. */
     public function nextPositionInFolder(Folder $folder): int
     {

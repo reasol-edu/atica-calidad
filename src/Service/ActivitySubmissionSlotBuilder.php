@@ -15,6 +15,8 @@ use App\Model\ProfileAssignmentRow;
 use App\Repository\DocumentRepository;
 use App\Repository\ListItemRepository;
 use App\Repository\SpecificProfileAssignmentRepository;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
+use Doctrine\ORM\Events;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
@@ -34,10 +36,14 @@ use Symfony\Contracts\Service\ResetInterface;
  * implements ResetInterface to clear at the same point Doctrine resets its identity map, rather
  * than risk comparing a stale, detached entity against a freshly-hydrated one.
  */
+#[AsDoctrineListener(event: Events::postFlush)]
 final class ActivitySubmissionSlotBuilder implements ResetInterface
 {
     /** @var array<string, Teacher[]> */
     private array $teachersHoldingCache = [];
+
+    /** @var array<string, list<Document>> the folder's documents of one cycle year, keyed "folderId|cycleYear" */
+    private array $documentsByFolderCycle = [];
 
     public function __construct(
         private readonly DocumentTreeAccessChecker $access,
@@ -49,7 +55,8 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
 
     public function reset(): void
     {
-        $this->teachersHoldingCache = [];
+        $this->teachersHoldingCache  = [];
+        $this->documentsByFolderCycle = [];
     }
 
     /** @return ActivitySubmissionSlot[] */
@@ -225,14 +232,33 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
             return null;
         }
 
-        return $this->documents->findOneByFolderProfileListItemNameAndFirstUploader(
-            $folder,
-            $slot->profile,
-            $slot->listItem,
-            $slot->displayName,
-            $slot->teacher,
-            $this->cycleKeyFor($activity, $slot, $reference),
-        );
+        $cycleKey = $this->cycleKeyFor($activity, $slot, $reference);
+        $key      = $folder->getId()->toRfc4122() . '|' . $cycleKey;
+        // One query per (folder, cycle) instead of one per slot; the match below is the same
+        // identity rule as DocumentRepository::findOneByFolderProfileListItemNameAndFirstUploader().
+        $documents = $this->documentsByFolderCycle[$key] ??= $this->documents->findByFolderAndCycleYearWithRevisions($folder, $cycleKey);
+
+        foreach ($documents as $document) {
+            if ($document->getName() !== $slot->displayName
+                || $document->getUploadProfile()?->getId()->toRfc4122() !== $slot->profile->getId()->toRfc4122()
+                || $document->getUploadListItem()?->getId()->toRfc4122() !== $slot->listItem?->getId()->toRfc4122()
+            ) {
+                continue;
+            }
+            if ($slot->teacher !== null && $document->getFirstRevision()?->getUploadedBy()->getId()->toRfc4122() !== $slot->teacher->getId()->toRfc4122()) {
+                continue;
+            }
+
+            return $document;
+        }
+
+        return null;
+    }
+
+    /** Uploads and deletions change what a slot resolves to: forget the indexed documents after any flush. */
+    public function postFlush(): void
+    {
+        $this->documentsByFolderCycle = [];
     }
 
     /** The cycle key a document uploaded for $slot right now (or at $reference) would be stamped with — see resolveSlot(). */

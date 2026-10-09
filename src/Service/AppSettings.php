@@ -24,6 +24,12 @@ final class AppSettings implements AppSettingsInterface
     /** @var array<string, mixed>|null full resolved map for the current user / centre */
     private ?array $resolved = null;
 
+    /** @var array<string, array<string, \App\Entity\CentreSettingValue>> per-centre value maps, keyed by centre id */
+    private array $centreMaps = [];
+
+    /** @var array<string, array<string, \App\Entity\TeacherSettingValue>> per-teacher value maps, keyed by teacher id */
+    private array $teacherMaps = [];
+
     public function __construct(
         private readonly SettingDefinitionRepository   $definitions,
         private readonly GlobalSettingValueRepository  $globalValues,
@@ -56,13 +62,13 @@ final class AppSettings implements AppSettingsInterface
             return null;
         }
 
-        $teacherMap = $this->teacherValues->findByTeacherIndexedByKey($teacher);
+        $teacherMap = $this->teacherMap($teacher);
 
         $raw = match (true) {
             isset($this->globalMap[$key]) && $this->globalMap[$key]->isLocked()
                 => $this->globalMap[$key]->getValue(),
             isset($teacherMap[$key])      => $teacherMap[$key]->getValue(),
-            isset($this->globalMap[$key]) => $this->globalMap[$key]->getValue(),
+            isset($this->globalMap[$key]) =>$this->globalMap[$key]->getValue(),
             default                       => $definition->getDefaultValue(),
         };
 
@@ -86,7 +92,7 @@ final class AppSettings implements AppSettingsInterface
             return null;
         }
 
-        $centreMap = $this->centreValues->findByCentreIndexedByKey($centre);
+        $centreMap = $this->centreMap($centre);
 
         $raw = match (true) {
             isset($this->globalMap[$key]) && $this->globalMap[$key]->isLocked()
@@ -138,8 +144,8 @@ final class AppSettings implements AppSettingsInterface
             return null;
         }
 
-        $centreMap  = $this->centreValues->findByCentreIndexedByKey($centre);
-        $teacherMap = $this->teacherValues->findByTeacherIndexedByKey($teacher);
+        $centreMap  = $this->centreMap($centre);
+        $teacherMap = $this->teacherMap($teacher);
 
         $raw = match (true) {
             isset($this->globalMap[$key]) && $this->globalMap[$key]->isLocked()
@@ -172,7 +178,7 @@ final class AppSettings implements AppSettingsInterface
             return null;
         }
 
-        $centreMap = $this->centreValues->findByCentreIndexedByKey($centre);
+        $centreMap = $this->centreMap($centre);
 
         $winner = match (true) {
             isset($this->globalMap[$key]) && $this->globalMap[$key]->isLocked() => $this->globalMap[$key],
@@ -194,6 +200,20 @@ final class AppSettings implements AppSettingsInterface
         $this->resolved       = null;
         $this->allDefinitions = null;
         $this->globalMap      = null;
+        $this->centreMaps     = [];
+        $this->teacherMaps    = [];
+    }
+
+    /** @return array<string, \App\Entity\CentreSettingValue> */
+    private function centreMap(EducationalCentre $centre): array
+    {
+        return $this->centreMaps[(string) $centre->getId()] ??= $this->centreValues->findByCentreIndexedByKey($centre);
+    }
+
+    /** @return array<string, \App\Entity\TeacherSettingValue> */
+    private function teacherMap(Teacher $teacher): array
+    {
+        return $this->teacherMaps[(string) $teacher->getId()] ??= $this->teacherValues->findByTeacherIndexedByKey($teacher);
     }
 
     private function load(): void
@@ -249,7 +269,7 @@ final class AppSettings implements AppSettingsInterface
         $centre = $this->tenant->getSelectedCentre();
 
         return $centre !== null
-            ? $this->centreValues->findByCentreIndexedByKey($centre)
+            ? $this->centreMap($centre)
             : [];
     }
 
@@ -259,7 +279,7 @@ final class AppSettings implements AppSettingsInterface
         $user = $this->security->getUser();
 
         return $user instanceof Teacher
-            ? $this->teacherValues->findByTeacherIndexedByKey($user)
+            ? $this->teacherMap($user)
             : [];
     }
 }

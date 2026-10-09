@@ -31,6 +31,28 @@ class FolderRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Every folder of the centre's tree, with the backing activity and responsible profiles already
+     * loaded (the inverse OneToOne $activity would otherwise cost one query per folder), in
+     * position order — grouped by section by the caller.
+     *
+     * @return list<Folder>
+     */
+    public function findAllByCentreWithResponsibles(EducationalCentre $centre): array
+    {
+        return $this->createQueryBuilder('f')
+            ->join('f.documentSection', 's')
+            ->leftJoin('f.activity', 'a')->addSelect('a')
+            ->leftJoin('f.responsibleProfiles', 'rp')->addSelect('rp')
+            ->leftJoin('rp.specificProfile', 'sp')->addSelect('sp')
+            ->leftJoin('rp.listItem', 'li')->addSelect('li')
+            ->where('s.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('f.position', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     /** @return list<Folder> whose name matches $query anywhere in the centre's tree, ordered by name */
     public function searchByCentre(EducationalCentre $centre, string $query, int $limit = 30): array
     {

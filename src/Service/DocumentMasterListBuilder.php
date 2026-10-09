@@ -36,9 +36,23 @@ final class DocumentMasterListBuilder
     /** @return list<DocumentMasterListRow> */
     public function build(EducationalCentre $centre): array
     {
+        // Whole tree in three queries (sections, folders, documents), stitched together in memory.
+        $sectionsByParent = [];
+        foreach ($this->sections->findAllByCentre($centre) as $section) {
+            $sectionsByParent[$section->getParent()?->getId()->toRfc4122() ?? ''][] = $section;
+        }
+        $foldersBySection = [];
+        foreach ($this->folders->findAllByCentreWithResponsibles($centre) as $folder) {
+            $foldersBySection[$folder->getDocumentSection()->getId()->toRfc4122()][] = $folder;
+        }
+        $documentsByFolder = [];
+        foreach ($this->documents->findAllByCentreForMasterList($centre) as $document) {
+            $documentsByFolder[$document->getFolder()->getId()->toRfc4122()][] = $document;
+        }
+
         $rows = [];
-        foreach ($this->sections->findRootsByCentre($centre) as $root) {
-            $this->addSection($root, [], $rows);
+        foreach ($sectionsByParent[''] ?? [] as $root) {
+            $this->addSection($root, [], $sectionsByParent, $foldersBySection, $documentsByFolder, $rows);
         }
 
         return $rows;
@@ -47,13 +61,15 @@ final class DocumentMasterListBuilder
     /**
      * Documents whose review is overdue or due within REVIEW_HORIZON_DAYS, soonest first.
      *
+     * @param list<DocumentMasterListRow>|null $rows the centre's already built master list, to skip building it again
+     *
      * @return list<DocumentMasterListRow>
      */
-    public function reviewsDue(EducationalCentre $centre): array
+    public function reviewsDue(EducationalCentre $centre, ?array $rows = null): array
     {
         $limit = $this->schedule->today()->modify('+' . self::REVIEW_HORIZON_DAYS . ' days');
         $due   = array_values(array_filter(
-            $this->build($centre),
+            $rows ?? $this->build($centre),
             static fn (DocumentMasterListRow $row): bool => $row->nextReviewAt !== null && $row->nextReviewAt <= $limit,
         ));
         usort($due, static fn (DocumentMasterListRow $a, DocumentMasterListRow $b): int => $a->nextReviewAt <=> $b->nextReviewAt);
@@ -62,26 +78,29 @@ final class DocumentMasterListBuilder
     }
 
     /**
-     * @param list<string>               $trail names of the ancestor sections
-     * @param list<DocumentMasterListRow> $rows
+     * @param list<string>                      $trail             names of the ancestor sections
+     * @param array<string, list<DocumentSection>> $sectionsByParent
+     * @param array<string, list<Folder>>          $foldersBySection
+     * @param array<string, list<Document>>        $documentsByFolder
+     * @param list<DocumentMasterListRow>          $rows
      */
-    private function addSection(DocumentSection $section, array $trail, array &$rows): void
+    private function addSection(DocumentSection $section, array $trail, array $sectionsByParent, array $foldersBySection, array $documentsByFolder, array &$rows): void
     {
         $trail[] = $section->getName();
         $path    = implode(' › ', $trail);
 
-        foreach ($this->folders->findBySection($section) as $folder) {
+        foreach ($foldersBySection[$section->getId()->toRfc4122()] ?? [] as $folder) {
             if ($folder->isObsolete() || $folder->getActivity() !== null) {
                 continue;
             }
             $responsibles = $this->responsibles($folder);
-            foreach ($this->documents->findByFolder($folder) as $document) {
+            foreach ($documentsByFolder[$folder->getId()->toRfc4122()] ?? [] as $document) {
                 $rows[] = $this->row($document, $path, $folder, $responsibles);
             }
         }
 
-        foreach ($this->sections->findChildrenByParent($section) as $child) {
-            $this->addSection($child, $trail, $rows);
+        foreach ($sectionsByParent[$section->getId()->toRfc4122()] ?? [] as $child) {
+            $this->addSection($child, $trail, $sectionsByParent, $foldersBySection, $documentsByFolder, $rows);
         }
     }
 
