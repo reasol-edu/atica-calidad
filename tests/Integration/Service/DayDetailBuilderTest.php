@@ -169,6 +169,8 @@ final class DayDetailBuilderTest extends RepositoryTestCase
         self::assertCount(1, $report->activityDeadlines);
         self::assertSame('Programaciones didácticas', $report->activityDeadlines[0]->activity->getTitle());
         self::assertFalse($report->activityDeadlines[0]->completed);
+        // Its link lands on the teacher's own row to fill in.
+        self::assertSame($profile->getId()->toRfc4122() . ':::', $report->activityDeadlines[0]->linkParams()['slot'] ?? null);
     }
 
     public function testAnActivityDoesNotAppearOnADateOutsideItsPeriod(): void

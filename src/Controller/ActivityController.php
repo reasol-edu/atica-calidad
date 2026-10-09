@@ -163,13 +163,10 @@ class ActivityController extends AbstractController
             return $back;
         }
 
-        $url = $this->generateUrl('app_activities', [
-            'category' => $activity->getCategory()->getId()->toRfc4122(),
-            'activity' => $activity->getId()->toRfc4122(),
-        ], UrlGeneratorInterface::ABSOLUTE_URL);
-
         $delivered = 0;
         foreach ($pending as ['teacher' => $recipient, 'items' => $items]) {
+            // The button lands on this teacher's own row to fill in, not just on the activity.
+            $url  = $this->generateUrl('app_activities', $items[0]->linkParams(), UrlGeneratorInterface::ABSOLUTE_URL);
             $sent = $this->mailer->send(
                 $recipient,
                 $centre,

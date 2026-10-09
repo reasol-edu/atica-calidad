@@ -9,7 +9,7 @@
     {% for item in items %}
         {% set overdue = item.status.overdue %}
         <li style="margin-bottom: 6px;{{ overdue ? ' color: #6b3241;' : '' }}">
-            {{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}
+            <a href="{{ url('app_activities', item.linkParams) }}" style="color: inherit;">{{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}</a>
             — {{ (overdue ? 'emails.pending_activity_reminder.overdue_since' : 'emails.pending_activity_reminder.due_date')|trans({'%date%': item.deadline|date('d/m/Y')}, 'emails') }}
             {% if item.status.value == 'rejected' %}
                 ({{ 'emails.pending_activity_reminder.rejected'|trans({}, 'emails') }})

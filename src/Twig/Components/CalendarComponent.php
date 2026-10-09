@@ -16,6 +16,7 @@ use App\Repository\SchoolEventRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Service\ActivityCompletionChecker;
 use App\Service\ActivityDeadlineChecker;
+use App\Service\ActivityObligationFinder;
 use App\Service\AssignmentColorPalette;
 use App\Service\CalendarMonthGridBuilder;
 use App\Service\NonWorkingDayChecker;
@@ -191,7 +192,7 @@ class CalendarComponent extends AbstractCalendarComponent
                     : $this->activityDeadline->cycleStartDateNear($activity, $reference, $leaf);
 
                 $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $leaf, $end);
-                $items[]   = new ActivityDeadlineOccurrence($activity, $start, $end, $owner['label'], $owner['key'], $completed);
+                $items[]   = new ActivityDeadlineOccurrence($activity, $start, $end, $owner['label'], $owner['key'], $completed, ActivityObligationFinder::slotKeyFor($activity, $owner, !$completed));
             }
         }
 

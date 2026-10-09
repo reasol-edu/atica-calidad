@@ -27,7 +27,24 @@ final readonly class ActivityDeadlineOccurrence
         public ?string $ownerLabel,
         public string $ownerKey,
         public bool $completed,
+        /** The submission row still to do ("" for none, "next" for the first of several) — lets the link land on it. */
+        public string $slotKey = '',
     ) {}
+
+    /**
+     * Route parameters of "app_activities" opening the activity — on its row to fill in, when it has one.
+     *
+     * @return array<string, string>
+     */
+    public function linkParams(): array
+    {
+        $params = ['category' => $this->activity->getCategory()->getId()->toRfc4122(), 'activity' => $this->activity->getId()->toRfc4122()];
+        if ($this->slotKey !== '') {
+            $params['slot'] = $this->slotKey;
+        }
+
+        return $params;
+    }
 
     /** True when the activity is a single-date deadline rather than a real start–end range. */
     public function isSingleDay(): bool

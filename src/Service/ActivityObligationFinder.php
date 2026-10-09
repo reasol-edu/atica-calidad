@@ -117,7 +117,7 @@ final class ActivityObligationFinder implements ResetInterface
                 $owner['listItem']?->getId()->toRfc4122() ?? '',
                 $owner['leaf']?->getId()->toRfc4122() ?? '',
                 !$activity->requiresSubmissions() && !$activity->isAutoComplete() && $status->isActionable() && !$window->blocked,
-                $this->slotKeyFor($activity, $owner, $status),
+                self::slotKeyFor($activity, $owner, $status->isActionable()),
             );
         }
 
@@ -147,10 +147,11 @@ final class ActivityObligationFinder implements ResetInterface
      * who may have several rows. '' for anything that needs no file from them.
      *
      * @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string} $owner
+     * @param bool $toDo whether the obligation still needs something from the teacher (the calendar passes "not completed")
      */
-    private function slotKeyFor(Activity $activity, array $owner, ActivityObligationStatus $status): string
+    public static function slotKeyFor(Activity $activity, array $owner, bool $toDo): string
     {
-        if (!$activity->requiresSubmissions() || !$status->isActionable()) {
+        if (!$activity->requiresSubmissions() || !$toDo) {
             return '';
         }
         if ($owner['profile'] === null) {

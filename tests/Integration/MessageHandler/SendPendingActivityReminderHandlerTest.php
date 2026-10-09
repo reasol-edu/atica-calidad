@@ -188,6 +188,41 @@ final class SendPendingActivityReminderHandlerTest extends RepositoryTestCase
         self::assertTrue($logEntries[0]->isSuccess());
     }
 
+    public function testTheReminderLinksEachActivityToItsOwnSubmissionRow(): void
+    {
+        self::mockTime('2025-09-29 10:00:00');
+
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $section  = (new \App\Entity\DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $folder   = (new \App\Entity\Folder())->setDocumentSection($section)->setName('Memorias');
+        $profile  = (new \App\Entity\SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $folder->addUploadProfile($profile);
+        $activity = (new Activity())->setCategory($category)->setTitle('Memoria')->setStart(1, 9)->setEnd(30, 9)->setFolder($folder);
+        $teacher  = $this->teacher('docente');
+        $teacher->addAcademicYear($year);
+
+        $enabled = $this->booleanDefinition('notifications.pending_activity_reminder_enabled', 'true');
+        $emailOn = $this->booleanDefinition('notifications.email_notifications_enabled', 'true');
+        $warning = $this->integerDefinition('notifications.pending_activity_reminder_warning_days', '5');
+        $this->persist($centre, $year, $category, $section, $folder, $profile, $activity, $teacher, $enabled, $emailOn, $warning, new \App\Entity\SpecificProfileAssignment($profile, null, $teacher));
+
+        $body   = '';
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects(self::once())->method('send')->with(self::callback(static function (TemplatedEmail $email) use (&$body): bool {
+            $body = (string) $email->getContext()['bodyHtml'];
+
+            return true;
+        }));
+
+        $this->handler($mailer)(new SendPendingActivityReminderMessage());
+
+        self::assertStringContainsString('/actividades?category=' . $category->getId()->toRfc4122() . '&amp;activity=' . $activity->getId()->toRfc4122(), $body);
+        self::assertStringContainsString('slot=' . $profile->getId()->toRfc4122(), $body, 'the link carries the row to fill in');
+    }
+
     public function testDoesNotSendWhenTheTeacherHasDisabledTheReminder(): void
     {
         self::mockTime('2025-09-29 10:00:00'); // a Monday, 1 day before the Sep 30 deadline

@@ -80,7 +80,7 @@ class DayDetailBuilder
                 }
 
                 $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $leaf, $end);
-                $items[]   = new ActivityDeadlineOccurrence($activity, $start, $end, $owner['label'], $owner['key'], $completed);
+                $items[]   = new ActivityDeadlineOccurrence($activity, $start, $end, $owner['label'], $owner['key'], $completed, ActivityObligationFinder::slotKeyFor($activity, $owner, !$completed));
             }
         }
 
