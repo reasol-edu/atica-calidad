@@ -13,6 +13,9 @@
         <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900">
             {{ ux_icon('heroicons:check-circle', {class: 'h-5 w-5 text-forest-600'}) }}
             {{ 'activities.title'|trans({}, 'dashboard') }}
+            {% if summary.overdue > 0 %}
+                <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">{{ 'activities.overdue'|trans({'%count%': summary.overdue}, 'dashboard') }}</span>
+            {% endif %}
         </h2>
         {% if summary.total > 0 %}
             <a href="{{ path('app_activities') }}" class="text-sm font-medium text-forest-600 hover:text-forest-700">
@@ -87,8 +90,14 @@
     {% if quality_tasks is not empty %}
         {# ── Mejora continua: tasks next to the activities ──────────────────── #}
         <div class="border-t border-gray-100">
+            {% set quality_overdue = quality_tasks|filter(t => t.urgency == 'overdue')|length %}
             <h3 class="flex items-center justify-between px-6 pt-4 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                {{ 'task.section_title'|trans({}, 'quality') }}
+                <span class="flex items-center gap-2">
+                    {{ 'task.section_title'|trans({}, 'quality') }}
+                    {% if quality_overdue > 0 %}
+                        <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium normal-case tracking-normal text-red-700">{{ 'activities.overdue'|trans({'%count%': quality_overdue}, 'dashboard') }}</span>
+                    {% endif %}
+                </span>
                 <a href="{{ path('app_quality_index') }}" class="normal-case tracking-normal text-sm font-medium text-forest-600 hover:text-forest-700">{{ 'task.view_all'|trans({}, 'quality') }} →</a>
             </h3>
             <ul class="divide-y divide-gray-100 pb-2">
