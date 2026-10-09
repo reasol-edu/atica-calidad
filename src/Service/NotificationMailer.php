@@ -39,6 +39,10 @@ final class NotificationMailer
 
     /**
      * @param string $eventKey identifies the triggering event for the log/admin view (e.g. 'activity_reminder'), max 50 chars
+     *
+     * @return bool whether the email went out — false when the recipient has emails off or no
+     *              address, or the transport failed (callers that must tell the sender, like a
+     *              manual reminder, report it; the daily digest ignores it)
      */
     public function send(
         Teacher $recipient,
@@ -49,9 +53,9 @@ final class NotificationMailer
         string $bodyHtml,
         ?string $actionUrl = null,
         ?string $actionLabel = null,
-    ): void {
-        if (!$this->settings->getForTeacherInCentre('notifications.email_notifications_enabled', $recipient, $centre)) {
-            return;
+    ): bool {
+        if (!$this->settings->getForTeacherInCentre('notifications.email_notifications_enabled', $recipient, $centre) || (string) $recipient->getEmail() === '') {
+            return false;
         }
 
         $fullName = $recipient->getName()->getFirstName() . ' ' . $recipient->getName()->getLastName();
@@ -90,6 +94,8 @@ final class NotificationMailer
         }
 
         $this->logNotification($centre, $recipient, $fullName, $eventKey, $fullSubject, $success, $errorMessage);
+
+        return $success;
     }
 
     private function logNotification(

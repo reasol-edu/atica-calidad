@@ -32,6 +32,13 @@
             {{ 'tabs.edit_categories'|trans({}, 'activity_content') }}
         </a>
         {% endif %}
+        {% if canEdit or is_granted('educational_centre.reports', centre) %}
+        <a href="{{ path('app_activity_tracking') }}"
+           class="-mb-px inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-sm font-medium text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700">
+            {{ ux_icon('heroicons:chart-bar', {class: 'h-4 w-4'}) }}
+            {{ 'tabs.tracking'|trans({}, 'activity_content') }}
+        </a>
+        {% endif %}
     </nav>
 
     {% if tab == 'edit' and canEdit %}

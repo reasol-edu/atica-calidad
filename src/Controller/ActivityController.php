@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Attribute\CurrentCentre;
 use App\Entity\Activity;
+use App\Entity\ActivityReminder;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Model\ActivityWindowBlock;
@@ -27,6 +28,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
+use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -50,7 +52,11 @@ class ActivityController extends AbstractController
 
     private const MAX_SUBMISSION_SIZE = 20 * 1024 * 1024;
 
+    /** Longest message a manual reminder can carry, in characters. */
+    private const MAX_REMINDER_MESSAGE = 1000;
+
     public function __construct(
+        private readonly ClockInterface $clock,
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
         private readonly ActivityRepository $activities,
@@ -131,18 +137,30 @@ class ActivityController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        // From the tracking page the form can narrow the recipients and add a message; the button on
+        // the activity card sends neither (everybody pending, no message). Ids not pending are ignored.
+        $chosen  = $request->request->all('teachers');
+        $message = mb_substr(trim($request->request->getString('message')), 0, self::MAX_REMINDER_MESSAGE);
+        $back    = $request->request->getString('return') === 'tracking'
+            ? $this->redirectToRoute('app_activity_tracking_detail', ['activityId' => $activityId])
+            : $this->redirectToActivity($activity);
+
         // Nobody to write to without an address (e.g. an account created without one).
-        $pending = array_values(array_filter($this->pendingOwners->find($activity), static fn (array $p): bool => $p['teacher']->getEmail() !== null));
+        $pending = array_values(array_filter(
+            $this->pendingOwners->find($activity),
+            static fn (array $p): bool => $p['teacher']->getEmail() !== null
+                && ($chosen === [] || \in_array($p['teacher']->getId()->toRfc4122(), $chosen, true)),
+        ));
         if ($pending === []) {
             $this->addFlash('success', $this->t('remind_pending.flash.nobody'));
 
-            return $this->redirectToActivity($activity);
+            return $back;
         }
 
         if (!$this->activityReminderLimiter->create($activityId)->consume()->isAccepted()) {
             $this->addFlash('error', $this->t('remind_pending.flash.too_soon'));
 
-            return $this->redirectToActivity($activity);
+            return $back;
         }
 
         $url = $this->generateUrl('app_activities', [
@@ -150,23 +168,33 @@ class ActivityController extends AbstractController
             'activity' => $activity->getId()->toRfc4122(),
         ], UrlGeneratorInterface::ABSOLUTE_URL);
 
+        $delivered = 0;
         foreach ($pending as ['teacher' => $recipient, 'items' => $items]) {
-            $this->mailer->send(
+            $sent = $this->mailer->send(
                 $recipient,
                 $centre,
                 'activity_manual_reminder',
                 $this->translator->trans('emails.activity_manual_reminder.subject', ['%title%' => $activity->getTitle()], 'emails'),
                 $this->translator->trans('emails.activity_manual_reminder.heading', ['%title%' => $activity->getTitle()], 'emails'),
-                $this->twig->render('email/_activity_manual_reminder_body.html.twig', ['sender' => $sender, 'activity' => $activity, 'items' => $items]),
+                $this->twig->render('email/_activity_manual_reminder_body.html.twig', ['sender' => $sender, 'activity' => $activity, 'items' => $items, 'message' => $message]),
                 $url,
                 $this->translator->trans('emails.activity_manual_reminder.cta', [], 'emails'),
             );
+            $delivered += $sent ? 1 : 0;
+            // The record of who was reminded, when and with what words (and whether it went out).
+            $this->em->persist(new ActivityReminder($activity, $recipient, $sender, $this->clock->now(), $message === '' ? null : $message, $sent));
+        }
+        $this->em->flush();
+
+        $this->activityLogger->record('activity.remind_pending', ['activity' => $activity->getTitle(), 'recipients' => \count($pending), 'delivered' => $delivered, 'message' => $message !== ''], $centre);
+        if ($delivered > 0) {
+            $this->addFlash('success', $this->translator->trans('remind_pending.flash.sent', ['%count%' => $delivered], 'activity_content'));
+        }
+        if ($delivered < \count($pending)) {
+            $this->addFlash('error', $this->translator->trans('remind_pending.flash.not_delivered', ['%count%' => \count($pending) - $delivered], 'activity_content'));
         }
 
-        $this->activityLogger->record('activity.remind_pending', ['activity' => $activity->getTitle(), 'recipients' => \count($pending)], $centre);
-        $this->addFlash('success', $this->translator->trans('remind_pending.flash.sent', ['%count%' => \count($pending)], 'activity_content'));
-
-        return $this->redirectToActivity($activity);
+        return $back;
     }
 
     /** Same rule as ActivityBrowserComponent::canRemindPending(), which shows the button. */

@@ -1,0 +1,95 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'tracking.title'|trans({}, 'activity_content') }} · {{ app_name }}{% endblock %}
+
+{#
+   "Seguimiento" of the activities (ActivityTrackingController::index): one row per visible activity
+   with how it stands in its current occurrence — progress, what's pending, days left — most pressing
+   first, and a link to who exactly is missing (and to remind them).
+#}
+{% block content %}
+<div class="px-6 py-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+            <div class="mb-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                {% include 'components/_breadcrumb_home.html.twig' %}
+                <a href="{{ path('app_activities') }}" class="transition-colors hover:text-forest-600">{{ 'page_title'|trans({}, 'activity_content') }}</a>
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ 'tracking.title'|trans({}, 'activity_content') }}</h1>
+            <p class="mt-1 text-sm text-gray-500">{{ 'tracking.intro'|trans({}, 'activity_content') }}</p>
+        </div>
+        <a href="{{ path('app_activity_tracking', onlyPending ? {} : {pendientes: 1}) }}"
+           class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors {{ onlyPending ? 'border-forest-600 bg-forest-600 text-white' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50' }}">
+            {{ ux_icon('heroicons:funnel', {class: 'h-4 w-4'}) }}
+            {{ 'tracking.only_pending'|trans({}, 'activity_content') }}
+        </a>
+    </div>
+
+    {% if rows is empty %}
+        <p class="rounded-2xl border border-gray-200 bg-white px-6 py-10 text-center text-sm text-gray-500">{{ (onlyPending ? 'tracking.none_pending' : 'tracking.none')|trans({}, 'activity_content') }}</p>
+    {% else %}
+        <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-xs">
+            <table class="w-full min-w-[760px] text-sm">
+                <thead class="border-b border-gray-200 bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+                    <tr>
+                        <th class="px-4 py-2.5 font-semibold">{{ 'tracking.col.activity'|trans({}, 'activity_content') }}</th>
+                        <th class="px-4 py-2.5 font-semibold">{{ 'tracking.col.deadline'|trans({}, 'activity_content') }}</th>
+                        <th class="px-4 py-2.5 font-semibold">{{ 'tracking.col.progress'|trans({}, 'activity_content') }}</th>
+                        <th class="px-4 py-2.5 font-semibold">{{ 'tracking.col.pending'|trans({}, 'activity_content') }}</th>
+                        <th class="px-4 py-2.5"><span class="sr-only">{{ 'tracking.col.actions'|trans({}, 'activity_content') }}</span></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for row in rows %}
+                        {% set days = row.daysLeft(today) %}
+                        {% set pending = row.pending %}
+                        <tr class="{{ pending > 0 and days < 0 ? 'bg-red-50/60' : '' }}">
+                            <td class="px-4 py-3">
+                                <a href="{{ path('app_activities', {category: row.activity.category.id.toRfc4122, activity: row.activity.id.toRfc4122}) }}" class="font-medium text-gray-900 hover:text-forest-700">{{ row.title }}</a>
+                                <span class="block text-xs text-gray-500">{{ row.categoryPath }}</span>
+                            </td>
+                            <td class="whitespace-nowrap px-4 py-3 text-gray-700">
+                                {{ row.deadline|date('d/m/Y') }}
+                                <span class="block text-xs {{ days < 0 ? 'text-red-600' : (days <= 7 ? 'text-amber-700' : 'text-gray-500') }}">
+                                    {% if days < 0 %}{{ 'tracking.days_past'|trans({'%count%': -days}, 'activity_content') }}
+                                    {% elseif days == 0 %}{{ 'tracking.today'|trans({}, 'activity_content') }}
+                                    {% else %}{{ 'tracking.days_left'|trans({'%count%': days}, 'activity_content') }}{% endif %}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex h-2 w-40 overflow-hidden rounded-full bg-gray-100" role="img"
+                                     aria-label="{{ 'tracking.progress_label'|trans({'%done%': row.done, '%total%': row.expected}, 'activity_content') }}">
+                                    {% if row.expected > 0 %}
+                                        <div class="bg-forest-500" style="width: {{ row.done / row.expected * 100 }}%"></div>
+                                        <div class="bg-sky-400" style="width: {{ row.inReview / row.expected * 100 }}%"></div>
+                                    {% endif %}
+                                </div>
+                                <span class="mt-1 block text-xs text-gray-500">
+                                    {{ 'tracking.progress_label'|trans({'%done%': row.done, '%total%': row.expected}, 'activity_content') }}
+                                    {% if row.inReview > 0 %} · {{ 'progress.in_review'|trans({'%count%': row.inReview}, 'activity_content') }}{% endif %}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if pending > 0 %}
+                                    <span class="font-semibold {{ days < 0 ? 'text-red-600' : 'text-gray-900' }}">{{ pending }}</span>
+                                    {% if row.rejected > 0 %}<span class="block text-xs text-rose-700">{{ 'progress.rejected'|trans({'%count%': row.rejected}, 'activity_content') }}</span>{% endif %}
+                                {% else %}
+                                    <span class="text-gray-400">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <a href="{{ path('app_activity_tracking_detail', {activityId: row.activity.id.toRfc4122}) }}"
+                                   class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">
+                                    {{ ux_icon('heroicons:bell-alert', {class: 'h-4 w-4'}) }}
+                                    {{ (pending > 0 ? 'tracking.see_pending' : 'tracking.see_detail')|trans({}, 'activity_content') }}
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

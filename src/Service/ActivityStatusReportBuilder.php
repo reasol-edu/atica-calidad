@@ -57,13 +57,13 @@ final class ActivityStatusReportBuilder
 
         $progress = $this->progress->forActivity($activity);
         if ($progress !== null) {
-            return new ActivityStatusReportRow($path, $activity->getTitle(), $startsAt, $deadline, true, $progress->total, $progress->delivered, $progress->accepted, $progress->inReview, $progress->rejected, $progress->overdue, $summary->ownCount);
+            return new ActivityStatusReportRow($path, $activity->getTitle(), $startsAt, $deadline, true, $progress->total, $progress->delivered, $progress->accepted, $progress->inReview, $progress->rejected, $progress->overdue, $summary->ownCount, $activity);
         }
 
         $done    = $this->completions->countByActivityAndCycle($activity, $this->deadline->currentCycleKey($activity));
         $overdue = $this->clock->now() > $deadline ? max(0, $teachers - $done) : 0;
 
-        return new ActivityStatusReportRow($path, $activity->getTitle(), $startsAt, $deadline, false, $teachers, $done, $done, 0, 0, $overdue);
+        return new ActivityStatusReportRow($path, $activity->getTitle(), $startsAt, $deadline, false, $teachers, $done, $done, 0, 0, $overdue, 0, $activity);
     }
 
     private function categoryPath(ActivityCategory $category): string

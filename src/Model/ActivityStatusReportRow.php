@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Model;
 
+use App\Entity\Activity;
+
 /** One activity in the "activity status" report (see ActivityStatusReportBuilder), for its current occurrence. */
 final readonly class ActivityStatusReportRow
 {
@@ -26,7 +28,21 @@ final readonly class ActivityStatusReportRow
         public int $overdue = 0,
         /** How many list elements have a deadline of their own (they can differ from $deadline). */
         public int $elementsWithOwnDeadline = 0,
+        /** The activity itself, for the tracking panel to link to it (and to its pending list). */
+        public ?Activity $activity = null,
     ) {}
+
+    /** Expected submissions (or teachers) neither done nor waiting for a review: who still has to act. */
+    public function pending(): int
+    {
+        return max(0, $this->expected - $this->done - $this->inReview);
+    }
+
+    /** Whole days from $today to the deadline: 0 today, negative once past. */
+    public function daysLeft(\DateTimeImmutable $today): int
+    {
+        return (int) $today->setTime(0, 0)->diff($this->deadline->setTime(0, 0))->format('%r%a');
+    }
 
     public function donePercentage(): int
     {

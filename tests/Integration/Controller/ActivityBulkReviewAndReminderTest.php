@@ -315,6 +315,56 @@ final class ActivityBulkReviewAndReminderTest extends ControllerTestCase
         self::assertCount(1, $this->loggedEmails());
     }
 
+    public function testAReminderCanCarryAMessageAndIsRecordedWithWhoReceivedIt(): void
+    {
+        [$centre, $activity, $admin] = $this->reminderScenario();
+        $aid = $activity->getId()->toRfc4122();
+        /** @var \App\Repository\TeacherRepository $teachers */
+        $teachers  = self::getContainer()->get(\App\Repository\TeacherRepository::class);
+        $recipient = $teachers->findOneBy(['username' => 'pendiente']);
+        self::assertNotNull($recipient);
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('POST', "/actividades/{$aid}/recordar-pendientes", [
+            '_token'   => $this->csrfToken('activity_remind_pending_' . $aid),
+            'teachers' => [$recipient->getId()->toRfc4122()],
+            'message'  => 'Necesito esto antes del viernes',
+            'return'   => 'tracking',
+        ]);
+        self::assertTrue($this->client->getResponse()->isRedirect("/actividades/seguimiento/{$aid}"), (string) $this->client->getResponse()->headers->get('Location'));
+
+        /** @var \App\Repository\ActivityReminderRepository $reminders */
+        $reminders = self::getContainer()->get(\App\Repository\ActivityReminderRepository::class);
+        $sent      = $reminders->findAll();
+        self::assertCount(1, $sent);
+        self::assertSame('Necesito esto antes del viernes', $sent[0]->getMessage());
+        self::assertSame('pendiente', $sent[0]->getRecipient()->getUsername());
+        self::assertTrue($sent[0]->isDelivered());
+
+        // The tracking page shows who is still pending, when they were reminded and the history.
+        $this->client->request('GET', "/actividades/seguimiento/{$aid}");
+        $html = (string) $this->client->getResponse()->getContent();
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('Avisado el', $html);
+        self::assertStringContainsString('Necesito esto antes del viernes', $html);
+    }
+
+    public function testTheTrackingPanelListsTheActivitiesForManagersOnly(): void
+    {
+        [$centre, $activity, $admin] = $this->reminderScenario();
+        $teacher = $this->teacher('docente');
+        $this->persist($teacher);
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('GET', '/actividades/seguimiento');
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString($activity->getTitle(), (string) $this->client->getResponse()->getContent());
+
+        $this->loginAs($teacher, $centre);
+        $this->client->request('GET', '/actividades/seguimiento');
+        self::assertSame(403, $this->client->getResponse()->getStatusCode());
+    }
+
     public function testReminderIsDeniedToAPlainTeacher(): void
     {
         [$centre, $activity] = $this->reminderScenario();

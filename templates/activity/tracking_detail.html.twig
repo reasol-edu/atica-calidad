@@ -1,0 +1,108 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ activity.title }} · {{ 'tracking.title'|trans({}, 'activity_content') }} · {{ app_name }}{% endblock %}
+
+{#
+   Who still has something to do for one activity (ActivityTrackingController::detail), when each
+   was last reminded, a form to remind some or all of them with a message of your own (it posts to
+   ActivityController::remindPending), and the reminders already sent.
+#}
+{% block content %}
+<div class="px-6 py-8 max-w-4xl mx-auto space-y-6">
+    <div>
+        <div class="mb-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_activities') }}" class="transition-colors hover:text-forest-600">{{ 'page_title'|trans({}, 'activity_content') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            <a href="{{ path('app_activity_tracking') }}" class="transition-colors hover:text-forest-600">{{ 'tracking.title'|trans({}, 'activity_content') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ activity.title }}</h1>
+        <p class="mt-1 text-sm">
+            <a href="{{ path('app_activities', {category: activity.category.id.toRfc4122, activity: activity.id.toRfc4122}) }}" class="font-medium text-forest-600 hover:text-forest-700">{{ 'tracking.open_activity'|trans({}, 'activity_content') }} →</a>
+        </p>
+    </div>
+
+    {% if pending is empty %}
+        <p class="rounded-2xl border border-forest-100 bg-forest-50 px-6 py-8 text-center text-sm font-medium text-forest-700">{{ 'tracking.nobody_pending'|trans({}, 'activity_content') }}</p>
+    {% else %}
+        <form method="post" action="{{ path('app_activity_remind_pending', {activityId: activity.id.toRfc4122}) }}" class="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-xs" data-controller="check-all">
+            <input type="hidden" name="_token" value="{{ csrf_token('activity_remind_pending_' ~ activity.id.toRfc4122) }}">
+            <input type="hidden" name="return" value="tracking">
+
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-sm font-semibold text-gray-900">{{ 'tracking.pending_title'|trans({'%count%': pending|length}, 'activity_content') }}</h2>
+                {% if canSend %}
+                    <button type="button" data-action="check-all#toggle" class="text-xs font-medium text-forest-600 hover:text-forest-700">
+                        {{ 'tracking.select_all'|trans({}, 'activity_content') }}
+                    </button>
+                {% endif %}
+            </div>
+
+            <ul class="divide-y divide-gray-100 rounded-xl border border-gray-100">
+                {% for entry in pending %}
+                    {% set teacher = entry.teacher %}
+                    {% set lastSent = last[teacher.id.toRfc4122] ?? null %}
+                    <li class="flex items-start gap-3 px-4 py-3">
+                        {% if canSend %}
+                            <input type="checkbox" name="teachers[]" value="{{ teacher.id.toRfc4122 }}" checked data-check-all-target="checkbox" aria-label="{{ teacher.name.lastName }}, {{ teacher.name.firstName }}"
+                                   class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-forest-600 focus:ring-forest-500/30">
+                        {% endif %}
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-medium text-gray-900">{{ teacher.name.lastName }}, {{ teacher.name.firstName }}
+                                {% if teacher.email is null %}<span class="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-normal text-gray-500">{{ 'tracking.no_email'|trans({}, 'activity_content') }}</span>{% endif %}
+                            </p>
+                            <ul class="mt-0.5 space-y-0.5 text-xs text-gray-500">
+                                {% for item in entry.items %}
+                                    <li class="{{ item.status.overdue ? 'text-red-600' : '' }}">
+                                        {{ item.ownerLabel ? item.ownerLabel ~ ' · ' : '' }}{{ ('obligation.status.' ~ item.status.value)|trans({}, 'activity_content') }} · {{ item.deadline|date('d/m/Y') }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <span class="shrink-0 text-xs text-gray-400">
+                            {% if lastSent %}{{ 'tracking.reminded'|trans({'%date%': lastSent|date('d/m/Y H:i')}, 'activity_content') }}{% else %}{{ 'tracking.never_reminded'|trans({}, 'activity_content') }}{% endif %}
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {% if canSend %}
+                <div>
+                    <label for="reminder-message" class="mb-1 block text-xs font-medium text-gray-600">{{ 'tracking.message'|trans({}, 'activity_content') }}</label>
+                    <textarea id="reminder-message" name="message" rows="3" maxlength="1000"
+                              placeholder="{{ 'tracking.message_placeholder'|trans({}, 'activity_content') }}"
+                              class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20"></textarea>
+                    <p class="mt-1 text-xs text-gray-400">{{ 'tracking.message_help'|trans({}, 'activity_content') }}</p>
+                </div>
+                <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-forest-700">
+                    {{ ux_icon('heroicons:bell-alert', {class: 'h-4 w-4'}) }}
+                    {{ 'tracking.send'|trans({}, 'activity_content') }}
+                </button>
+            {% endif %}
+        </form>
+    {% endif %}
+
+    <section>
+        <h2 class="mb-2 text-sm font-semibold text-gray-900">{{ 'tracking.history'|trans({}, 'activity_content') }}</h2>
+        {% if history is empty %}
+            <p class="text-sm text-gray-500">{{ 'tracking.history_empty'|trans({}, 'activity_content') }}</p>
+        {% else %}
+            <ul class="divide-y divide-gray-100 rounded-2xl border border-gray-200 bg-white text-sm shadow-xs">
+                {% for reminder in history %}
+                    <li class="px-4 py-3">
+                        <p class="text-gray-900">
+                            <span class="font-medium">{{ reminder.recipient.name.lastName }}, {{ reminder.recipient.name.firstName }}</span>
+                            <span class="text-gray-500"> · {{ reminder.sentAt|date('d/m/Y H:i') }}
+                                {% if reminder.sentBy %} · {{ 'tracking.sent_by'|trans({'%name%': reminder.sentBy.name.firstName ~ ' ' ~ reminder.sentBy.name.lastName}, 'activity_content') }}{% endif %}
+                            </span>
+                            {% if not reminder.delivered %}<span class="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700">{{ 'tracking.not_delivered'|trans({}, 'activity_content') }}</span>{% endif %}
+                        </p>
+                        {% if reminder.message %}<p class="mt-1 whitespace-pre-line border-l-2 border-gray-200 pl-3 text-xs text-gray-600">{{ reminder.message }}</p>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
