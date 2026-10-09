@@ -3029,6 +3029,50 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertCount(2, $crawler->filter('[data-activity-submissions-target=dropzone][tabindex="0"]'));
     }
 
+    public function testARejectedSubmissionShowsItsReasonAndAFormForANewVersionToItsAuthor(): void
+    {
+        self::mockTime('2025-10-10 10:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $a        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil A');
+        $folder->addUploadProfile($a);
+        // Individual scope: the author has no active revision to go by, which is what used to leave
+        // her without any way to answer the rejection.
+        $activity = $this->activity($category, 'Memoria')->setStart(1, 10)->setEnd(31, 10)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::Individual);
+        $author   = $this->teacher('autora');
+        $reviewer = $this->teacher('revisor');
+        $year     = (new \App\Entity\AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $year->addTeacher($author);
+        $document = (new Document($folder, 'Perfil A'))->setUploadProfile($a);
+        $file     = new DocumentFile(hash('sha256', 'm'), 'x', 'application/pdf', 'm.pdf', 1);
+        $revision = new DocumentRevision($document, 1, $file, true, $author);
+        $revision->reject($reviewer, 'Falta la firma de la dirección');
+        $document->getRevisions()->add($revision);
+        $this->persist($centre, $year, $category, $folder->getDocumentSection(), $folder, $a, $activity, $author, $reviewer, new SpecificProfileAssignment($a, null, $author), $file, $document, $revision);
+
+        /** @var \App\Service\DocumentTreeAccessChecker $access */
+        $access = self::getContainer()->get(\App\Service\DocumentTreeAccessChecker::class);
+        self::assertSame($revision, $document->getLastRejectedRevision());
+        self::assertTrue($access->canResubmitRejected($author, $document));
+        self::assertFalse($access->canResubmitRejected($reviewer, $document), 'only the author answers a rejection');
+
+        $this->loginAs($author, $centre);
+        $crawler = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client)->render()->crawler();
+
+        self::assertStringContainsString('Falta la firma de la dirección', $crawler->html());
+        self::assertStringContainsString('fue rechazada por', $crawler->html());
+        self::assertCount(1, $crawler->filter('form[action$="/revisiones"][data-controller="file-drop"]'), 'a new-version form right under the row');
+
+        // A new version replaces it: the document is no longer "rejected, waiting".
+        $document->getRevisions()->add(new DocumentRevision($document, 2, $file, true, $author));
+        self::assertNull($document->getLastRejectedRevision());
+    }
+
     public function testNextLandsOnTheFirstEmptyRowAndAMalformedKeyOnNone(): void
     {
         [$centre, $category, $teacher] = $this->teacherWithTwoEmptyRows();

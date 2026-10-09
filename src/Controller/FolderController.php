@@ -174,7 +174,8 @@ class FolderController extends AbstractController
         $folder   = $this->requireFolder($folderId, $centre);
         $document = $this->requireDocument($documentId, $folder);
         $teacher  = $this->requireTeacher();
-        if (!$this->access->canManageDocumentAsUploader($teacher, $document)) {
+        // Whoever manages the document, or the author of a rejected revision answering it.
+        if (!$this->access->canManageDocumentAsUploader($teacher, $document) && !$this->access->canResubmitRejected($teacher, $document)) {
             throw $this->createAccessDeniedException();
         }
 

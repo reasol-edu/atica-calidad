@@ -231,6 +231,27 @@ class Document implements Trashable
         );
     }
 
+    /**
+     * The latest revision, when it is the one that was turned down and nothing has replaced it: no
+     * active revision, none waiting for approval, the newest rejected. That is a submission waiting for
+     * a new attempt — what the reason for the rejection and the "upload a new version" form hang on.
+     */
+    public function getLastRejectedRevision(): ?DocumentRevision
+    {
+        if ($this->activeRevision !== null || $this->isPendingApproval()) {
+            return null;
+        }
+
+        $latest = null;
+        foreach ($this->revisions as $revision) {
+            if ($latest === null || $revision->getVersion() > $latest->getVersion()) {
+                $latest = $revision;
+            }
+        }
+
+        return $latest !== null && $latest->isRejected() ? $latest : null;
+    }
+
     public function getNextVersion(): int
     {
         $max = 0;

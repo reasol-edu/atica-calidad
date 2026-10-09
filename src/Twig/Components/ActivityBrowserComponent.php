@@ -1893,6 +1893,12 @@ class ActivityBrowserComponent extends AbstractController
         return $this->access->canReviewFolder($this->teacher(), $folder);
     }
 
+    /** The author of a rejected revision may answer it with a new version — see DocumentTreeAccessChecker::canResubmitRejected(). */
+    public function canResubmitRejected(Document $document): bool
+    {
+        return $this->access->canResubmitRejected($this->teacher(), $document);
+    }
+
     public function canManageDocumentAsUploader(Document $document): bool
     {
         return $this->access->canManageDocumentAsUploader($this->teacher(), $document);

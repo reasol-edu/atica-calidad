@@ -107,34 +107,6 @@
     {% endif %}
 
     {% if can_manage_as_uploader %}
-        <form action="{{ path('app_folder_document_new_revision', {folderId: folder.id.toRfc4122, documentId: did}) }}" method="post" enctype="multipart/form-data"
-              data-controller="file-drop" data-file-drop-single-value="true"
-              data-file-drop-max-size-value="{{ 20 * 1024 * 1024 }}"
-              data-file-drop-too-large-message-value="{{ 'upload.error.file_too_large'|trans({'%filename%': '%filename%'}, 'activity_content') }}" class="pt-1">
-            <input type="hidden" name="_token" value="{{ csrf_token('folder_document_revision_' ~ did) }}">
-            <div data-file-drop-target="dropzone"
-                 data-action="dragenter->file-drop#dragEnter dragover->file-drop#dragOver dragleave->file-drop#dragLeave drop->file-drop#drop click->file-drop#triggerBrowse"
-                 class="flex items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-white px-4 py-3 cursor-pointer hover:border-forest-300 hover:bg-forest-50/50 transition-colors">
-                {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
-                <span class="text-sm text-gray-500">{{ 'revision.dropzone_hint'|trans({}, 'activity_content') }}</span>
-                <input type="file" id="activity-revision-upload-{{ did }}" name="file" data-file-drop-target="input" data-action="change->file-drop#change" class="sr-only">
-            </div>
-            <div data-file-drop-target="list" class="mt-2 space-y-1.5"></div>
-            <template data-file-drop-target="itemTemplate">
-                <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
-                    {{ ux_icon('heroicons:document', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
-                    <span class="text-sm text-gray-700 flex-1 truncate" data-role="name"></span>
-                    <span class="text-xs text-gray-400 shrink-0" data-role="size"></span>
-                    <button type="button" data-action="click->file-drop#removeFile" class="shrink-0 text-gray-400 hover:text-red-600 transition-colors">
-                        {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
-                    </button>
-                </div>
-            </template>
-            <p data-file-drop-target="clientError" class="mt-1 text-xs text-red-600 hidden"></p>
-            <button type="submit" data-file-drop-target="submit" class="hidden mt-2 items-center gap-1.5 rounded-md bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700">
-                {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
-                {{ 'revision.upload_new'|trans({}, 'activity_content') }}
-            </button>
-        </form>
+        {% include 'components/_activity_new_revision_form.html.twig' with {folder: folder, document: document} only %}
     {% endif %}
 </div>

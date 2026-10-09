@@ -13,6 +13,8 @@
        else — take it back (or, by re-opening the slot, replace it) while nothing has been
        decided on it yet. See ActivityBrowserComponent::canWithdrawOwnSubmission(). #}
     {% set can_withdraw = this.canWithdrawOwnSubmission(document) %}
+    {# Turned down and not replaced yet: the reason and a way to answer it, right under the row. #}
+    {% set rejected_revision = document.lastRejectedRevision %}
     {% set highlighted = highlightedDocumentId == did or (highlightedSlotKey != '' and this.getSlotToHighlight(activity) == slot.key) %}
 
     {% if not read_only %}
@@ -45,6 +47,10 @@
                 {% if pending %}
                     <span class="shrink-0 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
                         {{ 'status.pending'|trans({}, 'activity_content') }}
+                    </span>
+                {% elseif rejected_revision %}
+                    <span class="shrink-0 inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                        {{ 'status.rejected'|trans({}, 'activity_content') }}
                     </span>
                 {% elseif not active %}
                     <span class="shrink-0 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">
@@ -91,6 +97,24 @@
             {% endif %}
         {% endif %}
     </div>
+
+    {% if rejected_revision and not read_only %}
+        <div class="ml-4 space-y-1.5 rounded-lg border border-red-100 bg-red-50/40 px-3 py-2.5">
+            <p class="flex flex-wrap items-center gap-x-1.5 text-xs font-medium text-red-700">
+                {{ ux_icon('heroicons:exclamation-circle', {class: 'h-4 w-4 shrink-0'}) }}
+                {% if rejected_revision.reviewedBy %}
+                    {{ 'revision.rejected_by'|trans({'%name%': rejected_revision.reviewedBy.name.firstName ~ ' ' ~ rejected_revision.reviewedBy.name.lastName, '%version%': rejected_revision.version}, 'activity_content') }}
+                {% else %}
+                    {{ 'revision.rejected_plain'|trans({'%version%': rejected_revision.version}, 'activity_content') }}
+                {% endif %}
+            </p>
+            <p class="whitespace-pre-line border-l-2 border-red-200 pl-3 text-sm text-gray-700">{{ rejected_revision.reviewResult ?: 'revision.rejected_no_reason'|trans({}, 'activity_content') }}</p>
+            {% if can_manage_as_uploader or this.canResubmitRejected(document) %}
+                <p class="text-xs text-gray-500">{{ 'revision.rejected_hint'|trans({}, 'activity_content') }}</p>
+                {% include 'components/_activity_new_revision_form.html.twig' with {folder: folder, document: document} only %}
+            {% endif %}
+        </div>
+    {% endif %}
 
 {% elseif read_only %}
     <div class="flex items-center gap-2 rounded-lg border border-dashed border-gray-100 bg-gray-50/40 px-2.5 py-1.5">

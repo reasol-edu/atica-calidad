@@ -193,6 +193,18 @@ final class DocumentTreeAccessChecker implements ResetInterface
     }
 
     /**
+     * Whether $teacher may upload a new version of a submission that was turned down: they are the
+     * one who uploaded the rejected revision and nothing has replaced it since (see
+     * Document::getLastRejectedRevision()). Narrower than canManageDocumentAsUploader() — which for
+     * an individual submission leaves its own author out, with no active revision to go by — and
+     * only for this one case: the author answering the reviewer's rejection.
+     */
+    public function canResubmitRejected(Teacher $teacher, Document $document): bool
+    {
+        return $document->getLastRejectedRevision()?->getUploadedBy() === $teacher;
+    }
+
+    /**
      * Whether $teacher may withdraw this document entirely — delete it outright, which (for an
      * activity submission slot, whose document is looked up by identity, not stored by reference —
      * see ActivitySubmissionSlotBuilder::resolveSlot()) frees the slot for a new attempt as soon as

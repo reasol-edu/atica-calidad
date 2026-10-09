@@ -353,6 +353,38 @@ final class FolderControllerTest extends ControllerTestCase
         self::assertTrue($reloaded->hasVersion(2));
     }
 
+    public function testTheAuthorOfARejectedRevisionMayUploadANewVersionButNobodyElse(): void
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($centre);
+        $author   = $this->teacher('autor');
+        $stranger = $this->teacher('ajeno');
+        $reviewer = $this->teacher('revisor');
+        $document = $this->documentWithFirstRevision($folder, $author);
+        // Turned down: no active revision any more, nothing pending.
+        $document->getRevisions()->first()->reject($reviewer, 'Falta la firma');
+        $document->setActiveRevision(null);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $author, $stranger, $reviewer, $document);
+        $folderId   = $folder->getId()->toRfc4122();
+        $documentId = $document->getId()->toRfc4122();
+
+        $this->loginAs($stranger, $centre);
+        $this->client->request('POST', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones", ['_token' => $this->csrfToken('folder_document_revision_' . $documentId)], ['file' => $this->uploadedFile('v2')]);
+        self::assertSame(403, $this->client->getResponse()->getStatusCode());
+
+        $this->loginAs($author, $centre);
+        $this->client->request('POST', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones", ['_token' => $this->csrfToken('folder_document_revision_' . $documentId)], ['file' => $this->uploadedFile('v2')]);
+        self::assertTrue($this->client->getResponse()->isRedirect());
+
+        $this->em->clear();
+        /** @var DocumentRepository $documents */
+        $documents = self::getContainer()->get(DocumentRepository::class);
+        $reloaded  = $documents->findById($documentId);
+        self::assertNotNull($reloaded);
+        self::assertTrue($reloaded->hasVersion(2));
+        self::assertNull($reloaded->getLastRejectedRevision(), 'the new version replaces the rejected one');
+    }
+
     public function testUploadRevisionRejectedWhenTheFormatIsNotAllowed(): void
     {
         $centre = $this->centre();

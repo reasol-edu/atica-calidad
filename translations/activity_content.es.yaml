@@ -148,6 +148,10 @@ upload.error.file_too_large: '%filename% supera el tamaño máximo permitido (20
 upload.error.file_format_not_allowed: '%filename% no es un formato de fichero aceptado en esta carpeta.'
 
 status.no_revision: 'Pendiente'
+revision.rejected_by: 'La versión %version% fue rechazada por %name%'
+revision.rejected_plain: 'La versión %version% fue rechazada'
+revision.rejected_no_reason: 'No se indicó el motivo.'
+revision.rejected_hint: 'Sube una versión corregida: volverá a quedar pendiente de revisión.'
 status.pending: 'Pendiente de visto bueno'
 status.approved: 'Aprobada'
 status.rejected: 'Rechazada'
