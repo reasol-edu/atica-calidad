@@ -2,7 +2,7 @@
 
 {% block title %}{{ 'reports'|trans({}, 'navigation') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
 
-{% macro report_card(icon, key, route, centre, description, summary, summary_class) %}
+{% macro report_card(icon, key, route, centre, description, summary, summary_class, screen_route) %}
     <div class="flex flex-col rounded-2xl border border-gray-200 bg-white shadow-xs">
         <div class="flex-1 px-6 py-5 space-y-2">
             <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900">
@@ -12,7 +12,14 @@
             <p class="text-sm text-gray-600">{{ description }}</p>
             <p class="text-xs font-medium {{ summary_class ?? 'text-gray-500' }}">{{ summary }}</p>
         </div>
-        <div class="flex items-center gap-2 border-t border-gray-100 px-6 py-3">
+        <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 px-6 py-3">
+            {% if screen_route is defined and screen_route %}
+                <a href="{{ path(screen_route, {centreId: centre.id.toRfc4122}) }}"
+                   class="inline-flex items-center gap-1.5 rounded-lg border border-forest-600 px-3 py-1.5 text-xs font-medium text-forest-700 hover:bg-forest-50 transition-colors">
+                    {{ ux_icon('heroicons:eye', {class: 'h-4 w-4'}) }}
+                    {{ 'view_on_screen'|trans({}, 'reports') }}
+                </a>
+            {% endif %}
             <a href="{{ path(route, {centreId: centre.id.toRfc4122, _format: 'pdf'}) }}" target="_blank" rel="noopener"
                class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
                 {{ ux_icon('heroicons:document-text', {class: 'h-4 w-4'}) }}
@@ -57,6 +64,13 @@
             'heroicons:check-circle', 'activity_status', 'app_reports_activity_status', centre,
             'activity_status.description'|trans({}, 'reports'),
             'activity_status.summary'|trans({'%count%': activityCount}, 'reports'),
+        ) }}
+
+        {{ _self.report_card(
+            'heroicons:scale', 'compliance', 'app_reports_compliance_export', centre,
+            'compliance.description'|trans({}, 'reports'),
+            'compliance.summary'|trans({'%count%': activityCount}, 'reports'),
+            null, 'app_reports_compliance',
         ) }}
 
         {% set open_findings = (findingCounts.reported ?? 0) + (findingCounts.analysis ?? 0) + (findingCounts.execution ?? 0) + (findingCounts.verification ?? 0) %}

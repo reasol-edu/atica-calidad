@@ -1,0 +1,101 @@
+{#
+   The review queue (ReviewQueueComponent): the revisions waiting for the teacher, most pressing first,
+   approved in one click or rejected with a reason without leaving the list.
+#}
+{% set items = this.items %}
+{% set badge = {critical: 'bg-red-50 text-red-700', waiting: 'bg-amber-50 text-amber-700', normal: 'bg-gray-100 text-gray-600'} %}
+
+<div {{ attributes }} class="space-y-4">
+    {% if this.canSeeAll %}
+        <div class="inline-flex rounded-lg border border-gray-200 bg-white p-0.5 text-xs font-medium" role="group" aria-label="{{ 'review_queue.scope'|trans({}, 'dashboard') }}">
+            {% for key in ['mine', 'all'] %}
+                <button type="button" data-action="live#action" data-live-action-param="setScope" data-live-scope-param="{{ key }}" aria-pressed="{{ scope == key ? 'true' : 'false' }}"
+                        class="rounded-md px-3 py-1.5 transition-colors {{ scope == key ? 'bg-forest-600 text-white' : 'text-gray-600 hover:bg-gray-50' }}">
+                    {{ ('review_queue.scope_' ~ key)|trans({}, 'dashboard') }}
+                </button>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if items is empty %}
+        <div class="rounded-2xl border border-forest-100 bg-forest-50 px-4 py-10 text-center">
+            {{ ux_icon('heroicons:check-badge', {class: 'mx-auto mb-2 h-8 w-8 text-forest-400'}) }}
+            <p class="text-sm font-medium text-forest-700">{{ (scope == 'all' and this.canSeeAll ? 'reviews.all_empty' : 'reviews.empty')|trans({}, 'dashboard') }}</p>
+        </div>
+    {% else %}
+        <p class="text-sm text-gray-600">{{ 'review_queue.count'|trans({'%count%': items|length}, 'dashboard') }}</p>
+        <ul class="space-y-3">
+            {% for item in items %}
+                {% set revision = item.revision %}
+                {% set document = revision.document %}
+                {% set folder = document.folder %}
+                {% set rid = revision.id.toRfc4122 %}
+                <li id="review-{{ rid }}" class="rounded-2xl border bg-white p-4 shadow-xs {{ item.urgency == 'critical' ? 'border-red-200' : 'border-gray-200' }}">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="flex flex-wrap items-center gap-2 text-sm font-semibold text-gray-900">
+                                {{ item.activity ? item.activity.title : document.name }}
+                                <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ badge[item.urgency] }}">{{ ('review_queue.urgency.' ~ item.urgency)|trans({}, 'dashboard') }}</span>
+                            </p>
+                            <p class="mt-0.5 text-xs text-gray-500">
+                                {% if item.activity %}{{ document.name }} · {% endif %}{{ folder.documentSection.name }} › {{ folder.name }}
+                                · v{{ revision.version }}
+                            </p>
+                            <p class="mt-1 text-xs text-gray-500">
+                                {{ 'reviews.uploaded_by'|trans({'%name%': revision.uploadedBy.name.firstName ~ ' ' ~ revision.uploadedBy.name.lastName, '%date%': revision.revisedAt|date('d/m/Y')}, 'dashboard') }}
+                                · {{ 'review_queue.waiting'|trans({'%count%': item.waitingDays}, 'dashboard') }}
+                                {% if item.deadline %}
+                                    · <span class="{{ item.daysToDeadline < 0 ? 'text-red-600 font-medium' : '' }}">{{ (item.daysToDeadline < 0 ? 'review_queue.deadline_past' : 'review_queue.deadline')|trans({'%date%': item.deadline|date('d/m/Y')}, 'dashboard') }}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="flex shrink-0 flex-wrap items-center gap-2">
+                            <a href="{{ item.activity
+                                    ? path('app_activities', {category: item.activity.category.id.toRfc4122, activity: item.activity.id.toRfc4122, highlight: document.id.toRfc4122})
+                                    : path('app_document_tree', {section: folder.documentSection.id.toRfc4122, folder: folder.id.toRfc4122, document: document.id.toRfc4122}) }}"
+                               class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">
+                                {{ ux_icon('heroicons:eye', {class: 'h-4 w-4'}) }}{{ 'review_queue.open'|trans({}, 'dashboard') }}
+                            </a>
+                            <button type="button" data-action="live#action" data-live-action-param="approve" data-live-id-param="{{ rid }}"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-forest-700">
+                                {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'review_queue.approve'|trans({}, 'dashboard') }}
+                            </button>
+                            <button type="button" data-action="live#action" data-live-action-param="startReject" data-live-id-param="{{ rid }}"
+                                    class="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-50">
+                                {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}{{ 'review_queue.reject'|trans({}, 'dashboard') }}
+                            </button>
+                        </div>
+                    </div>
+
+                    {% if rejectingId == rid %}
+                        <div class="mt-3 space-y-2 rounded-xl border border-red-100 bg-red-50/40 p-3">
+                            <p class="text-xs font-medium text-gray-700">{{ 'review_queue.reason'|trans({}, 'dashboard') }}</p>
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for key in constant('App\\Twig\\Components\\ReviewQueueComponent::REASONS') %}
+                                    <button type="button" data-action="live#action" data-live-action-param="useReason" data-live-key-param="{{ key }}"
+                                            class="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600 transition-colors hover:border-forest-300 hover:text-forest-700">
+                                        {{ ('review.reason.' ~ key)|trans({}, 'dashboard') }}
+                                    </button>
+                                {% endfor %}
+                            </div>
+                            <textarea data-model="debounce(300)|rejectReason" rows="3" maxlength="1000" aria-label="{{ 'review_queue.reason'|trans({}, 'dashboard') }}"
+                                      placeholder="{{ 'review_queue.reason_placeholder'|trans({}, 'dashboard') }}"
+                                      class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">{{ rejectReason }}</textarea>
+                            {% if rejectError != '' %}<p class="text-xs text-red-600">{{ rejectError }}</p>{% endif %}
+                            <div class="flex items-center gap-2">
+                                <button type="button" data-action="live#action" data-live-action-param="confirmReject"
+                                        class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-700">
+                                    {{ 'review_queue.confirm_reject'|trans({}, 'dashboard') }}
+                                </button>
+                                <button type="button" data-action="live#action" data-live-action-param="cancelReject"
+                                        class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50">
+                                    {{ 'review_queue.cancel'|trans({}, 'dashboard') }}
+                                </button>
+                            </div>
+                        </div>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</div>

@@ -43,6 +43,56 @@ class DocumentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Every submission (document stamped with a cycle) of the centre's activities in the given
+     * cycles, as light rows: its activity, cycle, when it was first uploaded and whether it has an
+     * accepted revision — what the compliance report counts, without loading entities (or blobs).
+     *
+     * @param list<int> $cycleYears
+     *
+     * @return list<array{activityId: string, cycleYear: int, uploadedAt: \DateTimeImmutable, accepted: bool}>
+     */
+    public function findSubmissionFiguresByCentreAndCycles(EducationalCentre $centre, array $cycleYears): array
+    {
+        /** @var list<array{activityId: \Symfony\Component\Uid\Uuid, cycleYear: int, uploadedAt: \DateTimeImmutable, accepted: mixed}> $rows */
+        $rows = $this->createQueryBuilder('d')
+            ->select('a.id AS activityId', 'd.activityCycleYear AS cycleYear', 'd.uploadedAt AS uploadedAt', 'CASE WHEN d.activeRevision IS NULL THEN 0 ELSE 1 END AS accepted')
+            ->join('d.folder', 'f')
+            ->join('f.activity', 'a')
+            ->join('a.category', 'cat')
+            ->where('cat.educationalCentre = :centre')
+            ->andWhere('d.activityCycleYear IN (:cycles)')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('cycles', $cycleYears)
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $r): array => [
+            'activityId' => $r['activityId']->toRfc4122(),
+            'cycleYear'  => (int) $r['cycleYear'],
+            'uploadedAt' => $r['uploadedAt'],
+            'accepted'   => (bool) $r['accepted'],
+        ], $rows);
+    }
+
+    /** @return list<int> every cycle year any submission or completion of the centre's activities is stamped with, newest first */
+    public function findActivityCycleYearsByCentre(EducationalCentre $centre): array
+    {
+        /** @var list<int|string> $fromDocuments */
+        $fromDocuments = $this->createQueryBuilder('d')
+            ->select('DISTINCT d.activityCycleYear AS y')
+            ->join('d.folder', 'f')
+            ->join('f.activity', 'a')
+            ->join('a.category', 'cat')
+            ->where('cat.educationalCentre = :centre')
+            ->andWhere('d.activityCycleYear IS NOT NULL')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return array_map(static fn (int|string $y): int => (int) $y, $fromDocuments);
+    }
+
+    /**
      * The documents of an activity's folder stamped with one cycle year, revisions (and their
      * uploaders) already loaded — what ActivitySubmissionSlotBuilder::resolveSlot() indexes to
      * resolve every slot of the activity without a query each. Same order the single-slot lookup

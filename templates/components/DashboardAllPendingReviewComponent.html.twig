@@ -2,11 +2,14 @@
 
 {% if summary.hasAccess %}
 <div class="rounded-2xl border border-gray-200 bg-white shadow-xs">
-    <div class="px-6 py-5 border-b border-gray-100">
+    <div class="flex flex-wrap items-center justify-between gap-2 px-6 py-5 border-b border-gray-100">
         <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900">
             {{ ux_icon('heroicons:document-magnifying-glass', {class: 'h-5 w-5 text-forest-600'}) }}
             {{ 'reviews.all_title'|trans({}, 'dashboard') }}
         </h2>
+        {% if summary.total > 0 %}
+            <a href="{{ path('app_review_queue') }}" class="text-sm font-medium text-forest-600 hover:text-forest-700">{{ 'review_queue.link'|trans({}, 'dashboard') }} →</a>
+        {% endif %}
     </div>
 
     <div class="px-6 py-5 space-y-5">

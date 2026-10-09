@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Activity;
 use App\Entity\ActivityCompletion;
+use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
@@ -79,6 +80,47 @@ class ActivityCompletionRepository extends ServiceEntityRepository
             ->setParameter('activity', $activity->getId(), 'uuid')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Every completion of the centre's activities in the given cycles, as light rows — when each was
+     * made, for the compliance report to tell on time from late without loading entities.
+     *
+     * @param list<int> $cycleYears
+     *
+     * @return list<array{activityId: string, cycleYear: int, completedAt: \DateTimeImmutable}>
+     */
+    public function findDatesByCentreAndCycles(EducationalCentre $centre, array $cycleYears): array
+    {
+        /** @var list<array{activityId: \Symfony\Component\Uid\Uuid, cycleYear: int, completedAt: \DateTimeImmutable}> $rows */
+        $rows = $this->createQueryBuilder('c')
+            ->select('a.id AS activityId', 'c.cycleYear AS cycleYear', 'c.completedAt AS completedAt')
+            ->join('c.activity', 'a')
+            ->join('a.category', 'cat')
+            ->where('cat.educationalCentre = :centre')
+            ->andWhere('c.cycleYear IN (:cycles)')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('cycles', $cycleYears)
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $r): array => ['activityId' => $r['activityId']->toRfc4122(), 'cycleYear' => (int) $r['cycleYear'], 'completedAt' => $r['completedAt']], $rows);
+    }
+
+    /** @return list<int> every cycle year the centre's activities have a completion in */
+    public function findCycleYearsByCentre(EducationalCentre $centre): array
+    {
+        /** @var list<int|string> $years */
+        $years = $this->createQueryBuilder('c')
+            ->select('DISTINCT c.cycleYear AS y')
+            ->join('c.activity', 'a')
+            ->join('a.category', 'cat')
+            ->where('cat.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return array_map(static fn (int|string $y): int => (int) $y, $years);
     }
 
     /** How many owners have completed occurrence $cycleYear of $activity. */

@@ -1,0 +1,48 @@
+{% extends 'pdf/layout.html.twig' %}
+{% import 'reports/pdf/_macros.html.twig' as report %}
+
+{% block content %}
+{{ report.header(pdfTitle, centre, pdfGeneratedAt, cycleLabel ~ (compare is not null ? ' · ' ~ 'compliance.vs'|trans({'%year%': compareLabel}, 'reports') : '')) }}
+
+{% if rows is empty %}
+    <p>{{ 'none'|trans({}, 'reports') }}</p>
+{% else %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{{ 'compliance.col.category'|trans({}, 'reports') }}</th>
+                <th>{{ 'compliance.col.activity'|trans({}, 'reports') }}</th>
+                <th>{{ 'compliance.col.kind'|trans({}, 'reports') }}</th>
+                <th>{{ 'compliance.col.expected'|trans({}, 'reports') }}</th>
+                <th>{{ 'compliance.col.done'|trans({}, 'reports') }}</th>
+                <th>{{ 'compliance.col.percent'|trans({}, 'reports') }}</th>
+                <th>{{ 'compliance.col.on_time'|trans({}, 'reports') }}</th>
+                {% if compare is not null %}
+                    <th>{{ 'compliance.col.compare_percent'|trans({}, 'reports') }} {{ compareLabel }}</th>
+                    <th>{{ 'compliance.col.delta'|trans({}, 'reports') }}</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                {% set pct = row.current.percentage %}
+                <tr>
+                    <td>{{ row.categoryPath }}</td>
+                    <td>{{ row.title }}</td>
+                    <td>{{ (row.withSubmissions ? 'activity_status.kind.submissions' : 'activity_status.kind.manual')|trans({}, 'reports') }}</td>
+                    <td>{{ row.current.expected }}</td>
+                    <td>{{ row.current.done }}</td>
+                    <td><span class="badge {{ pct >= 100 ? 'badge-green' : (pct >= 50 ? 'badge-amber' : 'badge-red') }}">{{ pct }} %</span></td>
+                    <td>{{ row.current.delivered > 0 ? row.current.onTimePercentage ~ ' %' : '—' }}</td>
+                    {% if compare is not null %}
+                        {% set delta = row.delta %}
+                        <td>{{ row.previous.percentage }} %</td>
+                        <td>{{ delta > 0 ? '+' : '' }}{{ delta }} {{ 'compliance.points'|trans({}, 'reports') }}</td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p style="margin-top:8px;font-size:8pt;color:#93826a;">{{ 'compliance.legend'|trans({}, 'reports') }}</p>
+{% endif %}
+{% endblock %}

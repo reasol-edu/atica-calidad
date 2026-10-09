@@ -1,0 +1,108 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'compliance.title'|trans({}, 'reports') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{#
+   Compliance of the activities by academic year (ReportsController::compliance): what was expected,
+   what got done and how much of it in time, for a chosen year and, if asked, the change against another.
+#}
+{% import 'components/_activity_status.html.twig' as status %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="mb-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                {% include 'components/_breadcrumb_home.html.twig' %}
+                <a href="{{ path('app_reports_index', {centreId: centre.id.toRfc4122}) }}" class="transition-colors hover:text-forest-600">{{ 'reports'|trans({}, 'navigation') }}</a>
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ 'compliance.title'|trans({}, 'reports') }}</h1>
+            <p class="mt-1 max-w-3xl text-sm text-gray-500">{{ 'compliance.description'|trans({}, 'reports') }}</p>
+        </div>
+        <div class="flex items-center gap-2">
+            {% set export = {centreId: centre.id.toRfc4122, curso: cycle, comparar: compare ?? 0} %}
+            <a href="{{ path('app_reports_compliance_export', export|merge({_format: 'pdf'})) }}" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-forest-700">
+                {{ ux_icon('heroicons:document-text', {class: 'h-4 w-4'}) }}{{ 'download_pdf'|trans({}, 'reports') }}
+            </a>
+            <a href="{{ path('app_reports_compliance_export', export|merge({_format: 'xlsx'})) }}"
+               class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">
+                {{ ux_icon('heroicons:table-cells', {class: 'h-4 w-4'}) }}{{ 'download_xlsx'|trans({}, 'reports') }}
+            </a>
+        </div>
+    </div>
+
+    <form method="get" class="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
+        <div>
+            <label for="compliance-cycle" class="mb-1 block text-xs font-medium text-gray-500">{{ 'compliance.year'|trans({}, 'reports') }}</label>
+            <select id="compliance-cycle" name="curso" onchange="this.form.submit()"
+                    class="rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                {% for y in available %}<option value="{{ y }}" {{ y == cycle ? 'selected' : '' }}>{{ labels[y] }}</option>{% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="compliance-compare" class="mb-1 block text-xs font-medium text-gray-500">{{ 'compliance.compare'|trans({}, 'reports') }}</label>
+            <select id="compliance-compare" name="comparar" onchange="this.form.submit()"
+                    class="rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                <option value="0" {{ compare is null ? 'selected' : '' }}>{{ 'compliance.no_compare'|trans({}, 'reports') }}</option>
+                {% for y in available|filter(y => y != cycle) %}<option value="{{ y }}" {{ y == compare ? 'selected' : '' }}>{{ labels[y] }}</option>{% endfor %}
+            </select>
+        </div>
+        <noscript><button type="submit" class="rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white">{{ 'compliance.apply'|trans({}, 'reports') }}</button></noscript>
+    </form>
+
+    {% if rows is empty %}
+        <p class="rounded-2xl border border-gray-200 bg-white px-6 py-10 text-center text-sm text-gray-500">{{ 'none'|trans({}, 'reports') }}</p>
+    {% else %}
+        {% set total_expected = rows|reduce((c, r) => c + r.current.expected, 0) %}
+        {% set total_done = rows|reduce((c, r) => c + r.current.done, 0) %}
+        <p class="text-sm text-gray-600">{{ 'compliance.overall'|trans({'%year%': labels[cycle], '%done%': total_done, '%expected%': total_expected, '%percent%': total_expected > 0 ? (total_done / total_expected * 100)|round : 0}, 'reports') }}</p>
+
+        <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-xs">
+            <table class="w-full min-w-[820px] text-sm">
+                <thead class="border-b border-gray-200 bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+                    <tr>
+                        <th class="px-4 py-2.5 font-semibold">{{ 'compliance.col.activity'|trans({}, 'reports') }}</th>
+                        <th class="px-4 py-2.5 font-semibold">{{ 'compliance.col.kind'|trans({}, 'reports') }}</th>
+                        <th class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.expected'|trans({}, 'reports') }}</th>
+                        <th class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.done'|trans({}, 'reports') }}</th>
+                        <th class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.percent'|trans({}, 'reports') }}</th>
+                        <th class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.on_time'|trans({}, 'reports') }}</th>
+                        {% if compare is not null %}
+                            <th class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.compare_percent'|trans({}, 'reports') }} {{ labels[compare] }}</th>
+                            <th class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.delta'|trans({}, 'reports') }}</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for row in rows %}
+                        {% set pct = row.current.percentage %}
+                        <tr>
+                            <td class="px-4 py-3">
+                                <span class="font-medium text-gray-900">{{ row.title }}</span>
+                                <span class="block text-xs text-gray-500">{{ row.categoryPath }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-xs text-gray-600">{{ (row.withSubmissions ? 'activity_status.kind.submissions' : 'activity_status.kind.manual')|trans({}, 'reports') }}</td>
+                            <td class="px-4 py-3 text-right tabular-nums">{{ row.current.expected }}</td>
+                            <td class="px-4 py-3 text-right tabular-nums">{{ row.current.done }}</td>
+                            <td class="px-4 py-3 text-right">
+                                <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums {{ pct >= 100 ? 'bg-forest-50 text-forest-700' : (pct >= 50 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700') }}">{{ pct }} %</span>
+                            </td>
+                            <td class="px-4 py-3 text-right tabular-nums text-gray-700">{{ row.current.delivered > 0 ? row.current.onTimePercentage ~ ' %' : '—' }}</td>
+                            {% if compare is not null %}
+                                {% set delta = row.delta %}
+                                <td class="px-4 py-3 text-right tabular-nums text-gray-700">{{ row.previous.percentage }} %</td>
+                                <td class="px-4 py-3 text-right tabular-nums font-medium {{ delta > 0 ? 'text-forest-700' : (delta < 0 ? 'text-red-600' : 'text-gray-500') }}">
+                                    {{ delta > 0 ? '+' : '' }}{{ delta }} {{ 'compliance.points'|trans({}, 'reports') }}
+                                </td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-xs text-gray-400">{{ 'compliance.legend'|trans({}, 'reports') }}</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -109,6 +109,22 @@ final class ReportsControllerTest extends ControllerTestCase
         yield 'master list'      => ['listado-maestro'];
         yield 'document reviews' => ['revisiones-de-documentos'];
         yield 'activity status'  => ['estado-de-actividades'];
+        yield 'compliance'       => ['cumplimiento-de-actividades'];
+    }
+
+    public function testTheComplianceReportRendersOnScreenWithAYearSelector(): void
+    {
+        $admin = $this->teacher('director');
+        [$centre, $centreId] = $this->centreWithADocument($admin, 'admin');
+        $this->loginAs($admin, $centre);
+
+        $crawler = $this->client->request('GET', "/centro/{$centreId}/informes/cumplimiento-de-actividades?comparar=0");
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('Cumplimiento de las actividades', (string) $this->client->getResponse()->getContent());
+        // A year selector (at least the current one) and a comparison selector set to "Sin comparar".
+        self::assertGreaterThanOrEqual(1, $crawler->filter('select[name=curso] option')->count());
+        self::assertSame('Sin comparar', trim($crawler->filter('select[name=comparar] option[selected]')->text()));
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('reportPathProvider')]

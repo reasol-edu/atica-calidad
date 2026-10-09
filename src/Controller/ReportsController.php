@@ -10,6 +10,7 @@ use App\Entity\Finding;
 use App\Entity\FindingStatus;
 use App\Entity\ImprovementAction;
 use App\Entity\Teacher;
+use App\Model\ActivityComplianceRow;
 use App\Model\ActivityStatusReportRow;
 use App\Model\DocumentMasterListRow;
 use App\Model\ReadAcknowledgementStatus;
@@ -19,6 +20,8 @@ use App\Repository\EducationalCentreRepository;
 use App\Repository\FindingRepository;
 use App\Repository\ImprovementActionRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\ActivityComplianceReportBuilder;
+use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivityStatusReportBuilder;
 use App\Service\DocumentMasterListBuilder;
 use App\Service\DocumentReviewSchedule;
@@ -55,6 +58,7 @@ class ReportsController extends AbstractController
         private readonly EducationalCentreRepository $centres,
         private readonly DocumentMasterListBuilder $masterList,
         private readonly ActivityStatusReportBuilder $activityStatus,
+        private readonly ActivityComplianceReportBuilder $compliance,
         private readonly ReadAcknowledgementService $readAcknowledgements,
         private readonly DocumentRepository $documents,
         private readonly FindingRepository $findingRepository,
@@ -142,6 +146,85 @@ class ReportsController extends AbstractController
             ],
             $rows,
         ));
+    }
+
+    /**
+     * How each activity went in a chosen academic year, against another one if asked
+     * (ActivityComplianceReportBuilder) — on screen, with the same figures as PDF and Excel.
+     */
+    #[Route('/cumplimiento-de-actividades', name: 'app_reports_compliance')]
+    public function compliance(string $centreId, Request $request): Response
+    {
+        $centre = $this->requireCentre($centreId);
+        [$cycle, $compare, $available] = $this->complianceCycles($centre, $request);
+
+        return $this->render('reports/compliance.html.twig', [
+            'centre'    => $centre,
+            'cycle'     => $cycle,
+            'compare'   => $compare,
+            'available' => $available,
+            'labels'    => array_combine($available, array_map(ActivityDeadlineChecker::academicYearLabel(...), $available)),
+            'rows'      => $this->compliance->build($centre, $cycle, $compare),
+        ]);
+    }
+
+    #[Route('/cumplimiento-de-actividades.{_format}', name: 'app_reports_compliance_export', requirements: ['_format' => self::FORMATS])]
+    public function complianceExport(string $centreId, string $_format, Request $request): Response
+    {
+        $centre = $this->requireCentre($centreId);
+        [$cycle, $compare] = $this->complianceCycles($centre, $request);
+        $rows = $this->compliance->build($centre, $cycle, $compare);
+
+        if ($_format === 'pdf') {
+            // Printed on the activity-status letterhead: the PDF templates are configured per report type.
+            return $this->pdfResponse('reports/pdf/activity_compliance.html.twig', 'activity_status', 'compliance', $centre, [
+                'rows'         => $rows,
+                'compare'      => $compare,
+                'cycleLabel'   => ActivityDeadlineChecker::academicYearLabel($cycle),
+                'compareLabel' => $compare === null ? '' : ActivityDeadlineChecker::academicYearLabel($compare),
+            ]);
+        }
+
+        $headers = [$this->t('compliance.col.category'), $this->t('compliance.col.activity'), $this->t('compliance.col.kind'), $this->t('compliance.col.expected'), $this->t('compliance.col.done'), $this->t('compliance.col.percent'), $this->t('compliance.col.on_time')];
+        if ($compare !== null) {
+            array_push($headers, $this->t('compliance.col.compare_percent') . ' ' . ActivityDeadlineChecker::academicYearLabel($compare), $this->t('compliance.col.delta'));
+        }
+
+        return $this->xlsx->createResponse($this->filename('compliance', 'xlsx'), $headers, array_map(
+            fn (ActivityComplianceRow $r): array => array_merge([
+                $r->categoryPath,
+                $r->title,
+                $this->t($r->withSubmissions ? 'activity_status.kind.submissions' : 'activity_status.kind.manual'),
+                $r->current->expected,
+                $r->current->done,
+                $r->current->percentage(),
+                $r->current->onTimePercentage(),
+            ], $compare === null ? [] : [$r->previous?->percentage(), $r->delta()]),
+            $rows,
+        ));
+    }
+
+    /**
+     * The chosen year and the one to compare it with, from ?curso= and ?comparar=: the current one
+     * and the next older one that has something by default, "0" for no comparison.
+     *
+     * @return array{0: int, 1: ?int, 2: list<int>} year, comparison year, every year there is data for
+     */
+    private function complianceCycles(EducationalCentre $centre, Request $request): array
+    {
+        $available = $this->compliance->availableCycles($centre);
+        $asked     = $request->query->getInt('curso');
+        $cycle     = \in_array($asked, $available, true) ? $asked : $this->compliance->currentCycle($centre);
+
+        if ($request->query->has('comparar')) {
+            $compareAsked = $request->query->getInt('comparar');
+            $compare      = $compareAsked !== $cycle && \in_array($compareAsked, $available, true) ? $compareAsked : null;
+        } else {
+            $older   = array_values(array_filter($available, static fn (int $y): bool => $y < $cycle));
+            $compare = $older[0] ?? null;
+        }
+
+        return [$cycle, $compare, $available];
     }
 
     /**
