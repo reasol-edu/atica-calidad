@@ -1,12 +1,13 @@
 {% import 'quality/_macros.html.twig' as q %}
 {% import 'components/_pagination_live.html.twig' as pager %}
-{% set select = 'rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-sm text-gray-900 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
+{% set select = 'w-full sm:w-auto rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-sm text-gray-900 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
 
 <div {{ attributes }} class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
 
     {# ── Filters ──────────────────────────────────────────────────────────── #}
-    <div class="flex flex-wrap items-end gap-3 border-b border-gray-100 bg-gray-50/50 px-4 sm:px-6 py-4">
-        <div class="relative min-w-48 flex-1">
+    {# Two columns on a phone (the search and the section span both) instead of one stacked select per line. #}
+    <div class="grid grid-cols-2 items-end gap-3 border-b border-gray-100 bg-gray-50/50 px-4 sm:flex sm:flex-wrap sm:px-6 py-4">
+        <div class="relative col-span-2 min-w-48 sm:flex-1">
             <label for="findings-query" class="mb-1 block text-xs font-medium text-gray-500">{{ 'list.search'|trans({}, 'quality') }}</label>
             <input id="findings-query" type="search" data-model="debounce(300)|query" value="{{ query }}" placeholder="{{ 'list.search_placeholder'|trans({}, 'quality') }}"
                    class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
@@ -41,7 +42,7 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="max-w-64">
+        <div class="col-span-2 sm:col-span-1 sm:max-w-64">
             <label for="findings-section" class="mb-1 block text-xs font-medium text-gray-500">{{ 'list.section'|trans({}, 'quality') }}</label>
             <select id="findings-section" data-model="section" class="{{ select }} w-full">
                 <option value="">{{ 'list.all'|trans({}, 'quality') }}</option>
@@ -59,7 +60,7 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="flex items-center gap-2 pb-0.5">
+        <div class="col-span-2 flex items-center gap-2 pb-0.5 sm:col-span-1">
             {% if this.hasFilters %}
                 <button type="button" data-action="live#action" data-live-action-param="clearFilters" class="text-xs font-medium text-gray-500 hover:text-gray-700">{{ 'list.clear'|trans({}, 'quality') }}</button>
             {% endif %}

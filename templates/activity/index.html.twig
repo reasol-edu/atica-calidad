@@ -8,17 +8,17 @@
     <h1 class="text-2xl font-bold text-gray-900">{{ 'page_title'|trans({}, 'activity_content') }}</h1>
 
     {# ── Tabs ─────────────────────────────────────────────────────────── #}
-    <nav class="flex gap-6 border-b border-gray-200" aria-label="{{ 'tabs.aria'|trans({}, 'activity_content') }}">
+    <nav class="flex gap-4 overflow-x-auto border-b border-gray-200 sm:gap-6" aria-label="{{ 'tabs.aria'|trans({}, 'activity_content') }}">
         <a href="{{ path('app_activities', {tab: 'mine'}) }}"
            {% if tab == 'mine' %}aria-current="page"{% endif %}
-           class="-mb-px inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors
+           class="-mb-px inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium transition-colors
                   {{ tab == 'mine' ? 'border-forest-600 text-forest-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
             {{ ux_icon('heroicons:clipboard-document-check', {class: 'h-4 w-4'}) }}
             {{ 'tabs.mine'|trans({}, 'activity_content') }}
         </a>
         <a href="{{ path('app_activities', {tab: 'view'}) }}"
            {% if tab == 'view' %}aria-current="page"{% endif %}
-           class="-mb-px inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors
+           class="-mb-px inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium transition-colors
                   {{ tab == 'view' ? 'border-forest-600 text-forest-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
             {{ ux_icon('heroicons:eye', {class: 'h-4 w-4'}) }}
             {{ 'tabs.view'|trans({}, 'activity_content') }}
@@ -26,7 +26,7 @@
         {% if canEdit %}
         <a href="{{ path('app_activities', {tab: 'edit'}) }}"
            {% if tab == 'edit' %}aria-current="page"{% endif %}
-           class="-mb-px inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition-colors
+           class="-mb-px inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium transition-colors
                   {{ tab == 'edit' ? 'border-forest-600 text-forest-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
             {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4'}) }}
             {{ 'tabs.edit_categories'|trans({}, 'activity_content') }}
