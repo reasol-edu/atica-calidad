@@ -44,6 +44,7 @@ use App\Service\ActivityObligationFinder;
 use App\Service\ActivitySubmissionProgressCalculator;
 use App\Service\ActivityWindowChecker;
 use App\Service\DocumentFileGarbageCollector;
+use App\Service\FolderProfileSynchronizer;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\ProfileAssignmentRowBuilder;
 use App\Service\TrashService;
@@ -125,8 +126,30 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $formEndMonth = '';
 
-    #[LiveProp(writable: true)]
+    #[LiveProp(writable: true, onUpdated: 'onFormFolderIdChanged')]
     public string $formFolderId = '';
+
+    /**
+     * The picked folder's own profile lists, editable from the form (saved onto the folder with the
+     * activity): who manages it, who is asked to upload, who sees it, who reviews. ProfileAssignmentRow
+     * keys; loaded from the folder whenever it is picked — see loadFolderProfileKeys().
+     *
+     * @var string[]
+     */
+    #[LiveProp(writable: true)]
+    public array $formFolderResponsibleKeys = [];
+
+    /** @var string[] */
+    #[LiveProp(writable: true)]
+    public array $formFolderUploadKeys = [];
+
+    /** @var string[] */
+    #[LiveProp(writable: true)]
+    public array $formFolderVisibilityKeys = [];
+
+    /** @var string[] */
+    #[LiveProp(writable: true)]
+    public array $formFolderReviewKeys = [];
 
     /** Whether the inline "create a new folder" panel is open, in place of picking an existing one. */
     #[LiveProp(writable: true)]
@@ -281,6 +304,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly ActivityObligationFinder $obligations,
         private readonly ActivitySubmissionProgressCalculator $progress,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
+        private readonly FolderProfileSynchronizer $folderProfiles,
         private readonly TrashService $trash,
     ) {}
 
@@ -618,6 +642,20 @@ class ActivityBrowserComponent extends AbstractController
         return $seeded;
     }
 
+    /** LiveProp(onUpdated:) hook for $formFolderId: the form now shows the newly picked folder's profiles. */
+    public function onFormFolderIdChanged(): void
+    {
+        $this->loadFolderProfileKeys($this->formFolderId === '' ? null : $this->resolveAvailableFolder($this->formFolderId));
+    }
+
+    private function loadFolderProfileKeys(?Folder $folder): void
+    {
+        $this->formFolderResponsibleKeys = $folder === null ? [] : $this->folderProfiles->keysFor($folder->getResponsibleProfiles());
+        $this->formFolderUploadKeys      = $folder === null ? [] : $this->folderProfiles->keysFor($folder->getUploadProfiles());
+        $this->formFolderVisibilityKeys  = $folder === null ? [] : $this->folderProfiles->keysFor($folder->getVisibilityProfiles());
+        $this->formFolderReviewKeys      = $folder === null ? [] : $this->folderProfiles->keysFor($folder->getReviewProfiles());
+    }
+
     /** LiveProp(onUpdated:) hook for $formListItemId — see seedOverrideArraysForCurrentListItem(). */
     public function onFormListItemIdChanged(): void
     {
@@ -765,6 +803,7 @@ class ActivityBrowserComponent extends AbstractController
         $this->formEndDay      = '';
         $this->formEndMonth    = '';
         $this->formFolderId    = '';
+        $this->loadFolderProfileKeys(null);
         $this->creatingFolder       = false;
         $this->newFolderName       = '';
         $this->newFolderSectionId  = '';
@@ -808,6 +847,7 @@ class ActivityBrowserComponent extends AbstractController
         $this->formEndDay       = (string) $activity->getEndDay();
         $this->formEndMonth     = (string) $activity->getEndMonth();
         $this->formFolderId     = $activity->getFolder()?->getId()->toRfc4122() ?? '';
+        $this->loadFolderProfileKeys($activity->getFolder());
         $this->creatingFolder      = false;
         $this->newFolderName      = '';
         $this->newFolderSectionId = '';
@@ -899,6 +939,7 @@ class ActivityBrowserComponent extends AbstractController
         // Immediately picked as the activity's own folder — getAvailableFolders() already
         // includes it (its activity is still null), so the picker just renders it selected.
         $this->formFolderId   = $folder->getId()->toRfc4122();
+        $this->loadFolderProfileKeys($folder);
         $this->creatingFolder = false;
         $this->errors         = [];
     }
@@ -1056,6 +1097,18 @@ class ActivityBrowserComponent extends AbstractController
             if ($document !== null) {
                 $activity->addRelatedDocument($document);
             }
+        }
+
+        // The folder's own profile lists, as edited in the form (rows not on offer are ignored).
+        if ($folder !== null) {
+            $this->folderProfiles->syncAll(
+                $folder,
+                $this->formFolderResponsibleKeys,
+                $this->formFolderUploadKeys,
+                $this->formFolderVisibilityKeys,
+                $this->formFolderReviewKeys,
+                $rowsByKey,
+            );
         }
 
         $this->em->flush();

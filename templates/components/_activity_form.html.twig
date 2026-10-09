@@ -126,7 +126,7 @@
                     <select data-controller="tom-select"
                             data-tom-select-placeholder-value="{{ 'activity.field.folder_picker_placeholder'|trans({}, 'admin') }}"
                             data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
-                            data-model="norender|formFolderId" class="w-full text-sm ts-local">
+                            data-model="formFolderId" class="w-full text-sm ts-local">
                         <option value="">{{ 'activity.field.folder_none'|trans({}, 'admin') }}</option>
                         {% for folder in this.getAvailableFolders %}
                             <option value="{{ folder.id.toRfc4122 }}" {{ folder.id.toRfc4122 == formFolderId ? 'selected' : '' }}>{{ this.getFolderLabel(folder) }}</option>
@@ -271,11 +271,10 @@
                 </div>
             </div>
 
+            {# With a folder, who is asked and who manages it come from the folder's own profiles, edited in the block below. #}
+            {% if formFolderId == '' %}
             <div class="sm:col-span-2">
                 <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.visibility'|trans({}, 'admin') }}</span>
-                {% if formFolderId != '' %}
-                    <p class="text-xs italic text-gray-400">{{ 'activity.field.visibility_disabled_hint'|trans({}, 'admin') }}</p>
-                {% else %}
                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <twig:Form:RadioCard name="activity_visibility" value="1"
                             label="{{ 'activity.field.visibility_general'|trans({}, 'admin') }}"
@@ -299,14 +298,10 @@
                         <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.visibility_profiles_help'|trans({}, 'admin') }}</p>
                         {% if errors.profiles is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.profiles }}</p>{% endif %}
                     {% endif %}
-                {% endif %}
             </div>
 
             <div class="sm:col-span-2">
                 <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.responsible_profiles'|trans({}, 'admin') }}</span>
-                {% if formFolderId != '' %}
-                    <p class="text-xs italic text-gray-400">{{ 'activity.field.responsible_profiles_disabled_hint'|trans({}, 'admin') }}</p>
-                {% else %}
                     <select multiple data-controller="tom-select"
                             data-tom-select-placeholder-value="{{ 'activity.field.responsible_profiles_placeholder'|trans({}, 'admin') }}"
                             data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
@@ -317,8 +312,36 @@
                         {% endfor %}
                     </select>
                     <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.responsible_profiles_help'|trans({}, 'admin') }}</p>
-                {% endif %}
             </div>
+            {% else %}
+            {# ── The folder's own profiles, edited here and saved onto the folder with the activity ── #}
+            <div class="space-y-3 rounded-xl border border-gray-200 bg-gray-50/50 p-4 sm:col-span-2">
+                <div>
+                    <span class="block text-xs font-semibold text-gray-700">{{ 'activity.field.folder_profiles'|trans({}, 'admin') }}</span>
+                    <p class="mt-0.5 text-xs text-gray-400">{{ 'activity.field.folder_profiles_help'|trans({}, 'admin') }}</p>
+                </div>
+                {% for entry in [
+                    {list: 'Upload',      label: 'folder.field.upload_profiles',      help: 'activity.field.folder_upload_help',      selected: formFolderUploadKeys},
+                    {list: 'Responsible', label: 'folder.field.responsible_profiles', help: 'activity.field.folder_responsible_help', selected: formFolderResponsibleKeys},
+                    {list: 'Review',      label: 'folder.field.review_profiles',      help: 'activity.field.folder_review_help',      selected: formFolderReviewKeys},
+                    {list: 'Visibility',  label: 'folder.field.visibility_profiles',  help: 'activity.field.folder_visibility_help',  selected: formFolderVisibilityKeys},
+                ] %}
+                    <div>
+                        <span class="mb-1 block text-xs font-medium text-gray-600">{{ entry.label|trans({}, 'admin') }}</span>
+                        <select multiple data-controller="tom-select"
+                                data-tom-select-placeholder-value="{{ 'folder.profiles.picker_placeholder'|trans({}, 'admin') }}"
+                                data-tom-select-no-results-value="{{ 'folder.profiles.picker_no_results'|trans({}, 'admin') }}"
+                                data-model="norender|formFolder{{ entry.list }}Keys" class="w-full text-sm ts-local">
+                            {% for row in this.getAvailableProfileRows %}
+                                <option value="{{ row.key }}" {{ row.key in entry.selected ? 'selected' : '' }}
+                                        data-always-visible="{{ row.listItem is null and row.profile.listItem is not null ? '1' : '' }}">{{ row.displayName }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="mt-1 text-xs text-gray-400">{{ entry.help|trans({}, 'admin') }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+            {% endif %}
 
             <div class="sm:col-span-2">
                 <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.auto_complete'|trans({}, 'admin') }}</span>

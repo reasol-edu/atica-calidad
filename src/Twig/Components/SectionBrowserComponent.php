@@ -10,10 +10,6 @@ use App\Entity\DocumentRevision;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
-use App\Entity\FolderResponsibleProfile;
-use App\Entity\FolderReviewProfile;
-use App\Entity\FolderUploadProfile;
-use App\Entity\FolderVisibilityProfile;
 use App\Entity\Teacher;
 use App\Entity\DocumentReadAcknowledgement;
 use App\Model\ProfileAssignmentRow;
@@ -28,6 +24,7 @@ use App\Security\Voter\FolderVoter;
 use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivityFolderCycleFilter;
 use App\Service\DocumentFileGarbageCollector;
+use App\Service\FolderProfileSynchronizer;
 use App\Service\TrashService;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\ProfileAssignmentRowBuilder;
@@ -208,6 +205,7 @@ class SectionBrowserComponent extends AbstractController
         private readonly DocumentRevisionRepository $revisions,
         private readonly DocumentTreeAccessChecker $access,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
+        private readonly FolderProfileSynchronizer $folderProfiles,
         private readonly DocumentFileGarbageCollector $garbageCollector,
         private readonly TrashService $trash,
         private readonly TeacherRepository $teachers,
@@ -684,27 +682,12 @@ class SectionBrowserComponent extends AbstractController
     private function openFolderSettings(Folder $folder): void
     {
         $this->folderSettingsPanelId  = $folder->getId()->toRfc4122();
-        $this->responsibleProfileKeys = $this->keysFor($folder->getResponsibleProfiles());
-        $this->uploadProfileKeys      = $this->keysFor($folder->getUploadProfiles());
-        $this->visibilityProfileKeys  = $this->keysFor($folder->getVisibilityProfiles());
-        $this->reviewProfileKeys      = $this->keysFor($folder->getReviewProfiles());
+        $this->responsibleProfileKeys = $this->folderProfiles->keysFor($folder->getResponsibleProfiles());
+        $this->uploadProfileKeys      = $this->folderProfiles->keysFor($folder->getUploadProfiles());
+        $this->visibilityProfileKeys  = $this->folderProfiles->keysFor($folder->getVisibilityProfiles());
+        $this->reviewProfileKeys      = $this->folderProfiles->keysFor($folder->getReviewProfiles());
         $this->allowedFormatKeys      = array_map(static fn (AllowedFileFormat $f): string => $f->value, $folder->getAllowedFormats());
         $this->editDescriptionValue   = $folder->getDescription() ?? '';
-    }
-
-    /**
-     * @param iterable<FolderResponsibleProfile|FolderUploadProfile|FolderVisibilityProfile|FolderReviewProfile> $restrictions
-     *
-     * @return string[]
-     */
-    private function keysFor(iterable $restrictions): array
-    {
-        $keys = [];
-        foreach ($restrictions as $restriction) {
-            $keys[] = ProfileAssignmentRow::keyFor($restriction->getSpecificProfile(), $restriction->getListItem());
-        }
-
-        return $keys;
     }
 
     #[LiveAction]
@@ -838,10 +821,7 @@ class SectionBrowserComponent extends AbstractController
             $rowsByKey[$row->key()] = $row;
         }
 
-        $this->syncResponsibleProfiles($folder, $this->responsibleProfileKeys, $rowsByKey);
-        $this->syncUploadProfiles($folder, $this->uploadProfileKeys, $rowsByKey);
-        $this->syncVisibilityProfiles($folder, $this->visibilityProfileKeys, $rowsByKey);
-        $this->syncReviewProfiles($folder, $this->reviewProfileKeys, $rowsByKey);
+        $this->folderProfiles->syncAll($folder, $this->responsibleProfileKeys, $this->uploadProfileKeys, $this->visibilityProfileKeys, $this->reviewProfileKeys, $rowsByKey);
         // tryFrom(), not from(): allowedFormatKeys comes straight from client checkbox values —
         // an unrecognised one (stale/tampered request) is silently dropped rather than a 500,
         // same defensive stance as the profile-key lookups above.
@@ -855,86 +835,6 @@ class SectionBrowserComponent extends AbstractController
 
         $this->em->flush();
         $this->flashSuccess($this->t('folder.flash.profiles_saved'));
-    }
-
-    /**
-     * @param string[]                        $keys
-     * @param array<string, ProfileAssignmentRow> $rowsByKey
-     */
-    private function syncResponsibleProfiles(Folder $folder, array $keys, array $rowsByKey): void
-    {
-        foreach (iterator_to_array($folder->getResponsibleProfiles()) as $restriction) {
-            $key = ProfileAssignmentRow::keyFor($restriction->getSpecificProfile(), $restriction->getListItem());
-            if (!in_array($key, $keys, true)) {
-                $folder->removeResponsibleProfile($restriction);
-            }
-        }
-        foreach ($keys as $key) {
-            $row = $rowsByKey[$key] ?? null;
-            if ($row !== null && !$folder->hasResponsibleProfile($row->profile, $row->listItem)) {
-                $folder->addResponsibleProfile($row->profile, $row->listItem);
-            }
-        }
-    }
-
-    /**
-     * @param string[]                        $keys
-     * @param array<string, ProfileAssignmentRow> $rowsByKey
-     */
-    private function syncUploadProfiles(Folder $folder, array $keys, array $rowsByKey): void
-    {
-        foreach (iterator_to_array($folder->getUploadProfiles()) as $restriction) {
-            $key = ProfileAssignmentRow::keyFor($restriction->getSpecificProfile(), $restriction->getListItem());
-            if (!in_array($key, $keys, true)) {
-                $folder->removeUploadProfile($restriction);
-            }
-        }
-        foreach ($keys as $key) {
-            $row = $rowsByKey[$key] ?? null;
-            if ($row !== null && !$folder->hasUploadProfile($row->profile, $row->listItem)) {
-                $folder->addUploadProfile($row->profile, $row->listItem);
-            }
-        }
-    }
-
-    /**
-     * @param string[]                        $keys
-     * @param array<string, ProfileAssignmentRow> $rowsByKey
-     */
-    private function syncVisibilityProfiles(Folder $folder, array $keys, array $rowsByKey): void
-    {
-        foreach (iterator_to_array($folder->getVisibilityProfiles()) as $restriction) {
-            $key = ProfileAssignmentRow::keyFor($restriction->getSpecificProfile(), $restriction->getListItem());
-            if (!in_array($key, $keys, true)) {
-                $folder->removeVisibilityProfile($restriction);
-            }
-        }
-        foreach ($keys as $key) {
-            $row = $rowsByKey[$key] ?? null;
-            if ($row !== null && !$folder->hasVisibilityProfile($row->profile, $row->listItem)) {
-                $folder->addVisibilityProfile($row->profile, $row->listItem);
-            }
-        }
-    }
-
-    /**
-     * @param string[]                        $keys
-     * @param array<string, ProfileAssignmentRow> $rowsByKey
-     */
-    private function syncReviewProfiles(Folder $folder, array $keys, array $rowsByKey): void
-    {
-        foreach (iterator_to_array($folder->getReviewProfiles()) as $restriction) {
-            $key = ProfileAssignmentRow::keyFor($restriction->getSpecificProfile(), $restriction->getListItem());
-            if (!in_array($key, $keys, true)) {
-                $folder->removeReviewProfile($restriction);
-            }
-        }
-        foreach ($keys as $key) {
-            $row = $rowsByKey[$key] ?? null;
-            if ($row !== null && !$folder->hasReviewProfile($row->profile, $row->listItem)) {
-                $folder->addReviewProfile($row->profile, $row->listItem);
-            }
-        }
     }
 
     // ── Documents ────────────────────────────────────────────────────────────

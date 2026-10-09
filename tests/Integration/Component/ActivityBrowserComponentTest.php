@@ -649,6 +649,69 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertArrayHasKey('dates', $instance->errors);
     }
 
+    // ── Editing the folder's profiles from the activity form ────────────────
+
+    public function testPickingAFolderLoadsItsProfilesIntoTheForm(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $a        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil A');
+        $b        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil B');
+        $folder->addUploadProfile($a)->addResponsibleProfile($b);
+        $admin = $this->admin();
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $a, $b, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component->call('startAddActivity')->set('formFolderId', $folder->getId()->toRfc4122());
+
+        /** @var ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertSame([$a->getId()->toRfc4122()], $instance->formFolderUploadKeys);
+        self::assertSame([$b->getId()->toRfc4122()], $instance->formFolderResponsibleKeys);
+        self::assertSame([], $instance->formFolderReviewKeys);
+
+        $component->set('formFolderId', '');
+        self::assertSame([], $component->component()->formFolderUploadKeys);
+    }
+
+    public function testSavingAnActivityRewritesItsFolderProfiles(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $a        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil A');
+        $b        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil B');
+        $folder->addUploadProfile($a);
+        $admin = $this->admin();
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $a, $b, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component
+            ->call('startAddActivity')
+            ->set('formTitle', 'Memoria')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formFolderId', $folder->getId()->toRfc4122())
+            ->set('formFolderUploadKeys', [$b->getId()->toRfc4122()])
+            ->set('formFolderReviewKeys', [$a->getId()->toRfc4122()])
+            ->call('saveActivity');
+
+        $this->em->clear();
+        $reloaded = $this->em->find(Folder::class, $folder->getId());
+        self::assertNotNull($reloaded);
+        self::assertSame(['Perfil B'], array_map(static fn ($r) => $r->getSpecificProfile()->getName(), $reloaded->getUploadProfiles()->toArray()));
+        self::assertSame(['Perfil A'], array_map(static fn ($r) => $r->getSpecificProfile()->getName(), $reloaded->getReviewProfiles()->toArray()));
+    }
+
     // ── Creating a folder inline from the activity form ─────────────────────
 
     public function testCreateFolderForActivityCreatesAndSelectsANewFolder(): void
