@@ -42,10 +42,6 @@
 <div class="px-6 py-8 max-w-5xl mx-auto space-y-6">
 
     <div>
-        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
-            {% include 'components/_breadcrumb_home.html.twig' %}
-            <span aria-current="page" class="text-gray-700 font-medium">{{ 'trash'|trans({}, 'navigation') }}</span>
-        </div>
         <h1 class="text-2xl font-bold text-gray-900">{{ 'trash'|trans({}, 'navigation') }}</h1>
         <p class="mt-1 text-sm text-gray-500">
             {{ (retentionDays > 0 ? 'trash.intro' : 'trash.intro_no_purge')|trans({'%count%': retentionDays}, 'admin') }}

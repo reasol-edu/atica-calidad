@@ -19,6 +19,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 
+- Las cabeceras de las páginas principales (Mejora continua, Informes, Utilidades y Papelera) ya no
+  repiten el título en una ruta de navegación, así que el título queda a la misma altura que en
+  Inicio, Actividades, Calendario y el resto. En «Mi perfil» y «Ajustes» se quita el «Inicio»
+  repetido de la ruta.
 - Los nombres de carpeta y de categoría de las tarjetas del árbol documental y de «Actividades › Ver»
   ocupan hasta dos líneas antes de cortarse y muestran el nombre completo al pasar el ratón.
 - La cola de revisión se abre en «Todas las del centro» cuando quien la mira puede verlas todas, no
