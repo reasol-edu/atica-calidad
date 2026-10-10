@@ -7,6 +7,18 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.14.2] - 2026-10-10
+
+### Added
+
+- En la pestaña «Docentes» de «Asignar perfiles» se pueden marcar varios docentes (o todos los que
+  coinciden con el filtro) y asignarles de una vez un perfil o subperfil.
+
+### Changed
+
+- En la pestaña «Docentes» de «Asignar perfiles», el botón «Mostrar todos» pasa a llamarse
+  «Mostrar inactivos».
+
 ## [1.14.1] - 2026-10-10
 
 ### Fixed
