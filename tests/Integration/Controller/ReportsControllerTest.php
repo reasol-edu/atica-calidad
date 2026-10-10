@@ -110,6 +110,19 @@ final class ReportsControllerTest extends ControllerTestCase
         yield 'document reviews' => ['revisiones-de-documentos'];
         yield 'activity status'  => ['estado-de-actividades'];
         yield 'compliance'       => ['cumplimiento-de-actividades'];
+        yield 'profile assignments' => ['perfiles-asignados'];
+    }
+
+    public function testTheProfileAssignmentsCardLinksToAssignProfiles(): void
+    {
+        $admin = $this->teacher('director');
+        [$centre, $centreId] = $this->centreWithADocument($admin, 'admin');
+        $this->loginAs($admin, $centre);
+
+        $crawler = $this->client->request('GET', "/centro/{$centreId}/informes");
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertCount(1, $crawler->filter("a[href='/centro/{$centreId}/responsabilidades/asignar-perfiles']"));
     }
 
     public function testTheComplianceReportRendersOnScreenWithAYearSelector(): void

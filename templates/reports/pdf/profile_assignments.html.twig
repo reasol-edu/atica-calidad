@@ -1,0 +1,40 @@
+{% extends 'pdf/layout.html.twig' %}
+{% import 'reports/pdf/_macros.html.twig' as report %}
+
+{# rows: list<ProfileAssignmentRow>, by profile then subprofile; teachers by last name then first name #}
+{% block content %}
+{{ report.header(pdfTitle, centre, pdfGeneratedAt, 'profile_assignments.summary'|trans({'%count%': rows|length}, 'reports')) }}
+
+{% if rows is empty %}
+    <p>{{ 'none'|trans({}, 'reports') }}</p>
+{% else %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{{ 'profile_assignments.col.profile'|trans({}, 'reports') }}</th>
+                <th>{{ 'profile_assignments.col.subprofile'|trans({}, 'reports') }}</th>
+                <th>{{ 'profile_assignments.col.status'|trans({}, 'reports') }}</th>
+                <th>{{ 'profile_assignments.col.teachers'|trans({}, 'reports') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>{{ row.profile.name }}</td>
+                    <td>{{ row.listItem ? row.listItem.name : '—' }}</td>
+                    <td>
+                        <span class="badge {{ row.active ? 'badge-green' : 'badge-gray' }}">{{ (row.active ? 'profile_assignments.status.active' : 'profile_assignments.status.inactive')|trans({}, 'reports') }}</span>
+                    </td>
+                    <td>
+                        {%- for teacher in row.teachers -%}
+                            {{ teacher.name.lastName }}, {{ teacher.name.firstName }}{% if not loop.last %}; {% endif %}
+                        {%- else -%}
+                            —
+                        {%- endfor -%}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

@@ -13,6 +13,7 @@ use App\Entity\Teacher;
 use App\Model\ActivityComplianceRow;
 use App\Model\ActivityStatusReportRow;
 use App\Model\DocumentMasterListRow;
+use App\Model\ProfileAssignmentRow;
 use App\Model\ReadAcknowledgementStatus;
 use App\Repository\AcademicYearRepository;
 use App\Repository\DocumentRepository;
@@ -27,6 +28,7 @@ use App\Service\DocumentMasterListBuilder;
 use App\Service\DocumentReviewSchedule;
 use App\Service\IndicatorBoardBuilder;
 use App\Service\PdfRenderer;
+use App\Service\ProfileAssignmentRowBuilder;
 use App\Service\ReadAcknowledgementService;
 use App\Service\XlsxExporter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -44,6 +46,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * - documents whose review is overdue or coming up (DocumentMasterListBuilder::reviewsDue());
  * - how every activity stands this academic year (ActivityStatusReportBuilder);
  * - who has read the documents that require it (ReadAcknowledgementService);
+ * - every profile/subprofile and the teachers assigned to it (ProfileAssignmentRowBuilder);
  * - the nonconformity log, each year's improvement plan and its indicators board ("Mejora continua").
  *
  * For the centre's admins, quality managers and internal auditors (EducationalCentreVoter::REPORTS),
@@ -60,6 +63,7 @@ class ReportsController extends AbstractController
         private readonly ActivityStatusReportBuilder $activityStatus,
         private readonly ActivityComplianceReportBuilder $compliance,
         private readonly ReadAcknowledgementService $readAcknowledgements,
+        private readonly ProfileAssignmentRowBuilder $assignmentRowBuilder,
         private readonly DocumentRepository $documents,
         private readonly FindingRepository $findingRepository,
         private readonly ImprovementActionRepository $actionRepository,
@@ -84,7 +88,8 @@ class ReportsController extends AbstractController
             'reviewsDueCount' => \count($reviewsDue),
             'reviewsOverdue'  => \count(array_filter($reviewsDue, static fn (DocumentMasterListRow $r): bool => $r->reviewState === DocumentReviewSchedule::OVERDUE)),
             'activityCount'   => \count($this->activityStatus->build($centre)),
-            'readAckCount'    => \count($this->documents->findRequiringReadAcknowledgementByCentre($centre)),
+            'profileCount'    => \count($this->assignmentRowBuilder->buildAllRows($centre)),
+            'readAckCount'    =>\count($this->documents->findRequiringReadAcknowledgementByCentre($centre)),
             'findingCounts'   => $this->findingRepository->countByStatus($centre),
             'planActions'     => $centre->getActiveAcademicYear() === null ? [] : $this->actionRepository->findPlan($centre, $centre->getActiveAcademicYear()),
             'indicatorGroups' => $centre->getActiveAcademicYear() === null ? [] : $this->indicatorBoard->board($centre, $centre->getActiveAcademicYear()),
@@ -262,6 +267,49 @@ class ReportsController extends AbstractController
     }
 
     /**
+     * Every profile and subprofile of the centre with the teachers assigned to it
+     * (ProfileAssignmentRowBuilder, the same rows as Responsabilidades > Asignar perfiles).
+     */
+    #[Route('/perfiles-asignados.{_format}', name: 'app_reports_profile_assignments', requirements: ['_format' => self::FORMATS])]
+    public function profileAssignments(string $centreId, string $_format): Response
+    {
+        $centre = $this->requireCentre($centreId);
+        $rows   = $this->profileAssignmentRows($centre);
+
+        if ($_format === 'pdf') {
+            return $this->pdfResponse('reports/pdf/profile_assignments.html.twig', 'profile_assignments', 'profile_assignments', $centre, ['rows' => $rows]);
+        }
+
+        $headers = array_map(fn (string $key): string => $this->t('profile_assignments.col.' . $key), ['profile', 'subprofile', 'status', 'count', 'teachers']);
+
+        return $this->xlsx->createResponse($this->filename('profile_assignments', 'xlsx'), $headers, array_map(
+            fn (ProfileAssignmentRow $r): array => [
+                $r->profile->getName(),
+                $r->listItem?->getName(),
+                $this->t($r->active ? 'profile_assignments.status.active' : 'profile_assignments.status.inactive'),
+                \count($r->teachers),
+                implode('; ', array_map(static fn (Teacher $t): string => $t->getName()->getLastName() . ', ' . $t->getName()->getFirstName(), $r->teachers)),
+            ],
+            $rows,
+        ));
+    }
+
+    /**
+     * Profiles and subprofiles alphabetically by profile, then by subprofile (teachers are already
+     * sorted by last name, then first name, by the builder).
+     *
+     * @return list<ProfileAssignmentRow>
+     */
+    private function profileAssignmentRows(EducationalCentre $centre): array
+    {
+        $rows = $this->assignmentRowBuilder->buildAllRows($centre);
+        usort($rows, static fn (ProfileAssignmentRow $a, ProfileAssignmentRow $b): int => [mb_strtolower($a->profile->getName()), mb_strtolower($a->listItem?->getName() ?? '')]
+            <=> [mb_strtolower($b->profile->getName()), mb_strtolower($b->listItem?->getName() ?? '')]);
+
+        return $rows;
+    }
+
+    /**
      * Every finding of the centre but the discarded ones, most recent first: kind, process,
      * status, dates, actions and effectiveness — the nonconformity log an audit asks for.
      */
@@ -404,7 +452,7 @@ class ReportsController extends AbstractController
     }
 
     /**
-     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings'|'improvement_plan'|'indicators' $reportType
+     * @param 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'profile_assignments'|'findings'|'improvement_plan'|'indicators' $reportType
      * @param array<string, mixed>                                                                $context
      */
     private function pdfResponse(string $template, string $reportType, string $key, EducationalCentre $centre, array $context): Response

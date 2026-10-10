@@ -8,6 +8,7 @@ use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use App\Entity\SpecificProfileAssignment;
+use App\Entity\Teacher;
 use App\Model\ProfileAssignmentRow;
 use App\Repository\ListItemRepository;
 use App\Repository\SpecificProfileAssignmentRepository;
@@ -77,6 +78,13 @@ final class ProfileAssignmentRowBuilder implements ResetInterface
             $key                   = ProfileAssignmentRow::keyFor($assignment->getSpecificProfile(), $assignment->getListItem());
             $teachersByKey[$key][] = $assignment->getTeacher();
         }
+
+        // Each row's teachers alphabetically by last name, then first name.
+        foreach ($teachersByKey as &$teachers) {
+            usort($teachers, static fn (Teacher $a, Teacher $b): int => [mb_strtolower($a->getName()->getLastName()), mb_strtolower($a->getName()->getFirstName())]
+                <=> [mb_strtolower($b->getName()->getLastName()), mb_strtolower($b->getName()->getFirstName())]);
+        }
+        unset($teachers);
 
         $rows = [];
         foreach ($this->profilesForCentre($centre) as $profile) {

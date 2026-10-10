@@ -36,6 +36,25 @@ final class ProfileAssignmentRowBuilderTest extends RepositoryTestCase
         return (new Teacher(new PersonName('Nombre', $username)))->setUsername($username);
     }
 
+    public function testBuildAllRowsListsTeachersByLastNameThenFirstName(): void
+    {
+        $centre  = $this->centre();
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $zeta    = (new Teacher(new PersonName('Ana', 'Zapata')))->setUsername('zeta');
+        $lopezB  = (new Teacher(new PersonName('Luis', 'lopez')))->setUsername('lopez_luis');
+        $lopezA  = (new Teacher(new PersonName('Ana', 'López')))->setUsername('lopez_ana');
+        $this->persist($centre, $profile, $zeta, $lopezB, $lopezA);
+        $profile->addAssignment($zeta);
+        $profile->addAssignment($lopezB);
+        $profile->addAssignment($lopezA);
+        $this->em->flush();
+
+        $rows = $this->rowBuilder->buildAllRows($centre);
+
+        $usernames = array_map(static fn (Teacher $t): ?string => $t->getUsername(), $rows[0]->teachers);
+        self::assertSame(['lopez_luis', 'lopez_ana', 'zeta'], $usernames);
+    }
+
     public function testBuildAllRowsProducesOneRowPerPlainProfile(): void
     {
         $centre  = $this->centre();

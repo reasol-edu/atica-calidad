@@ -18,7 +18,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
 
 /**
- * @phpstan-type ReportType 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'findings'|'improvement_plan'|'indicators'|'audit_program'|'audit_report'|'management_review'|'printable_calendar'
+ * @phpstan-type ReportType 'document_master_list'|'document_reviews'|'activity_status'|'read_acknowledgements'|'profile_assignments'|'findings'|'improvement_plan'|'indicators'|'audit_program'|'audit_report'|'management_review'|'printable_calendar'
  */
 class PdfRenderer
 {

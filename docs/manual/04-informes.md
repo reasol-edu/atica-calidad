@@ -84,3 +84,13 @@ en el orden del árbol: la versión en vigor, cuántos docentes la han leído de
 y **quiénes faltan**. En Excel incluye además el porcentaje leído. Sirve para demostrar en una
 auditoría que la política de calidad o un protocolo se han difundido, y para saber a quién
 recordárselo.
+
+## Perfiles y docentes asignados {#perfiles-y-docentes-asignados}
+
+Todos los [perfiles y subperfiles](06-responsabilidades.md#asignar-perfiles) del centro, por orden
+alfabético (perfil y, a igualdad, subperfil), con los **docentes asignados** a cada uno por orden de
+apellidos y nombre y si el perfil o subperfil está *Activo* o *Inactivo*. En Excel incluye además
+cuántos docentes tiene cada uno. Sirve para demostrar en una auditoría quién desempeña cada
+responsabilidad. La tarjeta del informe tiene un botón **Asignar perfiles** que lleva a
+[Responsabilidades → Asignar perfiles](06-responsabilidades.md#asignar-perfiles), donde se
+corrigen las asignaciones (lo ven quienes pueden gestionarlas).
