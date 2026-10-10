@@ -256,13 +256,13 @@
             {# User actions #}
             <div class="space-y-0.5">
                 <a href="{{ path('app_profile') }}"
-                   class="group flex items-center gap-2.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors
+                   class="group flex items-center gap-2.5 rounded-md px-2 py-2.5 text-xs font-medium transition-colors lg:py-1.5
                           {{ current_route starts with 'app_profile' ? 'bg-forest-800 text-white' : 'text-forest-100 hover:bg-forest-900 hover:text-white' }}">
                     {{ ux_icon('heroicons:user', {class: 'h-4 w-4 shrink-0'}) }}
                     {{ 'profile'|trans({}, 'navigation') }}
                 </a>
                 <a href="{{ path('app_logout', {'_csrf_token': csrf_token('logout')}) }}"
-                   class="group flex items-center gap-2.5 rounded-md px-2 py-1.5 text-xs font-medium
+                   class="group flex items-center gap-2.5 rounded-md px-2 py-2.5 text-xs font-medium lg:py-1.5
                           text-forest-100 hover:bg-red-500/15 hover:text-red-300 transition-colors">
                     {{ ux_icon('heroicons:arrow-right-on-rectangle', {class: 'h-4 w-4 shrink-0'}) }}
                     {{ 'logout'|trans({}, 'navigation') }}
@@ -280,7 +280,7 @@
             <button type="button"
                     data-action="sidebar#toggle"
                     aria-label="{{ 'menu'|trans({}, 'navigation') }}"
-                    class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors lg:hidden">
+                    class="-ml-2 flex h-11 w-11 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors lg:hidden">
                 {{ ux_icon('heroicons:bars-3', {class: 'h-5 w-5'}) }}
             </button>
             <a href="{{ path('app_dashboard') }}" class="text-sm font-semibold text-forest-900 lg:hidden">{{ app_name }}</a>
@@ -297,7 +297,7 @@
                     </button>
                     <button type="button"
                             data-action="command-palette#open"
-                            class="sm:hidden rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                            class="flex h-11 w-11 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 sm:hidden"
                             aria-label="{{ 'open'|trans({}, 'search') }}">
                         {{ ux_icon('heroicons:magnifying-glass', {class: 'h-4 w-4'}) }}
                     </button>

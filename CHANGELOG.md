@@ -12,6 +12,9 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - En móvil, los títulos de las actividades y tareas (inicio, «Mis actividades», campana y Mejora
   continua) ocupan hasta dos líneas en lugar de cortarse, y la fecha de vencimiento ya no queda
   oculta.
+- En móvil, los botones que se pulsaban con dificultad (marcar hecha, subir, menú, búsqueda, campana,
+  mes anterior/siguiente y «Hoy» del calendario, filtros de «Mis actividades» y enlaces del pie del
+  menú) miden al menos 44 píxeles. En escritorio no cambian.
 
 ## [1.15.1] - 2026-10-10
 

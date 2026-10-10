@@ -6,7 +6,7 @@
     {# ── Navigation ───────────────────────────────────────────────────────── #}
     <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
         <button data-action="live#action" data-live-action-param="previousMonth"
-                class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition-colors"
+                class="flex h-11 w-11 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors sm:h-auto sm:w-auto sm:p-1.5"
                 aria-label="{{ 'prev_month'|trans({}, 'calendar') }}">
             {{ ux_icon('heroicons:chevron-left', {class: 'h-4 w-4'}) }}
         </button>
@@ -14,12 +14,12 @@
             {{ this.monthLabel }}
         </h2>
         <button data-action="live#action" data-live-action-param="nextMonth"
-                class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 transition-colors"
+                class="flex h-11 w-11 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors sm:h-auto sm:w-auto sm:p-1.5"
                 aria-label="{{ 'next_month'|trans({}, 'calendar') }}">
             {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
         </button>
         <button data-action="live#action" data-live-action-param="goToday"
-                class="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                class="rounded-lg border border-gray-200 px-3 py-3.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors sm:px-2.5 sm:py-1">
             {{ 'today'|trans({}, 'calendar') }}
         </button>
     </div>

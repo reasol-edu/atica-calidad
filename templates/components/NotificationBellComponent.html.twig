@@ -5,7 +5,7 @@
     <button type="button"
             data-action="dropdown#toggle"
             aria-label="{{ 'bell.aria'|trans({}, 'notifications') }}"
-            class="relative rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors">
+            class="relative flex h-11 w-11 items-center justify-center rounded-lg text-gray-500 sm:h-auto sm:w-auto sm:p-1.5 hover:bg-gray-100 hover:text-gray-700 transition-colors">
         {{ ux_icon('heroicons:bell', {class: 'h-5 w-5'}) }}
         {% if this.total > 0 %}
             <span class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full
