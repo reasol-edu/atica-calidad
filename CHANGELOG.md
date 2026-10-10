@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.12.1] - 2026-10-10
+
 ### Added
 
 - **Suscripción al calendario**: cada docente puede suscribir Google Calendar, Apple Calendar o el
