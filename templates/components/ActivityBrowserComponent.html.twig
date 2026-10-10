@@ -173,7 +173,7 @@
                     <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ category.id.toRfc4122 }}"
                             class="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left hover:border-forest-300 hover:bg-forest-50/40 transition-colors">
                         {{ ux_icon('heroicons:rectangle-group', {class: 'h-5 w-5 shrink-0 text-gray-400'}) }}
-                        <span class="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">{{ category.name }}</span>
+                        <span class="min-w-0 flex-1 line-clamp-2 text-sm font-medium text-gray-800" title="{{ category.name }}">{{ category.name }}</span>
                         {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0 text-gray-300'}) }}
                     </button>
                 {% endfor %}

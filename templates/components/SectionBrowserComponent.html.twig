@@ -161,7 +161,8 @@
                     <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ section.id.toRfc4122 }}"
                             class="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left hover:border-forest-300 hover:bg-forest-50/40 transition-colors">
                         {{ ux_icon('heroicons:rectangle-stack', {class: 'h-5 w-5 text-forest-500 shrink-0'}) }}
-                        <span class="min-w-0 truncate text-sm font-medium text-gray-800">{{ section.name }}</span>
+                        {# Two lines before cutting, and the full name on hover: «4. Contexto de la orga…» told nothing. #}
+                        <span class="min-w-0 line-clamp-2 text-sm font-medium text-gray-800" title="{{ section.name }}">{{ section.name }}</span>
                         {{ ux_icon('heroicons:chevron-right', {class: 'ml-auto h-4 w-4 text-gray-300 shrink-0'}) }}
                     </button>
                 {% endfor %}

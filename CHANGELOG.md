@@ -19,6 +19,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 
+- Los nombres de carpeta y de categoría de las tarjetas del árbol documental y de «Actividades › Ver»
+  ocupan hasta dos líneas antes de cortarse y muestran el nombre completo al pasar el ratón.
 - La cola de revisión se abre en «Todas las del centro» cuando quien la mira puede verlas todas, no
   tiene ninguna revisión propia y sí hay pendientes en el centro. Si vuelve a «Las mías», se le dice
   cuántas hay en el centro, con un botón para verlas.

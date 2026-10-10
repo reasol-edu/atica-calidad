@@ -542,6 +542,24 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         self::assertSame($documentId, $this->stringProp($component, 'highlightedDocumentId'));
     }
 
+    public function testASectionCardKeepsItsFullNameOnHoverAndWrapsInsteadOfCutting(): void
+    {
+        $centre  = $this->centre();
+        $section = $this->section($centre, '9. Evaluación del desempeño y seguimiento de resultados');
+        $teacher = $this->teacher('docente');
+        $this->persist($centre, $section, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', ['centre' => $centre], $this->client);
+        // The cards (in the grid), not the index's own node for the same section.
+        $name = $component->render()->crawler()->filter('div.grid button[data-live-action-param=openLevel] span[title]');
+
+        self::assertCount(1, $name);
+        self::assertSame('9. Evaluación del desempeño y seguimiento de resultados', $name->attr('title'));
+        self::assertStringContainsString('line-clamp-2', (string) $name->attr('class'));
+        self::assertStringNotContainsString('truncate', (string) $name->attr('class'));
+    }
+
     public function testOpenSearchResultAsksTheUrlToCarryTheHighlightedDocument(): void
     {
         $centre   = $this->centre();
