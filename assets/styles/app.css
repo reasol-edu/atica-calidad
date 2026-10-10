@@ -291,21 +291,37 @@ summary:focus-visible {
   100% { transform: rotate(360deg); }
 }
 /* Search-result "you just landed here" marker, applied to a document row when jumped to from the
-   tree-wide search or ⌘K (instead of forcing its revision panel open): fades in to a clearly
-   visible tint plus a solid left accent bar, then stays that way — it's tied to the component's own
+   tree-wide search or ⌘K (instead of forcing its revision panel open): for 5 s the tint beats like a
+   heartbeat (three "lub-dub" double beats between forest-500 at 30% and a faint 8%, with a solid left
+   accent bar from the first beat on), and the last second settles with a smooth transition to a
+   lighter tint (forest-500 at 15%) that it keeps — it's tied to the component's own
    highlightedDocumentId, so it already only goes away once that's no longer the row in question
    (e.g. the viewer opens a different search result); the animation just needs to not undo that by
-   fading itself back out.
-   The tint is a plain rgb() (forest-500 at 30%), NOT color-mix(): Tailwind expands color-mix() into
-   an @supports fallback, which is invalid inside a keyframe block, and the --minify build used in
-   production then drops the whole 100% keyframe — leaving only the transparent 0% one, so the row
-   was never highlighted there. Keep anything @supports-expanded out of this keyframe. */
+   fading itself back out (hence `forwards`).
+   The tints are plain rgb() (forest-500 = 110 140 99), NOT color-mix(): Tailwind expands color-mix()
+   into an @supports fallback, which is invalid inside a keyframe block, and the --minify build used
+   in production then drops that keyframe — leaving only the transparent 0% one, so the row was
+   never highlighted there. Keep anything @supports-expanded out of these keyframes. */
 @keyframes document-highlight-pulse {
   0%   { background-color: transparent; box-shadow: inset 3px 0 0 0 transparent; }
-  100% { background-color: rgb(110 140 99 / 0.3); box-shadow: inset 3px 0 0 0 var(--color-forest-500); }
+  /* Double beats starting at 0, 30 and 60%: up (30%), down (8%), up, down. */
+  5%   { background-color: rgb(110 140 99 / 0.3);  box-shadow: inset 3px 0 0 0 var(--color-forest-500); }
+  12%  { background-color: rgb(110 140 99 / 0.08); }
+  19%  { background-color: rgb(110 140 99 / 0.3); }
+  30%  { background-color: rgb(110 140 99 / 0.08); }
+  35%  { background-color: rgb(110 140 99 / 0.3); }
+  42%  { background-color: rgb(110 140 99 / 0.08); }
+  49%  { background-color: rgb(110 140 99 / 0.3); }
+  60%  { background-color: rgb(110 140 99 / 0.08); }
+  65%  { background-color: rgb(110 140 99 / 0.3); }
+  72%  { background-color: rgb(110 140 99 / 0.08); }
+  79%  { background-color: rgb(110 140 99 / 0.3); }
+  /* Last beat dies down and the tint settles. */
+  90%  { background-color: rgb(110 140 99 / 0.08); }
+  100% { background-color: rgb(110 140 99 / 0.15); box-shadow: inset 3px 0 0 0 var(--color-forest-500); }
 }
 .document-highlight-pulse {
-  animation: document-highlight-pulse 0.6s ease-out 1 forwards;
+  animation: document-highlight-pulse 5s ease-in-out 1 forwards;
 }
 /* An activity hidden from everyone but whoever can edit activities: grey diagonal stripes, so it
    stands out at a glance whatever its status colour would otherwise be. */
