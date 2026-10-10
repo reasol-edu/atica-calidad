@@ -7,6 +7,34 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-10-10
+
+### Fixed
+
+- Al llegar a un documento desde la búsqueda global o la del árbol, la fila no se resaltaba en la
+  versión publicada: el minificado del CSS descartaba el último paso de la animación de resaltado
+  (usaba `color-mix()` dentro del `@keyframes`) y la fila se quedaba transparente. Ahora usa un
+  color fijo y el resaltado se ve.
+- En el árbol documental, al saltar a un documento desde la búsqueda la URL conservaba el
+  parámetro `highlight` de una llegada anterior, de modo que al recargar o volver atrás se intentaba
+  resaltar un documento que no estaba en esa carpeta y no se resaltaba ninguno. Ahora la URL lleva
+  siempre el resaltado vigente.
+- En el PDF del listado maestro de documentos, todas las tablas (una por sección) tienen ahora las
+  mismas anchuras de columna, en vez de ajustarse cada una a su contenido.
+
+### Added
+
+- Nuevo informe «Perfiles y docentes asignados» (PDF y Excel): todos los perfiles y subperfiles del
+  centro con los docentes asignados a cada uno. Su tarjeta incluye un botón «Asignar perfiles» que
+  lleva a Responsabilidades → Asignar perfiles.
+
+### Changed
+
+- En la pestaña «Docentes» de «Asignar perfiles», los perfiles de cada docente se listan por orden
+  alfabético de perfil y, a igualdad, de subperfil.
+- En la pestaña «Perfiles» de «Asignar perfiles», los docentes de cada perfil se listan por orden
+  alfabético de apellidos y, a igualdad, de nombre.
+
 ## [1.14.3] - 2026-10-10
 
 ### Fixed
