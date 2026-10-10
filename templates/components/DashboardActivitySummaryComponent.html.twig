@@ -69,10 +69,11 @@
                                    class="flex min-w-0 flex-1 items-start gap-3 px-6 py-3">
                                     <span class="mt-0.5">{{ activity_status.icon(status) }}</span>
                                     <span class="min-w-0 flex-1">
-                                        <span class="block truncate text-sm font-medium text-gray-900">
+                                        {# Two lines below sm, where a long title used to lose its end and the due date. #}
+                                        <span class="block line-clamp-2 text-sm font-medium text-gray-900 sm:line-clamp-1">
                                             {{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}
                                         </span>
-                                        <span class="block truncate text-xs text-gray-500">
+                                        <span class="block line-clamp-2 text-xs text-gray-500 sm:line-clamp-1">
                                             {{ item.categoryPath }} · {{ activity_status.detail(item) }}
                                         </span>
                                         <span class="mt-1 inline-block sm:hidden">{{ activity_status.pill(status) }}</span>

@@ -7,6 +7,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- En móvil, los títulos de las actividades y tareas (inicio, «Mis actividades», campana y Mejora
+  continua) ocupan hasta dos líneas en lugar de cortarse, y la fecha de vencimiento ya no queda
+  oculta.
+
 ## [1.15.1] - 2026-10-10
 
 ### Changed

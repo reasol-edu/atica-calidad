@@ -7,10 +7,10 @@
        class="flex items-start gap-3 px-4 py-3 transition-colors {{ activity_status.row_bg(status) }} {{ completed ? 'opacity-70' : '' }}">
         <span class="mt-0.5">{{ activity_status.icon(status) }}</span>
         <span class="min-w-0 flex-1">
-            <span class="block truncate text-sm font-medium text-gray-900 {{ completed ? 'line-through decoration-gray-300' : '' }}">
+            <span class="block line-clamp-2 text-sm font-medium text-gray-900 sm:line-clamp-1 {{ completed ? 'line-through decoration-gray-300' : '' }}">
                 {% if nested ?? false %}{{ item.ownerLabel ?? item.activity.title }}{% else %}{{ item.activity.title }}{{ item.ownerLabel ? ' · ' ~ item.ownerLabel : '' }}{% endif %}
             </span>
-            <span class="block truncate text-xs text-gray-500">
+            <span class="block line-clamp-2 text-xs text-gray-500 sm:line-clamp-1">
                 {% if not (nested ?? false) %}{{ item.categoryPath }} · {% endif %}{{ activity_status.detail(item) }}
             </span>
             {# Below sm, the pill moves to its own line here instead of sitting shrink-0 at the end

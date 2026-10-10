@@ -64,8 +64,8 @@
            class="flex items-start gap-3 {{ compact ? 'px-6 py-3' : 'px-6 py-3' }} transition-colors {{ bg }}">
             <span class="mt-0.5 shrink-0 {{ task.urgency == 'overdue' ? 'text-red-500' : 'text-forest-600' }}">{{ ux_icon(q.task_icon(task), {class: 'h-5 w-5'}) }}</span>
             <span class="min-w-0 flex-1">
-                <span class="block truncate text-sm font-medium text-gray-900">{{ ('task.' ~ task.type)|trans({}, 'quality') }}: {{ task.label }}</span>
-                <span class="block truncate text-xs text-gray-500">
+                <span class="block line-clamp-2 text-sm font-medium text-gray-900 sm:line-clamp-1">{{ ('task.' ~ task.type)|trans({}, 'quality') }}: {{ task.label }}</span>
+                <span class="block line-clamp-2 text-xs text-gray-500 sm:line-clamp-1">
                     {{ q.task_context(task) }}
                     {%- if task.dueDate %} · {{ ('task.due.' ~ task.urgency)|trans({'%date%': task.dueDate|date('d/m/Y')}, 'quality') }}{% endif %}
                 </span>
