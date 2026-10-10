@@ -16,6 +16,9 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 
+- La cola de revisión se abre en «Todas las del centro» cuando quien la mira puede verlas todas, no
+  tiene ninguna revisión propia y sí hay pendientes en el centro. Si vuelve a «Las mías», se le dice
+  cuántas hay en el centro, con un botón para verlas.
 - En móvil, los títulos de las actividades y tareas (inicio, «Mis actividades», campana y Mejora
   continua) ocupan hasta dos líneas en lugar de cortarse, y la fecha de vencimiento ya no queda
   oculta.

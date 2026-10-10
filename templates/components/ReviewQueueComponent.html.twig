@@ -21,6 +21,14 @@
         <div class="rounded-2xl border border-forest-100 bg-forest-50 px-4 py-10 text-center">
             {{ ux_icon('heroicons:check-badge', {class: 'mx-auto mb-2 h-8 w-8 text-forest-400'}) }}
             <p class="text-sm font-medium text-forest-700">{{ (scope == 'all' and this.canSeeAll ? 'reviews.all_empty' : 'reviews.empty')|trans({}, 'dashboard') }}</p>
+            {% if scope == 'mine' and this.othersCount > 0 %}
+                {# Their own queue is empty but the centre's isn't: say so, with the way to it. #}
+                <p class="mt-2 text-xs text-forest-600">{{ 'review_queue.others_hint'|trans({'%count%': this.othersCount}, 'dashboard') }}</p>
+                <button type="button" data-action="live#action" data-live-action-param="setScope" data-live-scope-param="all"
+                        class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-forest-200 bg-white px-3 py-1.5 text-xs font-medium text-forest-700 transition-colors hover:bg-forest-50">
+                    {{ 'review_queue.others_show'|trans({}, 'dashboard') }}
+                </button>
+            {% endif %}
         </div>
     {% else %}
         <p class="text-sm text-gray-600">{{ 'review_queue.count'|trans({'%count%': items|length}, 'dashboard') }}</p>

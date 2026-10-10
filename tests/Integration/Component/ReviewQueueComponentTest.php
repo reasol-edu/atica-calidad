@@ -81,6 +81,50 @@ final class ReviewQueueComponentTest extends ControllerTestCase
         self::assertSame(3, $items[0]->daysToDeadline);
     }
 
+    public function testAManagerWithNothingOfTheirOwnOpensOnTheCentresQueue(): void
+    {
+        [$centre] = $this->scenario();
+        $manager  = (new Teacher(new PersonName('Ges', 'gestor')))->setUsername('gestor')->setAdmin(true);
+        $this->persist($manager);
+        $this->loginAs($manager, $centre);
+
+        $component = $this->createLiveComponent('ReviewQueueComponent', ['centre' => $centre], $this->client);
+        $component->render();
+        /** @var \App\Twig\Components\ReviewQueueComponent $instance */
+        $instance = $component->component();
+
+        self::assertSame('all', $instance->scope, 'their own queue is empty, the centre has three pending');
+        self::assertCount(3, $instance->getItems());
+    }
+
+    public function testBackOnTheirOwnEmptyQueueTheyAreToldHowManyThereAreInTheCentre(): void
+    {
+        [$centre] = $this->scenario();
+        $manager  = (new Teacher(new PersonName('Ges', 'gestor')))->setUsername('gestor')->setAdmin(true);
+        $this->persist($manager);
+        $this->loginAs($manager, $centre);
+
+        $component = $this->createLiveComponent('ReviewQueueComponent', ['centre' => $centre], $this->client);
+        $component->call('setScope', ['scope' => 'mine']);
+        $html = $component->render()->crawler()->html();
+
+        self::assertStringContainsString('Hay 3 revisiones pendientes en el centro', $html);
+        self::assertStringContainsString('Ver las del centro', $html);
+    }
+
+    public function testAReviewerWithPendingWorkOfTheirOwnStaysOnTheirQueue(): void
+    {
+        [$centre, $reviewer] = $this->scenario();
+        $this->loginAs($reviewer, $centre);
+
+        $component = $this->createLiveComponent('ReviewQueueComponent', ['centre' => $centre], $this->client);
+        $component->render();
+        /** @var \App\Twig\Components\ReviewQueueComponent $instance */
+        $instance = $component->component();
+
+        self::assertSame('mine', $instance->scope);
+    }
+
     public function testApprovingInOneClickActivatesTheRevision(): void
     {
         [$centre, $reviewer, $revisions] = $this->scenario();

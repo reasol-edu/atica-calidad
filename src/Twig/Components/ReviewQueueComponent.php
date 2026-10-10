@@ -59,9 +59,24 @@ class ReviewQueueComponent extends AbstractController
         private readonly RejectionReasonProvider $reasonProvider,
     ) {}
 
+    /**
+     * Opens on the centre's whole queue when whoever may see it has nothing of their own to review
+     * but others do: "Las mías" saying "¡Todo revisado!" while the dashboard counts pending reviews
+     * read as a contradiction.
+     */
     public function mount(EducationalCentre $centre): void
     {
         $this->centre = $centre;
+
+        if ($this->canSeeAll() && $this->queue->build($this->teacher(), $centre, false) === [] && $this->getOthersCount() > 0) {
+            $this->scope = 'all';
+        }
+    }
+
+    /** How many reviews are pending in the whole centre, for someone who may see them all and is looking at their own queue. */
+    public function getOthersCount(): int
+    {
+        return $this->canSeeAll() ? \count($this->queue->build($this->teacher(), $this->centre, true)) : 0;
     }
 
     public function canSeeAll(): bool
