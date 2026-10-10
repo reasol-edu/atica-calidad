@@ -7,6 +7,17 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-10-10
+
+### Added
+
+- **Historial de cambios de una actividad**: desde su menú ⋮, quién la creó, duplicó o modificó y
+  cuándo, con cada ajuste que cambió y su valor anterior y nuevo.
+- **Edición en bloque de actividades**: mover varias a otra categoría, ocultarlas o mostrarlas,
+  cambiar su plazo general o marcarlas como obligatorias u opcionales, con una vista previa de lo que
+  cambiaría en cada una antes de aplicar. Cada cambio queda en el historial. Requiere ejecutar las
+  migraciones.
+
 ## [1.13.0] - 2026-10-10
 
 ### Added
