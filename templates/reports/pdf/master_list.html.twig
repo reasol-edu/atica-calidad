@@ -13,17 +13,17 @@
         {% if row.sectionPath != current %}
             {% if current is not null %}</tbody></table>{% endif %}
             <div class="subsection-title">{{ row.sectionPath }}</div>
-            <table class="data-table">
+            <table class="data-table fixed-columns">
                 <thead>
                     <tr>
-                        <th>{{ 'master_list.col.folder'|trans({}, 'reports') }}</th>
-                        <th>{{ 'master_list.col.document'|trans({}, 'reports') }}</th>
-                        <th>{{ 'master_list.col.version'|trans({}, 'reports') }}</th>
-                        <th>{{ 'master_list.col.version_date'|trans({}, 'reports') }}</th>
-                        <th>{{ 'master_list.col.status'|trans({}, 'reports') }}</th>
-                        <th>{{ 'master_list.col.uploaded_by'|trans({}, 'reports') }}</th>
-                        <th>{{ 'master_list.col.responsibles'|trans({}, 'reports') }}</th>
-                        <th>{{ 'master_list.col.next_review'|trans({}, 'reports') }}</th>
+                        <th style="width:14%">{{ 'master_list.col.folder'|trans({}, 'reports') }}</th>
+                        <th style="width:20%">{{ 'master_list.col.document'|trans({}, 'reports') }}</th>
+                        <th style="width:7%">{{ 'master_list.col.version'|trans({}, 'reports') }}</th>
+                        <th style="width:9%">{{ 'master_list.col.version_date'|trans({}, 'reports') }}</th>
+                        <th style="width:14%">{{ 'master_list.col.status'|trans({}, 'reports') }}</th>
+                        <th style="width:13%">{{ 'master_list.col.uploaded_by'|trans({}, 'reports') }}</th>
+                        <th style="width:14%">{{ 'master_list.col.responsibles'|trans({}, 'reports') }}</th>
+                        <th style="width:9%">{{ 'master_list.col.next_review'|trans({}, 'reports') }}</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -75,6 +75,15 @@
         margin-bottom: 10px;
         font-size: 8pt;
     }
+    /* Same column widths in every table of a report (widths set on the <th>s), instead of each
+       table sizing its columns to its own content. */
+    table.data-table.fixed-columns {
+        table-layout: fixed;
+    }
+    table.data-table.fixed-columns td {
+        overflow: hidden;
+        word-wrap: break-word;
+    }
     table.data-table thead {
         display: table-header-group;
     }
