@@ -112,7 +112,7 @@ class Activity implements Trashable
      * for a folder-backed activity, whose ownership already comes from the folder's own upload
      * profiles (see ActivityCompletionChecker::isApplicableToTeacher()).
      */
-    #[ORM\Column]
+    #[ORM\Column(options: ['default' => true])]
     private bool $general = true;
 
     /**

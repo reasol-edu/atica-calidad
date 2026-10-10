@@ -70,23 +70,23 @@ class PrintableCalendar
     #[ORM\Column(length: 7, nullable: true)]
     private ?string $weekendColor = null;
 
-    #[ORM\Column(enumType: PrintableCalendarOrientation::class)]
+    #[ORM\Column(enumType: PrintableCalendarOrientation::class, options: ['default' => 'portrait'])]
     private PrintableCalendarOrientation $orientation = PrintableCalendarOrientation::Portrait;
 
     /** Percentage (50-200) applied to the orientation's default font sizes — see PrintableCalendarPdfBuilder. */
-    #[ORM\Column]
+    #[ORM\Column(options: ['default' => 100])]
     private int $fontSizeScale = 100;
 
     /** Whether the PDF's running page header (title, centre) is shown, or skipped for more room. */
-    #[ORM\Column]
+    #[ORM\Column(options: ['default' => true])]
     private bool $showHeader = true;
 
     /** Whether the PDF's running page footer (generated-on, page number) is shown, or skipped for more room. */
-    #[ORM\Column]
+    #[ORM\Column(options: ['default' => true])]
     private bool $showFooter = true;
 
     /** Whether each day cell shows its assigned hours (e.g. "8h"), or just the day number. */
-    #[ORM\Column]
+    #[ORM\Column(options: ['default' => true])]
     private bool $showHours = true;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
