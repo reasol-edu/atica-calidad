@@ -75,6 +75,13 @@ class SpecificProfileAssignmentsComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $pickerSearch = '';
 
+    /** @var list<string> ids of the teachers ticked for the bulk assignment */
+    #[LiveProp(writable: true)]
+    public array $markedTeacherIds = [];
+
+    #[LiveProp(writable: true)]
+    public string $bulkSearch = '';
+
     /** @var ProfileAssignmentRow[]|null */
     private ?array $rowsCache = null;
 
@@ -489,6 +496,100 @@ class SpecificProfileAssignmentsComponent extends AbstractController
         $this->rowsCache = null;
         $this->rowBuilder->invalidate();
         $this->flashSuccess($this->t('responsibilities.assignments.flash.teacher_removed'));
+    }
+
+    // ── Tab "Docentes": bulk assignment ─────────────────────────────────────
+
+    /**
+     * The ticked teachers that can still receive assignments (in the active year), in list order.
+     * Ids that no longer match (teacher left the year, tampered value) are ignored.
+     *
+     * @return Teacher[]
+     */
+    public function getMarkedTeachers(): array
+    {
+        if ($this->markedTeacherIds === []) {
+            return [];
+        }
+
+        $marked   = array_flip($this->markedTeacherIds);
+        $teachers = [];
+        foreach ($this->getAllTeacherEntries() as $entry) {
+            if ($entry['inActiveYear'] && isset($marked[$entry['teacher']->getId()->toRfc4122()])) {
+                $teachers[] = $entry['teacher'];
+            }
+        }
+
+        return $teachers;
+    }
+
+    /** @return ProfileAssignmentRow[] active rows matching the bulk picker's search */
+    public function getBulkAssignableRows(): array
+    {
+        $search = mb_strtolower(trim($this->bulkSearch));
+
+        return array_values(array_filter($this->getAllRows(), static function (ProfileAssignmentRow $row) use ($search): bool {
+            return $row->active && ($search === '' || str_contains(mb_strtolower($row->displayName), $search));
+        }));
+    }
+
+    /** Ticks every active-year teacher matching the current search (all pages). */
+    #[LiveAction]
+    public function markAllFilteredTeachers(): void
+    {
+        $search = mb_strtolower(trim($this->teacherSearch));
+        $ids    = array_flip($this->markedTeacherIds);
+        foreach ($this->getAllTeacherEntries() as $entry) {
+            if (!$entry['inActiveYear']) {
+                continue;
+            }
+            $matches = $search === '' || str_contains($this->searchableTeacherName($entry['teacher']), $search);
+            foreach ($entry['rows'] as $row) {
+                $matches = $matches || str_contains(mb_strtolower($row->displayName), $search);
+            }
+            if ($matches) {
+                $ids[$entry['teacher']->getId()->toRfc4122()] = true;
+            }
+        }
+        $this->markedTeacherIds = array_map(strval(...), array_keys($ids));
+    }
+
+    #[LiveAction]
+    public function clearMarkedTeachers(): void
+    {
+        $this->markedTeacherIds = [];
+        $this->bulkSearch       = '';
+    }
+
+    #[LiveAction]
+    public function assignRowToMarkedTeachers(#[LiveArg] string $rowKey): void
+    {
+        $this->requireWritableCentre();
+        $row      = $this->findRowByKey($rowKey);
+        $teachers = $this->getMarkedTeachers();
+        if ($row === null || !$row->active || $teachers === []) {
+            return;
+        }
+
+        $added = 0;
+        foreach ($teachers as $teacher) {
+            if ($row->profile->hasAssignment($teacher, $row->listItem)) {
+                continue;
+            }
+            $row->profile->addAssignment($teacher, $row->listItem);
+            $added++;
+        }
+        $this->em->flush();
+        $this->rowsCache        = null;
+        $this->rowBuilder->invalidate();
+        $this->markedTeacherIds = [];
+        $this->bulkSearch       = '';
+        $key = $added === count($teachers) ? 'bulk_assigned' : 'bulk_assigned_skipped';
+        $this->flashSuccess($this->translator->trans('responsibilities.assignments.flash.' . $key, [
+            '%count%'   => $added,
+            '%skipped%' => count($teachers) - $added,
+            '%profile%' => $row->displayName,
+        ], 'admin'));
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

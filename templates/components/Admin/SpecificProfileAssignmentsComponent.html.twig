@@ -236,7 +236,57 @@
                         {{ ux_icon('heroicons:eye-slash', {class: 'h-3.5 w-3.5'}) }}
                         {{ 'responsibilities.assignments.teachers.show_all'|trans({}, 'admin') }}
                     </button>
+                    {% if can_write %}
+                        <button type="button" data-action="live#action" data-live-action-param="markAllFilteredTeachers"
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0">
+                            {{ ux_icon('heroicons:check-circle', {class: 'h-3.5 w-3.5'}) }}
+                            {{ 'responsibilities.assignments.teachers.mark_all'|trans({}, 'admin') }}
+                        </button>
+                    {% endif %}
                 </div>
+
+                {# ── Bulk assignment to the ticked teachers ───────────────── #}
+                {% set marked = can_write ? this.markedTeachers : [] %}
+                {% if marked is not empty %}
+                    <div class="overflow-hidden rounded-xl border border-forest-200 bg-white">
+                        <div class="flex items-center gap-2 bg-forest-50 px-4 py-2.5 border-b border-forest-100">
+                            {{ ux_icon('heroicons:user-plus', {class: 'h-4 w-4 text-forest-600'}) }}
+                            <span class="text-xs font-semibold uppercase tracking-wider text-forest-700">
+                                {{ 'responsibilities.assignments.teachers.bulk.title'|trans({'%count%': marked|length}, 'admin') }}
+                            </span>
+                            <button type="button" data-action="live#action" data-live-action-param="clearMarkedTeachers"
+                                    class="ml-auto shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-500 hover:bg-white hover:text-gray-700 transition-colors">
+                                {{ ux_icon('heroicons:x-mark', {class: 'h-3.5 w-3.5'}) }}
+                                {{ 'responsibilities.assignments.teachers.mark_clear'|trans({}, 'admin') }}
+                            </button>
+                        </div>
+                        <div class="px-4 py-4 sm:px-6 space-y-3">
+                            <p class="text-xs text-gray-500">{{ 'responsibilities.assignments.teachers.bulk.help'|trans({}, 'admin') }}</p>
+                            <input type="text" data-model="bulkSearch" value="{{ bulkSearch }}"
+                                   placeholder="{{ 'responsibilities.assignments.teachers.detail.add_placeholder'|trans({}, 'admin') }}"
+                                   class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm
+                                          placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
+                            {% set bulk_rows = this.bulkAssignableRows %}
+                            {% if bulk_rows is empty %}
+                                <p class="text-xs italic text-gray-400">{{ 'responsibilities.assignments.teachers.detail.add_empty'|trans({}, 'admin') }}</p>
+                            {% else %}
+                                <ul class="max-h-56 divide-y divide-gray-100 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+                                    {% for row in bulk_rows %}
+                                        <li class="flex items-center gap-2 px-3 py-1.5 text-sm">
+                                            <span class="flex-1 min-w-0 truncate text-gray-700">{{ row.displayName }}</span>
+                                            <button type="button" data-action="live#action"
+                                                    data-live-action-param="assignRowToMarkedTeachers" data-live-row-key-param="{{ row.key }}"
+                                                    class="shrink-0 inline-flex items-center gap-1 rounded-md bg-forest-600 px-2 py-1 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
+                                                {{ ux_icon('heroicons:plus', {class: 'h-3 w-3'}) }}
+                                                {{ 'responsibilities.assignments.teachers.bulk.assign'|trans({}, 'admin') }}
+                                            </button>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
 
                 {# ── Teachers table ───────────────────────────────────────── #}
                 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
@@ -250,6 +300,7 @@
                             <table class="table-cards w-full text-sm">
                                 <thead class="bg-gray-50 border-b border-gray-200">
                                     <tr>
+                                        {% if can_write %}<th scope="col" class="w-10 pl-6 py-3"><span class="sr-only">{{ 'responsibilities.assignments.teachers.mark_row'|trans({}, 'admin') }}</span></th>{% endif %}
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'responsibilities.assignments.teachers.col.teacher'|trans({}, 'admin') }}</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'responsibilities.assignments.teachers.col.profiles'|trans({}, 'admin') }}</th>
                                         <th scope="col" class="px-6 py-3"></th>
@@ -260,6 +311,16 @@
                                         {% set teacher_id = entry.teacher.id.toRfc4122 %}
                                         {% set is_sel = selectedTeacherId == teacher_id %}
                                         <tr class="{{ is_sel ? 'bg-forest-50/60' : 'hover:bg-gray-50' }} transition-colors {{ not entry.inActiveYear ? 'opacity-60' }}">
+                                            {% if can_write %}
+                                                <td class="w-10 pl-6 py-3">
+                                                    {% if entry.inActiveYear %}
+                                                        <input type="checkbox" data-model="markedTeacherIds[]" value="{{ teacher_id }}"
+                                                               {{ teacher_id in markedTeacherIds ? 'checked' }}
+                                                               aria-label="{{ 'responsibilities.assignments.teachers.mark_row'|trans({}, 'admin')|e('html_attr') }}"
+                                                               class="h-4 w-4 rounded border-gray-300 text-forest-600 focus:ring-forest-500">
+                                                    {% endif %}
+                                                </td>
+                                            {% endif %}
                                             <td data-label="{{ 'responsibilities.assignments.teachers.col.teacher'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-3">
                                                 <button type="button" data-action="live#action" data-live-action-param="selectTeacher" data-live-id-param="{{ teacher_id }}"
                                                         class="text-left font-medium {{ is_sel ? 'text-forest-800' : 'text-gray-800 hover:text-forest-700' }}">

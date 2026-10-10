@@ -195,4 +195,58 @@ final class SpecificProfileAssignmentsComponentTest extends ControllerTestCase
         self::assertNotNull($reloaded);
         self::assertCount(1, $reloaded->getAssignments());
     }
+
+    public function testAssignRowToMarkedTeachersOnlyAssignsTheTickedOnesOfTheActiveYear(): void
+    {
+        [$centre, $year, $admin] = $this->centreWithAdminAndActiveYear();
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $already = $this->teacher('ya');
+        $ticked  = $this->teacher('marcado');
+        $other   = $this->teacher('sin_marcar');
+        $offYear = $this->teacher('otro_curso');
+        foreach ([$already, $ticked, $other] as $t) {
+            $t->addAcademicYear($year);
+        }
+        $this->persist($centre, $year, $admin, $profile, $already, $ticked, $other, $offYear);
+        $profile->addAssignment($already);
+        $this->em->flush();
+        $rowKey = $profile->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:SpecificProfileAssignmentsComponent', ['centre' => $centre], $this->client);
+        $component->call('selectTab', ['tab' => 'teachers']);
+        $component->set('markedTeacherIds', [
+            $already->getId()->toRfc4122(),
+            $ticked->getId()->toRfc4122(),
+            $offYear->getId()->toRfc4122(),
+        ]);
+        $component->call('assignRowToMarkedTeachers', ['rowKey' => $rowKey]);
+
+        $this->em->clear();
+        /** @var \App\Repository\SpecificProfileRepository $profiles */
+        $profiles = self::getContainer()->get(\App\Repository\SpecificProfileRepository::class);
+        $reloaded = $profiles->findByIdAndCentre($rowKey, $centre);
+        self::assertNotNull($reloaded);
+        $usernames = array_map(static fn ($a): ?string => $a->getTeacher()->getUsername(), $reloaded->getAssignments()->toArray());
+        sort($usernames);
+        self::assertSame(['marcado', 'ya'], $usernames);
+        self::assertSame([], $this->props($component)['markedTeacherIds']);
+    }
+
+    public function testMarkAllFilteredTeachersTicksOnlyActiveYearMatches(): void
+    {
+        [$centre, $year, $admin] = $this->centreWithAdminAndActiveYear();
+        $ana  = (new Teacher(new PersonName('Ana', 'Lopez')))->setUsername('ana');
+        $luis = (new Teacher(new PersonName('Luis', 'Perez')))->setUsername('luis');
+        $ana->addAcademicYear($year);
+        $luis->addAcademicYear($year);
+        $this->persist($centre, $year, $admin, $ana, $luis);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:SpecificProfileAssignmentsComponent', ['centre' => $centre], $this->client);
+        $component->set('teacherSearch', 'lopez');
+        $component->call('markAllFilteredTeachers');
+
+        self::assertSame([$ana->getId()->toRfc4122()], $this->props($component)['markedTeacherIds']);
+    }
 }

@@ -233,6 +233,9 @@ ya no están. Tiene dos pestañas:
 - **Docentes** — todos los docentes del curso académico activo (un botón permite ver también los de
   otros cursos, si todavía tienen alguna asignación), con los perfiles que tiene cada uno. Un perfil
   o subperfil inactivo se marca en rojo. Al tocar un docente se abre un panel para añadir o quitar
-  perfiles.
+  perfiles. Para dar el mismo perfil o subperfil a varios docentes a la vez, marca sus casillas (o
+  usa **Marcar todos los docentes del filtro**, que marca a todos los que coinciden con la búsqueda,
+  también en otras páginas), elige el perfil en el panel que aparece y pulsa **Asignar a los
+  marcados**. A quien ya lo tenía no se le repite, y la selección se vacía al terminar.
 
 Ambas pestañas incluyen buscador (por nombre de perfil/subperfil o de docente) y paginación.
