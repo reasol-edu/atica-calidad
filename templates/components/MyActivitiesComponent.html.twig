@@ -5,26 +5,36 @@
        the overdue ones called out inside it rather than as a separate total —, what's waiting for
        someone's approval, what's done and what hasn't opened yet. #}
     {% set overdue_count = this.overdueCount %}
+    {# Each tile is also a filter: pressing it lists only that group, pressing it again lists all. #}
+    {% set tile_class = 'rounded-xl border px-4 py-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-500/40' %}
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div class="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
-            <p class="text-2xl font-bold text-amber-700">{{ this.countInGroup('todo') }}</p>
-            <p class="text-xs font-medium text-amber-600">{{ 'mine.stat.todo'|trans({}, 'activity_content') }}</p>
+        <button type="button" data-action="live#action" data-live-action-param="filterByGroup" data-live-group-param="todo"
+                aria-pressed="{{ statusFilter == 'todo' ? 'true' : 'false' }}"
+                class="{{ tile_class }} border-amber-100 bg-amber-50 hover:border-amber-300 {{ statusFilter == 'todo' ? 'ring-2 ring-amber-400' : '' }}">
+            <span class="block text-2xl font-bold text-amber-700">{{ this.countInGroup('todo') }}</span>
+            <span class="block text-xs font-medium text-amber-600">{{ 'mine.stat.todo'|trans({}, 'activity_content') }}</span>
             {% if overdue_count > 0 %}
-                <p class="mt-0.5 text-xs font-semibold text-red-600">{{ 'mine.stat.overdue_within'|trans({'%count%': overdue_count}, 'activity_content') }}</p>
+                <span class="mt-0.5 block text-xs font-semibold text-red-600">{{ 'mine.stat.overdue_within'|trans({'%count%': overdue_count}, 'activity_content') }}</span>
             {% endif %}
-        </div>
-        <div class="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3">
-            <p class="text-2xl font-bold text-sky-700">{{ this.countInGroup('waiting') }}</p>
-            <p class="text-xs font-medium text-sky-600">{{ 'mine.stat.in_review'|trans({}, 'activity_content') }}</p>
-        </div>
-        <div class="rounded-xl border border-forest-100 bg-forest-50 px-4 py-3">
-            <p class="text-2xl font-bold text-forest-700">{{ this.countInGroup('done') }}</p>
-            <p class="text-xs font-medium text-forest-600">{{ 'mine.stat.completed'|trans({}, 'activity_content') }}</p>
-        </div>
-        <div class="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-            <p class="text-2xl font-bold text-gray-700">{{ this.countInGroup('upcoming') }}</p>
-            <p class="text-xs font-medium text-gray-500">{{ 'mine.stat.upcoming'|trans({}, 'activity_content') }}</p>
-        </div>
+        </button>
+        <button type="button" data-action="live#action" data-live-action-param="filterByGroup" data-live-group-param="waiting"
+                aria-pressed="{{ statusFilter == 'waiting' ? 'true' : 'false' }}"
+                class="{{ tile_class }} border-sky-100 bg-sky-50 hover:border-sky-300 {{ statusFilter == 'waiting' ? 'ring-2 ring-sky-400' : '' }}">
+            <span class="block text-2xl font-bold text-sky-700">{{ this.countInGroup('waiting') }}</span>
+            <span class="block text-xs font-medium text-sky-600">{{ 'mine.stat.in_review'|trans({}, 'activity_content') }}</span>
+        </button>
+        <button type="button" data-action="live#action" data-live-action-param="filterByGroup" data-live-group-param="done"
+                aria-pressed="{{ statusFilter == 'done' ? 'true' : 'false' }}"
+                class="{{ tile_class }} border-forest-100 bg-forest-50 hover:border-forest-300 {{ statusFilter == 'done' ? 'ring-2 ring-forest-400' : '' }}">
+            <span class="block text-2xl font-bold text-forest-700">{{ this.countInGroup('done') }}</span>
+            <span class="block text-xs font-medium text-forest-600">{{ 'mine.stat.completed'|trans({}, 'activity_content') }}</span>
+        </button>
+        <button type="button" data-action="live#action" data-live-action-param="filterByGroup" data-live-group-param="upcoming"
+                aria-pressed="{{ statusFilter == 'upcoming' ? 'true' : 'false' }}"
+                class="{{ tile_class }} border-gray-100 bg-gray-50 hover:border-gray-300 {{ statusFilter == 'upcoming' ? 'ring-2 ring-gray-400' : '' }}">
+            <span class="block text-2xl font-bold text-gray-700">{{ this.countInGroup('upcoming') }}</span>
+            <span class="block text-xs font-medium text-gray-500">{{ 'mine.stat.upcoming'|trans({}, 'activity_content') }}</span>
+        </button>
     </div>
 
     {# ── Filter and sort/group ────────────────────────────────────────── #}

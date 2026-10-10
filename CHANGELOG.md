@@ -9,6 +9,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Added
 
+- En «Mis actividades», las tarjetas de recuento (Por hacer, En revisión, Hechas, Próximamente)
+  filtran la lista al pulsarlas; al volver a pulsar la misma se vuelve a ver todo.
 - Al marcar una actividad como hecha desde el inicio, la tarjeta «Tus próximos pasos» muestra una
   línea con «Deshacer», para recuperar la fila si se pulsó sin querer.
 

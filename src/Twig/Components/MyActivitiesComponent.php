@@ -37,6 +37,14 @@ class MyActivitiesComponent extends AbstractController
 
     private const array GROUP_MODES = ['deadline', 'profile', 'category', 'status'];
 
+    /** The groups the statistic tiles show, i.e. the ones that can be picked as a filter. */
+    private const array FILTERABLE_GROUPS = [
+        ActivityObligationStatus::GROUP_TODO,
+        ActivityObligationStatus::GROUP_WAITING,
+        ActivityObligationStatus::GROUP_DONE,
+        ActivityObligationStatus::GROUP_UPCOMING,
+    ];
+
     private const array STATUS_GROUP_ORDER = [
         ActivityObligationStatus::GROUP_TODO,
         ActivityObligationStatus::GROUP_WAITING,
@@ -57,6 +65,13 @@ class MyActivitiesComponent extends AbstractController
     /** When true, getFilteredItems()/getGroups() keep only what the teacher can act on right now (ActivityObligationStatus::isActionable()). */
     #[LiveProp(writable: true)]
     public bool $onlyPending = false;
+
+    /**
+     * The statistic tile picked as a filter: one of FILTERABLE_GROUPS ("todo", "waiting"…), or ''
+     * for all. Narrower than $onlyPending, so choosing one switches that off (and vice versa).
+     */
+    #[LiveProp(writable: true)]
+    public string $statusFilter = '';
 
     /** @var list<ActivityDashboardItem>|null */
     private ?array $items = null;
@@ -87,6 +102,19 @@ class MyActivitiesComponent extends AbstractController
     public function toggleOnlyPending(): void
     {
         $this->onlyPending = !$this->onlyPending;
+        if ($this->onlyPending) {
+            $this->statusFilter = '';
+        }
+    }
+
+    /** A statistic tile: show only that group, or all again when it is already the one picked. */
+    #[LiveAction]
+    public function filterByGroup(#[LiveArg] string $group): void
+    {
+        $this->statusFilter = $this->statusFilter === $group || !in_array($group, self::FILTERABLE_GROUPS, true) ? '' : $group;
+        if ($this->statusFilter !== '') {
+            $this->onlyPending = false;
+        }
     }
 
     public function getTotal(): int
@@ -117,6 +145,11 @@ class MyActivitiesComponent extends AbstractController
 
         if ($this->onlyPending) {
             $items = array_values(array_filter($items, static fn (ActivityDashboardItem $i): bool => $i->status->isActionable()));
+        }
+
+        // statusFilter is writable, so it can arrive as anything: an unknown value filters nothing.
+        if (in_array($this->statusFilter, self::FILTERABLE_GROUPS, true)) {
+            $items = array_values(array_filter($items, fn (ActivityDashboardItem $i): bool => $i->status->group() === $this->statusFilter));
         }
 
         $query = mb_strtolower(trim($this->searchQuery));

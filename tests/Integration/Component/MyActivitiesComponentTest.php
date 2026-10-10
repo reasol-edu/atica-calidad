@@ -223,6 +223,53 @@ final class MyActivitiesComponentTest extends ControllerTestCase
         self::assertSame(1, $instance->countInGroup('done'));
     }
 
+    public function testAStatTileFiltersTheListAndPressingItAgainClearsIt(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre    = $this->centre();
+        $category  = $this->category($centre);
+        $pending   = $this->activity($category, 'Pendiente')->setStart(1, 10)->setEnd(31, 10);
+        $completed = $this->activity($category, 'Completada')->setStart(1, 9)->setEnd(30, 9);
+        $teacher   = $this->teacher('docente');
+        $this->persist($centre, $category, $pending, $completed, $teacher, new ActivityCompletion($completed, $teacher, null, null, $teacher, $this->cycleKey($completed)));
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('MyActivitiesComponent', ['centre' => $centre], $this->client);
+        $titles    = static fn (MyActivitiesComponent $c): array => array_map(static fn ($i) => $i->activity->getTitle(), $c->getFilteredItems());
+
+        $component->call('filterByGroup', ['group' => 'done']);
+        $html = $component->render()->crawler()->html();
+        /** @var MyActivitiesComponent $instance */
+        $instance = $component->component();
+        self::assertSame(['Completada'], $titles($instance));
+        self::assertStringContainsString('aria-pressed="true"', $html, 'the picked tile shows it is pressed');
+        self::assertSame(1, $instance->countInGroup('todo'), 'the tiles keep counting everything');
+
+        $component->call('filterByGroup', ['group' => 'done']);
+        $component->render();
+        /** @var MyActivitiesComponent $instance */
+        $instance = $component->component();
+        self::assertSame('', $instance->statusFilter);
+        self::assertCount(2, $titles($instance));
+    }
+
+    public function testAnUnknownGroupFiltersNothing(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher('docente');
+        $this->persist($centre, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('MyActivitiesComponent', ['centre' => $centre], $this->client);
+        $component->call('filterByGroup', ['group' => 'closed']);
+        $component->render();
+        /** @var MyActivitiesComponent $instance */
+        $instance = $component->component();
+
+        self::assertSame('', $instance->statusFilter);
+    }
+
     public function testARowThatHasNotOpenedYetShowsWhenItOpens(): void
     {
         self::mockTime('2025-10-05 10:00:00');
