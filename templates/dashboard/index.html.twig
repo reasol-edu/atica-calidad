@@ -20,13 +20,8 @@
                 {% if viewing_past %}
                     {{ 'summary_for'|trans({'%year%': vy.name}, 'dashboard') }}
                 {% else %}
-                    {{ random([
-                        'home_subtitle_1'|trans({}, 'dashboard'),
-                        'home_subtitle_2'|trans({}, 'dashboard'),
-                        'home_subtitle_3'|trans({}, 'dashboard'),
-                        'home_subtitle_4'|trans({}, 'dashboard'),
-                        'home_subtitle_5'|trans({}, 'dashboard'),
-                    ]) }}
+                    {# One of home_subtitle_1 … home_subtitle_15 (dashboard.es.yaml); when adding phrases there, raise the upper bound (DashboardSubtitlesTest checks they match). #}
+                    {{ ('home_subtitle_' ~ random(1, 15))|trans({}, 'dashboard') }}
                 {% endif %}
             </p>
         {% elseif active_year is null %}

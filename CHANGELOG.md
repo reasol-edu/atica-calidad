@@ -7,6 +7,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- El inicio muestra una frase al azar de entre 15 (antes 5), todas en la lista de traducciones del
+  panel (`home_subtitle_1` a `home_subtitle_15`).
+
 ## [1.15.0] - 2026-10-10
 
 ### Fixed
