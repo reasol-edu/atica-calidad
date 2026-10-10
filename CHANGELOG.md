@@ -7,6 +7,15 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.14.1] - 2026-10-10
+
+### Fixed
+
+- La base de datos y el modelo de la aplicación vuelven a coincidir en los valores por defecto del
+  generador de calendarios (orientación, tamaño de letra, cabecera, pie y horas) y de «A todo el
+  profesorado» en las actividades. No cambia nada a la vista y no requiere migraciones; solo evita que
+  la comprobación de esquema (`doctrine:schema:validate`) marque diferencias.
+
 ## [1.14.0] - 2026-10-10
 
 ### Added
