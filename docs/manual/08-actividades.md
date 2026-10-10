@@ -155,6 +155,8 @@ Una actividad eliminada, con sus completados, pasa a la
 | Fecha de inicio / Fecha de fin | Solo **día y mes** (sin año): la actividad se repite automáticamente cada curso académico en esas fechas. Cada fecha se sitúa dentro del curso en vigor según el ajuste [Inicio del curso académico](10-administrar-la-plataforma.md#curso-academico) (15 de septiembre por defecto): una actividad de enero a febrero, consultada en octubre, se refiere a la del próximo enero, no a la del enero ya pasado. |
 | Carpeta | Opcional. Si se elige una, la actividad pasa a tener entregas (ver [Entregas y revisión](#entregas-y-revision)); si se deja vacía, se completa a mano. |
 | Lista para nombrar entregas | Opcional. Un elemento de [Listas](06-responsabilidades.md#listas) (p. ej. «Materia», o una rama concreta): **cada hoja que cuelga de él** —a cualquier profundidad— es una entrega esperada, con nombre igual a su **ruta bajo el elemento elegido** (p. ej. «Ciencias › Física»). Si la carpeta tiene un único perfil de subida, todas las hojas cuentan; si tiene varios, solo cuentan las hojas asociadas (en Listas) a uno de ellos, que además determina a quién le corresponde. |
+| Etiquetas | Opcional. Con etiquetas, la actividad solo pide los elementos de la lista que **tienen todas** (propias o heredadas de sus ramas). |
+| Plazos por elemento | Aparece al elegir una lista: un plazo propio opcional para cada elemento. **Solo se listan los elementos que la actividad pide**, es decir, los que cumplen las etiquetas elegidas arriba: al cambiar las etiquetas la lista se actualiza, y los plazos de los elementos que quedan fuera dejan de aplicarse. |
 | Documentos relacionados | Documentos del árbol documental enlazados como lectura de apoyo, independientes de la carpeta de entregas. |
 | Obligatoria / Opcional | Solo informativo: se muestra como etiqueta, no cambia ningún permiso. |
 | Ámbito de entrega | **Por perfil** (una entrega compartida por todo el que tenga el perfil/subperfil) o **Individual** (cada docente con ese perfil entrega la suya). |
@@ -203,7 +205,8 @@ La página **Revisiones** (`/revisiones`, enlazada desde las tarjetas de revisio
 reúne las entregas pendientes de visto bueno **por orden de urgencia**: primero las de actividades
 cuyo plazo vence en siete días o menos, luego las que llevan esperando siete días o más y después el
 resto. Cada una se puede **aprobar en un clic** o **rechazar** eligiendo un motivo predefinido y, si
-se quiere, añadiendo un texto libre. Quien revisa ve «Las mías»; responsabilidad de calidad y
+se quiere, añadiendo un texto libre. Los motivos los define cada centro en
+[Motivos de rechazo](05-administrar-el-centro.md#motivos-de-rechazo). Quien revisa ve «Las mías»; responsabilidad de calidad y
 administración pueden alternar a «Todas del centro».
 
 ### Revisar varias entregas a la vez {#revisar-varias-entregas}

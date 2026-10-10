@@ -71,10 +71,10 @@
                         <div class="mt-3 space-y-2 rounded-xl border border-red-100 bg-red-50/40 p-3">
                             <p class="text-xs font-medium text-gray-700">{{ 'review_queue.reason'|trans({}, 'dashboard') }}</p>
                             <div class="flex flex-wrap gap-1.5">
-                                {% for key in constant('App\\Twig\\Components\\ReviewQueueComponent::REASONS') %}
-                                    <button type="button" data-action="live#action" data-live-action-param="useReason" data-live-key-param="{{ key }}"
+                                {% for reason in this.reasons %}
+                                    <button type="button" data-action="live#action" data-live-action-param="useReason" data-live-index-param="{{ loop.index0 }}"
                                             class="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600 transition-colors hover:border-forest-300 hover:text-forest-700">
-                                        {{ ('review.reason.' ~ key)|trans({}, 'dashboard') }}
+                                        {{ reason }}
                                     </button>
                                 {% endfor %}
                             </div>

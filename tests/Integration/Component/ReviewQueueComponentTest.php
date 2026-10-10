@@ -110,7 +110,7 @@ final class ReviewQueueComponentTest extends ControllerTestCase
         $this->em->clear();
         self::assertTrue($this->em->find(DocumentRevision::class, $revisions['Reciente']->getId())?->isPendingReview(), 'no reason, no rejection');
 
-        $component->call('useReason', ['key' => 'incomplete']);
+        $component->call('useReason', ['index' => 1]);
         $component->call('confirmReject');
 
         $this->em->clear();
@@ -119,6 +119,29 @@ final class ReviewQueueComponentTest extends ControllerTestCase
         self::assertFalse($reloaded->isPendingReview());
         self::assertNull($reloaded->getDocument()->getActiveRevision());
         self::assertStringContainsString('incompleto', (string) $reloaded->getReviewResult());
+    }
+
+    public function testTheCentresOwnReasonsReplaceTheStandardOnes(): void
+    {
+        [$centre, $reviewer, $revisions] = $this->scenario();
+        $this->persist(new \App\Entity\RejectionReason($centre, 'Falta el sello del centro', 0));
+        $this->loginAs($reviewer, $centre);
+        $id = $revisions['Reciente']->getId()->toRfc4122();
+
+        $component = $this->createLiveComponent('ReviewQueueComponent', ['centre' => $centre], $this->client);
+        $component->call('startReject', ['id' => $id]);
+        /** @var \App\Twig\Components\ReviewQueueComponent $instance */
+        $instance = $component->component();
+        self::assertSame(['Falta el sello del centro'], $instance->getReasons());
+
+        $component->call('useReason', ['index' => 0]);
+        $component->call('useReason', ['index' => 5]); // out of range: ignored
+        $component->call('confirmReject');
+
+        $this->em->clear();
+        $reloaded = $this->em->find(DocumentRevision::class, $revisions['Reciente']->getId());
+        self::assertNotNull($reloaded);
+        self::assertSame('Falta el sello del centro', $reloaded->getReviewResult());
     }
 
     public function testSomeoneWhoDoesNotReviewTheFolderCannotApproveIt(): void

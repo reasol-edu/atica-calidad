@@ -11,6 +11,7 @@ use App\Model\ReviewQueueItem;
 use App\Repository\DocumentRevisionRepository;
 use App\Security\Voter\FolderVoter;
 use App\Service\DocumentRevisionReviewer;
+use App\Service\RejectionReasonProvider;
 use App\Service\ReviewQueueBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -32,9 +33,6 @@ class ReviewQueueComponent extends AbstractController
 {
     use ComponentToolsTrait;
     use DefaultActionTrait;
-
-    /** Ready-made rejection reasons (translated under review.reason.*), picked with one click. */
-    public const array REASONS = ['format', 'incomplete', 'wrong_version', 'unsigned', 'unreadable', 'not_applicable'];
 
     #[LiveProp]
     public EducationalCentre $centre;
@@ -58,6 +56,7 @@ class ReviewQueueComponent extends AbstractController
         private readonly DocumentRevisionRepository $revisions,
         private readonly DocumentRevisionReviewer $reviewer,
         private readonly TranslatorInterface $translator,
+        private readonly RejectionReasonProvider $reasonProvider,
     ) {}
 
     public function mount(EducationalCentre $centre): void
@@ -107,15 +106,25 @@ class ReviewQueueComponent extends AbstractController
         $this->closeRejection();
     }
 
-    /** Fills the rejection comment with one of the ready-made reasons (added after what's typed already). */
-    #[LiveAction]
-    public function useReason(#[LiveArg] string $key): void
+    /**
+     * The centre's ready-made rejection reasons (its own, or the standard set), picked with one click.
+     *
+     * @return list<string>
+     */
+    public function getReasons(): array
     {
-        if (!\in_array($key, self::REASONS, true)) {
+        return $this->reasonProvider->forCentre($this->centre);
+    }
+
+    /** Fills the rejection comment with one of the ready-made reasons, by its place in the list (added after what's typed already). */
+    #[LiveAction]
+    public function useReason(#[LiveArg] int $index): void
+    {
+        $text = $this->getReasons()[$index] ?? null;
+        if ($text === null) {
             return;
         }
 
-        $text               = $this->translator->trans('review.reason.' . $key, [], 'dashboard');
         $this->rejectReason = trim($this->rejectReason) === '' ? $text : rtrim($this->rejectReason, " \n.") . '. ' . $text;
     }
 

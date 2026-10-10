@@ -135,5 +135,15 @@ await page.waitForTimeout(500);
 await hideToolbar();
 await page.screenshot({ path: `${outDir}/registro-actividad.png` });
 
+// ── 6. Rejection reasons of the centre ───────────────────────────────────────
+await login('direccion');
+await page.goto(`${baseUrl}/`);
+await page.waitForLoadState('networkidle');
+const centreHref = await page.locator('a[href^="/centro/"]').first().getAttribute('href');
+await page.goto(`${baseUrl}${centreHref}/motivos-de-rechazo`);
+await page.waitForLoadState('networkidle');
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/centro-motivos-rechazo.png` });
+
 await browser.close();
 console.log('Capturas guardadas en', outDir);

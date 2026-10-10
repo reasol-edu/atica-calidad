@@ -1,0 +1,48 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'rejection_reason.title'|trans({}, 'admin') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-2xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_centre_index', {centreId: centre.id}) }}" class="hover:text-forest-600 transition-colors">
+                {{ 'educational_centre'|trans({}, 'navigation') }}
+            </a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'rejection_reason.title'|trans({}, 'admin') }}</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ 'rejection_reason.description'|trans({}, 'admin') }}</p>
+    </div>
+
+    <form method="post" action="{{ path('app_centre_rejection_reasons_save', {centreId: centre.id}) }}"
+          class="rounded-2xl border border-gray-200 bg-white shadow-xs px-6 py-5 space-y-3">
+        <input type="hidden" name="_token" value="{{ csrf_token('rejection_reasons_' ~ centre.id) }}">
+        <label for="reasons" class="block text-sm font-medium text-gray-700">{{ 'rejection_reason.field'|trans({}, 'admin') }}</label>
+        <textarea id="reasons" name="reasons" rows="10"
+                  class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">{{ reasons|join("\n") }}</textarea>
+        <p class="text-xs text-gray-500">
+            {{ (customised ? 'rejection_reason.state_custom' : 'rejection_reason.state_default')|trans({}, 'admin') }}
+            {{ 'rejection_reason.help'|trans({'%max%': 255}, 'admin') }}
+        </p>
+        <div class="flex items-center gap-3">
+            <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-forest-700">
+                {{ 'rejection_reason.save'|trans({}, 'admin') }}
+            </button>
+        </div>
+    </form>
+
+    {% if customised %}
+        <form method="post" action="{{ path('app_centre_rejection_reasons_reset', {centreId: centre.id}) }}" class="js-confirm-form"
+              data-confirm="{{ 'rejection_reason.reset_confirm'|trans({}, 'admin')|e('html_attr') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('rejection_reasons_' ~ centre.id) }}">
+            <button type="submit" class="js-confirm-trigger inline-flex items-center gap-2 rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
+                {{ ux_icon('heroicons:arrow-path', {class: 'h-4 w-4'}) }}
+                {{ 'rejection_reason.reset'|trans({}, 'admin') }}
+            </button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

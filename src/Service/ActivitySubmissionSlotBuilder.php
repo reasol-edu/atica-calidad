@@ -107,6 +107,23 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
         return $slots;
     }
 
+    /**
+     * The leaves of $listItem an activity with these tags actually asks for — all of them when it
+     * has no tags, else only those carrying every tag (inherited ones included). What the activity
+     * form lists under "Plazos por elemento", so it never offers a deadline for an element the
+     * activity doesn't cover.
+     *
+     * @param  Tag[]      $tags
+     * @return ListItem[]
+     */
+    public function leavesFor(ListItem $listItem, array $tags): array
+    {
+        return array_values(array_filter(
+            $this->listItems->findLeafDescendants($listItem),
+            fn (ListItem $leaf): bool => $this->hasAllTags($leaf, $tags),
+        ));
+    }
+
     /** @param ActivitySubmissionSlot[] $rowSlots */
     private function warmTeachersHoldingCache(array $rowSlots): void
     {

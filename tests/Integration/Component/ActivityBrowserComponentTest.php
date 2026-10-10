@@ -586,7 +586,37 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertSame('', $instance->formOverrideStartDay[$fisicaId]);
     }
 
-    /** @return array{ActivityBrowserComponent|\Symfony\UX\LiveComponent\Test\TestLiveComponent, \App\Entity\ListItem, \App\Entity\ListItem, \App\Entity\ListItem, ActivityCategory, EducationalCentre} */
+    /** The tags narrow the elements the activity asks for, so "Plazos por elemento" must only list those. */
+    public function testTheElementDeadlinesOnlyListTheElementsCarryingTheActivitysTags(): void
+    {
+        $centre  = $this->centre();
+        $tag     = (new \App\Entity\Tag())->setEducationalCentre($centre)->setName('Bachillerato');
+        $root    = (new \App\Entity\ListItem())->setName('Materias')->setEducationalCentre($centre);
+        $fisica  = (new \App\Entity\ListItem())->setName('Física')->setEducationalCentre($centre)->setParent($root)->addTag($tag);
+        $arte    = (new \App\Entity\ListItem())->setName('Arte')->setEducationalCentre($centre)->setParent($root);
+        $admin   = $this->admin();
+        $this->persist($centre, $this->category($centre), $tag, $root, $fisica, $arte, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('startAddActivity');
+        $component->set('formListItemId', $root->getId()->toRfc4122());
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertCount(2, $instance->getFormListItemLeaves(), 'no tag: every element');
+        self::assertArrayHasKey($arte->getId()->toRfc4122(), $instance->formOverrideStartDay);
+
+        $component->set('formTagIds', [$tag->getId()->toRfc4122()]);
+
+        /** @var \App\Twig\Components\ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertSame(['Física'], array_map(static fn (\App\Entity\ListItem $l): string => $l->getName(), $instance->getFormListItemLeaves()));
+        self::assertArrayNotHasKey($arte->getId()->toRfc4122(), $instance->formOverrideStartDay, 'the override props follow the filtered list');
+        self::assertArrayHasKey($fisica->getId()->toRfc4122(), $instance->formOverrideStartDay);
+    }
+
+    /** @return array{ActivityBrowserComponent|\Symfony\UX\LiveComponent\Test\TestLiveComponent, \App\Entity\ListItem,\App\Entity\ListItem, \App\Entity\ListItem, ActivityCategory, EducationalCentre} */
     private function formWithTwoElements(): array
     {
         $centre   = $this->centre();
