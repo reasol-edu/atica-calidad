@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.14.3] - 2026-10-10
+
+### Fixed
+
+- En «Mis actividades», con la ventana estrecha el cuadro de búsqueda se quedaba tan pequeño que no
+  se podía usar. Ahora conserva un ancho mínimo y los controles de agrupar y filtrar pasan a otra
+  línea cuando no caben.
+
 ## [1.14.2] - 2026-10-10
 
 ### Added
