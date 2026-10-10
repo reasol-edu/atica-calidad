@@ -7,6 +7,13 @@
 
     <div class="flex items-start justify-between gap-4 flex-wrap">
         <h1 class="text-2xl font-bold text-gray-900">{{ 'page_title'|trans({}, 'calendar') }}</h1>
+        {% if tab == 'calendar' %}
+            <a href="{{ path('app_calendar_subscription') }}"
+               class="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shrink-0">
+                {{ ux_icon('heroicons:link', {class: 'h-4 w-4'}) }}
+                {{ 'subscription.link'|trans({}, 'calendar') }}
+            </a>
+        {% endif %}
         {% if isAdmin and tab == 'events' %}
             <a href="{{ path('app_events_new') }}"
                class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white

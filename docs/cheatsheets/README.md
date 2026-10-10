@@ -13,7 +13,7 @@ nuevas fichas a medida que crezca.
 
 ## Ficheros
 
-- `busqueda-rapida.md`, `instalar-app.md` — fichas [Marp](https://marp.app) por función, pensadas
+- `busqueda-rapida.md`, `instalar-app.md`, `calendario-movil.md` — fichas [Marp](https://marp.app) por función, pensadas
   para el móvil, con capturas generadas por `scripts/capture-cheatsheet-shots.mjs`.
 - `curso-nuevo.md`, `responsabilidades.md`, `arbol-documental.md` — fichas para el equipo
   directivo / responsable de calidad, pensadas para escritorio (a diferencia de las demás), usando

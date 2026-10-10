@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Suscripción al calendario**: cada docente puede suscribir Google Calendar, Apple Calendar o el
+  calendario del móvil a sus plazos (actividades pendientes y tareas de Mejora continua con fecha
+  límite), desde el botón «Suscribirme a mi calendario» del Calendario. La dirección es
+  secreta, se puede renovar o desactivar, y hay una ficha rápida con los pasos para cada
+  aplicación. Requiere ejecutar las migraciones.
+
 ## [1.12.0] - 2026-10-10
 
 ### Added

@@ -31,6 +31,7 @@ security:
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: '^/contrasena/', roles: PUBLIC_ACCESS }
         - { path: '^/perfil/verificar-email', roles: PUBLIC_ACCESS }
+        - { path: '^/calendario/feed/', roles: PUBLIC_ACCESS }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/, roles: ROLE_TEACHER }
 

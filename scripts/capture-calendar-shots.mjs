@@ -33,5 +33,13 @@ await page.waitForLoadState('networkidle');
 await hideToolbar();
 await page.screenshot({ path: `${outDir}/calendario-dia.png` });
 
+// Subscription page, with the feed address already generated (writes a token: throwaway database only).
+await page.goto(`${baseUrl}/calendario/suscripcion`);
+await page.waitForLoadState('networkidle');
+await page.click('text=Activar mi calendario');
+await page.waitForLoadState('networkidle');
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/calendario-suscripcion.png` });
+
 await browser.close();
 console.log('Screenshots saved to', outDir);

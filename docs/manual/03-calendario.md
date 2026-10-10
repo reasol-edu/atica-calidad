@@ -26,3 +26,31 @@ una actividad de fecha única (inicio y fin coinciden) se muestra como una sola 
 Cada **categoría** de actividades tiene su propio color, así que las actividades de la misma
 categoría se reconocen de un vistazo. Ver
 [Actividades](08-actividades.md#actividades-en-el-calendario).
+
+## Suscripción al calendario {#suscripcion-al-calendario}
+
+Cada docente puede **suscribir su aplicación de calendario** (Google Calendar, Apple Calendar, el
+calendario del móvil…) a sus plazos personales. Desde el calendario, el botón **Suscribirme a mi
+calendario** abre una página donde **Activar mi calendario** genera una dirección propia. En el
+calendario aparecen, como eventos de día completo:
+
+- las **actividades** que le tocan y aún no ha completado ni tiene en revisión (incluidas las que
+  todavía no se han abierto), en la fecha de su plazo, con enlace a la actividad;
+- sus **tareas de Mejora continua** que tienen fecha límite.
+
+Es el mismo contenido que «Tus próximos pasos»: lo que se completa o entra en revisión desaparece en
+la siguiente actualización. Un calendario es **por centro**.
+
+![Página de suscripción al calendario, con la dirección generada y las instrucciones por aplicación](img/calendario-suscripcion.png)
+
+La página ofrece **Copiar** la dirección y **Abrir en mi aplicación de calendario** (para móviles
+y Mac), con las instrucciones para Google Calendar, Apple Calendar, iPhone/iPad y Android. Hay
+también una [ficha rápida](https://github.com/reasol-edu/atica-calidad/blob/main/docs/cheatsheets/calendario-movil.md).
+
+!!! warning "La dirección es secreta"
+    La aplicación de calendario no inicia sesión: quien conozca la dirección puede ver tus plazos. No
+    la compartas. Si crees que otra persona la tiene, pulsa **Generar una dirección nueva** (la
+    anterior deja de funcionar y hay que volver a suscribirse) o **Desactivar**.
+
+Las aplicaciones de calendario refrescan las suscripciones cada pocas horas (Google puede tardar
+hasta un día), así que un cambio reciente puede tardar en verse.

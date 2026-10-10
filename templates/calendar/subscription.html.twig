@@ -1,0 +1,80 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'subscription.title'|trans({}, 'calendar') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-3xl mx-auto space-y-6">
+
+    <div class="space-y-2">
+        <a href="{{ path('app_calendar') }}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-forest-700">
+            {{ ux_icon('heroicons:arrow-left', {class: 'h-4 w-4'}) }}
+            {{ 'subscription.back'|trans({}, 'calendar') }}
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'subscription.title'|trans({}, 'calendar') }}</h1>
+        <p class="text-sm text-gray-600">{{ 'subscription.intro'|trans({}, 'calendar') }}</p>
+    </div>
+
+    {% if feed is null %}
+        <div class="rounded-2xl border border-gray-200 bg-white px-6 py-6 shadow-xs space-y-4">
+            <p class="text-sm text-gray-600">{{ 'subscription.not_enabled'|trans({}, 'calendar') }}</p>
+            <form method="post" action="{{ path('app_calendar_subscription_generate') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('calendar_feed') }}">
+                <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-forest-700">
+                    {{ ux_icon('heroicons:calendar-days', {class: 'h-4 w-4'}) }}
+                    {{ 'subscription.enable'|trans({}, 'calendar') }}
+                </button>
+            </form>
+        </div>
+    {% else %}
+        <div class="rounded-2xl border border-gray-200 bg-white px-6 py-6 shadow-xs space-y-4"
+             data-controller="clipboard" data-clipboard-done-value="{{ 'subscription.copied'|trans({}, 'calendar') }}">
+            <label for="feed-url" class="block text-sm font-medium text-gray-700">{{ 'subscription.url_label'|trans({}, 'calendar') }}</label>
+            <div class="flex flex-col gap-2 sm:flex-row">
+                <input id="feed-url" type="text" readonly value="{{ httpsUrl }}" data-clipboard-target="source"
+                       class="min-w-0 flex-1 rounded-xl border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:border-forest-500 focus:outline-none">
+                <button type="button" data-action="clipboard#copy"
+                        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-forest-600 px-4 py-2 text-sm font-medium text-forest-700 transition-colors hover:bg-forest-50">
+                    {{ ux_icon('heroicons:clipboard-document', {class: 'h-4 w-4'}) }}
+                    <span data-clipboard-target="label">{{ 'subscription.copy'|trans({}, 'calendar') }}</span>
+                </button>
+            </div>
+            <p class="text-xs text-amber-700">{{ 'subscription.url_hint'|trans({}, 'calendar') }}</p>
+            <a href="{{ webcalUrl }}" class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-forest-700">
+                {{ ux_icon('heroicons:calendar-days', {class: 'h-4 w-4'}) }}
+                {{ 'subscription.open_webcal'|trans({}, 'calendar') }}
+            </a>
+        </div>
+
+        <div class="rounded-2xl border border-gray-200 bg-white px-6 py-6 shadow-xs space-y-3">
+            <h2 class="text-base font-semibold text-gray-900">{{ 'subscription.how_to'|trans({}, 'calendar') }}</h2>
+            <ul class="list-disc space-y-2 pl-5 text-sm text-gray-600">
+                {% for app in ['google', 'apple', 'ios', 'android'] %}
+                    <li>{{ ('subscription.how.' ~ app)|trans({}, 'calendar') }}</li>
+                {% endfor %}
+            </ul>
+            <p class="text-xs text-gray-500">{{ 'subscription.refresh_note'|trans({}, 'calendar') }}</p>
+        </div>
+
+        <div class="flex flex-wrap items-start gap-3">
+            <form method="post" action="{{ path('app_calendar_subscription_generate') }}" class="js-confirm-form"
+                  data-confirm="{{ 'subscription.regenerate_confirm'|trans({}, 'calendar')|e('html_attr') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('calendar_feed') }}">
+                <button type="submit" title="{{ 'subscription.regenerate_hint'|trans({}, 'calendar') }}"
+                        class="js-confirm-trigger inline-flex items-center gap-2 rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
+                    {{ ux_icon('heroicons:arrow-path', {class: 'h-4 w-4'}) }}
+                    {{ 'subscription.regenerate'|trans({}, 'calendar') }}
+                </button>
+            </form>
+            <form method="post" action="{{ path('app_calendar_subscription_disable') }}" class="js-confirm-form"
+                  data-confirm="{{ 'subscription.disable_confirm'|trans({}, 'calendar')|e('html_attr') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('calendar_feed') }}">
+                <button type="submit"
+                        class="js-confirm-trigger inline-flex items-center gap-2 rounded-xl border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50">
+                    {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}
+                    {{ 'subscription.disable'|trans({}, 'calendar') }}
+                </button>
+            </form>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
