@@ -338,6 +338,13 @@ class SpecificProfileAssignmentsComponent extends AbstractController
             }
         }
 
+        // Each teacher's profiles alphabetically by profile, then by subprofile.
+        foreach ($rowsByTeacher as &$data) {
+            usort($data['rows'], static fn (ProfileAssignmentRow $a, ProfileAssignmentRow $b): int => [mb_strtolower($a->profile->getName()), mb_strtolower($a->listItem?->getName() ?? '')]
+                <=> [mb_strtolower($b->profile->getName()), mb_strtolower($b->listItem?->getName() ?? '')]);
+        }
+        unset($data);
+
         $entries = [];
         $seen    = [];
         $year    = $this->centre->getActiveAcademicYear();

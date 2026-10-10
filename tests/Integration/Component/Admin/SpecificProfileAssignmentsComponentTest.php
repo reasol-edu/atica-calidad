@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Component\Admin;
 
 use App\Entity\AcademicYear;
 use App\Entity\EducationalCentre;
+use App\Entity\ListItem;
 use App\Entity\PersonName;
 use App\Entity\SpecificProfile;
 use App\Entity\SpecificProfileAssignment;
@@ -231,6 +232,38 @@ final class SpecificProfileAssignmentsComponentTest extends ControllerTestCase
         sort($usernames);
         self::assertSame(['marcado', 'ya'], $usernames);
         self::assertSame([], $this->props($component)['markedTeacherIds']);
+    }
+
+    public function testTeacherProfilesAreListedByProfileThenSubprofile(): void
+    {
+        [$centre, $year, $admin] = $this->centreWithAdminAndActiveYear();
+        $root  = (new ListItem())->setEducationalCentre($centre)->setName('Grupo');
+        $leafB = (new ListItem())->setEducationalCentre($centre)->setName('1º ESO B');
+        $leafA = (new ListItem())->setEducationalCentre($centre)->setName('1º ESO A');
+        $leafB->setParent($root);
+        $leafA->setParent($root);
+        $tutor = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a')->setListItem($root);
+        $jefe  = (new SpecificProfile())->setEducationalCentre($centre)->setName('jefe/a');
+        $docente = $this->teacher('docente');
+        $docente->addAcademicYear($year);
+        $this->persist($centre, $year, $admin, $root, $leafB, $leafA, $tutor, $jefe, $docente);
+        // Added in the "wrong" order on purpose.
+        $tutor->addAssignment($docente, $leafB);
+        $tutor->addAssignment($docente, $leafA);
+        $jefe->addAssignment($docente);
+        $this->em->flush();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:SpecificProfileAssignmentsComponent', ['centre' => $centre], $this->client);
+        $component->call('selectTab', ['tab' => 'teachers']);
+        $component->call('selectTeacher', ['id' => $docente->getId()->toRfc4122()]);
+        $html = $component->render()->toString();
+
+        $positions = array_map(static fn (string $name): int|false => strpos($html, $name), ['jefe/a', 'Tutor/a 1º ESO A', 'Tutor/a 1º ESO B']);
+        self::assertNotContains(false, $positions);
+        $sorted = $positions;
+        sort($sorted);
+        self::assertSame($sorted, $positions);
     }
 
     public function testMarkAllFilteredTeachersTicksOnlyActiveYearMatches(): void
