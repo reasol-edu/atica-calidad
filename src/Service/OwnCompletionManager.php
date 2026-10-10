@@ -98,4 +98,28 @@ class OwnCompletionManager
 
         return OwnCompletionOutcome::Marked;
     }
+
+    /**
+     * Takes back a completion made with mark() — the "Deshacer" of the dashboard. Same owner
+     * resolution and denial rules as mark(); returns whether there was a completion to remove.
+     */
+    public function unmark(Teacher $teacher, Activity $activity, EducationalCentre $centre, string $profileId = '', string $listItemId = '', string $leafId = ''): bool
+    {
+        if ($activity->isAutoComplete()) {
+            return false;
+        }
+
+        [$profile, $listItem, $leaf] = $this->resolveOwner($teacher, $activity, $centre, $profileId, $listItemId, $leafId);
+        $targetTeacher               = $profile === null ? $teacher : null;
+
+        if (!$this->completion->unmarkCompleted($activity, $targetTeacher, $profile, $listItem, $leaf)) {
+            return false;
+        }
+
+        $this->em->flush();
+
+        $this->activityLogger->record('activity.unmark_complete', ['activity' => $activity->getTitle()], $centre);
+
+        return true;
+    }
 }

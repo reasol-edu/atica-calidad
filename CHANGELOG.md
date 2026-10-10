@@ -7,6 +7,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- Al marcar una actividad como hecha desde el inicio, la tarjeta «Tus próximos pasos» muestra una
+  línea con «Deshacer», para recuperar la fila si se pulsó sin querer.
+
 ### Changed
 
 - En móvil, los títulos de las actividades y tareas (inicio, «Mis actividades», campana y Mejora

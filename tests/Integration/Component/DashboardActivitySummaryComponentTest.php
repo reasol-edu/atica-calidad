@@ -132,6 +132,59 @@ final class DashboardActivitySummaryComponentTest extends ControllerTestCase
         self::assertSame('docente', $completions[0]->getCompletedBy()->getUsername());
     }
 
+    public function testMarkingDoneOffersToUndoItAndUndoingBringsTheRowBack(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category, 'Lectura del plan');
+        $teacher  = $this->teacher('docente');
+        $year     = (new \App\Entity\AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $year->addTeacher($teacher);
+        $this->persist($centre, $year, $category, $activity, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('DashboardActivitySummaryComponent', ['centre' => $centre], $this->client);
+        $component->call('markDone', ['activityId' => $activity->getId()->toRfc4122()]);
+
+        $crawler = $component->render()->crawler();
+        self::assertCount(1, $crawler->filter('button[data-live-action-param=undoDone]'), 'the card offers to take it back');
+        self::assertStringContainsString('«Lectura del plan» marcada como hecha', $crawler->html());
+
+        $component->call('undoDone');
+
+        $crawler = $component->render()->crawler();
+        self::assertCount(0, $crawler->filter('button[data-live-action-param=undoDone]'));
+        self::assertCount(1, $crawler->filter('button[data-live-action-param=markDone]'), 'the row is back in the list');
+        $this->em->clear();
+        self::assertCount(0, $this->em->getRepository(ActivityCompletion::class)->findAll());
+    }
+
+    public function testDismissingTheUndoLineKeepsTheCompletion(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category, 'Lectura del plan');
+        $teacher  = $this->teacher('docente');
+        $year     = (new \App\Entity\AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $year->addTeacher($teacher);
+        $this->persist($centre, $year, $category, $activity, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('DashboardActivitySummaryComponent', ['centre' => $centre], $this->client);
+        $component->call('markDone', ['activityId' => $activity->getId()->toRfc4122()]);
+        $component->call('dismissDone');
+
+        self::assertCount(0, $component->render()->crawler()->filter('button[data-live-action-param=undoDone]'));
+        $this->em->clear();
+        self::assertCount(1, $this->em->getRepository(ActivityCompletion::class)->findAll());
+    }
+
     public function testMarkingDoneIsRefusedForAnOwnerTheTeacherDoesNotHold(): void
     {
         self::mockTime('2025-10-05 10:00:00');
