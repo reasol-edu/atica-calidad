@@ -30,12 +30,15 @@ export default class extends Controller {
         window.removeEventListener('popstate', this.onPopState);
     }
 
-    pushLocation({ section = '', folder = '', document: documentId = '', settings = '' }) {
+    pushLocation({ section = '', folder = '', document: documentId = '', settings = '', highlight = '' }) {
         const url = new URL(window.location.href);
         this.setOrDelete(url.searchParams, 'section', section);
         this.setOrDelete(url.searchParams, 'folder', folder);
         this.setOrDelete(url.searchParams, 'document', documentId);
         this.setOrDelete(url.searchParams, 'settings', settings);
+        // Always rewritten (or dropped) with the rest: a highlight left over from an earlier
+        // landing would point at a document that's no longer in the folder being shown.
+        this.setOrDelete(url.searchParams, 'highlight', highlight);
 
         this.rememberSection(section);
 
@@ -52,10 +55,8 @@ export default class extends Controller {
             folder: url.searchParams.get('folder') ?? '',
             document: url.searchParams.get('document') ?? '',
             settings: url.searchParams.get('settings') ?? '',
-            // Not written by pushLocation() (the highlight is a one-shot "you just landed here"
-            // flash, not a piece of state later navigation should keep re-asserting) — but still
-            // read back here so landing on a search result's URL and then going back/forward to it
-            // restores the same flash.
+            // Written by pushLocation() only while a search result is the thing being shown, and
+            // read back here so going back/forward to it restores the same flash.
             highlight: url.searchParams.get('highlight') ?? '',
         });
     }

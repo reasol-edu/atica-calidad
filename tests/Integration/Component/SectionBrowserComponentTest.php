@@ -542,6 +542,27 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         self::assertSame($documentId, $this->stringProp($component, 'highlightedDocumentId'));
     }
 
+    public function testOpenSearchResultAsksTheUrlToCarryTheHighlightedDocument(): void
+    {
+        $centre   = $this->centre();
+        $section  = $this->section($centre);
+        $folder   = $this->folder($section);
+        $uploader = $this->teacher('subidor');
+        $document = $this->documentWithApprovedRevision($folder, $uploader, 'Documento buscado');
+        $this->persist($centre, $section, $folder, $uploader, $document);
+        $documentId = $document->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('openSearchResult', ['documentId' => $documentId]);
+
+        // The location event the URL controller listens to carries the highlight, so the URL
+        // never keeps the one of an earlier landing.
+        $content = html_entity_decode((string) $this->client->getResponse()->getContent());
+        self::assertStringContainsString('document-tree:location', $content);
+        self::assertStringContainsString('"highlight":"' . $documentId . '"', $content);
+    }
+
     public function testSearchResultsAreEmptyBelowTwoCharacters(): void
     {
         $centre   = $this->centre();

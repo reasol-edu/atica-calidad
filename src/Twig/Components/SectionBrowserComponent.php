@@ -288,6 +288,9 @@ class SectionBrowserComponent extends AbstractController
             'folder'   => $this->primaryExpandedFolderId(),
             'document' => $this->revisionPanelDocumentId,
             'settings' => $this->folderSettingsPanelId,
+            // Mirrored too, so the URL never keeps the highlight of an earlier landing (a reload
+            // would try to flash a document that isn't in this folder, i.e. nothing at all).
+            'highlight' => $this->highlightedDocumentId,
         ]);
     }
 

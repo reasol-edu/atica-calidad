@@ -295,10 +295,14 @@ summary:focus-visible {
    visible tint plus a solid left accent bar, then stays that way — it's tied to the component's own
    highlightedDocumentId, so it already only goes away once that's no longer the row in question
    (e.g. the viewer opens a different search result); the animation just needs to not undo that by
-   fading itself back out. */
+   fading itself back out.
+   The tint is a plain rgb() (forest-500 at 30%), NOT color-mix(): Tailwind expands color-mix() into
+   an @supports fallback, which is invalid inside a keyframe block, and the --minify build used in
+   production then drops the whole 100% keyframe — leaving only the transparent 0% one, so the row
+   was never highlighted there. Keep anything @supports-expanded out of this keyframe. */
 @keyframes document-highlight-pulse {
   0%   { background-color: transparent; box-shadow: inset 3px 0 0 0 transparent; }
-  100% { background-color: color-mix(in srgb, var(--color-forest-500) 45%, transparent); box-shadow: inset 3px 0 0 0 var(--color-forest-500); }
+  100% { background-color: rgb(110 140 99 / 0.3); box-shadow: inset 3px 0 0 0 var(--color-forest-500); }
 }
 .document-highlight-pulse {
   animation: document-highlight-pulse 0.6s ease-out 1 forwards;
