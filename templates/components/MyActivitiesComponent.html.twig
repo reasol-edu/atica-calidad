@@ -28,8 +28,10 @@
     </div>
 
     {# ── Filter and sort/group ────────────────────────────────────────── #}
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <form data-action="submit->live#action:prevent" class="relative sm:max-w-xs lg:max-w-2xl sm:flex-1">
+    {# The search box keeps a usable minimum width (min-w-64) and the controls wrap onto their own
+       line when there isn't room, instead of squeezing the box down to a sliver. #}
+    <div class="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+        <form data-action="submit->live#action:prevent" class="relative w-full lg:w-auto lg:min-w-64 lg:max-w-2xl lg:flex-1">
             {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400'}) }}
             <input type="search" data-model="debounce(300)|searchQuery" value="{{ searchQuery }}"
                    placeholder="{{ 'mine.search_placeholder'|trans({}, 'activity_content') }}"
