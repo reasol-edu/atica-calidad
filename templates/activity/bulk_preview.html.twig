@@ -1,0 +1,54 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'bulk.preview_title'|trans({}, 'activity_content') }} · {{ app_name }}{% endblock %}
+
+{# The preview of a bulk edit (ActivityBulkEditController::preview): what each activity would change from and to; nothing is applied until it is confirmed. #}
+{% block content %}
+<div class="px-6 py-8 max-w-4xl mx-auto space-y-6">
+    <div>
+        <div class="mb-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_activity_bulk') }}" class="transition-colors hover:text-forest-600">{{ 'bulk.title'|trans({}, 'activity_content') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'bulk.preview_title'|trans({}, 'activity_content') }}</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ ('bulk.preview_intro.' ~ plan.action)|trans({}, 'activity_content') }}</p>
+    </div>
+
+    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+                <tr>
+                    <th class="px-4 py-2 font-semibold">{{ 'bulk.col.activity'|trans({}, 'activity_content') }}</th>
+                    <th class="px-4 py-2 font-semibold">{{ 'bulk.col.now'|trans({}, 'activity_content') }}</th>
+                    <th class="px-4 py-2 font-semibold">{{ 'bulk.col.after'|trans({}, 'activity_content') }}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                {% for row in plan.rows %}
+                    <tr class="{{ row.changes ? '' : 'text-gray-400' }}">
+                        <td class="px-4 py-2">{{ row.activity.title }}</td>
+                        <td class="px-4 py-2">{{ row.from }}</td>
+                        <td class="px-4 py-2 {{ row.changes ? 'font-medium text-forest-700' : '' }}">
+                            {{ row.to }}{% if not row.changes %} <span class="text-xs">({{ 'bulk.unchanged'|trans({}, 'activity_content') }})</span>{% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <form method="post" action="{{ path('app_activity_bulk_apply') }}" class="flex flex-wrap items-center gap-3">
+        <input type="hidden" name="_token" value="{{ csrf_token('activity_bulk_edit') }}">
+        <input type="hidden" name="action" value="{{ plan.action }}">
+        {% for name, value in plan.params %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+        {% for row in plan.rows %}<input type="hidden" name="ids[]" value="{{ row.activity.id.toRfc4122 }}">{% endfor %}
+        <button type="submit" {% if plan.changeCount == 0 %}disabled{% endif %}
+                class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-forest-700 disabled:cursor-not-allowed disabled:opacity-50">
+            {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
+            {{ 'bulk.apply'|trans({'%count%': plan.changeCount}, 'activity_content') }}
+        </button>
+        <a href="{{ path('app_activity_bulk') }}" class="rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">{{ 'bulk.back'|trans({}, 'activity_content') }}</a>
+    </form>
+</div>
+{% endblock %}

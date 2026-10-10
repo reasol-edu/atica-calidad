@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Twig\Components;
 
 use App\Entity\Activity;
+use App\Entity\ActivityChange;
 use App\Entity\ActivityCategory;
 use App\Entity\ActivityProfile;
 use App\Entity\ActivityResponsibleProfile;
@@ -26,6 +27,7 @@ use App\Model\ActivityWindow;
 use App\Model\OwnCompletionOutcome;
 use App\Model\ProfileAssignmentRow;
 use App\Repository\ActivityCategoryRepository;
+use App\Repository\ActivityChangeRepository;
 use App\Repository\ActivityRepository;
 use App\Repository\DocumentRepository;
 use App\Repository\DocumentRevisionRepository;
@@ -36,6 +38,7 @@ use App\Repository\TagRepository;
 use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Security\Voter\FolderVoter;
+use App\Service\ActivityChangeRecorder;
 use App\Service\ActivityCompletionChecker;
 use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivityDeadlineSummaryBuilder;
@@ -275,6 +278,10 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public array $statsShown = [];
 
+    /** @var string[] activity ids whose history panel is shown. */
+    #[LiveProp]
+    public array $historyShown = [];
+
     // ── Revision panel (mirrors SectionBrowserComponent's document-revision LiveProps) ──
     #[LiveProp(writable: true)]
     public string $revisionPanelDocumentId = '';
@@ -326,6 +333,8 @@ class ActivityBrowserComponent extends AbstractController
         private readonly DocumentSectionRepository $sections,
         private readonly ListItemRepository $listItems,
         private readonly TagRepository $tags,
+        private readonly ActivityChangeRepository $activityChanges,
+        private readonly ActivityChangeRecorder $changeRecorder,
         private readonly DocumentRepository $documents,
         private readonly DocumentRevisionRepository $revisions,
         private readonly TeacherRepository $teachers,
@@ -1163,6 +1172,7 @@ class ActivityBrowserComponent extends AbstractController
             $copy->addResponsibleProfile($responsible->getSpecificProfile(), $responsible->getListItem());
         }
         $this->em->persist($copy);
+        $this->changeRecorder->recordDuplicated($copy, $source, $this->teacher());
         $this->em->flush();
 
         $this->flashSuccess($this->translator->trans('activity.flash.duplicated', [], 'admin'));
@@ -1304,6 +1314,8 @@ class ActivityBrowserComponent extends AbstractController
             // edited (nor silently turned into a brand new activity here instead).
             $activity = $this->findActivity($this->formActivityId) ?? throw $this->createNotFoundException();
         }
+        // Taken before anything is touched: the history records what this save changes.
+        $before = $activity === null ? null : $this->changeRecorder->snapshot($activity);
         if ($activity === null) {
             $activity = (new Activity())
                 ->setCategory($category)
@@ -1401,6 +1413,11 @@ class ActivityBrowserComponent extends AbstractController
             );
         }
 
+        if ($before === null) {
+            $this->changeRecorder->recordCreated($activity, $this->teacher());
+        } else {
+            $this->changeRecorder->recordUpdated($activity, $before, $this->teacher());
+        }
         $this->em->flush();
 
         // Documents already sitting in a newly linked folder become this occurrence's
@@ -1593,6 +1610,24 @@ class ActivityBrowserComponent extends AbstractController
         } else {
             $this->expandedAllSubmissions[] = $activityId;
         }
+    }
+
+    /** Opens or closes an activity's history panel (only whoever can edit activities may). */
+    #[LiveAction]
+    public function toggleHistory(#[LiveArg] string $activityId): void
+    {
+        $this->requireEditPermission();
+        if (in_array($activityId, $this->historyShown, true)) {
+            $this->historyShown = array_values(array_diff($this->historyShown, [$activityId]));
+        } else {
+            $this->historyShown[] = $activityId;
+        }
+    }
+
+    /** @return list<ActivityChange> the activity's history, newest first — read only while its panel is open */
+    public function getActivityHistory(Activity $activity): array
+    {
+        return $this->canEdit() ? $this->activityChanges->findByActivity($activity) : [];
     }
 
     #[LiveAction]

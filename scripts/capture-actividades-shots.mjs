@@ -133,5 +133,34 @@ await page.waitForLoadState('networkidle');
 await hideToolbar();
 await page.screenshot({ path: `${outDir}/actividades-editar-categorias.png` });
 
+// ── 7. Bulk edit and history (they write: the deadline change is applied for real, so this goes last) ──
+await page.goto(`${baseUrl}/actividades/edicion-en-bloque`);
+await page.waitForLoadState('networkidle');
+await page.selectOption('select[name=action]', 'deadline');
+await page.fill('input[name=startDay]', '1');
+await page.fill('input[name=startMonth]', '10');
+await page.fill('input[name=endDay]', '15');
+await page.fill('input[name=endMonth]', '11');
+await page.locator('input[name="ids[]"]').nth(0).check();
+await page.locator('input[name="ids[]"]').nth(1).check();
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/actividades-bloque.png` });
+await page.click('text=Ver qué cambiaría');
+await page.waitForLoadState('networkidle');
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/actividades-bloque-previa.png` });
+await page.click('button:has-text("Aplicar a")');
+await page.waitForLoadState('networkidle');
+
+await page.goto(`${baseUrl}/actividades?tab=view`);
+await page.waitForLoadState('networkidle');
+await page.click('text=Sobre programaciones didácticas');
+await page.locator('button[title="Más acciones"]').first().waitFor();
+await page.locator('button[title="Más acciones"]').first().click();
+await page.click('text=Historial de cambios');
+await page.waitForSelector('text=modificó la actividad');
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/actividades-historial.png` });
+
 await browser.close();
 console.log('Capturas guardadas en', outDir);

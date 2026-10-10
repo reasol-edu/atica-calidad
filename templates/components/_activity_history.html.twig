@@ -1,0 +1,49 @@
+{# An activity's history of changes (ActivityChange), newest first — only for whoever can edit activities, and only read while its panel is open. #}
+{% set history = this.getActivityHistory(activity) %}
+{% macro value(field, raw) %}
+    {%- if raw == '' -%}
+        <span class="text-gray-400">{{ 'history.empty'|trans({}, 'activity_content') }}</span>
+    {%- elseif field in constant('App\\Service\\ActivityChangeRecorder::BOOLEAN_FIELDS') -%}
+        {{ (raw == '1' ? 'history.yes' : 'history.no')|trans({}, 'activity_content') }}
+    {%- elseif field == 'scope' -%}
+        {{ ('history.scope.' ~ raw)|trans({}, 'activity_content') }}
+    {%- else -%}
+        {{ raw }}
+    {%- endif -%}
+{% endmacro %}
+<div class="rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3">
+    <h4 class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {{ ux_icon('heroicons:clock', {class: 'h-3.5 w-3.5'}) }}{{ 'history.title'|trans({}, 'activity_content') }}
+    </h4>
+    {% if history is empty %}
+        <p class="text-xs italic text-gray-500">{{ 'history.none'|trans({}, 'activity_content') }}</p>
+    {% else %}
+        <ol class="space-y-3">
+            {% for entry in history %}
+                <li class="text-xs text-gray-600">
+                    <p>
+                        <span class="font-medium text-gray-800">{{ entry.author ? entry.author.name.firstName ~ ' ' ~ entry.author.name.lastName : ('history.unknown_author'|trans({}, 'activity_content')) }}</span>
+                        · {{ ('history.type.' ~ entry.type)|trans({}, 'activity_content') }}
+                        <span class="text-gray-400">· {{ entry.createdAt|date('d/m/Y H:i') }}</span>
+                    </p>
+                    {% if entry.changes is not empty %}
+                        <ul class="mt-1 space-y-0.5 pl-4">
+                            {% for change in entry.changes %}
+                                <li class="list-disc">
+                                    <span class="text-gray-500">{{ ('history.field.' ~ change.field)|trans({}, 'activity_content') }}:</span>
+                                    {% if change.field == 'duplicated_from' %}
+                                        {{ change.to }}
+                                    {% elseif change.field == 'description' %}
+                                        {{ 'history.description_changed'|trans({}, 'activity_content') }}
+                                    {% else %}
+                                        {{ _self.value(change.field, change.from) }} → <span class="font-medium text-gray-800">{{ _self.value(change.field, change.to) }}</span>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ol>
+    {% endif %}
+</div>

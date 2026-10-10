@@ -636,6 +636,43 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         return [$component, $root, $fisica, $quimica, $category, $centre];
     }
 
+    public function testTheHistoryRecordsTheCreationAndEachChangeWithItsAuthor(): void
+    {
+        [$component, , , , $category, $centre] = $this->formWithTwoElements();
+
+        $component
+            ->set('formTitle', 'Memoria final')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formFolderId', '')
+            ->call('saveActivity');
+
+        $this->em->clear();
+        $reloadedCategory = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        $activity = self::getContainer()->get(\App\Repository\ActivityRepository::class)->findByCategory($reloadedCategory)[0];
+        $history  = self::getContainer()->get(\App\Repository\ActivityChangeRepository::class);
+        self::assertSame(['created'], array_map(static fn (\App\Entity\ActivityChange $c): string => $c->getType(), $history->findByActivity($activity)));
+
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()]);
+        $component->set('formEndDay', '15')->set('formRequired', false)->call('saveActivity');
+        // An edit that changes nothing leaves no entry.
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()]);
+        $component->call('saveActivity');
+
+        $this->em->clear();
+        $activity = self::getContainer()->get(\App\Repository\ActivityRepository::class)->findByCategory($reloadedCategory = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre))[0];
+        $entries  = $history->findByActivity($activity);
+        self::assertSame(['updated', 'created'], array_map(static fn (\App\Entity\ActivityChange $c): string => $c->getType(), $entries));
+        self::assertSame('admin', $entries[0]->getAuthor()?->getUsername());
+        $byField = [];
+        foreach ($entries[0]->getChanges() as $change) {
+            $byField[$change['field']] = [$change['from'], $change['to']];
+        }
+        self::assertSame(['1/9 – 30/6', '1/9 – 15/6'], $byField['deadline']);
+        self::assertArrayNotHasKey('title', $byField);
+    }
+
     public function testGeneralDeadlineMayBeBlankWhenEveryElementHasItsOwn(): void
     {
         [$component, $root, $fisica, $quimica, $category, $centre] = $this->formWithTwoElements();

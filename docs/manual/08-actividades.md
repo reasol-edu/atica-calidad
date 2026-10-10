@@ -147,6 +147,38 @@ igual que las secciones del árbol documental; dentro de cada una se crean y edi
 Una actividad eliminada, con sus completados, pasa a la
 [papelera](07-arbol-documental.md#papelera), desde donde se puede recuperar.
 
+### Historial de cambios {#historial-de-cambios}
+
+En el menú **⋮** de cada actividad, **Historial de cambios** abre un panel (solo para quien puede
+editar actividades) con quién la creó, duplicó o modificó y cuándo. Cada modificación lista **qué
+ajuste cambió, de qué valor a cuál**: título, categoría, plazo general, número de elementos con plazo
+propio, lista, etiquetas, carpeta, quién entrega, obligatoria, oculta, completado automático, fechas
+respetadas, días de gracia, prefijo del nombre del fichero, a quién se le pide y documentos
+relacionados. De la descripción solo se anota que se ha modificado. Un guardado que no cambia nada no
+deja entrada. El historial empieza con la primera modificación posterior a su puesta en marcha, se
+conserva aunque la actividad pase por la papelera y se borra solo si se elimina del todo.
+
+![Panel de historial de una actividad, con el cambio de plazo y quién lo hizo](img/actividades-historial.png)
+
+### Edición en bloque {#edicion-en-bloque}
+
+La pestaña **Edición en bloque** aplica un mismo cambio a varias actividades a la vez, en tres pasos:
+
+1. **Qué cambiar**: *mover a otra categoría* (pasan al final de la lista de la categoría de destino),
+   *ocultar o mostrar*, *cambiar el plazo general* (día y mes de inicio y de fin) o *marcar como
+   obligatoria u opcional*. Los plazos propios de cada elemento de una lista no se tocan.
+2. **En qué actividades**: todas las del centro, ocultas incluidas, agrupadas por categoría, con
+   «Marcar o desmarcar todas» en cada grupo.
+3. **Vista previa**: una tabla con cada actividad, su valor **ahora** y **después**; las que no
+   cambiarían salen en gris y no cuentan. Nada se guarda hasta pulsar **Aplicar**.
+
+![Edición en bloque: el cambio elegido y las actividades marcadas](img/actividades-bloque.png)
+
+![Vista previa de la edición en bloque, con el plazo de cada actividad antes y después](img/actividades-bloque-previa.png)
+
+Cada actividad que cambia deja su entrada en el [historial](#historial-de-cambios), a nombre de quien
+aplicó el cambio.
+
 ### Campos de una actividad
 
 | Campo | Significado |

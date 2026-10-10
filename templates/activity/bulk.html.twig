@@ -1,0 +1,107 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'bulk.title'|trans({}, 'activity_content') }} · {{ app_name }}{% endblock %}
+
+{#
+   "Edición en bloque" (ActivityBulkEditController::index): pick activities, pick one change; the
+   next step previews it. The fields of the chosen change are the only ones read.
+#}
+{% block content %}
+<div class="px-6 py-8 max-w-5xl mx-auto space-y-6" data-controller="bulk-action">
+    <div>
+        <div class="mb-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_activities') }}" class="transition-colors hover:text-forest-600">{{ 'page_title'|trans({}, 'activity_content') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'bulk.title'|trans({}, 'activity_content') }}</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ 'bulk.intro'|trans({}, 'activity_content') }}</p>
+    </div>
+
+    <form method="post" action="{{ path('app_activity_bulk_preview') }}" class="space-y-6">
+        <input type="hidden" name="_token" value="{{ csrf_token('activity_bulk_edit') }}">
+
+        <section class="space-y-3 rounded-2xl border border-gray-200 bg-white px-6 py-5 shadow-xs">
+            <h2 class="text-sm font-semibold text-gray-700">{{ 'bulk.step_change'|trans({}, 'activity_content') }}</h2>
+            <div class="grid gap-3 sm:grid-cols-2">
+                <label class="block text-xs font-medium text-gray-600">{{ 'bulk.action'|trans({}, 'activity_content') }}
+                    <select name="action" data-bulk-action-target="action" data-action="change->bulk-action#show"
+                            class="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+                        {% for action in ['move', 'visibility', 'deadline', 'required'] %}
+                            <option value="{{ action }}">{{ ('bulk.action.' ~ action)|trans({}, 'activity_content') }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <div data-bulk-action-target="panel" data-panel="move">
+                    <label class="block text-xs font-medium text-gray-600">{{ 'bulk.field.category'|trans({}, 'activity_content') }}
+                        <select name="category" class="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+                            {% for id, path in categories %}<option value="{{ id }}">{{ path }}</option>{% endfor %}
+                        </select>
+                    </label>
+                </div>
+                <div data-bulk-action-target="panel" data-panel="visibility" class="hidden">
+                    <label class="block text-xs font-medium text-gray-600">{{ 'bulk.field.visibility'|trans({}, 'activity_content') }}
+                        <select name="visibility" class="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+                            <option value="hidden">{{ 'bulk.value.hidden'|trans({}, 'activity_content') }}</option>
+                            <option value="visible">{{ 'bulk.value.visible'|trans({}, 'activity_content') }}</option>
+                        </select>
+                    </label>
+                </div>
+                <div data-bulk-action-target="panel" data-panel="required" class="hidden">
+                    <label class="block text-xs font-medium text-gray-600">{{ 'bulk.field.required'|trans({}, 'activity_content') }}
+                        <select name="required" class="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+                            <option value="required">{{ 'bulk.value.required'|trans({}, 'activity_content') }}</option>
+                            <option value="optional">{{ 'bulk.value.optional'|trans({}, 'activity_content') }}</option>
+                        </select>
+                    </label>
+                </div>
+                <div data-bulk-action-target="panel" data-panel="deadline" class="hidden sm:col-span-2">
+                    <p class="text-xs font-medium text-gray-600">{{ 'bulk.field.deadline'|trans({}, 'activity_content') }}</p>
+                    <div class="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {% for field, label in {startDay: 'bulk.field.start_day', startMonth: 'bulk.field.start_month', endDay: 'bulk.field.end_day', endMonth: 'bulk.field.end_month'} %}
+                            <label class="block text-xs text-gray-500">{{ label|trans({}, 'activity_content') }}
+                                <input type="number" name="{{ field }}" min="1" max="{{ field ends with 'Month' ? 12 : 31 }}" inputmode="numeric" disabled
+                                       class="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+                            </label>
+                        {% endfor %}
+                    </div>
+                    <p class="mt-1 text-xs text-gray-400">{{ 'bulk.deadline_help'|trans({}, 'activity_content') }}</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="space-y-3 rounded-2xl border border-gray-200 bg-white px-6 py-5 shadow-xs">
+            <h2 class="text-sm font-semibold text-gray-700">{{ 'bulk.step_select'|trans({}, 'activity_content') }}</h2>
+            {% if groups is empty %}
+                <p class="text-sm italic text-gray-500">{{ 'bulk.no_activities'|trans({}, 'activity_content') }}</p>
+            {% endif %}
+            {% for path, items in groups %}
+                <div data-controller="check-all" class="rounded-xl border border-gray-100">
+                    <div class="flex items-center justify-between gap-3 bg-gray-50 px-4 py-2">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ path }}</p>
+                        <button type="button" data-action="check-all#toggle" class="text-xs font-medium text-forest-700 hover:text-forest-800">{{ 'bulk.toggle_all'|trans({}, 'activity_content') }}</button>
+                    </div>
+                    <ul class="divide-y divide-gray-50">
+                        {% for activity in items %}
+                            <li>
+                                <label class="flex cursor-pointer items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                    <input type="checkbox" name="ids[]" value="{{ activity.id.toRfc4122 }}" data-check-all-target="checkbox" class="h-4 w-4 rounded border-gray-300 text-forest-600">
+                                    <span class="min-w-0 flex-1 truncate">{{ activity.title }}</span>
+                                    <span class="shrink-0 text-xs text-gray-400">{{ activity.startDay }}/{{ activity.startMonth }} – {{ activity.endDay }}/{{ activity.endMonth }}</span>
+                                    {% if activity.hidden %}<span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{{ 'bulk.value.hidden'|trans({}, 'activity_content') }}</span>{% endif %}
+                                </label>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endfor %}
+        </section>
+
+        <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-forest-700">
+            {{ ux_icon('heroicons:eye', {class: 'h-4 w-4'}) }}
+            {{ 'bulk.preview'|trans({}, 'activity_content') }}
+        </button>
+    </form>
+</div>
+{% endblock %}
