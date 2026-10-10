@@ -7,10 +7,15 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.15.1] - 2026-10-10
+
 ### Changed
 
 - El inicio muestra una frase al azar de entre 15 (antes 5), todas en la lista de traducciones del
   panel (`home_subtitle_1` a `home_subtitle_15`).
+- El resaltado de un documento al llegar desde la búsqueda late como un corazón durante 5 segundos
+  (tres latidos dobles con el verde del tema al 30 %) y termina con una transición a un tinte más
+  suave (15 %) que se mantiene.
 
 ## [1.15.0] - 2026-10-10
 
