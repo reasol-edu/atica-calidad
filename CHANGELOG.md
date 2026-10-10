@@ -7,6 +7,24 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-10-10
+
+### Added
+
+- **Motivos de rechazo propios de cada centro** (Centro educativo → Motivos de rechazo): la lista de
+  respuestas hechas que ofrece la cola de revisión. Sin lista propia se usan los motivos estándar.
+  Requiere ejecutar las migraciones.
+
+### Fixed
+
+- «Plazos por elemento» en el formulario de actividad solo lista los elementos que la actividad pide
+  según sus etiquetas, y se actualiza al cambiarlas.
+
+### Changed
+
+- Menos consultas al abrir el formulario de actividad con etiquetas (la lista de etiquetas se lee una
+  sola vez).
+
 ## [1.12.1] - 2026-10-10
 
 ### Added
