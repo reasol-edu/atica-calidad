@@ -2,9 +2,9 @@
 {% import 'components/_activity_status.html.twig' as activity_status %}
 {% set status = item.status.value %}
 {% set completed = status == 'completed' %}
-<li>
+<li class="flex items-stretch transition-colors {{ activity_status.row_bg(status) }} {{ completed ? 'opacity-70' : '' }}">
     <a href="{{ path('app_activities', item.linkParams|merge({tab: 'view'})) }}"
-       class="flex items-start gap-3 px-4 py-3 transition-colors {{ activity_status.row_bg(status) }} {{ completed ? 'opacity-70' : '' }}">
+       class="flex min-w-0 flex-1 items-start gap-3 px-4 py-3">
         <span class="mt-0.5">{{ activity_status.icon(status) }}</span>
         <span class="min-w-0 flex-1">
             <span class="block line-clamp-2 text-sm font-medium text-gray-900 sm:line-clamp-1 {{ completed ? 'line-through decoration-gray-300' : '' }}">
@@ -19,4 +19,6 @@
         </span>
         <span class="hidden self-center sm:block">{{ activity_status.pill(status) }}</span>
     </a>
+    {# The same shortcuts as the dashboard: tick off a manual activity, or send the one file it waits for. #}
+    {% include 'components/_activity_quick_actions.html.twig' with {item: item, return: 'mine', margin: 'mr-4'} only %}
 </li>

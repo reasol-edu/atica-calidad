@@ -358,12 +358,14 @@ class ActivityController extends AbstractController
         return $this->backAfterUpload($request, $activity);
     }
 
-    /** Back to the dashboard when the upload started from its list ("return=dashboard"), else to the activity. */
+    /** Back to the list the upload started from ("return=dashboard" or "return=mine", the "Mis actividades" tab), else to the activity. */
     private function backAfterUpload(Request $request, Activity $activity): Response
     {
-        return $request->request->getString('return') === 'dashboard'
-            ? $this->redirectToRoute('app_dashboard')
-            : $this->redirectToActivity($activity);
+        return match ($request->request->getString('return')) {
+            'dashboard' => $this->redirectToRoute('app_dashboard'),
+            'mine'      => $this->redirectToRoute('app_activities', ['tab' => 'mine']),
+            default     => $this->redirectToActivity($activity),
+        };
     }
 
     private function requireActivity(string $activityId, EducationalCentre $centre): Activity

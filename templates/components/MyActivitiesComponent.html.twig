@@ -1,5 +1,9 @@
 <div {{ attributes }} class="space-y-5">
 
+    {% if this.lastDone is not null %}
+        {% include 'components/_activity_done_undo.html.twig' with {done: this.lastDone} only %}
+    {% endif %}
+
     {# ── Statistics ─────────────────────────────────────────────────────
        By whose move it is (ActivityObligationStatus::group()): what the teacher has to do — with
        the overdue ones called out inside it rather than as a separate total —, what's waiting for

@@ -13,6 +13,9 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   filtran la lista al pulsarlas; al volver a pulsar la misma se vuelve a ver todo.
 - Al marcar una actividad como hecha desde el inicio, la tarjeta «Tus próximos pasos» muestra una
   línea con «Deshacer», para recuperar la fila si se pulsó sin querer.
+- «Mis actividades» ofrece en cada fila los mismos atajos que el inicio: «Marcar hecha» en las
+  actividades manuales (con su «Deshacer») y «Subir» o «Nueva versión» cuando solo falta un fichero.
+  Tras subirlo se vuelve a «Mis actividades».
 
 ### Changed
 

@@ -9,13 +9,16 @@ use App\Entity\Teacher;
 use App\Model\ActivityDashboardItem;
 use App\Model\ActivityObligationGroup;
 use App\Model\ActivityObligationStatus;
+use App\Repository\ActivityRepository;
 use App\Service\ActivityObligationFinder;
+use App\Service\OwnCompletionManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
@@ -33,7 +36,9 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 #[AsLiveComponent]
 class MyActivitiesComponent extends AbstractController
 {
+    use ComponentToolsTrait;
     use DefaultActionTrait;
+    use MarksActivitiesDoneTrait;
 
     private const array GROUP_MODES = ['deadline', 'profile', 'category', 'status'];
 
@@ -79,6 +84,8 @@ class MyActivitiesComponent extends AbstractController
     public function __construct(
         private readonly ActivityObligationFinder $finder,
         private readonly TranslatorInterface $translator,
+        private readonly OwnCompletionManager $ownCompletions,
+        private readonly ActivityRepository $activities,
     ) {}
 
     public function mount(EducationalCentre $centre): void

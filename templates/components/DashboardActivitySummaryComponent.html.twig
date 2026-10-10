@@ -30,20 +30,7 @@
 
     <div class="px-6 py-5 space-y-4">
         {% if this.lastDone is not null %}
-            {# What markDone() leaves behind: the row is gone, so this is where it can be taken back. #}
-            <div role="status" class="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">
-                {{ ux_icon('heroicons:check-circle', {class: 'h-5 w-5 shrink-0'}) }}
-                <span class="min-w-0 flex-1">{{ 'agenda.done_message'|trans({'%title%': this.lastDone.title}, 'dashboard') }}</span>
-                <button type="button" data-action="live#action" data-live-action-param="undoDone"
-                        class="shrink-0 rounded-lg px-2 py-1 text-sm font-semibold underline underline-offset-2 hover:bg-green-100 max-sm:min-h-11">
-                    {{ 'agenda.undo'|trans({}, 'dashboard') }}
-                </button>
-                <button type="button" data-action="live#action" data-live-action-param="dismissDone"
-                        aria-label="{{ 'agenda.undo_dismiss'|trans({}, 'dashboard') }}"
-                        class="shrink-0 rounded-lg p-1 text-green-700 hover:bg-green-100 max-sm:flex max-sm:min-h-11 max-sm:min-w-11 max-sm:items-center max-sm:justify-center">
-                    {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
-                </button>
-            </div>
+            {% include 'components/_activity_done_undo.html.twig' with {done: this.lastDone} only %}
         {% endif %}
         {% if summary.total == 0 and agenda.entries is empty %}
             <p class="text-sm text-gray-500">{{ 'activities.none'|trans({}, 'dashboard') }}</p>
@@ -96,45 +83,7 @@
                                     </span>
                                     <span class="hidden self-center sm:block">{{ activity_status.pill(status) }}</span>
                                 </a>
-                                {% if item.canMarkDone %}
-                                    {# A manual activity: tick it off without opening it. #}
-                                    <button type="button" data-action="live#action" data-live-action-param="markDone"
-                                            data-live-activity-id-param="{{ item.activity.id.toRfc4122 }}"
-                                            data-live-profile-id-param="{{ item.profileId }}"
-                                            data-live-list-item-id-param="{{ item.listItemId }}"
-                                            data-live-leaf-id-param="{{ item.leafId }}"
-                                            title="{{ 'agenda.mark_done_hint'|trans({}, 'dashboard') }}"
-                                            class="mr-6 inline-flex shrink-0 items-center gap-1 self-center rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:border-forest-300 hover:bg-forest-50 hover:text-forest-700 max-sm:min-h-11 max-sm:min-w-11 max-sm:justify-center">
-                                        {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
-                                        <span class="hidden sm:inline">{{ 'agenda.mark_done'|trans({}, 'dashboard') }}</span>
-                                        <span class="sr-only sm:hidden">{{ 'agenda.mark_done'|trans({}, 'dashboard') }}</span>
-                                    </button>
-                                {% endif %}
-                                {% if item.uploadMode != '' %}
-                                    {# A single file settles it: choosing one sends it (see quick_upload_controller.js). #}
-                                    {% set revision = item.uploadMode == 'revision' %}
-                                    {% if revision %}
-                                        <form method="post" enctype="multipart/form-data" data-controller="quick-upload" data-action="change->quick-upload#send"
-                                              action="{{ path('app_folder_document_new_revision', {folderId: item.activity.folder.id.toRfc4122, documentId: item.uploadDocumentId}) }}" class="mr-6 flex shrink-0 items-center">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('folder_document_revision_' ~ item.uploadDocumentId) }}">
-                                            <input type="file" name="file" data-quick-upload-target="input" class="sr-only" tabindex="-1">
-                                    {% else %}
-                                        <form method="post" enctype="multipart/form-data" data-controller="quick-upload" data-action="change->quick-upload#send"
-                                              action="{{ path('app_activity_submission_upload', {activityId: item.activity.id.toRfc4122}) }}" class="mr-6 flex shrink-0 items-center">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('activity_submission_upload_' ~ item.activity.id.toRfc4122) }}">
-                                            <input type="hidden" name="items[0][slotKey]" value="{{ item.uploadSlotKey }}">
-                                            <input type="hidden" name="return" value="dashboard">
-                                            <input type="file" name="files[0]" data-quick-upload-target="input" class="sr-only" tabindex="-1">
-                                    {% endif %}
-                                            <button type="button" data-action="quick-upload#choose"
-                                                    title="{{ (revision ? 'agenda.upload_revision_hint' : 'agenda.upload_hint')|trans({}, 'dashboard') }}"
-                                                    class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:border-forest-300 hover:bg-forest-50 hover:text-forest-700 max-sm:min-h-11 max-sm:min-w-11 max-sm:justify-center">
-                                                {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
-                                                <span class="hidden sm:inline">{{ (revision ? 'agenda.upload_revision' : 'agenda.upload')|trans({}, 'dashboard') }}</span>
-                                                <span class="sr-only sm:hidden">{{ (revision ? 'agenda.upload_revision' : 'agenda.upload')|trans({}, 'dashboard') }}</span>
-                                            </button>
-                                        </form>
-                                {% endif %}
+                                {% include 'components/_activity_quick_actions.html.twig' with {item: item, return: 'dashboard', margin: 'mr-6'} only %}
                             </li>
                         {% else %}
                             {{ quality.task_row(entry.task, true) }}

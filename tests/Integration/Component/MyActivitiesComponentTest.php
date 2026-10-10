@@ -254,6 +254,37 @@ final class MyActivitiesComponentTest extends ControllerTestCase
         self::assertCount(2, $titles($instance));
     }
 
+    public function testAManualActivityCanBeTickedOffFromTheListAndUndone(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $activity = $this->activity($category, 'Lectura del plan')->setStart(1, 10)->setEnd(31, 10);
+        $teacher  = $this->teacher('docente');
+        $year     = (new \App\Entity\AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $year->addTeacher($teacher);
+        $this->persist($centre, $year, $category, $activity, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('MyActivitiesComponent', ['centre' => $centre], $this->client);
+        self::assertCount(1, $component->render()->crawler()->filter('button[data-live-action-param=markDone]'), 'the same shortcut as the dashboard');
+
+        $component->call('markDone', ['activityId' => $activity->getId()->toRfc4122()]);
+        $crawler = $component->render()->crawler();
+        self::assertCount(0, $crawler->filter('button[data-live-action-param=markDone]'), 'done: nothing left to tick');
+        self::assertCount(1, $crawler->filter('button[data-live-action-param=undoDone]'));
+        $this->em->clear();
+        self::assertCount(1, $this->em->getRepository(ActivityCompletion::class)->findAll());
+
+        $component->call('undoDone');
+        $crawler = $component->render()->crawler();
+        self::assertCount(1, $crawler->filter('button[data-live-action-param=markDone]'), 'back to do');
+        $this->em->clear();
+        self::assertCount(0, $this->em->getRepository(ActivityCompletion::class)->findAll());
+    }
+
     public function testAnUnknownGroupFiltersNothing(): void
     {
         $centre  = $this->centre();
