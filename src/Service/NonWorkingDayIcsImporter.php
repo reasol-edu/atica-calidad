@@ -28,12 +28,17 @@ class NonWorkingDayIcsImporter
         $seen     = [];
 
         foreach ($iCal->events() as $event) {
-            if (!$event instanceof Event || !is_string($event->dtstart)) {
+            if (!$event instanceof Event) {
                 continue;
             }
 
-            $date = \DateTimeImmutable::createFromMutable($iCal->iCalDateToDateTime($event->dtstart))
-                ->setTime(0, 0);
+            // An event without a readable start date (the parser answers false) has no day to add.
+            $start = $iCal->iCalDateToDateTime($event->dtstart);
+            if ($start === false) {
+                continue;
+            }
+
+            $date = \DateTimeImmutable::createFromMutable($start)->setTime(0, 0);
             $dateKey = $date->format('Y-m-d');
 
             if (isset($seen[$dateKey]) || $this->nonWorkingDays->findByAcademicYearAndDate($year, $date) !== null) {
@@ -43,9 +48,8 @@ class NonWorkingDayIcsImporter
 
             $seen[$dateKey] = true;
 
-            $summary     = is_string($event->summary) ? $event->summary : '';
-            $eventDesc   = is_string($event->description) ? $event->description : '';
-            $description = trim($eventDesc !== '' ? $eventDesc : $summary);
+            $eventDesc   = $event->description ?? '';
+            $description = trim($eventDesc !== '' ? $eventDesc : $event->summary);
 
             $nonWorkingDay = (new NonWorkingDay())
                 ->setDate($date)
