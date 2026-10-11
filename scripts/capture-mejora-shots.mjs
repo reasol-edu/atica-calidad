@@ -114,7 +114,8 @@ await page.click('a:has-text("Revisar con cada departamento el calendario de ent
 await page.waitForLoadState('networkidle');
 await shot('mejora-accion', { fullPage: true });
 
-await page.click('button[aria-label="Notificaciones"]');
+// The label carries the counts now («Notificaciones: 2 urgentes…»), so match its start.
+await page.click('button[aria-label^="Notificaciones"]');
 await page.waitForTimeout(300);
 await shot('mejora-campana');
 

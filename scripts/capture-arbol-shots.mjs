@@ -43,7 +43,8 @@ await hideToolbar();
 await page.screenshot({ path: `${outDir}/arbol-editar.png` });
 
 // ── Navigate to Ver → 8. Operación → 8.1 → Programaciones didácticas ────────
-await page.click('text=Ver');
+// The «Ver» tab itself (a bare text=Ver also matches «Ver todas mis actividades» in the bell).
+await page.click('main a:text-is("Ver")');
 await page.waitForTimeout(200);
 await page.click('text=8. Operación');
 await page.waitForSelector('text=8.1 Planificación y control operacional');
@@ -102,7 +103,7 @@ await page.screenshot({ path: `${outDir}/arbol-revisiones.png` });
 // ── 5. Global search ──────────────────────────────────────────────────────────
 await page.click('text=Raíz');
 await page.waitForLoadState('networkidle');
-await page.fill('input[placeholder*="Buscar documentos"]', 'program');
+await page.fill('input[aria-label="Buscar en todo el árbol documental"]', 'program');
 await page.waitForTimeout(1500);
 await hideToolbar();
 await page.screenshot({ path: `${outDir}/arbol-busqueda-global.png` });
