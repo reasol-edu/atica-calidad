@@ -9,6 +9,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Fixed
 
+- El arranque del ejecutable autónomo fallaba al precalentar la caché con «Allowed memory size of
+  134217728 bytes exhausted»: el PHP de línea de comandos del binario no trae `php.ini` y usa 128 MB,
+  y el precalentamiento necesita unos 160 MB. `bin/console` sube ahora el límite a 512 MB (nunca
+  lo baja si ya es mayor), así que también vale para instalaciones cuyo script de arranque se generó
+  antes.
 - El script de actualización (`update-ubuntu.sh`) se renueva solo: antes de actualizar descarga la
   versión publicada de sí mismo y, si difiere, se sustituye y se relanza. La copia que usa el
   temporizador de systemd se descargaba una sola vez, y una copia anterior al borrado de ficheros

@@ -4,6 +4,24 @@
 use App\Kernel;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 
+// The CLI of the standalone FrankenPHP binary ships no php.ini, so it runs with PHP's default 128M,
+// and warming the production cache (cache:warmup, run on every start) needs about 160M and grows
+// with the code. Raise it here, which travels with the package, instead of in each start script
+// (those are generated once at install time and not refreshed by updates). Never lower a limit
+// that is already higher or unlimited.
+$memoryLimit = trim((string) ini_get('memory_limit'));
+if ($memoryLimit !== '-1' && (int) $memoryLimit > 0) {
+    $bytes = (int) $memoryLimit * match (strtolower(substr($memoryLimit, -1))) {
+        'g'     => 1024 ** 3,
+        'm'     => 1024 ** 2,
+        'k'     => 1024,
+        default => 1,
+    };
+    if ($bytes < 512 * 1024 ** 2) {
+        ini_set('memory_limit', '512M');
+    }
+}
+
 if (!is_dir(dirname(__DIR__).'/vendor')) {
     throw new LogicException('Dependencies are missing. Try running "composer install".');
 }
