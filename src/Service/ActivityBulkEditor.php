@@ -90,7 +90,8 @@ final class ActivityBulkEditor
             $activity = $row->activity;
             $before   = $this->changes->snapshot($activity, [$tracked]);
             match ($plan->action) {
-                self::MOVE       => $activity->setCategory($target)->setPosition($nextPosition++),
+                // $target is never null here (a move without one returned above); said out loud so it holds on its own.
+                self::MOVE       => $activity->setCategory($target ?? throw new \LogicException('A move needs its target category.'))->setPosition($nextPosition++),
                 self::VISIBILITY => $activity->setHidden($plan->params['visibility'] === 'hidden'),
                 self::DEADLINE   => $activity->setStart((int) $plan->params['startDay'], (int) $plan->params['startMonth'])
                     ->setEnd((int) $plan->params['endDay'], (int) $plan->params['endMonth']),
