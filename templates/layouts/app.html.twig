@@ -1,5 +1,17 @@
 {% extends 'base.html.twig' %}
 
+{# One entry of the sidebar navigation: highlighted when the current route starts with `prefix`. #}
+{% macro nav_item(label, route, icon, current_route, prefix) %}
+    {% set is_active = current_route starts with prefix %}
+    <a href="{{ route }}"
+       {{ is_active ? 'aria-current="page"' : '' }}
+       class="{{ is_active ? 'bg-forest-800 text-white border-l-2 border-forest-300' : 'text-forest-100 hover:bg-forest-900 hover:text-white border-l-2 border-transparent' }}
+              group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
+        {{ ux_icon(icon, {class: 'h-5 w-5 shrink-0'}) }}
+        <span class="truncate">{{ label }}</span>
+    </a>
+{% endmacro %}
+
 {% block body %}
 {% set current_route = app.request.attributes.get('_route') %}
 {% set active_centre = active_centre() %}
@@ -89,17 +101,6 @@
 
         {# Main navigation #}
         <nav class="flex-1 overflow-y-auto px-3 py-4">
-
-            {% macro nav_item(label, route, icon, current_route, prefix) %}
-                {% set is_active = current_route starts with prefix %}
-                <a href="{{ route }}"
-                   {{ is_active ? 'aria-current="page"' : '' }}
-                   class="{{ is_active ? 'bg-forest-800 text-white border-l-2 border-forest-300' : 'text-forest-100 hover:bg-forest-900 hover:text-white border-l-2 border-transparent' }}
-                          group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
-                    {{ ux_icon(icon, {class: 'h-5 w-5 shrink-0'}) }}
-                    <span class="truncate">{{ label }}</span>
-                </a>
-            {% endmacro %}
 
             {# Home #}
             {{ _self.nav_item(

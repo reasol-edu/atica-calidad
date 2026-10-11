@@ -11,11 +11,6 @@
    no JS needed for adding a row, only for showing the right fields for a period's chosen mode
    (mode_switch_controller.js, shared with the date calculator's own mode switch).
 #}
-{% block content %}
-{% set field = 'block w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
-{% set label = 'block text-xs font-medium text-gray-600' %}
-{% set cid = calendar ? calendar.id.toRfc4122 : '' %}
-
 {% macro weekday_hours(i, row) %}
     <div class="grid grid-cols-5 gap-2">
         {% for key, prop in {1: 'mondayHours', 2: 'tuesdayHours', 3: 'wednesdayHours', 4: 'thursdayHours', 5: 'fridayHours'} %}
@@ -27,6 +22,11 @@
         {% endfor %}
     </div>
 {% endmacro %}
+
+{% block content %}
+{% set field ='block w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20' %}
+{% set label = 'block text-xs font-medium text-gray-600' %}
+{% set cid = calendar ? calendar.id.toRfc4122 : '' %}
 
 <div class="px-4 sm:px-6 py-8 max-w-4xl mx-auto space-y-6">
 

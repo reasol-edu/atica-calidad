@@ -1,3 +1,7 @@
+{% macro section(key) %}
+    <h3 class="sm:col-span-2 mt-2 border-b border-gray-100 pb-1 text-xs font-semibold uppercase tracking-wider text-forest-700">{{ ('activity.section.' ~ key)|trans({}, 'admin') }}</h3>
+{% endmacro %}
+{% import _self as form %}
 {% set editing = formActivityId != '' %}
 <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
     <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
@@ -11,11 +15,6 @@
     <form data-action="submit->live#action:prevent" data-live-action-param="saveActivity" class="px-4 py-4 sm:px-6 space-y-4"
           data-controller="scroll-to-error" data-scroll-to-error-token-value="{{ saveAttempt }}">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {% macro section(key) %}
-                <h3 class="sm:col-span-2 mt-2 border-b border-gray-100 pb-1 text-xs font-semibold uppercase tracking-wider text-forest-700">{{ ('activity.section.' ~ key)|trans({}, 'admin') }}</h3>
-            {% endmacro %}
-            {% import _self as form %}
-
             {{ form.section('what') }}
             <div class="sm:col-span-2">
                 <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.title'|trans({}, 'admin') }}</label>
