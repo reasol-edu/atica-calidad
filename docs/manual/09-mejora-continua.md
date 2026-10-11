@@ -35,7 +35,7 @@ El botón **Comunicar incidencia** está en la portada de Mejora continua y en l
   cuándo y dónde.
 - **¿Dónde?** — el proceso o apartado del [árbol documental](07-arbol-documental.md) al que afecta,
   si se sabe. Si no, «No lo sé / otro».
-- **Fotos o documentos** (opcional) — hasta 5 ficheros de 20 MB como máximo cada uno.
+- **Fotos o documentos** (opcional) — hasta 5 ficheros, cada uno dentro del tamaño máximo por fichero (20 MB por defecto).
 
 Al enviarla, la ficha queda **Comunicada** y la coordinación de calidad recibe un aviso. Quien la
 comunicó recibe otro cuando se descarta o se resuelve.

@@ -23,6 +23,7 @@ use App\Service\DocumentReviewNotifier;
 use App\Service\DocumentRevisionReviewer;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\FolderZipExporter;
+use App\Service\UploadLimits;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -43,9 +44,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 class FolderController extends AbstractController
 {
     use TranslatorTrait;
-    use UploadSizeGuardTrait;
-
-    private const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024;
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -61,6 +59,7 @@ class FolderController extends AbstractController
         private readonly FolderZipExporter $folderZipExporter,
         private readonly ActivityLogger $activityLogger,
         private readonly ActivitySubmissionFilenameBuilder $submissionFilename,
+        private readonly UploadLimits $uploadLimits,
     ) {}
 
     /**
@@ -76,12 +75,6 @@ class FolderController extends AbstractController
         $teacher = $this->requireTeacher();
         $this->denyAccessUnlessGranted(FolderVoter::UPLOAD, $folder);
 
-        if ($this->isUploadTooLarge($request)) {
-            $this->addFlash('error', $this->t('upload.error.too_large'));
-
-            return $this->redirectToFolder($folder, $request);
-        }
-
         if (!$this->isCsrfTokenValid('folder_upload_' . $folderId, $request->request->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
@@ -89,6 +82,13 @@ class FolderController extends AbstractController
         $uploadedFiles = $request->files->all('files');
         if ($uploadedFiles === []) {
             $this->addFlash('error', $this->t('upload.error.no_file'));
+
+            return $this->redirectToFolder($folder, $request);
+        }
+
+        $problems = $this->uploadLimits->validate($uploadedFiles);
+        if ($problems !== []) {
+            $this->addFlash('error', implode(' ', $problems));
 
             return $this->redirectToFolder($folder, $request);
         }
@@ -104,13 +104,6 @@ class FolderController extends AbstractController
             if (!$file instanceof UploadedFile || !$file->isValid()) {
                 continue;
             }
-            if ($file->getSize() > self::MAX_DOCUMENT_SIZE) {
-                $this->addFlash('error', $this->translator->trans('upload.error.file_too_large', [
-                    '%filename%' => $file->getClientOriginalName(),
-                ], 'document_content'));
-
-                return $this->redirectToFolder($folder, $request);
-            }
             if (!$folder->acceptsFile($file->getClientOriginalName(), $file->getMimeType() ?? '')) {
                 $this->addFlash('error', $this->translator->trans('upload.error.file_format_not_allowed', [
                     '%filename%' => $file->getClientOriginalName(),
@@ -119,7 +112,7 @@ class FolderController extends AbstractController
                 return $this->redirectToFolder($folder, $request);
             }
 
-            $item    = $items[$i] ?? [];
+            $item   = $items[$i] ?? [];
             $name    = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
             $version = max(1, (int) ($item['version'] ?? 1));
 
@@ -179,24 +172,19 @@ class FolderController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        if ($this->isUploadTooLarge($request)) {
-            $this->addFlash('error', $this->t('upload.error.too_large'));
-
-            return $this->redirectToFolder($folder, $request);
-        }
-
         if (!$this->isCsrfTokenValid('folder_document_revision_' . $documentId, $request->request->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
 
-        $file = $request->files->get('file');
-        if (!$file instanceof UploadedFile || !$file->isValid()) {
-            $this->addFlash('error', $this->t('upload.error.no_file'));
+        $file    = $request->files->get('file');
+        $problem = $this->uploadLimits->fileProblem($file);
+        if ($problem !== null) {
+            $this->addFlash('error', $problem);
 
             return $this->redirectToFolder($folder, $request);
         }
-        if ($file->getSize() > self::MAX_DOCUMENT_SIZE) {
-            $this->addFlash('error', $this->t('upload.error.too_large'));
+        if (!$file instanceof UploadedFile || !$file->isValid()) {
+            $this->addFlash('error', $this->t('upload.error.no_file'));
 
             return $this->redirectToFolder($folder, $request);
         }

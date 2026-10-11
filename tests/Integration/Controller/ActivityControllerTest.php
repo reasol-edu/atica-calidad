@@ -403,7 +403,7 @@ final class ActivityControllerTest extends ControllerTestCase
 
     /**
      * A file large enough to trip either size guard (the Content-Length/post_max_size check or the
-     * per-file MAX_SUBMISSION_SIZE one — whichever fires first under this environment's php.ini)
+     * per-file limit of UploadLimits — whichever fires first under this environment's php.ini)
      * must be rejected without creating anything.
      */
     public function testUploadSubmissionsRejectsAnOversizedFileAndCreatesNothing(): void

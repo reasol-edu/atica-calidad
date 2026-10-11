@@ -10,6 +10,7 @@ use App\Repository\EducationalCentreRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Service\ListItemJsonExporter;
 use App\Service\ListItemJsonImporter;
+use App\Service\UploadLimits;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -28,6 +29,7 @@ class ListItemController extends AbstractController
         private readonly ListItemJsonExporter $exporter,
         private readonly ListItemJsonImporter $importer,
         private readonly TranslatorInterface $translator,
+        private readonly UploadLimits $uploadLimits,
     ) {}
 
     #[Route('', name: 'app_responsibilities_lists')]
@@ -66,7 +68,7 @@ class ListItemController extends AbstractController
 
         $file = $request->files->get('json');
         if (!$file instanceof UploadedFile || !$file->isValid()) {
-            $this->addFlash('error', $this->t('responsibilities.lists.import.error.no_file'));
+            $this->addFlash('error', $this->uploadLimits->fileProblem($file) ?? $this->t('responsibilities.lists.import.error.no_file'));
 
             return $this->render('admin/list_item/import.html.twig', ['centre' => $centre]);
         }

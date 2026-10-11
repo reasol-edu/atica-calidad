@@ -10,6 +10,7 @@ use App\Security\Voter\EducationalCentreVoter;
 use App\Service\ActivityLogger;
 use App\Service\DocumentSectionJsonExporter;
 use App\Service\DocumentSectionJsonImporter;
+use App\Service\UploadLimits;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,6 +28,7 @@ class DocumentTreeController extends AbstractController
         private readonly DocumentSectionJsonImporter $importer,
         private readonly TranslatorInterface $translator,
         private readonly ActivityLogger $activityLogger,
+        private readonly UploadLimits $uploadLimits,
     ) {}
 
     #[Route('/arbol-documental', name: 'app_document_tree')]
@@ -72,7 +74,7 @@ class DocumentTreeController extends AbstractController
 
         $file = $request->files->get('json');
         if (!$file instanceof UploadedFile || !$file->isValid()) {
-            $this->addFlash('error', $this->t('document_section.import.error.no_file'));
+            $this->addFlash('error', $this->uploadLimits->fileProblem($file) ?? $this->t('document_section.import.error.no_file'));
 
             return $this->render('document_tree/import.html.twig', ['centre' => $centre]);
         }

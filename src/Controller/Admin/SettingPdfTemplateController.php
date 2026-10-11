@@ -6,7 +6,6 @@ namespace App\Controller\Admin;
 
 use App\Attribute\CurrentCentre;
 use App\Controller\TranslatorTrait;
-use App\Controller\UploadSizeGuardTrait;
 use App\Entity\CentreSettingValue;
 use App\Entity\EducationalCentre;
 use App\Entity\SettingDefinition;
@@ -21,6 +20,7 @@ use App\Service\AttachmentDownloadResponder;
 use App\Service\PdfTemplateValidationError;
 use App\Service\PdfTemplateValidator;
 use App\Service\SettingFileGarbageCollector;
+use App\Service\UploadLimits;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -33,9 +33,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 class SettingPdfTemplateController extends AbstractController
 {
     use TranslatorTrait;
-    use UploadSizeGuardTrait;
-
-    private const MAX_TEMPLATE_SIZE = 10 * 1024 * 1024;
 
     /** Settings whose expected orientation is landscape; the rest are validated as portrait. */
     private const LANDSCAPE_KEYS = ['reports.pdf_template_landscape'];
@@ -50,6 +47,7 @@ class SettingPdfTemplateController extends AbstractController
         private readonly AttachmentDownloadResponder $downloadResponder,
         private readonly AppSettings $appSettings,
         private readonly EntityManagerInterface $em,
+        private readonly UploadLimits $uploadLimits,
     ) {}
 
     #[Route('/subir', name: 'app_settings_pdf_template_upload', methods: ['POST'])]
@@ -58,25 +56,20 @@ class SettingPdfTemplateController extends AbstractController
         $this->denyAccessUnlessGranted(EducationalCentreVoter::SECTION, $centre);
         $definition = $this->requireDefinition($key);
 
-        if ($this->isUploadTooLarge($request)) {
-            $this->addFlash('error', $this->t('settings.pdf_template.error.too_large'));
-
-            return $this->redirectToCentreSettings($centre);
-        }
-
         if (!$this->isCsrfTokenValid('settings_pdf_template_' . $key, $request->request->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
 
-        $file = $request->files->get('file');
-        if (!$file instanceof UploadedFile || !$file->isValid()) {
-            $this->addFlash('error', $this->t('settings.pdf_template.error.no_file'));
+        $file    = $request->files->get('file');
+        $problem = $this->uploadLimits->fileProblem($file);
+        if ($problem !== null) {
+            $this->addFlash('error', $problem);
 
             return $this->redirectToCentreSettings($centre);
         }
 
-        if ($file->getSize() > self::MAX_TEMPLATE_SIZE) {
-            $this->addFlash('error', $this->t('settings.pdf_template.error.too_large'));
+        if (!$file instanceof UploadedFile || !$file->isValid()) {
+            $this->addFlash('error', $this->t('settings.pdf_template.error.no_file'));
 
             return $this->redirectToCentreSettings($centre);
         }

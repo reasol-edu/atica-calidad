@@ -19,6 +19,7 @@ use App\Service\AttachmentDownloadResponder;
 use App\Service\FindingService;
 use App\Service\QualityTaskFinder;
 use App\Service\SectionChoiceBuilder;
+use App\Service\UploadLimits;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,11 +36,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[Route('/mejora')]
 class QualityController extends AbstractController
 {
-    use UploadSizeGuardTrait;
-
-    /** Most files per report or per upload, and the size of each. */
-    public const int MAX_FILES     = 5;
-    public const int MAX_FILE_SIZE = 20 * 1024 * 1024;
+    /** Most files per report or per upload (the size limits come from UploadLimits). */
+    public const int MAX_FILES = 5;
 
     public function __construct(
         private readonly FindingRepository $findings,
@@ -51,6 +49,7 @@ class QualityController extends AbstractController
         private readonly SectionChoiceBuilder $sectionChoices,
         private readonly AttachmentDownloadResponder $downloadResponder,
         private readonly TranslatorInterface $translator,
+        private readonly UploadLimits $uploadLimits,
     ) {}
 
     #[Route('', name: 'app_quality_index')]
@@ -77,9 +76,7 @@ class QualityController extends AbstractController
         $values  = ['description' => '', 'section' => ''];
 
         if ($request->isMethod('POST')) {
-            if ($this->isUploadTooLarge($request)) {
-                $errors['files'] = $this->t('report.error.too_large');
-            } elseif (!$this->isCsrfTokenValid('quality_report', $request->request->getString('_token'))) {
+            if (!$this->isCsrfTokenValid('quality_report', $request->request->getString('_token'))) {
                 throw $this->createAccessDeniedException();
             } else {
                 $values = ['description' => trim($request->request->getString('description')), 'section' => $request->request->getString('section')];
@@ -179,11 +176,6 @@ class QualityController extends AbstractController
 
     private function upload(Request $request, string $tokenId, ?Finding $finding, ?ImprovementAction $action): void
     {
-        if ($this->isUploadTooLarge($request)) {
-            $this->addFlash('error', $this->t('report.error.too_large'));
-
-            return;
-        }
         if (!$this->isCsrfTokenValid($tokenId, $request->request->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
@@ -202,7 +194,8 @@ class QualityController extends AbstractController
     }
 
     /**
-     * The request's "files[]", checked: at most MAX_FILES, each within MAX_FILE_SIZE.
+     * The request's "files[]", checked: at most MAX_FILES, each and all together within the upload
+     * limits (a file PHP rejected is reported, never dropped silently).
      *
      * @param array<string, string> $errors
      *
@@ -219,12 +212,12 @@ class QualityController extends AbstractController
 
             return [];
         }
-        foreach ($files as $file) {
-            if (!$file->isValid() || $file->getSize() > self::MAX_FILE_SIZE) {
-                $errors['files'] = $this->translator->trans('report.error.file', ['%name%' => $file->getClientOriginalName()], 'quality');
 
-                return [];
-            }
+        $problems = $this->uploadLimits->validate($files);
+        if ($problems !== []) {
+            $errors['files'] = implode(' ', $problems);
+
+            return [];
         }
 
         return $files;

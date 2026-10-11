@@ -22,6 +22,7 @@ use App\Service\DocumentCreationService;
 use App\Service\DocumentRevisionReviewer;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\NotificationMailer;
+use App\Service\UploadLimits;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -48,9 +49,6 @@ use Twig\Environment;
 class ActivityController extends AbstractController
 {
     use TranslatorTrait;
-    use UploadSizeGuardTrait;
-
-    private const MAX_SUBMISSION_SIZE = 20 * 1024 * 1024;
 
     /** Longest message a manual reminder can carry, in characters. */
     private const MAX_REMINDER_MESSAGE = 1000;
@@ -71,6 +69,7 @@ class ActivityController extends AbstractController
         private readonly NotificationMailer $mailer,
         private readonly Environment $twig,
         private readonly RateLimiterFactoryInterface $activityReminderLimiter,
+        private readonly UploadLimits $uploadLimits,
     ) {}
 
     /**
@@ -245,12 +244,6 @@ class ActivityController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        if ($this->isUploadTooLarge($request)) {
-            $this->addFlash('error', $this->t('upload.error.too_large'));
-
-            return $this->backAfterUpload($request, $activity);
-        }
-
         if (!$this->isCsrfTokenValid('activity_submission_upload_' . $activityId, $request->request->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
@@ -263,6 +256,13 @@ class ActivityController extends AbstractController
         $uploadedFiles = $request->files->all('files');
         if ($uploadedFiles === []) {
             $this->addFlash('error', $this->t('upload.error.no_file'));
+
+            return $this->backAfterUpload($request, $activity);
+        }
+
+        $problems = $this->uploadLimits->validate($uploadedFiles);
+        if ($problems !== []) {
+            $this->addFlash('error', implode(' ', $problems));
 
             return $this->backAfterUpload($request, $activity);
         }
@@ -282,13 +282,6 @@ class ActivityController extends AbstractController
         foreach ($uploadedFiles as $i => $file) {
             if (!$file instanceof UploadedFile || !$file->isValid()) {
                 continue;
-            }
-            if ($file->getSize() > self::MAX_SUBMISSION_SIZE) {
-                $this->addFlash('error', $this->translator->trans('upload.error.file_too_large', [
-                    '%filename%' => $file->getClientOriginalName(),
-                ], 'activity_content'));
-
-                return $this->backAfterUpload($request, $activity);
             }
             if (!$folder->acceptsFile($file->getClientOriginalName(), $file->getMimeType() ?? '')) {
                 $this->addFlash('error', $this->translator->trans('upload.error.file_format_not_allowed', [

@@ -247,10 +247,12 @@ final class FolderControllerTest extends ControllerTestCase
             "/arbol-documental/carpetas/{$folderId}/subir",
             ['_token' => $this->csrfToken('folder_upload_' . $folderId)],
             ['files' => [0 => $this->uploadedFile('contenido')]],
-            ['CONTENT_LENGTH' => (string) ($postMaxSize + 1)],
+            ['CONTENT_LENGTH' => (string) ($postMaxSize + 1), 'CONTENT_TYPE' => 'multipart/form-data; boundary=test'],
         );
 
         self::assertTrue($this->client->getResponse()->isRedirect());
+        $this->client->followRedirect();
+        self::assertStringContainsString('supera el máximo permitido', (string) $this->client->getResponse()->getContent());
 
         $this->em->clear();
         /** @var DocumentRepository $documents */

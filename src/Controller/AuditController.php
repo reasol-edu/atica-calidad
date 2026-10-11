@@ -23,6 +23,7 @@ use App\Service\PdfRenderer;
 use App\Service\ResponsibleChoices;
 use App\Service\SectionChoiceBuilder;
 use App\Service\TenantContext;
+use App\Service\UploadLimits;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -43,8 +44,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[Route('/mejora/auditorias')]
 class AuditController extends AbstractController
 {
-    use UploadSizeGuardTrait;
-
     public function __construct(
         private readonly AuditProgramRepository $programs,
         private readonly AuditRepository $audits,
@@ -58,6 +57,7 @@ class AuditController extends AbstractController
         private readonly TenantContext $tenantContext,
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
+        private readonly UploadLimits $uploadLimits,
     ) {}
 
     #[Route('', name: 'app_quality_audits')]
@@ -300,14 +300,15 @@ class AuditController extends AbstractController
         $item  = $this->audits->findItemByIdAndCentre($itemId, $centre) ?? throw $this->createNotFoundException();
         $audit = $this->requireWorkable($item->getAudit()->getId()->toRfc4122(), $centre, [AuditStatus::InProgress]);
         $back  = $this->redirectToRoute('app_quality_audit_perform', ['id' => $audit->getId()->toRfc4122(), '_fragment' => 'punto-' . $itemId]);
-        if ($this->isUploadTooLarge($request)) {
-            $this->addFlash('error', $this->translator->trans('report.error.too_large', [], 'quality'));
+        $this->checkToken($request, 'quality_audit_item_' . $itemId);
+
+        $files = array_values(array_filter($request->files->all('files'), static fn (mixed $f): bool => $f instanceof UploadedFile && $f->getError() !== \UPLOAD_ERR_NO_FILE));
+        $problems = $this->uploadLimits->validate($files);
+        if ($problems !== []) {
+            $this->addFlash('error', implode(' ', $problems));
 
             return $back;
         }
-        $this->checkToken($request, 'quality_audit_item_' . $itemId);
-
-        $files = array_values(array_filter($request->files->all('files'), static fn (mixed $f): bool => $f instanceof UploadedFile && $f->isValid() && $f->getSize() <= QualityController::MAX_FILE_SIZE));
         if ($files === [] || \count($files) > QualityController::MAX_FILES) {
             $this->addFlash('error', $this->translator->trans('attachment.error.none', [], 'quality'));
 

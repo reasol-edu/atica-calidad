@@ -1,8 +1,9 @@
-{% props id, name, max_size_mb = 10 %}
+{% props id, name %}
+{% set limits = upload_limits() %}
 <div data-controller="file-drop"
      data-file-drop-single-value="true"
-     data-file-drop-max-size-value="{{ max_size_mb * 1024 * 1024 }}"
-     data-file-drop-too-large-message-value="{{ 'settings.pdf_template.dropzone_too_large'|trans({'%filename%': '%filename%', '%max%': max_size_mb ~ ' MB'}, 'settings') }}">
+     data-file-drop-max-size-value="{{ limits.maxFileBytes }}"
+     data-file-drop-too-large-message-value="{{ 'settings.pdf_template.dropzone_too_large'|trans({'%filename%': '%filename%', '%max%': limits.formatSize(limits.maxFileBytes)}, 'settings') }}">
 
     <div data-file-drop-target="dropzone"
          data-action="dragenter->file-drop#dragEnter dragover->file-drop#dragOver dragleave->file-drop#dragLeave drop->file-drop#drop click->file-drop#triggerBrowse"

@@ -157,7 +157,7 @@ las carpetas, siempre, aunque no aparezcan en ninguna de las listas.
 ### Subir un documento
 
 Con permiso de subida en una carpeta (responsable o perfil de subida), aparece una zona para
-arrastrar ficheros o hacer clic para seleccionarlos (tamaño máximo: 20 MB por fichero; el tipo es
+arrastrar ficheros o hacer clic para seleccionarlos (tamaño máximo: 20 MB por fichero y 100 MB por envío, configurable por un administrador; el tipo es
 libre salvo que la carpeta tenga configurados **formatos de fichero aceptados**, en cuyo caso se
 rechaza cualquier fichero que no encaje en ninguno). Si la carpeta tiene esa restricción, un aviso
 **«Formatos aceptados: ...»** aparece encima del listado de documentos, antes de intentar subir

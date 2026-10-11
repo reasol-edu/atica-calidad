@@ -14,6 +14,7 @@ use App\Repository\TeacherRepository;
 use App\Service\CentreTeacherImporter;
 use App\Service\TeacherImportRow;
 use App\Service\TenantContext;
+use App\Service\UploadLimits;
 use Symfony\Component\Uid\Uuid;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -39,6 +40,7 @@ class CentreTeacherController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly TenantContext $tenantContext,
         private readonly CentreTeacherImporter $importer,
+        private readonly UploadLimits $uploadLimits,
     ) {}
 
     #[Route('', name: 'app_centre_teachers_index')]
@@ -150,7 +152,7 @@ class CentreTeacherController extends AbstractController
 
         $file = $request->files->get('csv');
         if (!$file instanceof UploadedFile || !$file->isValid()) {
-            $this->addFlash('error', $this->t('centre_teachers.import.error.no_file'));
+            $this->addFlash('error', $this->uploadLimits->fileProblem($file) ?? $this->t('centre_teachers.import.error.no_file'));
 
             return $this->render('admin/centre_teacher/import.html.twig', ['centre' => $centre]);
         }

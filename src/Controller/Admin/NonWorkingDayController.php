@@ -13,6 +13,7 @@ use App\Security\Voter\EducationalCentreVoter;
 use App\Service\NonWorkingDayCsvImporter;
 use App\Service\NonWorkingDayIcsImporter;
 use App\Service\TenantContext;
+use App\Service\UploadLimits;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -34,6 +35,7 @@ class NonWorkingDayController extends AbstractController
         private readonly NonWorkingDayIcsImporter $icsImporter,
         private readonly NonWorkingDayCsvImporter $csvImporter,
         private readonly TranslatorInterface $translator,
+        private readonly UploadLimits $uploadLimits,
     ) {}
 
     #[Route('', name: 'app_centre_non_working_days_index')]
@@ -184,7 +186,7 @@ class NonWorkingDayController extends AbstractController
 
         $file = $request->files->get('ics');
         if (!$file instanceof UploadedFile || !$file->isValid()) {
-            $this->addFlash('error', $this->t('non_working_day.import.error.no_file'));
+            $this->addFlash('error', $this->uploadLimits->fileProblem($file) ?? $this->t('non_working_day.import.error.no_file'));
 
             return $this->render('admin/non_working_day/import.html.twig', ['centre' => $centre]);
         }
@@ -220,7 +222,7 @@ class NonWorkingDayController extends AbstractController
 
         $file = $request->files->get('csv');
         if (!$file instanceof UploadedFile || !$file->isValid()) {
-            $this->addFlash('error', $this->t('non_working_day.import.error.no_file'));
+            $this->addFlash('error', $this->uploadLimits->fileProblem($file) ?? $this->t('non_working_day.import.error.no_file'));
 
             return $this->redirectToRoute('app_centre_non_working_days_import', ['centreId' => $centreId]);
         }

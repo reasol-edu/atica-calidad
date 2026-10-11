@@ -1,0 +1,10 @@
+error.file_too_large: '«%filename%» supera el tamaño máximo permitido (%max%).'
+error.partial: '«%filename%» no se ha recibido completo. Inténtalo de nuevo.'
+error.not_saved: 'El servidor no ha podido guardar «%filename%». Inténtalo de nuevo o avisa a un administrador.'
+error.too_many_files: 'Has seleccionado demasiados ficheros: el máximo por envío es %max%.'
+error.total_too_large: 'Los ficheros suman %total% y el máximo por envío es %max%. Súbelos en varios envíos.'
+error.request_too_large: 'El envío ocupa %size% y supera el máximo permitido (%max%). No se ha guardado nada: súbelo en varios envíos o con menos ficheros.'
+
+client.total_too_large: 'Los ficheros suman %total% y el máximo por envío es %max%.'
+client.too_many: 'Has seleccionado demasiados ficheros: el máximo por envío es %max%.'
+help: 'Hasta %max% por fichero y %total% en total por envío.'

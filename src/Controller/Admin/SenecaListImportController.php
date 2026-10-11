@@ -11,6 +11,7 @@ use App\Repository\EducationalCentreRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Service\SenecaListCsvParser;
 use App\Service\SenecaListImporter;
+use App\Service\UploadLimits;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
@@ -36,6 +37,7 @@ class SenecaListImportController extends AbstractController
         private readonly SenecaListCsvParser $parser,
         private readonly SenecaListImporter $importer,
         private readonly TranslatorInterface $translator,
+        private readonly UploadLimits $uploadLimits,
     ) {}
 
     #[Route('/importar-grupos-seneca', name: 'app_responsibilities_lists_import_seneca_groups')]
@@ -79,7 +81,7 @@ class SenecaListImportController extends AbstractController
     {
         $file = $request->files->get('csv');
         if (!$file instanceof UploadedFile || !$file->isValid()) {
-            $this->addFlash('error', $this->t('responsibilities.lists.import_seneca.error.no_file'));
+            $this->addFlash('error', $this->uploadLimits->fileProblem($file) ?? $this->t('responsibilities.lists.import_seneca.error.no_file'));
 
             return $this->renderForm($centre, $kind, $rootName);
         }

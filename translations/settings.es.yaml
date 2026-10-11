@@ -24,6 +24,7 @@ settings.category.report_templates.label: 'Plantillas de informes'
 settings.category.audit.label: 'Registro de actividad'
 settings.category.security.label: 'Seguridad'
 settings.category.trash.label: 'Papelera'
+settings.category.uploads.label: 'Subida de ficheros'
 settings.category.quality.label: 'Mejora continua'
 
 # ── Definiciones de ajustes ───────────────────────────────────────────────────
@@ -50,6 +51,11 @@ settings.key.quality_measurement_days.description: 'Desde que termina un periodo
 
 settings.key.notifications_quality_notifications_enabled.label: 'Avisos de Mejora continua'
 settings.key.notifications_quality_notifications_enabled.description: 'Avisa por correo cuando te toca algo en Mejora continua (clasificar, analizar, hacer una acción, verificar) y cuando se resuelve una incidencia que comunicaste.'
+
+settings.key.uploads_max_file_size_mb.label: 'Tamaño máximo por fichero (MB)'
+settings.key.uploads_max_file_size_mb.description: 'Tamaño máximo de cada fichero que se sube (documentos, entregas de actividades, adjuntos de Mejora continua, plantillas PDF e importaciones). No puede superar el límite de PHP del servidor (upload_max_filesize): si éste es menor, prevalece y los avisos muestran el máximo real.'
+settings.key.uploads_max_total_size_mb.label: 'Tamaño máximo total por envío (MB)'
+settings.key.uploads_max_total_size_mb.description: 'Suma máxima de los ficheros que se suben en un mismo envío del formulario. No puede superar el límite de PHP del servidor (post_max_size): si éste es menor, prevalece.'
 
 settings.key.trash_retention_days.label: 'Días en la papelera'
 settings.key.trash_retention_days.description: 'Días que se conservan en la papelera los documentos y las actividades eliminados antes de borrarse para siempre. Un valor de 0 desactiva el vaciado automático: solo se borran a mano desde la papelera.'
@@ -120,7 +126,6 @@ settings.pdf_template.upload: 'Subir'
 settings.pdf_template.flash.uploaded: 'Plantilla subida correctamente.'
 settings.pdf_template.flash.deleted: 'Plantilla eliminada.'
 settings.pdf_template.error.no_file: 'Selecciona un fichero PDF.'
-settings.pdf_template.error.too_large: 'El fichero supera el tamaño máximo permitido (10 MB).'
 settings.pdf_template.error.invalid_type: 'El fichero debe ser un PDF.'
 settings.pdf_template.error.invalid_pdf: 'El fichero no es un PDF válido o no se ha podido leer.'
 settings.pdf_template.error.multi_page: 'La plantilla debe tener una sola página; se usará como fondo de todas las páginas del informe.'

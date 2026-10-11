@@ -142,6 +142,26 @@ seguidos.
   centro, desde **Centro educativo → Ajustes del centro**, salvo que un administrador global haya
   bloqueado el ajuste. Cambiarlo afecta también a lo que ya está en la papelera.
 
+### Subida de ficheros {#subida-de-ficheros}
+
+- **Tamaño máximo por fichero (MB)** — de 1 a 1024; 20 por defecto.
+- **Tamaño máximo total por envío (MB)** — suma de los ficheros que se suben de una vez; de 1 a 2048;
+  100 por defecto.
+
+Solo a nivel global. Valen para los documentos del árbol documental, las entregas de actividades,
+los adjuntos de Mejora continua, las plantillas PDF y las importaciones. Si se supera cualquiera de
+los dos límites, la aplicación lo avisa antes de enviar el formulario y, si aun así llegara al
+servidor, vuelve a la página con un mensaje que indica el fichero afectado y el máximo permitido,
+sin perder la sesión.
+
+Estos ajustes no pueden superar los límites de PHP del servidor (`upload_max_filesize`,
+`post_max_size` y `max_file_uploads`): si éstos son menores, prevalecen y los avisos muestran el
+máximo real. Las instalaciones los traen configurados (32 MB por fichero, 128 MB por envío y 50
+ficheros): en el ejecutable para Linux y macOS, en la directiva `php_ini` del `Caddyfile`; en
+Docker y en Windows, en el `php.ini`. Si se suben los ajustes por encima de esos valores, hay que
+subir también los del servidor. Un envío muy superior a `post_max_size` puede cortarse en el
+navegador sin mensaje, por eso conviene respetar el aviso previo.
+
 ## Copias de seguridad
 
 Haz copia de seguridad con regularidad de:

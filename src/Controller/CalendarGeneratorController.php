@@ -18,6 +18,7 @@ use App\Repository\PrintableCalendarRepository;
 use App\Service\PdfRenderer;
 use App\Service\PrintableCalendarPdfBuilder;
 use App\Service\TenantContext;
+use App\Service\UploadLimits;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -49,6 +50,7 @@ class CalendarGeneratorController extends AbstractController
         private readonly PdfRenderer $pdf,
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
+        private readonly UploadLimits $uploadLimits,
     ) {}
 
     #[Route('', name: 'app_utilities_calendar_generator_index')]
@@ -183,7 +185,7 @@ class CalendarGeneratorController extends AbstractController
             $file = $request->files->get('json');
             $data = null;
             if (!$file instanceof UploadedFile || !$file->isValid()) {
-                $errors['file'] = $this->t('form.error.import_file');
+                $errors['file'] = $this->uploadLimits->fileProblem($file) ?? $this->t('form.error.import_file');
             } else {
                 $content = @file_get_contents($file->getPathname());
                 $decoded = $content !== false ? json_decode($content, true) : null;

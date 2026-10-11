@@ -41,11 +41,36 @@
             <p class="text-xs text-gray-500">{{ 'report.section_help'|trans({}, 'quality') }}</p>
         </div>
 
-        <div class="space-y-1.5">
+        <div class="space-y-1.5" data-controller="file-drop" data-file-drop-single-value="false"
+             data-file-drop-max-size-value="{{ upload_limits().maxFileBytes }}"
+             data-file-drop-max-total-value="{{ upload_limits().maxTotalBytes }}"
+             data-file-drop-max-files-value="{{ maxFiles }}"
+             data-file-drop-too-large-message-value="{{ 'error.file_too_large'|trans({'%filename%': '%filename%', '%max%': upload_limits().formatSize(upload_limits().maxFileBytes)}, 'uploads') }}"
+             data-file-drop-total-too-large-message-value="{{ 'client.total_too_large'|trans({'%total%': '%total%', '%max%': upload_limits().formatSize(upload_limits().maxTotalBytes)}, 'uploads') }}"
+             data-file-drop-too-many-message-value="{{ 'client.too_many'|trans({'%max%': maxFiles}, 'uploads') }}">
             <label for="report-files" class="block text-sm font-semibold text-gray-900">{{ 'report.files'|trans({}, 'quality') }} <span class="font-normal text-gray-500">{{ 'report.optional'|trans({}, 'quality') }}</span></label>
-            <input id="report-files" type="file" name="files[]" multiple
-                   class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-forest-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-forest-700 hover:file:bg-forest-100">
-            <p class="text-xs text-gray-500">{{ 'report.files_help'|trans({'%max%': maxFiles}, 'quality') }}</p>
+            <div data-file-drop-target="dropzone"
+                 data-action="dragenter->file-drop#dragEnter dragover->file-drop#dragOver dragleave->file-drop#dragLeave drop->file-drop#drop click->file-drop#triggerBrowse"
+                 class="flex items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-4 cursor-pointer hover:border-forest-300 hover:bg-forest-50/50 transition-colors">
+                {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
+                <span class="text-sm text-gray-500">{{ 'report.dropzone_hint'|trans({}, 'quality') }}</span>
+                <input id="report-files" type="file" name="files[]" multiple
+                       data-file-drop-target="input" data-action="change->file-drop#change" class="sr-only">
+            </div>
+            <div data-file-drop-target="list" class="space-y-1.5"></div>
+            <template data-file-drop-target="itemTemplate">
+                <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+                    {{ ux_icon('heroicons:document', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+                    <span class="text-sm text-gray-700 flex-1 truncate" data-role="name"></span>
+                    <span class="text-xs text-gray-400 shrink-0" data-role="size"></span>
+                    <button type="button" data-action="click->file-drop#removeFile" aria-label="{{ 'report.remove_file'|trans({}, 'quality') }}"
+                            class="shrink-0 text-gray-400 hover:text-red-600 transition-colors">
+                        {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
+                    </button>
+                </div>
+            </template>
+            <p data-file-drop-target="clientError" class="text-xs text-red-600 hidden"></p>
+            <p class="text-xs text-gray-500">{{ 'report.files_help'|trans({'%max%': maxFiles, '%size%': upload_limits().formatSize(upload_limits().maxFileBytes)}, 'quality') }}</p>
             {% if errors.files is defined %}<p class="text-xs text-red-600">{{ errors.files }}</p>{% endif %}
         </div>
 

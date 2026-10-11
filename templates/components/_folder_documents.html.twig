@@ -106,8 +106,12 @@
         <div class="px-4 py-3 bg-gray-50/40">
             <form action="{{ path('app_folder_upload', {folderId: fid}) }}" method="post" enctype="multipart/form-data"
                   data-controller="file-drop" data-file-drop-single-value="false"
-                  data-file-drop-max-size-value="{{ 20 * 1024 * 1024 }}"
-                  data-file-drop-too-large-message-value="{{ 'upload.dropzone_too_large'|trans({'%filename%': '%filename%', '%max%': '20 MB'}, 'document_content') }}">
+                  data-file-drop-max-size-value="{{ upload_limits().maxFileBytes }}"
+                  data-file-drop-max-total-value="{{ upload_limits().maxTotalBytes }}"
+                  data-file-drop-max-files-value="{{ upload_limits().maxFiles }}"
+                  data-file-drop-too-large-message-value="{{ 'upload.dropzone_too_large'|trans({'%filename%': '%filename%', '%max%': upload_limits().formatSize(upload_limits().maxFileBytes)}, 'document_content') }}"
+                  data-file-drop-total-too-large-message-value="{{ 'client.total_too_large'|trans({'%total%': '%total%', '%max%': upload_limits().formatSize(upload_limits().maxTotalBytes)}, 'uploads') }}"
+                  data-file-drop-too-many-message-value="{{ 'client.too_many'|trans({'%max%': upload_limits().maxFiles}, 'uploads') }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('folder_upload_' ~ fid) }}">
                 <div data-file-drop-target="dropzone"
                      data-action="dragenter->file-drop#dragEnter dragover->file-drop#dragOver dragleave->file-drop#dragLeave drop->file-drop#drop click->file-drop#triggerBrowse"
