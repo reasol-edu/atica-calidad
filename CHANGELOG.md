@@ -7,6 +7,23 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- En la Raíz del árbol documental, dos accesos rápidos: «Pendientes de leer» (los acuses de lectura
+  que faltan por confirmar) y «Actualizados recientemente» (los cinco documentos con la versión
+  aprobada más nueva que puedes abrir).
+- Las tarjetas de Centro educativo, Responsabilidades y Utilidades dicen cuánto hay dentro (cursos,
+  docentes, días no lectivos, listas, perfiles, calendarios…).
+
+### Changed
+
+- La paleta de comandos (⌘K) muestra primero las actividades —las que tienes pendientes de hacer,
+  antes que las demás—, luego sus categorías y los documentos, y al final carpetas, secciones y
+  docentes.
+- Seguimiento y Edición en bloque conservan la barra de pestañas de Actividades.
+- Los buscadores del árbol documental y de las actividades tienen nombre accesible y un texto más
+  claro de su alcance; el botón de borrar la búsqueda también.
+
 ## [1.17.1] - 2026-10-11
 
 ### Fixed

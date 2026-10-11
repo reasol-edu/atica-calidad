@@ -303,11 +303,25 @@ La aplicación recuerda, por centro, **la última sección que se visitó**: ent
 documental» desde el menú lateral lleva directamente ahí en vez de a la Raíz. Basta con volver a
 la Raíz para que deje de recordarla.
 
+### Accesos rápidos en la Raíz
+
+En la **Raíz**, encima de las secciones, aparecen dos listas cortas (solo si tienen algo):
+
+- **Pendientes de leer** — los documentos con acuse de lectura que aún no has confirmado, los mismos
+  que muestra el inicio. Con el número de pendientes junto al título.
+- **Actualizados recientemente** — los cinco documentos con la versión aprobada más nueva del centro
+  que puedes abrir. No incluyen las entregas de actividades (se siguen en Actividades) ni las
+  carpetas obsoletas.
+
+Tocar un documento te lleva a su carpeta y lo resalta, igual que un resultado de búsqueda. Al entrar
+en una sección desaparecen.
+
 ## Buscar en el árbol documental
 
 ![Resultados de la búsqueda global, agrupados en Secciones, Carpetas y Documentos, con las coincidencias resaltadas](img/arbol-busqueda-global.png)
 
-Hay tres formas de buscar, cada una para un caso distinto:
+Hay tres formas de buscar, cada una para un caso distinto (cada buscador lleva su nombre, que un
+lector de pantalla anuncia, y el de la sección explica su alcance al pasar el ratón):
 
 - **Búsqueda global** (encima del árbol, en la pestaña Ver) — busca en **todo** el árbol del
   centro: secciones, carpetas y documentos por nombre, y además el perfil de subida y el nombre de
@@ -324,7 +338,9 @@ Hay tres formas de buscar, cada una para un caso distinto:
   nombre de la propia carpeta, se muestran todos sus documentos, no solo los que coinciden por su
   propio nombre.
 - **Paleta de comandos** (**⌘K** / **Ctrl+K**, desde cualquier pantalla) — la misma búsqueda global,
-  accesible sin estar ya en el árbol documental. Ver
+  accesible sin estar ya en el árbol documental. Muestra primero lo que te afecta a diario: las
+  **actividades** (las que tienes pendientes de hacer, antes que las demás), sus categorías y los
+  documentos; después las carpetas, las secciones y los docentes. Ver
   [Buscar con la paleta de comandos](https://github.com/reasol-edu/atica-calidad/blob/main/docs/cheatsheets/busqueda-rapida.md).
 
 ## Permisos, de un vistazo

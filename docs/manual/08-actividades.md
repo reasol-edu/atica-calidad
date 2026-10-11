@@ -121,6 +121,9 @@ perfil sigue en **Estadísticas**, dentro de la actividad. El resto del profesor
 
 ### Seguimiento {#seguimiento}
 
+> Seguimiento y Edición en bloque son pestañas de Actividades igual que las otras: la barra de
+> pestañas se ve también en ellas, así que se pasa de una a otra sin volver atrás.
+
 La pestaña **Seguimiento** (para quien gestiona las actividades) lista una fila por actividad con
 su plazo y los días que quedan, el progreso y los pendientes. Al abrir una, muestra **quién falta**,
 cuándo se le avisó por última vez y el historial de recordatorios enviados.
