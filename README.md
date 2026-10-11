@@ -113,7 +113,7 @@ Capítulos:
 ## Inicio rápido
 
 ```bash
-cp .env.example .env.local            # edita APP_SECRET y DB_PASSWORD
+cp .env.example .env.local            # edita APP_SECRET y DB_PASSWORD (obligatorias, sin valor por defecto)
 export COMPOSE_ENV_FILES=.env.local   # Compose usará .env.local (no el .env versionado)
 docker compose up -d
 ```

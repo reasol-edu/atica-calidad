@@ -19,7 +19,7 @@ x-app-environment: &app-environment
   APP_ENV:                      prod
   APP_DEBUG:                    "0"
   APP_SECRET:                   "${APP_SECRET:?Crea un .env con APP_SECRET definido}"
-  DATABASE_URL:                 "postgresql://atica:${DB_PASSWORD:-changeme}@database:5432/atica?serverVersion=16&charset=utf8"
+  DATABASE_URL:                 "postgresql://atica:${DB_PASSWORD:?Define DB_PASSWORD en .env.local (ver .env.example): no hay contraseña por defecto}@database:5432/atica?serverVersion=16&charset=utf8"
   DEFAULT_URI:                  "${DEFAULT_URI:-http://localhost}"
   MIGRATIONS_PATH:              migrations/postgresql
   APP_LOG:                      "${APP_LOG:-true}"
@@ -78,7 +78,9 @@ services:
     environment:
       POSTGRES_DB:       atica
       POSTGRES_USER:     atica
-      POSTGRES_PASSWORD: "${DB_PASSWORD:-changeme}"
+      # Solo se lee la primera vez que se crea ./data/postgres: cambiarla después NO cambia la
+      # contraseña guardada (ver «Actualización» en el manual si vienes de la contraseña por defecto).
+      POSTGRES_PASSWORD: "${DB_PASSWORD:?Define DB_PASSWORD en .env.local (ver .env.example): no hay contraseña por defecto}"
     volumes:
       # Datos persistentes de PostgreSQL → ./data/postgres
       - ./data/postgres:/var/lib/postgresql/data

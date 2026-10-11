@@ -13,11 +13,16 @@ tu centro ya tiene la aplicación en marcha, puedes saltártelo por completo.
 
 `compose.yaml` levanta la aplicación (servidor [FrankenPHP](https://frankenphp.dev)), el worker
 (tareas programadas) y la base de datos. Copia `.env.example` a `.env.local`, ajusta al menos
-`APP_SECRET` y las credenciales de base de datos, y arranca con:
+`APP_SECRET` y `DB_PASSWORD`, y arranca con:
 
 ```bash
 docker compose up -d
 ```
+
+`DB_PASSWORD` es obligatoria: no hay contraseña por defecto, y el contenedor se niega a arrancar si
+`APP_SECRET` o la contraseña conservan el valor de ejemplo de `.env.example`. Genera valores propios
+con `php -r 'echo bin2hex(random_bytes(32));'` (solo letras y números, para que valgan tal cual en la
+dirección de conexión).
 
 ### Datos persistentes
 
@@ -84,6 +89,30 @@ docker compose up -d
 En ambos casos, el contenedor `app` aplica las migraciones pendientes y regenera la caché al
 arrancar. El directorio `./data` (base de datos si usas SQLite, ficheros subidos, secreto) no forma
 parte de la imagen y se conserva intacto.
+
+#### Si instalaste sin definir `DB_PASSWORD` (versiones anteriores a la 1.19)
+
+Hasta la 1.18, si no definías `DB_PASSWORD` se usaba la contraseña `changeme`. Desde la 1.19 la
+variable es obligatoria, y hay un detalle que importa: PostgreSQL **solo lee** esa contraseña la
+primera vez que crea `./data/postgres`. Si instalaste con la de por defecto, `changeme` es la que
+tiene guardada tu base de datos, y poner una nueva en `.env.local` sin más hace que la aplicación no
+pueda conectarse. Hay que cambiarla dentro de la base de datos primero, con la aplicación parada:
+
+```bash
+# 1. Arranca solo la base de datos con la contraseña que tiene guardada (la antigua).
+DB_PASSWORD=changeme docker compose up -d database
+
+# 2. Cámbiala dentro de PostgreSQL (genera una con: php -r 'echo bin2hex(random_bytes(32));').
+DB_PASSWORD=changeme docker compose exec database \
+  psql -U atica -d atica -c "ALTER USER atica WITH PASSWORD 'LA_NUEVA'"
+
+# 3. Guarda la nueva en .env.local (DB_PASSWORD=LA_NUEVA) y arranca todo.
+docker compose up -d
+```
+
+El paso 3 no puede hacerse antes: con `changeme` en `.env.local` el contenedor `app` se niega a
+arrancar a propósito. Si no estás seguro de qué contraseña usa tu instalación, haz antes una
+[copia de seguridad](10-administrar-la-plataforma.md#copias-de-seguridad).
 
 ### Plesk
 
