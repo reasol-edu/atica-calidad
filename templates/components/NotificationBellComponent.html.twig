@@ -4,14 +4,18 @@
 
     <button type="button"
             data-action="dropdown#toggle"
-            aria-label="{{ 'bell.aria'|trans({}, 'notifications') }}"
+            aria-label="{{ (this.total > 0 ? 'bell.aria_counts' : 'bell.aria')|trans({'%count%': this.urgentCount, '%total%': this.total}, 'notifications') }}"
             class="relative flex h-11 w-11 items-center justify-center rounded-lg text-gray-500 sm:h-auto sm:w-auto sm:p-1.5 hover:bg-gray-100 hover:text-gray-700 transition-colors">
         {{ ux_icon('heroicons:bell', {class: 'h-5 w-5'}) }}
-        {% if this.total > 0 %}
+        {# The number is what is urgent (see getUrgentCount()), not everything pending: it can reach zero. #}
+        {% if this.urgentCount > 0 %}
             <span class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full
                          bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
-                {{ this.total > 99 ? '99+' : this.total }}
+                {{ this.urgentCount > 99 ? '99+' : this.urgentCount }}
             </span>
+        {% elseif this.total > 0 %}
+            {# Something pending, nothing urgent: a quiet dot instead of a number. #}
+            <span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-gray-300" aria-hidden="true"></span>
         {% endif %}
     </button>
 
@@ -19,10 +23,13 @@
          class="hidden absolute right-0 z-40 mt-2 w-80 origin-top-right rounded-xl border border-gray-200
                 bg-white shadow-lg overflow-hidden">
 
-        <div class="border-b border-gray-100 px-4 py-2.5">
+        <div class="flex items-baseline justify-between gap-3 border-b border-gray-100 px-4 py-2.5">
             <p class="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                 {{ 'bell.title'|trans({}, 'notifications') }}
             </p>
+            {% if this.total > 0 %}
+                <p class="text-xs text-gray-400">{{ 'bell.summary'|trans({'%count%': this.urgentCount, '%total%': this.total}, 'notifications') }}</p>
+            {% endif %}
         </div>
 
         {% if this.total == 0 %}
@@ -94,6 +101,10 @@
                     </ul>
                 {% endif %}
             </div>
+            <a href="{{ path('app_activities', {tab: 'mine'}) }}"
+               class="block border-t border-gray-100 px-4 py-2.5 text-center text-xs font-medium text-forest-700 hover:bg-gray-50">
+                {{ 'bell.view_all'|trans({}, 'notifications') }}
+            </a>
         {% endif %}
     </div>
 </div>

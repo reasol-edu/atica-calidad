@@ -1,5 +1,8 @@
 # ── Campana de notificaciones (cabecera) ────────────────────────────────────
 bell.aria: 'Notificaciones'
+bell.aria_counts: '{0}Notificaciones: nada urgente. Total: %total%|{1}Notificaciones: 1 urgente. Total: %total%|]1,Inf[Notificaciones: %count% urgentes. Total: %total%'
+bell.summary: '{0}Nada urgente · %total% en total|{1}1 urgente · %total% en total|]1,Inf[%count% urgentes · %total% en total'
+bell.view_all: 'Ver todas mis actividades'
 bell.title: 'Pendientes'
 bell.empty: 'No tienes nada pendiente.'
 

@@ -6,6 +6,7 @@ namespace App\Twig\Components;
 
 use App\Entity\Teacher;
 use App\Model\ActivityDashboardItem;
+use App\Model\ActivityObligationStatus;
 use App\Model\PendingReviewGroup;
 use App\Model\QualityTask;
 use App\Service\ActivityObligationFinder;
@@ -34,6 +35,8 @@ class NotificationBellComponent extends AbstractController
 
     private int $total = 0;
 
+    private int $urgent = 0;
+
     public function __construct(
         private readonly TenantContextInterface $tenant,
         private readonly ActivityObligationFinder $obligations,
@@ -54,6 +57,20 @@ class NotificationBellComponent extends AbstractController
         $this->load();
 
         return $this->total;
+    }
+
+    /**
+     * How many of getTotal() ask for attention now — the number on the bell. Everything pending
+     * used to be counted, so the badge hardly ever dropped and stopped meaning anything. Urgent is:
+     * an activity already past its deadline (or late, or rejected) or due within a week; a
+     * "Mejora continua" task overdue or due within a week (QualityTask::$urgency); and every
+     * submission waiting for this teacher's review, which is somebody else's work held up.
+     */
+    public function getUrgentCount(): int
+    {
+        $this->load();
+
+        return $this->urgent;
     }
 
     /**
@@ -125,7 +142,12 @@ class NotificationBellComponent extends AbstractController
         $reviews = $this->pendingReview->forTeacher($user, $centre);
         $quality = $this->qualityTasks->forTeacher($user, $centre);
 
-        $this->total = count($activities) + count($reviews) + count($quality);
+        $this->total  = count($activities) + count($reviews) + count($quality);
+        $this->urgent = count(array_filter($activities, static fn (ActivityDashboardItem $i): bool => match ($i->status) {
+            ActivityObligationStatus::Overdue, ActivityObligationStatus::Late, ActivityObligationStatus::Rejected => true,
+            ActivityObligationStatus::Open => $i->daysLeft <= QualityTask::SOON_DAYS,
+            default => false,
+        })) + count($reviews) + count(array_filter($quality, static fn (QualityTask $t): bool => $t->urgency === 'overdue' || $t->urgency === 'soon'));
 
         $items = [];
         foreach ($activities as $item) {

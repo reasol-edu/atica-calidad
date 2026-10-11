@@ -19,6 +19,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 
+- El número de la campana cuenta solo lo urgente (actividades vencidas, fuera de plazo, rechazadas o
+  con vencimiento en una semana, tareas de Mejora continua vencidas o próximas, y las entregas que
+  esperan tu revisión) y por eso puede llegar a cero; con pendientes pero nada urgente muestra un
+  punto gris. El desplegable sigue listando todo, resume «N urgentes · M en total» y termina con
+  «Ver todas mis actividades».
 - La ficha de una actividad dice con palabras dónde está para quien la tiene asignada («Vencida ·
   Venció el 30/09/2026», «Pendiente · Vence en 3 días»…), en lugar de solo teñir la tarjeta de color.
 - En la ficha de una actividad, «Automática» y «Manual» pasan a «Se completa sola» y «Se marca a

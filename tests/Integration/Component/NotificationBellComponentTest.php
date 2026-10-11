@@ -66,6 +66,52 @@ final class NotificationBellComponentTest extends ControllerTestCase
         self::assertSame(1, $component->component()->getTotal());
     }
 
+    public function testTheBadgeCountsOnlyWhatIsUrgentAndTheDropdownStillListsEverything(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        // Past its deadline, due in three days, and due in a month and a half.
+        $overdue  = (new Activity())->setCategory($category)->setTitle('Vencida')->setStart(1, 9)->setEnd(30, 9);
+        $soon     = (new Activity())->setCategory($category)->setTitle('Próxima')->setStart(1, 10)->setEnd(8, 10);
+        $far      = (new Activity())->setCategory($category)->setTitle('Lejana')->setStart(1, 10)->setEnd(30, 11);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $overdue, $soon, $far, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('NotificationBellComponent', [], $this->client);
+        $html      = (string) $component->render()->crawler()->html();
+
+        self::assertSame(3, $component->component()->getTotal());
+        self::assertSame(2, $component->component()->getUrgentCount(), 'the one due in a month and a half is not urgent');
+        self::assertStringContainsString('2 urgentes · 3 en total', $html);
+        self::assertStringContainsString('Lejana', $html, 'it is still in the list');
+        self::assertStringContainsString('Ver todas mis actividades', $html);
+        self::assertStringContainsString('Notificaciones: 2 urgentes. Total: 3', $html);
+    }
+
+    public function testWithNothingUrgentTheBellShowsAQuietDotInsteadOfANumber(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $far      = (new Activity())->setCategory($category)->setTitle('Lejana')->setStart(1, 10)->setEnd(30, 11);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $far, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('NotificationBellComponent', [], $this->client);
+        $crawler   = $component->render()->crawler();
+
+        self::assertSame(1, $component->component()->getTotal());
+        self::assertSame(0, $component->component()->getUrgentCount());
+        self::assertCount(0, $crawler->filter('button span.bg-red-500'), 'no red badge');
+        self::assertCount(1, $crawler->filter('button span.bg-gray-300'), 'a quiet dot tells there is something');
+        self::assertStringContainsString('Nada urgente · 1 en total', $crawler->html());
+    }
+
     /**
      * The bell only ever shows what's personally the teacher's own to review (see
      * PendingReviewFinder's docblock) — the quality-manager role alone isn't enough, so this
