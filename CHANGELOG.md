@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-10-11
+
 ### Security
 
 Cambios de la auditoría de seguridad:
