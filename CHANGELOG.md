@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-10-11
+
 ### Added
 
 - En «Mis actividades», las tarjetas de recuento (Por hacer, En revisión, Hechas, Próximamente)
