@@ -7,10 +7,24 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.19.1] - 2026-10-11
+
 ### Security
 
 - Las descargas de adjuntos envían ahora `X-Content-Type-Options: nosniff` desde la propia
   aplicación, sin depender de que el servidor web lo añada.
+
+### Changed
+
+- Actions de GitHub actualizadas (siguen fijadas por hash): `checkout` 7, `setup-node` 7,
+  `upload-pages-artifact` 5, `deploy-pages` 5, `setup-qemu` 4, `setup-buildx` 4 y
+  `metadata-action` 6.
+
+### Documentation
+
+- Capturas del manual, la presentación y las fichas regeneradas con la versión actual.
+- `APP_EXTERNAL_ENABLED` activa por defecto: queda indicado en `.env` y `.env.example` que es
+  deliberado.
 
 ## [1.19.0] - 2026-10-11
 
