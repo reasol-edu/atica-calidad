@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-10-11
+
 ### Added
 
 - En la Raíz del árbol documental, dos accesos rápidos: «Pendientes de leer» (los acuses de lectura
