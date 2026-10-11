@@ -99,7 +99,7 @@
                 <div class="absolute inset-0 grid grid-cols-5 z-[5]" aria-hidden="true">
                     {% for day in week.days %}
                         <a href="{{ path('app_calendar_day', {date: day.format('Y-m-d')}) }}"
-                           class="block h-full w-full" tabindex="-1"></a>
+                           class="block h-full w-full" tabindex="-1" aria-hidden="true"></a>
                     {% endfor %}
                 </div>
 
