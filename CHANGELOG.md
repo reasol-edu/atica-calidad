@@ -7,6 +7,33 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-10-11
+
+### Added
+
+- Dos ajustes globales, «Tamaño máximo por fichero» (20 MB por defecto) y «Tamaño máximo total por
+  envío» (100 MB), en Administración → Ajustes → «Subida de ficheros». Los avisos de los
+  formularios muestran siempre el máximo real, que es el menor entre el ajuste y el de PHP.
+- El menú lateral agrupa bajo «Gestión» Informes, Responsabilidades, Papelera y Centro educativo.
+- Aviso en el perfil cuando no hay correo: sin él no llegan los avisos ni se puede recuperar la contraseña.
+
+### Changed
+
+- «Comunicar incidencia» usa la zona de arrastre de ficheros, con la lista de lo elegido y su tamaño.
+- En Informes, «Revisiones de documentos» no ofrece PDF ni Excel mientras no haya ninguna pendiente,
+  y «Asignar perfiles» ya no usa el mismo icono que «Ver».
+- Los enlaces vacíos de la cuadrícula del calendario se ocultan a los lectores de pantalla.
+- Utilidades se ve para todo el centro; antes solo la veía quien podía abrir Responsabilidades.
+
+### Fixed
+
+- Una subida de ficheros mayores que los límites de PHP (2 MB por fichero y 8 MB por envío si el
+  servidor no trae `php.ini`) fallaba sin avisar. Ahora el ejecutable para Linux y macOS configura
+  PHP desde el `Caddyfile`, los límites de Docker y Windows cubren los de la aplicación, el
+  formulario avisa antes de enviar y, si el envío llega demasiado grande, se vuelve a la página con
+  un mensaje claro. Los ficheros que PHP rechaza ya no se descartan en silencio (adjuntos de
+  auditorías y de Mejora continua) ni se confunden con «ningún fichero» (importaciones).
+
 ## [1.16.0] - 2026-10-11
 
 ### Added
