@@ -150,8 +150,28 @@
                 ) }}
             {% endif %}
 
+            {# Utilities — personal tools, everyone in the centre (calendar generator today) #}
+            {% if active_centre %}
+                {{ _self.nav_item(
+                    'utilities'|trans({}, 'navigation'),
+                    path('app_utilities_index'),
+                    'heroicons:wrench-screwdriver',
+                    current_route,
+                    'app_utilities_'
+                ) }}
+            {% endif %}
+
+            {# Management group — only for those who see at least one of its entries #}
+            {% set can_reports = active_centre and is_granted('educational_centre.reports', active_centre) %}
+            {% set can_responsibilities = active_centre and is_granted('educational_centre.responsibilities', active_centre) %}
+            {% set can_centre = active_centre and is_granted('educational_centre.section', active_centre) %}
+            {% if can_reports or can_responsibilities or can_centre %}
+                <div class="my-3 h-px bg-white/8"></div>
+                <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-forest-300">{{ 'management'|trans({}, 'navigation') }}</p>
+            {% endif %}
+
             {# Reports — admins, management team, quality managers and internal auditors #}
-            {% if active_centre and is_granted('educational_centre.reports', active_centre) %}
+            {% if can_reports %}
                 {% set reports_active = current_route starts with 'app_reports_' %}
                 <a href="{{ path('app_reports_index', {centreId: active_centre.id}) }}"
                     {{ reports_active ? 'aria-current="page"' : '' }}
@@ -163,7 +183,7 @@
             {% endif %}
 
             {# Responsibilities — quality officer, management team and admins #}
-            {% if active_centre and is_granted('educational_centre.responsibilities', active_centre) %}
+            {% if can_responsibilities %}
                 {% set responsibilities_active = current_route starts with 'app_responsibilities_' %}
                 <a href="{{ path('app_responsibilities_index', {centreId: active_centre.id}) }}"
                     {{ responsibilities_active ? 'aria-current="page"' : '' }}
@@ -172,17 +192,6 @@
                     {{ ux_icon('heroicons:clipboard-document-check', {class: 'h-5 w-5 shrink-0'}) }}
                     <span class="truncate">{{ 'responsibilities'|trans({}, 'navigation') }}</span>
                 </a>
-
-                {# Utilities — personal tools, everyone in the centre (calendar generator today) #}
-                {% if active_centre %}
-                    {{ _self.nav_item(
-                        'utilities'|trans({}, 'navigation'),
-                        path('app_utilities_index'),
-                        'heroicons:wrench-screwdriver',
-                        current_route,
-                        'app_utilities_'
-                    ) }}
-                {% endif %}
 
                 {# Trash — same people: whoever can restore what others deleted #}
                 {% set trash_active = current_route starts with 'app_trash_' %}
@@ -196,7 +205,7 @@
             {% endif %}
 
             {# Educational centre — management team and admins only #}
-            {% if active_centre and is_granted('educational_centre.section', active_centre) %}
+            {% if can_centre %}
                 {% set centre_active = current_route starts with 'app_centre_' %}
                 <a href="{{ path('app_centre_index', {centreId: active_centre.id}) }}"
                     {{ centre_active ? 'aria-current="page"' : '' }}
