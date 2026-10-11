@@ -1,0 +1,26 @@
+{#
+   The tab bar of «Actividades», shared by every page that is one of its tabs (the three of the
+   index, «Edición en bloque» and «Seguimiento»), so moving between them never loses it.
+   active: 'mine' | 'view' | 'edit' | 'bulk' | 'tracking'.
+#}
+{% set tabs_centre = active_centre() %}
+{% set can_edit = tabs_centre and is_granted('educational_centre.responsibilities', tabs_centre) %}
+{% set can_track = can_edit or (tabs_centre and is_granted('educational_centre.reports', tabs_centre)) %}
+{% set tabs = [
+    {key: 'mine',     url: path('app_activities', {tab: 'mine'}), icon: 'heroicons:clipboard-document-check', label: 'tabs.mine',            show: true},
+    {key: 'view',     url: path('app_activities', {tab: 'view'}), icon: 'heroicons:eye',                      label: 'tabs.view',            show: true},
+    {key: 'edit',     url: path('app_activities', {tab: 'edit'}), icon: 'heroicons:pencil-square',            label: 'tabs.edit_categories', show: can_edit},
+    {key: 'bulk',     url: path('app_activity_bulk'),             icon: 'heroicons:queue-list',               label: 'tabs.bulk',            show: can_edit},
+    {key: 'tracking', url: path('app_activity_tracking'),         icon: 'heroicons:chart-bar',                label: 'tabs.tracking',        show: can_track},
+] %}
+<nav class="flex gap-4 overflow-x-auto border-b border-gray-200 sm:gap-6" aria-label="{{ 'tabs.aria'|trans({}, 'activity_content') }}">
+    {% for item in tabs|filter(item => item.show) %}
+        <a href="{{ item.url }}"
+           {% if active == item.key %}aria-current="page"{% endif %}
+           class="-mb-px inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium transition-colors
+                  {{ active == item.key ? 'border-forest-600 text-forest-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+            {{ ux_icon(item.icon, {class: 'h-4 w-4'}) }}
+            {{ item.label|trans({}, 'activity_content') }}
+        </a>
+    {% endfor %}
+</nav>

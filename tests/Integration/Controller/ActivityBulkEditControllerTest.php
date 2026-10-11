@@ -45,6 +45,21 @@ final class ActivityBulkEditControllerTest extends ControllerTestCase
         return [$centre, $admin, $from, $to, $a, $b];
     }
 
+    /** The pages that are a tab of Actividades keep its tab bar, with their own tab marked as the current one. */
+    public function testBulkEditAndTrackingKeepTheActivitiesTabs(): void
+    {
+        $this->scenario();
+
+        foreach (['/actividades/edicion-en-bloque' => 'Edición en bloque', '/actividades/seguimiento' => 'Seguimiento'] as $url => $current) {
+            $crawler = $this->client->request('GET', $url);
+
+            self::assertSame(200, $this->client->getResponse()->getStatusCode(), $url);
+            $tabs = $crawler->filter('nav[aria-label="Pestañas de Actividades"] a');
+            self::assertCount(5, $tabs, $url);
+            self::assertSame($current, trim($crawler->filter('nav[aria-label="Pestañas de Actividades"] a[aria-current="page"]')->text()), $url);
+        }
+    }
+
     public function testThePreviewChangesNothing(): void
     {
         [, , , $to, $a] = $this->scenario();
