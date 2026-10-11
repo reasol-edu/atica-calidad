@@ -125,6 +125,23 @@ final class ReportsControllerTest extends ControllerTestCase
         self::assertCount(1, $crawler->filter("a[href='/centro/{$centreId}/responsabilidades/asignar-perfiles']"));
     }
 
+    public function testTheDocumentReviewsCardOffersNoExportWhenNothingIsDue(): void
+    {
+        $admin  = $this->teacher('director');
+        $centre = $this->centre();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $admin);
+        $centreId = $centre->getId()->toRfc4122();
+        $this->loginAs($admin, $centre);
+
+        $crawler = $this->client->request('GET', "/centro/{$centreId}/informes");
+
+        self::assertCount(0, $crawler->filter("a[href^='/centro/{$centreId}/informes/revisiones-de-documentos']"));
+        self::assertStringContainsString('No hay nada que exportar por ahora', (string) $this->client->getResponse()->getContent());
+        // The other reports keep their exports.
+        self::assertGreaterThan(0, $crawler->filter("a[href^='/centro/{$centreId}/informes/listado-maestro']")->count());
+    }
+
     public function testTheComplianceReportRendersOnScreenWithAYearSelector(): void
     {
         $admin = $this->teacher('director');

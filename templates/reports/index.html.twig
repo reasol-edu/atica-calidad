@@ -2,7 +2,8 @@
 
 {% block title %}{{ 'reports'|trans({}, 'navigation') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
 
-{% macro report_card(icon, key, route, centre, description, summary, summary_class, screen_route, screen_label) %}
+{# `nothing_to_export`: nothing to export yet, so PDF/Excel are not offered. `screen_icon`: icon of the on-screen link, "eye" by default. #}
+{% macro report_card(icon, key, route, centre, description, summary, summary_class, screen_route, screen_label, nothing_to_export, screen_icon) %}
     <div class="flex flex-col rounded-2xl border border-gray-200 bg-white shadow-xs">
         <div class="flex-1 px-6 py-5 space-y-2">
             <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900">
@@ -16,10 +17,13 @@
             {% if screen_route is defined and screen_route %}
                 <a href="{{ path(screen_route, {centreId: centre.id.toRfc4122}) }}"
                    class="inline-flex items-center gap-1.5 rounded-lg border border-forest-600 px-3 py-1.5 text-xs font-medium text-forest-700 hover:bg-forest-50 transition-colors">
-                    {{ ux_icon('heroicons:eye', {class: 'h-4 w-4'}) }}
+                    {{ ux_icon(screen_icon ?? 'heroicons:eye', {class: 'h-4 w-4'}) }}
                     {{ (screen_label ?? 'view_on_screen')|trans({}, 'reports') }}
                 </a>
             {% endif %}
+            {% if nothing_to_export is defined and nothing_to_export %}
+                <span class="text-xs text-gray-500">{{ 'nothing_to_export'|trans({}, 'reports') }}</span>
+            {% else %}
             <a href="{{ path(route, {centreId: centre.id.toRfc4122, _format: 'pdf'}) }}" target="_blank" rel="noopener"
                class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
                 {{ ux_icon('heroicons:document-text', {class: 'h-4 w-4'}) }}
@@ -30,6 +34,7 @@
                 {{ ux_icon('heroicons:table-cells', {class: 'h-4 w-4'}) }}
                 {{ 'download_xlsx'|trans({}, 'reports') }}
             </a>
+            {% endif %}
         </div>
     </div>
 {% endmacro %}
@@ -54,6 +59,7 @@
             'document_reviews.description'|trans({'%days%': reviewHorizon}, 'reports'),
             'document_reviews.summary'|trans({'%count%': reviewsDueCount}, 'reports') ~ (reviewsOverdue > 0 ? 'document_reviews.overdue'|trans({'%count%': reviewsOverdue}, 'reports') : (reviewsDueCount > 0 ? '.' : '')),
             reviewsOverdue > 0 ? 'text-red-600' : null,
+            null, null, reviewsDueCount == 0,
         ) }}
 
         {{ _self.report_card(
@@ -75,6 +81,7 @@
             'profile_assignments.description'|trans({}, 'reports'),
             'profile_assignments.summary'|trans({'%count%': profileCount}, 'reports'),
             null, is_granted('educational_centre.responsibilities', centre) ? 'app_responsibilities_assignments' : null, 'profile_assignments.view',
+            false, 'heroicons:user-plus',
         ) }}
 
         {% set open_findings =(findingCounts.reported ?? 0) + (findingCounts.analysis ?? 0) + (findingCounts.execution ?? 0) + (findingCounts.verification ?? 0) %}

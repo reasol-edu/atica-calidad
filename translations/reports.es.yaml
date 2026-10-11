@@ -1,6 +1,7 @@
 intro: 'Informes del sistema de gestión de la calidad del centro, en PDF (con la plantilla de membrete del centro, si tiene una) o en Excel.'
 download_pdf: 'PDF'
 download_xlsx: 'Excel'
+nothing_to_export: 'No hay nada que exportar por ahora.'
 generated_on: 'Generado el %date%'
 none: 'No hay nada que mostrar.'
 
