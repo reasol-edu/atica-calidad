@@ -22,7 +22,8 @@
                 </a>
             {% endif %}
             {% if nothing_to_export is defined and nothing_to_export %}
-                <span class="text-xs text-gray-500">{{ 'nothing_to_export'|trans({}, 'reports') }}</span>
+                {# Same box as a button (text-xs, py-1.5, 1px border) so every card footer has the same height. #}
+                <span class="inline-flex items-center border border-transparent py-1.5 text-xs text-gray-500">{{ 'nothing_to_export'|trans({}, 'reports') }}</span>
             {% else %}
             <a href="{{ path(route, {centreId: centre.id.toRfc4122, _format: 'pdf'}) }}" target="_blank" rel="noopener"
                class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors">
