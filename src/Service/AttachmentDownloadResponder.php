@@ -15,6 +15,9 @@ class AttachmentDownloadResponder
 
         $response = new Response($content);
         $response->headers->set('Content-Type', $mimeType);
+        // No depender solo del servidor web: sin esto un navegador podría "adivinar" otro tipo
+        // (p. ej. HTML) para un fichero subido por un usuario.
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set(
             'Content-Disposition',
             $response->headers->makeDisposition(

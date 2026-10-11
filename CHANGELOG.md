@@ -7,6 +7,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Security
+
+- Las descargas de adjuntos envían ahora `X-Content-Type-Options: nosniff` desde la propia
+  aplicación, sin depender de que el servidor web lo añada.
+
 ## [1.19.0] - 2026-10-11
 
 ### Security

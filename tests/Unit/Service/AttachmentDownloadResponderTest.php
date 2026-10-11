@@ -35,6 +35,13 @@ final class AttachmentDownloadResponderTest extends TestCase
         self::assertStringContainsString('Informe_2026.txt', $disposition);
     }
 
+    public function testForbidsContentTypeSniffing(): void
+    {
+        $response = (new AttachmentDownloadResponder())->respond('<script>1</script>', 'text/plain', 'a.txt');
+
+        self::assertSame('nosniff', $response->headers->get('X-Content-Type-Options'));
+    }
+
     public function testAFilenameWithoutPathSeparatorsIsUnaffected(): void
     {
         $response = (new AttachmentDownloadResponder())->respond('contenido', 'text/plain', 'Programación.txt');
