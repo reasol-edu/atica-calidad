@@ -7,8 +7,31 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Security
+
+Cambios de la auditoría de seguridad:
+
+- **Actualización con comprobación de integridad.** Cada release publica un `SHA256SUMS` con todos
+  los paquetes y con `update-ubuntu.sh`. El actualizador y el instalador no instalan nada sin
+  comprobar su suma, y abortan sin tocar la instalación si falta o no coincide. El script de
+  actualización ya no se renueva desde la rama `main`, sino desde el asset de la última release,
+  también comprobado. Las sumas viajan con la release: detectan descargas corruptas o alteradas,
+  no a quien pueda publicar una release.
+- La build comprueba la suma del binario de FrankenPHP (fijada en el flujo de trabajo) y todas las
+  GitHub Actions se fijan por hash de commit; Dependabot propone su actualización.
+- `DB_PASSWORD` es obligatoria en Docker: ya no hay contraseña por defecto («changeme»). El
+  contenedor se niega a arrancar si la contraseña o `APP_SECRET` conservan el valor de ejemplo.
+  **Aviso para quien actualice:** PostgreSQL solo lee esa contraseña al crear la base de datos, así
+  que si instalaste sin definirla hay que cambiarla dentro de la base antes de arrancar (receta en
+  el manual, «Si instalaste sin definir `DB_PASSWORD`»).
+- Las respuestas ya no incluyen `X-Powered-By: PHP/x.y.z` (`expose_php = Off`).
+- `phpseclib` actualizada (corrige un aviso de X25519 que la aplicación no usaba).
+
 ### Changed
 
+- Dependencias actualizadas a sus últimas versiones para PHP 8.4: Symfony 8.1.8, Doctrine ORM 3.7,
+  Twig 3.30, UX 3.5, PHPUnit 13.4 y, con cambio de versión mayor, `johngrogg/ics-parser` 3,
+  `phpseclib` 4 y `symfonycasts/tailwind-bundle` 1.
 - En la pantalla de inicio de sesión, con pantallas pequeñas, el número de versión aparece junto al
   nombre de la aplicación (el panel de marca que lo mostraba solo se ve en pantallas grandes).
 
