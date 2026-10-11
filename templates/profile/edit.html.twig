@@ -114,6 +114,12 @@
                     {% if errors.email is defined %}
                         <p class="mt-1.5 text-xs text-red-600">{{ errors.email }}</p>
                     {% endif %}
+                    {% if not teacher.email %}
+                        <p data-no-email-notice class="mt-2 flex items-start gap-2 rounded-xl bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
+                            {{ ux_icon('heroicons:exclamation-triangle', {class: 'h-4 w-4 shrink-0 mt-px'}) }}
+                            {{ 'profile.notice.no_email'|trans({}, 'messages') }}
+                        </p>
+                    {% endif %}
                 </div>
 
             </div>

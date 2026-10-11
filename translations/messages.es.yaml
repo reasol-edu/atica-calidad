@@ -56,6 +56,7 @@ profile.flash.email_verification_sent: 'Hemos enviado un enlace de verificación
 profile.flash.email_verified: 'Correo verificado y actualizado correctamente.'
 profile.flash.email_verification_expired: 'El enlace de verificación ha caducado. Vuelve a cambiar tu correo para recibir uno nuevo.'
 profile.flash.email_verification_invalid: 'El enlace de verificación no es válido.'
+profile.notice.no_email: 'No tienes correo en tu perfil, así que no te llegarán los avisos por correo del centro ni podrás recuperar la contraseña si la olvidas. Añádelo para recibirlos.'
 profile.notice.email_pending: 'Tienes un cambio de correo pendiente de verificación: <strong>%email%</strong>. Revisa tu bandeja de entrada.'
 
 # Recuperación de contraseña

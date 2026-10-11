@@ -54,6 +54,30 @@ final class ProfileControllerTest extends ControllerTestCase
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
     }
 
+    public function testAProfileWithoutEmailWarnsThatNoNoticesWillArrive(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher('sin-correo');
+        $this->persist($centre, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $crawler = $this->client->request('GET', '/perfil');
+
+        self::assertCount(1, $crawler->filter('[data-no-email-notice]'));
+    }
+
+    public function testAProfileWithEmailShowsNoWarning(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher('con-correo')->setEmail('con-correo@example.com');
+        $this->persist($centre, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $crawler = $this->client->request('GET', '/perfil');
+
+        self::assertCount(0, $crawler->filter('[data-no-email-notice]'));
+    }
+
     public function testUpdatingNameOnlySucceeds(): void
     {
         $centre  = $this->centre();
