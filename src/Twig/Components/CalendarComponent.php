@@ -43,8 +43,21 @@ class CalendarComponent extends AbstractCalendarComponent
 
     private const array OVERDUE_QUALITY_COLOR = ['bg' => 'bg-red-50', 'text' => 'text-red-800', 'border' => 'border-red-200', 'accent' => 'border-l-red-500'];
 
+    /** An activity past its deadline and not done: red, like the overdue tasks, whatever its category's colour. */
+    private const array OVERDUE_ACTIVITY_COLOR = self::OVERDUE_QUALITY_COLOR;
+
+    /**
+     * An activity open for longer than this many days is a "long" window: drawn in full only in the
+     * week it falls due, and as a thin track in the weeks before. Filled in full across a month-long
+     * window it repeated the same labelled bar on every week row and said nothing about when it is due.
+     */
+    private const int LONG_WINDOW_DAYS = 7;
+
     /** @var list<SchoolEvent>|null */
     private ?array $itemsCache = null;
+
+    /** @var list<array<string, mixed>>|null */
+    private ?array $weeksCache = null;
 
     public function __construct(
         TenantContext $tenantContext,
@@ -66,6 +79,50 @@ class CalendarComponent extends AbstractCalendarComponent
      * @return list<array<string, mixed>>
      */
     public function getWeeks(): array
+    {
+        // The template reads this more than once per render (the grid and the phone's agenda).
+        return $this->weeksCache ??= $this->buildWeeks();
+    }
+
+    /**
+     * The days of the month that have something on them, for the phone, where the five-column
+     * grid is too narrow to read: the same entries as the grid's bars, listed day by day.
+     *
+     * @return list<array{date: \DateTimeImmutable, entries: list<array{startCol: int, span: int, label: string, details: string, color: array<string, string>, icon: ?string, muted: bool, long: bool, continues: bool}>}>
+     */
+    public function getAgendaDays(): array
+    {
+        $byDay = [];
+        foreach ($this->getWeeks() as $week) {
+            /** @var list<\DateTimeImmutable> $days */
+            $days = $week['days'];
+            /** @var list<array{startCol: int, span: int, label: string, details: string, color: array<string, string>, icon: ?string, muted: bool, long: bool, continues: bool}> $segments */
+            $segments = $week['segments'];
+            foreach ($segments as $segment) {
+                $last = $segment['startCol'] + $segment['span'] - 1;
+                for ($col = $segment['startCol']; $col <= $last; ++$col) {
+                    $day = $days[$col] ?? null;
+                    if ($day === null || !$this->isCurrentMonth($day)) {
+                        continue;
+                    }
+                    // A window open for weeks is listed on the day it falls due (or the last school
+                    // day before it, when that is a weekend), not on every day of it.
+                    if ($segment['long'] && ($segment['continues'] || $col !== $last)) {
+                        continue;
+                    }
+                    $key                      = $day->format('Y-m-d');
+                    $byDay[$key]['date']      = $day;
+                    $byDay[$key]['entries'][] = $segment;
+                }
+            }
+        }
+        ksort($byDay);
+
+        return array_values($byDay);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function buildWeeks(): array
     {
         $centre       = $this->getTenantContext()->getSelectedCentre();
         $academicYear = $centre !== null ? $this->getTenantContext()->getViewYear($centre) : null;
@@ -121,10 +178,14 @@ class CalendarComponent extends AbstractCalendarComponent
                     return [
                         'label'   => $item->activity->getTitle() . ($item->ownerLabel !== null ? ' · ' . $item->ownerLabel : ''),
                         'details' => '',
+                        'long'    => $this->isLongWindow($item),
                         // Colour by category, so every activity of the same category shares a hue
-                        // and reads as a group across the month (the owner, if any, is in the label).
-                        'color'   => $this->colorPalette->colorFor('activity-category:' . $item->activity->getCategory()->getId()->toRfc4122()),
-                        'icon'    => $item->completed ? 'heroicons:check-circle' : 'heroicons:clipboard-document-check',
+                        // and reads as a group across the month (the owner, if any, is in the label)
+                        // — except when it is overdue, which is red: the state matters more.
+                        'color'   => $this->isOverdue($item)
+                            ? self::OVERDUE_ACTIVITY_COLOR
+                            : $this->colorPalette->colorFor('activity-category:' . $item->activity->getCategory()->getId()->toRfc4122()),
+                        'icon'    => $item->completed ? 'heroicons:check-circle' : ($this->isOverdue($item) ? 'heroicons:exclamation-circle' : 'heroicons:clipboard-document-check'),
                         'muted'   => $item->completed,
                     ];
                 }
@@ -142,6 +203,18 @@ class CalendarComponent extends AbstractCalendarComponent
                 ];
             },
         );
+    }
+
+    /** A window open for longer than LONG_WINDOW_DAYS (see there). */
+    private function isLongWindow(ActivityDeadlineOccurrence $item): bool
+    {
+        return $item->startDate->diff($item->endDate)->days > self::LONG_WINDOW_DAYS;
+    }
+
+    /** Past its deadline and not done. */
+    private function isOverdue(ActivityDeadlineOccurrence $item): bool
+    {
+        return !$item->completed && $item->endDate->format('Y-m-d') < $this->clock->now()->format('Y-m-d');
     }
 
     /**

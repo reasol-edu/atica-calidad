@@ -25,7 +25,7 @@
     </div>
 
     {# ── Day-of-week headers (school days only: no Saturday or Sunday) ──────── #}
-    <div class="grid grid-cols-5 border-b border-gray-100 bg-gray-50">
+    <div class="grid grid-cols-5 border-b border-gray-100 bg-gray-50 max-md:hidden">
         {% for key in ['lun', 'mar', 'mie', 'jue', 'vie'] %}
             <div class="py-2 text-center text-xs font-medium text-gray-500">
                 {{ key|trans({}, 'calendar') }}
@@ -34,7 +34,47 @@
     </div>
 
     {# ── Weeks ────────────────────────────────────────────────────────────── #}
-    <div data-loading="addClass(opacity-50 pointer-events-none animate-pulse)" class="transition-opacity">
+    {# ── Phone: the day-by-day list of the same entries. Five columns of ~70 px cannot hold a title. ── #}
+    <div data-loading="addClass(opacity-50 pointer-events-none animate-pulse)" class="transition-opacity md:hidden">
+        {% set agenda = this.agendaDays %}
+        {% if this.weeks is empty %}
+            <div class="py-12 text-center text-sm text-gray-400">{{ 'no_active_year'|trans({}, 'calendar') }}</div>
+        {% elseif agenda is empty %}
+            <div class="py-12 text-center text-sm text-gray-400">{{ 'agenda.empty'|trans({}, 'calendar') }}</div>
+        {% else %}
+            <div class="divide-y divide-gray-100">
+                {% for entry_day in agenda %}
+                    <section class="px-4 py-3 {{ this.isToday(entry_day.date) ? 'bg-forest-50' : '' }}">
+                        <a href="{{ path('app_calendar_day', {date: entry_day.date.format('Y-m-d')}) }}"
+                           class="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-gray-800">
+                            <span>{{ entry_day.date.format('j') }}</span>
+                            <span class="text-xs font-medium uppercase tracking-wide text-gray-400">{{ ['lun', 'mar', 'mie', 'jue', 'vie'][entry_day.date.format('N') - 1]|trans({}, 'calendar') }}</span>
+                            {% if this.isToday(entry_day.date) %}
+                                <span class="rounded-full bg-forest-600 px-2 py-0.5 text-[10px] font-semibold text-white">{{ 'today'|trans({}, 'calendar') }}</span>
+                            {% endif %}
+                        </a>
+                        <ul class="space-y-1.5">
+                            {% for segment in entry_day.entries %}
+                                <li class="flex items-start gap-2 rounded-md border border-l-[3px] px-2.5 py-1.5 text-xs leading-snug {{ segment.color.bg }} {{ segment.color.text }} {{ segment.color.border }} {{ segment.color.accent ?? '' }} {{ segment.muted ? 'opacity-60' : '' }}">
+                                    {% if segment.icon is not empty %}
+                                        {{ ux_icon(segment.icon, {class: 'mt-0.5 h-3.5 w-3.5 shrink-0'}) }}
+                                    {% endif %}
+                                    <span class="min-w-0">
+                                        <span class="font-semibold {{ segment.muted ? 'line-through' : '' }}">{{ segment.long ? 'activity_due'|trans({'%title%': segment.label}, 'calendar') : segment.label }}</span>
+                                        {% if segment.details is not empty %}
+                                            <span class="opacity-80">{{ segment.details }}</span>
+                                        {% endif %}
+                                    </span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <div data-loading="addClass(opacity-50 pointer-events-none animate-pulse)" class="transition-opacity max-md:hidden">
     {% if this.weeks is empty %}
         <div class="py-12 text-center text-sm text-gray-400">
             {{ 'no_active_year'|trans({}, 'calendar') }}
@@ -87,6 +127,13 @@
                     <div class="relative z-10 grid grid-cols-5 gap-x-1 gap-y-1 px-1 pb-1 pointer-events-none"
                          style="grid-template-rows: repeat({{ week.maxLane + 1 }}, minmax(1.25rem, auto));">
                         {% for segment in week.segments %}
+                            {% if segment.long and segment.continues %}
+                                {# A window open for weeks, and not due yet in this one: a thin track that says it is still
+                                   open, not the same labelled bar on every row (the label is on the week it falls due). #}
+                                <div class="pointer-events-auto self-center h-2 rounded-full border {{ segment.color.bg }} {{ segment.color.border }} {{ segment.muted ? 'opacity-60' : '' }}"
+                                     style="grid-column: {{ segment.startCol + 1 }} / span {{ segment.span }}; grid-row: {{ segment.lane + 1 }};"
+                                     title="{{ segment.label }}"></div>
+                            {% else %}
                             <div class="pointer-events-auto flex items-center gap-1 truncate rounded-md border border-l-[3px] px-1.5 py-0.5 text-[11px] leading-tight {{ segment.color.bg }} {{ segment.color.text }} {{ segment.color.border }} {{ segment.color.accent ?? '' }} {{ segment.muted ? 'opacity-60' : '' }}"
                                  style="grid-column: {{ segment.startCol + 1 }} / span {{ segment.span }}; grid-row: {{ segment.lane + 1 }};"
                                  title="{{ segment.details is not empty ? segment.label ~ ' — ' ~ segment.details : segment.label }}">
@@ -94,12 +141,13 @@
                                     {{ ux_icon(segment.icon, {class: 'h-3 w-3 shrink-0'}) }}
                                 {% endif %}
                                 <span class="truncate">
-                                    <span class="font-semibold {{ segment.muted ? 'line-through' : '' }}">{{ segment.label }}</span>
+                                    <span class="font-semibold {{ segment.muted ? 'line-through' : '' }}">{{ segment.long ? 'activity_due'|trans({'%title%': segment.label}, 'calendar') : segment.label }}</span>
                                     {% if segment.details is not empty %}
                                         <span class="opacity-80">{{ segment.details }}</span>
                                     {% endif %}
                                 </span>
                             </div>
+                            {% endif %}
                         {% endfor %}
                     </div>
                 {% else %}

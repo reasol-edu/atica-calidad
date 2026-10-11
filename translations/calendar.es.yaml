@@ -2,6 +2,8 @@ page_title: 'Calendario'
 today: 'Hoy'
 prev_month: 'Mes anterior'
 next_month: 'Mes siguiente'
+activity_due: 'Vence: %title%'
+agenda.empty: 'No hay nada este mes.'
 no_active_year: 'No hay un curso académico activo para este centro.'
 non_working_day: 'Día no lectivo'
 

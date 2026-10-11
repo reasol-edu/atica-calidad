@@ -24,7 +24,7 @@ final class CalendarMonthGridBuilder
      *
      * @param list<T> $items
      * @param callable(T): (array{id: string, start: \DateTimeImmutable, end: \DateTimeImmutable}|null) $toRange returns null to skip an item (e.g. missing dates)
-     * @param callable(T): array{label: string, details: string, color: array{bg: string, text: string, border: string, accent?: string}, icon?: string, muted?: bool} $toSegment
+     * @param callable(T): array{label: string, details: string, color: array{bg: string, text: string, border: string, accent?: string}, icon?: string, muted?: bool, long?: bool} $toSegment `long`: a window open for weeks, whose weeks before its last are drawn as a thin track
      *
      * @return list<array{days: list<\DateTimeImmutable>, segments: list<array<string, mixed>>, maxLane: int}>
      */
@@ -73,18 +73,23 @@ final class CalendarMonthGridBuilder
             }
 
             $layout   = $this->segmentBuilder->build($events, $days);
-            $segments = array_map(function (array $segment) use ($itemsById, $toSegment): array {
+            $segments = array_map(function (array $segment) use ($itemsById, $rangesById, $toSegment, $weekEnd): array {
                 $decoration = $toSegment($itemsById[$segment['id']]);
+                $end        = $rangesById[$segment['id']]['end'];
 
                 return [
-                    'startCol' => $segment['startCol'],
-                    'span'     => $segment['span'],
-                    'lane'     => $segment['lane'],
-                    'label'    => $decoration['label'],
-                    'details'  => $decoration['details'],
-                    'color'    => $decoration['color'],
-                    'icon'     => $decoration['icon'] ?? null,
-                    'muted'    => $decoration['muted'] ?? false,
+                    'startCol'  => $segment['startCol'],
+                    'span'      => $segment['span'],
+                    'lane'      => $segment['lane'],
+                    'label'     => $decoration['label'],
+                    'details'   => $decoration['details'],
+                    'color'     => $decoration['color'],
+                    'icon'      => $decoration['icon'] ?? null,
+                    'muted'     => $decoration['muted'] ?? false,
+                    // A long window (see 'long') goes on into later weeks, or ends in this one.
+                    'long'      => $decoration['long'] ?? false,
+                    // Past the weekend (not drawn), i.e. a later week still shows it.
+                    'continues' => $end > $weekEnd->modify('+2 days'),
                 ];
             }, $layout['segments']);
 

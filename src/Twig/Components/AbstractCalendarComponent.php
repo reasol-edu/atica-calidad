@@ -34,7 +34,7 @@ abstract class AbstractCalendarComponent extends AbstractController
         private readonly TenantContext $tenantContext,
         protected readonly TranslatorInterface $translator,
         private readonly NonWorkingDayChecker $nonWorkingDayChecker,
-        private readonly ClockInterface $clock,
+        protected readonly ClockInterface $clock,
     ) {}
 
     public function mount(): void

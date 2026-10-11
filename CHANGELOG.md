@@ -19,6 +19,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 
+- Calendario: una actividad abierta durante semanas se dibuja como una pista fina en las semanas
+  anteriores a su vencimiento, y como barra con el título («Vence: …») solo en la semana en que
+  vence, en lugar de repetir la misma barra en cada fila. Una actividad vencida y sin completar se
+  pinta en rojo.
+- Calendario en el móvil: en lugar de la cuadrícula de cinco columnas, que no deja leer los
+  títulos, se muestra una lista de los días del mes que tienen algo, con sus entradas; una
+  actividad abierta durante semanas aparece solo el día en que vence.
 - El número de la campana cuenta solo lo urgente (actividades vencidas, fuera de plazo, rechazadas o
   con vencimiento en una semana, tareas de Mejora continua vencidas o próximas, y las entregas que
   esperan tu revisión) y por eso puede llegar a cero; con pendientes pero nada urgente muestra un

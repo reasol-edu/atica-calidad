@@ -17,11 +17,13 @@ use App\Entity\SpecificProfile;
 use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
 use App\Tests\Integration\ControllerTestCase;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 
 final class CalendarComponentTest extends ControllerTestCase
 {
+    use ClockSensitiveTrait;
     use InteractsWithLiveComponents;
 
     private function centre(): EducationalCentre
@@ -253,6 +255,100 @@ final class CalendarComponentTest extends ControllerTestCase
         // would not have shown it here.
         $component = $this->createLiveComponent('CalendarComponent', ['year' => 2026, 'month' => 1], $this->client);
         self::assertStringContainsString('Ventana anual de entregas', (string) $component->render()->crawler()->html());
+    }
+
+    /** A month-long window: a thin track in the weeks before it falls due, the labelled bar only in its deadline week. */
+    public function testALongWindowIsAThinTrackUntilTheWeekItFallsDue(): void
+    {
+        self::mockTime('2025-09-10 10:00:00');
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new Activity())->setCategory($category)->setTitle('Lectura del plan')->setStart(1, 9)->setEnd(30, 9);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $year, $category, $activity, $teacher);
+        $this->loginAs($teacher, $centre);
+
+        $component = $this->createLiveComponent('CalendarComponent', ['year' => 2025, 'month' => 9], $this->client);
+        $crawler   = $component->render()->crawler();
+
+        // Weeks of 1, 8, 15 and 22 Sept: tracks. The week of the 29th (deadline Tuesday 30th): the bar.
+        self::assertCount(4, $crawler->filter('div.h-2.rounded-full[title="Lectura del plan"]'));
+        self::assertSame(1, substr_count((string) $crawler->filter('div.max-md\:hidden')->last()->html(), 'Vence: Lectura del plan'), 'the grid names it once, on its deadline week');
+    }
+
+    public function testAShortWindowKeepsItsBarOnTheWeekItSpans(): void
+    {
+        self::mockTime('2025-10-02 10:00:00');
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new Activity())->setCategory($category)->setTitle('Encuesta rápida')->setStart(6, 10)->setEnd(10, 10);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $year, $category, $activity, $teacher);
+        $this->loginAs($teacher, $centre);
+
+        $component = $this->createLiveComponent('CalendarComponent', ['year' => 2025, 'month' => 10], $this->client);
+        $crawler   = $component->render()->crawler();
+
+        self::assertCount(0, $crawler->filter('div.h-2.rounded-full'), 'one week: no track');
+        self::assertStringNotContainsString('Vence: Encuesta rápida', (string) $crawler->html(), 'a short window is not renamed');
+        self::assertStringContainsString('Encuesta rápida', (string) $crawler->html());
+    }
+
+    public function testAnActivityPastItsDeadlineAndNotDoneIsRed(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $overdue  = (new Activity())->setCategory($category)->setTitle('Vencida')->setStart(1, 9)->setEnd(30, 9);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $year, $category, $overdue, $teacher);
+        $this->loginAs($teacher, $centre);
+
+        $component = $this->createLiveComponent('CalendarComponent', ['year' => 2025, 'month' => 9], $this->client);
+        $html      = (string) $component->render()->crawler()->html();
+
+        self::assertStringContainsString('border-l-red-500', $html, 'past its deadline and not done: red');
+    }
+
+    public function testThePhoneAgendaListsADaysEntriesAndAWindowOnlyOnItsDeadline(): void
+    {
+        self::mockTime('2025-09-10 10:00:00');
+        $centre   = $this->centre();
+        $year     = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $activity = (new Activity())->setCategory($category)->setTitle('Lectura del plan')->setStart(1, 9)->setEnd(30, 9);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $year, $category, $activity, $teacher);
+        $this->loginAs($teacher, $centre);
+
+        $component = $this->createLiveComponent('CalendarComponent', ['year' => 2025, 'month' => 9], $this->client);
+        $crawler   = $component->render()->crawler();
+
+        $days = $crawler->filter('div.md\:hidden section a[href*="/calendario/dia/"]');
+        self::assertCount(1, $days, 'one day with something on it: the deadline, not every day of the window');
+        self::assertStringContainsString('/calendario/dia/2025-09-30', (string) $days->attr('href'));
+        self::assertStringContainsString('Vence: Lectura del plan', (string) $crawler->filter('div.md\:hidden section')->html());
+    }
+
+    public function testThePhoneAgendaSaysWhenThereIsNothingThisMonth(): void
+    {
+        $centre = $this->centre();
+        $year   = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $teacher = $this->teacher('docente');
+        $this->persist($centre, $year, $teacher);
+        $this->loginAs($teacher, $centre);
+
+        $component = $this->createLiveComponent('CalendarComponent', ['year' => 2025, 'month' => 9], $this->client);
+
+        self::assertStringContainsString('No hay nada este mes.', (string) $component->render()->crawler()->html());
     }
 
     public function testASingleDateActivityIsNotShownOnNeighbouringMonths(): void
