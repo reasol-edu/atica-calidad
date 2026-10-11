@@ -7,6 +7,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- En la pantalla de inicio de sesión, con pantallas pequeñas, el número de versión aparece junto al
+  nombre de la aplicación (el panel de marca que lo mostraba solo se ve en pantallas grandes).
+
 ## [1.18.0] - 2026-10-11
 
 ### Added

@@ -28,6 +28,16 @@ final class SecurityControllerTest extends ControllerTestCase
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
     }
 
+    /** The brand panel with the version is hidden on small screens, so the compact logo carries it too. */
+    public function testTheCompactLogoShowsTheVersionNextToTheAppName(): void
+    {
+        $crawler = $this->client->request('GET', '/login');
+
+        $version = $crawler->filter('.lg\:hidden [data-login-version]');
+        self::assertCount(1, $version);
+        self::assertMatchesRegularExpression('/^v\d+\.\d+\.\d+/', trim($version->text()));
+    }
+
     public function testLoginPageRedirectsAnAlreadyAuthenticatedTeacherToTheDashboard(): void
     {
         $centre  = $this->centre();

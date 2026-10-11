@@ -68,7 +68,11 @@
             {# Logo #}
             <div class="flex items-center gap-2 mb-10 lg:hidden">
                 <img src="{{ asset('static/logo.svg') }}" alt="{{ app_name }}" class="w-14 h-14 shrink-0">
-                <span class="text-forest-900 text-lg font-semibold">{{ app_name }}</span>
+                {# The brand panel that shows the version is hidden on small screens: put it here instead. #}
+                <span class="flex items-baseline gap-2">
+                    <span class="text-forest-900 text-lg font-semibold">{{ app_name }}</span>
+                    {% if app_version %}<span data-login-version class="text-gray-400 text-xs font-medium">v{{ app_version }}</span>{% endif %}
+                </span>
             </div>
 
             {# Header #}
