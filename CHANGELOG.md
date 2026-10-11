@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.17.1] - 2026-10-11
+
 ### Fixed
 
 - El arranque del ejecutable autónomo fallaba al precalentar la caché con «Allowed memory size of
