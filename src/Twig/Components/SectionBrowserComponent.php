@@ -303,6 +303,53 @@ class SectionBrowserComponent extends AbstractController
         return $this->expandedFolderIds === [] ? '' : $this->expandedFolderIds[array_key_last($this->expandedFolderIds)];
     }
 
+    /** How many documents each quick-access list on the root shows. */
+    public const int QUICK_ACCESS_ITEMS = 5;
+
+    /** @var list<Document>|null */
+    private ?array $pendingReadCache = null;
+
+    /** @var list<Document>|null */
+    private ?array $recentCache = null;
+
+    /**
+     * The documents this teacher still has to acknowledge as read — the same list as the home
+     * dashboard's widget — for the quick access on the tree's root.
+     *
+     * @return list<Document>
+     */
+    public function getPendingReadDocuments(): array
+    {
+        return $this->pendingReadCache ??= $this->readAcknowledgements->pendingFor($this->teacher(), $this->centre);
+    }
+
+    /**
+     * The documents most recently given a new approved version that this teacher can open, newest
+     * first, for the quick access on the tree's root. Looks at the latest thirty and keeps the
+     * ones the teacher can see, so a restricted folder never leaks through here.
+     *
+     * @return list<Document>
+     */
+    public function getRecentDocuments(): array
+    {
+        if ($this->recentCache !== null) {
+            return $this->recentCache;
+        }
+
+        $teacher = $this->teacher();
+        $recent  = [];
+        foreach ($this->documents->findRecentlyRevisedByCentre($this->centre) as $document) {
+            if ($this->access->canViewDocument($teacher, $document)) {
+                $recent[] = $document;
+            }
+            if (\count($recent) === self::QUICK_ACCESS_ITEMS) {
+                break;
+            }
+        }
+
+        return $this->recentCache = $recent;
+    }
+
     private function teacher(): Teacher
     {
         $user = $this->getUser();

@@ -209,6 +209,30 @@ class DocumentRepository extends ServiceEntityRepository
     }
 
     /**
+     * The documents whose approved version is the newest in the centre, most recent first — plain
+     * documents only: an activity's submissions are followed in Actividades, and a retired
+     * (obsolete) folder is not news. Not filtered by what anyone may see: callers check that.
+     *
+     * @return list<Document>
+     */
+    public function findRecentlyRevisedByCentre(EducationalCentre $centre, int $limit = 30): array
+    {
+        return $this->createQueryBuilder('d')
+            ->join('d.folder', 'f')
+            ->join('f.documentSection', 's')
+            ->join('d.activeRevision', 'rev')
+            ->leftJoin('f.activity', 'act')
+            ->where('s.educationalCentre = :centre')
+            ->andWhere('act.id IS NULL')
+            ->andWhere('f.obsolete = false')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('rev.revisedAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Documents matching $query by their own name or their folder's name — for the activity
      * "related documents" picker, which the user explicitly wants searchable by either (unlike
      * searchByCentre(), which only matches the document's own name/uploader/profile and backs

@@ -70,6 +70,8 @@ mine.empty: '¡Todo al día! No tienes ninguna actividad pendiente.'
 mine.no_results: 'No se han encontrado actividades que coincidan con la búsqueda.'
 
 search.placeholder: 'Buscar categorías, actividades y entregas…'
+search.label: 'Buscar en todas las actividades'
+search.clear: 'Borrar la búsqueda'
 search.empty: 'No se han encontrado resultados que coincidan con la búsqueda.'
 search.categories_heading: 'Categorías'
 search.activities_heading: 'Actividades'

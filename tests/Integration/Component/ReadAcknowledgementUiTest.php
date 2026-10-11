@@ -103,6 +103,38 @@ final class ReadAcknowledgementUiTest extends ControllerTestCase
         self::assertStringContainsString('Lector, Luis', $component->render()->toString());
     }
 
+    public function testTheRootOffersWhatIsWaitingToBeRead(): void
+    {
+        $folder = self::getContainer()->get(FolderRepository::class)->findById($this->folder->getId()->toRfc4122());
+        $folder?->setRequiresReadAcknowledgement(true);
+        $this->em->flush();
+
+        $this->loginAs($this->reader, $this->centre);
+        $html = $this->createLiveComponent('SectionBrowserComponent', ['centre' => $this->centre], $this->client)->render()->toString();
+
+        self::assertStringContainsString('Pendientes de leer', $html);
+        self::assertStringContainsString('Política de calidad', $html);
+    }
+
+    public function testTheRootListsRecentlyUpdatedDocumentsAndNoPendingReadWhenNothingIsRequired(): void
+    {
+        $this->loginAs($this->reader, $this->centre);
+        $html = $this->createLiveComponent('SectionBrowserComponent', ['centre' => $this->centre], $this->client)->render()->toString();
+
+        self::assertStringContainsString('Actualizados recientemente', $html);
+        self::assertStringContainsString('Política de calidad', $html);
+        self::assertStringNotContainsString('Pendientes de leer', $html);
+    }
+
+    public function testInsideASectionThereIsNoQuickAccess(): void
+    {
+        $this->loginAs($this->reader, $this->centre);
+        $html = $this->createLiveComponent('SectionBrowserComponent', $this->props(), $this->client)->render()->toString();
+
+        self::assertStringNotContainsString('Actualizados recientemente', $html);
+        self::assertStringNotContainsString('Pendientes de leer', $html);
+    }
+
     public function testAReaderCannotAcknowledgeWhereNothingIsRequired(): void
     {
         $this->loginAs($this->reader, $this->centre);

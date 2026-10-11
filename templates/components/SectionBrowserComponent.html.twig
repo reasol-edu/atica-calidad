@@ -55,11 +55,16 @@
     {# ── Search across the whole tree ── #}
     <form data-action="submit->live#action:prevent" class="relative">
         {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400'}) }}
+        {# Three searches live on this page (⌘K in the header, this one over the whole tree, and the
+           one of the current section below): each names its reach, not only in the placeholder,
+           which disappears as soon as something is typed. #}
         <input type="search" data-model="debounce(300)|searchQuery" value="{{ searchQuery }}"
                placeholder="{{ 'search.placeholder'|trans({}, 'document_content') }}"
+               aria-label="{{ 'search.label'|trans({}, 'document_content') }}"
                class="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 {{ searchQuery is not empty ? 'pr-9' : 'pr-3' }} text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
         {% if searchQuery is not empty %}
             <button type="button" data-action="live#action" data-live-action-param="clearSearch"
+                    aria-label="{{ 'search.clear'|trans({}, 'document_content') }}"
                     class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-600">
                 {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
             </button>
@@ -154,6 +159,52 @@
             {% endif %}
         </div>
     {% else %}
+        {# ── Quick access, on the root only: what is waiting to be read, and what changed lately ── #}
+        {% if current is null %}
+            {% set pending_read = this.pendingReadDocuments %}
+            {% set recent_docs = this.recentDocuments %}
+            {% if pending_read is not empty or recent_docs is not empty %}
+                {% set quick_max = constant('App\\Twig\\Components\\SectionBrowserComponent::QUICK_ACCESS_ITEMS') %}
+                <div class="grid gap-4 {{ pending_read is not empty and recent_docs is not empty ? 'lg:grid-cols-2' : '' }}">
+                    {% for quick in [
+                        {key: 'pending', docs: pending_read, icon: 'heroicons:check-badge', accent: 'text-amber-500'},
+                        {key: 'recent', docs: recent_docs, icon: 'heroicons:clock', accent: 'text-forest-500'},
+                    ] %}
+                        {% if quick.docs is not empty %}
+                            <section class="rounded-2xl border border-gray-200 bg-white shadow-xs" aria-labelledby="quick-{{ quick.key }}">
+                                <h2 id="quick-{{ quick.key }}" class="flex items-center gap-2 border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">
+                                    {{ ux_icon(quick.icon, {class: 'h-4 w-4 ' ~ quick.accent}) }}
+                                    {{ ('quick.' ~ quick.key ~ '_title')|trans({}, 'document_content') }}
+                                    {% if quick.key == 'pending' %}
+                                        <span class="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">{{ quick.docs|length }}</span>
+                                    {% endif %}
+                                </h2>
+                                <ul class="divide-y divide-gray-100">
+                                    {% for doc in quick.docs|slice(0, quick_max) %}
+                                        <li>
+                                            <button type="button" data-action="live#action" data-live-action-param="openSearchResult" data-live-document-id-param="{{ doc.id.toRfc4122 }}"
+                                                    class="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-gray-50">
+                                                {{ ux_icon('heroicons:document-text', {class: 'mt-0.5 h-4 w-4 shrink-0 text-gray-400'}) }}
+                                                <span class="min-w-0 flex-1">
+                                                    <span class="block truncate text-sm font-medium text-gray-800">{{ doc.name }}</span>
+                                                    <span class="block truncate text-xs text-gray-400">
+                                                        {{ doc.folder.name }}{% if doc.activeRevision %} · {{ 'quick.version'|trans({'%version%': doc.activeRevision.version, '%date%': doc.activeRevision.revisedAt|date('d/m/Y')}, 'document_content') }}{% endif %}
+                                                    </span>
+                                                </span>
+                                            </button>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                                {% if quick.docs|length > quick_max %}
+                                    <p class="px-4 py-2 text-center text-xs text-gray-400">{{ 'quick.more'|trans({'%count%': quick.docs|length - quick_max}, 'document_content') }}</p>
+                                {% endif %}
+                            </section>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endif %}
+
         {# ── Child sections ── #}
         {% if child_sections is not empty %}
             <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -180,9 +231,12 @@
                             {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400'}) }}
                             <input type="search" data-model="debounce(300)|localSearchQuery" value="{{ localSearchQuery }}"
                                    placeholder="{{ 'search.local_placeholder'|trans({}, 'document_content') }}"
+                                   aria-label="{{ 'search.local_label'|trans({}, 'document_content') }}"
+                                   title="{{ 'search.local_help'|trans({}, 'document_content') }}"
                                    class="w-64 rounded-lg border border-gray-200 bg-white py-1.5 pl-8 {{ localSearchQuery is not empty ? 'pr-7' : 'pr-2' }} text-xs focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                             {% if localSearchQuery is not empty %}
                                 <button type="button" data-action="live#action" data-live-action-param="clearLocalSearch"
+                                        aria-label="{{ 'search.clear'|trans({}, 'document_content') }}"
                                         class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-600">
                                     {{ ux_icon('heroicons:x-mark', {class: 'h-3.5 w-3.5'}) }}
                                 </button>
