@@ -4,6 +4,8 @@
         # (2M por fichero, 8M por envío, 128M de memoria, display_errors activado). Con display_errors
         # activado, el aviso de «POST demasiado grande» se escribe antes que las cabeceras, la sesión
         # falla y el navegador recibe una respuesta rota (pantalla en blanco).
+        # Sin la cabecera «X-Powered-By: PHP/x.y.z», que dice qué versión se ejecuta.
+        php_ini expose_php Off
         php_ini display_errors Off
         php_ini log_errors On
         php_ini upload_max_filesize 32M
