@@ -110,6 +110,15 @@ await page.locator('h2:has-text("Documentos por leer")').evaluate(el => el.scrol
 await hideToolbar();
 await page.screenshot({ path: `${outDir}/lectura-panel.png` });
 
+// The root of the document tree, with its quick access: what is still to read (the policy, for
+// this reader) and what changed lately.
+await page.goto(`${baseUrl}/arbol-documental`);
+await page.waitForLoadState('networkidle');
+await page.waitForSelector('section[aria-labelledby="quick-pending"]');
+await page.waitForSelector('section[aria-labelledby="quick-recent"]');
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/arbol-raiz-accesos.png` });
+
 await openPolicyFolder();
 await page.waitForSelector('button:has-text("Confirmar lectura")');
 await hideToolbar();

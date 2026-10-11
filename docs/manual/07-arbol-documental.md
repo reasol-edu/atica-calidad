@@ -305,6 +305,8 @@ la Raíz para que deje de recordarla.
 
 ### Accesos rápidos en la Raíz
 
+![La Raíz del árbol documental con «Pendientes de leer» y «Actualizados recientemente» encima de las secciones](img/arbol-raiz-accesos.png)
+
 En la **Raíz**, encima de las secciones, aparecen dos listas cortas (solo si tienen algo):
 
 - **Pendientes de leer** — los documentos con acuse de lectura que aún no has confirmado, los mismos
