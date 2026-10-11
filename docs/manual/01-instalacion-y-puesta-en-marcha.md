@@ -129,14 +129,14 @@ nuevo (sin tocar `data/` ni `.env.local`) y los vuelve a arrancar. Si ya está e
 no hace nada. Para una actualización puntual, ejecútalo directamente desde GitHub:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/update-ubuntu.sh | sudo bash
+curl -fsSL https://github.com/reasol-edu/atica-calidad/releases/latest/download/update-ubuntu.sh | sudo bash
 ```
 
 Añade `--force` para reinstalar aunque la versión parezca la misma (p. ej. tras mover una etiqueta
 a otro commit):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/update-ubuntu.sh | sudo bash -s -- --force
+curl -fsSL https://github.com/reasol-edu/atica-calidad/releases/latest/download/update-ubuntu.sh | sudo bash -s -- --force
 ```
 
 Para dejarlo **automatizado** (sondeo con un timer de systemd, o webhook desde GitHub), ver la guía

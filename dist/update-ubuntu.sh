@@ -8,7 +8,7 @@
 #   sudo bash update-ubuntu.sh [--force]
 #
 # Uso (descarga y ejecución directa, sin bajar el paquete):
-#   curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/update-ubuntu.sh \
+#   curl -fsSL https://github.com/reasol-edu/atica-calidad/releases/latest/download/update-ubuntu.sh \
 #     | sudo bash -s -- [--force]
 #
 # --force reinstala aunque la versión publicada parezca igual o anterior a la
@@ -21,8 +21,10 @@
 #   2. Consulta la última versión publicada en GitHub Releases y la compara
 #      con la instalada (fichero .version). Si coinciden y no se usa
 #      --force, no hace nada.
-#   3. Si hay una versión más reciente (o se ha pasado --force): para los
-#      servicios, descarga y extrae el paquete nuevo sobre /opt/atica-calidad
+#   3. Si hay una versión más reciente (o se ha pasado --force): descarga el
+#      paquete y comprueba su suma SHA256 contra la de la release (si no
+#      coincide, aborta sin tocar nada), para los servicios, extrae el
+#      paquete nuevo sobre /opt/atica-calidad
 #      (data/ y .env.local no forman parte del paquete, así que se conservan
 #      intactos), borra de app/ lo que la versión nueva ya no trae y vuelve
 #      a arrancar los servicios. atica-calidad-start.sh
@@ -56,42 +58,82 @@ done
 REPO="reasol-edu/atica-calidad"
 INSTALL_DIR="/opt/atica-calidad"
 
+# ── comprobación de integridad ────────────────────────────────────────────────
+# Cada release publica, junto a los paquetes y a este script (update-ubuntu.sh), un fichero
+# SHA256SUMS. Nada que se descargue se usa sin comprobar su suma contra ese fichero.
+#
+# Qué protege y qué no: detecta una descarga corrupta o alterada por el camino, y que el
+# script o el paquete no sean los de esa release. NO protege frente a quien pueda publicar
+# una release, porque las sumas viajan con ella: eso requeriría una firma independiente.
+
+# Etiqueta de la última release publicada (p. ej. v1.18.0), o nada si no se puede obtener.
+latest_tag() {
+    curl -fsSL --max-time 30 "https://api.github.com/repos/${REPO}/releases/latest" 2> /dev/null \
+        | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/'
+}
+
+# download_sums <etiqueta> <fichero destino>
+download_sums() {
+    curl -fsSL --max-time 30 "https://github.com/${REPO}/releases/download/$1/SHA256SUMS" -o "$2" 2> /dev/null
+}
+
+# expected_sha <SHA256SUMS> <nombre del fichero>  → imprime su suma, o nada si no figura
+expected_sha() {
+    awk -v f="$2" '{ n = $2; sub(/^\*/, "", n); if (n == f) { print $1; exit } }' "$1"
+}
+
+sha256_of() {
+    sha256sum "$1" | awk '{ print $1 }'
+}
+
+# verify_file <fichero> <SHA256SUMS> <nombre en SHA256SUMS>  → 0 solo si figura y coincide
+verify_file() {
+    local expected
+    expected="$(expected_sha "$2" "$3")"
+    [[ -n "$expected" && "$(sha256_of "$1")" == "$expected" ]]
+}
+
 # ── autoactualización del script ──────────────────────────────────────────────
 # La copia local que ejecuta el temporizador de systemd (atica-calidad-update.sh)
 # se descarga una sola vez, al activar el despliegue continuo, y no se renueva
 # sola: una copia antigua se quedaría sin las correcciones posteriores (por
 # ejemplo, el borrado de ficheros huérfanos de app/, sin el cual una clase
-# eliminada en una versión rompe el arranque). Antes de nada se descarga la
-# versión publicada de este mismo script; si es distinta y válida, se sustituye
-# y se vuelve a lanzar con los mismos argumentos. Si la descarga falla se sigue
-# con la copia actual. No se hace al ejecutarlo con «curl | bash» (no hay fichero
-# que sustituir) ni en la segunda pasada (ATICA_UPDATE_REEXEC evita bucles).
-# ATICA_UPDATE_SELF_URL permite apuntar a otra fuente (pruebas).
+# eliminada en una versión rompe el arranque). Antes de nada se descarga el
+# script publicado con la última release (no el de la rama main: solo llega a los
+# servidores lo que se ha publicado) y se comprueba contra SHA256SUMS; si es
+# distinto, se sustituye y se vuelve a lanzar con los mismos argumentos. Si algo
+# falla —sin red, sin SHA256SUMS, suma distinta— se sigue con la copia actual. No
+# se hace al ejecutarlo con «curl | bash» (no hay fichero que sustituir) ni en la
+# segunda pasada (ATICA_UPDATE_REEXEC evita bucles).
 SELF="${BASH_SOURCE[0]:-}"
 if [[ -z "${ATICA_UPDATE_REEXEC:-}" && -n "$SELF" && -f "$SELF" && -w "$SELF" ]]; then
     SELF="$(readlink -f "$SELF")"
-    SELF_URL="${ATICA_UPDATE_SELF_URL:-https://raw.githubusercontent.com/${REPO}/main/dist/update-ubuntu.sh}"
+    SELF_TAG="$(latest_tag || true)"
     # En el mismo directorio, para que el `mv` final sea atómico y no toque el
     # fichero que bash está leyendo ahora mismo.
     NEW_SELF="$(mktemp "${SELF}.new.XXXXXX" 2>/dev/null || true)"
-    if [[ -n "$NEW_SELF" ]]; then
-        if curl -fsSL --max-time 30 "$SELF_URL" -o "$NEW_SELF" 2>/dev/null \
+    SELF_SUMS="$(mktemp 2>/dev/null || true)"
+    if [[ -n "$NEW_SELF" && -n "$SELF_SUMS" && -n "$SELF_TAG" ]]; then
+        if download_sums "$SELF_TAG" "$SELF_SUMS" \
+            && curl -fsSL --max-time 30 "https://github.com/${REPO}/releases/download/${SELF_TAG}/update-ubuntu.sh" -o "$NEW_SELF" 2> /dev/null \
             && [[ -s "$NEW_SELF" ]] \
+            && verify_file "$NEW_SELF" "$SELF_SUMS" "update-ubuntu.sh" \
             && head -n 1 "$NEW_SELF" | grep -q '^#!.*bash' \
             && bash -n "$NEW_SELF" 2>/dev/null; then
             if ! cmp -s "$NEW_SELF" "$SELF"; then
                 if chmod --reference="$SELF" "$NEW_SELF" && mv -f "$NEW_SELF" "$SELF"; then
-                    echo -e "${CYAN}${BOLD}▶  Script de actualización renovado a la versión publicada${NC}"
+                    echo -e "${CYAN}${BOLD}▶  Script de actualización renovado a la versión ${SELF_TAG}${NC}"
+                    rm -f "$SELF_SUMS"
                     export ATICA_UPDATE_REEXEC=1
                     exec bash "$SELF" "$@"
                 fi
                 warn "No se pudo sustituir el script de actualización; se sigue con esta copia."
             fi
         else
-            warn "No se pudo renovar el script de actualización; se sigue con esta copia."
+            warn "No se pudo renovar el script de actualización (sin red, sin comprobar o suma distinta); se sigue con esta copia."
         fi
-        rm -f "$NEW_SELF"
     fi
+    rm -f "${NEW_SELF:-}" "${SELF_SUMS:-}"
 fi
 
 # ── verificaciones previas ────────────────────────────────────────────────────
@@ -136,13 +178,23 @@ fi
 # ── descargar ─────────────────────────────────────────────────────────────────
 step "Descargando ÁTICA Calidad ${REMOTE_TAG} (${ASSET_ARCH})"
 
-TARBALL_URL="https://github.com/${REPO}/releases/download/${REMOTE_TAG}/atica-calidad-${REMOTE_TAG}-${ASSET_ARCH}.tar.gz"
+TARBALL_NAME="atica-calidad-${REMOTE_TAG}-${ASSET_ARCH}.tar.gz"
+TARBALL_URL="https://github.com/${REPO}/releases/download/${REMOTE_TAG}/${TARBALL_NAME}"
 TMP_FILE="$(mktemp)"
+SUMS_FILE="$(mktemp)"
 STAGE_DIR=""
-trap 'rm -f "$TMP_FILE"; [[ -n "$STAGE_DIR" ]] && rm -rf "$STAGE_DIR"' EXIT
+trap 'rm -f "$TMP_FILE" "$SUMS_FILE"; [[ -n "$STAGE_DIR" ]] && rm -rf "$STAGE_DIR"' EXIT
 
 curl -fsSL "$TARBALL_URL" -o "$TMP_FILE" || die "No se pudo descargar ${TARBALL_URL}."
 ok "Descargado"
+
+# Nada se extrae ni se instala sin comprobar la suma del paquete contra SHA256SUMS: si falta
+# o no coincide, se aborta aquí, antes de parar los servicios, sin tocar la instalación.
+download_sums "$REMOTE_TAG" "$SUMS_FILE" \
+    || die "No se pudo descargar SHA256SUMS de ${REMOTE_TAG}: no se puede comprobar el paquete. No se ha tocado la instalación."
+verify_file "$TMP_FILE" "$SUMS_FILE" "$TARBALL_NAME" \
+    || die "La suma de verificación de ${TARBALL_NAME} no coincide con SHA256SUMS (o no figura): la descarga está corrupta o ha sido manipulada. No se ha tocado la instalación."
+ok "Suma de verificación correcta"
 
 # ── parar, extraer y arrancar ─────────────────────────────────────────────────
 step "Deteniendo los servicios"

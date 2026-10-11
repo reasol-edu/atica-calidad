@@ -51,9 +51,18 @@ id aticacalidad &> /dev/null \
 # ── descargar el script de actualización ──────────────────────────────────────
 step "Descargando atica-calidad-update.sh"
 
-curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/update-ubuntu.sh \
-    -o "$UPDATE_SCRIPT" || die "No se pudo descargar update-ubuntu.sh."
-chmod +x "$UPDATE_SCRIPT"
+# Del script publicado con la última release (no de la rama main), y comprobado contra el
+# SHA256SUMS de esa misma release antes de dejarlo en su sitio.
+RELEASE_URL="https://github.com/reasol-edu/atica-calidad/releases/latest/download"
+SCRIPT_TMP="$(mktemp)"
+SUMS_TMP="$(mktemp)"
+trap 'rm -f "$SCRIPT_TMP" "$SUMS_TMP"' EXIT
+curl -fsSL "${RELEASE_URL}/update-ubuntu.sh" -o "$SCRIPT_TMP" || die "No se pudo descargar update-ubuntu.sh."
+curl -fsSL "${RELEASE_URL}/SHA256SUMS" -o "$SUMS_TMP" || die "No se pudo descargar SHA256SUMS."
+EXPECTED_SUM="$(awk '{ n = $2; sub(/^\*/, "", n); if (n == "update-ubuntu.sh") { print $1; exit } }' "$SUMS_TMP")"
+[[ -n "$EXPECTED_SUM" && "$(sha256sum "$SCRIPT_TMP" | awk '{ print $1 }')" == "$EXPECTED_SUM" ]] \
+    || die "La suma de verificación de update-ubuntu.sh no coincide con SHA256SUMS (o no figura)."
+install -m 0755 "$SCRIPT_TMP" "$UPDATE_SCRIPT"
 ok "Guardado en ${UPDATE_SCRIPT}"
 
 # ── crear el servicio y el timer de systemd ───────────────────────────────────

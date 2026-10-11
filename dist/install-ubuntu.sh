@@ -262,9 +262,23 @@ step "4/8 · Descargar el binario de ÁTICA Calidad (última versión)"
 VERSION=$(curl -fsSL https://api.github.com/repos/reasol-edu/atica-calidad/releases/latest \
     | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
 [[ -n "$VERSION" ]] || die "No se pudo obtener la versión más reciente desde GitHub."
-TARBALL_URL="https://github.com/reasol-edu/atica-calidad/releases/download/v${VERSION}/atica-calidad-v${VERSION}-${ASSET_ARCH}.tar.gz"
+TARBALL_NAME="atica-calidad-v${VERSION}-${ASSET_ARCH}.tar.gz"
+RELEASE_URL="https://github.com/reasol-edu/atica-calidad/releases/download/v${VERSION}"
 echo "   Descargando atica-calidad v${VERSION} (${ASSET_ARCH})..."
-curl -fsSL "$TARBALL_URL" | sudo -u aticacalidad tar xzf - -C /opt/atica-calidad --strip-components=1
+# Primero a un fichero y se comprueba su suma contra SHA256SUMS de la release; solo después se
+# extrae (antes se encadenaba curl | tar, sin comprobar nada). Las sumas viajan con la release:
+# detectan una descarga corrupta o alterada por el camino, no a quien pueda publicar una release.
+DL_TMP="$(mktemp)"
+SUMS_TMP="$(mktemp)"
+trap 'rm -f "$DL_TMP" "$SUMS_TMP"' EXIT
+curl -fsSL "${RELEASE_URL}/${TARBALL_NAME}" -o "$DL_TMP" || die "No se pudo descargar ${TARBALL_NAME}."
+curl -fsSL "${RELEASE_URL}/SHA256SUMS" -o "$SUMS_TMP" \
+    || die "No se pudo descargar SHA256SUMS de v${VERSION}: no se puede comprobar el paquete."
+EXPECTED_SUM="$(awk -v f="$TARBALL_NAME" '{ n = $2; sub(/^\*/, "", n); if (n == f) { print $1; exit } }' "$SUMS_TMP")"
+[[ -n "$EXPECTED_SUM" && "$(sha256sum "$DL_TMP" | awk '{ print $1 }')" == "$EXPECTED_SUM" ]] \
+    || die "La suma de verificación de ${TARBALL_NAME} no coincide con SHA256SUMS (o no figura): descarga corrupta o manipulada."
+ok "Suma de verificación correcta"
+sudo -u aticacalidad tar xzf - -C /opt/atica-calidad --strip-components=1 < "$DL_TMP"
 ok "ÁTICA Calidad v${VERSION} extraído en /opt/atica-calidad"
 
 # ── 5. Configuración ─────────────────────────────────────────────────────────

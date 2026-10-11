@@ -22,33 +22,47 @@ Para una **actualización puntual**, sin automatizar nada, se puede ejecutar dir
 GitHub:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/update-ubuntu.sh | sudo bash
+curl -fsSL https://github.com/reasol-edu/atica-calidad/releases/latest/download/update-ubuntu.sh | sudo bash
 ```
 
 Admite `--force` para reinstalar aunque la versión publicada parezca igual a la instalada (por
 ejemplo, tras una re-release que mueve la misma etiqueta a otro commit):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/update-ubuntu.sh | sudo bash -s -- --force
+curl -fsSL https://github.com/reasol-edu/atica-calidad/releases/latest/download/update-ubuntu.sh | sudo bash -s -- --force
 ```
 
 Si prefieres dejar el script guardado en la instalación (lo que hacen también las dos opciones
 automatizadas de abajo):
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/update-ubuntu.sh \
+sudo curl -fsSL https://github.com/reasol-edu/atica-calidad/releases/latest/download/update-ubuntu.sh \
   -o /opt/atica-calidad/atica-calidad-update.sh
 sudo chmod +x /opt/atica-calidad/atica-calidad-update.sh
 sudo bash /opt/atica-calidad/atica-calidad-update.sh          # o: … --force
 ```
 
 Esa copia guardada **se renueva sola**: en cada ejecución, antes de hacer nada, el script descarga
-la versión publicada de sí mismo y, si es distinta, se sustituye y se vuelve a lanzar con los mismos
+el script publicado con la última release (no el de la rama `main`), comprueba su suma contra el
+`SHA256SUMS` de esa release y, si es distinto, se sustituye y se vuelve a lanzar con los mismos
 argumentos. Así una copia antigua nunca se queda sin las correcciones posteriores (por ejemplo, el
 borrado de los ficheros que una versión elimina del código, sin el cual el arranque falla). Si la
 descarga falla, sigue con la copia actual. Al ejecutarlo con `curl … | sudo bash` no hay copia que
 renovar. Si tu copia es anterior a esta función, vuelve a descargarla una vez con los comandos de
 arriba; a partir de ahí se mantiene sola.
+
+### Qué se comprueba, y qué no
+
+Cada release publica, junto a los paquetes y a `update-ubuntu.sh`, un fichero `SHA256SUMS`. El
+script de actualización y el instalador **no instalan nada sin comprobar su suma** contra ese
+fichero, y abortan antes de parar los servicios si el paquete no coincide, no figura o no se puede
+descargar `SHA256SUMS`. Eso detecta una descarga corrupta o alterada por el camino y que lo
+descargado no es lo publicado en esa release.
+
+No protege frente a quien pueda **publicar una release**, porque las sumas viajan con ella:
+eso requeriría una firma independiente de GitHub. La seguridad del despliegue depende, entonces, de
+quién tiene permiso de escritura en el repositorio. Las versiones publicadas antes de la 1.19 no
+llevan `SHA256SUMS` y no pueden reinstalarse con `--force` desde el script nuevo.
 
 ## Opción A — Sondeo periódico con systemd timer
 
