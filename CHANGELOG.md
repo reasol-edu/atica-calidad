@@ -19,6 +19,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 
+- La ficha de una actividad dice con palabras dónde está para quien la tiene asignada («Vencida ·
+  Venció el 30/09/2026», «Pendiente · Vence en 3 días»…), en lugar de solo teñir la tarjeta de color.
+- En la ficha de una actividad, «Automática» y «Manual» pasan a «Se completa sola» y «Se marca a
+  mano», y al pasar el ratón explican cómo se da por completada.
 - Las cabeceras de las páginas principales (Mejora continua, Informes, Utilidades y Papelera) ya no
   repiten el título en una ruta de navegación, así que el título queda a la misma altura que en
   Inicio, Actividades, Calendario y el resto. En «Mi perfil» y «Ajustes» se quita el «Inicio»

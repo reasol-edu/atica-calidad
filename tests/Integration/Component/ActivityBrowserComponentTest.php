@@ -2485,6 +2485,38 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertStringContainsString('border-red-200', $html);
         self::assertStringContainsString('border-amber-200', $html);
         self::assertStringContainsString('border-forest-200', $html);
+
+        // ...and says it in words, with the date, so the colour is not the only signal.
+        self::assertStringContainsString('Vencida', $html);
+        self::assertStringContainsString('Venció el 30/09/2025', $html);
+        self::assertStringContainsString('Vence el 31/10/2025', $html);
+        self::assertStringContainsString('Completada', $html);
+        self::assertSame('overdue', $instance->getActivityObligation($overdue)?->status->value);
+    }
+
+    public function testTheCardLabelsSayHowAnActivityIsCompletedInPlainWords(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $folder->addUploadProfile($profile);
+        $activity = $this->activity($category, 'Con carpeta')->setStart(1, 10)->setEnd(31, 10)->setFolder($folder)->setAutoComplete(true);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $html = (string) $component->render()->crawler()->html();
+
+        self::assertStringContainsString('Se completa sola', $html);
+        self::assertStringNotContainsString('Automática', $html);
+        self::assertStringContainsString('cuando se publican todos los documentos que hay que entregar', $html, 'the tooltip explains it');
     }
 
     /** Someone else's activity isn't painted by its deadline: it has no status of the viewer's own. */
@@ -2510,6 +2542,8 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $instance = $component->component();
 
         self::assertSame('neutral', $instance->getActivityStatus($overdue));
+        self::assertNull($instance->getActivityObligation($overdue), 'nothing to say in words about someone else\'s activity');
+        self::assertStringNotContainsString('Venció el', (string) $component->render()->crawler()->html());
     }
 
     // ── withdrawing an own pending/rejected submission ───────────────────────

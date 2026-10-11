@@ -32,8 +32,16 @@
                             {%- if deadline_summary.hasOwnDeadlines %} · {{ 'activity.own_deadlines'|trans({'%count%': deadline_summary.ownCount}, 'activity_content') }}{% endif %}
                         {% endif %}
                     </p>
+                    {# The card's colour, said in words (and with the date): where it stands for the teacher whose it is. #}
+                    {% set own = this.getActivityObligation(activity) %}
+                    {% if own is not null %}
+                        <p class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600">
+                            {{ activity_status.pill(own.status.value) }}
+                            {% if own.status.value != 'completed' %}<span>{{ activity_status.detail(own) }}</span>{% endif %}
+                        </p>
+                    {% endif %}
                     {% set activity_window = this.getActivityWindow(activity) %}
-                    {% if activity_window.notStarted %}
+                    {% if activity_window.notStarted and (own is null or own.status.value != 'upcoming') %}
                         <p class="flex items-center gap-1 text-xs text-amber-600">
                             {{ ux_icon('heroicons:calendar-days', {class: 'h-3.5 w-3.5 shrink-0'}) }}
                             {{ 'activity.opens_on'|trans({'%date%': activity_window.startDate|date('d/m/Y')}, 'activity_content') }}
@@ -121,7 +129,7 @@
                             {{ (activity.required ? 'activity.required' : 'activity.optional')|trans({}, 'activity_content') }}
                         </span>
                         {% if has_submissions %}
-                            <span title="{{ (activity.autoComplete ? 'activity.auto_complete' : 'activity.manual')|trans({}, 'activity_content') }}"
+                            <span title="{{ (activity.autoComplete ? 'activity.auto_complete_help' : 'activity.manual_help')|trans({}, 'activity_content') }}"
                                   class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
                                 {{ ux_icon(activity.autoComplete ? 'heroicons:bolt' : 'heroicons:hand-raised', {class: 'h-3.5 w-3.5'}) }}
                                 {{ (activity.autoComplete ? 'activity.auto_complete' : 'activity.manual')|trans({}, 'activity_content') }}

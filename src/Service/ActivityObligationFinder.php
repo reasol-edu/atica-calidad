@@ -135,10 +135,20 @@ final class ActivityObligationFinder implements ResetInterface
      */
     public function worstStatusFor(Teacher $teacher, Activity $activity): ?ActivityObligationStatus
     {
+        return $this->worstItemFor($teacher, $activity)?->status;
+    }
+
+    /**
+     * The obligation behind worstStatusFor(): the most urgent of $teacher's own for $activity
+     * (the first of equals), with its dates — for saying in words where it stands. Null when the
+     * activity isn't theirs at all.
+     */
+    public function worstItemFor(Teacher $teacher, Activity $activity): ?ActivityDashboardItem
+    {
         $worst = null;
         foreach ($this->forActivity($teacher, $activity) as $item) {
-            if ($worst === null || $item->status->urgency() < $worst->urgency()) {
-                $worst = $item->status;
+            if ($worst === null || $item->status->urgency() < $worst->status->urgency()) {
+                $worst = $item;
             }
         }
 

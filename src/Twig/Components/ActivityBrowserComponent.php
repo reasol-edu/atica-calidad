@@ -20,6 +20,7 @@ use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use App\Entity\Tag;
 use App\Entity\Teacher;
+use App\Model\ActivityDashboardItem;
 use App\Model\ActivitySubmissionProgress;
 use App\Model\ActivityDeadlineSummary;
 use App\Model\ActivitySubmissionSlot;
@@ -1826,6 +1827,16 @@ class ActivityBrowserComponent extends AbstractController
         $status = $this->obligations->worstStatusFor($this->teacher(), $activity);
 
         return $status === null ? 'neutral' : $status->value;
+    }
+
+    /**
+     * The obligation behind getActivityStatus(): the current teacher's most urgent own one for the
+     * activity, to say in words — and with the date — what the card's colour says; null when the
+     * activity isn't theirs.
+     */
+    public function getActivityObligation(Activity $activity): ?ActivityDashboardItem
+    {
+        return $this->obligations->worstItemFor($this->teacher(), $activity);
     }
 
     #[LiveAction]

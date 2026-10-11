@@ -312,6 +312,20 @@ final class ActivityObligationFinderTest extends RepositoryTestCase
         self::assertSame(ActivityObligationStatus::Overdue, $this->finder->worstStatusFor($teacher, $activity));
     }
 
+    public function testWorstItemCarriesTheDatesBehindTheWorstStatus(): void
+    {
+        [$teacher, , $activity] = $this->submissionScenario('2025-11-05 10:00:00', null);
+
+        $item = $this->finder->worstItemFor($teacher, $activity);
+
+        self::assertNotNull($item);
+        self::assertSame(ActivityObligationStatus::Overdue, $item->status);
+        self::assertLessThan(0, $item->daysLeft, 'past its deadline');
+        $outsider = $this->teacher('ajeno');
+        $this->persist($outsider);
+        self::assertNull($this->finder->worstItemFor($outsider, $activity));
+    }
+
     public function testAHiddenActivityIsNobodysObligation(): void
     {
         self::mockTime('2025-10-10 10:00:00');
