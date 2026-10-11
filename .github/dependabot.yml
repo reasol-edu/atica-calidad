@@ -1,0 +1,11 @@
+# Las GitHub Actions de .github/workflows/ están fijadas por hash de commit (no por etiqueta),
+# para que una etiqueta movida o comprometida no cambie lo que se ejecuta en la publicación.
+# Dependabot propone la actualización de esos hashes en una pull request.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ci)"

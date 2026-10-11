@@ -13,15 +13,15 @@ jobs:
       APP_SECRET: test-secret-for-ci-only
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
           php-version: "8.4"
           extensions: intl, pdo_sqlite, mbstring, ctype, dom, iconv, libxml
           coverage: none
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.composer/cache
           key: composer-${{ hashFiles('composer.lock') }}
@@ -31,7 +31,7 @@ jobs:
         run: composer install --prefer-dist --no-interaction
 
       - name: Cachear binario de Tailwind
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: var/tailwind/v4.1.11
           key: tailwind-v4.1.11-linux-x64
