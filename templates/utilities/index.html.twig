@@ -23,6 +23,9 @@
                 {{ 'calendar_generator.title'|trans({}, 'utilities') }}
             </h2>
             <p class="mt-2 text-sm text-gray-600">{{ 'calendar_generator.description'|trans({}, 'utilities') }}</p>
+            {% if stats.calendars is not null %}
+                <p class="mt-2 text-xs font-medium text-forest-700">{{ 'calendar_generator.stat'|trans({'%count%': stats.calendars}, 'utilities') }}</p>
+            {% endif %}
         </a>
         <a href="{{ path('app_utilities_date_calculator') }}"
            class="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-xs hover:border-forest-300 hover:bg-forest-50/30 transition-colors">

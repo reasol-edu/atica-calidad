@@ -222,6 +222,7 @@ year_setup.flash.teachers_copied: '{0}Todos los docentes de %year% ya estaban en
 # Cursos académicos
 years.title: 'Cursos académicos'
 years.hub_help: 'Crea, edita y activa los cursos académicos del centro.'
+years.hub_stat: '{0}Ningún curso todavía.|{1}1 curso.|]1,Inf[%count% cursos.'
 years.manage: 'Gestionar cursos'
 years.add.title: 'Añadir curso'
 years.add.submit: 'Añadir'
@@ -240,6 +241,7 @@ years.edit.cancel: 'Cancelar'
 # Días no lectivos
 non_working_day.title: 'Días no lectivos'
 non_working_day.hub_help: 'Registra los festivos, puentes y días de libre disposición del curso académico.'
+non_working_day.hub_stat: '{0}Ninguno registrado este curso.|{1}1 día registrado este curso.|]1,Inf[%count% días registrados este curso.'
 non_working_day.manage: 'Gestionar días no lectivos'
 non_working_day.no_active_year: 'Este centro no tiene un curso académico activo. Establece uno activo para gestionar los días no lectivos.'
 non_working_day.empty: 'No hay días no lectivos registrados.'
@@ -330,6 +332,7 @@ school_event.action.delete: 'Eliminar'
 # Docentes del curso
 centre_teachers.title: 'Docentes del centro'
 centre_teachers.hub_help: 'Docentes asignados al curso académico activo.'
+centre_teachers.hub_stat: '{0}Ningún docente asignado.|{1}1 docente asignado.|]1,Inf[%count% docentes asignados.'
 centre_teachers.manage: 'Gestionar docentes'
 centre_teachers.no_active_year: 'Sin curso activo.'
 centre_teachers.search: 'Buscar docente…'
@@ -434,6 +437,7 @@ responsibilities.hub_intro: 'Configura las responsabilidades del profesorado y l
 # ── Listas ───────────────────────────────────────────────────────────────────
 responsibilities.lists.title: 'Listas'
 responsibilities.lists.hub_help: 'Crea jerarquías propias de nombres para el centro (grupos, departamentos...) y etiquétalas.'
+responsibilities.lists.hub_stat: '{0}Ninguna lista todavía.|{1}1 lista.|]1,Inf[%count% listas.'
 responsibilities.lists.manage: 'Gestionar listas'
 responsibilities.lists.help: 'Crea jerarquías de elementos con la profundidad que necesites (por ejemplo, «Grupo» → «1º ESO» → «1º ESO-A»). Cada elemento puede llevar sus propias etiquetas, que heredan también sus descendientes.'
 # Nombres de las raíces que se crean automáticamente al dar de alta un centro, separados por
@@ -566,6 +570,7 @@ responsibilities.lists.import_seneca.error.invalid_request: 'La solicitud no es 
 # ── Perfiles específicos ─────────────────────────────────────────────────────
 responsibilities.specific_profiles.title: 'Perfiles específicos'
 responsibilities.specific_profiles.hub_help: 'Crea perfiles personalizados para el centro y asígnales docentes, opcionalmente a través de una lista.'
+responsibilities.specific_profiles.hub_stat: '{0}Ningún perfil todavía.|{1}1 perfil.|]1,Inf[%count% perfiles.'
 responsibilities.specific_profiles.manage: 'Gestionar perfiles específicos'
 responsibilities.specific_profiles.help: 'Crea perfiles personalizados para este centro. Un perfil puede asociarse a un elemento de una lista: en ese caso, cada hoja descendiente de ese elemento es un subperfil con sus propios docentes asignados.'
 responsibilities.specific_profiles.no_active_year: 'Este centro no tiene un curso académico activo. Establece uno activo para gestionar los perfiles específicos.'
@@ -1095,6 +1100,7 @@ activity.flash.completion_undone: 'Se ha deshecho la finalización.'
 # Motivos de rechazo de la cola de revisión
 rejection_reason.title: 'Motivos de rechazo'
 rejection_reason.hub_help: 'Las respuestas hechas que ofrece la cola de revisión al rechazar una entrega.'
+rejection_reason.hub_stat: '{0}Ninguna respuesta todavía.|{1}1 respuesta.|]1,Inf[%count% respuestas.'
 rejection_reason.manage: 'Configurar motivos'
 rejection_reason.description: 'Al rechazar una entrega desde la cola de revisión, quien revisa puede elegir uno de estos motivos con un clic y completarlo con su propio texto.'
 rejection_reason.field: 'Motivos (uno por línea)'

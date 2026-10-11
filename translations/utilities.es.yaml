@@ -4,6 +4,7 @@ intro: 'Herramientas personales que no forman parte del sistema de gestión de l
 calendar_generator:
   title: 'Generador de calendarios'
   description: 'Genera calendarios en PDF con periodos y fechas destacadas, listos para imprimir.'
+  stat: '{0}Ninguno guardado este curso.|{1}1 guardado este curso.|]1,Inf[%count% guardados este curso.'
   add: 'Nuevo calendario'
   import: 'Importar calendario'
   year: 'Curso académico'

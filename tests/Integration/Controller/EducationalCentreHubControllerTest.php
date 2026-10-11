@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Controller;
 
+use App\Entity\AcademicYear;
 use App\Entity\EducationalCentre;
 use App\Entity\PersonName;
 use App\Entity\Teacher;
@@ -46,6 +47,45 @@ final class EducationalCentreHubControllerTest extends ControllerTestCase
         $this->client->request('GET', "/centro/{$centreId}");
 
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
+    }
+
+    /** Each card says how much is behind it, so the hub tells something before it is opened. */
+    public function testIndexShowsHowMuchThereIsBehindEachCard(): void
+    {
+        $centre = $this->centre();
+        $year   = (new AcademicYear())->setName('2026-2027')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $admin = $this->teacher('director');
+        $admin->addAcademicYear($year);
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $year, $admin);
+        $centreId = $centre->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('GET', "/centro/{$centreId}");
+        $html = (string) $this->client->getResponse()->getContent();
+
+        self::assertStringContainsString('1 curso.', $html);
+        self::assertStringContainsString('1 docente asignado.', $html);
+        self::assertStringContainsString('Ninguno registrado este curso.', $html);
+        self::assertStringContainsString('Ninguna respuesta todavía.', $html);
+    }
+
+    public function testWithoutAnActiveYearTheYearCardsShowNoCount(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $admin);
+        $centreId = $centre->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('GET', "/centro/{$centreId}");
+        $html = (string) $this->client->getResponse()->getContent();
+
+        self::assertStringContainsString('Ningún curso todavía.', $html);
+        self::assertStringNotContainsString('docente asignado', $html);
+        self::assertStringNotContainsString('este curso.', $html);
     }
 
     public function testIndexReturns404ForAnUnknownCentre(): void
