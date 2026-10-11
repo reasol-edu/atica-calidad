@@ -17,6 +17,7 @@ use App\Repository\DocumentSectionRepository;
 use App\Repository\FolderRepository;
 use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\ActivityObligationFinder;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\TenantContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -40,6 +41,7 @@ class SearchController extends AbstractController
         private readonly ActivityCategoryRepository $activityCategoryRepository,
         private readonly ActivityRepository $activityRepository,
         private readonly DocumentTreeAccessChecker $documentTreeAccess,
+        private readonly ActivityObligationFinder $obligations,
         private readonly TranslatorInterface $translator,
         #[Target('search')]
         private readonly RateLimiterFactoryInterface $searchLimiter,
@@ -145,11 +147,23 @@ class SearchController extends AbstractController
             }
 
             $activities = [];
-            foreach ($this->activityRepository->searchByCentre($centre, $q, 5, $this->isGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre)) as $activity) {
+            foreach ($this->activityRepository->searchByCentre($centre, $q, 30, $this->isGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre)) as $activity) {
                 $folder = $activity->getFolder();
                 if ($folder === null || $this->documentTreeAccess->canViewFolder($user, $folder)) {
                     $activities[] = $activity;
                 }
+            }
+            if ($activities !== []) {
+                // The ones the person has something to do in come first (the sort is stable, so
+                // the title order holds inside each half); only then is the list cut to five.
+                $mine = [];
+                foreach ($this->obligations->forTeacher($user, $centre) as $item) {
+                    if ($item->status->isActionable()) {
+                        $mine[$item->activity->getId()->toRfc4122()] = true;
+                    }
+                }
+                usort($activities, static fn (Activity $a, Activity $b): int => isset($mine[$b->getId()->toRfc4122()]) <=> isset($mine[$a->getId()->toRfc4122()]));
+                $activities = \array_slice($activities, 0, 5);
             }
             if ($activities !== []) {
                 $groups['activities'] = array_map(fn (Activity $a) => [
@@ -163,7 +177,28 @@ class SearchController extends AbstractController
             }
         }
 
-        return $this->json(['groups' => $groups]);
+        return $this->json(['groups' => $this->inPriorityOrder($groups)]);
+    }
+
+    /**
+     * What affects the person day to day goes first — their activities, then the documents — and
+     * the structure (folders, sections) and the staff list after: the palette shows the groups in
+     * this order.
+     *
+     * @param array<string, list<array<string, string>>> $groups
+     *
+     * @return array<string, list<array<string, string>>>
+     */
+    private function inPriorityOrder(array $groups): array
+    {
+        $ordered = [];
+        foreach (['activities', 'activity_categories', 'documents', 'folders', 'sections', 'teachers'] as $key) {
+            if (isset($groups[$key])) {
+                $ordered[$key] = $groups[$key];
+            }
+        }
+
+        return $ordered;
     }
 
     /** @return list<string> root-first names of a section's ancestor trail, including the section itself */

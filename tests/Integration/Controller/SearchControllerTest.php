@@ -7,12 +7,14 @@ namespace App\Tests\Integration\Controller;
 use App\Entity\AcademicYear;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
+use App\Entity\ActivityCompletion;
 use App\Entity\Document;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Entity\PersonName;
 use App\Entity\Teacher;
+use App\Service\ActivityDeadlineChecker;
 use App\Tests\Integration\ControllerTestCase;
 
 final class SearchControllerTest extends ControllerTestCase
@@ -189,6 +191,44 @@ final class SearchControllerTest extends ControllerTestCase
         self::assertIsString($url);
         self::assertStringContainsString('/actividades', $url);
         self::assertStringContainsString('highlight=' . $document->getId()->toRfc4122(), $url);
+    }
+
+    public function testTheGroupsComeInPriorityOrderWithActivitiesFirst(): void
+    {
+        $centre   = $this->centre();
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Reunión de tutores')->setPosition(0);
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Reunión de tutores')->setPosition(0);
+        $document = new Document($folder, 'Reunión de tutores (acta)');
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Reunión de tutores');
+        $activity = (new Activity())->setCategory($category)->setTitle('Reunión de tutores')->setStart(1, 9)->setEnd(30, 6);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $section, $folder, $document, $category, $activity, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $groups = $this->search('Reunión de tutores');
+
+        self::assertSame(['activities', 'activity_categories', 'documents', 'folders', 'sections'], array_keys($groups));
+    }
+
+    public function testTheActivitiesThePersonHasToDoComeBeforeTheOthers(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        // "Informe A" sorts first by title, but the teacher already did it; "Informe B" is still to do.
+        $done     = (new Activity())->setCategory($category)->setTitle('Informe A')->setStart(1, 1)->setEnd(31, 12);
+        $todo     = (new Activity())->setCategory($category)->setTitle('Informe B')->setStart(1, 1)->setEnd(31, 12);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $done, $todo, $teacher);
+
+        /** @var ActivityDeadlineChecker $deadline */
+        $deadline = self::getContainer()->get(ActivityDeadlineChecker::class);
+        $this->persist(new ActivityCompletion($done, $teacher, null, null, $teacher, $deadline->currentCycleKey($done)));
+
+        $this->loginAs($teacher, $centre);
+        $items = $this->search('Informe')['activities'];
+
+        self::assertIsArray($items);
+        self::assertSame(['Informe B', 'Informe A'], array_map(static fn (mixed $i): mixed => \is_array($i) ? $i['label'] : null, $items));
     }
 
     public function testADocumentInAPlainFolderLinksToTheDocumentTree(): void
