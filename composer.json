@@ -20,7 +20,7 @@
         "johngrogg/ics-parser": "^3.6",
         "mpdf/mpdf": "^8.3.1",
         "openspout/openspout": "^5.12.0",
-        "phpseclib/phpseclib": "^3.0.57",
+        "phpseclib/phpseclib": "^4.0",
         "symfony/apache-pack": ">=1.0.1",
         "symfony/asset": "8.1.*",
         "symfony/asset-mapper": "8.1.*",

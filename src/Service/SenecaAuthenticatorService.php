@@ -20,7 +20,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use phpseclib3\Math\BigInteger;
+use phpseclib4\Math\BigInteger;
 use Psr\Log\LoggerInterface;
 use Random\RandomException;
 use RuntimeException;
