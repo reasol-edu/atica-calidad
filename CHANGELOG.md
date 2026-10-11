@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- El script de actualización (`update-ubuntu.sh`) se renueva solo: antes de actualizar descarga la
+  versión publicada de sí mismo y, si difiere, se sustituye y se relanza. La copia que usa el
+  temporizador de systemd se descargaba una sola vez, y una copia anterior al borrado de ficheros
+  huérfanos dejaba en el servidor las clases eliminadas por una versión (el despliegue de la 1.17.0
+  falló por `UploadSizeGuardTrait.php`).
+
 ## [1.17.0] - 2026-10-11
 
 ### Added

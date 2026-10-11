@@ -42,6 +42,14 @@ sudo chmod +x /opt/atica-calidad/atica-calidad-update.sh
 sudo bash /opt/atica-calidad/atica-calidad-update.sh          # o: … --force
 ```
 
+Esa copia guardada **se renueva sola**: en cada ejecución, antes de hacer nada, el script descarga
+la versión publicada de sí mismo y, si es distinta, se sustituye y se vuelve a lanzar con los mismos
+argumentos. Así una copia antigua nunca se queda sin las correcciones posteriores (por ejemplo, el
+borrado de los ficheros que una versión elimina del código, sin el cual el arranque falla). Si la
+descarga falla, sigue con la copia actual. Al ejecutarlo con `curl … | sudo bash` no hay copia que
+renovar. Si tu copia es anterior a esta función, vuelve a descargarla una vez con los comandos de
+arriba; a partir de ahí se mantiene sola.
+
 ## Opción A — Sondeo periódico con systemd timer
 
 El timer comprueba si hay nueva versión cada 15 minutos. No requiere abrir ningún puerto extra ni

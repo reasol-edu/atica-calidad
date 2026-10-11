@@ -53,11 +53,49 @@ for arg in "$@"; do
     esac
 done
 
-# ── verificaciones previas ────────────────────────────────────────────────────
-[[ $EUID -eq 0 ]] || die "Ejecuta el script como root:  sudo bash $0"
-
 REPO="reasol-edu/atica-calidad"
 INSTALL_DIR="/opt/atica-calidad"
+
+# ── autoactualización del script ──────────────────────────────────────────────
+# La copia local que ejecuta el temporizador de systemd (atica-calidad-update.sh)
+# se descarga una sola vez, al activar el despliegue continuo, y no se renueva
+# sola: una copia antigua se quedaría sin las correcciones posteriores (por
+# ejemplo, el borrado de ficheros huérfanos de app/, sin el cual una clase
+# eliminada en una versión rompe el arranque). Antes de nada se descarga la
+# versión publicada de este mismo script; si es distinta y válida, se sustituye
+# y se vuelve a lanzar con los mismos argumentos. Si la descarga falla se sigue
+# con la copia actual. No se hace al ejecutarlo con «curl | bash» (no hay fichero
+# que sustituir) ni en la segunda pasada (ATICA_UPDATE_REEXEC evita bucles).
+# ATICA_UPDATE_SELF_URL permite apuntar a otra fuente (pruebas).
+SELF="${BASH_SOURCE[0]:-}"
+if [[ -z "${ATICA_UPDATE_REEXEC:-}" && -n "$SELF" && -f "$SELF" && -w "$SELF" ]]; then
+    SELF="$(readlink -f "$SELF")"
+    SELF_URL="${ATICA_UPDATE_SELF_URL:-https://raw.githubusercontent.com/${REPO}/main/dist/update-ubuntu.sh}"
+    # En el mismo directorio, para que el `mv` final sea atómico y no toque el
+    # fichero que bash está leyendo ahora mismo.
+    NEW_SELF="$(mktemp "${SELF}.new.XXXXXX" 2>/dev/null || true)"
+    if [[ -n "$NEW_SELF" ]]; then
+        if curl -fsSL --max-time 30 "$SELF_URL" -o "$NEW_SELF" 2>/dev/null \
+            && [[ -s "$NEW_SELF" ]] \
+            && head -n 1 "$NEW_SELF" | grep -q '^#!.*bash' \
+            && bash -n "$NEW_SELF" 2>/dev/null; then
+            if ! cmp -s "$NEW_SELF" "$SELF"; then
+                if chmod --reference="$SELF" "$NEW_SELF" && mv -f "$NEW_SELF" "$SELF"; then
+                    echo -e "${CYAN}${BOLD}▶  Script de actualización renovado a la versión publicada${NC}"
+                    export ATICA_UPDATE_REEXEC=1
+                    exec bash "$SELF" "$@"
+                fi
+                warn "No se pudo sustituir el script de actualización; se sigue con esta copia."
+            fi
+        else
+            warn "No se pudo renovar el script de actualización; se sigue con esta copia."
+        fi
+        rm -f "$NEW_SELF"
+    fi
+fi
+
+# ── verificaciones previas ────────────────────────────────────────────────────
+[[ $EUID -eq 0 ]] || die "Ejecuta el script como root:  sudo bash $0"
 
 [[ -f "${INSTALL_DIR}/frankenphp" ]] \
     || die "No se encuentra ${INSTALL_DIR}/frankenphp. ¿Está instalado ÁTICA Calidad? Para una instalación nueva usa install-ubuntu.sh."
