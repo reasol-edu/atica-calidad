@@ -8,6 +8,7 @@ use App\Entity\AcademicYear;
 use App\Entity\EducationalCentre;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -37,7 +38,7 @@ class AcademicYearRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('ay')
             ->where('ay.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('ay.name', 'DESC')
+            ->orderBy('ay.name', SortDirection::Descending)
             ->getQuery()
             ->getResult();
     }

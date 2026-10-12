@@ -35,7 +35,7 @@ class DocumentReviewNotificationEventRepository extends ServiceEntityRepository
             ->join('f.documentSection', 's')
             ->where('s.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('e.createdAt', 'ASC')
+            ->orderBy('e.createdAt')
             ->getQuery()
             ->getResult();
     }

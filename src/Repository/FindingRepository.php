@@ -12,6 +12,7 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -53,7 +54,7 @@ class FindingRepository extends ServiceEntityRepository
             ->andWhere('f.status = :status')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('status', $status->value)
-            ->orderBy('f.reportedAt', 'ASC')
+            ->orderBy('f.reportedAt')
             ->getQuery()
             ->getResult();
     }
@@ -72,7 +73,7 @@ class FindingRepository extends ServiceEntityRepository
             ->andWhere('f.status IN (:statuses)')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('statuses', array_map(static fn (FindingStatus $s): string => $s->value, $statuses))
-            ->orderBy('f.reportedAt', 'ASC')
+            ->orderBy('f.reportedAt')
             ->getQuery()
             ->getResult();
     }
@@ -89,7 +90,7 @@ class FindingRepository extends ServiceEntityRepository
             ->andWhere('f.reportedBy = :teacher')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('teacher', $teacher->getId(), 'uuid')
-            ->orderBy('f.reportedAt', 'DESC')
+            ->orderBy('f.reportedAt', SortDirection::Descending)
             ->getQuery()
             ->getResult();
     }
@@ -108,7 +109,7 @@ class FindingRepository extends ServiceEntityRepository
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('status', FindingStatus::Analysis->value)
             ->setParameter('teacher', $teacher->getId(), 'uuid')
-            ->orderBy('f.analysisDueDate', 'ASC')
+            ->orderBy('f.analysisDueDate')
             ->getQuery()
             ->getResult();
     }
@@ -145,7 +146,7 @@ class FindingRepository extends ServiceEntityRepository
             ->join('f.auditItem', 'i')
             ->where('i.audit = :audit')
             ->setParameter('audit', $audit->getId(), 'uuid')
-            ->orderBy('i.position', 'ASC')
+            ->orderBy('i.position')
             ->getQuery()
             ->getResult();
     }
@@ -176,7 +177,7 @@ class FindingRepository extends ServiceEntityRepository
         /** @var list<Finding> $findings */
         $findings = $qb
             ->where('i.audit IN (' . implode(', ', $placeholders) . ')')
-            ->orderBy('i.position', 'ASC')
+            ->orderBy('i.position')
             ->getQuery()
             ->getResult();
         foreach ($findings as $finding) {
@@ -201,7 +202,7 @@ class FindingRepository extends ServiceEntityRepository
             ->setParameter('from', $from->setTime(0, 0), Types::DATETIME_IMMUTABLE)
             ->setParameter('to', $to->setTime(0, 0)->modify('+1 day'), Types::DATETIME_IMMUTABLE)
             ->setParameter('finished', [FindingStatus::Closed->value, FindingStatus::Discarded->value])
-            ->orderBy('f.reportedAt', 'ASC')
+            ->orderBy('f.reportedAt')
             ->getQuery()
             ->getResult();
     }
@@ -297,7 +298,7 @@ class FindingRepository extends ServiceEntityRepository
                 ->setParameter('q', '%' . $query . '%');
         }
 
-        return $qb->orderBy('f.reportedAt', 'DESC')->getQuery();
+        return $qb->orderBy('f.reportedAt', SortDirection::Descending)->getQuery();
     }
 
     /** @return list<int> the calendar years with findings, most recent first */

@@ -9,6 +9,7 @@ use App\Entity\EmailNotificationLog;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 
 /**
  * @extends ServiceEntityRepository<EmailNotificationLog>
@@ -37,7 +38,7 @@ class EmailNotificationLogRepository extends ServiceEntityRepository
             ->leftJoin('l.recipient', 'r')
             ->where('l.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('l.sentAt', 'DESC');
+            ->orderBy('l.sentAt', SortDirection::Descending);
 
         $search = $filters['search'] ?? '';
         if ($search !== '') {
@@ -88,7 +89,7 @@ class EmailNotificationLogRepository extends ServiceEntityRepository
             ->select('DISTINCT l.eventKey')
             ->where('l.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('l.eventKey', 'ASC')
+            ->orderBy('l.eventKey')
             ->getQuery()
             ->getArrayResult();
 

@@ -36,7 +36,7 @@ class FolderRepository extends ServiceEntityRepository
             ->leftJoin('f.activity', 'a')->addSelect('a')
             ->where('f.documentSection = :section')
             ->setParameter('section', $section->getId(), 'uuid')
-            ->orderBy('f.position', 'ASC')
+            ->orderBy('f.position')
             ->getQuery()
             ->getResult();
 
@@ -64,7 +64,7 @@ class FolderRepository extends ServiceEntityRepository
             ->leftJoin('rp.listItem', 'li')->addSelect('li')
             ->where('s.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('f.position', 'ASC')
+            ->orderBy('f.position')
             ->getQuery()
             ->getResult();
     }
@@ -86,7 +86,7 @@ class FolderRepository extends ServiceEntityRepository
             ->leftJoin('rv.listItem', 'rvl')->addSelect('rvl')
             ->where('s.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('f.name', 'ASC')
+            ->orderBy('f.name')
             ->getQuery()
             ->getResult();
     }
@@ -100,7 +100,7 @@ class FolderRepository extends ServiceEntityRepository
             ->andWhere('UNACCENT(LOWER(f.name)) LIKE UNACCENT(LOWER(:query))')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
-            ->orderBy('f.name', 'ASC')
+            ->orderBy('f.name')
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -148,7 +148,7 @@ class FolderRepository extends ServiceEntityRepository
             ->join('f.documentSection', 's')
             ->where('s.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('f.name', 'ASC')
+            ->orderBy('f.name')
             ->getQuery()
             ->getResult();
     }

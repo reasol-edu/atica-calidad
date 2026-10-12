@@ -73,8 +73,8 @@ class TeacherRepository extends ServiceEntityRepository implements PasswordUpgra
     public function findAllOrderedByName(): array
     {
         return $this->createQueryBuilder('t')
-            ->orderBy('t.name.lastName', 'ASC')
-            ->addOrderBy('t.name.firstName', 'ASC')
+            ->orderBy('t.name.lastName')
+            ->addOrderBy('t.name.firstName')
             ->getQuery()
             ->getResult();
     }
@@ -89,8 +89,8 @@ class TeacherRepository extends ServiceEntityRepository implements PasswordUpgra
     public function createFilteredOrderedByNameQuery(string $search = ''): Query
     {
         $qb = $this->createQueryBuilder('t')
-            ->orderBy('t.name.lastName', 'ASC')
-            ->addOrderBy('t.name.firstName', 'ASC');
+            ->orderBy('t.name.lastName')
+            ->addOrderBy('t.name.firstName');
 
         if ($search !== '') {
             $q = '%' . $search . '%';
@@ -113,8 +113,8 @@ class TeacherRepository extends ServiceEntityRepository implements PasswordUpgra
             ->join('t.academicYears', 'ay')
             ->where('ay.id = :year')
             ->setParameter('year', $year->getId(), 'uuid')
-            ->orderBy('t.name.lastName', 'ASC')
-            ->addOrderBy('t.name.firstName', 'ASC');
+            ->orderBy('t.name.lastName')
+            ->addOrderBy('t.name.firstName');
 
         if ($search !== '') {
             $q = '%' . $search . '%';
@@ -207,8 +207,8 @@ class TeacherRepository extends ServiceEntityRepository implements PasswordUpgra
             ->orWhere('UNACCENT(LOWER(t.name.lastName)) LIKE UNACCENT(LOWER(:q))')
             ->orWhere('UNACCENT(LOWER(t.username)) LIKE UNACCENT(LOWER(:q))')
             ->setParameter('q', $q)
-            ->orderBy('t.name.lastName', 'ASC')
-            ->addOrderBy('t.name.firstName', 'ASC')
+            ->orderBy('t.name.lastName')
+            ->addOrderBy('t.name.firstName')
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();

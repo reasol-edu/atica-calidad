@@ -72,8 +72,8 @@ class AuditRepository extends ServiceEntityRepository
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('from', $from->modify('first day of this month')->setTime(0, 0), Types::DATE_IMMUTABLE)
             ->setParameter('to', $to->setTime(0, 0), Types::DATE_IMMUTABLE)
-            ->orderBy('a.plannedMonth', 'ASC')
-            ->addOrderBy('a.code', 'ASC')
+            ->orderBy('a.plannedMonth')
+            ->addOrderBy('a.code')
             ->getQuery()
             ->getResult();
     }

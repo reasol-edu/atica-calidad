@@ -26,7 +26,7 @@ class SpecificProfileRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('sp')
             ->where('sp.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('sp.position', 'ASC')
+            ->orderBy('sp.position')
             ->getQuery()
             ->getResult();
     }

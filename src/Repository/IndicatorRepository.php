@@ -55,8 +55,8 @@ class IndicatorRepository extends ServiceEntityRepository
             ->leftJoin('i.responsibleProfile', 'rp')
             ->where('i.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('i.name', 'ASC')
-            ->addOrderBy('p.position', 'ASC');
+            ->orderBy('i.name')
+            ->addOrderBy('p.position');
         if ($activeOnly) {
             $qb->andWhere('i.active = true');
         }

@@ -10,6 +10,7 @@ use App\Entity\PrintableCalendar;
 use App\Entity\Teacher;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -30,7 +31,7 @@ class PrintableCalendarRepository extends ServiceEntityRepository
             ->andWhere('c.academicYear = :year')
             ->setParameter('owner', $owner->getId(), 'uuid')
             ->setParameter('year', $year->getId(), 'uuid')
-            ->orderBy('c.createdAt', 'DESC')
+            ->orderBy('c.createdAt', SortDirection::Descending)
             ->getQuery()
             ->getResult();
     }

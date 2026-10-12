@@ -46,8 +46,8 @@ class MeasurementCalendarRepository extends ServiceEntityRepository
             ->leftJoin('c.periods', 'p')
             ->where('c.academicYear = :year')
             ->setParameter('year', $year->getId(), 'uuid')
-            ->orderBy('c.name', 'ASC')
-            ->addOrderBy('p.position', 'ASC')
+            ->orderBy('c.name')
+            ->addOrderBy('p.position')
             ->getQuery()
             ->getResult();
     }

@@ -8,6 +8,7 @@ use App\Entity\Activity;
 use App\Entity\ActivityReminder;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 
 /**
  * @extends ServiceEntityRepository<ActivityReminder>
@@ -28,7 +29,7 @@ class ActivityReminderRepository extends ServiceEntityRepository
             ->leftJoin('r.sentBy', 's')
             ->where('r.activity = :activity')
             ->setParameter('activity', $activity->getId(), 'uuid')
-            ->orderBy('r.sentAt', 'DESC')
+            ->orderBy('r.sentAt', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();

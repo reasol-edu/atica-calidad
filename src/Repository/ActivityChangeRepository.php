@@ -8,6 +8,7 @@ use App\Entity\Activity;
 use App\Entity\ActivityChange;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 
 /**
  * @extends ServiceEntityRepository<ActivityChange>
@@ -27,8 +28,8 @@ class ActivityChangeRepository extends ServiceEntityRepository
             ->leftJoin('c.author', 'a')
             ->where('c.activity = :activity')
             ->setParameter('activity', $activity->getId(), 'uuid')
-            ->orderBy('c.createdAt', 'DESC')
-            ->addOrderBy('c.id', 'DESC')
+            ->orderBy('c.createdAt', SortDirection::Descending)
+            ->addOrderBy('c.id', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();

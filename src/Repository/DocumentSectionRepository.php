@@ -26,7 +26,7 @@ class DocumentSectionRepository extends ServiceEntityRepository
             ->where('ds.educationalCentre = :centre')
             ->andWhere('ds.parent IS NULL')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('ds.position', 'ASC')
+            ->orderBy('ds.position')
             ->getQuery()
             ->getResult();
     }
@@ -37,7 +37,7 @@ class DocumentSectionRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('ds')
             ->where('ds.parent = :parent')
             ->setParameter('parent', $parent->getId(), 'uuid')
-            ->orderBy('ds.position', 'ASC')
+            ->orderBy('ds.position')
             ->getQuery()
             ->getResult();
     }
@@ -50,7 +50,7 @@ class DocumentSectionRepository extends ServiceEntityRepository
             ->andWhere('UNACCENT(LOWER(ds.name)) LIKE UNACCENT(LOWER(:query))')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
-            ->orderBy('ds.name', 'ASC')
+            ->orderBy('ds.name')
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -110,7 +110,7 @@ class DocumentSectionRepository extends ServiceEntityRepository
             ->leftJoin('pr.listItem', 'li')->addSelect('li')
             ->where('ds.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('ds.position', 'ASC')
+            ->orderBy('ds.position')
             ->getQuery()
             ->getResult();
     }

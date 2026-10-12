@@ -26,7 +26,7 @@ class ActivityCategoryRepository extends ServiceEntityRepository
             ->where('ac.educationalCentre = :centre')
             ->andWhere('ac.parent IS NULL')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('ac.position', 'ASC')
+            ->orderBy('ac.position')
             ->getQuery()
             ->getResult();
     }
@@ -37,7 +37,7 @@ class ActivityCategoryRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('ac')
             ->where('ac.parent = :parent')
             ->setParameter('parent', $parent->getId(), 'uuid')
-            ->orderBy('ac.position', 'ASC')
+            ->orderBy('ac.position')
             ->getQuery()
             ->getResult();
     }
@@ -50,7 +50,7 @@ class ActivityCategoryRepository extends ServiceEntityRepository
             ->andWhere('UNACCENT(LOWER(ac.name)) LIKE UNACCENT(LOWER(:query))')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
-            ->orderBy('ac.name', 'ASC')
+            ->orderBy('ac.name')
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -102,7 +102,7 @@ class ActivityCategoryRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('ac')
             ->where('ac.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('ac.position', 'ASC')
+            ->orderBy('ac.position')
             ->getQuery()
             ->getResult();
     }

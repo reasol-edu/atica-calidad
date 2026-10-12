@@ -41,9 +41,9 @@ class SettingDefinitionRepository extends ServiceEntityRepository
 
         return $this->createQueryBuilder('d')
             ->where("d.{$field} = true")
-            ->orderBy('d.categoryOrder', 'ASC')
-            ->addOrderBy('d.position', 'ASC')
-            ->addOrderBy('d.key', 'ASC')
+            ->orderBy('d.categoryOrder')
+            ->addOrderBy('d.position')
+            ->addOrderBy('d.key')
             ->getQuery()
             ->getResult();
     }

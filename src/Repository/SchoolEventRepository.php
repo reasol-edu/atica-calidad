@@ -13,6 +13,7 @@ use Doctrine\ORM\Query;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 
 /**
  * @extends ServiceEntityRepository<SchoolEvent>
@@ -109,8 +110,8 @@ class SchoolEventRepository extends ServiceEntityRepository
     public function createFilteredQuery(AcademicYear $year, string $search = '', string $profileRowKey = ''): Query
     {
         $qb = $this->baseQueryBuilder($year)
-            ->orderBy('se.date', 'DESC')
-            ->addOrderBy('se.startTime', 'ASC');
+            ->orderBy('se.date', SortDirection::Descending)
+            ->addOrderBy('se.startTime');
 
         if ($profileRowKey !== '') {
             [$profileId, $listItemId] = array_pad(explode(':', $profileRowKey, 2), 2, null);

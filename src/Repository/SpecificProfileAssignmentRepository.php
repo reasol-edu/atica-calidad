@@ -36,7 +36,7 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
             ->join('a.teacher', 't')
             ->where('a.specificProfile = :profile')
             ->setParameter('profile', $profile->getId(), 'uuid')
-            ->orderBy('t.name.lastName', 'ASC');
+            ->orderBy('t.name.lastName');
 
         if ($listItem === null) {
             $qb->andWhere('a.listItem IS NULL');
@@ -71,7 +71,7 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
             ->join('a.teacher', 't')
             ->where('a.specificProfile = :profile')
             ->setParameter('profile', $profile->getId(), 'uuid')
-            ->orderBy('t.name.lastName', 'ASC');
+            ->orderBy('t.name.lastName');
 
         if ($listItem === null) {
             $qb->andWhere('a.listItem IS NULL');
@@ -117,7 +117,7 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('a')
             ->select('a', 't')
             ->join('a.teacher', 't')
-            ->orderBy('t.name.lastName', 'ASC');
+            ->orderBy('t.name.lastName');
 
         $profileIds   = [];
         $placeholders = [];

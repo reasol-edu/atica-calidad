@@ -64,9 +64,9 @@ class ImprovementActionRepository extends ServiceEntityRepository
             ->andWhere('a.academicYear = :year')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('year', $year->getId(), 'uuid')
-            ->orderBy('no_due', 'ASC')
-            ->addOrderBy('a.dueDate', 'ASC')
-            ->addOrderBy('a.code', 'ASC');
+            ->orderBy('no_due')
+            ->addOrderBy('a.dueDate')
+            ->addOrderBy('a.code');
 
         $status = $filters['status'] ?? '';
         if ($status === 'open' || $status === 'overdue') {
@@ -158,7 +158,7 @@ class ImprovementActionRepository extends ServiceEntityRepository
             ->setParameter('from', $from->setTime(0, 0), Types::DATE_IMMUTABLE)
             ->setParameter('to', $to->setTime(0, 0), Types::DATE_IMMUTABLE)
             ->setParameter('discarded', FindingStatus::Discarded->value)
-            ->orderBy('a.dueDate', 'ASC')
+            ->orderBy('a.dueDate')
             ->getQuery()
             ->getResult();
     }
@@ -176,7 +176,7 @@ class ImprovementActionRepository extends ServiceEntityRepository
             ->leftJoin('a.responsibleProfile', 'p')
             ->where('a.managementReview = :review')
             ->setParameter('review', $review->getId(), 'uuid')
-            ->orderBy('a.code', 'ASC')
+            ->orderBy('a.code')
             ->getQuery()
             ->getResult();
     }
@@ -198,7 +198,7 @@ class ImprovementActionRepository extends ServiceEntityRepository
             ->andWhere('a.status != :done')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('done', ImprovementActionStatus::Done->value)
-            ->orderBy('a.dueDate', 'ASC')
+            ->orderBy('a.dueDate')
             ->getQuery()
             ->getResult();
     }

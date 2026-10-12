@@ -25,7 +25,7 @@ class TagRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('t')
             ->where('t.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('t.name', 'ASC')
+            ->orderBy('t.name')
             ->getQuery()
             ->getResult();
     }

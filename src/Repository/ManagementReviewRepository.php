@@ -8,6 +8,7 @@ use App\Entity\EducationalCentre;
 use App\Entity\ManagementReview;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -43,7 +44,7 @@ class ManagementReviewRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('r')
             ->where('r.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('r.heldOn', 'DESC')
+            ->orderBy('r.heldOn', SortDirection::Descending)
             ->getQuery()
             ->getResult();
     }
@@ -56,7 +57,7 @@ class ManagementReviewRepository extends ServiceEntityRepository
             ->andWhere('r.heldOn < :heldOn')
             ->setParameter('centre', $review->getEducationalCentre()->getId(), 'uuid')
             ->setParameter('heldOn', $review->getHeldOn(), 'date_immutable')
-            ->orderBy('r.heldOn', 'DESC')
+            ->orderBy('r.heldOn', SortDirection::Descending)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

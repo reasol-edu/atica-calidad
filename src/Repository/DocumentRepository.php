@@ -12,6 +12,7 @@ use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -39,12 +40,12 @@ class DocumentRepository extends ServiceEntityRepository
             ->leftJoin('r.uploadedBy', 'ub')->addSelect('ub')
             ->where('d.folder = :folder')
             ->setParameter('folder', $folder->getId(), 'uuid')
-            ->orderBy('d.position', 'ASC')
+            ->orderBy('d.position')
             // Stable tiebreak: without it, documents sharing a position (every document created
             // before positions were assigned on upload, all at 0) come back in an undefined
             // order that can differ between the render and a reorder action.
-            ->addOrderBy('d.uploadedAt', 'ASC')
-            ->addOrderBy('d.id', 'ASC')
+            ->addOrderBy('d.uploadedAt')
+            ->addOrderBy('d.id')
             ->getQuery()
             ->getResult();
     }
@@ -116,8 +117,8 @@ class DocumentRepository extends ServiceEntityRepository
             ->andWhere('d.activityCycleYear = :cycleYear')
             ->setParameter('folder', $folder->getId(), 'uuid')
             ->setParameter('cycleYear', $activityCycleYear)
-            ->orderBy('d.uploadedAt', 'ASC')
-            ->addOrderBy('d.id', 'ASC')
+            ->orderBy('d.uploadedAt')
+            ->addOrderBy('d.id')
             ->getQuery()
             ->getResult();
     }
@@ -139,9 +140,9 @@ class DocumentRepository extends ServiceEntityRepository
             ->leftJoin('ar.uploadedBy', 'ub')->addSelect('ub')
             ->where('s.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('d.position', 'ASC')
-            ->addOrderBy('d.uploadedAt', 'ASC')
-            ->addOrderBy('d.id', 'ASC')
+            ->orderBy('d.position')
+            ->addOrderBy('d.uploadedAt')
+            ->addOrderBy('d.id')
             ->getQuery()
             ->getResult();
     }
@@ -209,7 +210,7 @@ class DocumentRepository extends ServiceEntityRepository
             )
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
-            ->orderBy('d.name', 'ASC')
+            ->orderBy('d.name')
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -233,7 +234,7 @@ class DocumentRepository extends ServiceEntityRepository
             ->andWhere('act.id IS NULL')
             ->andWhere('f.obsolete = false')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('rev.revisedAt', 'DESC')
+            ->orderBy('rev.revisedAt', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -256,7 +257,7 @@ class DocumentRepository extends ServiceEntityRepository
             ->andWhere('UNACCENT(LOWER(d.name)) LIKE UNACCENT(LOWER(:query)) OR UNACCENT(LOWER(f.name)) LIKE UNACCENT(LOWER(:query))')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
-            ->orderBy('d.name', 'ASC')
+            ->orderBy('d.name')
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -362,8 +363,8 @@ class DocumentRepository extends ServiceEntityRepository
             ->andWhere('a.id IS NULL')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('until', $until, 'date_immutable')
-            ->orderBy('d.nextReviewAt', 'ASC')
-            ->addOrderBy('d.name', 'ASC')
+            ->orderBy('d.nextReviewAt')
+            ->addOrderBy('d.name')
             ->getQuery()
             ->getResult();
 
@@ -387,7 +388,7 @@ class DocumentRepository extends ServiceEntityRepository
             ->andWhere('d.activityCycleYear = :cycleYear')
             ->setParameter('folder', $folder->getId(), 'uuid')
             ->setParameter('cycleYear', $activityCycleYear)
-            ->orderBy('d.position', 'ASC')
+            ->orderBy('d.position')
             ->getQuery()
             ->getResult();
 
@@ -435,7 +436,7 @@ class DocumentRepository extends ServiceEntityRepository
             ->where('d.folder = :folder')
             ->andWhere('d.activityCycleYear IS NOT NULL')
             ->setParameter('folder', $folder->getId(), 'uuid')
-            ->orderBy('d.activityCycleYear', 'DESC')
+            ->orderBy('d.activityCycleYear', SortDirection::Descending)
             ->getQuery()
             ->getSingleColumnResult();
 
@@ -484,7 +485,7 @@ class DocumentRepository extends ServiceEntityRepository
             ->andWhere('UNACCENT(LOWER(d.name)) LIKE UNACCENT(LOWER(:query))')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
-            ->orderBy('d.name', 'ASC')
+            ->orderBy('d.name')
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -511,9 +512,9 @@ class DocumentRepository extends ServiceEntityRepository
             ->andWhere('f.obsolete = false')
             ->andWhere('act.id IS NULL')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('s.position', 'ASC')
-            ->addOrderBy('f.position', 'ASC')
-            ->addOrderBy('d.position', 'ASC')
+            ->orderBy('s.position')
+            ->addOrderBy('f.position')
+            ->addOrderBy('d.position')
             ->getQuery()
             ->getResult();
     }
@@ -532,7 +533,7 @@ class DocumentRepository extends ServiceEntityRepository
             ->where('d.deletedAt IS NOT NULL')
             ->andWhere('s.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('d.deletedAt', 'DESC')
+            ->orderBy('d.deletedAt', SortDirection::Descending)
             ->getQuery()
             ->getResult());
     }

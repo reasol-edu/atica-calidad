@@ -46,7 +46,7 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
             ->where('li.educationalCentre = :centre')
             ->andWhere('li.parent IS NULL')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('li.position', 'ASC')
+            ->orderBy('li.position')
             ->getQuery()
             ->getResult();
     }
@@ -57,7 +57,7 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
         return $this->createQueryBuilder('li')
             ->where('li.parent = :parent')
             ->setParameter('parent', $parent->getId(), 'uuid')
-            ->orderBy('li.position', 'ASC')
+            ->orderBy('li.position')
             ->getQuery()
             ->getResult();
     }
@@ -107,7 +107,7 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
         return $this->createQueryBuilder('li')
             ->where('li.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('li.position', 'ASC')
+            ->orderBy('li.position')
             ->getQuery()
             ->getResult();
     }
@@ -189,7 +189,7 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
         $all = $this->createQueryBuilder('li')
             ->where('li.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('li.position', 'ASC')
+            ->orderBy('li.position')
             ->getQuery()
             ->getResult();
 

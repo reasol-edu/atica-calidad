@@ -10,6 +10,7 @@ use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -38,7 +39,7 @@ class ActivityRepository extends ServiceEntityRepository
             ->where('a.deletedAt IS NOT NULL')
             ->andWhere('c.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('a.deletedAt', 'DESC')
+            ->orderBy('a.deletedAt', SortDirection::Descending)
             ->getQuery()
             ->getResult());
     }
@@ -100,7 +101,7 @@ class ActivityRepository extends ServiceEntityRepository
             ->addSelect('rdfs')
             ->where('a.category = :category')
             ->setParameter('category', $category->getId(), 'uuid')
-            ->orderBy('a.position', 'ASC');
+            ->orderBy('a.position');
         if (!$includeHidden) {
             $qb->andWhere('a.hidden = false');
         }
@@ -124,8 +125,8 @@ class ActivityRepository extends ServiceEntityRepository
             ->leftJoin('a.tags', 't')->addSelect('t')
             ->where('c.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('c.position', 'ASC')
-            ->addOrderBy('a.position', 'ASC');
+            ->orderBy('c.position')
+            ->addOrderBy('a.position');
         if (!$includeHidden) {
             $qb->andWhere('a.hidden = false');
         }
@@ -172,7 +173,7 @@ class ActivityRepository extends ServiceEntityRepository
             ->andWhere('UNACCENT(LOWER(a.title)) LIKE UNACCENT(LOWER(:query))')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', '%' . $query . '%')
-            ->orderBy('a.title', 'ASC')
+            ->orderBy('a.title')
             ->setMaxResults($limit);
         if (!$includeHidden) {
             $qb->andWhere('a.hidden = false');

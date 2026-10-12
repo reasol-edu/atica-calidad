@@ -11,6 +11,7 @@ use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 
 /**
  * @extends ServiceEntityRepository<DocumentRevision>
@@ -32,7 +33,7 @@ class DocumentRevisionRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('r')
             ->where('r.document = :document')
             ->setParameter('document', $document->getId(), 'uuid')
-            ->orderBy('r.version', 'DESC')
+            ->orderBy('r.version', SortDirection::Descending)
             ->getQuery()
             ->getResult();
     }
@@ -80,7 +81,7 @@ class DocumentRevisionRepository extends ServiceEntityRepository
             ->where('r.pendingReview = true')
             ->andWhere('s.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('r.revisedAt', 'ASC')
+            ->orderBy('r.revisedAt')
             ->getQuery()
             ->getResult();
     }
@@ -100,7 +101,7 @@ class DocumentRevisionRepository extends ServiceEntityRepository
             ->where('r.pendingReview = true')
             ->andWhere('d.folder = :folder')
             ->setParameter('folder', $folder->getId(), 'uuid')
-            ->orderBy('r.revisedAt', 'ASC')
+            ->orderBy('r.revisedAt')
             ->getQuery()
             ->getResult();
     }

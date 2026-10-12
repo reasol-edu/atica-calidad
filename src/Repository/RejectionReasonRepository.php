@@ -25,7 +25,7 @@ class RejectionReasonRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('r')
             ->where('r.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('r.position', 'ASC')
+            ->orderBy('r.position')
             ->getQuery()
             ->getResult();
     }
