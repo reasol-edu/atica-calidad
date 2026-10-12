@@ -16,6 +16,17 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class EducationalCentreRepository extends ServiceEntityRepository
 {
+    /**
+     * Which centres a plain teacher (no global admin role) may work in — one condition shared by
+     * the list and the single-centre check, on alias "ec" and parameter ":tid". They're the ones
+     * where they're listed as an admin, or — a plain teacher belongs to a centre by being listed as
+     * a teacher of one of its academic years, any year, not just the active one — a teacher.
+     */
+    private const string ACCESSIBLE_BY_TEACHER = '(
+        EXISTS (SELECT a.id FROM ' . EducationalCentre::class . ' ecAdmin JOIN ecAdmin.admins a WHERE ecAdmin.id = ec.id AND a.id = :tid)
+        OR EXISTS (SELECT t.id FROM ' . AcademicYear::class . ' ay JOIN ay.teachers t WHERE ay.educationalCentre = ec AND t.id = :tid)
+    )';
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, EducationalCentre::class);
@@ -42,6 +53,31 @@ class EducationalCentreRepository extends ServiceEntityRepository
         $result = $this->createQueryBuilder('ec')
             ->leftJoin('ec.activeAcademicYear', 'ay')
             ->addSelect('ay')
+            ->where('ec.id = :id')
+            ->setParameter('id', $id, 'uuid')
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $result instanceof EducationalCentre ? $result : null;
+    }
+
+    /**
+     * The centre the session has selected, with its active year and its admins, quality managers
+     * and internal auditors in the same query: every request needs the year (the layout) and
+     * whether the user holds one of those roles (the access check, the navigation and the voters),
+     * which would each cost a query on their own. The role lists are a handful of people each.
+     */
+    public function findByIdForTenant(string $id): ?EducationalCentre
+    {
+        $result = $this->createQueryBuilder('ec')
+            ->leftJoin('ec.activeAcademicYear', 'ay')
+            ->addSelect('ay')
+            ->leftJoin('ec.admins', 'adm')
+            ->addSelect('adm')
+            ->leftJoin('ec.qualityManagers', 'qm')
+            ->addSelect('qm')
+            ->leftJoin('ec.internalAuditors', 'ia')
+            ->addSelect('ia')
             ->where('ec.id = :id')
             ->setParameter('id', $id, 'uuid')
             ->getQuery()
@@ -122,37 +158,11 @@ class EducationalCentreRepository extends ServiceEntityRepository
             return $this->findAllOrderedByName();
         }
 
-        $merged = [];
-
-        $tid = $teacher->getId();
-
-        // Centres where teacher is listed as admin
-        foreach ($this->createQueryBuilder('ec')
-            ->join('ec.admins', 'a')
-            ->where('a.id = :tid')
-            ->setParameter('tid', $tid, 'uuid')
-            ->getQuery()
-            ->getResult() as $centre) {
-            $merged[$centre->getId()->toRfc4122()] = $centre;
-        }
-
-        // Centres via academic-year membership — a plain teacher (no admin role) belongs to a
-        // centre by being listed as a teacher of one of its academic years, any year, not just
-        // the active one.
-        foreach ($this->getEntityManager()->createQueryBuilder()
-            ->select('ay')
-            ->from(AcademicYear::class, 'ay')
-            ->join('ay.teachers', 't')
-            ->where('t.id = :tid')
-            ->setParameter('tid', $tid, 'uuid')
-            ->distinct()
-            ->getQuery()
-            ->getResult() as $academicYear) {
-            $ec = $academicYear->getEducationalCentre();
-            $merged[$ec->getId()->toRfc4122()] = $ec;
-        }
-
-        $centres = array_values($merged);
+        /** @var list<EducationalCentre> $centres */
+        $centres = $this->getEntityManager()
+            ->createQuery('SELECT ec FROM ' . EducationalCentre::class . ' ec WHERE ' . self::ACCESSIBLE_BY_TEACHER)
+            ->setParameter('tid', $teacher->getId(), 'uuid')
+            ->getResult();
         usort($centres, static fn(EducationalCentre $a, EducationalCentre $b) => strcmp($a->getName(), $b->getName()));
 
         return $centres;
@@ -165,12 +175,10 @@ class EducationalCentreRepository extends ServiceEntityRepository
             return true;
         }
 
-        foreach ($this->findAccessibleByTeacher($teacher) as $accessible) {
-            if ($accessible->getId()->equals($centre->getId())) {
-                return true;
-            }
-        }
-
-        return false;
+        return (int) $this->getEntityManager()
+            ->createQuery('SELECT COUNT(ec.id) FROM ' . EducationalCentre::class . ' ec WHERE ec.id = :cid AND ' . self::ACCESSIBLE_BY_TEACHER)
+            ->setParameter('cid', $centre->getId(), 'uuid')
+            ->setParameter('tid', $teacher->getId(), 'uuid')
+            ->getSingleScalarResult() > 0;
     }
 }

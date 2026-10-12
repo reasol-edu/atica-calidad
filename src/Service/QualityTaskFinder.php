@@ -91,21 +91,33 @@ final class QualityTaskFinder implements ResetInterface
 
         // For $teacher, not the logged-in user: the daily reminder runs with nobody logged in.
         $manages = $this->security->isGrantedForUser($teacher, QualityVoter::MANAGE, $centre);
+        // The managers need the three open statuses of the centre — and the findings awaiting their
+        // own analysis are among those in analysis — so one query serves all of it.
+        $awaiting = null;
         if ($manages) {
-            foreach ($this->findings->findByCentreAndStatus($centre, FindingStatus::Reported) as $finding) {
+            $byStatus = ['reported' => [], 'verification' => [], 'analysis' => []];
+            foreach ($this->findings->findByCentreAndStatuses($centre, [FindingStatus::Reported, FindingStatus::Verification, FindingStatus::Analysis]) as $finding) {
+                $byStatus[$finding->getStatus()->value][] = $finding;
+            }
+            foreach ($byStatus['reported'] as $finding) {
                 $tasks[] = new QualityTask(QualityTask::CLASSIFY, $finding, null, null, 'open');
             }
-            foreach ($this->findings->findByCentreAndStatus($centre, FindingStatus::Verification) as $finding) {
+            foreach ($byStatus['verification'] as $finding) {
                 $tasks[] = $this->task(QualityTask::VERIFY, $finding, null, $finding->getVerificationDueDate());
             }
-            foreach ($this->findings->findByCentreAndStatus($centre, FindingStatus::Analysis) as $finding) {
+            foreach ($byStatus['analysis'] as $finding) {
                 if ($finding->getAnalysisResponsible() === null) {
                     $tasks[] = $this->task(QualityTask::ANALYZE, $finding, null, $finding->getAnalysisDueDate());
                 }
             }
+            $awaiting = array_values(array_filter(
+                $byStatus['analysis'],
+                static fn (Finding $f): bool => $f->getAnalysisResponsible()?->getId()->equals($teacher->getId()) === true,
+            ));
+            usort($awaiting, static fn (Finding $a, Finding $b): int => $a->getAnalysisDueDate() <=> $b->getAnalysisDueDate());
         }
 
-        foreach ($this->findings->findAwaitingAnalysisBy($teacher, $centre) as $finding) {
+        foreach ($awaiting ?? $this->findings->findAwaitingAnalysisBy($teacher, $centre) as $finding) {
             $tasks[] = $this->task(QualityTask::ANALYZE, $finding, null, $finding->getAnalysisDueDate());
         }
 

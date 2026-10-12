@@ -72,8 +72,11 @@ final class ActivityObligationFinder implements ResetInterface
     /** @return list<ActivityDashboardItem> */
     private function computeForTeacher(Teacher $teacher, EducationalCentre $centre): array
     {
+        $activities = $this->activities->findAllByCentre($centre);
+        $this->completion->preloadCompletions($activities);
+
         $items = [];
-        foreach ($this->activities->findAllByCentre($centre) as $activity) {
+        foreach ($activities as $activity) {
             foreach ($this->forActivity($teacher, $activity) as $item) {
                 $items[] = $item;
             }

@@ -21,6 +21,8 @@ use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Model\ProfileAssignmentRow;
 use App\Repository\SpecificProfileAssignmentRepository;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
+use Doctrine\ORM\Events;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
@@ -31,6 +33,7 @@ use Symfony\Contracts\Service\ResetInterface;
  * everyone). Restrictions never cascade from a section to its subsections or folders — each node
  * is evaluated on its own.
  */
+#[AsDoctrineListener(event: Events::postFlush)]
 final class DocumentTreeAccessChecker implements ResetInterface
 {
     /** @var array<string, bool> memoizes holdsProfile() per (teacher, profile, list item) for this request — see its own docblock */
@@ -65,13 +68,7 @@ final class DocumentTreeAccessChecker implements ResetInterface
             return true;
         }
 
-        /** @var array<int, array{0: SpecificProfile, 1: ?ListItem}> $pairs */
-        $pairs = array_map(
-            static fn (DocumentSectionProfile $r): array => [$r->getSpecificProfile(), $r->getListItem()],
-            $section->getProfileRestrictions()->toArray()
-        );
-
-        return $this->assignments->isTeacherAssignedToAny($teacher, $pairs);
+        return $this->holdsAnyOf($teacher, $section->getProfileRestrictions());
     }
 
     public function canViewFolder(Teacher $teacher, Folder $folder): bool
@@ -85,13 +82,7 @@ final class DocumentTreeAccessChecker implements ResetInterface
             return true;
         }
 
-        /** @var array<int, array{0: SpecificProfile, 1: ?ListItem}> $pairs */
-        $pairs = array_map(
-            static fn (FolderVisibilityProfile $r): array => [$r->getSpecificProfile(), $r->getListItem()],
-            $folder->getVisibilityProfiles()->toArray()
-        );
-
-        return $this->assignments->isTeacherAssignedToAny($teacher, $pairs);
+        return $this->holdsAnyOf($teacher, $folder->getVisibilityProfiles());
     }
 
     /**
@@ -133,13 +124,7 @@ final class DocumentTreeAccessChecker implements ResetInterface
             return true;
         }
 
-        /** @var array<int, array{0: SpecificProfile, 1: ?ListItem}> $pairs */
-        $pairs = array_map(
-            static fn (FolderResponsibleProfile $r): array => [$r->getSpecificProfile(), $r->getListItem()],
-            $folder->getResponsibleProfiles()->toArray()
-        );
-
-        return $this->assignments->isTeacherAssignedToAny($teacher, $pairs);
+        return $this->holdsAnyOf($teacher, $folder->getResponsibleProfiles());
     }
 
     public function canUploadToFolder(Teacher $teacher, Folder $folder): bool
@@ -148,13 +133,7 @@ final class DocumentTreeAccessChecker implements ResetInterface
             return true;
         }
 
-        /** @var array<int, array{0: SpecificProfile, 1: ?ListItem}> $pairs */
-        $pairs = array_map(
-            static fn (FolderUploadProfile $r): array => [$r->getSpecificProfile(), $r->getListItem()],
-            $folder->getUploadProfiles()->toArray()
-        );
-
-        return $this->assignments->isTeacherAssignedToAny($teacher, $pairs);
+        return $this->holdsAnyOf($teacher, $folder->getUploadProfiles());
     }
 
     /**
@@ -258,24 +237,30 @@ final class DocumentTreeAccessChecker implements ResetInterface
      */
     public function holdsResponsibleProfile(Teacher $teacher, Folder $folder): bool
     {
-        /** @var array<int, array{0: SpecificProfile, 1: ?ListItem}> $pairs */
-        $pairs = array_map(
-            static fn (FolderResponsibleProfile $r): array => [$r->getSpecificProfile(), $r->getListItem()],
-            $folder->getResponsibleProfiles()->toArray()
-        );
-
-        return $pairs !== [] && $this->assignments->isTeacherAssignedToAny($teacher, $pairs);
+        return $this->holdsAnyOf($teacher, $folder->getResponsibleProfiles());
     }
 
     public function holdsReviewProfile(Teacher $teacher, Folder $folder): bool
     {
-        /** @var array<int, array{0: SpecificProfile, 1: ?ListItem}> $pairs */
-        $pairs = array_map(
-            static fn (FolderReviewProfile $r): array => [$r->getSpecificProfile(), $r->getListItem()],
-            $folder->getReviewProfiles()->toArray()
-        );
+        return $this->holdsAnyOf($teacher, $folder->getReviewProfiles());
+    }
 
-        return $this->assignments->isTeacherAssignedToAny($teacher, $pairs);
+    /**
+     * Whether the teacher holds any of the profile/subprofile pairs a restriction lists — none
+     * listed, none held. Answered from the teacher's assignments, loaded once (see holds()), not
+     * with a query per check: the pages ask it of every folder or section they list.
+     *
+     * @param iterable<DocumentSectionProfile|FolderVisibilityProfile|FolderResponsibleProfile|FolderUploadProfile|FolderReviewProfile> $restrictions
+     */
+    private function holdsAnyOf(Teacher $teacher, iterable $restrictions): bool
+    {
+        foreach ($restrictions as $r) {
+            if ($this->holds($teacher, $r->getSpecificProfile(), $r->getListItem())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -326,6 +311,12 @@ final class DocumentTreeAccessChecker implements ResetInterface
             $id = $teacher->getId()->toRfc4122();
             $this->heldByTeacher[$id] = $held[$id] ?? [];
         }
+    }
+
+    /** A flush may have changed the assignments (or the profiles of a folder) the answers were drawn from. */
+    public function postFlush(): void
+    {
+        $this->reset();
     }
 
     /** Forgets what was memoized — see ResetInterface (a long-lived worker mustn't carry one request's assignments into the next). */

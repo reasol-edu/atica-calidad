@@ -51,7 +51,7 @@ final class PendingReviewFinder
      */
     public function hasReviewAccess(Teacher $teacher, EducationalCentre $centre): bool
     {
-        foreach ($this->folders->findAllByCentre($centre) as $folder) {
+        foreach ($this->folders->findAllByCentreWithReviewProfiles($centre) as $folder) {
             if ($this->access->holdsReviewProfile($teacher, $folder)) {
                 return true;
             }

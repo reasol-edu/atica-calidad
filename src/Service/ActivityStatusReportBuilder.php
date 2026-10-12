@@ -37,9 +37,20 @@ final class ActivityStatusReportBuilder
         $year     = $centre->getActiveAcademicYear();
         $teachers = $year === null ? 0 : $this->teachers->countByAcademicYear($year);
 
+        $activities  = $this->activities->findAllByCentre($centre);
+        // How many have completed each one's current occurrence, for all of them in one query.
+        $occurrences = [];
+        $keys        = [];
+        foreach ($activities as $activity) {
+            $cycleKey                              = $this->deadline->currentCycleKey($activity);
+            $keys[$activity->getId()->toRfc4122()] = $activity->getId()->toRfc4122() . '|' . $cycleKey;
+            $occurrences[]                         = [$activity, $cycleKey];
+        }
+        $done = $this->completions->countByOccurrences($occurrences);
+
         $rows = [];
-        foreach ($this->activities->findAllByCentre($centre) as $activity) {
-            $rows[] = $this->row($activity, $teachers);
+        foreach ($activities as $activity) {
+            $rows[] = $this->row($activity, $teachers, $done[$keys[$activity->getId()->toRfc4122()]] ?? 0);
         }
 
         usort($rows, static fn (ActivityStatusReportRow $a, ActivityStatusReportRow $b): int => strcmp($a->categoryPath, $b->categoryPath));
@@ -47,7 +58,8 @@ final class ActivityStatusReportBuilder
         return $rows;
     }
 
-    private function row(Activity $activity, int $teachers): ActivityStatusReportRow
+    /** @param int $done how many owners have completed the activity's current occurrence */
+    private function row(Activity $activity, int $teachers, int $done): ActivityStatusReportRow
     {
         $path     = $this->categoryPath($activity->getCategory());
         $summary  = $this->summaries->for($activity);
@@ -60,7 +72,6 @@ final class ActivityStatusReportBuilder
             return new ActivityStatusReportRow($path, $activity->getTitle(), $startsAt, $deadline, true, $progress->total, $progress->delivered, $progress->accepted, $progress->inReview, $progress->rejected, $progress->overdue, $summary->ownCount, $activity);
         }
 
-        $done    = $this->completions->countByActivityAndCycle($activity, $this->deadline->currentCycleKey($activity));
         $overdue = $this->clock->now() > $deadline ? max(0, $teachers - $done) : 0;
 
         return new ActivityStatusReportRow($path, $activity->getTitle(), $startsAt, $deadline, false, $teachers, $done, $done, 0, 0, $overdue, 0, $activity);

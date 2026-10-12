@@ -30,6 +30,8 @@ final class TenantContext implements TenantContextInterface, ResetInterface
     // request already rebuilds the container, so this is a safety net.
     private bool $centreResolved = false;
     private ?EducationalCentre $resolvedCentre = null;
+    /** @var array{string, bool}|null teacher id, and whether they can pick another centre */
+    private ?array $canSwitchMemo = null;
 
     public function __construct(
         private readonly RequestStack $requestStack,
@@ -58,14 +60,23 @@ final class TenantContext implements TenantContextInterface, ResetInterface
             return null;
         }
 
-        $centre = $this->centres->findByIdWithActiveYear($id);
+        // Whether something loaded the centre earlier in this request, before the query below: a
+        // managed entity keeps the state it was loaded with, whatever the query returns.
+        $alreadyManaged = $this->em->getUnitOfWork()->tryGetById($id, EducationalCentre::class) !== false;
+
+        $centre = $this->centres->findByIdForTenant($id);
 
         // The centre was only checked when it was picked (CentreSelectionController::choose()):
         // re-check it on every request, so a teacher removed from the centre — or an admin who
         // lost the role — mid-session stops reaching its data right away instead of keeping it
         // until they log out. They land back on the centre picker (TenantContextSubscriber).
+        // The query already brought the centre's admins: being one is enough, with no further query.
         $user = $this->tokenStorage->getToken()?->getUser();
-        if ($centre !== null && $user instanceof Teacher && !$this->centres->isAccessibleByTeacher($centre, $user)) {
+        if (
+            $centre !== null && $user instanceof Teacher
+            && !$centre->getAdmins()->contains($user)
+            && !$this->centres->isAccessibleByTeacher($centre, $user)
+        ) {
             $this->requestStack->getSession()->remove(self::SESSION_KEY);
             $this->requestStack->getSession()->remove(self::SESSION_YEAR_KEY);
             $centre = null;
@@ -73,7 +84,7 @@ final class TenantContext implements TenantContextInterface, ResetInterface
 
         // Ensure activeAcademicYear is not stale from a prior identity-map load
         // (e.g. the subscriber loaded the centre without the JOIN in the same request)
-        if ($centre !== null && $this->em->getUnitOfWork()->isInIdentityMap($centre)) {
+        if ($centre !== null && $alreadyManaged) {
             $this->em->refresh($centre);
         }
 
@@ -130,7 +141,13 @@ final class TenantContext implements TenantContextInterface, ResetInterface
 
     public function canSwitchCentre(Teacher $teacher): bool
     {
-        return \count($this->centres->findAccessibleByTeacher($teacher)) > 1;
+        // The layout asks on every page, and a request has one user: asked once.
+        $key = $teacher->getId()->toRfc4122();
+        if ($this->canSwitchMemo === null || $this->canSwitchMemo[0] !== $key) {
+            $this->canSwitchMemo = [$key, \count($this->centres->findAccessibleByTeacher($teacher)) > 1];
+        }
+
+        return $this->canSwitchMemo[1];
     }
 
     public function clear(): void
@@ -144,5 +161,6 @@ final class TenantContext implements TenantContextInterface, ResetInterface
     {
         $this->resolvedCentre = null;
         $this->centreResolved = false;
+        $this->canSwitchMemo  = null;
     }
 }

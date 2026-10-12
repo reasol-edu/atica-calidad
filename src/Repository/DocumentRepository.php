@@ -26,10 +26,17 @@ class DocumentRepository extends ServiceEntityRepository
         parent::__construct($registry, Document::class);
     }
 
-    /** @return list<Document> */
+    /**
+     * The folder's documents in position order, with their revisions and who uploaded them already
+     * loaded: every caller reads them for each document, one lazy query apiece otherwise.
+     *
+     * @return list<Document>
+     */
     public function findByFolder(Folder $folder): array
     {
         return $this->createQueryBuilder('d')
+            ->leftJoin('d.revisions', 'r')->addSelect('r')
+            ->leftJoin('r.uploadedBy', 'ub')->addSelect('ub')
             ->where('d.folder = :folder')
             ->setParameter('folder', $folder->getId(), 'uuid')
             ->orderBy('d.position', 'ASC')

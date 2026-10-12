@@ -72,6 +72,79 @@ class ActivityCompletionRepository extends ServiceEntityRepository
         return $result instanceof ActivityCompletion ? $result : null;
     }
 
+    /**
+     * Every completion of the given occurrences — each an activity with the cycle year of the
+     * occurrence — whatever the owner: in one query instead of one per owner.
+     *
+     * @param list<array{Activity, int}> $occurrences
+     *
+     * @return list<ActivityCompletion>
+     */
+    public function findByOccurrences(array $occurrences): array
+    {
+        if ($occurrences === []) {
+            return [];
+        }
+
+        // The activities × the cycle years asked for: a superset when they have different cycle
+        // years (a handful at most), which the caller sorts out by occurrence.
+        $qb           = $this->createQueryBuilder('c');
+        $placeholders = [];
+        foreach ($occurrences as $i => [$activity]) {
+            $placeholders[] = ':activity' . $i;
+            $qb->setParameter('activity' . $i, $activity->getId(), 'uuid');
+        }
+
+        /** @var list<ActivityCompletion> $result */
+        $result = $qb
+            ->where('c.activity IN (' . implode(', ', $placeholders) . ')')
+            ->andWhere('c.cycleYear IN (:cycleYears)')
+            ->setParameter('cycleYears', array_values(array_unique(array_map(static fn (array $o): int => $o[1], $occurrences))))
+            ->getQuery()
+            ->getResult();
+
+        return $result;
+    }
+
+    /**
+     * How many owners have completed each of the given occurrences, in one query: counts keyed
+     * "activityId|cycleYear" (an occurrence nobody completed has no entry).
+     *
+     * @param list<array{Activity, int}> $occurrences
+     *
+     * @return array<string, int>
+     */
+    public function countByOccurrences(array $occurrences): array
+    {
+        if ($occurrences === []) {
+            return [];
+        }
+
+        $qb           = $this->createQueryBuilder('c')->join('c.activity', 'a');
+        $placeholders = [];
+        foreach ($occurrences as $i => [$activity]) {
+            $placeholders[] = ':activity' . $i;
+            $qb->setParameter('activity' . $i, $activity->getId(), 'uuid');
+        }
+
+        /** @var list<array{activityId: \Symfony\Component\Uid\Uuid, cycleYear: int|string, n: int|string}> $rows */
+        $rows = $qb
+            ->select('a.id AS activityId', 'c.cycleYear AS cycleYear', 'COUNT(c.id) AS n')
+            ->where('a.id IN (' . implode(', ', $placeholders) . ')')
+            ->andWhere('c.cycleYear IN (:cycleYears)')
+            ->setParameter('cycleYears', array_values(array_unique(array_map(static fn (array $o): int => $o[1], $occurrences))))
+            ->groupBy('a.id', 'c.cycleYear')
+            ->getQuery()
+            ->getArrayResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[$row['activityId']->toRfc4122() . '|' . (int) $row['cycleYear']] = (int) $row['n'];
+        }
+
+        return $counts;
+    }
+
     /** @return ActivityCompletion[] every completion recorded for this activity, for building stats/badges in one query. */
     public function findByActivity(Activity $activity): array
     {

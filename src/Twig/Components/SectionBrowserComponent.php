@@ -695,7 +695,7 @@ class SectionBrowserComponent extends AbstractController
     {
         $this->denyAccessUnlessGranted(EducationalCentreVoter::RESPONSIBILITIES, $this->centre);
         $target = $this->requireFolder($id);
-        $siblings = array_values($this->folders->findBySection($target->getDocumentSection()));
+        $siblings = $this->folders->findBySection($target->getDocumentSection());
 
         $index = null;
         foreach ($siblings as $i => $sibling) {

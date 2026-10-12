@@ -14,15 +14,39 @@ use App\Entity\Teacher;
 use App\Model\ActivitySubmissionSlot;
 use App\Model\ProfileAssignmentRow;
 use App\Repository\ActivityCompletionRepository;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Events;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Owns everything about an activity's expected submissions (per-teacher) and completion state —
  * shared between ActivityBrowserComponent (the "Actividades" section) and the dashboard activity
  * summary, so both compute the exact same status for the exact same activity/owner.
  */
-final class ActivityCompletionChecker
+#[AsDoctrineListener(event: Events::postFlush)]
+final class ActivityCompletionChecker implements ResetInterface
 {
+    /**
+     * Every completion of an occurrence of an activity ("activityId|cycleYear"), whatever the
+     * owner, so asking "is this owner done?" for each of an activity's owners is one query, not one
+     * per owner — and preloadCompletions() makes it one for all the activities. Kept for the
+     * request, dropped by any flush (a completion may have been added or removed) and by reset().
+     *
+     * @var array<string, list<ActivityCompletion>>
+     */
+    private array $occurrenceMemo = [];
+
+    public function postFlush(): void
+    {
+        $this->reset();
+    }
+
+    public function reset(): void
+    {
+        $this->occurrenceMemo = [];
+    }
+
     public function __construct(
         private readonly ActivitySubmissionSlotBuilder $slotBuilder,
         private readonly ActivityCompletionRepository $completions,
@@ -246,7 +270,78 @@ final class ActivityCompletionChecker
             return true;
         }
 
-        return $this->completions->findOneForOwner($activity, $teacher, $profile, $listItem, $leaf, $this->cycleKey($activity, $leaf, $reference)) !== null;
+        return $this->findCompletion($activity, $teacher, $profile, $listItem, $leaf, $this->cycleKey($activity, $leaf, $reference)) !== null;
+    }
+
+    /**
+     * Loads, in as few queries as possible, the completions that isCompletedFor() will be asked
+     * about for these activities — their current occurrence, or the one $reference belongs to (what
+     * the calendar passes): call it before walking a list of them. Only a head start: an
+     * occurrence it missed is still loaded when asked for.
+     *
+     * @param iterable<Activity> $activities
+     */
+    public function preloadCompletions(iterable $activities, ?\DateTimeImmutable $reference = null): void
+    {
+        $missing = [];
+        foreach ($activities as $activity) {
+            if ($activity->isAutoComplete()) {
+                continue;
+            }
+            $cycleYear = $this->cycleKey($activity, null, $reference);
+            $key       = self::occurrenceKey($activity, $cycleYear);
+            if (!isset($this->occurrenceMemo[$key])) {
+                $missing[$key] = [$activity, $cycleYear];
+            }
+        }
+
+        foreach (array_chunk(array_values($missing), 100) as $chunk) {
+            $this->loadOccurrences($chunk);
+        }
+    }
+
+    /** @param list<array{Activity, int}> $occurrences */
+    private function loadOccurrences(array $occurrences): void
+    {
+        foreach ($occurrences as [$activity, $cycleYear]) {
+            $this->occurrenceMemo[self::occurrenceKey($activity, $cycleYear)] = [];
+        }
+        foreach ($this->completions->findByOccurrences($occurrences) as $completion) {
+            $this->occurrenceMemo[self::occurrenceKey($completion->getActivity(), $completion->getCycleYear())][] = $completion;
+        }
+    }
+
+    private static function occurrenceKey(Activity $activity, int $cycleYear): string
+    {
+        return $activity->getId()->toRfc4122() . '|' . $cycleYear;
+    }
+
+    /**
+     * The same match as ActivityCompletionRepository::findOneForOwner() — which documents it — made
+     * over the occurrence's completions held in memory.
+     */
+    private function findCompletion(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem, ?ListItem $leaf, int $cycleYear): ?ActivityCompletion
+    {
+        $key = self::occurrenceKey($activity, $cycleYear);
+        if (!isset($this->occurrenceMemo[$key])) {
+            $this->loadOccurrences([[$activity, $cycleYear]]);
+        }
+
+        foreach ($this->occurrenceMemo[$key] as $completion) {
+            $completionLeaf = $completion->getLeafListItem();
+            if (
+                $completion->getTeacher()?->getId()->toRfc4122() === $teacher?->getId()->toRfc4122()
+                && $completion->getProfile()?->getId()->toRfc4122() === $profile?->getId()->toRfc4122()
+                && $completion->getListItem()?->getId()->toRfc4122() === $listItem?->getId()->toRfc4122()
+                && ($leaf !== null
+                    ? ($completionLeaf === null || $completionLeaf->getId()->equals($leaf->getId()))
+                    : $completionLeaf === null)
+            ) {
+                return $completion;
+            }
+        }
+
+        return null;
     }
 
     private function cycleKey(Activity $activity, ?ListItem $leaf = null, ?\DateTimeImmutable $reference = null): int
@@ -265,7 +360,7 @@ final class ActivityCompletionChecker
         }
 
         $cycleYear = $this->cycleKey($activity, $leaf);
-        if ($this->completions->findOneForOwner($activity, $targetTeacher, $profile, $listItem, $leaf, $cycleYear) !== null) {
+        if ($this->findCompletion($activity, $targetTeacher, $profile, $listItem, $leaf, $cycleYear) !== null) {
             return false;
         }
 
@@ -285,7 +380,7 @@ final class ActivityCompletionChecker
             return false;
         }
 
-        $completion = $this->completions->findOneForOwner($activity, $targetTeacher, $profile, $listItem, $leaf, $this->cycleKey($activity, $leaf));
+        $completion = $this->findCompletion($activity, $targetTeacher, $profile, $listItem, $leaf, $this->cycleKey($activity, $leaf));
         if ($completion === null) {
             return false;
         }

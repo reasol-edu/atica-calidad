@@ -7,6 +7,22 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Menos consultas a la base de datos en casi todas las pantallas.** Sobre los datos de
+  demostración, las páginas con más consultas bajan entre un 20 % y un 37 % en conjunto, y el
+  número deja de crecer con la cantidad de actividades, carpetas, documentos o eventos que se
+  listan:
+  - la resolución del centro en cada petición pasa de unas 8 consultas a 2–3;
+  - el panel, la campana y el calendario cargan los hallazgos pendientes con una sola consulta, las
+    completaciones de todas las actividades juntas y los perfiles de cada carpeta sin una consulta
+    por carpeta;
+  - las comprobaciones de perfil del árbol documental se resuelven con las asignaciones del docente,
+    cargadas una vez, en lugar de una consulta por carpeta o sección;
+  - los listados de actividades, carpetas, documentos y eventos traen ya sus perfiles y revisiones;
+  - los informes de estado de actividades y la revisión por la dirección cuentan completaciones y
+    hallazgos de auditoría con una consulta, no una por fila.
+
 ## [1.19.1] - 2026-10-11
 
 ### Security

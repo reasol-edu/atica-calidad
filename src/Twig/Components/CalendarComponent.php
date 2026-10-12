@@ -252,8 +252,11 @@ class CalendarComponent extends AbstractCalendarComponent
 
         $reference = (new \DateTimeImmutable())->setDate($this->year, $this->month, 15);
 
+        $activities = $this->activityRepository->findAllByCentre($centre);
+        $this->activityCompletion->preloadCompletions($activities, $reference);
+
         $items = [];
-        foreach ($this->activityRepository->findAllByCentre($centre) as $activity) {
+        foreach ($activities as $activity) {
             foreach ($this->activityCompletion->getMyOwnedObligations($user, $activity) as $owner) {
                 $leaf = $owner['leaf'];
                 $end  = $this->activityDeadline->cycleEndDateNear($activity, $reference, $leaf);

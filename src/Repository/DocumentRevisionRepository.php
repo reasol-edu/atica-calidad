@@ -65,12 +65,18 @@ class DocumentRevisionRepository extends ServiceEntityRepository
      */
     public function findPendingReviewByCentre(EducationalCentre $centre): array
     {
-        // Document, folder, section and uploader come along: every caller reads them for each revision.
+        // Document, folder, section and uploader come along: every caller reads them for each
+        // revision — and the folder's backing activity and review profiles, which filtering them
+        // by who reviews (see above) and grouping them by activity read for each one too.
         return $this->createQueryBuilder('r')
             ->join('r.document', 'd')->addSelect('d')
             ->join('d.folder', 'f')->addSelect('f')
             ->join('f.documentSection', 's')->addSelect('s')
             ->join('r.uploadedBy', 'ub')->addSelect('ub')
+            ->leftJoin('f.activity', 'act')->addSelect('act')
+            ->leftJoin('f.reviewProfiles', 'rv')->addSelect('rv')
+            ->leftJoin('rv.specificProfile', 'rvp')->addSelect('rvp')
+            ->leftJoin('rv.listItem', 'rvl')->addSelect('rvl')
             ->where('r.pendingReview = true')
             ->andWhere('s.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')

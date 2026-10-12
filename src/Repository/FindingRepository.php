@@ -59,6 +59,25 @@ class FindingRepository extends ServiceEntityRepository
     }
 
     /**
+     * The centre's findings in any of $statuses, oldest reported first.
+     *
+     * @param list<FindingStatus> $statuses
+     *
+     * @return list<Finding>
+     */
+    public function findByCentreAndStatuses(EducationalCentre $centre, array $statuses): array
+    {
+        return $this->createQueryBuilder('f')
+            ->where('f.educationalCentre = :centre')
+            ->andWhere('f.status IN (:statuses)')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('statuses', array_map(static fn (FindingStatus $s): string => $s->value, $statuses))
+            ->orderBy('f.reportedAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * What $teacher has reported in the centre, most recent first ("Mis incidencias").
      *
      * @return list<Finding>
@@ -129,6 +148,42 @@ class FindingRepository extends ServiceEntityRepository
             ->orderBy('i.position', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * The findings of each of several audits' reports, in one query: lists keyed by the audit's id
+     * (an audit that raised none has an empty list), each in the order of its checklist.
+     *
+     * @param list<\App\Entity\Audit> $audits
+     *
+     * @return array<string, list<Finding>>
+     */
+    public function findByAudits(array $audits): array
+    {
+        $byAudit = [];
+        if ($audits === []) {
+            return $byAudit;
+        }
+
+        $qb           = $this->createQueryBuilder('f')->join('f.auditItem', 'i')->addSelect('i');
+        $placeholders = [];
+        foreach ($audits as $i => $audit) {
+            $byAudit[$audit->getId()->toRfc4122()] = [];
+            $placeholders[]                        = ':audit' . $i;
+            $qb->setParameter('audit' . $i, $audit->getId(), 'uuid');
+        }
+
+        /** @var list<Finding> $findings */
+        $findings = $qb
+            ->where('i.audit IN (' . implode(', ', $placeholders) . ')')
+            ->orderBy('i.position', 'ASC')
+            ->getQuery()
+            ->getResult();
+        foreach ($findings as $finding) {
+            $byAudit[$finding->getAuditItem()?->getAudit()->getId()->toRfc4122() ?? ''][] = $finding;
+        }
+
+        return $byAudit;
     }
 
     /**

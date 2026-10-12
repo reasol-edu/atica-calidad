@@ -216,9 +216,11 @@ final class ManagementReviewBuilder
     private function auditInputs(ManagementReview $review): array
     {
         $program = $this->programs->findByYear($review->getAcademicYear());
+        $audits  = $this->audits->findPlannedBetween($review->getEducationalCentre(), $review->getPeriodStart(), $review->getPeriodEnd());
+        $raised  = $this->findings->findByAudits($audits);
         $items   = [];
-        foreach ($this->audits->findPlannedBetween($review->getEducationalCentre(), $review->getPeriodStart(), $review->getPeriodEnd()) as $audit) {
-            $items[] = $this->audit($audit);
+        foreach ($audits as $audit) {
+            $items[] = $this->audit($audit, $raised[$audit->getId()->toRfc4122()] ?? []);
         }
 
         return [
@@ -356,11 +358,15 @@ final class ManagementReviewBuilder
         ];
     }
 
-    /** @return array<string, mixed> */
-    private function audit(Audit $audit): array
+    /**
+     * @param list<Finding> $raised the findings its report raised
+     *
+     * @return array<string, mixed>
+     */
+    private function audit(Audit $audit, array $raised): array
     {
         $kinds = ['nonconformity' => 0, 'observation' => 0, 'improvement_opportunity' => 0];
-        foreach ($this->findings->findByAudit($audit) as $finding) {
+        foreach ($raised as $finding) {
             if ($finding->getKind() !== null) {
                 ++$kinds[$finding->getKind()->value];
             }

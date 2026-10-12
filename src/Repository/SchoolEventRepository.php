@@ -19,6 +19,8 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class SchoolEventRepository extends ServiceEntityRepository
 {
+    use PreloadsCollections;
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, SchoolEvent::class);
@@ -68,13 +70,34 @@ class SchoolEventRepository extends ServiceEntityRepository
     /** @return list<SchoolEvent> */
     public function findAllForAcademicYear(AcademicYear $year): array
     {
-        return $this->baseQueryBuilder($year)->getQuery()->getResult();
+        /** @var list<SchoolEvent> $events */
+        $events = $this->baseQueryBuilder($year)->getQuery()->getResult();
+
+        return $this->withProfileRestrictions($events);
     }
 
     /** @return list<SchoolEvent> */
     public function findVisibleForTeacherInAcademicYear(Teacher $viewer, AcademicYear $year): array
     {
-        return $this->visibleForTeacherQueryBuilder($viewer, $year)->getQuery()->getResult();
+        /** @var list<SchoolEvent> $events */
+        $events = $this->visibleForTeacherQueryBuilder($viewer, $year)->getQuery()->getResult();
+
+        return $this->withProfileRestrictions($events);
+    }
+
+    /**
+     * $events with their profile restrictions loaded (the calendar reads them for each event:
+     * its colour and who it's for), in one query instead of one per event.
+     *
+     * @param list<SchoolEvent> $events
+     *
+     * @return list<SchoolEvent>
+     */
+    private function withProfileRestrictions(array $events): array
+    {
+        $this->preloadCollection(SchoolEvent::class, $events, 'profileRestrictions', ['specificProfile', 'listItem']);
+
+        return $events;
     }
 
     /**

@@ -15,20 +15,36 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class FolderRepository extends ServiceEntityRepository
 {
+    use PreloadsCollections;
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Folder::class);
     }
 
-    /** @return Folder[] */
+    /**
+     * The section's folders, in position order — with the backing activity (an inverse OneToOne,
+     * which would cost one query per folder) and the profile lists the page checks for each one
+     * (who sees it, manages it, uploads to it, reviews it) already loaded.
+     *
+     * @return list<Folder>
+     */
     public function findBySection(DocumentSection $section): array
     {
-        return $this->createQueryBuilder('f')
+        /** @var list<Folder> $folders */
+        $folders = $this->createQueryBuilder('f')
+            ->leftJoin('f.activity', 'a')->addSelect('a')
             ->where('f.documentSection = :section')
             ->setParameter('section', $section->getId(), 'uuid')
             ->orderBy('f.position', 'ASC')
             ->getQuery()
             ->getResult();
+
+        foreach (['visibilityProfiles', 'responsibleProfiles', 'uploadProfiles', 'reviewProfiles'] as $field) {
+            $this->preloadCollection(Folder::class, $folders, $field, ['specificProfile', 'listItem']);
+        }
+
+        return $folders;
     }
 
     /**
@@ -49,6 +65,28 @@ class FolderRepository extends ServiceEntityRepository
             ->where('s.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->orderBy('f.position', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Every folder of the centre's tree with its review profiles (and their profile and subprofile)
+     * and its backing activity already loaded — for walking all of them asking who reviews, which
+     * would otherwise cost a few queries per folder.
+     *
+     * @return list<Folder>
+     */
+    public function findAllByCentreWithReviewProfiles(EducationalCentre $centre): array
+    {
+        return $this->createQueryBuilder('f')
+            ->join('f.documentSection', 's')
+            ->leftJoin('f.activity', 'a')->addSelect('a')
+            ->leftJoin('f.reviewProfiles', 'rv')->addSelect('rv')
+            ->leftJoin('rv.specificProfile', 'rvp')->addSelect('rvp')
+            ->leftJoin('rv.listItem', 'rvl')->addSelect('rvl')
+            ->where('s.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('f.name', 'ASC')
             ->getQuery()
             ->getResult();
     }

@@ -17,6 +17,7 @@ use Symfony\Component\Uid\Uuid;
  */
 class ActivityRepository extends ServiceEntityRepository
 {
+    use PreloadsCollections;
     use TrashQueryTrait;
 
     public function __construct(ManagerRegistry $registry)
@@ -129,7 +130,37 @@ class ActivityRepository extends ServiceEntityRepository
             $qb->andWhere('a.hidden = false');
         }
 
-        return $qb->getQuery()->getResult();
+        /** @var list<Activity> $activities */
+        $activities = $qb->getQuery()->getResult();
+        $this->preloadRelations($activities);
+
+        return $activities;
+    }
+
+    /**
+     * Initializes, with one query per collection for the whole list, the profile and deadline
+     * collections every caller of findAllByCentre() walks for each activity and its folder: lazily
+     * that's one query per activity and collection, which grows with the centre's activities.
+     *
+     * @param list<Activity> $activities
+     */
+    private function preloadRelations(array $activities): void
+    {
+        $folders = [];
+        foreach ($activities as $activity) {
+            $folder = $activity->getFolder();
+            if ($folder !== null) {
+                $folders[$folder->getId()->toRfc4122()] = $folder;
+            }
+        }
+        $folders = array_values($folders);
+
+        $this->preloadCollection(Activity::class, $activities, 'profileRestrictions', ['specificProfile', 'listItem']);
+        $this->preloadCollection(Activity::class, $activities, 'responsibleProfiles', ['specificProfile', 'listItem']);
+        $this->preloadCollection(Activity::class, $activities, 'listItemDeadlines', ['listItem']);
+        foreach (['uploadProfiles', 'responsibleProfiles', 'reviewProfiles', 'visibilityProfiles'] as $field) {
+            $this->preloadCollection(Folder::class, $folders, $field, ['specificProfile', 'listItem']);
+        }
     }
 
     /** @return list<Activity> whose title matches $query anywhere in the centre's categories, ordered by title */

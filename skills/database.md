@@ -92,6 +92,39 @@ Don't add the filter unconditionally to a method that's meant to support both.
   storage (`SettingFile` + FK from the value row, keyed by SHA-256 hash) instead
   of creating a table specific to a single use case.
 
+## Query count: no N+1, and the page-wide costs are paid once
+
+A page's number of queries must not grow with the data it lists. Measured on the demo data, the
+heavy pages ran 30–100 queries, almost all of them one lazy query per row. What keeps them flat:
+
+- **A list that callers walk comes with what they read.** Fetch-join the *to-one* associations and
+  at most one collection in the list's own query (see `ActivityRepository::findAllByCentre()`,
+  `DocumentRepository::findByFolder()`). For several collections use the `PreloadsCollections`
+  trait: one extra query per collection for the whole list (`ActivityRepository`,
+  `FolderRepository::findBySection()`, `SchoolEventRepository`). Joining several collections into
+  one query multiplies rows — don't. `ActivityRepositoryPreloadTest` shows how to assert "reading
+  these collections doesn't query" with the `doctrine.debug_data_holder` query log.
+- **Several lookups for one list → one query for the list.** `IN (...)` with one `:param` per id,
+  each bound with type `'uuid'` (an array of entities or of `Uuid` objects binds wrongly on the
+  BINARY(16) platforms and silently matches nothing). Examples: `ActivityCompletionRepository::
+  findByOccurrences()` / `countByOccurrences()`, `FindingRepository::findByAudits()` /
+  `findByCentreAndStatuses()`.
+- **Per-request memos are shared state.** The app can run in a long-lived worker, so a memo on a
+  service must implement `ResetInterface` (cleared between requests) and, if a write can change
+  the answer, be dropped by a `postFlush` Doctrine listener — copy `QualityTaskFinder`,
+  `ActivityCompletionChecker` or `DocumentTreeAccessChecker`. Tests keep one kernel across requests
+  but run the same reset between them.
+- **Tenant resolution runs on every request**: `TenantContext::getSelectedCentre()` reads the
+  centre with its year, admins, quality managers and internal auditors in one query
+  (`findByIdForTenant()`) and re-checks access with one `EXISTS` query (`isAccessibleByTeacher()`),
+  none at all for a centre admin. Don't add a lazy read of those collections on the hot path.
+- **Profile checks** (`DocumentTreeAccessChecker::can…/holds…`) answer from the teacher's
+  assignments, loaded once per request (`holds()`), never with a query per folder or section.
+
+To measure, boot the test kernel against a seeded SQLite database, request the page and read the
+query log (`doctrine.debug_data_holder`), listing each query's table and the `src/` frame that
+issued it — the repeated ones are the N+1.
+
 ## File contents (BLOB columns): never hydrate many at once
 
 `DocumentFile::$content` (and `SettingFile`'s) is a BLOB column on the entity itself — Doctrine

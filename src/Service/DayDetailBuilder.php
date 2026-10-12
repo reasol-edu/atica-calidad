@@ -57,8 +57,11 @@ class DayDetailBuilder
     {
         $day = $date->format('Y-m-d');
 
+        $activities = $this->activities->findAllByCentre($centre);
+        $this->activityCompletion->preloadCompletions($activities, $date);
+
         $items = [];
-        foreach ($this->activities->findAllByCentre($centre) as $activity) {
+        foreach ($activities as $activity) {
             foreach ($this->activityCompletion->getMyOwnedObligations($viewer, $activity) as $owner) {
                 $leaf = $owner['leaf'];
                 $end  = $this->activityDeadline->cycleEndDateNear($activity, $date, $leaf);
