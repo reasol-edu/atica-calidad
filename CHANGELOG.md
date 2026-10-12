@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.19.3] - 2026-10-12
+
+### Changed
+
+- Se deja de pasar la dirección de orden como texto (`'ASC'`/`'DESC'`) a Doctrine, deprecado desde
+  ORM 3.7: el registro del servidor dejaba de llenarse de avisos de deprecación en cada consulta
+  ordenada.
+
 ## [1.19.2] - 2026-10-12
 
 ### Changed
