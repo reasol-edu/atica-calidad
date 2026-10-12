@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.19.2] - 2026-10-12
+
 ### Changed
 
 - **Menos consultas a la base de datos en casi todas las pantallas.** Sobre los datos de
