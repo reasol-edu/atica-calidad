@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.19.4] - 2026-10-13
+
+### Changed
+
+- Las actividades que se completan al entregar lo dicen con claridad: la etiqueta pasa de «Se completa
+  sola», que se entendía como «no tengo que hacer nada», a «Se completa al entregar». En el formulario
+  de la actividad, las opciones «Automática» y «Manual» pasan a ser «Al entregar» y «A mano».
+
 ## [1.19.3] - 2026-10-12
 
 ### Changed

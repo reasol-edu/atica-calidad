@@ -116,9 +116,9 @@ cualquier otro documento del árbol documental.
 : Si una actividad es **por perfil** (una entrega compartida por todos los que tienen ese
 perfil/subperfil) o **individual** (cada docente entrega la suya).
 
-**Completado automático**
+**Completado al entregar**
 : Modo de una actividad con carpeta en el que no hay botón de completar: se considera hecha en
-cuanto el documento esperado está aprobado.
+cuanto se publican todos los documentos que hay que entregar. Lo contrario es «a mano».
 
 **Acuse de lectura**
 : Confirmación de que un docente ha leído la versión en vigor de un documento. Se activa por carpeta

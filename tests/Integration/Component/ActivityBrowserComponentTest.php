@@ -2514,9 +2514,9 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         ], $this->client);
         $html = (string) $component->render()->crawler()->html();
 
-        self::assertStringContainsString('Se completa sola', $html);
+        self::assertStringContainsString('Se completa al entregar', $html);
         self::assertStringNotContainsString('Automática', $html);
-        self::assertStringContainsString('cuando se publican todos los documentos que hay que entregar', $html, 'the tooltip explains it');
+        self::assertStringContainsString('en cuanto se publican todos los documentos que hay que entregar', $html, 'the tooltip explains it');
     }
 
     /** Someone else's activity isn't painted by its deadline: it has no status of the viewer's own. */
