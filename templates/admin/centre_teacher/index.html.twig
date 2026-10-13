@@ -30,6 +30,11 @@
         {% endif %}
     </div>
 
+    {# ── List ──────────────────────────────────────────────────────────────── #}
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+        <twig:Admin:TeacherCentreListComponent :centre="centre" />
+    </div>
+
     {# ── Form to add a teacher ───────────────────────────────────────────── #}
     {% if centre.activeAcademicYear and not is_viewing_past_year() %}
         <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
@@ -63,11 +68,6 @@
             </form>
         </div>
     {% endif %}
-
-    {# ── List ──────────────────────────────────────────────────────────────── #}
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden">
-        <twig:Admin:TeacherCentreListComponent :centre="centre" />
-    </div>
 
 </div>
 {% endblock %}
