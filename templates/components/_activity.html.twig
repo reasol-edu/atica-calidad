@@ -159,7 +159,7 @@
                             </button>
                         </span>
                     {% else %}
-                        <div class="relative shrink-0" data-controller="dropdown">
+                        <div class="relative shrink-0" data-controller="dropdown" data-dropdown-float-value="true">
                             <button type="button" data-action="dropdown#toggle"
                                     class="p-1.5 text-gray-300 hover:text-gray-600" title="{{ 'activity.more_actions'|trans({}, 'admin') }}">
                                 {{ ux_icon('heroicons:ellipsis-vertical', {class: 'h-5 w-5'}) }}
