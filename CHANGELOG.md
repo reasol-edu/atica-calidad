@@ -7,6 +7,18 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.19.5] - 2026-10-13
+
+### Changed
+
+- En «Docentes del curso», el formulario para añadir un docente pasa debajo del listado.
+
+### Fixed
+
+- El menú de los tres puntos (categorías de actividades, actividades, carpetas y documentos) ya no
+  queda cortado por la tarjeta que lo contiene: se veía incompleto en la última fila. Ahora se abre
+  hacia arriba cuando no cabe debajo.
+
 ## [1.19.4] - 2026-10-13
 
 ### Changed

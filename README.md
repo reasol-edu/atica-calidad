@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <strong>v1.19.4</strong> &nbsp;·&nbsp;
+  <strong>v1.19.5</strong> &nbsp;·&nbsp;
   <a href="docs/manual/index.md">Documentación</a> &nbsp;·&nbsp;
   <a href="CHANGELOG.md">Cambios</a> &nbsp;·&nbsp;
   <a href="CONTRIBUTING.md">Contribuir</a> &nbsp;·&nbsp;
