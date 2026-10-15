@@ -4,11 +4,20 @@
 -- independientes, pero el PDF los concatena en un único documento. Este filtro
 -- reconcilia ambos mundos:
 --
---   1. Reescribe los identificadores de cada encabezado con el mismo algoritmo
---      de "slug" que usa MkDocs (sin acentos), para que las anclas coincidan
---      con los fragmentos que aparecen en los enlaces del Markdown.
+--   1. Asigna a cada encabezado el mismo identificador que le da MkDocs
+--      (algoritmo de "slug" sin acentos), respetando los identificadores
+--      explícitos (`## Título {#mi-ancla}`).
 --   2. Convierte los enlaces entre ficheros (`fichero.md`, `fichero.md#ancla`)
---      en enlaces internos del PDF (`#ancla` o `#slug-del-fichero`).
+--      en enlaces internos del PDF, buscando el destino en una tabla construida
+--      con los encabezados reales. Así funcionan aunque el nombre del fichero no
+--      coincida con su título, aunque el encabezado empiece por un número (el id
+--      del PDF lleva un prefijo "sec-") o tenga un id explícito.
+--
+-- REQUISITO: pandoc debe ejecutarse con `-f markdown-auto_identifiers`, para que
+-- los encabezados lleguen sin identificador salvo los explícitos. Sin esa
+-- extensión desactivada no se puede distinguir un id explícito de uno automático.
+-- Los ficheros de entrada se leen con PANDOC_STATE.input_files para conocer el
+-- título (H1) de cada uno.
 
 -- Diacríticos del español -> ASCII (NFKD + ascii ignore, como hace MkDocs).
 local accents = {
@@ -28,18 +37,22 @@ end
 -- alfanumérico/espacio/guion, minúsculas, y colapsa espacios y guiones en "-".
 local function slugify(text)
   text = strip_accents(text)
+  text = text:gsub("[\128-\255]", "")  -- restos no ASCII (p. ej. «—»), que quedarían como bytes inválidos
   text = text:gsub("[^%w%s%-]", "")
   text = text:lower()
   text = text:gsub("[%s%-]+", "-")
   text = text:gsub("^%-+", ""):gsub("%-+$", "")
-  -- Un id que empieza por dígito no es un selector CSS válido y rompe el
-  -- target-counter de Paged.js (números de página del índice). Ningún enlace
-  -- del manual apunta a estas secciones numeradas, así que basta con
-  -- anteponer un prefijo.
-  if text:match("^%d") then
-    text = "sec-" .. text
-  end
   return text
+end
+
+-- Un id que empieza por dígito no es un selector CSS válido y rompe el
+-- target-counter de Paged.js (números de página del índice). Se antepone un
+-- prefijo; los enlaces lo reciben a través de la tabla de ids, no a mano.
+local function css_safe(id)
+  if id:match("^%d") then
+    return "sec-" .. id
+  end
+  return id
 end
 
 -- Dedup estilo MkDocs: id, id_1, id_2, ...
@@ -55,40 +68,126 @@ local function unique(id)
   return candidate
 end
 
--- Mapea el nombre de fichero al slug de su encabezado H1.
--- Quita el prefijo "NN-" y la extensión ".md"; "index" -> "introduccion".
-local function file_to_slug(name)
-  name = name:gsub("%.md$", "")
-  name = name:gsub("^%d+%-", "")
-  if name == "index" then
-    return "introduccion"
-  end
-  return name
+local function basename(path)
+  return path:match("([^/\\]+)$") or path
 end
 
-function Header(el)
-  el.identifier = unique(slugify(pandoc.utils.stringify(el.content)))
-  return el
+-- Título (primer "# ") de un fichero Markdown, ignorando los bloques de código.
+local function read_title(path)
+  local f = io.open(path, "r")
+  if not f then
+    return nil
+  end
+  local in_fence = false
+  for line in f:lines() do
+    if line:match("^%s*```") or line:match("^%s*~~~") then
+      in_fence = not in_fence
+    elseif not in_fence then
+      local title = line:match("^#%s+(.-)%s*$")
+      if title then
+        f:close()
+        return (title:gsub("%s*{[^}]*}%s*$", ""))
+      end
+    end
+  end
+  f:close()
+  return nil
 end
 
-function Link(el)
-  local target = el.target
-  -- No tocar enlaces externos ni anclas ya internas.
-  if target:match("^%a[%w+.-]*://") or target:sub(1, 1) == "#" then
-    return el
+function Pandoc(doc)
+  -- slug del H1 -> nombre del fichero que lo contiene
+  local file_of_title = {}
+  for _, path in ipairs(PANDOC_STATE.input_files or {}) do
+    local title = read_title(path)
+    if title then
+      file_of_title[slugify(title)] = basename(path)
+    end
   end
 
-  local file, fragment = target:match("^([%w%-_]+)%.md#(.+)$")
-  if file then
-    el.target = "#" .. fragment
-    return el
+  local by_file = {}    -- fichero -> { clave de ancla -> id final }
+  local title_id = {}   -- fichero -> id final de su H1
+  local global = {}     -- clave de ancla -> id final (primera aparición)
+  local current = nil
+
+  local function register(map, key, id)
+    if key ~= "" and map[key] == nil then
+      map[key] = id
+    end
   end
 
-  file = target:match("^([%w%-_]+)%.md$")
-  if file then
-    el.target = "#" .. file_to_slug(file)
-    return el
+  -- Recorre todo el documento (compatible con pandoc 2.x, donde Pandoc:walk no existe).
+  local function walk(filter)
+    doc.blocks = pandoc.walk_block(pandoc.Div(doc.blocks), filter).content
   end
 
-  return el
+  -- Pasada 1: identificadores definitivos de los encabezados.
+  walk({
+    Header = function(el)
+      local base = slugify(pandoc.utils.stringify(el.content))
+      local explicit = el.identifier ~= ""
+      local key = explicit and el.identifier or base
+
+      if el.level == 1 then
+        current = file_of_title[base] or current
+      end
+
+      local id = unique(css_safe(key))
+      el.identifier = id
+
+      if current ~= nil then
+        by_file[current] = by_file[current] or {}
+        register(by_file[current], key, id)
+        -- Un id explícito también se alcanza por el slug del texto.
+        register(by_file[current], base, id)
+        if el.level == 1 then
+          title_id[current] = id
+        end
+      end
+      register(global, key, id)
+      register(global, base, id)
+      return el
+    end,
+  })
+
+  -- Pasada 2: enlaces internos.
+  walk({
+    Link = function(el)
+      local target = el.target
+      -- No tocar enlaces externos.
+      if target:match("^%a[%w+.-]*://") then
+        return el
+      end
+
+      if target:sub(1, 1) == "#" then
+        local frag = target:sub(2)
+        el.target = "#" .. (global[frag] or frag)
+        return el
+      end
+
+      local file, frag = target:match("^([%w%-_]+)%.md#(.+)$")
+      if file then
+        local name = file .. ".md"
+        local id = (by_file[name] and by_file[name][frag]) or global[frag] or frag
+        el.target = "#" .. id
+        return el
+      end
+
+      file = target:match("^([%w%-_]+)%.md$")
+      if file then
+        local name = file .. ".md"
+        if title_id[name] then
+          el.target = "#" .. title_id[name]
+        else
+          -- Sin el fichero a la vista: se deduce del nombre ("NN-" y ".md" fuera).
+          local fallback = file:gsub("^%d+%-", "")
+          el.target = "#" .. (global[fallback] or fallback)
+        end
+        return el
+      end
+
+      return el
+    end,
+  })
+
+  return doc
 end
