@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.19.6] - 2026-10-15
+
+### Fixed
+
+- En el manual en PDF, los enlaces a títulos numerados, a anclas explícitas y a capítulos cuyo nombre
+  de fichero no coincide con su título ya apuntan a su destino. Antes, cinco enlaces internos no
+  llevaban a ninguna parte y dos identificadores contenían caracteres inválidos.
+
 ## [1.19.5] - 2026-10-13
 
 ### Changed
