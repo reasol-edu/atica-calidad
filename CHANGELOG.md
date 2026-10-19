@@ -7,6 +7,21 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-10-19
+
+### Changed
+
+- En el generador de calendarios, mostrar las horas de cada día deja de ser un ajuste de todo el
+  calendario y pasa a ser una casilla de cada periodo, que solo aparece en los periodos con horas.
+  Los calendarios ya creados conservan lo que tenían; los ficheros exportados antes se siguen
+  importando. No hace falta ningún paso manual al actualizar: la migración se aplica sola.
+
+### Fixed
+
+- El color de cada día del calendario sigue ahora este orden de prioridad, de menor a mayor:
+  periodos, días no lectivos y fines de semana, y fechas individuales. En la versión anterior un día
+  no lectivo tapaba incluso una fecha individual.
+
 ## [1.19.7] - 2026-10-19
 
 ### Changed
