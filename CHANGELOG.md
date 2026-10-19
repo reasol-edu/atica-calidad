@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.19.7] - 2026-10-19
+
+### Changed
+
+- En el generador de calendarios, los días no lectivos y los fines de semana conservan su color en la
+  cuadrícula del mes aunque caigan dentro de un periodo o tengan una fecha individual.
+- El resumen de jornadas de cada periodo con horas termina con la suma total de horas.
+
 ## [1.19.6] - 2026-10-15
 
 ### Fixed
