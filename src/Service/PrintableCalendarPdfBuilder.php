@@ -174,9 +174,11 @@ final class PrintableCalendarPdfBuilder
     {
         $monthEnd = $monthStart->modify('last day of this month');
 
-        /** @var array<string, array{color: string, hours: ?float}> $paint ISO date => paint, lowest to highest priority as it's built */
+        // Priority, lowest to highest — each step overwrites the previous one: periods, then
+        // weekends / declared non-working days, then specific individual dates.
+        /** @var array<string, array{color: string, hours: ?float}> $paint ISO date => paint, in that order as it's built */
         $paint = [];
-        /** @var array<string, string> $nonWorking ISO date => colour of the weekend / declared non-working day: painted last, so it wins over periods and individual dates */
+        /** @var array<string, string> $nonWorking ISO date => colour of the weekend / declared non-working day: painted over the periods, under the individual dates */
         $nonWorking = [];
         $cursor     = $monthStart;
         while ($cursor <= $monthEnd) {
@@ -194,8 +196,11 @@ final class PrintableCalendarPdfBuilder
                 if ($day['date'] < $monthStart || $day['date'] > $monthEnd) {
                     continue;
                 }
-                $paint[$day['date']->format('Y-m-d')] = ['color' => $period->getColor(), 'hours' => $day['hours']];
+                $paint[$day['date']->format('Y-m-d')] = ['color' => $period->getColor(), 'hours' => $period->isShowHours() ? $day['hours'] : null];
             }
+        }
+        foreach ($nonWorking as $iso => $color) {
+            $paint[$iso] = ['color' => $color, 'hours' => null];
         }
         foreach ($calendar->getDates() as $date) {
             if ($date->getDate() < $monthStart || $date->getDate() > $monthEnd) {
@@ -203,9 +208,6 @@ final class PrintableCalendarPdfBuilder
             }
             $iso         = $date->getDate()->format('Y-m-d');
             $paint[$iso] = ['color' => $date->getColor(), 'hours' => $paint[$iso]['hours'] ?? null];
-        }
-        foreach ($nonWorking as $iso => $color) {
-            $paint[$iso] = ['color' => $color, 'hours' => null];
         }
 
         $weeks        = [];
@@ -219,8 +221,7 @@ final class PrintableCalendarPdfBuilder
                 } else {
                     $iso       = $cursor->format('Y-m-d');
                     $entry     = $paint[$iso] ?? null;
-                    $showHours = $calendar->isShowHours() && $entry !== null && $entry['hours'] !== null;
-                    $week[]    = new PrintableCalendarDay($cursor, $entry['color'] ?? null, $showHours ? Indicator::number($entry['hours']) : null);
+                    $week[]    = new PrintableCalendarDay($cursor, $entry['color'] ?? null, $entry !== null && $entry['hours'] !== null ? Indicator::number($entry['hours']) : null);
                 }
                 $cursor = $cursor->modify('+1 day');
             }

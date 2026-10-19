@@ -85,10 +85,6 @@ class PrintableCalendar
     #[ORM\Column(options: ['default' => true])]
     private bool $showFooter = true;
 
-    /** Whether each day cell shows its assigned hours (e.g. "8h"), or just the day number. */
-    #[ORM\Column(options: ['default' => true])]
-    private bool $showHours = true;
-
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $createdAt;
 
@@ -260,18 +256,6 @@ class PrintableCalendar
         return $this;
     }
 
-    public function isShowHours(): bool
-    {
-        return $this->showHours;
-    }
-
-    public function setShowHours(bool $showHours): static
-    {
-        $this->showHours = $showHours;
-
-        return $this;
-    }
-
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
@@ -302,6 +286,7 @@ class PrintableCalendar
         ?float $wednesdayHours,
         ?float $thursdayHours,
         ?float $fridayHours,
+        bool $showHours = true,
     ): PrintableCalendarPeriod {
         $period = new PrintableCalendarPeriod(
             $this,
@@ -318,6 +303,7 @@ class PrintableCalendar
             $thursdayHours,
             $fridayHours,
             $this->periods->count(),
+            $showHours,
         );
         $this->periods->add($period);
 

@@ -21,6 +21,12 @@
             </div>
         {% endfor %}
     </div>
+    {# Only in the modes with hours (this macro is only used by those): the mode switch disables the
+       fields of the hidden blocks, so a date-range period never submits it. #}
+    <label class="flex items-center gap-2 text-sm text-gray-700">
+        <input type="checkbox" name="periods[{{ i }}][showHours]" value="1" {{ row.showHours ? 'checked' : '' }} class="rounded text-forest-600 focus:ring-forest-500">
+        {{ 'form.periods.show_hours'|trans({}, 'utilities') }}
+    </label>
 {% endmacro %}
 
 {% block content %}
@@ -128,10 +134,6 @@
                     <label class="flex items-center gap-2 text-sm text-gray-700">
                         <input type="checkbox" name="showFooter" value="1" {{ values.showFooter ? 'checked' : '' }} class="rounded text-forest-600 focus:ring-forest-500">
                         {{ 'form.show_footer'|trans({}, 'utilities') }}
-                    </label>
-                    <label class="flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" name="showHours" value="1" {{ values.showHours ? 'checked' : '' }} class="rounded text-forest-600 focus:ring-forest-500">
-                        {{ 'form.show_hours'|trans({}, 'utilities') }}
                     </label>
                 </div>
                 <p class="text-xs text-gray-500">{{ 'form.show_header_footer_help'|trans({}, 'utilities') }}</p>

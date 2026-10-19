@@ -99,19 +99,21 @@ final class PrintableCalendarPdfBuilderTest extends RepositoryTestCase
         self::assertEquals(new \DateTimeImmutable('2026-03-09'), $data->effectiveEnd);
     }
 
-    public function testWeekendsAndDeclaredNonWorkingDaysWinOverPeriodsAndIndividualDates(): void
+    public function testDayColourPriorityIsPeriodsThenNonWorkingDaysThenIndividualDates(): void
     {
         $centre   = $this->centre();
         $year     = $this->year($centre);
         $teacher  = $this->teacher('docente');
         $calendar = $this->calendar($centre, $year, $teacher);
-        // 2026-03-02 (Monday) is declared non-working; 2026-03-07 is a Saturday. A date-range
-        // period covers the whole week and an individual date sits on the holiday: neither may
-        // hide the non-working colour, while a plain working day (Tuesday) keeps the period's.
-        $holiday = (new NonWorkingDay())->setDate(new \DateTimeImmutable('2026-03-02'))->setDescription('Día no lectivo')->setAcademicYear($year);
+        // A date-range period covers the whole week 2026-03-02 (Mon) … 03-08 (Sun). 03-02 and
+        // 03-04 are declared non-working, 03-07/03-08 are the weekend. Priority, lowest to
+        // highest: period < weekend / non-working day < individual date (on 03-02 and on the Saturday).
+        $holiday  = (new NonWorkingDay())->setDate(new \DateTimeImmutable('2026-03-02'))->setDescription('Día no lectivo')->setAcademicYear($year);
+        $holiday2 = (new NonWorkingDay())->setDate(new \DateTimeImmutable('2026-03-04'))->setDescription('Día no lectivo')->setAcademicYear($year);
         $calendar->addPeriod('Semana', '#c7d2fe', false, PrintableCalendarPeriodMode::DateRange, new \DateTimeImmutable('2026-03-02'), new \DateTimeImmutable('2026-03-08'), null, null, null, null, null, null);
         $calendar->addDate(new \DateTimeImmutable('2026-03-02'), '#a7f3d0', 'Cualquier cosa');
-        $this->persist($centre, $year, $teacher, $holiday, $calendar);
+        $calendar->addDate(new \DateTimeImmutable('2026-03-07'), '#fde68a', 'Un sábado');
+        $this->persist($centre, $year, $teacher, $holiday, $holiday2, $calendar);
 
         $data = $this->builder->build($calendar);
 
@@ -124,10 +126,39 @@ final class PrintableCalendarPdfBuilderTest extends RepositoryTestCase
             }
         }
 
-        self::assertSame(PrintableCalendar::DEFAULT_NON_WORKING_DAY_COLOR, $colors['2026-03-02']);
-        self::assertSame('#c7d2fe', $colors['2026-03-03']);
-        self::assertSame(PrintableCalendar::DEFAULT_WEEKEND_COLOR, $colors['2026-03-07']);
-        self::assertSame(PrintableCalendar::DEFAULT_WEEKEND_COLOR, $colors['2026-03-08']);
+        self::assertSame('#a7f3d0', $colors['2026-03-02'], 'an individual date beats a non-working day and the period');
+        self::assertSame('#c7d2fe', $colors['2026-03-03'], 'a plain working day keeps the period colour');
+        self::assertSame(PrintableCalendar::DEFAULT_NON_WORKING_DAY_COLOR, $colors['2026-03-04'], 'a non-working day beats the period');
+        self::assertSame('#fde68a', $colors['2026-03-07'], 'an individual date beats the weekend');
+        self::assertSame(PrintableCalendar::DEFAULT_WEEKEND_COLOR, $colors['2026-03-08'], 'the weekend beats the period');
+    }
+
+    public function testEachPeriodDecidesWhetherItsDaysShowTheirHours(): void
+    {
+        $centre   = $this->centre();
+        $year     = $this->year($centre);
+        $teacher  = $this->teacher('docente');
+        $calendar = $this->calendar($centre, $year, $teacher);
+        // Monday 2026-03-02 → Tuesday 2026-03-03 with hours shown; Wednesday 2026-03-04 onwards
+        // (a second period, hours hidden) only gets the colour.
+        $calendar->addPeriod('Con horas', '#c7d2fe', false, PrintableCalendarPeriodMode::StartWithHours, new \DateTimeImmutable('2026-03-02'), null, 16.0, 8.0, 8.0, null, null, null, true);
+        $calendar->addPeriod('Sin horas', '#fca5a5', false, PrintableCalendarPeriodMode::StartWithHours, new \DateTimeImmutable('2026-03-04'), null, 8.0, null, null, 8.0, null, null, false);
+        $this->persist($centre, $year, $teacher, $calendar);
+
+        $data = $this->builder->build($calendar);
+
+        $cells = [];
+        foreach ($data->months[0]->weeks as $week) {
+            foreach ($week as $day) {
+                if ($day !== null) {
+                    $cells[$day->date->format('Y-m-d')] = $day;
+                }
+            }
+        }
+        self::assertSame('8', $cells['2026-03-02']->hoursLabel);
+        self::assertSame('8', $cells['2026-03-03']->hoursLabel);
+        self::assertSame('#fca5a5', $cells['2026-03-04']->backgroundColor);
+        self::assertNull($cells['2026-03-04']->hoursLabel);
     }
 
     public function testEveryMonthBoxHasSixWeekRowsEvenWhenTheMonthNeedsFewer(): void

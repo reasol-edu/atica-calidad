@@ -55,7 +55,6 @@ form:
   pdf_layout: 'Encabezado, pie y horas'
   show_header: 'Mostrar el encabezado'
   show_footer: 'Mostrar el pie de página'
-  show_hours: 'Mostrar las horas de cada día'
   show_header_footer_help: 'Oculta el encabezado o el pie para ganar espacio en el calendario.'
   date: 'Fecha'
   color: 'Color'
@@ -74,6 +73,7 @@ form:
     help: 'Un periodo se define con una fecha de inicio y una de fin, o con uno de esos extremos más un total de horas y las horas de cada día de la semana (lunes a viernes).'
     new: 'Nuevo periodo'
     show_journey_summary: 'Mostrar el resumen de jornadas debajo del calendario'
+    show_hours: 'Mostrar las horas de cada día de este periodo en el calendario'
     mode_legend: 'Cómo se definen sus fechas'
     mode:
       date_range: 'Fecha de inicio y de fin'

@@ -23,13 +23,14 @@ Un calendario tiene:
 - una **fecha de inicio y de fin**, opcionales: si se dejan en blanco, se calculan solas a partir de
   sus periodos y fechas individuales;
 - el **color** de los días no lectivos y el de los fines de semana (con un valor por defecto para
-  cada uno). Estos colores **tienen prioridad** en la cuadrícula del mes: un día no lectivo o de fin
-  de semana conserva su color aunque caiga dentro de un periodo o tenga una fecha individual (esta
-  se sigue anotando en el margen del mes);
+  cada uno). En la cuadrícula del mes, el color de cada día se decide por prioridad, de menor a
+  mayor: **periodos**, **días no lectivos y fines de semana**, y **fechas individuales**. Un día no
+  lectivo conserva su color aunque caiga dentro de un periodo, y una fecha individual manda sobre
+  todo lo demás;
 - el **formato de página** (vertical o apaisado) y el **tamaño de la letra** (entre el 50 % y el
   200 % del tamaño por defecto de ese formato);
-- si se muestran o no el **encabezado**, el **pie de página** y las **horas de cada día** —
-  ocultarlos deja más espacio para el propio calendario.
+- si se muestran o no el **encabezado** y el **pie de página** — ocultarlos deja más espacio para
+  el propio calendario.
 
 ### Fechas individuales
 
@@ -48,6 +49,10 @@ Un periodo resalta un rango de días con un color propio, de tres formas posible
   fin, repartiendo esas horas día a día y saltando fines de semana y días no lectivos del curso.
 - **Hasta el fin, con horas**: igual que el anterior, pero calculando hacia atrás la fecha de
   inicio a partir de la fecha de fin.
+
+En los dos tipos con horas, la casilla **Mostrar las horas de cada día de este periodo en el
+calendario** decide, periodo a periodo, si cada día lleva escritas sus horas o solo el color. No
+aparece en los periodos de fecha de inicio y de fin, que no tienen horas.
 
 Un periodo con horas puede mostrar, además, un **resumen de jornadas** justo encima del calendario
 (cuántas jornadas y de cuántas horas cada una, y al final la **suma total de horas** del periodo).

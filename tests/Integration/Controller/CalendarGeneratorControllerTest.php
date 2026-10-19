@@ -62,7 +62,6 @@ final class CalendarGeneratorControllerTest extends ControllerTestCase
             'fontSizeScale'      => '100',
             'showHeader'         => '1',
             'showFooter'         => '1',
-            'showHours'          => '1',
             'dates'              => [],
             'periods'            => [],
         ];
@@ -135,9 +134,9 @@ final class CalendarGeneratorControllerTest extends ControllerTestCase
         self::assertSame(422, $this->client->getResponse()->getStatusCode());
     }
 
-    public function testHidingTheHeaderFooterAndHoursIsPersisted(): void
+    public function testHidingTheHeaderAndFooterIsPersisted(): void
     {
-        $id = $this->create(['showHeader' => '', 'showFooter' => '', 'showHours' => '']);
+        $id = $this->create(['showHeader' => '', 'showFooter' => '']);
 
         $this->em->clear();
         /** @var PrintableCalendarRepository $repo */
@@ -146,7 +145,44 @@ final class CalendarGeneratorControllerTest extends ControllerTestCase
         self::assertNotNull($calendar);
         self::assertFalse($calendar->isShowHeader());
         self::assertFalse($calendar->isShowFooter());
-        self::assertFalse($calendar->isShowHours());
+    }
+
+    public function testShowingTheHoursIsAPerPeriodChoiceOnlyOfferedByTheModesWithHours(): void
+    {
+        $hoursPeriod = static fn (string $description, string $showHours): array => [
+            'id' => '', 'description' => $description, 'color' => '#c7d2fe', 'showJourneySummary' => '', 'showHours' => $showHours, 'mode' => 'start_with_hours',
+            'startDate' => '2027-01-04', 'endDate' => '', 'totalHours' => '16',
+            'mondayHours' => '8', 'tuesdayHours' => '8', 'wednesdayHours' => '8', 'thursdayHours' => '8', 'fridayHours' => '8',
+        ];
+        $id = $this->create(['periods' => [
+            $hoursPeriod('Con horas', '1'),
+            $hoursPeriod('Sin horas', ''),
+            [
+                'id' => '', 'description' => 'Rango', 'color' => '#fca5a5', 'showJourneySummary' => '', 'showHours' => '1', 'mode' => 'date_range',
+                'startDate' => '2027-02-01', 'endDate' => '2027-02-05', 'totalHours' => '',
+                'mondayHours' => '', 'tuesdayHours' => '', 'wednesdayHours' => '', 'thursdayHours' => '', 'fridayHours' => '',
+            ],
+        ]]);
+
+        $this->em->clear();
+        /** @var PrintableCalendarRepository $repo */
+        $repo     = self::getContainer()->get(PrintableCalendarRepository::class);
+        $calendar = $repo->findByOwnerAndId($this->owner, $this->centre, $id);
+        self::assertNotNull($calendar);
+        $byName = [];
+        foreach ($calendar->getPeriods() as $period) {
+            $byName[$period->getDescription()] = $period->isShowHours();
+        }
+        self::assertTrue($byName['Con horas']);
+        self::assertFalse($byName['Sin horas']);
+
+        // The checkbox lives inside the blocks of the two modes with hours — never in the date-range one.
+        $this->client->request('GET', '/utilidades/generador-calendarios/' . $id . '/editar');
+        $crawler = $this->client->getCrawler();
+        self::assertGreaterThan(0, $crawler->filter('[data-mode-switch-mode="start_with_hours"] input[type="checkbox"][name$="[showHours]"]')->count());
+        self::assertGreaterThan(0, $crawler->filter('[data-mode-switch-mode="end_with_hours"] input[type="checkbox"][name$="[showHours]"]')->count());
+        self::assertSame(0, $crawler->filter('[data-mode-switch-mode="date_range"] input[name$="[showHours]"]')->count());
+        self::assertSame(0, $crawler->filter('input[name="showHours"]')->count(), 'no calendar-wide checkbox any more');
     }
 
     /**

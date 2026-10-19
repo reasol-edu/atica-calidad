@@ -67,6 +67,10 @@ class PrintableCalendarPeriod
     #[ORM\Column]
     private int $position;
 
+    /** Whether each of this period's day cells shows its assigned hours (e.g. "8"), or just the day number. Only meaningful for the modes with hours. */
+    #[ORM\Column(options: ['default' => true])]
+    private bool $showHours;
+
     public function __construct(
         PrintableCalendar $calendar,
         string $description,
@@ -82,6 +86,7 @@ class PrintableCalendarPeriod
         ?float $thursdayHours,
         ?float $fridayHours,
         int $position,
+        bool $showHours = true,
     ) {
         $this->calendar           = $calendar;
         $this->description        = $description;
@@ -97,6 +102,7 @@ class PrintableCalendarPeriod
         $this->thursdayHours      = $thursdayHours;
         $this->fridayHours        = $fridayHours;
         $this->position           = $position;
+        $this->showHours          = $showHours;
     }
 
     public function getId(): Uuid
@@ -136,6 +142,18 @@ class PrintableCalendarPeriod
     public function setShowJourneySummary(bool $showJourneySummary): static
     {
         $this->showJourneySummary = $showJourneySummary;
+
+        return $this;
+    }
+
+    public function isShowHours(): bool
+    {
+        return $this->showHours;
+    }
+
+    public function setShowHours(bool $showHours): static
+    {
+        $this->showHours = $showHours;
 
         return $this;
     }
