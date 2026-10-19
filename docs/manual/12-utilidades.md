@@ -23,7 +23,9 @@ Un calendario tiene:
 - una **fecha de inicio y de fin**, opcionales: si se dejan en blanco, se calculan solas a partir de
   sus periodos y fechas individuales;
 - el **color** de los días no lectivos y el de los fines de semana (con un valor por defecto para
-  cada uno);
+  cada uno). Estos colores **tienen prioridad** en la cuadrícula del mes: un día no lectivo o de fin
+  de semana conserva su color aunque caiga dentro de un periodo o tenga una fecha individual (esta
+  se sigue anotando en el margen del mes);
 - el **formato de página** (vertical o apaisado) y el **tamaño de la letra** (entre el 50 % y el
   200 % del tamaño por defecto de ese formato);
 - si se muestran o no el **encabezado**, el **pie de página** y las **horas de cada día** —
@@ -48,7 +50,7 @@ Un periodo resalta un rango de días con un color propio, de tres formas posible
   inicio a partir de la fecha de fin.
 
 Un periodo con horas puede mostrar, además, un **resumen de jornadas** justo encima del calendario
-(cuántas jornadas y de cuántas horas cada una).
+(cuántas jornadas y de cuántas horas cada una, y al final la **suma total de horas** del periodo).
 
 ![Periodo «Desde el inicio, con horas», con su fecha de inicio, el total de horas y las horas de cada día de la semana](img/utilidades-calendario-periodos.png)
 

@@ -175,15 +175,17 @@ final class PrintableCalendarPdfBuilder
         $monthEnd = $monthStart->modify('last day of this month');
 
         /** @var array<string, array{color: string, hours: ?float}> $paint ISO date => paint, lowest to highest priority as it's built */
-        $paint  = [];
-        $cursor = $monthStart;
+        $paint = [];
+        /** @var array<string, string> $nonWorking ISO date => colour of the weekend / declared non-working day: painted last, so it wins over periods and individual dates */
+        $nonWorking = [];
+        $cursor     = $monthStart;
         while ($cursor <= $monthEnd) {
             $iso = $cursor->format('Y-m-d');
             if ($this->nonWorkingDays->isWeekend($cursor)) {
-                $paint[$iso] = ['color' => $calendar->getWeekendColor() ?? PrintableCalendar::DEFAULT_WEEKEND_COLOR, 'hours' => null];
+                $nonWorking[$iso] = $calendar->getWeekendColor() ?? PrintableCalendar::DEFAULT_WEEKEND_COLOR;
             }
             if ($this->nonWorkingDays->descriptionFor($year, $cursor) !== null) {
-                $paint[$iso] = ['color' => $calendar->getNonWorkingDayColor() ?? PrintableCalendar::DEFAULT_NON_WORKING_DAY_COLOR, 'hours' => null];
+                $nonWorking[$iso] = $calendar->getNonWorkingDayColor() ?? PrintableCalendar::DEFAULT_NON_WORKING_DAY_COLOR;
             }
             $cursor = $cursor->modify('+1 day');
         }
@@ -201,6 +203,9 @@ final class PrintableCalendarPdfBuilder
             }
             $iso         = $date->getDate()->format('Y-m-d');
             $paint[$iso] = ['color' => $date->getColor(), 'hours' => $paint[$iso]['hours'] ?? null];
+        }
+        foreach ($nonWorking as $iso => $color) {
+            $paint[$iso] = ['color' => $color, 'hours' => null];
         }
 
         $weeks        = [];
@@ -384,6 +389,9 @@ final class PrintableCalendarPdfBuilder
         if ($lastPartial) {
             $lines[] = $this->translator->trans('pdf.journey.last_different', ['%hours%' => Indicator::number((float) $last['hours'])], 'utilities');
         }
+
+        $total   = array_sum(array_map(static fn (array $day): float => (float) $day['hours'], $days));
+        $lines[] = $this->translator->trans('pdf.journey.total', ['%hours%' => Indicator::number($total)], 'utilities');
 
         return new PrintableCalendarJourneyLine($period->getDescription(), $days[0]['date'], $last['date'], $lines);
     }

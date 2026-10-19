@@ -76,7 +76,7 @@ final class PrintableCalendarPdfBuilderTest extends RepositoryTestCase
         $data = $this->builder->build($calendar);
 
         self::assertCount(1, $data->journeySummaries);
-        self::assertSame(['2 jornadas de 8 horas', 'y 1 jornada de 4 horas'], $data->journeySummaries[0]->hoursLines);
+        self::assertSame(['2 jornadas de 8 horas', 'y 1 jornada de 4 horas', 'Total: 20 horas'], $data->journeySummaries[0]->hoursLines);
         self::assertEquals(new \DateTimeImmutable('2026-03-02'), $data->journeySummaries[0]->startDate);
         self::assertEquals(new \DateTimeImmutable('2026-03-04'), $data->journeySummaries[0]->endDate);
     }
@@ -97,6 +97,37 @@ final class PrintableCalendarPdfBuilderTest extends RepositoryTestCase
 
         self::assertEquals(new \DateTimeImmutable('2026-03-09'), $data->effectiveStart);
         self::assertEquals(new \DateTimeImmutable('2026-03-09'), $data->effectiveEnd);
+    }
+
+    public function testWeekendsAndDeclaredNonWorkingDaysWinOverPeriodsAndIndividualDates(): void
+    {
+        $centre   = $this->centre();
+        $year     = $this->year($centre);
+        $teacher  = $this->teacher('docente');
+        $calendar = $this->calendar($centre, $year, $teacher);
+        // 2026-03-02 (Monday) is declared non-working; 2026-03-07 is a Saturday. A date-range
+        // period covers the whole week and an individual date sits on the holiday: neither may
+        // hide the non-working colour, while a plain working day (Tuesday) keeps the period's.
+        $holiday = (new NonWorkingDay())->setDate(new \DateTimeImmutable('2026-03-02'))->setDescription('Día no lectivo')->setAcademicYear($year);
+        $calendar->addPeriod('Semana', '#c7d2fe', false, PrintableCalendarPeriodMode::DateRange, new \DateTimeImmutable('2026-03-02'), new \DateTimeImmutable('2026-03-08'), null, null, null, null, null, null);
+        $calendar->addDate(new \DateTimeImmutable('2026-03-02'), '#a7f3d0', 'Cualquier cosa');
+        $this->persist($centre, $year, $teacher, $holiday, $calendar);
+
+        $data = $this->builder->build($calendar);
+
+        $colors = [];
+        foreach ($data->months[0]->weeks as $week) {
+            foreach ($week as $day) {
+                if ($day !== null) {
+                    $colors[$day->date->format('Y-m-d')] = $day->backgroundColor;
+                }
+            }
+        }
+
+        self::assertSame(PrintableCalendar::DEFAULT_NON_WORKING_DAY_COLOR, $colors['2026-03-02']);
+        self::assertSame('#c7d2fe', $colors['2026-03-03']);
+        self::assertSame(PrintableCalendar::DEFAULT_WEEKEND_COLOR, $colors['2026-03-07']);
+        self::assertSame(PrintableCalendar::DEFAULT_WEEKEND_COLOR, $colors['2026-03-08']);
     }
 
     public function testEveryMonthBoxHasSixWeekRowsEvenWhenTheMonthNeedsFewer(): void

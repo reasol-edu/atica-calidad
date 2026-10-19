@@ -127,3 +127,4 @@ pdf:
     uniform: '%count% jornadas de %hours% horas'
     last_different: 'y 1 jornada de %hours% horas'
     weekday: '%weekday%: %hours% horas'
+    total: 'Total: %hours% horas'
