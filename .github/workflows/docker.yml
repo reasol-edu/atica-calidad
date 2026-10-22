@@ -39,6 +39,8 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
+          # Siempre la última imagen base (dunglas/frankenphp:php8.4-alpine): lleva los parches de seguridad de PHP
+          pull: true
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

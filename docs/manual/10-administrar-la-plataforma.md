@@ -243,6 +243,21 @@ todos los casos se aplican las migraciones de base de datos pendientes:
 php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
+!!! danger "Actualizaciones de seguridad de PHP"
+    El **binario nativo** (y el paquete de Ubuntu Server) lleva su propio PHP dentro, y la **imagen Docker**
+    el de su imagen base: ninguno se actualiza con el PHP del sistema. Cuando PHP publica un parche de
+    seguridad, se incorpora en una versión nueva de ÁTICA Calidad, y hay que instalarla (en Docker, con
+    `docker compose pull`). Un caso reciente es **PHP2Shell** (CVE-2026-109618 y CVE-2026-109619, de
+    octubre de 2026), que permite ejecutar código sin autenticarse: cambiar el `php.ini` no lo evita. En
+    Plesk o en cualquier instalación con el PHP del sistema, actualiza PHP a 8.4.27 o posterior
+    (8.5.12 o posterior en 8.5).
+
+!!! warning "Mac con procesador Intel"
+    Los binarios nativos para macOS solo se publican para Apple Silicon: FrankenPHP (el servidor que va
+    dentro del archivo) dejó de publicarlos para Intel. Las versiones anteriores con descarga para Intel
+    **llevan una versión de PHP con la vulnerabilidad PHP2Shell**, así que no las uses; en esos equipos,
+    usa Docker.
+
 ## Registro de actividad {#registro-de-actividad}
 
 ÁTICA Calidad puede guardar un **registro de auditoría** de lo que hace cada usuario, para poder

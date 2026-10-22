@@ -13,8 +13,12 @@ on:
 
 env:
   # Actualizar cuando salga una nueva versión estable de FrankenPHP
-  # https://github.com/dunglas/frankenphp/releases
-  FRANKENPHP_VERSION: "1.12.4"
+  # https://github.com/php/frankenphp/releases
+  # El binario lleva dentro su propio PHP (desde la 1.13.2, PHP 8.5.12, que corrige PHP2Shell,
+  # CVE-2026-109618 y CVE-2026-109619): cada versión de FrankenPHP trae el PHP con el que se compiló,
+  # así que hay que subirla también cuando salga un parche de seguridad de PHP.
+  FRANKENPHP_VERSION: "1.13.2"
+  # Solo para compilar la aplicación (composer, assets); el PHP que ejecuta la app es el del binario.
   PHP_VERSION: "8.4"
 
 # ── Job 1: compilar la aplicación PHP una sola vez ───────────────────────────
@@ -87,30 +91,26 @@ jobs:
           # fp_sha256: suma del binario de FrankenPHP (versión de FRANKENPHP_VERSION), fijada aquí
           # para que un cambio en el binario publicado rompa la build en vez de entrar en los
           # paquetes. Al subir de versión, actualízalas todas con:
-          #   gh api repos/dunglas/frankenphp/releases/tags/v<versión> --jq '.assets[] | "\(.name) \(.digest)"'
+          #   gh api repos/php/frankenphp/releases/tags/v<versión> --jq '.assets[] | "\(.name) \(.digest)"'
           - platform: linux-x86_64
             fp_asset:   frankenphp-linux-x86_64
-            fp_sha256:  b39c7511483c99faf0d857cc0789b39cc23023038260b31d4b40dd4ae18795dc
+            fp_sha256:  46b62a9cd98ce3cccd403f2183bfa4f3c4a8c53a1f16bef488f426d95f654897
             binary:     frankenphp
             archive:    tar.gz
           - platform: linux-aarch64
             fp_asset:   frankenphp-linux-aarch64
-            fp_sha256:  1912d7dee869a060afd2de183b9921bcadc82ad47a4650f861b5414888cb6feb
+            fp_sha256:  b7e452fcec19100834b56b74c0aef48fbe439d158c486139e14c0c51992254b1
             binary:     frankenphp
             archive:    tar.gz
-          - platform: macos-x86_64
-            fp_asset:   frankenphp-mac-x86_64
-            fp_sha256:  0e97b3e2bb8e98c0f8c6275921e1d44fb6459abfaa3bc0525e56c07ae13aa55b
-            binary:     frankenphp
-            archive:    tar.gz
+          # Sin binario para Mac con procesador Intel: FrankenPHP 1.13 solo lo publica para Apple Silicon.
           - platform: macos-arm64
             fp_asset:   frankenphp-mac-arm64
-            fp_sha256:  fb38e69514a04875b83900da0e1585d611fe0f52f3a904c50bef5605347e5dec
+            fp_sha256:  b6c95380528819fdd5bbd5544cb23a8dd6be1013ea02547ef3e43282b3c5de57
             binary:     frankenphp
             archive:    tar.gz
           - platform: windows-x86_64
             fp_asset:   frankenphp-windows-x86_64.zip
-            fp_sha256:  9fcf8839b1ba8fe309ab8d9b051396e4c7436ee8c62f7b319b06eafa8c742908
+            fp_sha256:  a2ecfc278493f2cf8b5eb4a5f7c47f6eaa03d282e9c643afa933afb696ea407c
             binary:     frankenphp.exe
             archive:    zip
 
@@ -135,7 +135,7 @@ jobs:
       - name: Descargar binario FrankenPHP (${{ matrix.platform }})
         run: |
           curl -fsSL \
-            "https://github.com/dunglas/frankenphp/releases/download/v${{ env.FRANKENPHP_VERSION }}/${{ matrix.fp_asset }}" \
+            "https://github.com/php/frankenphp/releases/download/v${{ env.FRANKENPHP_VERSION }}/${{ matrix.fp_asset }}" \
             -o fp_asset_download
           echo "${{ matrix.fp_sha256 }}  fp_asset_download" | sha256sum -c -
           if [[ "${{ matrix.fp_asset }}" == *.zip ]]; then
