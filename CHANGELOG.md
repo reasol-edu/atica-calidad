@@ -7,6 +7,29 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.20.1] - 2026-10-22
+
+### Security
+
+- Los ejecutables descargables pasan a FrankenPHP 1.13.2, que lleva un PHP con la vulnerabilidad
+  PHP2Shell (CVE-2026-109618 y CVE-2026-109619) corregida. La imagen Docker se construye ahora siempre
+  sobre la imagen base más reciente, con los parches de seguridad de PHP. Actualiza cuanto antes: el
+  binario y la imagen llevan su propio PHP, y cambiar el `php.ini` no evita el fallo. En Plesk o con el
+  PHP del sistema, actualiza PHP a 8.4.27 o posterior (8.5.12 o posterior en 8.5).
+
+### Changed
+
+- Ya no se publica ejecutable para Mac con procesador Intel, porque FrankenPHP dejó de publicarlo.
+  Las versiones anteriores que lo incluían llevan el PHP vulnerable: en esos equipos, usa Docker.
+- Los tests se ejecutan con PHP 8.4 y 8.5.
+
+### Documentation
+
+- El manual de administración explica que el binario y la imagen Docker llevan su propio PHP y cómo
+  mantenerlos al día.
+- Las guías para agentes indican que las migraciones se verifican en PostgreSQL, MySQL y MariaDB con
+  Docker.
+
 ## [1.20.0] - 2026-10-19
 
 ### Changed
