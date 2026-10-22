@@ -33,7 +33,6 @@ final class UnaccentFunctionTest extends TestCase
     protected function resetMemoizedAvailability(): void
     {
         $property = new \ReflectionProperty(UnaccentFunction::class, 'postgresUnaccentAvailable');
-        $property->setAccessible(true);
         $property->setValue(null, null);
     }
 
