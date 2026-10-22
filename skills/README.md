@@ -10,7 +10,7 @@ that matches the kind of change you're making:
 | File | When to consult it |
 |---|---|
 | [`overview.md`](overview.md) | Always, when starting any task: architecture, stack, multi-tenant model, directory map |
-| [`database.md`](database.md) | Before creating a migration, a repository, or any new query, or when touching Doctrine entities |
+| [`database.md`](database.md) | Before creating a migration (and to verify it on every engine with Docker), a repository, or any new query, or when touching Doctrine entities |
 | [`testing.md`](testing.md) | Before writing or debugging a test, or before considering a task done |
 | [`frontend.md`](frontend.md) | Before touching a Twig template, a Stimulus controller, a Live Component, or adding/editing an icon |
 | [`i18n.md`](i18n.md) | Before adding any user-facing text |

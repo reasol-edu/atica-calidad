@@ -53,8 +53,39 @@ The **platform guard** (`abortIf` against `PostgreSQLPlatform`/`MySQLPlatform`/
 a migration from the wrong folder from running by mistake if `MIGRATIONS_PATH`
 were misconfigured.
 
-Verify manually against a disposable database before considering a migration done
-(there's no automated suite that runs them against all three platforms).
+### Verifying a migration: all engines, with Docker whenever it is available
+
+There's no automated suite that runs migrations against every platform, so verify each new or
+changed migration by hand against disposable databases before considering it done — **on
+PostgreSQL, MySQL and MariaDB with throwaway Docker containers whenever Docker is available**, plus
+a scratch SQLite file. "Only tried on SQLite" is not enough: the SQL differs per platform. If Docker
+isn't running, say so and list the engines left untested.
+
+| Engine | Image | `MIGRATIONS_PATH` | `serverVersion` in `DATABASE_URL` |
+|---|---|---|---|
+| PostgreSQL | `postgres:16-alpine` | `migrations/postgresql` | `16` |
+| MySQL | `mysql:8.0` | `migrations/mysql` | `8.0.32` |
+| MariaDB | `mariadb:10.11` | `migrations/mysql` | `10.11.2-MariaDB` |
+| SQLite | — (file under the scratchpad) | `migrations/sqlite` | — |
+
+Per engine:
+
+1. Start the container with its own name and a random host port (`docker run -d --name
+   atica-mig-pg -e POSTGRES_PASSWORD=… -e POSTGRES_DB=app -p 127.0.0.1::5432 …`, then `docker
+   port`). Use throwaway credentials and never touch containers that belong to other projects.
+   Wait until it's really ready: MySQL/MariaDB answer a ping during their init phase and then
+   restart, so sleep a few seconds after the first ping.
+2. Migrate to the version *before* the new one (`doctrine:migrations:migrate
+   'DoctrineMigrations\VersionXXXX'`) and seed rows that exercise whatever the migration moves or
+   transforms. Parent rows aren't needed if you disable the checks for the session: `SET
+   session_replication_role = replica` (PostgreSQL), `SET FOREIGN_KEY_CHECKS=0` (MySQL, MariaDB).
+3. Migrate to the latest and check the data, not just that it ran.
+4. `doctrine:schema:validate` must report the schema in sync with the mapping.
+5. Run `down` (migrate back to the previous version) and `up` again. Data that `down` can't
+   restore is expected to be lost — say so in the migration's description if it matters.
+6. Remove the containers (`docker rm -f`).
+
+Run PHPUnit only after the migrations are verified: the test suite runs on SQLite.
 
 ## Repositories: named methods only, never generic access
 
