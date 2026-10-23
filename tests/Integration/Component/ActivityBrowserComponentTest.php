@@ -2539,6 +2539,27 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertStringContainsString('en cuanto se publican todos los documentos que hay que entregar', $html, 'the tooltip explains it');
     }
 
+    public function testAnOpenAutoCompleteActivityHasNoCompletionLinePerOwner(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutor/a');
+        $folder->addUploadProfile($profile);
+        $activity = $this->activity($category, 'Con carpeta')->setStart(1, 10)->setEnd(31, 10)->setFolder($folder)->setAutoComplete(true)->setSubmissionScope(ActivitySubmissionScope::ByProfile);
+        $teacher  = $this->teacher('docente');
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $teacher, new SpecificProfileAssignment($profile, null, $teacher));
+
+        $this->loginAs($teacher, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre, 'initialActivityId' => $activity->getId()->toRfc4122()], $this->client);
+        $html = (string) $component->render()->crawler()->html();
+
+        self::assertStringContainsString('Mis entregas', $html);
+        self::assertSame(1, substr_count($html, 'Se completa al entregar'), 'only the card label, no line per owner under the submissions');
+    }
+
     /** Someone else's activity isn't painted by its deadline: it has no status of the viewer's own. */
     public function testAnActivityThatIsNotTheViewersOwnHasANeutralCard(): void
     {

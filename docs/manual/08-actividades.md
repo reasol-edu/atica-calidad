@@ -347,7 +347,11 @@ confirmación antes de darla por hecha (para evitar marcarla sin querer). Una ve
 botón **Deshacer** la revierte sin pedir confirmación —deshacer no tiene el mismo riesgo que
 completar por error—. Si el ámbito es **por perfil**, hay un botón de completar independiente por
 cada perfil/subperfil que tenga el docente. El botón solo aparece a quien le corresponda la
-actividad (ver [A quién se le pide](#campos-de-una-actividad)); al resto no se le ofrece.
+actividad (ver [A quién se le pide](#campos-de-una-actividad)); al resto no se le ofrece. Una
+actividad **con carpeta y autocompletado** no muestra estos botones bajo las entregas: se completa
+sola al entregar, y el avance se ve en «N de M entregadas». Una con carpeta pero sin autocompletado
+sí los muestra, y quien gestiona la carpeta solo ve los de los perfiles que **tiene** de verdad, no los
+de todos.
 
 ### Estadísticas y completar por otro docente
 

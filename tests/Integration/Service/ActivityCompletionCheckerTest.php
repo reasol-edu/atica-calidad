@@ -162,6 +162,23 @@ final class ActivityCompletionCheckerTest extends RepositoryTestCase
         self::assertSame([], $this->checker->getMyOwnedCompletionOwners($admin, $activity));
     }
 
+    public function testGetMyCompletionOwnersIgnoresFolderManagementRightsToo(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $folder->addUploadProfile($profile);
+        $activity = $this->activity($category)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile);
+        $admin    = $this->teacher('director')->setAdmin(true);
+
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $activity, $admin);
+
+        // The admin manages the folder (every slot is "theirs" to see), but marks nobody else's obligation.
+        self::assertNotSame([], $this->checker->getMySlots($admin, $activity));
+        self::assertSame([], $this->checker->getMyCompletionOwners($admin, $activity));
+    }
+
     public function testGetMyOwnedObligationsAppliesANoFolderActivityToEveryTeacher(): void
     {
         $centre   = $this->centre();

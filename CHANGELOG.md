@@ -7,6 +7,15 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.22.3] - 2026-10-24
+
+### Changed
+
+- Bajo las entregas de una actividad con autocompletado ya no se listan líneas «Se completa al
+  entregar», una por cada perfil y elemento: no tenían ninguna acción y, en actividades con muchas
+  hojas, alargaban la página. Y en las de completado manual, quien gestiona la carpeta ve y puede
+  marcar solo las obligaciones de los perfiles que tiene, no las de todos.
+
 ## [1.22.2] - 2026-10-23
 
 ### Fixed

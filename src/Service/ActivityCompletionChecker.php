@@ -156,17 +156,14 @@ final class ActivityCompletionChecker implements ResetInterface
      * Distinct upload rows $teacher holds among this activity's slots (ByProfile scope only) — one
      * per (profile, listItem, leaf): a list-backed activity names each leaf separately even when
      * several share the very same upload row, so each is tracked (and can be marked done) on its
-     * own, with its own deadline — see ActivityObligationFinder.
+     * own, with its own deadline — see ActivityObligationFinder. Only the ones $teacher really
+     * holds: managing the folder does not make every profile's obligation theirs to mark.
      *
      * @return list<array{profile: SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, displayName: string}>
      */
     public function getMyCompletionOwners(Teacher $teacher, Activity $activity): array
     {
-        if ($this->hasIndividualCompletionOwner($activity)) {
-            return [];
-        }
-
-        return $this->groupSlotsByOwner($this->getMySlots($teacher, $activity));
+        return $this->getMyOwnedCompletionOwners($teacher, $activity);
     }
 
     /**

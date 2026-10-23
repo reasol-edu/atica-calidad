@@ -107,7 +107,10 @@
     </div>
 
     {# ── Completion ───────────────────────────────────────────────────── #}
-    {% if this.hasIndividualCompletionOwner(activity) %}
+    {# Nothing to do on an auto-complete activity — its status is computed from the submissions above
+       ("N de M entregadas") — so no line per owner saying so. #}
+    {% if activity.autoComplete %}
+    {% elseif this.hasIndividualCompletionOwner(activity) %}
         {% include 'components/_activity_completion.html.twig' with {activity: activity, profile: null, list_item: null, teacher_owned: true} %}
     {% else %}
         <div class="flex flex-wrap items-center gap-3">
