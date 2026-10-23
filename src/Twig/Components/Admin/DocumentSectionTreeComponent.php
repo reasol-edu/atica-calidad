@@ -217,7 +217,7 @@ class DocumentSectionTreeComponent extends AbstractController
     /** @return ProfileAssignmentRow[] */
     public function getAvailableProfileRows(): array
     {
-        return $this->rowBuilder->buildActiveRows($this->centre);
+        return $this->rowBuilder->buildActiveRowsForPicker($this->centre);
     }
 
     #[LiveAction]

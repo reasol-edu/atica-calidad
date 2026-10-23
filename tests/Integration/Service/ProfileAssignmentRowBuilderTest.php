@@ -167,6 +167,36 @@ final class ProfileAssignmentRowBuilderTest extends RepositoryTestCase
         self::assertSame('Zebra', $rows[1]->displayName);
     }
 
+    public function testPickerRowsAddTheIntermediateNodesOfAListInTreeOrderAndNoWhereElse(): void
+    {
+        $centre = $this->centre();
+        $root   = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+        $eso    = (new ListItem())->setEducationalCentre($centre)->setName('ESO/Bach')->setParent($root);
+        $mates  = (new ListItem())->setEducationalCentre($centre)->setName('Matemáticas')->setParent($eso);
+        $fp     = (new ListItem())->setEducationalCentre($centre)->setName('FP')->setParent($root);
+        $infor  = (new ListItem())->setEducationalCentre($centre)->setName('Informática')->setParent($fp);
+        $infor->setPosition(0);
+        $mates->setPosition(0);
+        $eso->setPosition(0);
+        $fp->setPosition(1);
+        $jefe  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefe/a');
+        $jefe->setListItem($root);
+        $plain = (new SpecificProfile())->setEducationalCentre($centre)->setName('Secretario/a');
+        $this->persist($centre, $root, $eso, $mates, $fp, $infor, $jefe, $plain);
+
+        $names = array_map(static fn ($r) => $r->displayName, $this->rowBuilder->buildActiveRowsForPicker($centre));
+
+        self::assertSame(
+            ['Jefe/a (todos)', 'Jefe/a ESO/Bach (todos)', 'Jefe/a Matemáticas', 'Jefe/a FP (todos)', 'Jefe/a Informática', 'Secretario/a'],
+            $names,
+        );
+
+        $leafNames = array_map(static fn ($r) => $r->displayName, $this->rowBuilder->buildActiveRows($centre));
+        self::assertNotContains('Jefe/a FP (todos)', $leafNames, 'assignments, slots and tags only ever deal with leaves');
+        self::assertNotContains('Jefe/a FP (todos)', array_map(static fn ($r) => $r->displayName, $this->rowBuilder->buildAllRows($centre)));
+        self::assertNotContains('Jefe/a FP (todos)', array_map(static fn ($r) => $r->displayName, $this->rowBuilder->buildActiveRowsWithWholeProfileOption($centre)));
+    }
+
     public function testRowsAreScopedToTheirOwnCentre(): void
     {
         $centreA  = $this->centre();

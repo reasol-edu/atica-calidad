@@ -201,6 +201,33 @@ final class DocumentSectionTreeComponentTest extends ControllerTestCase
         self::assertFalse($reloaded->isRestricted());
     }
 
+    public function testTheProfilePickerOffersTheIntermediateNodesOfAProfilesListAndTogglingOneKeepsIt(): void
+    {
+        $centre  = $this->centre();
+        $section = $this->section($centre);
+        $root    = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+        $fp      = (new ListItem())->setEducationalCentre($centre)->setName('FP')->setParent($root);
+        $infor   = (new ListItem())->setEducationalCentre($centre)->setName('Informática')->setParent($fp);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($root);
+        $admin   = $this->admin();
+        $this->persist($centre, $section, $root, $fp, $infor, $profile, $admin);
+        $sectionId = $section->getId()->toRfc4122();
+        $rowKey    = $profile->getId()->toRfc4122() . ':' . $fp->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:DocumentSectionTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleProfilePanel', ['id' => $sectionId]);
+        self::assertStringContainsString('Jefatura FP (todos)', (string) $component->render()->crawler()->html());
+        $component->call('toggleProfileRestriction', ['id' => $sectionId, 'rowKey' => $rowKey]);
+
+        $this->em->clear();
+        /** @var DocumentSectionRepository $sections */
+        $sections = self::getContainer()->get(DocumentSectionRepository::class);
+        $reloaded = $sections->findByIdAndCentre($sectionId, $centre);
+        self::assertNotNull($reloaded);
+        self::assertSame($fp->getId()->toRfc4122(), $reloaded->getProfileRestrictions()->first()->getListItem()?->getId()->toRfc4122());
+    }
+
     public function testToggleProfileRestrictionWithAListItemSubprofile(): void
     {
         $centre    = $this->centre();

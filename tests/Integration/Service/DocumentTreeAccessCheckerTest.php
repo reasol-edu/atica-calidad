@@ -635,6 +635,72 @@ final class DocumentTreeAccessCheckerTest extends RepositoryTestCase
         }
     }
 
+    /** Departamento > (ESO/Bach > Matemáticas, Inglés) and (FP > Informática, Sanidad), with Jefatura on the root. */
+    private function departmentTree(EducationalCentre $centre): array
+    {
+        $root  = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+        $eso   = (new ListItem())->setEducationalCentre($centre)->setName('ESO/Bach')->setParent($root);
+        $mates = (new ListItem())->setEducationalCentre($centre)->setName('Matemáticas')->setParent($eso);
+        $ingl  = (new ListItem())->setEducationalCentre($centre)->setName('Inglés')->setParent($eso);
+        $fp    = (new ListItem())->setEducationalCentre($centre)->setName('FP')->setParent($root);
+        $infor = (new ListItem())->setEducationalCentre($centre)->setName('Informática')->setParent($fp);
+        $sani  = (new ListItem())->setEducationalCentre($centre)->setName('Sanidad')->setParent($fp);
+        $jefe  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($root);
+        $this->persist($centre, $root, $eso, $mates, $ingl, $fp, $infor, $sani, $jefe);
+
+        return compact('root', 'eso', 'mates', 'ingl', 'fp', 'infor', 'sani', 'jefe');
+    }
+
+    public function testHoldsProfileOnAnIntermediateNodeCoversEveryLeafUnderItAndNoOther(): void
+    {
+        $centre = $this->centre();
+        ['root' => $root, 'eso' => $eso, 'fp' => $fp, 'infor' => $infor, 'mates' => $mates, 'jefe' => $jefe] = $this->departmentTree($centre);
+        $teacher = $this->teacher('docente');
+        $this->persist($teacher, new SpecificProfileAssignment($jefe, $infor, $teacher));
+
+        self::assertTrue($this->access->holdsProfile($teacher, $jefe, $fp), 'Informática hangs from FP');
+        self::assertTrue($this->access->holdsProfile($teacher, $jefe, $infor), 'the leaf itself, as before');
+        self::assertTrue($this->access->holdsProfile($teacher, $jefe, null), '"(todos)", as before');
+        self::assertFalse($this->access->holdsProfile($teacher, $jefe, $eso), 'a sibling branch');
+        self::assertFalse($this->access->holdsProfile($teacher, $jefe, $mates));
+        self::assertTrue($this->access->holdsProfile($teacher, $jefe, $root), 'the list root covers every leaf as well');
+    }
+
+    public function testAFolderRestrictedToAnIntermediateNodeLetsInTheTeachersOfItsLeavesOnly(): void
+    {
+        $centre = $this->centre();
+        ['fp' => $fp, 'infor' => $infor, 'mates' => $mates, 'jefe' => $jefe] = $this->departmentTree($centre);
+        $inFp    = $this->teacher('informatica');
+        $inEso   = $this->teacher('matematicas');
+        $section = $this->section($centre);
+        $folder  = $this->folder($section);
+        $folder->addVisibilityProfile($jefe, $fp);
+        $folder->addUploadProfile($jefe, $fp);
+        $this->persist($section, $folder, $inFp, $inEso, new SpecificProfileAssignment($jefe, $infor, $inFp), new SpecificProfileAssignment($jefe, $mates, $inEso));
+
+        self::assertTrue($this->access->canViewFolder($inFp, $folder));
+        self::assertFalse($this->access->canViewFolder($inEso, $folder));
+        self::assertTrue($this->access->canUploadToFolder($inFp, $folder));
+        self::assertFalse($this->access->canUploadToFolder($inEso, $folder));
+    }
+
+    public function testGetFolderUploadRowsExpandsAnIntermediateNodeIntoTheLeavesUnderIt(): void
+    {
+        $centre = $this->centre();
+        ['fp' => $fp, 'infor' => $infor, 'sani' => $sani, 'jefe' => $jefe] = $this->departmentTree($centre);
+        $folder = $this->folder($this->section($centre));
+        $folder->addUploadProfile($jefe, $fp);
+        $this->persist($folder->getDocumentSection(), $folder);
+
+        $rows = $this->access->getFolderUploadRows($folder);
+
+        $ids = array_map(static fn ($row) => $row->listItem?->getId()->toRfc4122(), $rows);
+        sort($ids);
+        $expected = [$infor->getId()->toRfc4122(), $sani->getId()->toRfc4122()];
+        sort($expected);
+        self::assertSame($expected, $ids, 'Informática and Sanidad: never FP itself, never the ESO/Bach leaves');
+    }
+
     public function testGetFolderUploadRowsReturnsPlainProfileRowUnchanged(): void
     {
         $centre  = $this->centre();

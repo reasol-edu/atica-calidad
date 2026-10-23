@@ -782,8 +782,8 @@ class ActivityBrowserComponent extends AbstractController
             $uploadKeys = $this->formFolderUploadKeys;
             $rows       = array_values(array_filter(
                 $this->rowBuilder->buildActiveRows($this->centre),
-                static fn (ProfileAssignmentRow $row): bool => \in_array($row->key(), $uploadKeys, true)
-                    || ($row->listItem !== null && \in_array($row->profile->getId()->toRfc4122(), $uploadKeys, true)),
+                fn (ProfileAssignmentRow $row): bool => \in_array($row->key(), $uploadKeys, true)
+                    || ($row->listItem !== null && $this->isCoveredByKeys($row, $uploadKeys)),
             ));
             $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
             $tags     = $this->formTags();
@@ -879,14 +879,37 @@ class ActivityBrowserComponent extends AbstractController
 
     /**
      * Profile/subprofile rows offered to restrict a manual activity to — includes the "(todos)"
-     * whole-profile wildcard for a list-associated profile, exactly like a folder's own
-     * upload-profile picker (see DocumentTreeAccessChecker::allowedUploadProfileRows()).
+     * whole-profile wildcard for a list-associated profile and the intermediate nodes of its list
+     * (every subprofile under one counts), exactly like a folder's own profile pickers.
      *
      * @return ProfileAssignmentRow[]
      */
     public function getAvailableProfileRows(): array
     {
-        return $this->rowBuilder->buildActiveRowsWithWholeProfileOption($this->centre);
+        return $this->rowBuilder->buildActiveRowsForPicker($this->centre);
+    }
+
+    /**
+     * Whether a subprofile row falls under one of the picked keys: the profile's "(todos)" key, or the
+     * key of an intermediate node of its list that the subprofile hangs from.
+     *
+     * @param string[] $keys
+     */
+    private function isCoveredByKeys(ProfileAssignmentRow $row, array $keys): bool
+    {
+        if ($row->listItem === null) {
+            return false;
+        }
+        if (\in_array($row->profile->getId()->toRfc4122(), $keys, true)) {
+            return true;
+        }
+        foreach ($this->listItems->findSelfAndAncestorIds($row->listItem) as $coveringId) {
+            if (\in_array(ProfileAssignmentRow::keyFor($row->profile, null) . ':' . $coveringId, $keys, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return Document[] currently staged related documents, in the order they were added. */

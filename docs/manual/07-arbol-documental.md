@@ -121,6 +121,10 @@ interpreta de forma distinta según cuál sea:
 | **De visibilidad** | La carpeta es visible para todo el profesorado | Solo la ven quienes tengan uno de esos perfiles (más responsable de calidad/admin/auditor/a) |
 | **De revisión** | Las revisiones subidas se publican directamente, sin pasar por «pendiente» | Cada revisión nueva queda pendiente hasta que alguien con uno de estos perfiles la apruebe o la rechace |
 
+Si un perfil está asociado a una lista, en cada una de las cuatro listas puedes elegir el perfil
+entero, un elemento intermedio de la lista (que incluye todas las hojas que cuelgan de él) o una
+hoja concreta; ver [Elegir un perfil con subperfiles en un permiso](06-responsabilidades.md#elegir-subperfiles-en-un-permiso).
+
 Ser **responsable** de una carpeta da acceso completo a su contenido: subir con cualquier perfil,
 renombrar y mover documentos, elegir la revisión activa, editar o eliminar revisiones sueltas, y
 aprobar/rechazar. Responsable de calidad y administración del centro son responsables de **todas**

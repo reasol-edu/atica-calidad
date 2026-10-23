@@ -29,6 +29,12 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
      */
     private array $byParentCache = [];
 
+    /** @var array<string, array<string, string>> per centre: item id => parent id ('' for a root), see findSelfAndAncestorIds() */
+    private array $parentOfCache = [];
+
+    /** @var array<string, list<string>> item id => ids of the leaves it covers, see findLeafIdsUnder() */
+    private array $leafIdsCache = [];
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, ListItem::class);
@@ -37,6 +43,8 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
     public function reset(): void
     {
         $this->byParentCache = [];
+        $this->parentOfCache = [];
+        $this->leafIdsCache  = [];
     }
 
     /** @return ListItem[] */
@@ -128,6 +136,51 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
         $this->collectLeaves($root, $byParent, $leaves);
 
         return $leaves;
+    }
+
+    /**
+     * The ids (RFC4122) of the leaves a restriction on $item covers: $item's own leaf descendants,
+     * or $item itself when it is a leaf. What lets a restriction on an intermediate node ("FP")
+     * stand for every leaf under it — the one rule behind matching a teacher's assignments (always
+     * to leaves) against a restriction, wherever it is asked.
+     *
+     * @return list<string>
+     */
+    public function findLeafIdsUnder(ListItem $item): array
+    {
+        // Asked once per restriction by every access check of a page: walk the tree once per item.
+        return $this->leafIdsCache[$item->getId()->toRfc4122()] ??= array_values(array_map(
+            static fn (ListItem $leaf): string => $leaf->getId()->toRfc4122(),
+            $this->findLeafDescendants($item),
+        ));
+    }
+
+    /**
+     * $item and every ancestor of it, nearest first — the nodes a restriction would have to be on
+     * to cover the leaf $item. In memory over the centre's tree (no query per level).
+     *
+     * @return list<string> RFC4122 ids
+     */
+    public function findSelfAndAncestorIds(ListItem $item): array
+    {
+        $centreKey = $item->getEducationalCentre()->getId()->toRfc4122();
+        if (!isset($this->parentOfCache[$centreKey])) {
+            $parentOf = [];
+            foreach ($this->groupChildrenByParent($item->getEducationalCentre()) as $parentKey => $children) {
+                foreach ($children as $child) {
+                    $parentOf[$child->getId()->toRfc4122()] = $parentKey;
+                }
+            }
+            $this->parentOfCache[$centreKey] = $parentOf;
+        }
+        $parentOf = $this->parentOfCache[$centreKey];
+
+        $ids = [];
+        for ($id = $item->getId()->toRfc4122(); $id !== ''; $id = $parentOf[$id] ?? '') {
+            $ids[] = $id;
+        }
+
+        return $ids;
     }
 
     /**

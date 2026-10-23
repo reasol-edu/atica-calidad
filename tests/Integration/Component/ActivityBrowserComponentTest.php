@@ -501,6 +501,56 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertCount(1, $created[0]->getProfileRestrictions());
     }
 
+    public function testSaveActivityRestrictedToAnIntermediateNodeKeepsItAndAppliesToTheLeavesUnderIt(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $root     = (new \App\Entity\ListItem())->setName('Departamento')->setEducationalCentre($centre);
+        $fp       = (new \App\Entity\ListItem())->setName('FP')->setEducationalCentre($centre)->setParent($root);
+        $infor    = (new \App\Entity\ListItem())->setName('Informática')->setEducationalCentre($centre)->setParent($fp);
+        $eso      = (new \App\Entity\ListItem())->setName('ESO/Bach')->setEducationalCentre($centre)->setParent($root);
+        $mates    = (new \App\Entity\ListItem())->setName('Matemáticas')->setEducationalCentre($centre)->setParent($eso);
+        $jefe     = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($root);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $root, $fp, $infor, $eso, $mates, $jefe, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+
+        $component
+            ->set('formTitle', 'Solo FP')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formFolderId', '')
+            ->set('formGeneral', false)
+            ->set('formProfileKeys', [$jefe->getId()->toRfc4122() . ':' . $fp->getId()->toRfc4122()])
+            ->call('saveActivity');
+
+        $this->em->clear();
+        $reloadedCategory = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        $created = self::getContainer()->get(\App\Repository\ActivityRepository::class)->findByCategory($reloadedCategory);
+        self::assertCount(1, $created);
+        $restriction = $created[0]->getProfileRestrictions()->first();
+        self::assertNotFalse($restriction);
+        self::assertSame($fp->getId()->toRfc4122(), $restriction->getListItem()?->getId()->toRfc4122());
+
+        $teacherFp  = (new \App\Entity\Teacher(new \App\Entity\PersonName('Ana', 'FP')))->setUsername('ana_fp');
+        $teacherEso = (new \App\Entity\Teacher(new \App\Entity\PersonName('Eva', 'ESO')))->setUsername('eva_eso');
+        $inforRef   = $this->em->getReference(\App\Entity\ListItem::class, $infor->getId());
+        $matesRef   = $this->em->getReference(\App\Entity\ListItem::class, $mates->getId());
+        $jefeRef    = $this->em->getReference(SpecificProfile::class, $jefe->getId());
+        $this->persist($teacherFp, $teacherEso, new \App\Entity\SpecificProfileAssignment($jefeRef, $inforRef, $teacherFp), new \App\Entity\SpecificProfileAssignment($jefeRef, $matesRef, $teacherEso));
+
+        /** @var \App\Service\ActivityCompletionChecker $checker */
+        $checker = self::getContainer()->get(\App\Service\ActivityCompletionChecker::class);
+        self::assertTrue($checker->isApplicableToTeacher($teacherFp, $created[0]));
+        self::assertFalse($checker->isApplicableToTeacher($teacherEso, $created[0]));
+    }
+
     public function testSaveActivityPersistsAListItemDeadlineOverrideForOneLeafOnly(): void
     {
         $centre   = $this->centre();

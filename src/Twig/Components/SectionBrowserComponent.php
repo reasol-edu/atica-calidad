@@ -827,13 +827,14 @@ class SectionBrowserComponent extends AbstractController
 
     /**
      * Options for the folder profile-restriction pickers: a list-associated profile also gets one
-     * extra "whole profile" row (every subprofile counts) ahead of its per-subprofile rows.
+     * extra "whole profile" row (every subprofile counts) ahead of its per-subprofile rows, and one
+     * row per intermediate node of its list (every subprofile under it counts).
      *
      * @return ProfileAssignmentRow[]
      */
     public function getAvailableProfileRows(): array
     {
-        return $this->rowBuilder->buildActiveRowsWithWholeProfileOption($this->centre);
+        return $this->rowBuilder->buildActiveRowsForPicker($this->centre);
     }
 
     /**

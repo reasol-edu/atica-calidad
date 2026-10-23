@@ -6,11 +6,9 @@ namespace App\Repository;
 
 use App\Entity\AcademicYear;
 use App\Entity\SchoolEvent;
-use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Query;
-use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use SortDirection;
@@ -22,7 +20,7 @@ class SchoolEventRepository extends ServiceEntityRepository
 {
     use PreloadsCollections;
 
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(ManagerRegistry $registry, private readonly SpecificProfileAssignmentRepository $assignments)
     {
         parent::__construct($registry, SchoolEvent::class);
     }
@@ -151,19 +149,29 @@ class SchoolEventRepository extends ServiceEntityRepository
     private function visibleForTeacherQueryBuilder(Teacher $viewer, AcademicYear $year): QueryBuilder
     {
         $qb = $this->baseQueryBuilder($year);
-        $qb->leftJoin('se.profileRestrictions', 'sep')
-            ->leftJoin(
-                SpecificProfileAssignment::class,
-                'spa',
-                Join::WITH,
-                'spa.specificProfile = sep.specificProfile AND spa.teacher = :viewer'
-                . ' AND (spa.listItem = sep.listItem OR (spa.listItem IS NULL AND sep.listItem IS NULL))',
-            )
-            ->andWhere($qb->expr()->orX(
-                'se.general = true',
-                'spa.id IS NOT NULL',
-            ))
-            ->setParameter('viewer', $viewer->getId(), 'uuid');
+        $qb->leftJoin('se.profileRestrictions', 'sep');
+
+        // A restriction is the viewer's when it is on a profile they hold and either names no list
+        // item (the whole profile — or the plain profile itself) or names one that covers a leaf
+        // they hold: that leaf itself or an intermediate node above it (see
+        // SpecificProfileAssignmentRepository::findCoveringItemIdsByTeacher()).
+        $conditions = ['se.general = true'];
+        $i          = 0;
+        foreach ($this->assignments->findCoveringItemIdsByTeacher($viewer) as $profileId => $coveringIds) {
+            $qb->setParameter("profile{$i}", $profileId, 'uuid');
+            $itemMatch = ['sep.listItem IS NULL'];
+            if ($coveringIds !== []) {
+                $placeholders = [];
+                foreach ($coveringIds as $j => $itemId) {
+                    $placeholders[] = ":item{$i}_{$j}";
+                    $qb->setParameter("item{$i}_{$j}", $itemId, 'uuid');
+                }
+                $itemMatch[] = 'sep.listItem IN (' . implode(', ', $placeholders) . ')';
+            }
+            $conditions[] = "(sep.specificProfile = :profile{$i} AND (" . implode(' OR ', $itemMatch) . '))';
+            ++$i;
+        }
+        $qb->andWhere(implode(' OR ', $conditions));
 
         return $qb;
     }

@@ -20,6 +20,7 @@ use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Model\ProfileAssignmentRow;
+use App\Repository\ListItemRepository;
 use App\Repository\SpecificProfileAssignmentRepository;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Events;
@@ -45,6 +46,7 @@ final class DocumentTreeAccessChecker implements ResetInterface
     public function __construct(
         private readonly SpecificProfileAssignmentRepository $assignments,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
+        private readonly ListItemRepository $listItems,
     ) {}
 
     public function isAdminOrQualityManager(Teacher $teacher, EducationalCentre $centre): bool
@@ -281,9 +283,10 @@ final class DocumentTreeAccessChecker implements ResetInterface
 
     /**
      * The same rule as SpecificProfileAssignmentRepository::isTeacherAssignedToAny() for one pair
-     * — an exact subprofile, any subprofile of a list-associated profile, or a plain profile —
-     * answered from the teacher's assignments, loaded once. Checking a whole activity's slots for
-     * every teacher of the centre (the tracking page) used to be one query per teacher and slot.
+     * — an exact subprofile, any leaf under an intermediate node of the profile's list, any
+     * subprofile of a list-associated profile, or a plain profile — answered from the teacher's
+     * assignments, loaded once. Checking a whole activity's slots for every teacher of the centre
+     * (the tracking page) used to be one query per teacher and slot.
      */
     private function holds(Teacher $teacher, SpecificProfile $profile, ?ListItem $listItem): bool
     {
@@ -291,7 +294,8 @@ final class DocumentTreeAccessChecker implements ResetInterface
         $held      = ($this->heldByTeacher[$teacherId] ??= $this->assignments->findHeldByTeacher($teacher))[$profile->getId()->toRfc4122()] ?? [];
 
         return match (true) {
-            $listItem !== null                => \in_array($listItem->getId()->toRfc4122(), $held, true),
+            // Teachers hold leaves: a leaf covers itself, an intermediate node every leaf under it.
+            $listItem !== null                => array_intersect($this->listItems->findLeafIdsUnder($listItem), $held) !== [],
             $profile->getListItem() !== null  => $held !== [],
             default                           => \in_array('', $held, true),
         };
@@ -360,15 +364,31 @@ final class DocumentTreeAccessChecker implements ResetInterface
     /**
      * A row is offerable for tagging an upload when the folder restricts uploads to it exactly, or
      * — for a subprofile row — when the folder instead restricts uploads to "any subprofile" of that
-     * same profile (the wildcard/"(todos)" pick, stored as (profile, null)).
+     * same profile (the wildcard/"(todos)" pick, stored as (profile, null)) or to an intermediate
+     * node of the profile's list that the subprofile hangs from (e.g. "FP" for "FP Informática").
+     * An intermediate node itself is never a row to tag with: its leaves are.
      */
     private function folderAcceptsUploadRow(Folder $folder, ProfileAssignmentRow $row): bool
     {
         if ($folder->hasUploadProfile($row->profile, $row->listItem)) {
             return true;
         }
+        if ($row->listItem === null) {
+            return false;
+        }
 
-        return $row->listItem !== null && $folder->hasUploadProfile($row->profile, null);
+        $coveringIds = $this->listItems->findSelfAndAncestorIds($row->listItem);
+        foreach ($folder->getUploadProfiles() as $restriction) {
+            if ($restriction->getSpecificProfile() !== $row->profile) {
+                continue;
+            }
+            $restrictedItem = $restriction->getListItem();
+            if ($restrictedItem === null || \in_array($restrictedItem->getId()->toRfc4122(), $coveringIds, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

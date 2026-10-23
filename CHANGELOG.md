@@ -7,6 +7,24 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-10-23
+
+### Added
+
+- Al elegir perfiles para los permisos de una carpeta, de una sección o de un evento del calendario, o
+  para las actividades restringidas o con responsables, un perfil asociado a una lista permite elegir
+  también un **elemento intermedio** de la lista (por ejemplo «FP» dentro de «Departamento»), que
+  incluye todas las hojas que cuelgan de él. Hasta ahora solo se podía elegir el perfil entero o una
+  hoja concreta (y en secciones y eventos, solo hojas). Los docentes se siguen asignando a hojas.
+  Las secciones y los eventos ofrecen además la opción «(todos)» del perfil entero.
+
+### Fixed
+
+- Un perfil asociado a una lista elegido entero («(todos)») como perfil de revisión, de subida o
+  responsable de una carpeta no llegaba a nadie en los avisos por correo (documentos pendientes de
+  revisar, resultado de la revisión, auditorías), porque se buscaba a quien tuviera el perfil
+  «sin hoja», que nadie tiene. Ahora llega a quien tenga cualquiera de sus hojas.
+
 ## [1.20.2] - 2026-10-23
 
 ### Fixed

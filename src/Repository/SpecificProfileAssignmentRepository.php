@@ -18,7 +18,7 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class SpecificProfileAssignmentRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(ManagerRegistry $registry, private readonly ListItemRepository $listItems)
     {
         parent::__construct($registry, SpecificProfileAssignment::class);
     }
@@ -53,11 +53,13 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
 
     /**
      * Teachers who currently hold this profile/subprofile combination — either a direct assignment
-     * to that leaf, or a whole-profile (wildcard, listItem IS NULL) assignment that covers every
-     * subprofile. Unlike findTeachersByProfileAndListItem() (the exact-match version the per-leaf
-     * admin assignment screen needs, since there it must show/manage the specific assignment row
-     * for that leaf), this answers "who can act as this row" — same wildcard-counts-as-any
-     * convention as isTeacherAssignedToAny(). Used to expand a folder upload row into one
+     * to that leaf (or to any leaf under it, when $listItem is an intermediate node of the
+     * profile's list), or a whole-profile (wildcard, listItem IS NULL) assignment that covers every
+     * subprofile. A null $listItem on a list-associated profile is the "whole profile" pick: every
+     * teacher holding any of its subprofiles. Unlike findTeachersByProfileAndListItem() (the
+     * exact-match version the per-leaf admin assignment screen needs, since there it must
+     * show/manage the specific assignment row for that leaf), this answers "who can act as this
+     * row" — same convention as isTeacherAssignedToAny(). Used to expand a folder upload row into one
      * submission slot per teacher for Activity::SCOPE_INDIVIDUAL. See
      * findTeachersHoldingProfileAndListItemForPairs() for the batched version, needed when a
      * caller has to resolve many (profile, listItem) pairs in one go.
@@ -73,11 +75,15 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
             ->setParameter('profile', $profile->getId(), 'uuid')
             ->orderBy('t.name.lastName');
 
-        if ($listItem === null) {
+        if ($listItem !== null) {
+            $placeholders = [];
+            foreach ($this->listItems->findLeafIdsUnder($listItem) as $i => $leafId) {
+                $placeholders[] = ":leaf{$i}";
+                $qb->setParameter("leaf{$i}", $leafId, 'uuid');
+            }
+            $qb->andWhere('a.listItem IN (' . implode(', ', $placeholders) . ') OR a.listItem IS NULL');
+        } elseif ($profile->getListItem() === null) {
             $qb->andWhere('a.listItem IS NULL');
-        } else {
-            $qb->andWhere('a.listItem = :listItem OR a.listItem IS NULL')
-                ->setParameter('listItem', $listItem->getId(), 'uuid');
         }
 
         /** @var SpecificProfileAssignment[] $rows */
@@ -146,9 +152,14 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
             [$profile, $listItem] = $pair;
             $teachers = [];
             $seen     = [];
+            $coveredLeafIds = $listItem === null ? [] : $this->listItems->findLeafIdsUnder($listItem);
             foreach ($byProfile[$profile->getId()->toRfc4122()] ?? [] as $row) {
                 $rowListItem = $row->getListItem();
-                $matches     = $listItem === null ? $rowListItem === null : ($rowListItem === null || $rowListItem === $listItem);
+                $matches     = match (true) {
+                    $listItem !== null               => $rowListItem === null || \in_array($rowListItem->getId()->toRfc4122(), $coveredLeafIds, true),
+                    $profile->getListItem() !== null => true,
+                    default                          => $rowListItem === null,
+                };
                 if (!$matches) {
                     continue;
                 }
@@ -282,8 +293,8 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
      * with no list association, it means the profile directly (the only way it's ever assigned);
      * for a profile that DOES have a list association, it's a "whole profile" selection meaning
      * any of its subprofiles counts — used to let a restriction target every subprofile of a
-     * profile at once without enumerating them. Used to check folder/section permissions against
-     * a restriction list.
+     * profile at once without enumerating them. A non-null list item that isn't a leaf stands for
+     * every leaf under it. Used to check folder/section permissions against a restriction list.
      *
      * @param array<int, array{0: SpecificProfile, 1: ?ListItem}> $pairs
      */
@@ -304,8 +315,12 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
             [$profile, $listItem] = $pair;
             $qb->setParameter("profile{$i}", $profile->getId(), 'uuid');
             if ($listItem !== null) {
-                $qb->setParameter("listItem{$i}", $listItem->getId(), 'uuid');
-                $conditions[] = "(a.specificProfile = :profile{$i} AND a.listItem = :listItem{$i})";
+                $placeholders = [];
+                foreach ($this->listItems->findLeafIdsUnder($listItem) as $j => $leafId) {
+                    $placeholders[] = ":leaf{$i}_{$j}";
+                    $qb->setParameter("leaf{$i}_{$j}", $leafId, 'uuid');
+                }
+                $conditions[] = "(a.specificProfile = :profile{$i} AND a.listItem IN (" . implode(', ', $placeholders) . '))';
             } elseif ($profile->getListItem() !== null) {
                 $conditions[] = "(a.specificProfile = :profile{$i})";
             } else {
@@ -316,6 +331,38 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
         $qb->andWhere(implode(' OR ', $conditions));
 
         return $qb->getQuery()->getOneOrNullResult() !== null;
+    }
+
+    /**
+     * For every profile the teacher holds, the list items a restriction would have to be on to
+     * cover what they hold: each held leaf and all of its ancestors (a restriction on "FP" covers
+     * whoever holds a leaf under it). A profile held with no leaf (a plain profile) maps to an empty
+     * list. What lets a query ask "is this restriction one of the teacher's?" with a plain IN.
+     *
+     * @return array<string, list<string>> profile id => RFC4122 ids of the list items covering what they hold there
+     */
+    public function findCoveringItemIdsByTeacher(Teacher $teacher): array
+    {
+        /** @var SpecificProfileAssignment[] $rows */
+        $rows = $this->createQueryBuilder('a')
+            ->select('a', 'li')
+            ->leftJoin('a.listItem', 'li')
+            ->where('a.teacher = :teacher')
+            ->setParameter('teacher', $teacher->getId(), 'uuid')
+            ->getQuery()
+            ->getResult();
+
+        $covering = [];
+        foreach ($rows as $row) {
+            $profileId = $row->getSpecificProfile()->getId()->toRfc4122();
+            $covering[$profileId] ??= [];
+            $item = $row->getListItem();
+            if ($item !== null) {
+                $covering[$profileId] = array_values(array_unique([...$covering[$profileId], ...$this->listItems->findSelfAndAncestorIds($item)]));
+            }
+        }
+
+        return $covering;
     }
 
     /**

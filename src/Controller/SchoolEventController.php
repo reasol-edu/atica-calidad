@@ -75,7 +75,7 @@ class SchoolEventController extends AbstractController
             'centre'               => $centre,
             'errors'               => $errors,
             'values'               => $values,
-            'availableProfileRows' => $this->rowBuilder->buildActiveRows($centre),
+            'availableProfileRows' => $this->rowBuilder->buildActiveRowsForPicker($centre),
             'selectedProfileKeys'  => $selectedProfileKeys,
         ]);
     }
@@ -135,7 +135,7 @@ class SchoolEventController extends AbstractController
             'event'                => $event,
             'errors'               => $errors,
             'values'               => $values,
-            'availableProfileRows' => $this->rowBuilder->buildActiveRows($centre),
+            'availableProfileRows' => $this->rowBuilder->buildActiveRowsForPicker($centre),
             'selectedProfileKeys'  => $selectedProfileKeys,
         ]);
     }
@@ -257,7 +257,7 @@ class SchoolEventController extends AbstractController
 
         if (!$general) {
             $rowsByKey = [];
-            foreach ($this->rowBuilder->buildActiveRows($centre) as $row) {
+            foreach ($this->rowBuilder->buildActiveRowsForPicker($centre) as $row) {
                 $rowsByKey[$row->key()] = $row;
             }
 

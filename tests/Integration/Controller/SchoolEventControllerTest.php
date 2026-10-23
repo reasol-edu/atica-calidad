@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Controller;
 
 use App\Entity\AcademicYear;
 use App\Entity\EducationalCentre;
+use App\Entity\ListItem;
 use App\Entity\PersonName;
 use App\Entity\SchoolEvent;
 use App\Entity\SpecificProfile;
@@ -115,6 +116,42 @@ final class SchoolEventControllerTest extends ControllerTestCase
         self::assertCount(1, $all);
         self::assertFalse($all[0]->isGeneral());
         self::assertCount(1, $all[0]->getProfileRestrictions());
+    }
+
+    public function testNewKeepsAnIntermediateNodeOfTheProfilesListAsTheRestriction(): void
+    {
+        $centre = $this->centre();
+        $year   = (new AcademicYear())->setName('2025-2026')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $root  = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+        $fp    = (new ListItem())->setEducationalCentre($centre)->setName('FP')->setParent($root);
+        $infor = (new ListItem())->setEducationalCentre($centre)->setName('Informática')->setParent($fp);
+        $jefe  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($root);
+        $admin = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $year, $root, $fp, $infor, $jefe, $admin);
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('GET', '/eventos/nuevo');
+        self::assertStringContainsString('Jefatura FP (todos)', $this->client->getResponse()->getContent() ?: '');
+        $this->client->request('POST', '/eventos/nuevo', [
+            '_token'     => $this->csrfToken('new_school_event'),
+            'date'       => '2025-09-15',
+            'start_time' => '09:00',
+            'end_time'   => '10:00',
+            'name'       => 'Reunión de FP',
+            'scope'      => 'restricted',
+            'profiles'   => [$jefe->getId()->toRfc4122() . ':' . $fp->getId()->toRfc4122()],
+        ]);
+
+        self::assertTrue($this->client->getResponse()->isRedirect());
+
+        $this->em->clear();
+        /** @var SchoolEventRepository $events */
+        $events = self::getContainer()->get(SchoolEventRepository::class);
+        $all    = $events->findAllForAcademicYear($year);
+        self::assertCount(1, $all);
+        self::assertSame($fp->getId()->toRfc4122(), $all[0]->getProfileRestrictions()->first()->getListItem()?->getId()->toRfc4122());
     }
 
     public function testNewRejectsARestrictedEventWithNoProfilesSelected(): void

@@ -12,6 +12,7 @@ use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use App\Model\ActivityYearReviewRow;
 use App\Repository\ActivityRepository;
+use App\Repository\ListItemRepository;
 use App\Repository\SpecificProfileAssignmentRepository;
 
 /**
@@ -30,6 +31,7 @@ class ActivityYearReviewBuilder
         private readonly SpecificProfileAssignmentRepository $assignments,
         private readonly ActivitySubmissionSlotBuilder $slots,
         private readonly DocumentTreeAccessChecker $access,
+        private readonly ListItemRepository $listItems,
     ) {}
 
     /**
@@ -147,7 +149,10 @@ class ActivityYearReviewBuilder
     {
         $byItem = $holders[$profile->getId()->toRfc4122()] ?? [];
         // A whole-profile row ("(todos)") is held by whoever holds any of its subprofiles.
-        $teachers = $listItem === null ? array_sum($byItem) : ($byItem[$listItem->getId()->toRfc4122()] ?? 0);
+        // An intermediate node ("FP") is held by whoever holds any leaf under it (a leaf covers only itself).
+        $teachers = $listItem === null
+            ? array_sum($byItem)
+            : array_sum(array_map(static fn (string $leafId): int => $byItem[$leafId] ?? 0, $this->listItems->findLeafIdsUnder($listItem)));
 
         return ['name' => $profile->getName() . ($listItem !== null ? ' ' . $listItem->getName() : ''), 'teachers' => $teachers];
     }

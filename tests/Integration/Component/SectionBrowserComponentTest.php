@@ -13,6 +13,7 @@ use App\Entity\DocumentRevision;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
+use App\Entity\ListItem;
 use App\Entity\PersonName;
 use App\Entity\SpecificProfile;
 use App\Entity\SpecificProfileAssignment;
@@ -675,6 +676,33 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         $this->em->clear();
         $reloaded = $this->em->find(Folder::class, $folderId);
         self::assertSame('<p>Consultar antes de subir</p>', $reloaded->getDescription());
+    }
+
+    public function testSaveFolderProfilesKeepsAnIntermediateNodeOfTheProfilesList(): void
+    {
+        $centre  = $this->centre();
+        $manager = $this->teacher('gestor');
+        $centre->addQualityManager($manager);
+        $root  = (new ListItem())->setName('Departamento')->setEducationalCentre($centre);
+        $fp    = (new ListItem())->setName('FP')->setEducationalCentre($centre)->setParent($root);
+        $infor = (new ListItem())->setName('Informática')->setEducationalCentre($centre)->setParent($fp);
+        $jefe  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($root);
+        $section = $this->section($centre);
+        $folder  = $this->folder($section);
+        $this->persist($centre, $manager, $root, $fp, $infor, $jefe, $section, $folder);
+        $folderId = $folder->getId()->toRfc4122();
+        $fpKey    = $jefe->getId()->toRfc4122() . ':' . $fp->getId()->toRfc4122();
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+        $component->call('toggleFolderSettings', ['id' => $folderId]);
+        $component->set('visibilityProfileKeys', [$fpKey])->call('saveFolderProfiles', ['id' => $folderId]);
+
+        $this->em->clear();
+        /** @var Folder $reloaded */
+        $reloaded = $this->em->find(Folder::class, $folderId);
+        self::assertCount(1, $reloaded->getVisibilityProfiles());
+        self::assertSame($fp->getId()->toRfc4122(), $reloaded->getVisibilityProfiles()->first()->getListItem()?->getId()->toRfc4122());
     }
 
     public function testSaveFolderProfilesStoresABlankDescriptionAsNull(): void

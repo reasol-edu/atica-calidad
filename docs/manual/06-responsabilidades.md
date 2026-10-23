@@ -194,6 +194,21 @@ hojas, ignorando la rama «ESO/Bach».
 Para asignar docentes, selecciona primero el subperfil que corresponda en la lista de la sección
 **Subperfiles** y después búscalos por nombre, igual que en la asignación directa.
 
+#### Elegir un perfil con subperfiles en un permiso {#elegir-subperfiles-en-un-permiso}
+
+Los docentes se asignan siempre a hojas, pero al **elegir perfiles** para los permisos de una carpeta
+o de una sección, para una actividad o para un evento del calendario hay tres niveles de precisión. Tomando el ejemplo de «Jefatura de Departamento»
+asociado a «Departamento» (con «ESO/Bach» → «Matemáticas», «Inglés» y «FP» → «Informática y
+Comunicaciones», «Sanidad»):
+
+- **«Jefatura de Departamento (todos)»**: cualquiera que tenga alguna hoja del perfil.
+- **«Jefatura de Departamento FP (todos)»**: un elemento intermedio. Vale para todas las hojas que
+  cuelgan de él: quien sea jefe/a de Informática y Comunicaciones o de Sanidad, pero no de
+  Matemáticas.
+- **«Jefatura de Departamento Sanidad»**: una hoja concreta.
+
+El buscador del selector filtra también los elementos intermedios por su nombre.
+
 !!! warning "Cambiar o quitar la asociación borra las asignaciones existentes"
     Si cambias el elemento de lista asociado a un perfil, o quitas la asociación (**Quitar
     asociación**), se eliminan **todas** las asignaciones de docentes de ese perfil — tanto las

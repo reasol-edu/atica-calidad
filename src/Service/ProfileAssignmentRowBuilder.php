@@ -140,6 +140,62 @@ final class ProfileAssignmentRowBuilder implements ResetInterface
     }
 
     /**
+     * What a picker of restrictions (who can see, upload to, review or answer for a folder, who an
+     * activity applies to) lists: buildActiveRowsWithWholeProfileOption() plus, for a
+     * list-associated profile, one row per intermediate node of its list ("FP" in Departamento >
+     * ESO/Bach, FP > …) placed in tree order right before the leaves that hang from it. Picking one
+     * restricts to every leaf under it — a middle ground between "(todos)" and one leaf. Only
+     * pickers use it: assignments (always to leaves), the submission slots and the tags of an
+     * upload are built from the leaf rows, and an intermediate node is never one of them.
+     *
+     * @return ProfileAssignmentRow[]
+     */
+    public function buildActiveRowsForPicker(EducationalCentre $centre): array
+    {
+        $base     = $this->buildActiveRowsWithWholeProfileOption($centre);
+        $leafRows = [];
+        foreach ($base as $row) {
+            if ($row->listItem !== null) {
+                $leafRows[$row->key()] = $row;
+            }
+        }
+
+        $rows = [];
+        foreach ($base as $row) {
+            if ($row->listItem !== null) {
+                continue; // emitted below, in tree order, under its profile
+            }
+            $rows[] = $row;
+            $root   = $row->profile->getListItem();
+            if ($root === null) {
+                continue; // a plain profile: no list under it
+            }
+
+            // $row is the "(todos)" of a list-associated profile: its list follows, in tree order.
+            $leafIds = array_flip(array_map(
+                static fn (ListItem $leaf): string => $leaf->getId()->toRfc4122(),
+                $this->leafDescendantsOf($root),
+            ));
+            // The subtree starts at the root: itself a leaf only when the list has a single level.
+            foreach ($this->listItems->findSubtree($root) as $node) {
+                if ($node === $root && !isset($leafIds[$node->getId()->toRfc4122()])) {
+                    continue;
+                }
+                if (isset($leafIds[$node->getId()->toRfc4122()])) {
+                    $leafRow = $leafRows[ProfileAssignmentRow::keyFor($row->profile, $node)] ?? null;
+                    if ($leafRow !== null) {
+                        $rows[] = $leafRow;
+                    }
+                } elseif ($node->isActive()) {
+                    $rows[] = new ProfileAssignmentRow($row->profile, $node, $row->profile->getName() . ' ' . $node->getName() . ' (todos)', true, []);
+                }
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
      * Like buildActiveRows(), but a list-associated profile also gets one extra row for itself
      * (no specific leaf) right before its per-subprofile rows — a "whole profile" pick meaning
      * every subprofile counts, for pickers where enumerating each one isn't required (e.g.

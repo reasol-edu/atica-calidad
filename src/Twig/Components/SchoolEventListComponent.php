@@ -49,7 +49,7 @@ class SchoolEventListComponent extends AbstractController
     /** @return ProfileAssignmentRow[] */
     public function getAvailableProfileRows(): array
     {
-        return $this->rowBuilder->buildActiveRows($this->centre);
+        return $this->rowBuilder->buildActiveRowsForPicker($this->centre);
     }
 
     /** @return Paginator<SchoolEvent> */
