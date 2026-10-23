@@ -389,6 +389,13 @@ export MESSENGER_TRANSPORT_DSN="${MESSENGER_TRANSPORT_DSN:-doctrine://default?au
 
 mkdir -p "${DATA}"
 
+# php-cli (migraciones, precalentamiento de la caché) no lee el php_ini del Caddyfile y con
+# el límite por defecto de PHP (128M) el precalentamiento se queda sin memoria. PHPRC apunta
+# a un php.ini mínimo con el mismo límite que el servidor.
+mkdir -p "${DATA}/php"
+printf 'memory_limit = 256M\n' > "${DATA}/php/php.ini"
+export PHPRC="${DATA}/php"
+
 # Generar APP_SECRET en el primer arranque y guardarlo en data/.secret.
 # Se usa -s (existe Y no está vacío) en vez de -f: una ejecución anterior
 # interrumpida a mitad de camino (p.ej. por un fallo posterior en las
@@ -466,6 +473,9 @@ until [[ -s "${DATA}/.secret" ]]; do
     sleep 1
 done
 export APP_SECRET="$(< "${DATA}/.secret")"
+
+# Mismo php.ini mínimo que genera atica-calidad-start.sh (php-cli no lee el php_ini del Caddyfile).
+export PHPRC="${DATA}/php"
 
 cat > "${APP}/.env" << EOF
 APP_ENV=prod

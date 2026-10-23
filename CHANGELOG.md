@@ -7,6 +7,19 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.20.2] - 2026-10-23
+
+### Fixed
+
+- El ejecutable para macOS y Linux ya no se queda sin memoria al arrancar: el precalentamiento de la
+  caché usaba el límite por defecto de PHP (128M), porque la configuración del servidor no afecta a la
+  línea de comandos. El arranque (y el script de Ubuntu Server, también para el worker) genera ahora un
+  `php.ini` mínimo en `data/php` con 256M, igual que el servidor.
+- Los ejecutables descargables vuelven a FrankenPHP 1.13.1, que lleva el mismo PHP 8.5.12 con PHP2Shell
+  corregido. Los binarios de Linux de la 1.13.2 (los de la 1.20.1) se compilaron para la CPU del servidor
+  de CI y mueren con `status=4/ILL` en CPUs sin SHA-NI, habitual en máquinas virtuales, al calcular un
+  `sha256`. Si te ocurre, actualiza. Se recupera además el ejecutable para Mac con procesador Intel.
+
 ## [1.20.1] - 2026-10-22
 
 ### Security

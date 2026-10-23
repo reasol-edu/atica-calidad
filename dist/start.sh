@@ -36,6 +36,13 @@ export MESSENGER_TRANSPORT_DSN="${MESSENGER_TRANSPORT_DSN:-doctrine://default?au
 # -- Carpeta de datos -----------------------------------------------------------
 mkdir -p "${DATA}"
 
+# php-cli (migraciones, precalentamiento de la caché, worker) no lee el php_ini del
+# Caddyfile y con el límite por defecto de PHP (128M) el precalentamiento de la caché
+# se queda sin memoria. PHPRC apunta a un php.ini mínimo con el mismo límite que el servidor.
+mkdir -p "${DATA}/php"
+printf 'memory_limit = 256M\n' > "${DATA}/php/php.ini"
+export PHPRC="${DATA}/php"
+
 # -- APP_SECRET: generar en el primer arranque ----------------------------------
 if [[ ! -f "${DATA}/.secret" ]]; then
     echo "Generando APP_SECRET..."
