@@ -7,6 +7,27 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.22.2] - 2026-10-23
+
+### Fixed
+
+- En las entregas de una actividad, los perfiles que entregan un mismo elemento salen ordenados
+  alfabéticamente, y cuando un elemento tiene más de un perfil sus filas se agrupan con una línea
+  lateral y un hueco que las separa de los demás elementos. El selector de la subida de varios
+  ficheros a la vez también muestra el perfil de cada hueco, para poder elegir entre ellos.
+
+### Changed
+
+- Los ejecutables descargables pasan a FrankenPHP 1.13.3, que corrige el fallo de los binarios de Linux
+  de la 1.13.2 (`status=4/ILL` en CPUs sin SHA-NI al calcular un `sha256`) y otros dos de la 1.13.2 con
+  los workers y las extensiones de PHP.
+
+### Removed
+
+- El ejecutable para macOS con procesador Intel: FrankenPHP 1.13.3 solo publica binario para Apple
+  Silicon. En un Mac con Intel, usa Docker. Las versiones 1.20.2 a 1.22.1 siguen con su descarga para
+  Intel, pero no recibirán más actualizaciones de PHP.
+
 ## [1.22.1] - 2026-10-23
 
 ### Fixed

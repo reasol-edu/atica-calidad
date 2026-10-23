@@ -256,6 +256,12 @@ php bin/console doctrine:migrations:migrate --no-interaction
     tienes el binario de la 1.20.1 en una CPU sin las instrucciones SHA-NI (habitual en máquinas virtuales):
     actualiza a la 1.20.2 o posterior, que usa un FrankenPHP sin ese defecto y con el mismo PHP corregido.
 
+!!! warning "Mac con procesador Intel"
+    A partir de la versión que incorpora FrankenPHP 1.13.3, los binarios nativos para macOS solo se publican
+    para Apple Silicon: FrankenPHP (el servidor que va dentro del archivo) dejó de publicarlos para Intel. Las
+    versiones anteriores con descarga para Intel son las 1.20.2 a 1.22.1. En un Mac con Intel, usa Docker o
+    quédate en esa versión sabiendo que ya no recibirá más parches de PHP.
+
 !!! warning "Versiones con la vulnerabilidad PHP2Shell"
     Los archivos de las versiones **anteriores a la 1.20.1** llevan una versión de PHP con la vulnerabilidad
     PHP2Shell, así que no los uses. Descarga siempre la última versión.

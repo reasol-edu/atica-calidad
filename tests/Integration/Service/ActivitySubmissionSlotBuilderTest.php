@@ -173,6 +173,18 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         self::assertNotContains(null, $labels, 'every FP leaf is owed by two heads: each row says which');
         self::assertCount(2, array_unique($labels));
 
+        // The owners of one element come together, in alphabetical order.
+        $byElement = [];
+        foreach ($this->builder->buildSlots($activity) as $slot) {
+            $byElement[$slot->displayName][] = $slot->ownerLabel;
+        }
+        foreach ($byElement as $owners) {
+            $sorted = $owners;
+            sort($sorted);
+            self::assertSame($sorted, $owners);
+        }
+        self::assertSame(['FP › 1ªEV', 'FP › 2ªEV', 'FP › Final 1', 'FP › Final 2'], array_keys($byElement));
+
         // One owner per element: nothing to tell apart, no label.
         $evalFp->clearProfileAssociations()->addProfileAssociation($jefe, $infor);
         $this->em->flush();

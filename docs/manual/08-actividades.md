@@ -216,11 +216,23 @@ aplica aquí sin cambios: una entrega **es** un documento de esa carpeta. Si la 
 docente todavía le queda alguna entrega propia por hacer, un aviso **«Formatos aceptados: ...»**
 aparece encima de «Mis entregas».
 
+### Un elemento que entregan varios perfiles {#varios-perfiles}
+
+![Entregas de una actividad en las que «Tecnología» la entregan dos jefaturas de departamento, agrupadas y con el perfil de cada una](img/actividades-entregas-varios-perfiles.png)
+
+Si un elemento de la lista de la actividad lo entregan **varios perfiles** (p. ej. dos jefaturas de
+FP, o una materia impartida desde dos departamentos; ver [Listas](06-responsabilidades.md#listas)),
+cada fila indica **a qué perfil corresponde**, en verde bajo el nombre del elemento. Las filas de un
+mismo elemento van **juntas, ordenadas alfabéticamente por perfil**, y se agrupan con una línea a la
+izquierda y un pequeño hueco que las separa de los demás elementos. Mientras ningún elemento tenga más
+de un perfil, las filas no muestran el perfil, como siempre.
+
 ### Subir varios ficheros a la vez {#subir-varios-ficheros}
 
 Cuando al docente le quedan **dos o más huecos vacíos** en «Mis entregas», aparece una zona para
 **arrastrar o elegir varios ficheros** de golpe. Cada fichero se asigna al hueco cuyo nombre
-coincide con el suyo; los que no se reconocen se colocan a mano con un selector. Nada se envía
+coincide con el suyo; los que no se reconocen se colocan a mano con un selector (que, en los
+elementos [con varios perfiles](#varios-perfiles), muestra también el perfil de cada hueco). Nada se envía
 hasta pulsar el botón de subir.
 
 Al llegar desde la campana, el Inicio, «Mis actividades», un correo de aviso o el calendario, la
@@ -295,6 +307,12 @@ de quien la subió al final: **«2026-2027 - Programación didáctica - Tutor/a 
 compartida por todo el que tenga el perfil, identifica de un vistazo de quién es cada fichero
 descargado. Un documento del árbol que no sea la entrega de ninguna actividad sigue llevando solo su
 propio nombre, sin cambios.
+
+Cuando [un elemento lo entregan varios perfiles](#varios-perfiles), el nombre añade también **el perfil**
+(y su subperfil) para que los ficheros no se llamen igual: **«2026-2027 - Programación didáctica - FP ›
+2ªEV - Jefe/a de Departamento Informática.pdf»**. Va antes del nombre del docente en las entregas
+individuales, y solo se añade si la carpeta tiene de verdad otra entrega con el mismo nombre de otro
+perfil en el mismo curso.
 
 Esta misma regla se aplica también dentro del **[ZIP de la carpeta](07-arbol-documental.md#revision-activa-historial-y-descarga)**:
 en una actividad de ámbito individual, cada entrega lleva el nombre de quien la subió, en vez de

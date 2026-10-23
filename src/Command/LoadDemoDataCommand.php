@@ -370,6 +370,11 @@ class LoadDemoDataCommand extends Command
             $materiaLeaves[$materiaName]->setAssociation($jefeDpt, $departamentoLeaves[$departamentoName]);
         }
 
+        // Una materia impartida desde dos departamentos: la entregan las dos jefaturas, cada una la suya.
+        if (isset($materiaLeaves['Tecnología'], $departamentoLeaves['Informática'])) {
+            $materiaLeaves['Tecnología']->addProfileAssociation($jefeDpt, $departamentoLeaves['Informática']);
+        }
+
         $io->text(\sprintf('%d materias asociadas a su jefatura de departamento.', count($materiaDepartamento)));
     }
 

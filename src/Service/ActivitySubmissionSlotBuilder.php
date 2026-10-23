@@ -210,7 +210,11 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
             }
         }
 
-        return array_values($owners);
+        // Alphabetical, so the owners of one element always list in the same order.
+        $owners = array_values($owners);
+        usort($owners, static fn (ProfileAssignmentRow $a, ProfileAssignmentRow $b): int => strnatcasecmp($a->displayName, $b->displayName));
+
+        return $owners;
     }
 
     /**

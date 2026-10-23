@@ -112,6 +112,18 @@ await page.evaluate(() => window.scrollBy(0, -220));
 await hideToolbar();
 await page.screenshot({ path: `${outDir}/actividades-entregas.png` });
 
+// ── 4c. An element owed by two profiles: each row names its profile, together and apart from the rest ──
+await page.goto(`${baseUrl}/actividades?tab=view`);
+await page.waitForLoadState('networkidle');
+await page.click('text=Sobre programaciones didácticas');
+await page.locator('h3:has-text("Programaciones didácticas"), button:has-text("Programaciones didácticas")').first().click();
+await page.waitForSelector('text=Mis entregas');
+const sharedRow = page.locator('[data-role="submission-row"]:has-text("Tecnología")').first();
+await sharedRow.waitFor();
+await sharedRow.evaluate(el => el.scrollIntoView({ block: 'center' }));
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/actividades-entregas-varios-perfiles.png` });
+
 // ── 5. Confirm manual completion ─────────────────────────────────────────────
 await page.goto(`${baseUrl}/actividades?tab=view`);
 await page.waitForLoadState('networkidle');
