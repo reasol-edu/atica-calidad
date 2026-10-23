@@ -251,6 +251,7 @@ history.field.category: 'Categoría'
 history.field.deadline: 'Plazo general'
 history.field.element_deadlines: 'Elementos con plazo propio'
 history.field.list_item: 'Lista de elementos'
+# Las etiquetas de las actividades ya no existen: se conserva para los historiales antiguos.
 history.field.tags: 'Etiquetas'
 history.field.folder: 'Carpeta'
 history.field.scope: 'Quién entrega'

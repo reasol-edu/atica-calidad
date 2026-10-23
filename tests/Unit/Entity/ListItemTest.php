@@ -115,8 +115,9 @@ final class ListItemTest extends TestCase
         $item->setAssociation($profile);
 
         self::assertTrue($item->isAssociated());
-        self::assertSame($profile, $item->getAssociatedProfile());
-        self::assertNull($item->getAssociatedProfileListItem());
+        self::assertCount(1, $item->getProfileAssociations());
+        self::assertSame($profile, $item->getProfileAssociations()->first()->getSpecificProfile());
+        self::assertNull($item->getProfileAssociations()->first()->getSubprofile());
     }
 
     public function testSetAssociationClearsWithNullProfile(): void
@@ -129,62 +130,62 @@ final class ListItemTest extends TestCase
         $item->setAssociation(null);
 
         self::assertFalse($item->isAssociated());
-        self::assertNull($item->getAssociatedProfile());
+        self::assertCount(0, $item->getProfileAssociations());
     }
 
-    /**
-     * A list-associated profile's own subprofile leaf is nulled independently on ITS OWN deletion
-     * (ON DELETE SET NULL) without touching $associatedProfile — leaving "associated with subprofile
-     * X of profile Y" looking like "associated with the whole of profile Y", a state
-     * setAssociation() itself never allows. The getters must treat that inconsistent state as no
-     * association at all rather than silently upgrading it.
-     */
-    public function testInconsistentAssociationIsTreatedAsNone(): void
-    {
-        $centre       = $this->centre();
-        $listAnchor   = $this->item($centre, 'Ancla');
-        $profile      = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($listAnchor);
-        $subprofile   = $this->item($centre, 'Subprofile leaf');
-        $item         = $this->item($centre);
-
-        $item->setAssociation($profile, $subprofile);
-        self::assertSame($profile, $item->getAssociatedProfile());
-
-        // Simulate the leaf being deleted out from under the association (ON DELETE SET NULL) by
-        // reflecting the private property directly — there's no public API that produces this
-        // state, which is exactly the point.
-        $ref = new \ReflectionProperty(ListItem::class, 'associatedProfileListItem');
-        $ref->setValue($item, null);
-
-        self::assertNull($item->getAssociatedProfile());
-        self::assertNull($item->getAssociatedProfileListItem());
-        self::assertFalse($item->isAssociated());
-    }
-
-    public function testGetEffectiveTagsIncludesOwnAndAncestorTags(): void
+    public function testAnItemCanHaveSeveralAssociationsAndNeverTheSameTwice(): void
     {
         $centre = $this->centre();
-        $root   = $this->item($centre, 'Root');
-        $mid    = $this->item($centre, 'Mid');
-        $leaf   = $this->item($centre, 'Leaf');
-        $mid->setParent($root);
-        $leaf->setParent($mid);
+        $item   = $this->item($centre);
+        $a      = (new SpecificProfile())->setEducationalCentre($centre)->setName('A');
+        $b      = (new SpecificProfile())->setEducationalCentre($centre)->setName('B');
 
-        $rootTag = new \App\Entity\Tag();
-        $rootTag->setName('RootTag')->setEducationalCentre($centre);
-        $leafTag = new \App\Entity\Tag();
-        $leafTag->setName('LeafTag')->setEducationalCentre($centre);
+        $item->addProfileAssociation($a)->addProfileAssociation($b)->addProfileAssociation($a);
 
-        $root->addTag($rootTag);
-        $leaf->addTag($leafTag);
+        self::assertCount(2, $item->getProfileAssociations());
+        self::assertTrue($item->hasProfileAssociation($a, null));
+    }
 
-        $effective = $leaf->getEffectiveTags();
+    public function testAListAssociatedProfileMustBeAssociatedThroughASubprofile(): void
+    {
+        $centre  = $this->centre();
+        $anchor  = $this->item($centre, 'Ancla');
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($anchor);
 
-        self::assertTrue($effective->contains($rootTag));
-        self::assertTrue($effective->contains($leafTag));
-        self::assertCount(2, $effective);
-        // The leaf's own tags() collection must not have grown from the inherited lookup.
-        self::assertCount(1, $leaf->getTags());
+        $this->expectException(\LogicException::class);
+        $this->item($centre)->addProfileAssociation($profile);
+    }
+
+    public function testAnItemWithoutAssociationsInheritsTheOnesOfItsClosestAssociatedAncestor(): void
+    {
+        $centre  = $this->centre();
+        $a       = (new SpecificProfile())->setEducationalCentre($centre)->setName('A');
+        $b       = (new SpecificProfile())->setEducationalCentre($centre)->setName('B');
+        $root    = $this->item($centre, 'Raíz');
+        $mid     = $this->item($centre, 'Medio')->setParent($root);
+        $leaf    = $this->item($centre, 'Hoja')->setParent($mid);
+        $root->addProfileAssociation($a);
+
+        self::assertSame($root, $leaf->getAssociationSource());
+        self::assertTrue($leaf->hasInheritedAssociation());
+        self::assertSame($a, $leaf->getEffectiveProfileAssociations()->first()->getSpecificProfile());
+
+        $mid->addProfileAssociation($b);
+        self::assertSame($mid, $leaf->getAssociationSource(), 'the closest ancestor wins');
+        self::assertCount(1, $leaf->getEffectiveProfileAssociations(), 'its associations replace the farther ones, they are not added to them');
+
+        $leaf->addProfileAssociation($a);
+        self::assertSame($leaf, $leaf->getAssociationSource(), 'with its own, nothing is inherited');
+        self::assertFalse($leaf->hasInheritedAssociation());
+    }
+
+    public function testAnItemWithNoAssociationAnywhereHasNoEffectiveOnes(): void
+    {
+        $item = $this->item($this->centre());
+
+        self::assertNull($item->getAssociationSource());
+        self::assertCount(0, $item->getEffectiveProfileAssociations());
+        self::assertFalse($item->hasInheritedAssociation());
     }
 
     /**

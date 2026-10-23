@@ -91,7 +91,6 @@ class ListItemController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans('responsibilities.lists.import.flash.summary', [
             '%items%' => $stats['items'],
-            '%tags%'  => $stats['tags'],
         ], 'admin'));
 
         return $this->redirectToRoute('app_responsibilities_lists', ['centreId' => $centreId]);

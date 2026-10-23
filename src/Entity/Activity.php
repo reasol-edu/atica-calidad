@@ -69,8 +69,8 @@ class Activity implements Trashable
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL', unique: true)]
     private ?Folder $folder = null;
 
-    /** Optional root whose leaf descendants (matched to a submission row's profile/subprofile via
-     *  ListItem::getAssociatedProfile()/getAssociatedProfileListItem()) name each submission. */
+    /** Optional root whose leaf descendants (each owed by the submission rows its profile
+     *  associations point at, see ListItem::getEffectiveProfileAssociations()) name each submission. */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?ListItem $listItem = null;
@@ -84,11 +84,6 @@ class Activity implements Trashable
      */
     #[ORM\OneToMany(targetEntity: ActivityListItemDeadline::class, mappedBy: 'activity', cascade: ['persist'], orphanRemoval: true)]
     private Collection $listItemDeadlines;
-
-    /** @var Collection<int, Tag> */
-    #[ORM\ManyToMany(targetEntity: Tag::class)]
-    #[ORM\JoinTable(name: 'activity_tag')]
-    private Collection $tags;
 
     /**
      * Arbitrary tree documents the teacher should read alongside this activity — unrelated to
@@ -170,7 +165,6 @@ class Activity implements Trashable
 
     public function __construct()
     {
-        $this->tags                = new ArrayCollection();
         $this->relatedDocuments    = new ArrayCollection();
         $this->profileRestrictions = new ArrayCollection();
         $this->responsibleProfiles = new ArrayCollection();
@@ -493,28 +487,6 @@ class Activity implements Trashable
         foreach (iterator_to_array($this->listItemDeadlines) as $override) {
             $this->listItemDeadlines->removeElement($override);
         }
-
-        return $this;
-    }
-
-    /** @return Collection<int, Tag> */
-    public function getTags(): Collection
-    {
-        return $this->tags;
-    }
-
-    public function addTag(Tag $tag): static
-    {
-        if (!$this->tags->contains($tag)) {
-            $this->tags->add($tag);
-        }
-
-        return $this;
-    }
-
-    public function removeTag(Tag $tag): static
-    {
-        $this->tags->removeElement($tag);
 
         return $this;
     }

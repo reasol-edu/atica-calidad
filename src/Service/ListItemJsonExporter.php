@@ -10,8 +10,7 @@ use App\Repository\ListItemRepository;
 
 /**
  * Serialises a centre's list-item tree (Responsabilidades › Listas) to a plain array, ready for
- * json_encode(): each node with its own tags (never inherited ones — those are recomputed from
- * the hierarchy on import) and its children, nested.
+ * json_encode(): each node with its name, whether it is active and its children, nested.
  */
 class ListItemJsonExporter
 {
@@ -46,7 +45,6 @@ class ListItemJsonExporter
             $nodes[] = [
                 'name'     => $item->getName(),
                 'active'   => $item->isActive(),
-                'tags'     => array_map(static fn ($tag): string => $tag->getName(), $item->getTags()->toArray()),
                 'children' => $this->serializeLevel($item->getId()->toRfc4122(), $byParent),
             ];
         }

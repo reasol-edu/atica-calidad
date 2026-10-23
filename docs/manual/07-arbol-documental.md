@@ -51,8 +51,7 @@ migas de pan que en el resto de la aplicación: si no se restringe a ninguno, la
 restringe, solo la ven quienes tengan asignado alguno de esos perfiles o subperfiles.
 
 !!! warning "Las restricciones no se heredan"
-    A diferencia de las etiquetas de las listas de Responsabilidades, una restricción de sección
-    **no** pasa a sus subsecciones. Si «Calidad» está restringida a un perfil, sus subsecciones
+    Una restricción de sección **no** pasa a sus subsecciones. Si «Calidad» está restringida a un perfil, sus subsecciones
     «Documentación general» y «Procesos» siguen siendo visibles para todo el mundo salvo que se
     restrinjan también, cada una por su cuenta. Lo mismo se aplica a las carpetas: la restricción de
     visibilidad de una carpeta no depende de si su sección está restringida, y viceversa.

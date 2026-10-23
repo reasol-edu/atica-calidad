@@ -18,7 +18,6 @@ use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
-use App\Entity\Tag;
 use App\Entity\Teacher;
 use App\Model\ActivityDashboardItem;
 use App\Model\ActivitySubmissionProgress;
@@ -35,7 +34,6 @@ use App\Repository\DocumentRevisionRepository;
 use App\Repository\DocumentSectionRepository;
 use App\Repository\FolderRepository;
 use App\Repository\ListItemRepository;
-use App\Repository\TagRepository;
 use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Security\Voter\FolderVoter;
@@ -217,10 +215,6 @@ class ActivityBrowserComponent extends AbstractController
     #[LiveProp(writable: true)]
     public array $formOverrideEndMonth = [];
 
-    /** @var string[] tag ids */
-    #[LiveProp(writable: true, onUpdated: 'onFormListItemIdChanged')]
-    public array $formTagIds = [];
-
     /** @var string[] related document ids, in the order they were added */
     #[LiveProp(writable: true)]
     public array $formRelatedDocumentIds = [];
@@ -322,9 +316,6 @@ class ActivityBrowserComponent extends AbstractController
     /** @var ActivityCategory[]|null memoised per render — see getCategoryTree() */
     private ?array $allCategoriesCache = null;
 
-    /** @var Tag[]|null memoised per render — see getAvailableTags() */
-    private ?array $availableTagsMemo = null;
-
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
@@ -333,7 +324,6 @@ class ActivityBrowserComponent extends AbstractController
         private readonly FolderRepository $folders,
         private readonly DocumentSectionRepository $sections,
         private readonly ListItemRepository $listItems,
-        private readonly TagRepository $tags,
         private readonly ActivityChangeRepository $activityChanges,
         private readonly ActivityChangeRecorder $changeRecorder,
         private readonly DocumentRepository $documents,
@@ -672,13 +662,7 @@ class ActivityBrowserComponent extends AbstractController
 
         $root = $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
 
-        return $root === null ? [] : $this->submissionSlots->leavesFor($root, $this->formTags());
-    }
-
-    /** @return Tag[] the tags currently picked in the activity form */
-    private function formTags(): array
-    {
-        return array_values(array_filter(array_map(fn (string $id): ?Tag => $this->findTagById($id), $this->formTagIds)));
+        return $root === null ? [] : $this->listItems->findLeafDescendants($root);
     }
 
     /**
@@ -770,7 +754,7 @@ class ActivityBrowserComponent extends AbstractController
     /**
      * One line saying what the settings in the form would ask for right now — how many submissions
      * (counted the way the activity itself will, from the folder's upload profiles as they stand in
-     * the form, the list, its tags and the scope) or, for a manual activity, from whom. Null when
+     * the form, the list and the scope) or, for a manual activity, from whom. Null when
      * there is nothing to say yet (a submission activity with no folder picked).
      */
     public function getFormSummary(): ?string
@@ -786,10 +770,8 @@ class ActivityBrowserComponent extends AbstractController
                     || ($row->listItem !== null && $this->isCoveredByKeys($row, $uploadKeys)),
             ));
             $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
-            $tags     = $this->formTags();
             $slots    = $this->submissionSlots->buildSlotsFor(
                 $listItem,
-                $tags,
                 ActivitySubmissionScope::from($this->formScope === 'individual' ? 'individual' : 'by_profile'),
                 $rows,
             );
@@ -868,13 +850,6 @@ class ActivityBrowserComponent extends AbstractController
     public function onFormListItemIdChanged(): void
     {
         $this->seedOverrideArraysForCurrentListItem();
-    }
-
-    /** @return Tag[] */
-    public function getAvailableTags(): array
-    {
-        // Asked for by the form's selector, by every tag-id lookup and by the leaves filter: once per request.
-        return $this->availableTagsMemo ??= $this->tags->findByCentre($this->centre);
     }
 
     /**
@@ -1047,7 +1022,6 @@ class ActivityBrowserComponent extends AbstractController
         $this->formOverrideStartMonth = [];
         $this->formOverrideEndDay     = [];
         $this->formOverrideEndMonth   = [];
-        $this->formTagIds      = [];
         $this->formRelatedDocumentIds     = [];
         $this->relatedDocumentSearchQuery = '';
         $this->formRequired    = true;
@@ -1101,7 +1075,6 @@ class ActivityBrowserComponent extends AbstractController
             $this->formOverrideEndDay[$leafId]     = (string) $override->getEndDay();
             $this->formOverrideEndMonth[$leafId]   = (string) $override->getEndMonth();
         }
-        $this->formTagIds       = array_map(static fn (Tag $t): string => $t->getId()->toRfc4122(), $activity->getTags()->toArray());
         $this->seedOverrideArraysForCurrentListItem();
         $this->formRelatedDocumentIds     = array_map(static fn (Document $d): string => $d->getId()->toRfc4122(), $activity->getRelatedDocuments()->toArray());
         $this->relatedDocumentSearchQuery = '';
@@ -1182,9 +1155,6 @@ class ActivityBrowserComponent extends AbstractController
             ->setHidden(true);
         foreach ($source->getListItemDeadlines() as $override) {
             $copy->setDeadlineOverride($override->getListItem(), $override->getStartDay(), $override->getStartMonth(), $override->getEndDay(), $override->getEndMonth());
-        }
-        foreach ($source->getTags() as $tag) {
-            $copy->addTag($tag);
         }
         foreach ($source->getRelatedDocuments() as $document) {
             $copy->addRelatedDocument($document);
@@ -1280,7 +1250,7 @@ class ActivityBrowserComponent extends AbstractController
         }
 
         $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
-        $leaves   = $listItem === null ? [] : $this->submissionSlots->leavesFor($listItem, $this->formTags());
+        $leaves   = $listItem === null ? [] : $this->listItems->findLeafDescendants($listItem);
         $overridesByLeafId = $this->readDeadlineOverrides($leaves);
         if ($overridesByLeafId === false) {
             $this->errors = ['dates' => $this->t('activity.error.invalid_date')];
@@ -1401,18 +1371,6 @@ class ActivityBrowserComponent extends AbstractController
             }
         }
 
-        foreach (iterator_to_array($activity->getTags()) as $tag) {
-            if (!in_array($tag->getId()->toRfc4122(), $this->formTagIds, true)) {
-                $activity->removeTag($tag);
-            }
-        }
-        foreach ($this->formTagIds as $tagId) {
-            $tag = $this->findTagById($tagId);
-            if ($tag !== null) {
-                $activity->addTag($tag);
-            }
-        }
-
         foreach (iterator_to_array($activity->getRelatedDocuments()) as $document) {
             if (!in_array($document->getId()->toRfc4122(), $this->formRelatedDocumentIds, true)) {
                 $activity->removeRelatedDocument($document);
@@ -1499,17 +1457,6 @@ class ActivityBrowserComponent extends AbstractController
         foreach ($this->getAvailableFolders() as $folder) {
             if ($folder->getId()->toRfc4122() === $id) {
                 return $folder;
-            }
-        }
-
-        return null;
-    }
-
-    private function findTagById(string $id): ?Tag
-    {
-        foreach ($this->getAvailableTags() as $tag) {
-            if ($tag->getId()->toRfc4122() === $id) {
-                return $tag;
             }
         }
 

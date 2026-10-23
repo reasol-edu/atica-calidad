@@ -123,8 +123,8 @@ Grupo → 1º ESO → 1º ESO-A, 1º ESO-B
 Departamento → FP → Informática y Comunicaciones, Sanidad
 ```
 
-Cada elemento puede llevar **etiquetas**, creadas sobre la marcha y heredadas por sus
-descendientes. Los elementos inactivos o en uso no se pierden ni se pueden borrar por accidente.
+Cada elemento puede **asociarse a uno o varios perfiles**, y sus descendientes sin asociación propia
+la heredan. Los elementos inactivos o en uso no se pierden ni se pueden borrar por accidente.
 
 ---
 

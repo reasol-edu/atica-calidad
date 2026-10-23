@@ -113,6 +113,8 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
     public function findAllByCentre(EducationalCentre $centre): array
     {
         return $this->createQueryBuilder('li')
+            ->leftJoin('li.profileAssociations', 'pa')
+            ->addSelect('pa')
             ->where('li.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->orderBy('li.position')
@@ -132,8 +134,9 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
     {
         $byParent = $this->groupChildrenByParent($root->getEducationalCentre());
 
-        $leaves = [];
-        $this->collectLeaves($root, $byParent, $leaves);
+        $leaves  = [];
+        $visited = [];
+        $this->collectLeaves($root, $byParent, $leaves, $visited);
 
         return $leaves;
     }
@@ -176,7 +179,7 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
         $parentOf = $this->parentOfCache[$centreKey];
 
         $ids = [];
-        for ($id = $item->getId()->toRfc4122(); $id !== ''; $id = $parentOf[$id] ?? '') {
+        for ($id = $item->getId()->toRfc4122(); $id !== '' && !\in_array($id, $ids, true); $id = $parentOf[$id] ?? '') {
             $ids[] = $id;
         }
 
@@ -184,12 +187,22 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
     }
 
     /**
+     * $visited stops a walk that comes back to a node: a parent loop cannot be built through the
+     * application (ListItem::setParent() refuses it), but corrupted data must not recurse forever.
+     *
      * @param array<string, ListItem[]> $byParent
      * @param ListItem[]                $leaves
+     * @param array<string, true>       $visited
      */
-    private function collectLeaves(ListItem $node, array $byParent, array &$leaves): void
+    private function collectLeaves(ListItem $node, array $byParent, array &$leaves, array &$visited): void
     {
-        $children = $byParent[$node->getId()->toRfc4122()] ?? [];
+        $id = $node->getId()->toRfc4122();
+        if (isset($visited[$id])) {
+            return;
+        }
+        $visited[$id] = true;
+
+        $children = $byParent[$id] ?? [];
         if ($children === []) {
             $leaves[] = $node;
 
@@ -197,7 +210,7 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
         }
 
         foreach ($children as $child) {
-            $this->collectLeaves($child, $byParent, $leaves);
+            $this->collectLeaves($child, $byParent, $leaves, $visited);
         }
     }
 
@@ -214,7 +227,8 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
         $byParent = $this->groupChildrenByParent($root->getEducationalCentre());
 
         $subtree = [];
-        $this->collectSubtree($root, $byParent, $subtree);
+        $visited = [];
+        $this->collectSubtree($root, $byParent, $subtree, $visited);
 
         return $subtree;
     }
@@ -222,12 +236,19 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
     /**
      * @param array<string, ListItem[]> $byParent
      * @param ListItem[]                $subtree
+     * @param array<string, true>       $visited see collectLeaves()
      */
-    private function collectSubtree(ListItem $node, array $byParent, array &$subtree): void
+    private function collectSubtree(ListItem $node, array $byParent, array &$subtree, array &$visited): void
     {
+        $id = $node->getId()->toRfc4122();
+        if (isset($visited[$id])) {
+            return;
+        }
+        $visited[$id] = true;
+
         $subtree[] = $node;
-        foreach ($byParent[$node->getId()->toRfc4122()] ?? [] as $child) {
-            $this->collectSubtree($child, $byParent, $subtree);
+        foreach ($byParent[$id] ?? [] as $child) {
+            $this->collectSubtree($child, $byParent, $subtree, $visited);
         }
     }
 
@@ -239,7 +260,11 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
             return $this->byParentCache[$key];
         }
 
+        // With each item's profile associations in the same query: walking the tree asks every leaf
+        // (and its ancestors) for them — see ListItem::getEffectiveProfileAssociations().
         $all = $this->createQueryBuilder('li')
+            ->leftJoin('li.profileAssociations', 'pa')
+            ->addSelect('pa')
             ->where('li.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->orderBy('li.position')

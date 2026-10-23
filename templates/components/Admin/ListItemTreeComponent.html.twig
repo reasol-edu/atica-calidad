@@ -3,10 +3,8 @@
     moveAction: 'moveListItem',
     group: 'list-items',
 })) }} class="js-list-item-tree space-y-3">
-    {% set tree         = this.tree %}
-    {% set sel          = this.selected %}
-    {% set display_tags = this.displayTags %}
-    {% set existing_tag_names = this.existingTagNames %}
+    {% set tree = this.tree %}
+    {% set sel  = this.selected %}
 
     {# ── Desktop (>= lg): full tree, drag and drop ────────────────────────── #}
     <div class="hidden lg:block">
@@ -175,17 +173,16 @@
                     {# Stable id (never changes, unlike the single-item picker's sel.id-keyed one): this
                        picker is never tied to one particular item, so it never needs to be torn down and
                        rebuilt — data-live-ignore alone is enough to survive the re-renders bulkSelectedIds
-                       triggers on every checkbox click (kept live, unlike associationKey, so the count
+                       triggers on every checkbox click (kept live, unlike associationKeys, so the count
                        above updates). #}
                     <div id="bulk-association-picker" data-live-ignore class="min-w-0 flex-1">
-                        <select data-controller="tom-select"
+                        <select multiple data-controller="tom-select"
                                 data-tom-select-placeholder-value="{{ 'responsibilities.lists.association.picker_placeholder'|trans({}, 'admin') }}"
                                 data-tom-select-no-results-value="{{ 'responsibilities.lists.association.picker_no_results'|trans({}, 'admin') }}"
-                                data-model="norender|bulkAssociationKey"
+                                data-model="norender|bulkAssociationKeys"
                                 class="w-full text-sm ts-local">
-                            <option value="">{{ 'responsibilities.lists.association.none_option'|trans({}, 'admin') }}</option>
                             {% for row in bulk_rows %}
-                                <option value="{{ row.key }}" {{ row.key == bulkAssociationKey ? 'selected' : '' }}>{{ row.displayName }}</option>
+                                <option value="{{ row.key }}" {{ row.key in bulkAssociationKeys ? 'selected' : '' }}>{{ row.displayName }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -193,6 +190,11 @@
                             {{ bulkSelectedIds is empty ? 'disabled' : '' }}
                             class="shrink-0 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
                         {{ 'responsibilities.lists.bulk.assign'|trans({}, 'admin') }}
+                    </button>
+                    <button type="button" data-action="live#action" data-live-action-param="bulkClearAssociations"
+                            {{ bulkSelectedIds is empty ? 'disabled' : '' }}
+                            class="shrink-0 rounded-lg border border-violet-300 bg-white px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
+                        {{ 'responsibilities.lists.bulk.clear'|trans({}, 'admin') }}
                     </button>
                 {% endif %}
 
@@ -325,6 +327,16 @@
                 <div class="border-t border-gray-100 pt-4">
                     <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.lists.association.title'|trans({}, 'admin') }}</label>
                     <p class="mb-2 text-xs text-gray-400">{{ 'responsibilities.lists.association.help'|trans({}, 'admin') }}</p>
+                    {% if sel.hasInheritedAssociation %}
+                        {% set source = sel.associationSource %}
+                        {% set source_names = [] %}
+                        {% for a in source.profileAssociations %}
+                            {% set source_names = source_names|merge([a.specificProfile.name ~ (a.subprofile ? ' ' ~ a.subprofile.name : '')]) %}
+                        {% endfor %}
+                        <p class="mb-2 text-xs text-violet-600">
+                            {{ 'responsibilities.lists.association.inherited'|trans({'%name%': source.name, '%profile%': source_names|join(', ')}, 'admin') }}
+                        </p>
+                    {% endif %}
 
                     {% if association_rows is empty %}
                         <p class="text-xs italic text-gray-400">{{ 'responsibilities.lists.association.empty'|trans({}, 'admin') }}</p>
@@ -339,14 +351,13 @@
                                (Stimulus disconnect -> TomSelect.destroy, then connect) whenever a different item is
                                selected, so its own options/value load fresh. #}
                             <div id="assoc-picker-{{ sel.id.toRfc4122 }}" data-live-ignore class="min-w-0 flex-1">
-                                <select data-controller="tom-select"
+                                <select multiple data-controller="tom-select"
                                         data-tom-select-placeholder-value="{{ 'responsibilities.lists.association.picker_placeholder'|trans({}, 'admin') }}"
                                         data-tom-select-no-results-value="{{ 'responsibilities.lists.association.picker_no_results'|trans({}, 'admin') }}"
-                                        data-model="norender|associationKey"
+                                        data-model="norender|associationKeys"
                                         class="w-full text-sm ts-local">
-                                    <option value="">{{ 'responsibilities.lists.association.none_option'|trans({}, 'admin') }}</option>
                                     {% for row in association_rows %}
-                                        <option value="{{ row.key }}" {{ row.key == associationKey ? 'selected' : '' }}>{{ row.displayName }}</option>
+                                        <option value="{{ row.key }}" {{ row.key in associationKeys ? 'selected' : '' }}>{{ row.displayName }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -356,57 +367,6 @@
                             </button>
                         </form>
                     {% endif %}
-                </div>
-
-                {# ── Tags (outside the previous form: a <form> can't nest another) ── #}
-                <div class="border-t border-gray-100 pt-4">
-                    <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.lists.tags.title'|trans({}, 'admin') }}</label>
-
-                    {% if display_tags is empty %}
-                        <p class="text-xs italic text-gray-400">{{ 'responsibilities.lists.tags.empty'|trans({}, 'admin') }}</p>
-                    {% else %}
-                        <div class="mb-2 flex flex-wrap gap-1.5">
-                            {% for row in display_tags %}
-                                {% if row.inherited %}
-                                    <span title="{{ 'responsibilities.lists.tags.inherited_hint'|trans({}, 'admin') }}"
-                                          class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-500">
-                                        {{ ux_icon('heroicons:tag', {class: 'h-3 w-3'}) }}
-                                        {{ row.tag.name }}
-                                    </span>
-                                {% else %}
-                                    <span class="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-xs text-violet-700">
-                                        {{ ux_icon('heroicons:tag', {class: 'h-3 w-3'}) }}
-                                        {{ row.tag.name }}
-                                        <button type="button" data-action="live#action"
-                                                data-live-action-param="removeTag" data-live-tag-id-param="{{ row.tag.id }}"
-                                                class="ml-0.5 shrink-0 text-violet-400 hover:text-violet-700">
-                                            {{ ux_icon('heroicons:x-mark', {class: 'h-3 w-3'}) }}
-                                        </button>
-                                    </span>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-
-                    <datalist id="existing-tag-names">
-                        {% for name in existing_tag_names %}<option value="{{ name }}">{% endfor %}
-                    </datalist>
-                    <form data-action="submit->live#action:prevent" data-live-action-param="addTag"
-                          class="flex items-center gap-2">
-                        <input type="text"
-                               list="existing-tag-names"
-                               data-model="norender|newTagName"
-                               value="{{ newTagName }}"
-                               placeholder="{{ 'responsibilities.lists.tags.add_placeholder'|trans({}, 'admin') }}"
-                               class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
-                                      placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
-                        <button type="submit"
-                                class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white
-                                       hover:bg-forest-700 transition-colors"
-                                title="{{ 'responsibilities.lists.tags.add'|trans({}, 'admin') }}">
-                            {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
-                        </button>
-                    </form>
                 </div>
 
                 {# ── Save / delete ────────────────────────────────────── #}

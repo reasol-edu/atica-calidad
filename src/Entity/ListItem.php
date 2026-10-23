@@ -43,45 +43,24 @@ class ListItem
     private Collection $children;
 
     /**
-     * A loose cross-reference from this item to a profile or subprofile (e.g. a "Matemáticas" item
-     * associated with the "Jefatura de departamento" subprofile it falls under) — unrelated to the
-     * parent/child hierarchy. Mirrors the (profile, listItem) pair used everywhere else in the app
-     * to identify "a profile, or one specific subprofile of it" (see ProfileAssignmentRow):
-     * $associatedProfileListItem is only ever set alongside a non-null $associatedProfile, and only
-     * to one of that profile's own leaf descendants (see setAssociation()). Deleting either the
-     * profile or the list item just clears the corresponding column back to null (ON DELETE SET
-     * NULL) instead of blocking the deletion — but deleting the leaf alone would otherwise leave
-     * $associatedProfile dangling on its own, pointing at a list-associated profile with no
-     * subprofile chosen, which is never a state setAssociation() allows in the first place; the
-     * getters below paper over that by treating it as no association at all (see
-     * hasConsistentAssociation()).
+     * The profiles/subprofiles this item is associated with (e.g. a "Matemáticas" item with the
+     * "Jefatura de departamento" subprofile it falls under) — loose cross-references unrelated to
+     * the parent/child hierarchy, any number of them. See ListItemProfile and
+     * getEffectiveProfileAssociations() for what applies to an item that has none of its own.
+     *
+     * @var Collection<int, ListItemProfile>
      */
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?SpecificProfile $associatedProfile = null;
-
-    #[ORM\ManyToOne(targetEntity: self::class)]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
-    private ?self $associatedProfileListItem = null;
+    #[ORM\OneToMany(targetEntity: ListItemProfile::class, mappedBy: 'listItem', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $profileAssociations;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private EducationalCentre $educationalCentre;
 
-    /**
-     * Tags attached directly to this item — inherited by every descendant
-     * (see getEffectiveTags()). Attachable at any depth, not just leaves.
-     *
-     * @var Collection<int, Tag>
-     */
-    #[ORM\ManyToMany(targetEntity: Tag::class)]
-    #[ORM\JoinTable(name: 'list_item_tag')]
-    private Collection $tags;
-
     public function __construct()
     {
-        $this->children = new ArrayCollection();
-        $this->tags     = new ArrayCollection();
+        $this->children            = new ArrayCollection();
+        $this->profileAssociations = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -156,62 +135,113 @@ class ListItem
         return $this->parent === null;
     }
 
-    /**
-     * A list-associated profile's own subprofile leaf is a separate row (see
-     * $associatedProfileListItem), which the database only nulls on ITS OWN deletion — deleting
-     * the leaf doesn't also touch $associatedProfile. Without this check, that would silently turn
-     * "associated with subprofile X of profile Y" into "associated with the whole of profile Y",
-     * which is never a valid state for a list-associated profile (setAssociation() never allows
-     * setting one without a subprofile) — so treat it as no association at all instead.
-     */
-    private function hasConsistentAssociation(): bool
+    /** @return Collection<int, ListItemProfile> this item's own associations (not the inherited ones) */
+    public function getProfileAssociations(): Collection
     {
-        if ($this->associatedProfile === null) {
-            return true;
-        }
-
-        return $this->associatedProfile->getListItem() === null || $this->associatedProfileListItem !== null;
+        return $this->profileAssociations;
     }
 
-    public function getAssociatedProfile(): ?SpecificProfile
-    {
-        return $this->hasConsistentAssociation() ? $this->associatedProfile : null;
-    }
-
-    /** The specific subprofile ("Jefatura de departamento" leaf) the association points to — null if unset, or if it points at a plain, non-list-associated profile. */
-    public function getAssociatedProfileListItem(): ?self
-    {
-        return $this->hasConsistentAssociation() ? $this->associatedProfileListItem : null;
-    }
-
+    /** Whether this item has associations of its own. */
     public function isAssociated(): bool
     {
-        return $this->getAssociatedProfile() !== null;
+        return !$this->profileAssociations->isEmpty();
+    }
+
+    public function hasProfileAssociation(SpecificProfile $profile, ?ListItem $subprofile): bool
+    {
+        return $this->profileAssociations->exists(
+            static fn (int $i, ListItemProfile $a): bool => $a->getSpecificProfile() === $profile && $a->getSubprofile() === $subprofile
+        );
     }
 
     /**
-     * Associates this item with a profile — either a plain one ($listItem left null) or, for a
-     * list-associated profile, one specific subprofile ($listItem, one of the profile's own leaf
-     * descendants). Pass null to clear the association entirely.
+     * Adds an association — a plain profile ($subprofile left null) or, for a list-associated
+     * profile, a subprofile of it: one of the profile's own leaf descendants, or an intermediate
+     * node above some of them, meaning all of those leaves. A list-associated profile always names
+     * where in its list, never the profile as a whole.
      */
-    public function setAssociation(?SpecificProfile $profile, ?ListItem $listItem = null): static
+    public function addProfileAssociation(SpecificProfile $profile, ?ListItem $subprofile = null): static
     {
-        if ($profile === null && $listItem !== null) {
+        if ($profile->getEducationalCentre() !== $this->educationalCentre) {
+            throw new \LogicException('A list item cannot be associated with a profile from another centre.');
+        }
+        if ($subprofile !== null && $subprofile->getEducationalCentre() !== $this->educationalCentre) {
+            throw new \LogicException('A list item cannot be associated with a subprofile from another centre.');
+        }
+        if ($subprofile === null && $profile->getListItem() !== null) {
+            throw new \LogicException('A list-associated profile must be associated through one of its subprofiles.');
+        }
+
+        if (!$this->hasProfileAssociation($profile, $subprofile)) {
+            $this->profileAssociations->add(new ListItemProfile($this, $profile, $subprofile));
+        }
+
+        return $this;
+    }
+
+    public function removeProfileAssociation(ListItemProfile $association): static
+    {
+        $this->profileAssociations->removeElement($association);
+
+        return $this;
+    }
+
+    public function clearProfileAssociations(): static
+    {
+        $this->profileAssociations->clear();
+
+        return $this;
+    }
+
+    /**
+     * Replaces every association with this single one — or with none, for a null profile. A
+     * shortcut for the common "this item belongs to exactly this" case.
+     */
+    public function setAssociation(?SpecificProfile $profile, ?ListItem $subprofile = null): static
+    {
+        if ($profile === null && $subprofile !== null) {
             throw new \LogicException('A subprofile cannot be set without its profile.');
         }
 
-        if ($profile !== null && $profile->getEducationalCentre() !== $this->educationalCentre) {
-            throw new \LogicException('A list item cannot be associated with a profile from another centre.');
+        $this->clearProfileAssociations();
+        if ($profile !== null) {
+            $this->addProfileAssociation($profile, $subprofile);
         }
-
-        if ($listItem !== null && $listItem->getEducationalCentre() !== $this->educationalCentre) {
-            throw new \LogicException('A list item cannot be associated with a subprofile from another centre.');
-        }
-
-        $this->associatedProfile         = $profile;
-        $this->associatedProfileListItem = $listItem;
 
         return $this;
+    }
+
+    /**
+     * The item whose associations apply to this one: itself when it has some, otherwise its
+     * nearest ancestor that does — an element with none of its own takes those of the closest
+     * parent that has them (and only those: its own, when it has any, are never added to). Null when
+     * neither it nor any ancestor has any.
+     */
+    public function getAssociationSource(): ?self
+    {
+        $seen = [];
+        for ($node = $this; $node !== null && !isset($seen[spl_object_id($node)]); $node = $node->parent) {
+            $seen[spl_object_id($node)] = true;
+            if ($node->isAssociated()) {
+                return $node;
+            }
+        }
+
+        return null;
+    }
+
+    /** @return Collection<int, ListItemProfile> the associations that apply to this item: its own, or those it inherits */
+    public function getEffectiveProfileAssociations(): Collection
+    {
+        return $this->getAssociationSource()?->getProfileAssociations() ?? new ArrayCollection();
+    }
+
+    /** True when the associations that apply to this item come from an ancestor, not from itself. */
+    public function hasInheritedAssociation(): bool
+    {
+        $source = $this->getAssociationSource();
+
+        return $source !== null && $source !== $this;
     }
 
     public function isLeaf(): bool
@@ -235,46 +265,5 @@ class ListItem
         $this->educationalCentre = $educationalCentre;
 
         return $this;
-    }
-
-    /** @return Collection<int, Tag> tags attached directly to this item (not inherited ones) */
-    public function getTags(): Collection
-    {
-        return $this->tags;
-    }
-
-    public function addTag(Tag $tag): static
-    {
-        if (!$this->tags->contains($tag)) {
-            $this->tags->add($tag);
-        }
-
-        return $this;
-    }
-
-    public function removeTag(Tag $tag): static
-    {
-        $this->tags->removeElement($tag);
-
-        return $this;
-    }
-
-    /**
-     * Tags visible on this item: its own, plus every ancestor's.
-     *
-     * @return Collection<int, Tag>
-     */
-    public function getEffectiveTags(): Collection
-    {
-        $effective = new ArrayCollection($this->tags->toArray());
-        for ($ancestor = $this->parent; $ancestor !== null; $ancestor = $ancestor->getParent()) {
-            foreach ($ancestor->getTags() as $tag) {
-                if (!$effective->contains($tag)) {
-                    $effective->add($tag);
-                }
-            }
-        }
-
-        return $effective;
     }
 }

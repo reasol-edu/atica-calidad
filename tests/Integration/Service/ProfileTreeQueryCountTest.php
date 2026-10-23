@@ -104,6 +104,52 @@ final class ProfileTreeQueryCountTest extends RepositoryTestCase
         self::assertLessThanOrEqual($smallQ + 1, $bigQ, "events visibility: {$smallQ} queries with 2 leaves, {$bigQ} with 25 leaves and 20 events");
     }
 
+    public function testSubmissionSlotsCostTheSameWhateverTheNumberOfLeavesAndAssociations(): void
+    {
+        $measure = function (int $leaves): int {
+            $centre   = (new EducationalCentre())->setCode('12345678')->setName('Centro')->setCity('Ciudad');
+            $category = (new \App\Entity\ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+            $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+            $folder   = (new Folder())->setDocumentSection($section)->setName('Carpeta');
+            $dept     = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+            $deptFp   = (new ListItem())->setEducationalCentre($centre)->setName('FP')->setParent($dept);
+            $jefe     = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($dept);
+            $folder->addUploadProfile($jefe, null);
+            $evaluation = (new ListItem())->setEducationalCentre($centre)->setName('Evaluación');
+            $branch     = (new ListItem())->setEducationalCentre($centre)->setName('FP')->setParent($evaluation);
+            $branch->addProfileAssociation($jefe, $deptFp);
+            $activity = (new \App\Entity\Activity())->setCategory($category)->setTitle('Actividad')->setStart(1, 9)->setEnd(30, 9)->setFolder($folder)->setListItem($evaluation);
+            $this->persist($centre, $category, $section, $folder, $dept, $deptFp, $jefe, $evaluation, $branch, $activity);
+            for ($i = 0; $i < 4; ++$i) {
+                $this->persist((new ListItem())->setEducationalCentre($centre)->setName('Subperfil ' . $i)->setParent($deptFp));
+            }
+            for ($i = 0; $i < $leaves; ++$i) {
+                $leaf = (new ListItem())->setEducationalCentre($centre)->setName('Hoja ' . $i)->setParent($branch);
+                if ($i % 3 === 0) {
+                    $leaf->addProfileAssociation($jefe, $deptFp); // some leaves with associations of their own
+                }
+                $this->persist($leaf);
+            }
+
+            /** @var \App\Service\ActivitySubmissionSlotBuilder $builder */
+            $builder = self::getContainer()->get(\App\Service\ActivitySubmissionSlotBuilder::class);
+            $this->em->clear();
+            $activity = $this->em->getReference(\App\Entity\Activity::class, $activity->getId());
+
+            return $this->queriesOf(static function () use ($builder, $activity, $leaves): void {
+                self::assertCount($leaves * 4, $builder->buildSlots($activity), 'one submission per leaf and per subprofile under FP');
+            });
+        };
+
+        $small = $measure(3);
+        $this->tearDown();
+        $this->setUp();
+        $big = $measure(24);
+
+        self::assertGreaterThan(0, $small);
+        self::assertLessThanOrEqual($small, $big, "submission slots: {$small} queries with 3 leaves, {$big} with 24");
+    }
+
     public function testHoldingChecksAndUploadRowsCostTheSameWhateverTheNumberOfLeavesUnderTheNode(): void
     {
         $measure = function (int $leaves): int {

@@ -28,13 +28,9 @@ ESO-A»), gestionada desde **Responsabilidades → Listas**. Sirve de base para 
 específicos sin repetir trabajo.
 
 **Elemento de lista**
-: Cada nodo de una lista, a cualquier profundidad. Puede estar activo o inactivo, y puede llevar
-sus propias etiquetas, que heredan también todos sus descendientes.
-
-**Etiqueta**
-: Marca de texto libre que se asigna a un elemento de lista y se hereda hacia abajo por sus
-descendientes. Se crea sobre la marcha al escribirla y se elimina automáticamente en cuanto deja de
-estar asignada a ningún elemento.
+: Cada nodo de una lista, a cualquier profundidad. Puede estar activo o inactivo, y puede asociarse
+a uno o varios perfiles o subperfiles; sin asociaciones propias, hereda las del elemento padre más
+cercano que las tenga.
 
 **Perfil específico**
 : Responsabilidad personalizada que cada centro crea en **Responsabilidades → Perfiles

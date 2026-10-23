@@ -23,7 +23,7 @@ final class ActivityChangeRecorder
 {
     /** Every setting that is tracked, in display order. */
     public const array FIELDS = [
-        'title', 'description', 'category', 'deadline', 'element_deadlines', 'list_item', 'tags', 'folder', 'scope',
+        'title', 'description', 'category', 'deadline', 'element_deadlines', 'list_item', 'folder', 'scope',
         'required', 'hidden', 'auto_complete', 'start_enforced', 'end_enforced', 'grace_days', 'prefix', 'general', 'related_documents',
     ];
 
@@ -94,7 +94,6 @@ final class ActivityChangeRecorder
             'deadline'          => sprintf('%d/%d – %d/%d', $activity->getStartDay(), $activity->getStartMonth(), $activity->getEndDay(), $activity->getEndMonth()),
             'element_deadlines' => (string) $activity->getListItemDeadlines()->count(),
             'list_item'         => $activity->getListItem()?->getName() ?? '',
-            'tags'              => $this->tagNames($activity),
             'folder'            => $activity->getFolder()?->getName() ?? '',
             'scope'             => $activity->getSubmissionScope()->value,
             'required'          => $activity->isRequired() ? '1' : '0',
@@ -107,13 +106,5 @@ final class ActivityChangeRecorder
             'general'           => $activity->isGeneral() ? '1' : '0',
             default             => (string) $activity->getRelatedDocuments()->count(),
         };
-    }
-
-    private function tagNames(Activity $activity): string
-    {
-        $tags = array_map(static fn ($tag): string => $tag->getName(), $activity->getTags()->toArray());
-        sort($tags);
-
-        return implode(', ', $tags);
     }
 }

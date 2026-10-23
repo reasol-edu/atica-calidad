@@ -72,7 +72,7 @@ inferior de cada nivel añade elementos nuevos ahí mismo. El botón de ordenar 
 reordena alfabéticamente todos los elementos del nivel actual de una vez.
 
 En ambos tamaños, tocar el nombre de un elemento abre el mismo panel de edición debajo (nombre,
-estado, asociación a un perfil, etiquetas) — arrastrar nunca abre el panel, solo reordena o mueve.
+estado, asociaciones a perfiles) — arrastrar nunca abre el panel, solo reordena o mueve.
 
 ### Asociar un elemento con un perfil
 
@@ -83,12 +83,24 @@ subperfiles](#asociar-un-perfil-a-una-lista-subperfiles): esta usa
 [Actividades](08-actividades.md#campos-de-una-actividad) para decidir a qué perfil corresponde la
 entrega nombrada por cada hoja de una lista.
 
+Un elemento puede tener **varios** perfiles o subperfiles asociados. Con un perfil asociado a una
+lista se puede elegir una hoja concreta (p. ej. «Jefatura de Departamento Sanidad») o un **elemento
+intermedio** (p. ej. «Jefatura de Departamento FP (todos)»), que equivale a elegir una a una todas las
+hojas que cuelgan de él: la actividad pedirá una entrega por cada una de ellas. No se ofrece el perfil
+entero: un elemento asociado a un perfil con lista indica siempre en qué punto de ella.
+
+Un elemento **sin asociaciones propias hereda las del elemento padre más cercano que las tenga**: basta
+con asociar la rama («FP» de la lista «Evaluación») para que lo apliquen todas sus hojas. En el árbol,
+el enlace atenuado indica que se hereda, y el panel del elemento dice de dónde. Si el elemento tiene
+asociaciones propias, usa solo esas: no se suman a las del padre.
+
 Para un elemento a la vez, se hace desde su panel de edición (**Asociado a**, con el mismo
-buscador de perfil/subperfil que en el resto de la aplicación). Para varios a la vez, **Seleccionar
+buscador de perfil/subperfil que en el resto de la aplicación, en el que se pueden elegir varios).
+Guardar deja al elemento con exactamente los elegidos. Para varios elementos a la vez, **Seleccionar
 varios** —junto al título en pantallas grandes, o junto al contador de elementos en pequeñas—
 sustituye el botón de cada elemento por una casilla; con uno o más marcados aparece una barra con
-el mismo buscador y un botón **Asignar** que aplica el mismo perfil/subperfil a todos los marcados
-de una vez (o se lo quita a todos, si se deja en «Sin asociar»). La selección no se limita a los
+el mismo buscador y dos botones: **Asignar** **añade** los perfiles elegidos a los que ya tenga cada
+elemento marcado, y **Quitar asociaciones** se las quita todas. La selección no se limita a los
 hijos de un mismo elemento: se puede marcar en varias ramas distintas antes de asignar.
 
 ### Elementos activos e inactivos
@@ -135,26 +147,6 @@ existen y se reactivarían (si estaban inactivos) y cuáles ya no aparecen en el
   eliminar si todos sus hijos también se pueden eliminar.
 
 Nada se aplica hasta confirmar la previsualización.
-
-### Etiquetas
-
-Cualquier elemento de una lista, esté al nivel que esté (no solo las hojas), puede llevar sus
-propias etiquetas. Las etiquetas se **heredan hacia abajo**: un elemento ve tanto las suyas propias
-como las de todos sus antecesores.
-
-Por ejemplo, si etiquetas el elemento «ESO/Bach» (hijo de «Departamento») con la etiqueta
-`ESO/Bachillerato`, tanto «Matemáticas» como «Biología y Geología» —sus hijos— mostrarán esa
-etiqueta como heredada, sin necesidad de repetirla en cada uno.
-
-Las etiquetas se crean sobre la marcha, escribiendo su nombre en el campo de la sección
-**Etiquetas** del elemento — si ya existe una con ese nombre en el centro (en cualquier otro
-elemento), se reutiliza; si no, se crea al vuelo. No hay una pantalla aparte para gestionarlas: son
-efímeras, así que cuando una etiqueta deja de estar asignada a cualquier elemento se elimina
-automáticamente, sin dejar huérfanas que limpiar a mano.
-
-En el panel de detalle, todas las etiquetas visibles en el elemento —propias y heredadas— se
-muestran juntas, ordenadas alfabéticamente; las heredadas se distinguen visualmente (no se pueden
-quitar desde ahí, hay que quitarlas del elemento donde están definidas).
 
 ## Perfiles específicos
 

@@ -19,7 +19,7 @@ final class EducationalCentreVoter extends Voter
     public const SECTION = 'educational_centre.section';
 
     /**
-     * Access to the Responsibilities section (specific profiles, lists, tags).
+     * Access to the Responsibilities section (specific profiles, lists).
      * Broader than SECTION: also granted to the centre's quality managers,
      * not just its admins. Subject: EducationalCentre
      */

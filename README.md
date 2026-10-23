@@ -41,7 +41,7 @@ administradores globales pueden gestionar todos los centros desde la sección **
   activa), subida por arrastrar y soltar, y búsqueda en tres niveles (global, por sección y
   paleta de comandos **⌘K**). Exportación e importación completa del árbol en JSON.
 - **Responsabilidades** — listas jerárquicas de nombres propias del centro (grupos, departamentos,
-  materias…) con etiquetas heredables; **perfiles específicos** (tutorías, jefaturas…) que generan
+  materias…) asociables a perfiles; **perfiles específicos** (tutorías, jefaturas…) que generan
   un **subperfil** automático por cada elemento de una lista; y una vista transversal para asignar
   docentes a perfiles. Importación de grupos y materias desde **Séneca** (CSV) con previsualización
   de altas, bajas y reactivaciones.
@@ -100,7 +100,7 @@ Capítulos:
 | Calendario | Navegación, eventos de centro y días no lectivos |
 | Informes | Listado maestro de documentos, revisiones de documentos y estado de las actividades |
 | Administrar el centro educativo | Referencia de cada sección del hub de centro |
-| Responsabilidades | Listas jerárquicas, etiquetas, perfiles específicos con subperfiles e importación desde Séneca |
+| Responsabilidades | Listas jerárquicas, perfiles específicos con subperfiles e importación desde Séneca |
 | Árbol documental | Secciones, carpetas, documentos, revisiones y flujo de visto bueno |
 | Actividades | Plazos y tareas periódicas, entregas y completado |
 | Administrar la plataforma | Administración global, ajustes, correo, copias de seguridad |

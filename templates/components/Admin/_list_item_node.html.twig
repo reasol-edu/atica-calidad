@@ -28,8 +28,12 @@
                 {{ ux_icon('heroicons:eye-slash', {class: 'h-3.5 w-3.5'}) }}
             </span>
         {% endif %}
-        {% if item.associatedProfile %}
+        {% if item.associated %}
             <span title="{{ 'responsibilities.lists.association.title'|trans({}, 'admin') }}" class="shrink-0 text-violet-400">
+                {{ ux_icon('heroicons:link', {class: 'h-3.5 w-3.5'}) }}
+            </span>
+        {% elseif item.hasInheritedAssociation %}
+            <span title="{{ 'responsibilities.lists.association.inherited_icon'|trans({'%name%': item.associationSource.name}, 'admin') }}" class="shrink-0 text-violet-200">
                 {{ ux_icon('heroicons:link', {class: 'h-3.5 w-3.5'}) }}
             </span>
         {% endif %}

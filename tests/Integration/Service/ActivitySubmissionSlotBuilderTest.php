@@ -17,7 +17,6 @@ use App\Entity\ListItem;
 use App\Entity\PersonName;
 use App\Entity\SpecificProfile;
 use App\Entity\SpecificProfileAssignment;
-use App\Entity\Tag;
 use App\Entity\Teacher;
 use App\Model\ActivitySubmissionSlot;
 use App\Service\ActivitySubmissionSlotBuilder;
@@ -240,63 +239,184 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         self::assertSame($matematicasDpto, $slots[0]->listItem);
     }
 
-    public function testTagFilterExcludesLeavesMissingARequiredTag(): void
+    /**
+     * "Departamento" (ESO/Bach > Matemáticas; FP > Informática, Sanidad) is the list of the profile
+     * Jefatura, with the folder accepting any of its subprofiles; "Evaluación" is the activity's list
+     * (ESO/Bach > 1ªEV, 2ªEV, Ordinaria, Extraordinaria; FP > 1ªEV, 2ªEV, Final 1, Final 2).
+     *
+     * @return array<string, mixed>
+     */
+    private function evaluationScenario(): array
     {
         $centre   = $this->centre();
         $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
         $folder   = $this->folder($centre);
-        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
-        $folder->addUploadProfile($profile);
 
-        $tag = (new Tag())->setEducationalCentre($centre)->setName('Bachillerato');
+        $dept   = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+        $deptEso = (new ListItem())->setEducationalCentre($centre)->setName('ESO/Bach')->setParent($dept);
+        $mates  = (new ListItem())->setEducationalCentre($centre)->setName('Matemáticas')->setParent($deptEso);
+        $deptFp = (new ListItem())->setEducationalCentre($centre)->setName('FP')->setParent($dept);
+        $infor  = (new ListItem())->setEducationalCentre($centre)->setName('Informática')->setParent($deptFp);
+        $sani   = (new ListItem())->setEducationalCentre($centre)->setName('Sanidad')->setParent($deptFp);
+        $jefe   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($dept);
+        $folder->addUploadProfile($jefe, null);
 
-        $root       = (new ListItem())->setEducationalCentre($centre)->setName('Materia');
-        $tagged     = (new ListItem())->setEducationalCentre($centre)->setName('Física');
-        $untagged   = (new ListItem())->setEducationalCentre($centre)->setName('Dibujo');
-        $tagged->setParent($root);
-        $untagged->setParent($root);
-        $tagged->setAssociation($profile, null);
-        $untagged->setAssociation($profile, null);
-        $tagged->addTag($tag);
+        $evaluation = (new ListItem())->setEducationalCentre($centre)->setName('Evaluación');
+        $evalEso    = (new ListItem())->setEducationalCentre($centre)->setName('ESO/Bach')->setParent($evaluation);
+        $evalFp     = (new ListItem())->setEducationalCentre($centre)->setName('FP')->setParent($evaluation);
+        $esoLeaves  = [];
+        foreach (['1ªEV', '2ªEV', 'Ordinaria', 'Extraordinaria'] as $name) {
+            $esoLeaves[] = (new ListItem())->setEducationalCentre($centre)->setName($name)->setParent($evalEso);
+        }
+        $fpLeaves = [];
+        foreach (['1ªEV', '2ªEV', 'Final 1', 'Final 2'] as $name) {
+            $fpLeaves[] = (new ListItem())->setEducationalCentre($centre)->setName($name)->setParent($evalFp);
+        }
 
-        $activity = $this->activity($category)->setFolder($folder)->setListItem($root);
-        $activity->addTag($tag);
+        $activity = $this->activity($category)->setFolder($folder)->setListItem($evaluation);
+        $this->persist(
+            $centre, $category, $folder->getDocumentSection(), $folder,
+            $dept, $deptEso, $mates, $deptFp, $infor, $sani, $jefe,
+            $evaluation, $evalEso, $evalFp, $activity, ...$esoLeaves, ...$fpLeaves,
+        );
 
-        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $tag, $root, $tagged, $untagged, $activity);
-
-        $slots = $this->builder->buildSlots($activity);
-
-        self::assertCount(1, $slots);
-        self::assertSame('Física', $slots[0]->displayName);
+        return compact('centre', 'folder', 'activity', 'jefe', 'deptFp', 'infor', 'sani', 'mates', 'evalFp', 'evalEso', 'fpLeaves', 'esoLeaves');
     }
 
-    public function testTagFilterHonoursInheritedAncestorTags(): void
+    /** @param ActivitySubmissionSlot[] $slots @return list<string> "leaf|owner" sorted */
+    private function slotSummary(array $slots): array
+    {
+        $summary = array_map(static fn (ActivitySubmissionSlot $s): string => $s->displayName . '|' . ($s->listItem?->getName() ?? '-'), $slots);
+        sort($summary);
+
+        return $summary;
+    }
+
+    public function testAnAssociationToAnIntermediateNodeOwesOneSubmissionPerSubprofileUnderItForEveryLeafOfTheBranch(): void
+    {
+        ['activity' => $activity, 'jefe' => $jefe, 'deptFp' => $deptFp, 'evalFp' => $evalFp] = $this->evaluationScenario();
+        $evalFp->addProfileAssociation($jefe, $deptFp); // the branch FP of "Evaluación" belongs to the heads of FP
+        $this->em->flush();
+
+        $slots = $this->builder->buildSlots($activity);
+
+        self::assertSame(
+            [
+                'FP › 1ªEV|Informática', 'FP › 1ªEV|Sanidad',
+                'FP › 2ªEV|Informática', 'FP › 2ªEV|Sanidad',
+                'FP › Final 1|Informática', 'FP › Final 1|Sanidad',
+                'FP › Final 2|Informática', 'FP › Final 2|Sanidad',
+            ],
+            $this->slotSummary($slots),
+            '4 leaves of FP x 2 heads of FP (Informática, Sanidad); ESO/Bach, with no owner and several folder rows, asks nobody',
+        );
+        foreach ($slots as $slot) {
+            self::assertSame($jefe, $slot->profile);
+            self::assertStringStartsWith('FP › ', $slot->displayName);
+        }
+    }
+
+    public function testALeafWithNoAssociationOfItsOwnTakesTheOnesOfItsClosestAssociatedParent(): void
+    {
+        ['activity' => $activity, 'jefe' => $jefe, 'infor' => $infor, 'evalFp' => $evalFp, 'evalEso' => $evalEso, 'mates' => $mates] = $this->evaluationScenario();
+        $evalFp->addProfileAssociation($jefe, $infor);
+        $evalEso->addProfileAssociation($jefe, $mates);
+        $this->em->flush();
+
+        $summary = $this->slotSummary($this->builder->buildSlots($activity));
+
+        self::assertCount(8, $summary);
+        self::assertCount(4, array_filter($summary, static fn (string $s): bool => str_ends_with($s, '|Informática')));
+        self::assertCount(4, array_filter($summary, static fn (string $s): bool => str_ends_with($s, '|Matemáticas')));
+    }
+
+    public function testALeafWithItsOwnAssociationsIgnoresTheParents(): void
+    {
+        ['activity' => $activity, 'jefe' => $jefe, 'infor' => $infor, 'sani' => $sani, 'evalFp' => $evalFp, 'fpLeaves' => $fpLeaves] = $this->evaluationScenario();
+        $evalFp->addProfileAssociation($jefe, $infor);
+        $fpLeaves[0]->addProfileAssociation($jefe, $sani); // the first leaf is only for Sanidad
+        $this->em->flush();
+
+        $summary = $this->slotSummary($this->builder->buildSlots($activity));
+
+        self::assertSame(
+            ['FP › 1ªEV|Sanidad', 'FP › 2ªEV|Informática', 'FP › Final 1|Informática', 'FP › Final 2|Informática'],
+            $summary,
+        );
+    }
+
+    public function testALeafWithSeveralAssociationsOwesOneSubmissionPerOwner(): void
+    {
+        ['activity' => $activity, 'jefe' => $jefe, 'infor' => $infor, 'sani' => $sani, 'fpLeaves' => $fpLeaves] = $this->evaluationScenario();
+        $fpLeaves[1]->addProfileAssociation($jefe, $infor)->addProfileAssociation($jefe, $sani);
+        $this->em->flush();
+
+        self::assertSame(['FP › 2ªEV|Informática', 'FP › 2ªEV|Sanidad'], $this->slotSummary($this->builder->buildSlots($activity)));
+    }
+
+    public function testInIndividualScopeEachHeadOfFpOwesOneSubmissionPerLeafOfTheBranch(): void
+    {
+        ['activity' => $activity, 'jefe' => $jefe, 'deptFp' => $deptFp, 'infor' => $infor, 'sani' => $sani, 'evalFp' => $evalFp] = $this->evaluationScenario();
+        $evalFp->addProfileAssociation($jefe, $deptFp);
+        $activity->setSubmissionScope(ActivitySubmissionScope::Individual);
+        $tInfor = $this->teacher('infor');
+        $tSani  = $this->teacher('sani');
+        $this->persist($tInfor, $tSani, new SpecificProfileAssignment($jefe, $infor, $tInfor), new SpecificProfileAssignment($jefe, $sani, $tSani));
+
+        $slots = $this->builder->buildSlots($activity);
+
+        self::assertCount(8, $slots, '2 heads x 4 leaves of FP');
+        foreach (['infor', 'sani'] as $username) {
+            $own = array_filter($slots, static fn (ActivitySubmissionSlot $s): bool => $s->teacher?->getUsername() === $username);
+            self::assertCount(4, $own, $username);
+        }
+    }
+
+    public function testAnAssociationOnlyOwesWhatTheFolderAccepts(): void
+    {
+        ['activity' => $activity, 'folder' => $folder, 'jefe' => $jefe, 'infor' => $infor, 'deptFp' => $deptFp, 'evalFp' => $evalFp] = $this->evaluationScenario();
+        $evalFp->addProfileAssociation($jefe, $deptFp);
+        $folder->getUploadProfiles()->clear();
+        $folder->addUploadProfile($jefe, $infor); // the folder takes uploads from Informática only
+        $this->em->flush();
+
+        $summary = $this->slotSummary($this->builder->buildSlots($activity));
+
+        $fp = array_values(array_filter($summary, static fn (string $s): bool => str_starts_with($s, 'FP › ')));
+        self::assertSame(['FP › 1ªEV|Informática', 'FP › 2ªEV|Informática', 'FP › Final 1|Informática', 'FP › Final 2|Informática'], $fp, 'Sanidad is not among the folder\'s rows: it owes nothing');
+        // The leaves with no owner at all fall back to the folder's single upload row, as before.
+        self::assertCount(4, array_filter($summary, static fn (string $s): bool => str_starts_with($s, 'ESO/Bach › ')));
+    }
+
+    /** With several folder rows, which leaves are asked (and of whom) is decided by the associations alone, own or inherited. */
+    public function testOnlyTheLeavesWithAnOwnerAreAskedWhenTheFolderHasSeveralRows(): void
     {
         $centre   = $this->centre();
         $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
         $folder   = $this->folder($centre);
-        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
-        $folder->addUploadProfile($profile);
+        $jefatura = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $tutoria  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutoría');
+        $folder->addUploadProfile($jefatura);
+        $folder->addUploadProfile($tutoria);
 
-        $tag = (new Tag())->setEducationalCentre($centre)->setName('Bachillerato');
-
-        $root  = (new ListItem())->setEducationalCentre($centre)->setName('Materia');
-        $group = (new ListItem())->setEducationalCentre($centre)->setName('Ciencias');
-        $leaf  = (new ListItem())->setEducationalCentre($centre)->setName('Física');
-        $group->setParent($root);
-        $leaf->setParent($group);
-        $leaf->setAssociation($profile, null);
-        $group->addTag($tag); // tag lives on the ancestor, not the leaf itself
+        $root    = (new ListItem())->setEducationalCentre($centre)->setName('Materia');
+        $group   = (new ListItem())->setEducationalCentre($centre)->setName('Ciencias')->setParent($root);
+        $owned   = (new ListItem())->setEducationalCentre($centre)->setName('Física')->setParent($group);
+        $own     = (new ListItem())->setEducationalCentre($centre)->setName('Química')->setParent($group);
+        $nobody  = (new ListItem())->setEducationalCentre($centre)->setName('Dibujo')->setParent($root);
+        $group->addProfileAssociation($jefatura);
+        $own->addProfileAssociation($tutoria);
 
         $activity = $this->activity($category)->setFolder($folder)->setListItem($root);
-        $activity->addTag($tag);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $jefatura, $tutoria, $root, $group, $owned, $own, $nobody, $activity);
 
-        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $tag, $root, $group, $leaf, $activity);
+        $slots = array_map(
+            static fn (ActivitySubmissionSlot $s): string => $s->displayName . '|' . $s->profile->getName(),
+            $this->builder->buildSlots($activity),
+        );
+        sort($slots);
 
-        $slots = $this->builder->buildSlots($activity);
-
-        self::assertCount(1, $slots);
-        self::assertSame('Ciencias › Física', $slots[0]->displayName);
+        self::assertSame(['Ciencias › Física|Jefatura', 'Ciencias › Química|Tutoría'], $slots, 'Dibujo has no owner and the folder has two rows: nobody is asked');
     }
 
     public function testByProfileScopeKeepsSlotsSharedWithNoTeacher(): void

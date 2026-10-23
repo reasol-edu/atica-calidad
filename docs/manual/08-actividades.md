@@ -155,7 +155,7 @@ Una actividad eliminada, con sus completados, pasa a la
 En el menú **⋮** de cada actividad, **Historial de cambios** abre un panel (solo para quien puede
 editar actividades) con quién la creó, duplicó o modificó y cuándo. Cada modificación lista **qué
 ajuste cambió, de qué valor a cuál**: título, categoría, plazo general, número de elementos con plazo
-propio, lista, etiquetas, carpeta, quién entrega, obligatoria, oculta, completado automático, fechas
+propio, lista, carpeta, quién entrega, obligatoria, oculta, completado automático, fechas
 respetadas, días de gracia, prefijo del nombre del fichero, a quién se le pide y documentos
 relacionados. De la descripción solo se anota que se ha modificado. Un guardado que no cambia nada no
 deja entrada. El historial empieza con la primera modificación posterior a su puesta en marcha, se
@@ -189,9 +189,8 @@ aplicó el cambio.
 | Título / Descripción | Texto libre. |
 | Fecha de inicio / Fecha de fin | Solo **día y mes** (sin año): la actividad se repite automáticamente cada curso académico en esas fechas. Cada fecha se sitúa dentro del curso en vigor según el ajuste [Inicio del curso académico](10-administrar-la-plataforma.md#curso-academico) (15 de septiembre por defecto): una actividad de enero a febrero, consultada en octubre, se refiere a la del próximo enero, no a la del enero ya pasado. |
 | Carpeta | Opcional. Si se elige una, la actividad pasa a tener entregas (ver [Entregas y revisión](#entregas-y-revision)); si se deja vacía, se completa a mano. |
-| Lista para nombrar entregas | Opcional. Un elemento de [Listas](06-responsabilidades.md#listas) (p. ej. «Materia», o una rama concreta): **cada hoja que cuelga de él** —a cualquier profundidad— es una entrega esperada, con nombre igual a su **ruta bajo el elemento elegido** (p. ej. «Ciencias › Física»). Si la carpeta tiene un único perfil de subida, todas las hojas cuentan; si tiene varios, solo cuentan las hojas asociadas (en Listas) a uno de ellos, que además determina a quién le corresponde. |
-| Etiquetas | Opcional. Con etiquetas, la actividad solo pide los elementos de la lista que **tienen todas** (propias o heredadas de sus ramas). |
-| Plazos por elemento | Aparece al elegir una lista: un plazo propio opcional para cada elemento. **Solo se listan los elementos que la actividad pide**, es decir, los que cumplen las etiquetas elegidas arriba: al cambiar las etiquetas la lista se actualiza, y los plazos de los elementos que quedan fuera dejan de aplicarse. |
+| Lista para nombrar entregas | Opcional. Un elemento de [Listas](06-responsabilidades.md#listas) (p. ej. «Materia», o una rama concreta): **cada hoja que cuelga de él** —a cualquier profundidad— es una entrega esperada, con nombre igual a su **ruta bajo el elemento elegido** (p. ej. «Ciencias › Física»). Si la carpeta tiene un único perfil de subida, todas las hojas cuentan; si tiene varios, solo cuentan las hojas asociadas (en Listas, directamente o por heredarlo de su elemento padre) a alguno de ellos, que además determina a quién le corresponde. Una hoja con varias asociaciones, o asociada a un elemento intermedio de la lista de un perfil, se pide **una vez por cada subperfil** que abarca (p. ej. «FP» abarca «Informática» y «Sanidad»: cada jefatura entrega la suya), siempre que la carpeta acepte subidas de ese subperfil. |
+| Plazos por elemento | Aparece al elegir una lista: un plazo propio opcional para cada elemento hoja. |
 | Documentos relacionados | Documentos del árbol documental enlazados como lectura de apoyo, independientes de la carpeta de entregas. |
 | Obligatoria / Opcional | Solo informativo: se muestra como etiqueta, no cambia ningún permiso. |
 | Ámbito de entrega | **Por perfil** (una entrega compartida por todo el que tenga el perfil/subperfil) o **Individual** (cada docente con ese perfil entrega la suya). |

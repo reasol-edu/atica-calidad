@@ -6,12 +6,11 @@ namespace App\Twig\Components\Admin;
 
 use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
-use App\Entity\Tag;
+use App\Entity\ListItemProfile;
 use App\Model\ProfileAssignmentRow;
 use App\Repository\ListItemRepository;
 use App\Repository\SpecificProfileAssignmentRepository;
 use App\Repository\SpecificProfileRepository;
-use App\Repository\TagRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Service\ProfileAssignmentRowBuilder;
 use Doctrine\ORM\EntityManagerInterface;
@@ -30,9 +29,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * for small screens — same state and LiveActions, two renderings picked by CSS breakpoint (see
  * the component's template), mirroring DocumentSectionTreeComponent's own split. Selecting an
  * item (from either view) opens the single detail panel below, shared by both views, where
- * renaming, activation, its profile association and its tags are edited — dragging only ever
- * reorders/reparents, it never opens that panel. Tags are attached directly to any item and
- * inherited by its descendants (see ListItem).
+ * renaming, activation and its profile associations are edited — dragging only ever
+ * reorders/reparents, it never opens that panel.
  */
 #[AsLiveComponent]
 class ListItemTreeComponent extends AbstractController
@@ -70,12 +68,14 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public bool $editActive = true;
 
+    /**
+     * Keys (see ProfileAssignmentRow::key()) of the profiles/subprofiles this item is associated
+     * with — its own, not the ones it inherits from an ancestor (empty when it has none).
+     *
+     * @var string[]
+     */
     #[LiveProp(writable: true)]
-    public string $newTagName = '';
-
-    /** Key (see ProfileAssignmentRow::key()) of the profile/subprofile this item is associated with, or ''. */
-    #[LiveProp(writable: true)]
-    public string $associationKey = '';
+    public array $associationKeys = [];
 
     /** @var array<string, string> */
     #[LiveProp]
@@ -102,9 +102,14 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public array $bulkSelectedIds = [];
 
-    /** Same key format as $associationKey, but for the bulk action bar's own picker — kept separate so the two never interfere with each other. */
+    /**
+     * Same key format as $associationKeys, but for the bulk action bar's own picker — kept separate
+     * so the two never interfere with each other.
+     *
+     * @var string[]
+     */
     #[LiveProp(writable: true)]
-    public string $bulkAssociationKey = '';
+    public array $bulkAssociationKeys = [];
 
     #[LiveProp(writable: true)]
     public bool $confirmingBulkDelete = false;
@@ -117,7 +122,6 @@ class ListItemTreeComponent extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
         private readonly ListItemRepository $items,
-        private readonly TagRepository $tags,
         private readonly SpecificProfileRepository $profiles,
         private readonly SpecificProfileAssignmentRepository $assignments,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
@@ -215,36 +219,6 @@ class ListItemTreeComponent extends AbstractController
         return $this->items->findByIdAndCentre($this->selectedId, $this->centre);
     }
 
-    /** @return string[] */
-    public function getExistingTagNames(): array
-    {
-        return array_map(static fn (Tag $t): string => $t->getName(), $this->tags->findByCentre($this->centre));
-    }
-
-    /**
-     * All tags visible on the selected item (own + inherited from ancestors), merged into
-     * a single alphabetically sorted list, each flagged with whether it is inherited.
-     *
-     * @return array<int, array{tag: Tag, inherited: bool}>
-     */
-    public function getDisplayTags(): array
-    {
-        $selected = $this->getSelected();
-        if ($selected === null) {
-            return [];
-        }
-
-        $own = $selected->getTags();
-
-        $rows = array_map(
-            static fn (Tag $tag): array => ['tag' => $tag, 'inherited' => !$own->contains($tag)],
-            $selected->getEffectiveTags()->toArray()
-        );
-        usort($rows, static fn (array $a, array $b): int => $a['tag']->getName() <=> $b['tag']->getName());
-
-        return $rows;
-    }
-
     // ── Navigation actions ───────────────────────────────────────────────────
 
     #[LiveAction]
@@ -273,18 +247,23 @@ class ListItemTreeComponent extends AbstractController
     {
         $this->errors           = [];
         $this->confirmingDelete = false;
-        $this->newTagName       = '';
         $selected                = $this->getSelected();
         $this->editName          = $selected?->getName() ?? '';
         $this->editActive        = $selected?->isActive() ?? true;
-        $this->associationKey    = $this->associationKeyFor($selected);
+        $this->associationKeys   = $this->associationKeysFor($selected);
     }
 
-    private function associationKeyFor(?ListItem $item): string
+    /** @return string[] */
+    private function associationKeysFor(?ListItem $item): array
     {
-        $profile = $item?->getAssociatedProfile();
+        if ($item === null) {
+            return [];
+        }
 
-        return $profile === null ? '' : ProfileAssignmentRow::keyFor($profile, $item->getAssociatedProfileListItem());
+        return array_values(array_map(
+            static fn (ListItemProfile $a): string => ProfileAssignmentRow::keyFor($a->getSpecificProfile(), $a->getSubprofile()),
+            $item->getProfileAssociations()->toArray(),
+        ));
     }
 
     // ── Add / save / delete ──────────────────────────────────────────────────
@@ -393,10 +372,6 @@ class ListItemTreeComponent extends AbstractController
             }
         }
 
-        $ownTags = [];
-        foreach ($subtree as $node) {
-            array_push($ownTags, ...$node->getTags()->toArray());
-        }
         $parent = $selected->getParent();
 
         // Remove deepest descendants first: findSubtree() walks pre-order (parent before its
@@ -406,7 +381,6 @@ class ListItemTreeComponent extends AbstractController
             $this->em->remove($node);
         }
         $this->em->flush();
-        $this->pruneOrphanedTags($ownTags);
 
         $this->selectedId      = '';
         $this->currentParentId = $parent?->getId()->toRfc4122() ?? '';
@@ -528,70 +502,36 @@ class ListItemTreeComponent extends AbstractController
         $this->em->flush();
     }
 
-    // ── Tags ─────────────────────────────────────────────────────────────────
-
-    #[LiveAction]
-    public function addTag(): void
-    {
-        $selected = $this->getSelected();
-        $name     = trim($this->newTagName);
-        if ($selected === null || $name === '') {
-            return;
-        }
-
-        $tag = $this->tags->findOneByNameInsensitive($this->centre, $name);
-        if ($tag === null) {
-            $tag = (new Tag())->setEducationalCentre($this->centre)->setName($name);
-            $this->em->persist($tag);
-        }
-
-        $selected->addTag($tag);
-        $this->em->flush();
-
-        $this->newTagName = '';
-    }
-
-    #[LiveAction]
-    public function removeTag(#[LiveArg] string $tagId): void
-    {
-        $selected = $this->getSelected();
-        if ($selected === null) {
-            return;
-        }
-
-        $tag = $selected->getTags()->findFirst(
-            static fn (int $i, Tag $t): bool => $t->getId()->toRfc4122() === $tagId
-        );
-        if ($tag === null) {
-            return;
-        }
-
-        $selected->removeTag($tag);
-        $this->em->flush();
-        $this->pruneOrphanedTags([$tag]);
-    }
-
-    /** @param Tag[] $candidates */
-    private function pruneOrphanedTags(array $candidates): void
-    {
-        $pruned = false;
-        foreach ($candidates as $tag) {
-            if ($this->tags->isOrphan($tag)) {
-                $this->em->remove($tag);
-                $pruned = true;
-            }
-        }
-        if ($pruned) {
-            $this->em->flush();
-        }
-    }
-
     // ── Association with a profile/subprofile ─────────────────────────────────
 
-    /** @return ProfileAssignmentRow[] every active profile, plus one row per active subprofile, to pick an association from. */
+    /** @return ProfileAssignmentRow[] every active plain profile, plus one row per active subprofile and per intermediate node of a profile's list, to pick an association from. */
     public function getAssociationRows(): array
     {
-        return $this->rowBuilder->buildActiveRows($this->centre);
+        return $this->rowBuilder->buildActiveRowsForAssociation($this->centre);
+    }
+
+    /**
+     * The association rows $keys name, in the order given — stale or tampered keys (no such row any
+     * more) are dropped.
+     *
+     * @param  string[]                $keys
+     * @return ProfileAssignmentRow[]
+     */
+    private function associationRowsFor(array $keys): array
+    {
+        $rowsByKey = [];
+        foreach ($this->getAssociationRows() as $row) {
+            $rowsByKey[$row->key()] = $row;
+        }
+
+        $rows = [];
+        foreach (array_unique(array_filter($keys, 'is_string')) as $key) {
+            if (isset($rowsByKey[$key])) {
+                $rows[] = $rowsByKey[$key];
+            }
+        }
+
+        return $rows;
     }
 
     #[LiveAction]
@@ -602,25 +542,20 @@ class ListItemTreeComponent extends AbstractController
             return;
         }
 
-        if ($this->associationKey === '') {
-            $selected->setAssociation(null);
+        $rows = $this->associationRowsFor($this->associationKeys);
+        if ($rows === []) {
+            $selected->clearProfileAssociations();
             $this->em->flush();
             $this->flashSuccess($this->t('responsibilities.lists.association.flash.cleared'));
 
             return;
         }
 
-        $rowsByKey = [];
-        foreach ($this->getAssociationRows() as $row) {
-            $rowsByKey[$row->key()] = $row;
+        // The item ends up with exactly the picked ones.
+        $selected->clearProfileAssociations();
+        foreach ($rows as $row) {
+            $selected->addProfileAssociation($row->profile, $row->listItem);
         }
-
-        $row = $rowsByKey[$this->associationKey] ?? null;
-        if ($row === null) {
-            return;
-        }
-
-        $selected->setAssociation($row->profile, $row->listItem);
         $this->em->flush();
         $this->flashSuccess($this->t('responsibilities.lists.association.flash.saved'));
     }
@@ -632,7 +567,7 @@ class ListItemTreeComponent extends AbstractController
     {
         $this->bulkSelectMode       = !$this->bulkSelectMode;
         $this->bulkSelectedIds      = [];
-        $this->bulkAssociationKey   = '';
+        $this->bulkAssociationKeys  = [];
         $this->confirmingBulkDelete = false;
         $this->bulkMoveTargetId     = '';
         $this->errors               = [];
@@ -642,28 +577,16 @@ class ListItemTreeComponent extends AbstractController
     }
 
     /**
-     * Applies $bulkAssociationKey to every checked item at once (or clears their association, if
-     * left on "Sin asociar") — the same underlying ListItem::setAssociation() a single-item save
+     * Adds the profiles/subprofiles in $bulkAssociationKeys to every checked item at once, on top of
+     * the ones each already has — the same ListItem::addProfileAssociation() a single-item save
      * uses, just looped and flushed once instead of once per item.
      */
     #[LiveAction]
     public function bulkSaveAssociation(): void
     {
-        if ($this->bulkSelectedIds === []) {
+        $rows = $this->associationRowsFor($this->bulkAssociationKeys);
+        if ($this->bulkSelectedIds === [] || $rows === []) {
             return;
-        }
-
-        $row = null;
-        if ($this->bulkAssociationKey !== '') {
-            $rowsByKey = [];
-            foreach ($this->getAssociationRows() as $candidate) {
-                $rowsByKey[$candidate->key()] = $candidate;
-            }
-
-            $row = $rowsByKey[$this->bulkAssociationKey] ?? null;
-            if ($row === null) {
-                return;
-            }
         }
 
         $count = 0;
@@ -673,14 +596,41 @@ class ListItemTreeComponent extends AbstractController
                 continue;
             }
 
-            $item->setAssociation($row?->profile, $row?->listItem);
+            foreach ($rows as $row) {
+                $item->addProfileAssociation($row->profile, $row->listItem);
+            }
             ++$count;
         }
 
         $this->em->flush();
-        $this->bulkSelectedIds    = [];
-        $this->bulkAssociationKey = '';
+        $this->bulkSelectedIds     = [];
+        $this->bulkAssociationKeys = [];
         $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.flash.saved', ['%count%' => $count], 'admin'));
+    }
+
+    /** Removes every association from every checked item (their own: what they inherit from an ancestor is not theirs to remove). */
+    #[LiveAction]
+    public function bulkClearAssociations(): void
+    {
+        if ($this->bulkSelectedIds === []) {
+            return;
+        }
+
+        $count = 0;
+        foreach ($this->bulkSelectedIds as $id) {
+            $item = $this->items->findByIdAndCentre((string) $id, $this->centre);
+            if ($item === null) {
+                continue;
+            }
+
+            $item->clearProfileAssociations();
+            ++$count;
+        }
+
+        $this->em->flush();
+        $this->bulkSelectedIds     = [];
+        $this->bulkAssociationKeys = [];
+        $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.flash.cleared', ['%count%' => $count], 'admin'));
     }
 
     #[LiveAction]
@@ -735,11 +685,6 @@ class ListItemTreeComponent extends AbstractController
             }
         }
 
-        $ownTags = [];
-        foreach ($subtree as $node) {
-            array_push($ownTags, ...$node->getTags()->toArray());
-        }
-
         // Remove deepest descendants first, same reasoning as deleteSelected(): $subtree is built
         // one root's whole (pre-order) findSubtree() at a time, and roots never overlap (see
         // topLevelSelectedItems()), so reversing the combined list still removes every node only
@@ -748,7 +693,6 @@ class ListItemTreeComponent extends AbstractController
             $this->em->remove($node);
         }
         $this->em->flush();
-        $this->pruneOrphanedTags($ownTags);
 
         $count                 = count($roots);
         $this->bulkSelectedIds = [];

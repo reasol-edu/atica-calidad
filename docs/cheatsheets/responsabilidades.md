@@ -21,21 +21,16 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 
 <div class="step">
   <span class="num">2</span>
-  <div class="text"><p>Etiquetar elementos de la lista, si hace falta clasificarlos (opcional).</p></div>
-</div>
-
-<div class="step">
-  <span class="num">3</span>
   <div class="text"><p>Crear un perfil específico.</p></div>
 </div>
 
 <div class="step">
-  <span class="num">4</span>
+  <span class="num">3</span>
   <div class="text"><p>Asociarlo a un elemento de la lista para generar subperfiles automáticos.</p></div>
 </div>
 
 <div class="step">
-  <span class="num">5</span>
+  <span class="num">4</span>
   <div class="text"><p>Asignar docentes a cada subperfil.</p></div>
 </div>
 
@@ -77,33 +72,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 
 <p class="kicker">ÁTICA Calidad · Ficha rápida · Responsable de calidad</p>
 
-# 2. Etiquetar elementos (opcional)
-
-<div class="steps sin-capturas">
-
-<div class="step">
-  <span class="num">1</span>
-  <div class="text">
-    <p>Selecciona un elemento de la lista y, en la sección <strong>Etiquetas</strong> de su panel de
-    detalle, escribe el nombre de una etiqueta y añádela.</p>
-    <p>Si ya existe una etiqueta con ese nombre en el centro, se reutiliza; si no, se crea al
-    vuelo. Se heredan hacia abajo: las etiquetas de «ESO/Bach» se ven también en «Matemáticas», sin
-    repetirlas.</p>
-  </div>
-</div>
-
-</div>
-
-<div class="nota">
-  <p>No hay que gestionar las etiquetas aparte: la que deja de usarse en cualquier elemento se
-  elimina sola.</p>
-</div>
-
----
-
-<p class="kicker">ÁTICA Calidad · Ficha rápida · Responsable de calidad</p>
-
-# 3-4. Crear un perfil y asociarlo a la lista
+# 2-3. Crear un perfil y asociarlo a la lista
 
 <div class="steps sin-capturas">
 
@@ -136,7 +105,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 
 <p class="kicker">ÁTICA Calidad · Ficha rápida · Responsable de calidad</p>
 
-# 5. Asignar docentes
+# 4. Asignar docentes
 
 <div class="steps sin-capturas">
 

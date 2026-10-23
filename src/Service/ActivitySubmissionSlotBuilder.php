@@ -8,7 +8,6 @@ use App\Entity\Activity;
 use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
 use App\Entity\ListItem;
-use App\Entity\Tag;
 use App\Entity\Teacher;
 use App\Model\ActivitySubmissionSlot;
 use App\Model\ProfileAssignmentRow;
@@ -23,8 +22,8 @@ use Symfony\Contracts\Service\ResetInterface;
  * Builds the flat list of submissions an activity expects, and resolves each one to its Document
  * if anyone has already uploaded it. See DocumentTreeAccessChecker::getFolderUploadRows() for the
  * folder-side half of this (which profile/subprofile rows the folder accepts for upload) and
- * ListItem::getAssociatedProfile()/getAssociatedProfileListItem() for the list-item-to-subprofile
- * association that lets a row produce more than one named submission.
+ * ListItem::getEffectiveProfileAssociations() for the list-item-to-subprofile associations that
+ * let a row produce more than one named submission (and a leaf be owed by more than one row).
  *
  * Teachers-holding-a-profile/listItem lookups are memoized per (profile, listItem) for the life of
  * the request and, within one buildSlots() call, resolved in a single batched query rather than
@@ -69,7 +68,6 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
 
         return $this->buildSlotsFor(
             $activity->getListItem(),
-            $activity->getTags()->toArray(),
             $activity->getSubmissionScope(),
             $this->access->getFolderUploadRows($folder),
         );
@@ -79,16 +77,15 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
      * The slots for an activity described by plain values instead of a saved one — what the
      * activity form uses to say how many submissions the settings being edited would ask for.
      *
-     * @param Tag[]                $tags       an element of the list is only asked for when it carries all of them
      * @param ProfileAssignmentRow[] $uploadRows see DocumentTreeAccessChecker::getFolderUploadRows()
      *
      * @return ActivitySubmissionSlot[]
      */
-    public function buildSlotsFor(?ListItem $listItem, array $tags, ActivitySubmissionScope $scope, array $uploadRows): array
+    public function buildSlotsFor(?ListItem $listItem, ActivitySubmissionScope $scope, array $uploadRows): array
     {
         $rowSlots = $listItem === null
             ? $this->plainRowSlots($uploadRows)
-            : $this->listItemRowSlots($tags, $listItem, $uploadRows);
+            : $this->listItemRowSlots($listItem, $uploadRows);
 
         if ($scope !== ActivitySubmissionScope::Individual) {
             return $rowSlots;
@@ -105,23 +102,6 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
         }
 
         return $slots;
-    }
-
-    /**
-     * The leaves of $listItem an activity with these tags actually asks for — all of them when it
-     * has no tags, else only those carrying every tag (inherited ones included). What the activity
-     * form lists under "Plazos por elemento", so it never offers a deadline for an element the
-     * activity doesn't cover.
-     *
-     * @param  Tag[]      $tags
-     * @return ListItem[]
-     */
-    public function leavesFor(ListItem $listItem, array $tags): array
-    {
-        return array_values(array_filter(
-            $this->listItems->findLeafDescendants($listItem),
-            fn (ListItem $leaf): bool => $this->hasAllTags($leaf, $tags),
-        ));
     }
 
     /** @param ActivitySubmissionSlot[] $rowSlots */
@@ -163,60 +143,64 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
 
     /**
      * One slot per leaf descendant of the activity's selected list element (so selecting a branch
-     * pulls in every leaf under it), each named with its path below that element. A leaf is
-     * attributed to the folder upload row its own profile/subprofile association points at; a leaf
-     * with no association falls back to the folder's single upload row, and yields nothing when
-     * the folder has several (no way to tell which one owns it) or when its association isn't
-     * among the rows the folder accepts. The activity's tag filter still applies per leaf
-     * (inherited ancestor tags included).
+     * pulls in every leaf under it) and per folder upload row that owns it, each named with its
+     * path below that element — see uploadRowsForLeaf() for who owns a leaf.
      *
-     * @param  Tag[]                  $tags
      * @param  ProfileAssignmentRow[] $uploadRows
      * @return ActivitySubmissionSlot[]
      */
-    private function listItemRowSlots(array $tags, ListItem $listItem, array $uploadRows): array
+    private function listItemRowSlots(ListItem $listItem, array $uploadRows): array
     {
         $slots = [];
         foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
-            if (!$this->hasAllTags($leaf, $tags)) {
-                continue;
+            $name = $this->submissionName($listItem, $leaf);
+            foreach ($this->uploadRowsForLeaf($leaf, $uploadRows) as $row) {
+                $slots[] = new ActivitySubmissionSlot($row->profile, $row->listItem, $leaf, $name, null);
             }
-
-            $row = $this->uploadRowForLeaf($leaf, $uploadRows);
-            if ($row === null) {
-                continue;
-            }
-
-            $slots[] = new ActivitySubmissionSlot($row->profile, $row->listItem, $leaf, $this->submissionName($listItem, $leaf), null);
         }
 
         return $slots;
     }
 
     /**
-     * The folder upload row a leaf's submission belongs to: the one matching the leaf's own
-     * (associated profile, associated subprofile) when it has an association; otherwise the
-     * folder's single upload row, but only when there is exactly one. Null when an associated
-     * leaf's target isn't among the folder's rows, or an unassociated leaf can't be pinned to a
-     * single row.
+     * The folder upload rows a leaf's submission is owed by — one submission per row. The leaf's
+     * associations are the ones it has itself or, with none, those of its closest associated
+     * ancestor (see ListItem::getEffectiveProfileAssociations()); each stands for the folder rows it
+     * covers: the row of a plain profile, the very row of a leaf subprofile, or — for an
+     * intermediate node of the profile's list — every row of a leaf under it, so each of those
+     * owes its own submission. Only rows the folder accepts count (they come from $uploadRows).
+     * Without any association, the folder's single upload row, but only when there is exactly one;
+     * none when there are several (no way to tell which one owns the leaf).
      *
-     * @param ProfileAssignmentRow[] $uploadRows
+     * @param  ProfileAssignmentRow[] $uploadRows
+     * @return list<ProfileAssignmentRow>
      */
-    private function uploadRowForLeaf(ListItem $leaf, array $uploadRows): ?ProfileAssignmentRow
+    private function uploadRowsForLeaf(ListItem $leaf, array $uploadRows): array
     {
-        $profile = $leaf->getAssociatedProfile();
-        if ($profile === null) {
-            return count($uploadRows) === 1 ? current($uploadRows) : null;
+        $associations = $leaf->getEffectiveProfileAssociations();
+        if ($associations->isEmpty()) {
+            return count($uploadRows) === 1 ? [current($uploadRows)] : [];
         }
 
-        $subprofile = $leaf->getAssociatedProfileListItem();
-        foreach ($uploadRows as $row) {
-            if ($row->profile === $profile && $row->listItem === $subprofile) {
-                return $row;
+        $owners = [];
+        foreach ($associations as $association) {
+            $profile    = $association->getSpecificProfile();
+            $subprofile = $association->getSubprofile();
+            $covered    = $subprofile === null ? [] : array_flip($this->listItems->findLeafIdsUnder($subprofile));
+            foreach ($uploadRows as $row) {
+                if ($row->profile !== $profile) {
+                    continue;
+                }
+                $covers = $subprofile === null
+                    ? $row->listItem === null
+                    : $row->listItem !== null && isset($covered[$row->listItem->getId()->toRfc4122()]);
+                if ($covers) {
+                    $owners[$row->key()] = $row;
+                }
             }
         }
 
-        return null;
+        return array_values($owners);
     }
 
     /**
@@ -233,23 +217,6 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
         }
 
         return $trail === [] ? $leaf->getName() : implode(' › ', $trail);
-    }
-
-    /** @param Tag[] $requiredTags */
-    private function hasAllTags(ListItem $leaf, array $requiredTags): bool
-    {
-        if ($requiredTags === []) {
-            return true;
-        }
-
-        $effective = $leaf->getEffectiveTags();
-        foreach ($requiredTags as $tag) {
-            if (!$effective->contains($tag)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /**

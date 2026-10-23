@@ -82,7 +82,6 @@ class ActivityYearReviewBuilder
             // By profile, whatever the scope: what matters here is which profiles are asked, not who holds them today.
             $slots       = $this->slots->buildSlotsFor(
                 $activity->getListItem(),
-                $activity->getTags()->toArray(),
                 ActivitySubmissionScope::ByProfile,
                 $this->access->getFolderUploadRows($folder),
             );

@@ -12,7 +12,7 @@ use App\Entity\Activity;
  */
 final readonly class ActivityYearReviewRow
 {
-    /** Nobody would be asked: no upload profile (or no element of the list matches the tags and a profile). */
+    /** Nobody would be asked: no upload profile (or no element of the list is owed by a profile the folder accepts). */
     public const string ISSUE_NOBODY_ASKED = 'nobody_asked';
     /** Every profile asked for the activity has nobody assigned among the year's teachers. */
     public const string ISSUE_NOBODY_IN_YEAR = 'nobody_in_year';

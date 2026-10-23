@@ -111,7 +111,7 @@ Las distintas áreas funcionales de ÁTICA Calidad, alineadas con sus controlado
 | `centre`           | Centro educativo: cursos académicos, docentes, perfiles y ajustes del centro |
 | `admin`            | Administración global multi-centro (no confundir con el namespace `Admin` del código, que también incluye pantallas de gestión de un solo centro) |
 | `security`         | Autenticación, autorización y control de acceso |
-| `responsibilities` | Responsabilidades: listas jerárquicas, etiquetas, perfiles específicos y subperfiles, y asignación de docentes |
+| `responsibilities` | Responsabilidades: listas jerárquicas, perfiles específicos y subperfiles, y asignación de docentes |
 | `document-tree`    | Árbol documental: secciones, carpetas, documentos, revisiones y su flujo de visto bueno |
 | `activities`       | Actividades: plazos y tareas periódicas, categorías, entregas y completado |
 | `improvement`      | Mejora continua: incidencias, no conformidades, acciones correctivas, preventivas, reparadoras y de mejora, auditoría interna e indicadores |

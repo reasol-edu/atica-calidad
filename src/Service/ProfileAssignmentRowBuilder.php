@@ -196,6 +196,22 @@ final class ProfileAssignmentRowBuilder implements ResetInterface
     }
 
     /**
+     * What a list element can be associated with (see ListItem::setAssociation()): a plain profile,
+     * a leaf subprofile, or an intermediate node of a list-associated profile's list — the element
+     * then belongs to whoever holds any leaf under it. Never the profile's "(todos)": an element
+     * associated with a list-associated profile always names where in its list.
+     *
+     * @return ProfileAssignmentRow[]
+     */
+    public function buildActiveRowsForAssociation(EducationalCentre $centre): array
+    {
+        return array_values(array_filter(
+            $this->buildActiveRowsForPicker($centre),
+            static fn (ProfileAssignmentRow $row): bool => $row->listItem !== null || $row->profile->getListItem() === null,
+        ));
+    }
+
+    /**
      * Like buildActiveRows(), but a list-associated profile also gets one extra row for itself
      * (no specific leaf) right before its per-subprofile rows — a "whole profile" pick meaning
      * every subprofile counts, for pickers where enumerating each one isn't required (e.g.

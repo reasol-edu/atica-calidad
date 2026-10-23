@@ -7,6 +7,36 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-10-23
+
+### Added
+
+- Un elemento de una lista puede asociarse ahora a **varios** perfiles o subperfiles, y a un **elemento
+  intermedio** de la lista de un perfil (por ejemplo «FP» dentro de «Departamento»), además de a una
+  hoja concreta. Una hoja de la lista de una actividad se pide entonces una vez por cada subperfil que
+  abarcan sus asociaciones: con «FP» asociado a «Jefe de departamento FP», cada jefatura de FP entrega
+  un documento por cada hoja de esa rama.
+- Un elemento sin asociaciones propias hereda las del elemento padre más cercano que las tenga, así
+  que basta con asociar una rama para que lo apliquen todas sus hojas. El árbol de Listas marca los
+  elementos que heredan y su panel dice de cuál.
+- La asociación masiva de elementos **añade** los perfiles elegidos a los que ya tenga cada elemento, y
+  hay un botón nuevo para quitar todas las asociaciones de los elementos marcados.
+
+### Changed
+
+- Las asociaciones de los elementos de lista pasan a guardarse en una tabla propia. Las existentes se
+  conservan; no hace falta ningún paso manual al actualizar, la migración se aplica sola.
+
+### Removed
+
+- Las **etiquetas** de los elementos de lista y de las actividades, que ya no hacen falta: ahora una
+  hoja se pide, o no, según los perfiles a los que está asociada (propios o heredados). Se eliminan
+  también del formulario de actividades, de Listas y de la exportación e importación de listas (los
+  ficheros exportados antes, que traen etiquetas, se siguen importando e ignoran ese campo). **Antes de
+  actualizar, revisa las actividades que usaban etiquetas para elegir qué hojas se pedían:** sin ellas
+  se piden todas las hojas con propietario, y para limitarlo hay que asociar (o no) cada rama a los
+  perfiles que correspondan. Las etiquetas existentes se pierden al aplicar la migración.
+
 ## [1.21.0] - 2026-10-23
 
 ### Added
