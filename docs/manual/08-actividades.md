@@ -235,13 +235,11 @@ mismo elemento van **juntas, ordenadas alfabéticamente por perfil**, y se agrup
 izquierda y un pequeño hueco que las separa de los demás elementos. Mientras ningún elemento tenga más
 de un perfil, las filas no muestran el perfil, como siempre.
 
-### Subir varios ficheros a la vez {#subir-varios-ficheros}
+### Subir los ficheros {#subir-varios-ficheros}
 
-Cuando al docente le quedan **dos o más huecos vacíos** en «Mis entregas», aparece una zona para
-**arrastrar o elegir varios ficheros** de golpe. Cada fichero se asigna al hueco cuyo nombre
-coincide con el suyo; los que no se reconocen se colocan a mano con un selector (que, en los
-elementos [con varios perfiles](#varios-perfiles), muestra también el perfil de cada hueco). Nada se envía
-hasta pulsar el botón de subir.
+Cada hueco vacío tiene su propia zona: se **arrastra el fichero encima** o se hace clic para elegirlo
+(con Intro, si está enfocado). Se pueden preparar varios huecos seguidos, uno por fichero, y se
+envían **todos a la vez** con el botón **Enviar entregas**; hasta pulsarlo no se sube nada.
 
 Al llegar desde la campana, el Inicio, «Mis actividades», un correo de aviso o el calendario, la
 página se desplaza hasta el primer hueco pendiente, lo resalta y lo deja enfocado (con Intro se abre

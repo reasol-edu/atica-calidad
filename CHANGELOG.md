@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-10-24
+
+### Removed
+
+- La zona de la parte superior de las entregas para soltar varios ficheros a la vez, que los asignaba
+  al hueco con su mismo nombre: el nombre del hueco era difícil de adivinar. Cada hueco sigue teniendo
+  su zona de arrastre, y se pueden preparar varios y enviarlos juntos con «Enviar entregas».
+
 ### Changed
 
 - En una actividad con carpeta, «Mis entregas» incluye ahora solo las de los perfiles que tienes de

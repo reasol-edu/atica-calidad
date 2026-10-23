@@ -3203,7 +3203,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         return [$centre, $category, $teacher, $a, $b];
     }
 
-    public function testALinkWithASlotLandsOnThatEmptyRowAndOffersTheBulkDrop(): void
+    public function testALinkWithASlotLandsOnThatEmptyRow(): void
     {
         [$centre, $category, $teacher, , $b] = $this->teacherWithTwoEmptyRows();
         $this->loginAs($teacher, $centre);
@@ -3216,8 +3216,8 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
 
         $landed = $crawler->filter('[data-role=submission-row][data-scroll-into-view-focus-value=true]');
         self::assertCount(1, $landed, 'only the row asked for is focused');
-        self::assertSame('Perfil B', $landed->attr('data-slot-name'));
-        self::assertCount(1, $crawler->filter('[data-activity-submissions-target=bulk]'), 'two empty rows: the bulk zone is offered');
+        self::assertStringContainsString('Perfil B', $landed->text());
+        self::assertCount(0, $crawler->filter('[data-activity-submissions-target=bulk]'), 'no zone for several files at once any more');
         self::assertCount(2, $crawler->filter('[data-activity-submissions-target=dropzone][tabindex="0"]'));
     }
 

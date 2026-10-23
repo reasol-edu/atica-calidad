@@ -139,7 +139,6 @@
     <input type="hidden" name="items[{{ index }}][slotKey]" value="{{ slot.key }}" form="{{ form_id }}">
     <div data-role="submission-row"
          data-activity-submissions-target="dropzone"
-         data-slot-name="{{ slot.displayName }}{{ slot.ownerLabel ? ' · ' ~ slot.ownerLabel : '' }}"
          tabindex="0"
          {{ (slot_landed ? 'data-controller="scroll-into-view" data-scroll-into-view-focus-value="true"' : '')|raw }}
          data-action="dragenter->activity-submissions#dragEnter dragover->activity-submissions#dragOver dragleave->activity-submissions#dragLeave drop->activity-submissions#drop click->activity-submissions#triggerBrowse keydown->activity-submissions#rowKey"
