@@ -1523,6 +1523,39 @@ class ActivityBrowserComponent extends AbstractController
         return $this->completion->getMySlots($this->teacher(), $activity);
     }
 
+    /** @return ActivitySubmissionSlot[] the slots of the profiles (and teacher, for an Individual scope) the current teacher really holds — managing the folder does not add any. */
+    public function getOwnedSlots(Activity $activity): array
+    {
+        return $this->completion->getMyOwnedSlots($this->teacher(), $activity);
+    }
+
+    /** @return ActivitySubmissionSlot[] the slots the current teacher may act on without holding them: the rest of the folder's, for whoever manages it. */
+    public function getManagedSlots(Activity $activity): array
+    {
+        $ownedKeys = array_map(static fn (ActivitySubmissionSlot $s): string => $s->key(), $this->getOwnedSlots($activity));
+
+        return array_values(array_filter(
+            $this->getMySlots($activity),
+            static fn (ActivitySubmissionSlot $s): bool => !in_array($s->key(), $ownedKeys, true),
+        ));
+    }
+
+    /** @return array{pending: int, toReview: int} how many of the managed slots still have no document, and how many have one waiting for review */
+    public function getManagedSummary(Activity $activity): array
+    {
+        $pending = $toReview = 0;
+        foreach ($this->getManagedSlots($activity) as $slot) {
+            $document = $this->resolveSlot($activity, $slot);
+            if ($document === null) {
+                ++$pending;
+            } elseif ($document->getPendingRevision() !== null) {
+                ++$toReview;
+            }
+        }
+
+        return ['pending' => $pending, 'toReview' => $toReview];
+    }
+
     /** The key of the slot the page was asked to land on ('' for none) — "next" resolved to the first of the teacher's own still to do. */
     public function getSlotToHighlight(Activity $activity): string
     {
@@ -1726,7 +1759,7 @@ class ActivityBrowserComponent extends AbstractController
 
     /**
      * Delivered/accepted/rejected counts across just the current teacher's own slots (see
-     * getMySlots()) — the compact one-line summary shown next to "Mis entregas", as opposed to
+     * getOwnedSlots()) — the compact one-line summary shown next to "Mis entregas", as opposed to
      * getStats()'s full breakdown grouped across every slot in the activity. A slot counts as
      * rejected when it has a document with no pending and no active revision but at least one
      * rejected one — Document has no isRejected()/getLatestRevision() of its own, but a rejected
@@ -1740,7 +1773,7 @@ class ActivityBrowserComponent extends AbstractController
         $needsReview = $activity->getFolder()?->requiresReview() ?? false;
         $total       = $delivered = $accepted = $rejected = 0;
 
-        foreach ($this->getMySlots($activity) as $slot) {
+        foreach ($this->getOwnedSlots($activity) as $slot) {
             ++$total;
 
             $document = $this->resolveSlot($activity, $slot);

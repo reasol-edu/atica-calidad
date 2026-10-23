@@ -2560,6 +2560,56 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertSame(1, substr_count($html, 'Se completa al entregar'), 'only the card label, no line per owner under the submissions');
     }
 
+    public function testAManagersOwnSubmissionsAreSeparatedFromTheOnesTheyOnlyManage(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $mine     = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil Propio Alfa');
+        $others   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil Ajeno Zeta');
+        $folder->addUploadProfile($mine);
+        $folder->addUploadProfile($others);
+        $activity = $this->activity($category, 'Con carpeta')->setStart(1, 10)->setEnd(31, 10)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile);
+        $admin    = $this->teacher('director')->setAdmin(true);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $mine, $others, $activity, $admin, new SpecificProfileAssignment($mine, null, $admin));
+
+        $this->loginAs($admin, $centre);
+        $html = (string) $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre, 'initialActivityId' => $activity->getId()->toRfc4122()], $this->client)
+            ->render()->crawler()->html();
+
+        self::assertStringContainsString('Perfil Propio Alfa', $html, 'their own profile is under "Mis entregas"');
+        self::assertStringContainsString('Entregas que gestionas', $html);
+        self::assertStringContainsString('1 sin entregar, 0 por revisar (de 1)', $html);
+        self::assertStringNotContainsString('Perfil Ajeno Zeta', $html, 'the managed rows start folded away');
+        self::assertStringContainsString('Entregadas 0/1', $html, 'the counter counts only their own');
+    }
+
+    public function testAManagerWithoutProfilesSeesTheManagedRowsOpenUnderAnEmptyMine(): void
+    {
+        self::mockTime('2025-10-05 10:00:00');
+
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $others   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Perfil Ajeno Zeta');
+        $folder->addUploadProfile($others);
+        $activity = $this->activity($category, 'Con carpeta')->setStart(1, 10)->setEnd(31, 10)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile);
+        $admin    = $this->teacher('director')->setAdmin(true);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $others, $activity, $admin);
+
+        $this->loginAs($admin, $centre);
+        $html = (string) $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre, 'initialActivityId' => $activity->getId()->toRfc4122()], $this->client)
+            ->render()->crawler()->html();
+
+        self::assertStringContainsString('No tienes ninguna entrega propia', $html);
+        self::assertStringContainsString('Entregas que gestionas', $html);
+        self::assertStringContainsString('Perfil Ajeno Zeta', $html);
+        self::assertStringContainsString('Arrastra el fichero aquí', $html, 'they can still upload on the profile\'s behalf');
+        self::assertStringNotContainsString('Todas las entregas', $html);
+    }
+
     /** Someone else's activity isn't painted by its deadline: it has no status of the viewer's own. */
     public function testAnActivityThatIsNotTheViewersOwnHasANeutralCard(): void
     {

@@ -216,6 +216,14 @@ aplica aquí sin cambios: una entrega **es** un documento de esa carpeta. Si la 
 docente todavía le queda alguna entrega propia por hacer, un aviso **«Formatos aceptados: ...»**
 aparece encima de «Mis entregas».
 
+**«Mis entregas»** solo incluye las de los perfiles que **tienes de verdad**; su contador («Entregadas
+3/5») cuenta solo esas. Quien gestiona la carpeta, es responsable de calidad o administra el centro
+puede además subir, sustituir y revisar las de los demás, y las ve aparte, en una sección plegable
+**«Entregas que gestionas»**, con un resumen («12 sin entregar, 3 por revisar (de 20)») y con sus
+propias zonas de arrastre. Si no tienes ninguna entrega propia, «Mis entregas» lo dice y esa sección
+sale ya desplegada. **«Todas las entregas»** queda para quien no gestiona la carpeta y solo quiere ver
+el estado de las de otros perfiles, en modo lectura.
+
 ### Un elemento que entregan varios perfiles {#varios-perfiles}
 
 ![Entregas de una actividad en las que «Tecnología» la entregan dos jefaturas de departamento, agrupadas y con el perfil de cada una](img/actividades-entregas-varios-perfiles.png)

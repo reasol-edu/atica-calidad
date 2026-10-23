@@ -7,6 +7,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- En una actividad con carpeta, «Mis entregas» incluye ahora solo las de los perfiles que tienes de
+  verdad, y su contador cuenta solo esas. Las demás que puedes gestionar (si gestionas la carpeta,
+  eres responsable de calidad o administras el centro) van aparte, en una sección plegable
+  «Entregas que gestionas», con un resumen de las que faltan y de las que esperan revisión, y con
+  sus zonas de arrastre. Antes se mezclaban todas en «Mis entregas».
+
 ## [1.22.3] - 2026-10-24
 
 ### Changed

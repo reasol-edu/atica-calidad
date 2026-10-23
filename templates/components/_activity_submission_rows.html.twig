@@ -1,0 +1,22 @@
+{# The rows of a list of slots, in order. Expects: activity, folder, slots, and either editable (with
+   form_id and offset — the first row's number in the upload form, so numbers stay unique across
+   several lists inside it) or nothing, for a read-only list. #}
+{% set editable = editable|default(false) %}
+{% set offset = offset|default(0) %}
+{% for slot in slots %}
+    {% set document = this.resolveSlot(activity, slot) %}
+    {# The rows of one element owed by several profiles go together, set apart from the other elements. #}
+    {% set same_before = not loop.first and slots[loop.index0 - 1].displayName == slot.displayName %}
+    {% set same_after = not loop.last and slots[loop.index0 + 1].displayName == slot.displayName %}
+    {% set grouped = slot.ownerLabel and (same_before or same_after) %}
+    <div class="{{ grouped ? 'border-l-2 border-forest-200 pl-2' : '' }} {{ grouped and not same_before and not loop.first ? 'pt-3' : '' }} {{ grouped and not same_after and not loop.last ? 'pb-3' : '' }}">
+        {% if editable %}
+            {% include 'components/_activity_submission_row.html.twig' with {activity: activity, folder: folder, slot: slot, document: document, index: offset + loop.index0, form_id: form_id, read_only: this.getActivityWindow(activity, slot.nameListItem).blocked} %}
+        {% else %}
+            {% include 'components/_activity_submission_row.html.twig' with {activity: activity, folder: folder, slot: slot, document: document, read_only: true} %}
+        {% endif %}
+        {% if document and document.id.toRfc4122 == revisionPanelDocumentId %}
+            {% include 'components/_activity_submission_panel.html.twig' with {activity: activity, folder: folder, document: document} %}
+        {% endif %}
+    </div>
+{% endfor %}
