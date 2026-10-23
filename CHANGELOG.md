@@ -7,6 +7,17 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.22.1] - 2026-10-23
+
+### Fixed
+
+- En las entregas de una actividad, cuando un mismo elemento lo entregan varios perfiles (por ejemplo
+  dos jefaturas de FP), cada fila indica ahora el perfil al que corresponde; antes solo se veía la
+  ruta del elemento y no se distinguían. Si ningún elemento tiene más de un responsable, no se añade.
+- Por la misma razón, los ficheros descargados de esas entregas (uno a uno o en el ZIP de la carpeta)
+  llevan el perfil al final del nombre cuando otro perfil entrega el mismo elemento, en vez de
+  llamarse igual.
+
 ## [1.22.0] - 2026-10-23
 
 ### Added

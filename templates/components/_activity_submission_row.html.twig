@@ -58,6 +58,9 @@
                     </span>
                 {% endif %}
             </div>
+            {% if slot.ownerLabel %}
+                <p class="truncate text-xs font-medium text-forest-700">{{ slot.ownerLabel }}</p>
+            {% endif %}
             {% if active %}
                 <p class="truncate text-xs text-gray-400">
                     {% if slot.teacher %}
@@ -124,6 +127,9 @@
                 <p class="truncate text-sm font-medium text-gray-600">{{ slot.teacher.name.lastName }}, {{ slot.teacher.name.firstName }}</p>
             {% endif %}
             <span class="block truncate text-sm text-gray-500">{{ slot.displayName }}</span>
+            {% if slot.ownerLabel %}
+                <span class="block truncate text-xs font-medium text-forest-700">{{ slot.ownerLabel }}</span>
+            {% endif %}
         </div>
         <span class="shrink-0 text-xs italic text-gray-400">{{ 'status.no_revision'|trans({}, 'activity_content') }}</span>
     </div>
@@ -144,6 +150,9 @@
                 <p class="truncate text-sm font-medium text-gray-700">{{ slot.teacher.name.lastName }}, {{ slot.teacher.name.firstName }}</p>
             {% endif %}
             <span class="block truncate text-sm text-gray-600">{{ slot.displayName }}</span>
+            {% if slot.ownerLabel %}
+                <span class="block truncate text-xs font-medium text-forest-700">{{ slot.ownerLabel }}</span>
+            {% endif %}
             <span data-activity-submissions-target="preview" class="block truncate text-xs text-gray-400">{{ 'submission.dropzone_hint'|trans({}, 'activity_content') }}</span>
         </div>
         <input type="file" name="files[{{ index }}]" class="sr-only" form="{{ form_id }}" data-activity-submissions-target="input" data-action="change->activity-submissions#change">

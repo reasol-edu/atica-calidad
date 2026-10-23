@@ -163,6 +163,24 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         self::assertSame('Experimentales › Física', $slots[0]->displayName, 'path runs from just below the selected element down to the leaf');
     }
 
+    public function testSlotsNameTheirOwnerOnlyWhenAnElementIsOwedByMoreThanOne(): void
+    {
+        ['activity' => $activity, 'jefe' => $jefe, 'infor' => $infor, 'sani' => $sani, 'evalFp' => $evalFp, 'deptFp' => $deptFp] = $this->evaluationScenario();
+        $evalFp->addProfileAssociation($jefe, $deptFp);
+        $this->em->flush();
+
+        $labels = array_map(static fn (ActivitySubmissionSlot $s): ?string => $s->ownerLabel, $this->builder->buildSlots($activity));
+        self::assertNotContains(null, $labels, 'every FP leaf is owed by two heads: each row says which');
+        self::assertCount(2, array_unique($labels));
+
+        // One owner per element: nothing to tell apart, no label.
+        $evalFp->clearProfileAssociations()->addProfileAssociation($jefe, $infor);
+        $this->em->flush();
+        $labels = array_map(static fn (ActivitySubmissionSlot $s): ?string => $s->ownerLabel, $this->builder->buildSlots($activity));
+        self::assertSame([null], array_values(array_unique($labels)));
+        unset($sani);
+    }
+
     public function testListItemExpandsToOneSlotPerMatchingLeaf(): void
     {
         $centre   = $this->centre();

@@ -97,7 +97,7 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
         foreach ($rowSlots as $slot) {
             $key = ProfileAssignmentRow::keyFor($slot->profile, $slot->listItem);
             foreach ($this->teachersHoldingCache[$key] ?? [] as $teacher) {
-                $slots[] = new ActivitySubmissionSlot($slot->profile, $slot->listItem, $slot->nameListItem, $slot->displayName, $teacher);
+                $slots[] = new ActivitySubmissionSlot($slot->profile, $slot->listItem, $slot->nameListItem, $slot->displayName, $teacher, $slot->ownerLabel);
             }
         }
 
@@ -151,12 +151,22 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
      */
     private function listItemRowSlots(ListItem $listItem, array $uploadRows): array
     {
-        $slots = [];
+        $slots   = [];
+        $perName = [];
         foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
             $name = $this->submissionName($listItem, $leaf);
             foreach ($this->uploadRowsForLeaf($leaf, $uploadRows) as $row) {
-                $slots[] = new ActivitySubmissionSlot($row->profile, $row->listItem, $leaf, $name, null);
+                $slots[]         = new ActivitySubmissionSlot($row->profile, $row->listItem, $leaf, $name, null, $row->displayName);
+                $perName[$name]  = ($perName[$name] ?? 0) + 1;
             }
+        }
+
+        // Only worth saying who owes each row when some element is owed by more than one.
+        if ($perName === [] || max($perName) < 2) {
+            return array_map(
+                static fn (ActivitySubmissionSlot $s): ActivitySubmissionSlot => new ActivitySubmissionSlot($s->profile, $s->listItem, $s->nameListItem, $s->displayName, null),
+                $slots,
+            );
         }
 
         return $slots;

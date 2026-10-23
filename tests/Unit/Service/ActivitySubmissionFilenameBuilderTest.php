@@ -13,7 +13,9 @@ use App\Entity\DocumentRevision;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
+use App\Entity\ListItem;
 use App\Entity\PersonName;
+use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivitySubmissionFilenameBuilder;
@@ -114,6 +116,27 @@ final class ActivitySubmissionFilenameBuilderTest extends TestCase
         $document = $this->document($folder, 'Tutor/a', $uploader);
 
         self::assertSame(['2026-2027', 'Programación didáctica', 'Tutor/a', 'García, Ana'], $this->builder()->nameParts($document));
+    }
+
+    public function testTheOwningProfileNamesTheFileOnlyWhenSeveralProfilesSubmitTheSameElement(): void
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($centre);
+        $uploader = $this->teacher('Ana', 'García');
+        $this->activity($centre, $folder);
+        $informatica = (new ListItem())->setEducationalCentre($centre)->setName('Informática');
+        $sanidad     = (new ListItem())->setEducationalCentre($centre)->setName('Sanidad');
+        $jefe        = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefe Dpto. FP');
+
+        $first  = $this->document($folder, 'FP › 2ªEV', $uploader)->setUploadProfile($jefe, $informatica);
+        $folder->getDocuments()->add($first);
+        // Alone on its name: nothing to tell apart.
+        self::assertSame(['2026-2027', 'Programación didáctica', 'FP › 2ªEV'], $this->builder()->nameParts($first));
+
+        $second = $this->document($folder, 'FP › 2ªEV', $uploader)->setUploadProfile($jefe, $sanidad);
+        $folder->getDocuments()->add($second);
+        self::assertSame(['2026-2027', 'Programación didáctica', 'FP › 2ªEV', 'Jefe Dpto. FP Informática'], $this->builder()->nameParts($first));
+        self::assertSame(['2026-2027', 'Programación didáctica', 'FP › 2ªEV', 'Jefe Dpto. FP Sanidad'], $this->builder()->nameParts($second));
     }
 
     public function testAByProfileScopeSubmissionIsNeverTrailedByAnyonesName(): void

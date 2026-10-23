@@ -64,23 +64,61 @@ final class ActivitySubmissionFilenameBuilder
             $activity->getSubmissionPrefix(),
             $document->getName(),
             $teacherLabel,
+            $this->ownerLabel($document),
         );
+    }
+
+    /**
+     * The profile (and subprofile) the document was submitted for — but only when another document
+     * of the same folder carries the very same name for a different one: the element is owed by
+     * several profiles (two heads of FP), and without it their downloads would be named alike.
+     * Null otherwise, so the name stays as short as it always was.
+     */
+    private function ownerLabel(Document $document): ?string
+    {
+        $profile = $document->getUploadProfile();
+        if ($profile === null) {
+            return null;
+        }
+
+        $shared = false;
+        foreach ($document->getFolder()->getDocuments() as $other) {
+            if ($other !== $document
+                && $other->getName() === $document->getName()
+                && $other->getActivityCycleYear() === $document->getActivityCycleYear()
+                && ($other->getUploadProfile() !== $profile || $other->getUploadListItem() !== $document->getUploadListItem())
+            ) {
+                $shared = true;
+                break;
+            }
+        }
+        if (!$shared) {
+            return null;
+        }
+
+        $subprofile = $document->getUploadListItem();
+
+        return $subprofile === null ? $profile->getName() : $profile->getName() . ' ' . $subprofile->getName();
     }
 
     /**
      * The naming rule itself, on plain values — so the activity form can preview a download name
      * from what is being typed, with exactly the parts a real download would get: year, prefix
-     * (or title; nothing for "-"), document name and, for an Individual-scope activity, the teacher.
+     * (or title; nothing for "-"), document name, the owning profile when several share the element
+     * (see ownerLabel()) and, for an Individual-scope activity, the teacher.
      *
      * @return string[]
      */
-    public function compose(int $cycleKey, string $title, ?string $prefix, string $documentName, ?string $teacherLabel): array
+    public function compose(int $cycleKey, string $title, ?string $prefix, string $documentName, ?string $teacherLabel, ?string $ownerLabel = null): array
     {
         $parts = [ActivityDeadlineChecker::academicYearLabel($cycleKey)];
         if ($prefix !== self::NO_PREFIX_SENTINEL) {
             $parts[] = $prefix !== null && $prefix !== '' ? $prefix : $title;
         }
         $parts[] = $documentName;
+        if ($ownerLabel !== null) {
+            $parts[] = $ownerLabel;
+        }
         if ($teacherLabel !== null) {
             $parts[] = $teacherLabel;
         }

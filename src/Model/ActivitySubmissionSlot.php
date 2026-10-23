@@ -16,7 +16,9 @@ use App\Entity\Teacher;
  * DocumentTreeAccessChecker::getFolderUploadRows()); $nameListItem, when the activity has a list
  * item configured, is the specific leaf that gave this slot its name (see
  * ListItem::getEffectiveProfileAssociations()); $teacher is only set when the
- * activity's submission scope is Individual.
+ * activity's submission scope is Individual; $ownerLabel names the profile/subprofile that owes
+ * the slot, set only when the same element is owed by several of them (so the rows can be told
+ * apart) and null otherwise.
  */
 final readonly class ActivitySubmissionSlot
 {
@@ -26,6 +28,7 @@ final readonly class ActivitySubmissionSlot
         public ?ListItem $nameListItem,
         public string $displayName,
         public ?Teacher $teacher,
+        public ?string $ownerLabel = null,
     ) {}
 
     public function key(): string
