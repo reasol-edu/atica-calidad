@@ -39,7 +39,65 @@
         </div>
     </div>
 
-    <twig:Admin:ListItemTreeComponent :centre="centre" />
+    <form method="post" action="{{ path('app_responsibilities_lists_create', {centreId: centre.id}) }}" class="flex items-center gap-2">
+        <input type="hidden" name="_token" value="{{ csrf_token('list_create') }}">
+        <input type="text" name="name" required maxlength="255"
+               placeholder="{{ 'responsibilities.lists.index.name_placeholder'|trans({}, 'admin') }}"
+               class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20 sm:max-w-md">
+        <button type="submit"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-forest-600 px-4 py-2 text-sm font-semibold text-white hover:bg-forest-700 transition-colors shadow-xs">
+            {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
+            {{ 'responsibilities.lists.add_list'|trans({}, 'admin') }}
+        </button>
+    </form>
+
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+        {% if lists is empty %}
+            <p class="px-4 py-8 text-center text-sm italic text-gray-400">{{ 'responsibilities.lists.index.empty'|trans({}, 'admin') }}</p>
+        {% else %}
+            <ul class="divide-y divide-gray-100">
+                {% for entry in lists %}
+                    {% set root = entry.root %}
+                    <li class="flex items-center gap-3 px-4 py-3">
+                        <a href="{{ path('app_responsibilities_list_manage', {centreId: centre.id, rootId: root.id}) }}"
+                           class="flex min-w-0 flex-1 items-center gap-3 hover:text-forest-700 transition-colors">
+                            {{ ux_icon('heroicons:list-bullet', {class: 'h-5 w-5 shrink-0 text-forest-500'}) }}
+                            <span class="min-w-0 truncate text-sm font-medium text-gray-900">{{ root.name }}</span>
+                            {% if not root.active %}
+                                <span title="{{ 'responsibilities.lists.inactive'|trans({}, 'admin') }}" class="shrink-0 text-gray-300">
+                                    {{ ux_icon('heroicons:eye-slash', {class: 'h-4 w-4'}) }}
+                                </span>
+                            {% endif %}
+                            <span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                                {{ 'responsibilities.lists.index.elements'|trans({'%count%': entry.count}, 'admin') }}
+                            </span>
+                        </a>
+                        <form method="post" action="{{ path('app_responsibilities_list_move_up', {centreId: centre.id, rootId: root.id}) }}" class="shrink-0">
+                            <input type="hidden" name="_token" value="{{ csrf_token('list_move') }}">
+                            <button type="submit" {{ loop.first ? 'disabled' : '' }}
+                                    title="{{ 'responsibilities.lists.index.move_up'|trans({}, 'admin') }}"
+                                    class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-1.5 text-gray-500 hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-40">
+                                {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4'}) }}
+                            </button>
+                        </form>
+                        <form method="post" action="{{ path('app_responsibilities_list_move_down', {centreId: centre.id, rootId: root.id}) }}" class="shrink-0">
+                            <input type="hidden" name="_token" value="{{ csrf_token('list_move') }}">
+                            <button type="submit" {{ loop.last ? 'disabled' : '' }}
+                                    title="{{ 'responsibilities.lists.index.move_down'|trans({}, 'admin') }}"
+                                    class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-1.5 text-gray-500 hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-40">
+                                {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4'}) }}
+                            </button>
+                        </form>
+                        <a href="{{ path('app_responsibilities_list_manage', {centreId: centre.id, rootId: root.id}) }}"
+                           class="hidden shrink-0 items-center gap-1 text-sm font-medium text-forest-600 hover:text-forest-800 transition-colors sm:inline-flex">
+                            {{ 'responsibilities.lists.index.manage'|trans({}, 'admin') }}
+                            {{ ux_icon('heroicons:arrow-right', {class: 'h-4 w-4'}) }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
 
 </div>
 {% endblock %}

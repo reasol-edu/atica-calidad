@@ -15,6 +15,8 @@ use App\Security\Voter\EducationalCentreVoter;
 use App\Service\ProfileAssignmentRowBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -48,7 +50,16 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp]
     public EducationalCentre $centre;
 
-    /** '' means the root level. Drives the mobile breadcrumb drill-down only. */
+    /**
+     * The list (root item) being managed: the tree, the mobile drill-down and every "add at the top"
+     * action are scoped to its descendants, and '' as a parent id then means "this root" rather than
+     * "the centre's root level". Null only for the centre-wide view (every root at once), which the
+     * pages no longer use but the component still supports.
+     */
+    #[LiveProp]
+    public ?ListItem $root = null;
+
+    /** '' means the root level (the scoped root's own children when $root is set). Drives the mobile breadcrumb drill-down only. */
     #[LiveProp(writable: true)]
     public string $currentParentId = '';
 
@@ -118,6 +129,10 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $bulkMoveTargetId = '';
 
+    /** Set by a bulk move that would change the profiles applying to the moved items (see getBulkMoveKey()): the move waits for a confirmation. '' = nothing pending. */
+    #[LiveProp(writable: true)]
+    public string $bulkMoveConfirmKey = '';
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
@@ -127,15 +142,35 @@ class ListItemTreeComponent extends AbstractController
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
     ) {}
 
-    public function mount(EducationalCentre $centre): void
+    public function mount(EducationalCentre $centre, ?ListItem $root = null): void
     {
         $this->denyAccessUnlessGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre);
         $this->centre = $centre;
+
+        if ($root !== null) {
+            if (!$root->isRoot() || $root->getEducationalCentre() !== $centre) {
+                throw new NotFoundHttpException();
+            }
+            $this->root            = $root;
+            $this->currentParentId = $root->getId()->toRfc4122();
+        }
     }
 
     public function getRootSentinel(): string
     {
         return self::ROOT_SENTINEL;
+    }
+
+    /** Id of the item the top level of the tree hangs from: the scoped root, or '' for the centre-wide view. */
+    public function getScopeParentId(): string
+    {
+        return $this->root?->getId()->toRfc4122() ?? '';
+    }
+
+    /** Maps the '' the views send for "the top level" onto the scoped root, when there is one. */
+    private function resolveParentId(string $parentId): string
+    {
+        return $parentId === '' ? $this->getScopeParentId() : $parentId;
     }
 
     // ── Desktop: full nested tree ────────────────────────────────────────────
@@ -153,7 +188,7 @@ class ListItemTreeComponent extends AbstractController
             $byParent[$key][] = $item;
         }
 
-        return $this->buildNodes('', $byParent);
+        return $this->buildNodes($this->getScopeParentId(), $byParent);
     }
 
     /**
@@ -176,13 +211,15 @@ class ListItemTreeComponent extends AbstractController
 
     // ── Mobile: breadcrumb drill-down ────────────────────────────────────────
 
+    /** The level being browsed; null at the centre's root level (never the case once a list is scoped, where the level is the root itself or below it). */
     public function getCurrentParent(): ?ListItem
     {
-        if ($this->currentParentId === '') {
+        $id = $this->resolveParentId($this->currentParentId);
+        if ($id === '') {
             return null;
         }
 
-        return $this->items->findByIdAndCentre($this->currentParentId, $this->centre);
+        return $this->items->findByIdAndCentre($id, $this->centre);
     }
 
     /** @return ListItem[] */
@@ -196,18 +233,24 @@ class ListItemTreeComponent extends AbstractController
     }
 
     /**
-     * Root-first path of ancestors down to (and including) the current parent.
+     * Path of ancestors down to (and including) the current parent, starting below the scoped root
+     * — the root itself is the breadcrumb's "home", not a crumb.
      *
      * @return ListItem[]
      */
     public function getBreadcrumb(): array
     {
         $trail = [];
-        for ($item = $this->getCurrentParent(); $item !== null; $item = $item->getParent()) {
+        for ($item = $this->getCurrentParent(); $item !== null && !$this->isScopedRoot($item); $item = $item->getParent()) {
             array_unshift($trail, $item);
         }
 
         return $trail;
+    }
+
+    private function isScopedRoot(ListItem $item): bool
+    {
+        return $this->root !== null && $item->getId()->equals($this->root->getId());
     }
 
     public function getSelected(): ?ListItem
@@ -238,7 +281,7 @@ class ListItemTreeComponent extends AbstractController
     #[LiveAction]
     public function openLevel(#[LiveArg] string $id): void
     {
-        $this->currentParentId = $id;
+        $this->currentParentId = $this->resolveParentId($id);
         $this->selectedId      = '';
         $this->errors          = [];
     }
@@ -292,7 +335,8 @@ class ListItemTreeComponent extends AbstractController
             return;
         }
 
-        $parent = $parentId === '' ? null : $this->items->findByIdAndCentre($parentId, $this->centre);
+        $parentId = $this->resolveParentId($parentId);
+        $parent   = $parentId === '' ? null : $this->items->findByIdAndCentre($parentId, $this->centre);
         if ($parentId !== '' && $parent === null) {
             return;
         }
@@ -354,12 +398,12 @@ class ListItemTreeComponent extends AbstractController
      * a teacher's assignment to it) — deleting through that would silently orphan it.
      */
     #[LiveAction]
-    public function deleteSelected(): void
+    public function deleteSelected(): ?Response
     {
         $this->confirmingDelete = false;
         $selected               = $this->getSelected();
         if ($selected === null) {
-            return;
+            return null;
         }
 
         $subtree = $this->items->findSubtree($selected);
@@ -368,9 +412,12 @@ class ListItemTreeComponent extends AbstractController
             if ($this->profiles->isListItemInUse($node) || $this->assignments->isListItemAssigned($node)) {
                 $this->errors = ['delete' => $this->t('responsibilities.lists.error.delete_in_use')];
 
-                return;
+                return null;
             }
         }
+
+        // Deleting the managed list itself leaves this screen with nothing to show: back to the lists.
+        $wasScopedRoot = $this->isScopedRoot($selected);
 
         $parent = $selected->getParent();
 
@@ -382,10 +429,18 @@ class ListItemTreeComponent extends AbstractController
         }
         $this->em->flush();
 
+        if ($wasScopedRoot) {
+            $this->addFlash('success', $this->t('responsibilities.lists.flash.deleted'));
+
+            return $this->redirectToRoute('app_responsibilities_lists', ['centreId' => $this->centre->getId()]);
+        }
+
         $this->selectedId      = '';
         $this->currentParentId = $parent?->getId()->toRfc4122() ?? '';
         $this->loadDetail();
         $this->flashSuccess($this->t('responsibilities.lists.flash.deleted'));
+
+        return null;
     }
 
     // ── Reordering ───────────────────────────────────────────────────────────
@@ -452,7 +507,8 @@ class ListItemTreeComponent extends AbstractController
             return;
         }
 
-        $newParent = $newParentId === '' ? null : $this->items->findByIdAndCentre($newParentId, $this->centre);
+        $newParentId = $this->resolveParentId($newParentId);
+        $newParent   = $newParentId === '' ? null : $this->items->findByIdAndCentre($newParentId, $this->centre);
         if ($newParentId !== '' && $newParent === null) {
             return;
         }
@@ -792,7 +848,35 @@ class ListItemTreeComponent extends AbstractController
     #[LiveAction]
     public function bulkMoveSelected(): void
     {
-        $roots = $this->topLevelSelectedItems();
+        $this->moveSelected(false);
+    }
+
+    /** Moves for real after the warning bulkMoveSelected() raised — only if the selection and target are still the ones warned about. */
+    #[LiveAction]
+    public function confirmBulkMove(): void
+    {
+        $this->moveSelected($this->bulkMoveConfirmKey !== '' && $this->bulkMoveConfirmKey === $this->getBulkMoveKey());
+    }
+
+    #[LiveAction]
+    public function cancelBulkMove(): void
+    {
+        $this->bulkMoveConfirmKey = '';
+    }
+
+    /** Identifies the pending move (destination + checked items), so a confirmation never carries over to a different one. */
+    public function getBulkMoveKey(): string
+    {
+        $ids = array_map('strval', $this->bulkSelectedIds);
+        sort($ids);
+
+        return $this->bulkMoveTargetId . '|' . implode(',', $ids);
+    }
+
+    private function moveSelected(bool $confirmed): void
+    {
+        $this->bulkMoveConfirmKey = '';
+        $roots                    = $this->topLevelSelectedItems();
         if ($roots === []) {
             return;
         }
@@ -804,6 +888,13 @@ class ListItemTreeComponent extends AbstractController
 
         $ordered = array_values($roots);
         usort($ordered, static fn (ListItem $a, ListItem $b): int => $a->getPosition() <=> $b->getPosition());
+
+        if (!$confirmed && $this->moveChangesProfiles($ordered, $target)) {
+            $this->bulkMoveConfirmKey = $this->getBulkMoveKey();
+            $this->errors             = [];
+
+            return;
+        }
 
         foreach ($ordered as $item) {
             try {
@@ -826,7 +917,72 @@ class ListItemTreeComponent extends AbstractController
         $count                  = count($ordered);
         $this->bulkSelectedIds  = [];
         $this->bulkMoveTargetId = '';
-        $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.flash.moved', ['%count%' => $count], 'admin'));
+        $this->flashSuccess($target === null
+            ? $this->translator->trans('responsibilities.lists.bulk.flash.moved_to_root', ['%count%' => $count], 'admin')
+            : $this->translator->trans('responsibilities.lists.bulk.flash.moved', ['%count%' => $count, '%target%' => $target->getName()], 'admin'));
+    }
+
+    /**
+     * Whether moving these branches under $target changes which profiles apply to anything in them:
+     * an element with no association of its own inherits from its closest associated ancestor, and a
+     * profile's subprofiles are the descendants of the item it takes its list from — either one
+     * differs once the branch has a different chain of ancestors.
+     *
+     * @param ListItem[] $roots
+     */
+    private function moveChangesProfiles(array $roots, ?ListItem $target): bool
+    {
+        $targetSource = $target?->getAssociationSource();
+        $targetLists  = $this->profileListAncestors($target);
+
+        foreach ($roots as $root) {
+            if ($this->profileListAncestors($root->getParent()) !== $targetLists) {
+                return true;
+            }
+
+            if ($root->isAssociated()) {
+                continue;
+            }
+
+            $before = $root->getAssociationSource();
+            if ($before === $targetSource) {
+                continue;
+            }
+
+            // Only a descendant that inherits through the root is affected: one whose closest
+            // associated ancestor lies inside the branch keeps it.
+            $subtree = $this->items->findSubtree($root);
+            $inside  = [];
+            foreach ($subtree as $node) {
+                $inside[spl_object_id($node)] = true;
+            }
+            foreach ($subtree as $node) {
+                $source = $node->getAssociationSource();
+                if ($source === null || !isset($inside[spl_object_id($source)])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Ids of $item and its ancestors that a profile takes its list from, in a stable order.
+     *
+     * @return string[]
+     */
+    private function profileListAncestors(?ListItem $item): array
+    {
+        $ids = [];
+        for ($node = $item; $node !== null; $node = $node->getParent()) {
+            if ($this->profiles->isListItemInUse($node)) {
+                $ids[] = $node->getId()->toRfc4122();
+            }
+        }
+        sort($ids);
+
+        return $ids;
     }
 
     private function t(string $key): string

@@ -80,6 +80,119 @@ final class ResponsibilitiesControllersTest extends ControllerTestCase
         self::assertSame(403, $this->client->getResponse()->getStatusCode());
     }
 
+    public function testListsPageShowsEachRootWithItsElementCount(): void
+    {
+        $centre = $this->centre();
+        $root   = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+        $child  = (new ListItem())->setEducationalCentre($centre)->setName('Matemáticas');
+        $child->setParent($root);
+        $grand = (new ListItem())->setEducationalCentre($centre)->setName('Álgebra');
+        $grand->setParent($child);
+        $admin = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $root, $child, $grand, $admin);
+        $centreId = $centre->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $crawler = $this->client->request('GET', "/centro/{$centreId}/responsabilidades/listas");
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('Departamento', $crawler->text());
+        self::assertStringContainsString('2 elementos', $crawler->text());
+        self::assertStringNotContainsString('Álgebra', $crawler->text(), 'the elements are managed on the list\'s own screen');
+    }
+
+    public function testCreateListAddsARootAndOpensItsScreen(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $admin);
+        $centreId = $centre->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('GET', "/centro/{$centreId}/responsabilidades/listas");
+        $this->client->request('POST', "/centro/{$centreId}/responsabilidades/listas/nueva", [
+            '_token' => $this->csrfToken('list_create'),
+            'name'   => 'Tutorías',
+        ]);
+
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        $this->em->clear();
+        $roots = $items->findRootsByCentre($centre);
+        self::assertCount(1, $roots);
+        self::assertSame('Tutorías', $roots[0]->getName());
+        self::assertTrue($this->client->getResponse()->isRedirect("/centro/{$centreId}/responsabilidades/listas/" . $roots[0]->getId()->toRfc4122()));
+    }
+
+    public function testMovingAListSwapsItsPositionWithTheNeighbour(): void
+    {
+        $centre = $this->centre();
+        $first  = (new ListItem())->setEducationalCentre($centre)->setName('A')->setPosition(0);
+        $second = (new ListItem())->setEducationalCentre($centre)->setName('B')->setPosition(1);
+        $admin  = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $first, $second, $admin);
+        $centreId = $centre->getId()->toRfc4122();
+        $secondId = $second->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('GET', "/centro/{$centreId}/responsabilidades/listas");
+        $this->client->request('POST', "/centro/{$centreId}/responsabilidades/listas/{$secondId}/subir", [
+            '_token' => $this->csrfToken('list_move'),
+        ]);
+
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        $this->em->clear();
+        self::assertSame(['B', 'A'], array_map(static fn (ListItem $r): string => $r->getName(), $items->findRootsByCentre($centre)));
+    }
+
+    public function testManageListRendersTheRootsElementsOnly(): void
+    {
+        $centre = $this->centre();
+        $root   = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+        $child  = (new ListItem())->setEducationalCentre($centre)->setName('Matemáticas');
+        $child->setParent($root);
+        $other      = (new ListItem())->setEducationalCentre($centre)->setName('Etapa');
+        $otherChild = (new ListItem())->setEducationalCentre($centre)->setName('Primaria');
+        $otherChild->setParent($other);
+        $admin = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $root, $child, $other, $otherChild, $admin);
+        $centreId = $centre->getId()->toRfc4122();
+        $rootId   = $root->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $crawler = $this->client->request('GET', "/centro/{$centreId}/responsabilidades/listas/{$rootId}");
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('Matemáticas', $crawler->text());
+        self::assertStringNotContainsString('Primaria', $crawler->text());
+    }
+
+    public function testManageListIs404ForANonRootItemAndForAnotherCentresRoot(): void
+    {
+        $centre      = $this->centre();
+        $otherCentre = (new EducationalCentre())->setCode('87654321')->setName('Otro')->setCity('Ciudad');
+        $root        = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+        $child       = (new ListItem())->setEducationalCentre($centre)->setName('Matemáticas');
+        $child->setParent($root);
+        $foreign = (new ListItem())->setEducationalCentre($otherCentre)->setName('Ajena');
+        $admin   = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $otherCentre, $root, $child, $foreign, $admin);
+        $centreId = $centre->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $this->client->request('GET', "/centro/{$centreId}/responsabilidades/listas/" . $child->getId()->toRfc4122());
+        self::assertSame(404, $this->client->getResponse()->getStatusCode());
+
+        $this->client->request('GET', "/centro/{$centreId}/responsabilidades/listas/" . $foreign->getId()->toRfc4122());
+        self::assertSame(404, $this->client->getResponse()->getStatusCode());
+    }
+
     public function testSpecificProfilesPageDeniedWithoutResponsibilitiesPermission(): void
     {
         $centre  = $this->centre();

@@ -9,8 +9,15 @@
     {# ── Desktop (>= lg): full tree, drag and drop ────────────────────────── #}
     <div class="hidden lg:block">
         <div class="mb-3 flex items-center justify-between gap-2">
-            <h2 class="text-sm font-semibold text-gray-700">{{ 'responsibilities.lists.title'|trans({}, 'admin') }}</h2>
+            <h2 class="text-sm font-semibold text-gray-700">{{ root ? root.name : 'responsibilities.lists.title'|trans({}, 'admin') }}</h2>
             <div class="flex items-center gap-2">
+                {% if root and not bulkSelectMode %}
+                    <button type="button" data-action="live#action" data-live-action-param="selectItem" data-live-id-param="{{ root.id }}"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                        {{ ux_icon('heroicons:pencil-square', {class: 'h-3.5 w-3.5'}) }}
+                        {{ 'responsibilities.lists.edit_list'|trans({}, 'admin') }}
+                    </button>
+                {% endif %}
                 {% include 'components/Admin/_list_item_bulk_toggle.html.twig' %}
                 <button type="button" data-action="live#action" data-live-action-param="toggleAdd" data-live-parent-id-param="{{ this.rootSentinel }}"
                         class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-forest-700 transition-colors">
@@ -37,7 +44,7 @@
             {% if tree is empty %}
                 <p class="px-2 py-6 text-center text-xs italic text-gray-400">{{ 'responsibilities.lists.items.empty'|trans({}, 'admin') }}</p>
             {% endif %}
-            <ul class="js-list-item-list" data-parent-id="">
+            <ul class="js-list-item-list" data-parent-id="{{ this.scopeParentId }}">
                 {% for node in tree %}
                     {% include 'components/Admin/_list_item_node.html.twig' with {node: node, depth: 0} %}
                 {% endfor %}
@@ -51,11 +58,11 @@
         {% set breadcrumb = this.breadcrumb %}
 
         <nav class="flex flex-wrap items-center gap-1 text-sm">
-            <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param=""
+            <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ this.scopeParentId }}"
                     class="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium
-                           {{ currentParentId == '' ? 'bg-forest-50 text-forest-700' : 'text-gray-500 hover:bg-gray-100' }}">
+                           {{ currentParentId == this.scopeParentId ? 'bg-forest-50 text-forest-700' : 'text-gray-500 hover:bg-gray-100' }}">
                 {{ ux_icon('heroicons:home', {class: 'h-4 w-4'}) }}
-                {{ 'responsibilities.lists.root'|trans({}, 'admin') }}
+                {{ root ? root.name : 'responsibilities.lists.root'|trans({}, 'admin') }}
             </button>
             {% for crumb in breadcrumb %}
                 {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 text-gray-300 shrink-0'}) }}
@@ -68,10 +75,10 @@
         </nav>
 
         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
-            <div class="flex items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
+            <div class="flex flex-wrap items-center gap-2 bg-gray-50/70 px-4 py-2.5 border-b border-gray-100">
                 {{ ux_icon('heroicons:rectangle-group', {class: 'h-4 w-4 text-gray-400'}) }}
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    {{ breadcrumb is empty ? 'responsibilities.lists.col.roots'|trans({}, 'admin') : 'responsibilities.lists.col.children'|trans({}, 'admin') }}
+                    {{ breadcrumb is empty and not root ? 'responsibilities.lists.col.roots'|trans({}, 'admin') : 'responsibilities.lists.col.children'|trans({}, 'admin') }}
                 </span>
                 {% if visible|length > 1 %}
                     <button type="button" data-action="live#action" data-live-action-param="sortAlphabetically"
@@ -81,7 +88,16 @@
                     </button>
                 {% endif %}
                 <span class="text-xs text-gray-400">{{ visible|length }}</span>
-                <span class="ml-auto">{% include 'components/Admin/_list_item_bulk_toggle.html.twig' %}</span>
+                <span class="ml-auto flex items-center gap-2">
+                    {% if root and not bulkSelectMode %}
+                        <button type="button" data-action="live#action" data-live-action-param="selectItem" data-live-id-param="{{ root.id }}"
+                                class="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                            {{ ux_icon('heroicons:pencil-square', {class: 'h-3.5 w-3.5'}) }}
+                            {{ 'responsibilities.lists.edit_list'|trans({}, 'admin') }}
+                        </button>
+                    {% endif %}
+                    {% include 'components/Admin/_list_item_bulk_toggle.html.twig' %}
+                </span>
             </div>
 
             {% if visible is empty %}
@@ -175,7 +191,7 @@
                        rebuilt — data-live-ignore alone is enough to survive the re-renders bulkSelectedIds
                        triggers on every checkbox click (kept live, unlike associationKeys, so the count
                        above updates). #}
-                    <div id="bulk-association-picker" data-live-ignore class="min-w-0 flex-1">
+                    <div id="bulk-association-picker" data-live-ignore class="min-w-[14rem] flex-1">
                         <select multiple data-controller="tom-select"
                                 data-tom-select-placeholder-value="{{ 'responsibilities.lists.association.picker_placeholder'|trans({}, 'admin') }}"
                                 data-tom-select-no-results-value="{{ 'responsibilities.lists.association.picker_no_results'|trans({}, 'admin') }}"
@@ -204,7 +220,7 @@
                    its own descendants are never valid destinations), so it must be torn down and
                    rebuilt with fresh options whenever the selection changes, not just preserved
                    across re-renders. #}
-                <div id="bulk-move-picker-{{ bulkSelectedIds|join('_') }}" data-live-ignore class="min-w-0 flex-1">
+                <div id="bulk-move-picker-{{ bulkSelectedIds|join('_') }}" data-live-ignore class="min-w-[14rem] flex-1">
                     <select data-controller="tom-select"
                             data-tom-select-placeholder-value="{{ 'responsibilities.lists.bulk.move_picker_placeholder'|trans({}, 'admin') }}"
                             data-tom-select-no-results-value="{{ 'responsibilities.lists.association.picker_no_results'|trans({}, 'admin') }}"
@@ -216,11 +232,23 @@
                         {% endfor %}
                     </select>
                 </div>
-                <button type="button" data-action="live#action" data-live-action-param="bulkMoveSelected"
-                        {{ bulkSelectedIds is empty ? 'disabled' : '' }}
-                        class="shrink-0 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
-                    {{ 'responsibilities.lists.bulk.move'|trans({}, 'admin') }}
-                </button>
+                {% if bulkMoveConfirmKey != '' and bulkMoveConfirmKey == this.bulkMoveKey %}
+                    <span class="basis-full text-xs text-amber-800">{{ 'responsibilities.lists.bulk.move_confirm'|trans({}, 'admin') }}</span>
+                    <button type="button" data-action="live#action" data-live-action-param="confirmBulkMove"
+                            class="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors">
+                        {{ 'responsibilities.lists.bulk.move_confirm_yes'|trans({}, 'admin') }}
+                    </button>
+                    <button type="button" data-action="live#action" data-live-action-param="cancelBulkMove"
+                            class="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                        {{ 'responsibilities.lists.detail.cancel'|trans({}, 'admin') }}
+                    </button>
+                {% else %}
+                    <button type="button" data-action="live#action" data-live-action-param="bulkMoveSelected"
+                            {{ bulkSelectedIds is empty ? 'disabled' : '' }}
+                            class="shrink-0 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
+                        {{ 'responsibilities.lists.bulk.move'|trans({}, 'admin') }}
+                    </button>
+                {% endif %}
                 {% if errors.bulkMove is defined %}
                     <span class="text-xs text-red-600">{{ errors.bulkMove }}</span>
                 {% endif %}
@@ -279,7 +307,8 @@
                         {% if errors.name is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.name }}</p>{% endif %}
                     </div>
 
-                    <div class="flex items-end gap-2 sm:col-span-1">
+                    {# The managed list's own position among the lists is set from the lists page. #}
+                    <div class="flex items-end gap-2 sm:col-span-1 {{ root and sel.id == root.id ? 'hidden' : '' }}">
                         <button type="button" data-action="live#action" data-live-action-param="moveUp" data-live-id-param="{{ sel.id }}"
                                 class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-500 hover:bg-gray-50 transition-colors"
                                 title="{{ 'responsibilities.lists.detail.move_up'|trans({}, 'admin') }}">
