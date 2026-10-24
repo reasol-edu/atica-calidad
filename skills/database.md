@@ -53,6 +53,14 @@ The **platform guard** (`abortIf` against `PostgreSQLPlatform`/`MySQLPlatform`/
 a migration from the wrong folder from running by mistake if `MIGRATIONS_PATH`
 were misconfigured.
 
+### Gotcha: seed rows with a UUID id, on SQLite, need a blob literal
+
+Doctrine's `uuid` type is 16 raw bytes on SQLite (`BLOB`), on MySQL (`BINARY(16)`, hence
+`UNHEX(REPLACE(UUID(), '-', ''))`) and a native `uuid` on PostgreSQL. A migration that seeds a row
+on SQLite with `'7d0c4e0a-3f5b-…'` (text) writes an id nothing can reference: every foreign key to
+it fails when the application later tries to store a value (the old settings catalogue had this bug,
+fixed by `Version20261024110000`). Write it as a hex blob literal: `X'7d0c4e0a3f5b4a9e9a625b1f0d8c2e41'`.
+
 ### Verifying a migration: all engines, with Docker whenever it is available
 
 There's no automated suite that runs migrations against every platform, so verify each new or
