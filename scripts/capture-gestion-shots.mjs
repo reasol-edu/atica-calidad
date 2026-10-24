@@ -63,6 +63,10 @@ await page.locator('button:has-text("Seguimiento del SGC")').first().click();
 // The innermost match (last in document order) is the activity's own card, not the page's containers.
 const audit = page.locator('div.rounded-2xl', { has: page.locator('h3:text-is("Auditoría interna (planificación)")') }).last();
 await audit.waitFor();
+await page.waitForTimeout(800);   // let the Stimulus dropdown connect, or the toggle click does nothing
+// The dropdown closes on any scroll: bring the card into view first, so the click does not scroll.
+await audit.scrollIntoViewIfNeeded();
+await page.waitForTimeout(500);
 await audit.locator('button[data-action="dropdown#toggle"]').click();
 await audit.locator('button[data-live-action-param="askDeleteActivity"]').click();
 await audit.locator('button[data-live-action-param="deleteActivity"]').click();

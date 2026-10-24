@@ -150,6 +150,14 @@ igual que las secciones del árbol documental; dentro de cada una se crean y edi
 Una actividad eliminada, con sus completados, pasa a la
 [papelera](07-arbol-documental.md#papelera), desde donde se puede recuperar.
 
+![Pestaña «Editar categorías»: las cuatro categorías del centro de demostración, cada una con flechas para reordenarla, un menú ⋮ y una flecha para entrar en ella, y debajo el formulario para añadir una](img/actividades-editar-categorias.png)
+
+La pantalla empieza en la **raíz**, con las categorías de primer nivel (en el centro de demostración,
+cuatro: «Sobre programaciones didácticas», «Sobre planes de acción tutorial», «Sensibilización y
+compromiso» y «Seguimiento del SGC»). Las flechas ↑/↓ las reordenan, el menú **⋮** las renombra o
+elimina, la flecha de la derecha **entra** en la categoría —para ver sus subcategorías y sus
+actividades— y el campo de abajo crea una categoría nueva en el nivel actual.
+
 ### Historial de cambios {#historial-de-cambios}
 
 En el menú **⋮** de cada actividad, **Historial de cambios** abre un panel (solo para quien puede

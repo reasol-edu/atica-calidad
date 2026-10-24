@@ -62,13 +62,21 @@ un solo paso, útil antes de publicar una nueva versión.
 ## Regenerar las capturas
 
 Las capturas de `img/` salen de scripts de Node/[Playwright](https://playwright.dev) en
-`scripts/capture-*-shots.mjs`, uno por capítulo o grupo de pantallas: `actividades`, `arbol`,
-`calendar`, `utilidades` (generador de calendarios y calculadora de fechas; crea un calendario
-propio, nada de eso viene en los datos de demostración), `mejora` (Mejora continua; solo lee, no
-envía nada) y `gestion` (preparar el nuevo curso, papelera y registro de actividad). Se ejecutan
-contra un servidor local con una **base de datos desechable** sembrada con los datos de
-demostración, **nunca contra la real**: `gestion` elimina una actividad y una entrega para que la
-papelera tenga contenido.
+`scripts/capture-*-shots.mjs`, uno por capítulo o grupo de pantallas: `acceso` (inicio de sesión y
+selección de centro), `actividades`, `arbol`, `calendar`, `centro` (Centro educativo: cursos,
+docentes y su importación, días no lectivos, registro de avisos), `informes` (portada y PDF; necesita
+`pdftoppm`), `plataforma` (administración global y ajustes), `responsabilidades` (listas, perfiles,
+asignaciones e importaciones de Séneca; necesita la CLI `sqlite3`), `utilidades` (generador de
+calendarios y calculadora de fechas; crea un calendario propio, nada de eso viene en los datos de
+demostración), `mejora` (Mejora continua; solo lee, no envía nada) y `gestion` (preparar el nuevo
+curso, papelera y registro de actividad). Se ejecutan contra un servidor local con una **base de
+datos desechable** sembrada con los datos de demostración, **nunca contra la real**: `gestion`
+elimina una actividad y una entrega para que la papelera tenga contenido, y `responsabilidades`
+desactiva un grupo y añade otro para que la previsualización de Séneca tenga de todo.
+
+Qué contiene cada dato de demostración (la lista anidada «Enseñanza», los perfiles con subperfiles
+sin docente, el docente que ya no está en el curso, el aviso fallido...) y para qué imagen está,
+con el procedimiento completo, está en [`skills/screenshots.md`](https://github.com/reasol-edu/atica-calidad/blob/main/skills/screenshots.md).
 
 ```bash
 # 1. Base de datos desechable (SQLite) con los datos de demostración
@@ -79,14 +87,19 @@ php bin/console app:load-demo-data -n
 php bin/console tailwind:build
 
 # 2. Servidor en el puerto 8744 (en otra terminal, con las mismas variables exportadas)
-php -d variables_order=EGPCS -S 127.0.0.1:8744 scripts/router-shots.php
+php -d variables_order=EGPCS -S 127.0.0.1:8744 -t public scripts/router-shots.php
 
-# 3. Capturas: gestion, la última
+# 3. Capturas: responsabilidades después de las de solo lectura, y gestion, la última
+node scripts/capture-acceso-shots.mjs
 node scripts/capture-actividades-shots.mjs
 node scripts/capture-arbol-shots.mjs
 SHOTS_OUT_DIR=docs/manual/img node scripts/capture-calendar-shots.mjs
+node scripts/capture-centro-shots.mjs
+node scripts/capture-informes-shots.mjs
+node scripts/capture-plataforma-shots.mjs
 node scripts/capture-utilidades-shots.mjs
 node scripts/capture-mejora-shots.mjs
+node scripts/capture-responsabilidades-shots.mjs
 node scripts/capture-gestion-shots.mjs
 ```
 
@@ -94,6 +107,10 @@ node scripts/capture-gestion-shots.mjs
     El servidor integrado de PHP no pasa las variables de entorno a `$_SERVER`, así que sin esa
     opción Symfony ignora el `DATABASE_URL` exportado y usa el de `.env.local`: la base de datos
     de desarrollo real.
+
+!!! warning "`-t public` también"
+    Sin él, el servidor responde 404 a `/static/logo.svg` y las capturas salen con el logotipo
+    roto.
 
 El calendario guarda por defecto en `img/calendario/`; el manual usa `img/`, de ahí la llamada con
 `SHOTS_OUT_DIR`. Para volver a capturar, vuelve a sembrar la base de datos (paso 1): los scripts dan

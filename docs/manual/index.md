@@ -27,6 +27,13 @@ autenticación externa (iSéneca). Un mismo servidor puede alojar **varios centr
 datos completamente separados; quien pertenece a más de un centro elige con cuál trabajar al
 entrar y puede cambiar de centro en cualquier momento desde el menú lateral.
 
+![Pantalla de acceso: campos de usuario y contraseña y botón para entrar](img/acceso-login.png)
+
+La pantalla de acceso pide el **usuario** (el de Séneca, IdEA) y la **contraseña**. Tras cinco
+intentos fallidos seguidos, el acceso se bloquea durante unos minutos para dificultar que alguien
+adivine una contraseña. Quien pertenece a más de un centro ve a continuación la pantalla de
+selección, descrita en [Varios centros en un mismo servidor](05-administrar-el-centro.md#varios-centros-en-un-mismo-servidor).
+
 ## Cómo usar este manual
 
 No hace falta leerlo de principio a fin; cada persona puede ir directamente a lo que necesita:

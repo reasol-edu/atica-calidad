@@ -14,6 +14,7 @@ that matches the kind of change you're making:
 | [`testing.md`](testing.md) | Before writing or debugging a test, or before considering a task done |
 | [`frontend.md`](frontend.md) | Before touching a Twig template, a Stimulus controller, a Live Component, or adding/editing an icon |
 | [`i18n.md`](i18n.md) | Before adding any user-facing text |
+| [`screenshots.md`](screenshots.md) | Before adding or regenerating a manual screenshot, or changing `app:load-demo-data`: the fixture catalogue, accounts, script → image → chapter matrix and the runbook |
 | [`release.md`](release.md) | Before a commit, updating CHANGELOG.md, touching `.github/workflows/build.yml`, or generating the manual/slides |
 
 This documentation complements, not replaces, the code: if something here and the

@@ -5,11 +5,29 @@ sección **Administración**, con gestión de todos los centros alojados en el s
 
 ## El panel de administración
 
+**Administración**, al final del menú lateral, es la portada de este capítulo: cuatro tarjetas con
+un resumen de lo que gestiona cada una.
+
+![Panel de administración con las tarjetas Docentes (35 registrados, 35 activos, 1 administrador), Centros educativos (2), Ajustes globales y Registro de actividad](img/plataforma-panel.png)
+
 ### Centros educativos
 
 **Administración → Centros educativos** lista todos los centros del servidor. Desde aquí se crean
 centros nuevos, se edita su código/nombre/localidad y se asigna su equipo directivo (docentes con
 acceso a la administración de ese centro concreto, sin necesidad de ser administradores globales).
+
+![Listado de centros educativos: código, nombre, localidad y curso activo de cada uno, con los botones Editar y Eliminar](img/plataforma-centros.png)
+
+Al pulsar **Editar** se abre la ficha del centro: el **código de centro** (el código oficial, que
+lo identifica), el nombre, la localidad y el **equipo directivo**, un selector donde se
+buscan docentes por nombre (hacen falta al menos dos caracteres). Quien figure ahí gestiona ese
+centro —docentes, cursos, responsabilidades— sin ser administrador global.
+
+![Ficha del IES Ada Lovelace: código, nombre, localidad y equipo directivo (Javier Morales Peña), con la zona de peligro para eliminar el centro](img/plataforma-centro-editar.png)
+
+La **zona de peligro** del final elimina el centro con **todos** sus datos: documentos, actividades,
+listas y perfiles. No se puede deshacer, así que conviene hacer antes una
+[copia de seguridad](#copias-de-seguridad).
 
 Al crear un centro (desde aquí o con `app:create-educational-centre`/`app:load-demo-data` por
 consola) se le crean automáticamente tres raíces vacías en [Responsabilidades →
@@ -23,13 +41,39 @@ renombrar sin tocar código.
 **Administración → Docentes** gestiona el listado global de docentes del servidor: alta, edición,
 baja, modo de acceso (contraseña o autenticación externa) y forzado de cambio de contraseña.
 
+![Listado global de docentes del servidor: nombre, usuario, correo y, en cada fila, los botones Editar, Acceder como y Eliminar](img/plataforma-docentes.png)
+
+La ficha de un docente (**Editar**) reúne todo lo que se puede decidir sobre su cuenta: nombre y
+apellidos, **nombre de usuario**, correo, **modo de acceso** (contraseña propia o usuario IdEA de
+Séneca), la contraseña (en blanco para no cambiarla), si se le **fuerza el cambio de contraseña**, si
+es **administrador global** y si la cuenta está **activa**. Una cuenta inactiva no puede iniciar
+sesión; es lo que conviene usar en lugar de eliminar la cuenta cuando un docente se marcha.
+
+![Ficha de la docente «Barrios Gil, Mónica»: modo de acceso, contraseña, forzar cambio, administrador global, cuenta activa y zona de peligro](img/plataforma-docente-editar.png)
+
+#### Acceder como otro docente {#acceder-como}
+
+El botón **Acceder como** de cada fila abre la aplicación **tal y como la ve ese docente**: su
+inicio, sus actividades pendientes, sus permisos. Sirve para reproducir lo que cuenta alguien («no
+me sale la carpeta», «no me deja subir») sin pedirle su contraseña. Mientras dure, el menú lateral
+muestra un aviso con **«Suplantando a»** y su usuario, y el botón **Volver al usuario original**
+termina la suplantación.
+
+![Inicio visto como la docente «e.cabrera»: en la parte inferior del menú lateral, el aviso «Suplantando a e.cabrera» y el botón «Volver al usuario original»](img/plataforma-suplantacion.png)
+
+!!! warning "Lo que se haga como ese docente cuenta como suyo"
+    Las acciones —marcar una actividad como hecha, subir un documento...— quedan a nombre del
+    docente suplantado. El [registro de actividad](#registro-de-actividad) sí distingue el origen:
+    guarda el inicio y el fin de cada suplantación y marca cada entrada con «suplantado por» y el
+    usuario real. Úsalo solo para diagnosticar y avisa al docente si has tenido que cambiar algo.
+
 #### Forzar cambio de contraseña
 
 Al editar un docente, activa **«Forzar cambio de contraseña»** para que deba establecer una nueva
 contraseña en su próximo acceso — útil tras crear una cuenta o si se sospecha que la contraseña
 actual se ha visto comprometida. No aplica a cuentas con autenticación externa.
 
-## Correo electrónico del servidor
+## Correo electrónico del servidor {#correo-electronico-del-servidor}
 
 ### Activar el correo
 
@@ -58,7 +102,7 @@ aplica, **personal** (**Mi perfil → Ajustes**, accesible a cualquier docente d
 lateral). Un valor de un nivel más específico sobrescribe al de un nivel más general, salvo que
 este último esté **bloqueado**.
 
-### Bloqueo de ajustes
+### Bloqueo de ajustes {#bloqueo-de-ajustes}
 
 Un administrador global puede bloquear un ajuste en **Administración → Ajustes**: el valor
 bloqueado se aplica entonces a todos los centros (y docentes) sin que puedan sobrescribirlo. Un
@@ -67,7 +111,15 @@ el profesorado, si el ajuste lo permite a nivel de centro.
 
 ## Ajustes disponibles {#ajustes-disponibles}
 
+Las capturas de esta sección son de **Administración → Ajustes globales**, el nivel más general: cada
+ajuste muestra su descripción, el control para cambiarlo y, a la derecha, un **candado** que lo
+bloquea para los niveles inferiores (ver [Bloqueo de ajustes](#bloqueo-de-ajustes)). Los controles
+que muestran «Por defecto (…)» o un valor en gris están sin tocar: usan el valor que trae la
+aplicación, que se indica entre paréntesis.
+
 ### Curso académico {#curso-academico}
+
+![Ajuste «Inicio del curso académico»: dos selectores, día y mes, con «Por defecto (15 de septiembre)»](img/plataforma-ajustes-curso.png)
 
 - **Inicio del curso académico** (global y de centro) — día y mes en que empieza cada curso;
   15 de septiembre por defecto. Las [actividades](08-actividades.md) solo guardan día y mes y se
@@ -79,6 +131,8 @@ el profesorado, si el ajuste lo permite a nivel de centro.
   acaba. Solo admite fechas que existen todos los años (no el 29 de febrero).
 
 ### Avisos por correo
+
+![Sección «Avisos por correo» de los ajustes globales: registro de avisos, retención, interruptor general, recordatorios, avisos de documentos con «Resumen diario» por defecto, prefijo del asunto y recordatorio de revisión de documentos](img/plataforma-ajustes-avisos.png)
 
 Cada uno de los tres avisos que se envían por correo (documento pendiente de revisar, documento
 aceptado, documento rechazado) puede configurarse de forma independiente en **Desactivado**,
@@ -112,17 +166,23 @@ seguidos.
 
 ### Plantillas de informes
 
+![Sección «Plantillas de informes»: cuatro zonas para arrastrar un PDF (general vertical, general apaisada, generador de calendarios vertical y apaisada)](img/plataforma-ajustes-plantillas.png)
+
 - **Plantilla PDF general (vertical / apaisada)** — un PDF de una sola página que se usa como fondo
   (membrete) de los informes que se generen en cada orientación, cuando existan. Ajustable a nivel
   de centro, desde **Centro educativo → Ajustes del centro**.
 
 ### Seguridad {#seguridad}
 
+![Ajuste «Cierre de sesión por inactividad» con su valor por defecto de 120 minutos](img/plataforma-ajustes-seguridad.png)
+
 - **Cierre de sesión por inactividad** (global) — minutos sin actividad tras los que se cierra la
   sesión de un docente, para que un equipo compartido que se deja abierto no quede utilizable por
   otra persona; 120 por defecto, 0 lo desactiva.
 
 ### Ajustes del registro de actividad
+
+![Sección «Registro de actividad»: registrar la actividad de los usuarios y retención del registro](img/plataforma-ajustes-registro.png)
 
 - **Registrar la actividad de los usuarios** — activa o desactiva el [registro de
   actividad](#registro-de-actividad) para un centro. Ajustable a nivel global y de centro: cada
@@ -135,6 +195,8 @@ seguidos.
 
 ### Papelera {#papelera}
 
+![Ajuste «Días en la papelera», con 30 días por defecto](img/plataforma-ajustes-papelera.png)
+
 - **Días en la papelera** — días que se conservan en la [papelera](07-arbol-documental.md#papelera)
   los documentos y las actividades eliminados antes de borrarse para siempre, en el vaciado
   automático de cada madrugada; 30 por defecto, de 0 a 3650. Con 0 no se vacía sola: lo eliminado se
@@ -143,6 +205,8 @@ seguidos.
   bloqueado el ajuste. Cambiarlo afecta también a lo que ya está en la papelera.
 
 ### Subida de ficheros {#subida-de-ficheros}
+
+![Ajustes «Tamaño máximo por fichero» (20 MB) y «Tamaño máximo total por envío» (100 MB), con el rango permitido junto a cada valor](img/plataforma-ajustes-subida.png)
 
 - **Tamaño máximo por fichero (MB)** — de 1 a 1024; 20 por defecto.
 - **Tamaño máximo total por envío (MB)** — suma de los ficheros que se suben de una vez; de 1 a 2048;

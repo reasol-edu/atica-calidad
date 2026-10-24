@@ -7,6 +7,34 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.24.0] - 2026-10-24
+
+### Added
+
+- Manual: 57 capturas nuevas con explicación de cada una (inicio de sesión y selección de centro,
+  Centro educativo, Informes —con la primera página de cinco PDF—, Administración y ajustes, la
+  suplantación de docentes y todo el capítulo de Responsabilidades), con sus scripts de captura
+  (`scripts/capture-{acceso,centro,informes,plataforma,responsabilidades}-shots.mjs`) y los CSV de
+  ejemplo de Séneca (`scripts/fixtures/`). Las capturas anteriores, las fichas y la presentación se
+  han vuelto a generar (salían con el logotipo roto), y se incorporan al capítulo del calendario
+  las que estaban sin usar. El manual documenta por fin «Acceder como» y corrige la
+  regla de eliminación de elementos de lista (se elimina la rama entera).
+- Datos de demostración (`app:load-demo-data`): una lista anidada «Enseñanza» con una asociación
+  heredada y otra propia, un elemento inactivo, tres perfiles nuevos (con subperfiles sin docente, de
+  un elemento no raíz y de asignación directa) y uno inactivo, un docente que ya no está en el curso,
+  días no lectivos, fechas de próxima revisión en dos documentos, ocho avisos por correo (uno fallido) y un segundo centro para el usuario
+  `multicentro`. El catálogo está en `skills/screenshots.md` y en `AGENTS.md`.
+
+### Changed
+
+- Responsabilidades → Listas: la pantalla principal muestra solo las listas del centro (con su
+  número de elementos, formulario para crear una nueva y flechas para ordenarlas) y cada lista se
+  gestiona en su propia pantalla, en vez de un único árbol largo con todos los elementos. El
+  mover varios elementos a la vez ofrece ahora de forma explícita como destino los elementos de
+  otras listas, y avisa de a qué elemento se han movido. Si el movimiento cambia los perfiles que
+  se aplican a algún elemento (los hereda de otro padre o deja de ser subperfil de un perfil), pide
+  confirmación antes de hacerlo.
+
 ## [1.23.0] - 2026-10-24
 
 ### Removed

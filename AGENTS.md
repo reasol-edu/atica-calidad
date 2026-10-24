@@ -24,6 +24,18 @@ Quick summary (full detail in `skills/overview.md`):
 - The application's UI and commit messages are in **Spanish** (the project's
   target users and contributors) — this is deliberate, not something to "fix".
 
+## Demo data and manual screenshots
+
+`php bin/console app:load-demo-data` builds the demo centre («IES Ada Lovelace») that **every
+screenshot of the manual is taken from** — the manual's captions name what the fixtures contain. Each
+piece of the demo data exists to make one concept visible (an inherited association, an unassigned
+subprofile, a failed e-mail, a teacher who left the course...). **Before changing the command, or
+adding a screenshot, read [`skills/screenshots.md`](skills/screenshots.md)**: it catalogues the
+accounts and fixtures, maps each script to its images and chapter, and has the runbook (build the
+throwaway database from the *migrations*, serve it with `-t public`, run order, mutating scripts).
+Reusable accounts: `admin` (platform), `direccion` (management), `calidad` (quality manager),
+`multicentro` (two centres), the rank-and-file teachers (password `prueba`).
+
 ## Project stage
 
 This is an early, deliberately minimal scaffold, reused and adapted from a

@@ -27,6 +27,23 @@ await page.waitForLoadState('networkidle');
 await hideToolbar();
 await page.screenshot({ path: `${outDir}/calendario.png` });
 
+// A month with non-working days (demo data: Constitución bridge, Inmaculada and the Christmas
+// break, all in December — October, the month above, has none). Two clicks forward from October.
+await page.waitForTimeout(1000);   // let the Live Component connect, or the clicks do nothing
+for (let i = 0; i < 2; i += 1) {
+    await page.click('button[data-live-action-param="nextMonth"]');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+}
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/calendario-no-lectivos.png` });
+
+// The detail of one of those days: it says why it is not a school day.
+await page.goto(`${baseUrl}/calendario/dia/2026-12-08`);
+await page.waitForLoadState('networkidle');
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/calendario-dia-no-lectivo.png` });
+
 // Detail view of a day with pending activities (demo deadlines, Sep. 2026).
 await page.goto(`${baseUrl}/calendario/dia/2026-09-15`);
 await page.waitForLoadState('networkidle');

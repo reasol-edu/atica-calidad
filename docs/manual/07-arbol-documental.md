@@ -264,6 +264,10 @@ reúne lo mismo para todos los documentos del centro, en PDF o Excel.
 
 ![Quién ha leído un documento y quién no](img/lectura-estado.png)
 
+En la captura, junto al nombre del documento aparece también la etiqueta ámbar **«Revisar antes del
+13/11/2026»**: es su [fecha de próxima revisión](#renombrar-mover-y-eliminar-documentos), a menos de 30
+días.
+
 ## Papelera {#papelera}
 
 Los documentos (con todas sus versiones) y las actividades (con sus completados) que se eliminan

@@ -12,6 +12,7 @@ use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
+use App\Entity\EmailNotificationLog;
 use App\Entity\Finding;
 use App\Entity\FindingKind;
 use App\Entity\FindingOrigin;
@@ -23,6 +24,7 @@ use App\Entity\Indicator;
 use App\Entity\ListItem;
 use App\Entity\Measurement;
 use App\Entity\MeasurementCalendar;
+use App\Entity\NonWorkingDay;
 use App\Entity\PersonName;
 use App\Entity\SchoolEvent;
 use App\Entity\SpecificProfile;
@@ -73,12 +75,26 @@ class LoadDemoDataCommand extends Command
     private const CENTRE_NAME = 'IES Ada Lovelace';
     private const CENTRE_CITY = 'Málaga';
 
+    /** A second, nearly empty centre, only so that one user ("multicentro") has to choose a centre at login. */
+    private const SECOND_CENTRE_CODE = '18700123';
+    private const SECOND_CENTRE_NAME = 'CEIP Miguel Hernández';
+    private const SECOND_CENTRE_CITY = 'Granada';
+
     /** @var list<array{0: string, 1: string, 2: string, 3: string}> username, password, first name, last name */
     private const NAMED_TEACHERS = [
         ['admin', 'admin', 'Admin', 'Global'],
         ['calidad', 'calidad', 'Laura', 'Jiménez Soto'],
         ['direccion', 'direccion', 'Javier', 'Morales Peña'],
+        // Belongs to both centres (see createSecondCentre()): the only user shown the centre selection screen.
+        ['multicentro', 'multicentro', 'Mónica', 'Barrios Gil'],
     ];
+
+    /**
+     * Left the centre after last course: exists in the system, is NOT in this course's teachers, and still
+     * holds a profile — so "Asignar perfiles" highlights them in red, and the Séneca teacher import has
+     * someone to "add" back (an existing user that is not in the course).
+     */
+    private const FORMER_TEACHER = ['r.fuentes', 'prueba', 'Ricardo', 'Fuentes Mora'];
 
     /** @var list<string> "Nombre Apellidos", password is always "prueba", username derived from the name */
     private const RANK_AND_FILE = [
@@ -162,10 +178,13 @@ class LoadDemoDataCommand extends Command
         $io->section('Listas de responsabilidades');
         [$departamentoLeaves, $grupoLeaves, $materiaLeaves, $materiaDepartamento] = $this->createLists($centre, $io);
 
+        $ensenanza = $this->createEnsenanzaList($centre, $io);
+
         $io->section('Perfiles específicos');
-        $profiles = $this->createProfiles($centre, $departamentoLeaves, $grupoLeaves, $io);
+        $profiles = $this->createProfiles($centre, $departamentoLeaves, $grupoLeaves, $ensenanza, $io);
 
         $this->associateMaterias($profiles['Jefe/a de Departamento'], $departamentoLeaves, $materiaLeaves, $materiaDepartamento, $io);
+        $this->associateEnsenanza($profiles, $ensenanza, $departamentoLeaves, $grupoLeaves, $io);
 
         $io->section('Árbol documental (ISO 9001:2015)');
         $folders = $this->createDocumentTree($centre, $profiles, $io);
@@ -182,6 +201,14 @@ class LoadDemoDataCommand extends Command
         $etcpDocument     = $this->seedEtcpSample($folders['etcp'], $io);
         $politicaDocument = $this->seedPoliticaSample($folders['politica'], $io);
 
+        // For the "Listado maestro" and "Revisiones de documentos" reports: folders with a responsible
+        // profile, and one review date past (red) and one close (amber), so neither report is empty.
+        $folders['politica']->addResponsibleProfile($profiles['Responsable de calidad']);
+        $folders['etcp']->addResponsibleProfile($profiles['Secretario/a']);
+        $etcpDocument->setNextReviewAt($this->clock->now()->modify('-10 days'));
+        $politicaDocument->setNextReviewAt($this->clock->now()->modify('+20 days'));
+        $io->text('Fechas de próxima revisión: el acta del ETCP la tiene vencida (hace 10 días) y la política de calidad dentro de 20 días.');
+
         // Demo data for the activity "related documents" picker: a cross-reference to an
         // existing document elsewhere in the tree (the ETCP acta) and a standalone one created
         // just for this (the quality policy, which the manual activity's own description already
@@ -192,6 +219,11 @@ class LoadDemoDataCommand extends Command
 
         $io->section('Calendario');
         $this->createCalendarEvents($academicYear, $year, $io);
+        $this->createNonWorkingDays($academicYear, $year, $io);
+
+        $io->section('Avisos por correo y segundo centro');
+        $this->seedEmailLog($centre, $io);
+        $this->createSecondCentre($yearName, $io);
 
         $io->section('Mejora continua');
         $this->em->flush();
@@ -213,7 +245,8 @@ class LoadDemoDataCommand extends Command
     /** @return list<string> every username this command will try to create, in the order it will try them */
     private function plannedUsernames(): array
     {
-        $usernames = array_map(static fn (array $row): string => $row[0], self::NAMED_TEACHERS);
+        $usernames   = array_map(static fn (array $row): string => $row[0], self::NAMED_TEACHERS);
+        $usernames[] = self::FORMER_TEACHER[0];
 
         $seen = array_fill_keys($usernames, true);
         foreach (self::RANK_AND_FILE as $fullName) {
@@ -241,13 +274,16 @@ class LoadDemoDataCommand extends Command
             $this->addTeacher($username, $password, $first, $last, $centre, $academicYear, admin: $username === 'admin');
         }
 
+        [$username, $password, $first, $last] = self::FORMER_TEACHER;
+        $this->addTeacher($username, $password, $first, $last, $centre, null);
+
         foreach (self::RANK_AND_FILE as $fullName) {
             [$first, $last] = explode(' ', $fullName, 2);
             $username       = $this->usernameFor($first, $last);
             $this->addTeacher($username, 'prueba', $first, $last, $centre, $academicYear);
         }
 
-        $io->text(\sprintf('%d docentes creados (admin, calidad, dirección + 30 docentes de plantilla).', count($this->teachers)));
+        $io->text(\sprintf('%d docentes creados (admin, calidad, dirección, multicentro, un docente que ya no está en el curso + 30 docentes de plantilla).', count($this->teachers)));
     }
 
     private function addTeacher(
@@ -256,7 +292,7 @@ class LoadDemoDataCommand extends Command
         string $firstName,
         string $lastName,
         EducationalCentre $centre,
-        AcademicYear $academicYear,
+        ?AcademicYear $academicYear,
         bool $admin = false,
     ): Teacher {
         $teacher = new Teacher(new PersonName($firstName, $lastName));
@@ -264,7 +300,7 @@ class LoadDemoDataCommand extends Command
         $teacher->setPassword($this->passwordHasher->hashPassword($teacher, $password));
         $teacher->setAdmin($admin);
         $teacher->setForcePasswordChange(false);
-        $academicYear->addTeacher($teacher);
+        $academicYear?->addTeacher($teacher);
 
         $this->em->persist($teacher);
         $this->teachers[$username] = $teacher;
@@ -355,6 +391,83 @@ class LoadDemoDataCommand extends Command
     }
 
     /**
+     * The one NESTED list of the demo (Departamento, Grupo and Materia are flat), so the manual can
+     * show what only a tree has: intermediate nodes, a profile tied to a non-root element, an
+     * association inherited by a whole branch, and an inactive element.
+     *
+     *   Enseñanza
+     *   ├── ESO ─ 1º ESO, 2º ESO, 3º ESO, 4º ESO, «Programa de Mejora (extinguido)» (INACTIVE)
+     *   ├── Bachillerato ─ 1º Bachillerato, 2º Bachillerato
+     *   └── Formación Profesional
+     *       ├── DAM ─ 1º DAM, 2º DAM
+     *       └── DAW ─ 1º DAW, 2º DAW
+     *
+     * @return array<string, ListItem> name => item, branches and leaves alike (all names are unique)
+     */
+    private function createEnsenanzaList(EducationalCentre $centre, SymfonyStyle $io): array
+    {
+        $tree = [
+            'ESO'                    => ['1º ESO', '2º ESO', '3º ESO', '4º ESO', 'Programa de Mejora (extinguido)'],
+            'Bachillerato'           => ['1º Bachillerato', '2º Bachillerato'],
+            'Formación Profesional'  => ['DAM' => ['1º DAM', '2º DAM'], 'DAW' => ['1º DAW', '2º DAW']],
+        ];
+
+        $root = new ListItem();
+        $root->setName('Enseñanza')->setEducationalCentre($centre)->setPosition($this->items->nextRootPosition($centre));
+        $this->em->persist($root);
+
+        $items = ['Enseñanza' => $root];
+        $add   = function (string $name, ListItem $parent, int $position) use ($centre, &$items): ListItem {
+            $item = new ListItem();
+            $item->setName($name)->setEducationalCentre($centre)->setPosition($position)->setParent($parent);
+            $this->em->persist($item);
+
+            return $items[$name] = $item;
+        };
+
+        $branchPosition = 0;
+        foreach ($tree as $branchName => $children) {
+            $branch = $add($branchName, $root, $branchPosition++);
+            $position = 0;
+            foreach ($children as $key => $child) {
+                if (is_array($child)) {
+                    $cycle = $add((string) $key, $branch, $position++);
+                    foreach ($child as $i => $leafName) {
+                        $add($leafName, $cycle, $i);
+                    }
+
+                    continue;
+                }
+                $add($child, $branch, $position++);
+            }
+        }
+        $items['Programa de Mejora (extinguido)']->setActive(false);
+
+        $io->text('Lista anidada creada: Enseñanza (3 ramas, 3 niveles, un elemento inactivo).');
+
+        return $items;
+    }
+
+    /**
+     * Element → profile associations that only the nested list can show (see the manual,
+     * Responsabilidades › Asociar un elemento con un perfil):
+     *  - «Formación Profesional» is associated, so its whole branch INHERITS it (the pale link);
+     *  - «2º DAW» has an association of its own, which REPLACES the inherited one (they never add up).
+     *
+     * @param array<string, SpecificProfile> $profiles
+     * @param array<string, ListItem>        $ensenanza
+     * @param array<string, ListItem>        $departamentoLeaves
+     * @param array<string, ListItem>        $grupoLeaves
+     */
+    private function associateEnsenanza(array $profiles, array $ensenanza, array $departamentoLeaves, array $grupoLeaves, SymfonyStyle $io): void
+    {
+        $ensenanza['Formación Profesional']->setAssociation($profiles['Jefe/a de Departamento'], $departamentoLeaves['Informática']);
+        $ensenanza['2º DAW']->setAssociation($profiles['Tutor/a'], $grupoLeaves['2º DAW']);
+
+        $io->text('Asociaciones de la lista Enseñanza: una heredada por toda la rama FP y una propia que la sustituye en «2º DAW».');
+    }
+
+    /**
      * @param array<string, ListItem> $departamentoLeaves
      * @param array<string, ListItem> $materiaLeaves
      * @param array<string, string>   $materiaDepartamento materia name => departamento name
@@ -423,12 +536,14 @@ class LoadDemoDataCommand extends Command
     /**
      * @param  array<string, ListItem> $departamentoLeaves
      * @param  array<string, ListItem> $grupoLeaves
+     * @param  array<string, ListItem> $ensenanza the nested list, see createEnsenanzaList()
      * @return array<string, SpecificProfile> name => profile
      */
     private function createProfiles(
         EducationalCentre $centre,
         array $departamentoLeaves,
         array $grupoLeaves,
+        array $ensenanza,
         SymfonyStyle $io,
     ): array {
         $departamentoRoot = $this->firstLeaf($departamentoLeaves)->getParent() ?? throw new \LogicException('Departamento root missing.');
@@ -490,9 +605,45 @@ class LoadDemoDataCommand extends Command
             $tutor->addAssignment($this->teacher($fullName), $grupoLeaves[$grupo]);
         }
 
-        $io->text('8 perfiles específicos creados y asignados.');
+        // ── Profiles added for the manual (Responsabilidades › Perfiles específicos) ──
+        // Teachers are all rank-and-file: none of them is "direccion" or "calidad", whose screens
+        // other chapters already show.
+
+        // A profile on the WHOLE nested list: one subprofile per leaf (11, one of them inactive),
+        // and intermediate nodes («ESO», «Formación Profesional», «DAM»...) usable as "(todos)".
+        // «2º DAW» is left WITHOUT a teacher on purpose: an unassigned subprofile.
+        $nivel = $this->makeProfile('Coordinador/a de Nivel', $centre, $ensenanza['Enseñanza']);
+        foreach ([
+            '1º ESO' => 'Javier Ramos Ortega', '2º ESO' => 'Lucía Moreno Castro', '3º ESO' => 'Álvaro Domínguez Vega',
+            '4º ESO' => 'Irene Campos Lozano', '1º Bachillerato' => 'Silvia Méndez Carrasco', '2º Bachillerato' => 'Alba Rey Nieto',
+            '1º DAM' => 'Claudia Núñez Aguilar', '2º DAM' => 'Noelia Bravo Escudero', '1º DAW' => 'Marcos Pardo Esteban',
+        ] as $leaf => $fullName) {
+            $nivel->addAssignment($this->teacher($fullName), $ensenanza[$leaf]);
+        }
+
+        // A profile tied to a NON-ROOT element: only the leaves under «Formación Profesional»
+        // become subprofiles, «ESO» and «Bachillerato» are ignored.
+        $ffeoe = $this->makeProfile('Coordinador/a de FFEOE', $centre, $ensenanza['Formación Profesional']);
+        $ffeoe->addAssignment($this->teacher('Noelia Bravo Escudero'), $ensenanza['2º DAM']);
+        $ffeoe->addAssignment($this->teacher('Rocío Serrano Vicente'), $ensenanza['2º DAW']);
+
+        // Direct assignment (no list). The second teacher no longer belongs to the course.
+        $tic = $this->makeProfile('Coordinador/a TIC', $centre);
+        $tic->addAssignment($this->teacher('Adrián Gil Santos'));
+        $tic->addAssignment($this->teachers[self::FORMER_TEACHER[0]]);
+
+        // An INACTIVE profile that still keeps the teacher it had.
+        $aldea = $this->makeProfile('Coordinador/a del Programa ALDEA', $centre);
+        $aldea->setActive(false);
+        $aldea->addAssignment($this->teacher('Sara Cano Rubio'));
+
+        $io->text('12 perfiles específicos creados y asignados (4 de ellos añadidos para el manual).');
 
         return [
+            'Coordinador/a de Nivel' => $nivel,
+            'Coordinador/a de FFEOE' => $ffeoe,
+            'Coordinador/a TIC' => $tic,
+            'Coordinador/a del Programa ALDEA' => $aldea,
             'Responsable de calidad' => $calidad,
             'Tutor/a' => $tutor,
             'Jefe/a de Departamento' => $jefeDpt,
@@ -1215,6 +1366,77 @@ class LoadDemoDataCommand extends Command
     }
 
     // ── Calendar ─────────────────────────────────────────────────────────────
+
+    /**
+     * A few holidays and a break for Centro educativo › Días no lectivos. All of them fall OUTSIDE
+     * October, the month the calendar screenshots show, so those images do not change.
+     */
+    private function createNonWorkingDays(AcademicYear $academicYear, int $startYear, SymfonyStyle $io): void
+    {
+        $days = [
+            [$startYear, 11, 2, 'Día siguiente a Todos los Santos (libre disposición)'],
+            [$startYear, 12, 7, 'Puente de la Constitución'],
+            [$startYear, 12, 8, 'Inmaculada Concepción'],
+            [$startYear + 1, 2, 27, 'Día de Andalucía (puente)'],
+            [$startYear + 1, 2, 28, 'Día de Andalucía'],
+        ];
+        // Christmas break: every weekday from 23 December to 6 January.
+        $break = new \DateTimeImmutable(\sprintf('%04d-12-23', $startYear));
+        $end   = new \DateTimeImmutable(\sprintf('%04d-01-06', $startYear + 1));
+        for ($day = $break; $day <= $end; $day = $day->modify('+1 day')) {
+            if ((int) $day->format('N') < 6) {
+                $days[] = [(int) $day->format('Y'), (int) $day->format('n'), (int) $day->format('j'), 'Vacaciones de Navidad'];
+            }
+        }
+
+        foreach ($days as [$y, $m, $d, $description]) {
+            $nonWorking = new NonWorkingDay();
+            $nonWorking->setAcademicYear($academicYear)
+                ->setDate(new \DateTimeImmutable(\sprintf('%04d-%02d-%02d', $y, $m, $d)))
+                ->setDescription($description);
+            $this->em->persist($nonWorking);
+        }
+
+        $io->text(\sprintf('%d días no lectivos creados.', count($days)));
+    }
+
+    /**
+     * Rows for Centro educativo › Registro de avisos por correo: several kinds of event, a few
+     * recipients, and one FAILED delivery with its error message.
+     */
+    private function seedEmailLog(EducationalCentre $centre, SymfonyStyle $io): void
+    {
+        $now  = $this->clock->now();
+        $rows = [
+            ['pending_activity_reminder', 'Claudia Núñez Aguilar', 'Recordatorio: «Programaciones didácticas» vence en 3 días', true, null, '-1 hour'],
+            ['pending_activity_reminder', 'Pablo Sánchez Vidal', 'Recordatorio: «Programaciones didácticas» vence en 3 días', true, null, '-1 hour'],
+            ['document_accepted', 'Ana Ruiz Molina', 'Tu documento «Plan de Acción Tutorial (PAT)» ha sido aceptado', true, null, '-1 day'],
+            ['document_rejected', 'Marta Iglesias Pardo', 'Tu documento «Programación de Inglés» ha sido rechazado', true, null, '-2 days'],
+            ['pending_review_reminder', 'Guillermo Ortiz Roldán', 'Tienes 2 documentos pendientes de revisar', true, null, '-2 days'],
+            ['quality_action_assigned', 'Diego Herrera Blanco', 'Mejora continua: se te ha asignado una acción', true, null, '-3 days'],
+            ['quality_closed', 'Laura Jiménez Soto', 'Mejora continua: incidencia resuelta', false, 'Connection could not be established with host "smtp.centro.example:587": timed out after 30 seconds.', '-3 days'],
+            ['document_review_digest', 'Eva Cabrera Molina', 'Resumen diario de revisiones', true, null, '-4 days'],
+        ];
+
+        foreach ($rows as [$eventKey, $fullName, $subject, $success, $error, $when]) {
+            $recipient = $fullName === 'Laura Jiménez Soto' ? $this->teachers['calidad'] : $this->teacher($fullName);
+            $this->em->persist(new EmailNotificationLog($centre, $recipient, $fullName, $eventKey, $subject, $success, $error, $now->modify($when)));
+        }
+
+        $io->text(\sprintf('%d avisos por correo registrados (uno fallido).', count($rows)));
+    }
+
+    /**
+     * A nearly empty second centre whose only teacher is "multicentro" — who also belongs to the
+     * demo centre, so logging in as them shows the centre selection screen.
+     */
+    private function createSecondCentre(string $yearName, SymfonyStyle $io): void
+    {
+        $second = $this->centreProvisioner->provision(self::SECOND_CENTRE_CODE, self::SECOND_CENTRE_NAME, self::SECOND_CENTRE_CITY, $yearName);
+        $second->requireActiveAcademicYear()->addTeacher($this->teachers['multicentro']);
+
+        $io->text(\sprintf('Segundo centro creado: %s (solo para la pantalla de selección de centro).', self::SECOND_CENTRE_NAME));
+    }
 
     private function createCalendarEvents(AcademicYear $academicYear, int $startYear, SymfonyStyle $io): void
     {

@@ -49,8 +49,8 @@ final class LoadDemoDataCommandTest extends RepositoryTestCase
 
         /** @var TeacherRepository $teachers */
         $teachers = self::getContainer()->get(TeacherRepository::class);
-        // 3 named teachers (admin, calidad, dirección) + 30 rank-and-file teachers.
-        self::assertCount(33, $teachers->findAll());
+        // 4 named teachers (admin, calidad, dirección, multicentro) + the former teacher + 30 rank-and-file teachers.
+        self::assertCount(35, $teachers->findAll());
         self::assertNotNull($teachers->findByUsername('admin'));
         self::assertNotNull($teachers->findByUsername('calidad'));
         self::assertNotNull($teachers->findByUsername('direccion'));
@@ -104,8 +104,56 @@ final class LoadDemoDataCommandTest extends RepositoryTestCase
         /** @var ListItemRepository $items */
         $items = self::getContainer()->get(ListItemRepository::class);
         $roots = $items->findRootsByCentre($centre);
-        self::assertCount(3, $roots, 'the Departamento/Grupo/Materia roots CentreProvisioner creates must be reused, not duplicated, by the demo data');
-        self::assertSame(['Departamento', 'Grupo', 'Materia'], array_map(static fn (ListItem $r): string => $r->getName(), $roots));
+        self::assertCount(4, $roots, 'the Departamento/Grupo/Materia roots CentreProvisioner creates must be reused, not duplicated, by the demo data, plus the nested Enseñanza list');
+        self::assertSame(['Departamento', 'Grupo', 'Materia', 'Enseñanza'], array_map(static fn (ListItem $r): string => $r->getName(), $roots));
+    }
+
+    /** The extra fixtures the manual's screenshots rely on (see skills/screenshots.md). */
+    public function testSeedsTheFixturesTheManualScreenshotsNeed(): void
+    {
+        $this->tester->execute([]);
+        self::assertSame(0, $this->tester->getStatusCode());
+        $this->em->clear();
+
+        /** @var EducationalCentreRepository $centres */
+        $centres = self::getContainer()->get(EducationalCentreRepository::class);
+        $centre  = $centres->findByCode('29700456');
+        self::assertNotNull($centre);
+        $year = $centre->getActiveAcademicYear();
+        self::assertNotNull($year);
+
+        /** @var TeacherRepository $teachers */
+        $teachers = self::getContainer()->get(TeacherRepository::class);
+        $former   = $teachers->findByUsername('r.fuentes');
+        self::assertNotNull($former);
+        self::assertFalse($year->getTeachers()->contains($former), 'the former teacher is not in the course');
+
+        $second = $centres->findByCode('18700123');
+        self::assertNotNull($second);
+        $multi = $teachers->findByUsername('multicentro');
+        self::assertNotNull($multi);
+        self::assertTrue($centres->isAccessibleByTeacher($centre, $multi));
+        self::assertTrue($centres->isAccessibleByTeacher($second, $multi), 'multicentro belongs to both centres');
+        $direccion = $teachers->findByUsername('direccion');
+        self::assertNotNull($direccion);
+        self::assertFalse($centres->isAccessibleByTeacher($second, $direccion), 'only multicentro sees the centre selection screen');
+
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        $byName = [];
+        foreach ($items->findAllByCentre($centre) as $item) {
+            $top = $item;
+            while ($top->getParent() !== null) {
+                $top = $top->getParent();
+            }
+            if ($top->getName() === 'Enseñanza') {
+                $byName[$item->getName()] = $item;
+            }
+        }
+        self::assertFalse($byName['Programa de Mejora (extinguido)']->isActive());
+        self::assertTrue($byName['2º DAW']->isAssociated(), 'an own association replaces the inherited one');
+        self::assertFalse($byName['1º DAW']->isAssociated());
+        self::assertTrue($byName['1º DAW']->hasInheritedAssociation(), 'the FP branch passes its association down');
     }
 
     public function testFailsWhenTheDemoCentreAlreadyExists(): void

@@ -9,6 +9,31 @@ El calendario muestra los días lectivos del curso académico visualizado (de lu
 festivos y días no lectivos aparecen marcados). Pulsa sobre cualquier día para ver su detalle:
 eventos programados y, si el día no es lectivo, el motivo.
 
+![Calendario de octubre de 2026: cuadrícula de lunes a viernes con una actividad que vence el 1 de octubre (banda roja), un evento el día 15 («Evaluación inicial», en azul) y bandas azules que cruzan las semanas del 19 y del 26; arriba, el botón «Suscribirme a mi calendario» y las pestañas Calendario y Eventos](img/calendario.png)
+
+La cuadrícula solo tiene **lunes a viernes**: los fines de semana no se muestran. Cada celda lleva el
+número del día; los **eventos** aparecen como una etiqueta con su hora y su nombre (el del día 15,
+de 16:00 a 18:00), y las **actividades** con plazo como una banda que cubre todos los días de su
+periodo (la roja, que vence el 1 de octubre, es una actividad vencida). Las flechas de arriba cambian
+de mes y **Hoy** vuelve al mes actual.
+
+Los días **no lectivos** se distinguen a primera vista: la celda va en un tono más oscuro y el número
+aparece tachado. En diciembre de los datos de demostración se ve el puente de la Constitución (7 y 8) y
+las vacaciones de Navidad (del 23 en adelante):
+
+![Calendario de diciembre de 2026: los días 7 y 8, y del 23 de diciembre en adelante, con la celda más oscura y el número tachado; la primera semana lleva la banda de una actividad que vence](img/calendario-no-lectivos.png)
+
+El **detalle de un día** (al pulsarlo) agrupa lo que ocurre en él: los eventos y las actividades con
+plazo ese día, y botones para pasar al día anterior o siguiente. Si el día es no lectivo, un aviso
+lo dice y da el motivo:
+
+![Detalle del martes 8 de diciembre de 2026: el aviso «Día no lectivo: Inmaculada Concepción» y, debajo, los bloques Eventos y Actividades, ambos vacíos](img/calendario-dia-no-lectivo.png)
+
+![Detalle del martes 15 de septiembre de 2026, un día lectivo: no hay eventos, y en Actividades figuran «Lectura y conformidad con la Política de Calidad» y «Revisión por la dirección (acta)»](img/calendario-dia.png)
+
+Las actividades de un día se muestran con su título y enlazan a la propia actividad. El botón
+**Añadir evento**, arriba a la derecha, crea un evento para esa fecha (ver [Eventos](#eventos)).
+
 ## Eventos
 
 El equipo directivo y la administración del centro pueden crear eventos (p. ej. una reunión o una

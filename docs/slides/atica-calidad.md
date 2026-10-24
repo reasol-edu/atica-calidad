@@ -119,9 +119,13 @@ perfiles o subperfiles concretos de Responsabilidades. El detalle de cada día m
 Jerarquías propias de nombres, con la profundidad que se necesite:
 
 ```
-Grupo → 1º ESO → 1º ESO-A, 1º ESO-B
-Departamento → FP → Informática y Comunicaciones, Sanidad
+Grupo → 1º ESO A, 1º ESO B, 2º DAW...
+Enseñanza → Formación Profesional → DAW → 1º DAW, 2º DAW
 ```
+
+La pantalla de Listas muestra solo las **listas** del centro; cada una se gestiona en **su propia
+pantalla**, y se pueden **mover elementos de una lista a otra** (con aviso si cambian los perfiles
+que les corresponden).
 
 Cada elemento puede **asociarse a uno o varios perfiles**, y sus descendientes sin asociación propia
 la heredan. Los elementos inactivos o en uso no se pierden ni se pueden borrar por accidente.
@@ -133,8 +137,8 @@ la heredan. Los elementos inactivos o en uso no se pierden ni se pueden borrar p
 Cada centro crea sus propias responsabilidades (tutorías, jefaturas...) y les asigna docentes,
 directamente o **asociadas a una lista**: entonces cada hoja genera un subperfil automático.
 
-- «Tutor/a» + lista «Grupo» → *Tutor/a 1º ESO-A*, *Tutor/a 1º ESO-B*...
-- «Jefatura de Familia Profesional» + «FP» → *Jefatura... Informática*, *Jefatura... Sanidad*
+- «Tutor/a» + lista «Grupo» → *Tutor/a 1º ESO A*, *Tutor/a 1º ESO B*...
+- «Coordinador/a de FFEOE» + «Formación Profesional» → *… 1º DAM*, *… 2º DAM*, *… 1º DAW*, *… 2º DAW*
 
 Estos mismos perfiles y subperfiles también sirven para restringir eventos del calendario a quien
 corresponda.
