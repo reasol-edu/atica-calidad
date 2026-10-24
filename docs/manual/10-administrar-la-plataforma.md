@@ -117,6 +117,65 @@ bloquea para los niveles inferiores (ver [Bloqueo de ajustes](#bloqueo-de-ajuste
 que muestran «Por defecto (…)» o un valor en gris están sin tocar: usan el valor que trae la
 aplicación, que se indica entre paréntesis.
 
+### Modo mantenimiento {#modo-mantenimiento}
+
+![Sección «Mantenimiento» de los ajustes globales: el ajuste «Modo mantenimiento», con «Por defecto (Desactivado)»](img/plataforma-ajustes-mantenimiento.png)
+
+**Modo mantenimiento** (en **Administración → Ajustes globales**, categoría **Mantenimiento**) cierra
+la aplicación a todo el mundo salvo a los **administradores globales**. Sirve para trabajar sin que
+nadie se encuentre datos a medias: antes de [actualizar](#actualizacion), de restaurar una
+[copia de seguridad](#copias-de-seguridad) o de cualquier otra intervención delicada. Es un ajuste
+**solo global**: no existe a nivel de centro ni personal, porque afecta a todos los centros del
+servidor. Viene **desactivado** y se activa y desactiva eligiendo **Activado** o **Desactivado** en el
+desplegable; el cambio se guarda al instante y rige desde la petición siguiente.
+
+Mientras está activado:
+
+- **Los administradores globales** siguen trabajando con normalidad. En la parte superior de cada
+  pantalla ven un aviso ámbar —**«Modo mantenimiento activado»**— con un enlace a los ajustes para
+  desactivarlo, de modo que no se quede puesto por descuido.
+
+  ![Pantalla de Administración vista por un administrador global con el modo mantenimiento activado: una franja ámbar «Modo mantenimiento activado. El resto del profesorado no puede acceder a la aplicación mientras esté así. Desactivarlo en Ajustes globales»](img/plataforma-mantenimiento-aviso.png)
+
+  Un administrador que usa [Acceder como](#acceder-como) para ver la aplicación como otro docente
+  conserva el acceso: cuenta quien suplanta, no el docente suplantado.
+- **El resto del profesorado**, tenga o no la sesión iniciada, recibe la página
+  **«Aplicación en mantenimiento»** (respuesta HTTP 503) en cualquier dirección de la aplicación. Si
+  tenía la sesión abierta, la página ofrece **Cerrar sesión**.
+
+  ![Página «Aplicación en mantenimiento» que ve un docente: sobre un fondo oscuro con círculos y rombos, dos engranajes entrelazados (uno ámbar y otro verde), la etiqueta «Mantenimiento», el título, el texto «solo pueden entrar los administradores de la plataforma», tres puntos de progreso y el botón Cerrar sesión](img/plataforma-mantenimiento-pagina.png)
+
+  Es una página animada, con el mismo estilo que las de error: los dos engranajes giran en sentidos
+  contrarios, unos anillos laten a su alrededor, los círculos del fondo se desplazan suavemente con
+  el ratón y los tres puntos parpadean en cadena. Quien tenga activada en su sistema la opción de
+  «reducir movimiento» la ve sin animaciones.
+- **Quien aún no ha iniciado sesión** llega a la pantalla de acceso, que lo explica en un aviso
+  encima del formulario: la aplicación está en mantenimiento y solo pueden entrar los administradores.
+  El acceso (y la salida) sigue abierto precisamente para que ellos puedan entrar. Un docente que no
+  sea administrador puede iniciar sesión, pero se encuentra a continuación la página de
+  mantenimiento.
+
+  ![Pantalla de acceso con un aviso ámbar sobre el formulario: «La aplicación está en mantenimiento: solo pueden entrar los administradores de la plataforma»](img/plataforma-mantenimiento-login.png)
+
+Se bloquea **todo** lo demás, también lo que no es una página: las actualizaciones de los
+componentes interactivos de la pantalla y el **calendario de suscripción** (las aplicaciones de
+calendario que lo tengan configurado reciben el 503 y lo reintentan más tarde, sin perder la
+suscripción). Se mantienen abiertos únicamente el acceso y la salida, y los ficheros que cargan las
+propias páginas (estilos, scripts, imágenes).
+
+!!! note "Lo que el modo mantenimiento no detiene"
+    Solo restringe el acceso por web. Las tareas automáticas siguen su curso: los **avisos por
+    correo** y recordatorios que se envían desde la cola (ver
+    [Correos en cola](#correos-en-cola-messenger)), la limpieza de la papelera y de los registros, y
+    los comandos de consola (`app:backup`, `app:restore`, las migraciones). Si la intervención no
+    debe enviar correos, desactiva antes los avisos por correo electrónico en los ajustes.
+
+!!! tip "Si te quedas sin acceso"
+    Hace falta al menos una cuenta de administrador global para entrar. Si no recuerdas la
+    contraseña de ninguna, crea otra por consola con
+    [`app:create-admin`](01-instalacion-y-puesta-en-marcha.md#app-create-admin) y desactiva el
+    modo mantenimiento desde ella.
+
 ### Curso académico {#curso-academico}
 
 ![Ajuste «Inicio del curso académico»: dos selectores, día y mes, con «Por defecto (15 de septiembre)»](img/plataforma-ajustes-curso.png)
@@ -263,7 +322,9 @@ con cualquier herramienta compatible con AES de WinZip (7-Zip, keka, WinRAR) o c
 php bin/console app:restore <copia.zip> [--password[=CONTRASEÑA]] [--force]
 ```
 
-Reemplaza **todos** los datos actuales por los de la copia indicada. Antes de tocar nada muestra
+Reemplaza **todos** los datos actuales por los de la copia indicada —también los ajustes, así que
+el [modo mantenimiento](#modo-mantenimiento) queda como estuviera cuando se hizo la copia: si lo
+habías activado para restaurar, tendrás que volver a activarlo, o desactivarlo, después—. Antes de tocar nada muestra
 la fecha, la versión de la aplicación y el contenido de la copia, y pide confirmación; `--force`
 la omite (obligatorio en modo no interactivo). Si el esquema con el que se hizo la copia no
 coincide con el de la base de datos actual —hay migraciones pendientes o de más—, se niega salvo
@@ -291,12 +352,15 @@ En un despliegue con Docker, el worker ya se levanta como un servicio aparte (`c
 un despliegue con binario nativo, se gestiona como un servicio systemd independiente — ver las
 [guías de despliegue](https://github.com/reasol-edu/atica-calidad/tree/main/docs/despliegue).
 
-## Actualización
+## Actualización {#actualizacion}
 
 Cada nueva versión se anuncia con sus cambios en el
 [registro de cambios](https://github.com/reasol-edu/atica-calidad/blob/main/CHANGELOG.md) del
 repositorio. Antes de actualizar, revisa si incluye cambios que requieran una intervención manual
-(poco frecuentes, siempre indicados explícitamente) y haz una copia de seguridad.
+(poco frecuentes, siempre indicados explícitamente) y haz una copia de seguridad. Si el servidor
+tiene usuarios conectados, activa antes el [modo mantenimiento](#modo-mantenimiento): así nadie
+trabaja mientras se aplican las migraciones. Desactívalo al terminar, cuando hayas comprobado que
+la aplicación arranca.
 
 Los pasos concretos dependen de cómo esté desplegada la aplicación (Docker, Plesk o binario nativo
 en Ubuntu Server) y están descritos en

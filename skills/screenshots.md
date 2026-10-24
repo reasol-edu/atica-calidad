@@ -81,7 +81,7 @@ The second centre is «CEIP Miguel Hernández» (`18700123`), empty, only so `mu
 | `capture-acceso-shots.mjs` | `acceso-login`, `acceso-seleccion-centro`, `acceso-cambiar-centro` | `index.md`, `05` | no |
 | `capture-centro-shots.mjs` | `centro-inicio`, `-cursos`, `-docentes`, `-docentes-importar`, `-docentes-previsualizacion`, `-docentes-retirar`, `-perfiles`, `-dias-no-lectivos`, `-registro-avisos`, `-ajustes` | `02`, `05` | no |
 | `capture-informes-shots.mjs` | `informes-indice`, `-cumplimiento`, `informes-pdf-*` (first PDF page via `pdftoppm`) | `04` | no |
-| `capture-plataforma-shots.mjs` | `plataforma-panel`, `-centros`, `-centro-editar`, `-docentes`, `-docente-editar`, `-suplantacion`, `plataforma-ajustes-*` (one per settings category) | `10` | no |
+| `capture-plataforma-shots.mjs` | `plataforma-panel`, `-centros`, `-centro-editar`, `-docentes`, `-docente-editar`, `-suplantacion`, `plataforma-ajustes-*` (one per settings category), `plataforma-mantenimiento-{aviso,pagina,login}` | `10` | **yes, at the end**: turns maintenance mode on and puts it back off |
 | `capture-responsabilidades-shots.mjs` | `responsabilidades-*` (lists, tree, mobile, element panels, move, profiles, assign, picker, Séneca previews) | `06` | **yes**, at the end (Séneca setup) |
 | `capture-actividades-shots.mjs`, `-arbol-`, `-calendar-`, `-mejora-`, `-utilidades-` | the older chapters' images (`calendar` also makes `calendario-no-lectivos` and `calendario-dia-no-lectivo`) | `07`, `08`, `03`, `09`, `12` | no (`utilidades` creates a calendar; `calendar` writes the feed token) |
 | `capture-gestion-shots.mjs` | `curso-preparar`, `papelera`, `lectura-*`, `registro-actividad`... | `02`, `07` | **yes: deletes data — run it last** |

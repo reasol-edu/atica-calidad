@@ -7,6 +7,28 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.25.0] - 2026-10-24
+
+### Fixed
+
+- Instalaciones con SQLite (ejecutable de demostración y de escritorio): guardar cualquiera de los
+  ajustes de la aplicación fallaba con un error de clave foránea, porque el catálogo de ajustes se
+  había sembrado con identificadores de texto que Doctrine no reconoce en SQLite. Una migración los
+  convierte (y a lo que apuntara a ellos). PostgreSQL y MySQL / MariaDB no estaban afectados.
+- La versión 1.24.0 se publicó sin ejecutables ni release: FrankenPHP había vuelto a subir sus
+  binarios y las sumas de comprobación fijadas ya no coincidían. Esta versión las actualiza (y la
+  imagen Docker de la 1.24.0 es correcta).
+
+### Added
+
+- Modo mantenimiento: un ajuste solo global (**Administración → Ajustes globales → Mantenimiento**)
+  que cierra la aplicación a todo el profesorado salvo a los administradores globales. El resto
+  recibe una página «Aplicación en mantenimiento» (503), la pantalla de acceso lo avisa, y los
+  administradores ven una franja que les recuerda que está activado (también cuando usan «Acceder
+  como»). Se bloquea todo menos el acceso y la salida; los correos automáticos y los comandos de
+  consola siguen funcionando. Documentado en el capítulo de administración de la plataforma, con
+  cuatro capturas.
+
 ## [1.24.0] - 2026-10-24
 
 ### Added

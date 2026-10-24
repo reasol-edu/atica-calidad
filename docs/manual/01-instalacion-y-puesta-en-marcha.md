@@ -197,7 +197,7 @@ defecto de Responsabilidades → Listas (Departamento, Grupo, Materia — ver
 php bin/console app:create-educational-centre <código> <nombre> <localidad>
 ```
 
-### app:create-admin
+### app:create-admin {#app-create-admin}
 
 Crea una cuenta de docente con privilegios de administrador global.
 

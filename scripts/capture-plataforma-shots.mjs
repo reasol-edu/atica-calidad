@@ -62,6 +62,7 @@ await page.screenshot({ path: `${outDir}/plataforma-docente-editar.png`, fullPag
 // ── Global settings: one image per category, as the chapter explains them ───
 await open('/admin/ajustes');
 for (const [heading, name] of [
+    ['Mantenimiento', 'mantenimiento'],
     ['Curso académico', 'curso'],
     ['Avisos por correo', 'avisos'],
     ['Plantillas de informes', 'plantillas'],
@@ -83,5 +84,50 @@ await page.waitForTimeout(300);
 await hideToolbar();
 await page.screenshot({ path: `${outDir}/plataforma-suplantacion.png` });
 await page.goto(`${baseUrl}/?_switch_user=_exit`);   // leave the impersonation, as the banner's link does
+
+// ── Maintenance mode: turned on, seen by an administrator, by a teacher and by a visitor, then off ──
+// Runs last because it changes a setting (and puts it back).
+async function setMaintenance(label) {
+    await open('/admin/ajustes');
+    await page.waitForTimeout(800);   // let the Live Component connect, or the change is not saved
+    await page
+        .locator('section', { has: page.getByRole('heading', { name: 'Mantenimiento', exact: true }) })
+        .locator('select')
+        .selectOption({ label });
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(800);
+}
+
+async function signIn(username) {
+    await page.context().clearCookies();   // signed out: simpler than following the logout redirect
+    await page.goto(`${baseUrl}/login`);
+    await page.waitForLoadState('networkidle');
+    await page.fill('#username', username);
+    await page.fill('#password', username);
+    await page.click('button[type="submit"]');
+    await page.waitForURL((url) => !url.pathname.startsWith('/login'));
+    await page.waitForLoadState('networkidle');
+    if (page.url().includes('/seleccion/centro')) {
+        await page.click('text=IES Ada Lovelace');
+        await page.waitForLoadState('networkidle');
+    }
+}
+
+await setMaintenance('Activado');
+await open('/admin');
+await page.screenshot({ path: `${outDir}/plataforma-mantenimiento-aviso.png`, clip: { x: 256, y: 0, width: 1104, height: 260 } });
+
+await signIn('direccion');                     // a teacher who is not a global administrator
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/plataforma-mantenimiento-pagina.png` });
+
+await page.context().clearCookies();           // a visitor who is not signed in sees the notice on the login page
+await page.goto(`${baseUrl}/login`);
+await page.waitForLoadState('networkidle');
+await hideToolbar();
+await page.screenshot({ path: `${outDir}/plataforma-mantenimiento-login.png` });
+
+await signIn('admin');                         // back to normal
+await setMaintenance('Desactivado');
 
 await browser.close();
