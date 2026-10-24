@@ -97,25 +97,30 @@ jobs:
           # para que un cambio en el binario publicado rompa la build en vez de entrar en los
           # paquetes. Al subir de versión, actualízalas todas con:
           #   gh api repos/php/frankenphp/releases/tags/v<versión> --jq '.assets[] | "\(.name) \(.digest)"'
+          # FrankenPHP vuelve a subir los binarios de una versión ya publicada, porque los reconstruye
+          # cuando se actualizan las bibliotecas de C (php/frankenphp#2761, a propósito): si la build
+          # falla aquí con «FAILED», no es un fallo del repositorio. Comprueba las sumas de nuevo con
+          # el comando de arriba (y, si quieres estar seguro, descarga y calcula `shasum -a 256`) y
+          # vuelve a fijarlas justo antes de etiquetar.
           - platform: linux-x86_64
             fp_asset:   frankenphp-linux-x86_64
-            fp_sha256:  d802c743a5b1020371a4e788b5a98a435ffa6e5588bead55286b29ef6ce9327a
+            fp_sha256:  3e3812f30a9a544b301344f599715d1a3ca5de0daa7fefb99c09ba323258f61e
             binary:     frankenphp
             archive:    tar.gz
           - platform: linux-aarch64
             fp_asset:   frankenphp-linux-aarch64
-            fp_sha256:  49f09d389ab7b9e4511001ad670fd8952055f37976ea20ca63d113bf2f5ff802
+            fp_sha256:  4840772c160117f8eb257dc0a4433c402dffc77670e93ac8dc28d409444da905
             binary:     frankenphp
             archive:    tar.gz
           # Sin binario para Mac con procesador Intel: FrankenPHP solo lo publica para Apple Silicon desde la 1.13.2.
           - platform: macos-arm64
             fp_asset:   frankenphp-mac-arm64
-            fp_sha256:  53f69626e8d7c656dfafdbbf65825b24d0e72ff55e71e520e06b988c8e3ced62
+            fp_sha256:  64e93fc7787af432fa191f034c0d8268659e9384f93579a0dc4148778ce56188
             binary:     frankenphp
             archive:    tar.gz
           - platform: windows-x86_64
             fp_asset:   frankenphp-windows-x86_64.zip
-            fp_sha256:  c744d35cc35c313e2f126692dc8adb5856e2c96ed47c2fff6e39f97eb634a46a
+            fp_sha256:  eb6cbfc5a86b04d294d84f39d55fb6ac32826cacf3e6ce55412ed95cce50d9fb
             binary:     frankenphp.exe
             archive:    zip
 

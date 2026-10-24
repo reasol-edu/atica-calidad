@@ -71,6 +71,18 @@ corresponding commit (`git tag vX.Y.Z`) to trigger `.github/workflows/build.yml`
 others — treat it like any other high-impact action: confirm it explicitly with
 the user before running it, don't do it proactively.
 
+### Gotcha: the FrankenPHP checksums go stale between releases
+
+`.github/workflows/build.yml` pins the SHA-256 of each FrankenPHP binary it packages. FrankenPHP
+**re-uploads the binaries of a version that is already published** (it rebuilds them when the C
+libraries get security updates; upstream confirmed it is intentional, php/frankenphp#2761), so a pin
+that was right when you set it can fail days later with `FAILED` in the "Descargar binario FrankenPHP"
+step — v1.24.0 shipped without executables because of it. **Right before tagging**, compare the pins
+with `gh api repos/php/frankenphp/releases/tags/v<version> --jq '.assets[] | "\(.name) \(.digest)"'`
+and, if they differ, re-pin them (downloading and running `shasum -a 256` confirms the API's digest).
+If a release job fails that way after tagging, re-pin and publish a new patch version: re-running the
+workflow on the same tag would need the tag moved.
+
 ### Gotcha: `softprops/action-gh-release` accumulates the body on every re-release
 
 `.github/workflows/build.yml` publishes the release with
