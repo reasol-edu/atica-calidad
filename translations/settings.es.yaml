@@ -26,6 +26,7 @@ settings.category.security.label: 'Seguridad'
 settings.category.trash.label: 'Papelera'
 settings.category.uploads.label: 'Subida de ficheros'
 settings.category.quality.label: 'Mejora continua'
+settings.category.maintenance.label: 'Mantenimiento'
 
 # ── Definiciones de ajustes ───────────────────────────────────────────────────
 settings.key.page_size.label: 'Resultados por página'
@@ -98,6 +99,9 @@ settings.key.notifications_email_subject_prefix.description: 'Texto que se antep
 
 settings.key.academic_year_start_date.label: 'Inicio del curso académico'
 settings.key.academic_year_start_date.description: 'Día y mes en que empieza cada curso académico (15 de septiembre por defecto). Las actividades se repiten cada curso en sus fechas, y este día marca cuándo pasan a contar las del curso siguiente: p. ej., una actividad de enero a febrero, consultada en octubre, se refiere a la del próximo enero, no a la del enero ya pasado.'
+
+settings.key.maintenance_enabled.label: 'Modo mantenimiento'
+settings.key.maintenance_enabled.description: 'Con el modo mantenimiento activado, solo los administradores globales pueden usar la aplicación: el resto del profesorado, esté o no con la sesión iniciada, ve una página de mantenimiento. Los avisos por correo y las demás tareas automáticas siguen funcionando.'
 
 settings.key.security_idle_timeout_minutes.label: 'Cierre de sesión por inactividad'
 settings.key.security_idle_timeout_minutes.description: 'Minutos sin actividad tras los que se cierra la sesión de un docente, para que un equipo compartido que se deja abierto no quede utilizable por otra persona. 0 lo desactiva. 120 por defecto.'

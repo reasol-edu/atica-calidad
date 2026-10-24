@@ -3,3 +3,14 @@ auth.invalid_credentials: 'No hemos podido iniciar sesión con esas credenciales
 auth.user_inactive: 'Tu cuenta está desactivada. Contacta con la administración del centro.'
 auth.external_unavailable: 'La autenticación externa de Séneca no está disponible en este momento. Inténtalo de nuevo en unos minutos.'
 Invalid credentials.: 'No hemos podido iniciar sesión con esas credenciales. Revisa los datos e inténtalo de nuevo.'
+
+# ── Modo mantenimiento ────────────────────────────────────────────────────────
+maintenance.badge: 'Mantenimiento'
+maintenance.title: 'Aplicación en mantenimiento'
+maintenance.text: 'Estamos realizando tareas de mantenimiento y ahora mismo solo pueden entrar los administradores de la plataforma. Vuelve a intentarlo dentro de un rato.'
+maintenance.logout: 'Cerrar sesión'
+maintenance.login: 'Acceso de administradores'
+maintenance.login_notice: 'La aplicación está en mantenimiento: solo pueden entrar los administradores de la plataforma.'
+maintenance.banner.title: 'Modo mantenimiento activado.'
+maintenance.banner.text: 'El resto del profesorado no puede acceder a la aplicación mientras esté así.'
+maintenance.banner.link: 'Desactivarlo en Ajustes globales'
