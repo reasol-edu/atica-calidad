@@ -231,7 +231,7 @@ pasado—, aparece en los [informes](04-informes.md) de listado maestro y de rev
 por semana, quien es responsable de la carpeta recibe un correo con los documentos que tiene
 pendientes de revisar (ver
 [Ajustes disponibles](10-administrar-la-plataforma.md#ajustes-disponibles)). Si la carpeta no tiene
-responsables, el correo lo reciben los responsables de calidad del centro.
+responsables, el correo lo reciben las personas responsables de calidad del centro.
 
 **Eliminar el documento completo**, con todo su historial de revisiones, sí está permitido también a
 quien subió su revisión activa, aunque no sea responsable (ver
@@ -278,7 +278,7 @@ confirmación.
 
 ![La papelera, con un documento y una actividad eliminados](img/papelera.png)
 
-- **Quién la ve:** la dirección y la coordinación de calidad del centro (quien puede gestionar
+- **Quién la ve:** la dirección y la persona responsable de calidad del centro (quien puede gestionar
   [Responsabilidades](06-responsabilidades.md)). Un docente que elimina algo por error debe pedirles
   que lo recuperen.
 - **Cuánto tiempo:** 30 días por defecto. Se configura con el ajuste «Días en la papelera», a nivel

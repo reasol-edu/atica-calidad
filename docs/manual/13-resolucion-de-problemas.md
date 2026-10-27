@@ -43,7 +43,7 @@ curso activo (**Centro educativo → Docentes del centro**).
 ## He eliminado un documento o una actividad por error
 
 No se ha perdido: está en la [papelera](07-arbol-documental.md#papelera) durante los días que tenga
-configurados el centro (30 por defecto). Pide a la dirección o a la coordinación de calidad que lo
+configurados el centro (30 por defecto). Pide a la dirección o a la persona responsable de calidad que lo
 recuperen desde **Papelera**; vuelve tal como estaba, con todas sus versiones o completados. Una
 revisión suelta eliminada, en cambio, no pasa por la papelera.
 

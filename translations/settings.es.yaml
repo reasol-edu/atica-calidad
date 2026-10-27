@@ -45,7 +45,7 @@ settings.key.audit_log_retention_days.label: 'Retención del registro de activid
 settings.key.audit_log_retention_days.description: 'Días que se conservan las entradas del registro de actividad antes de eliminarse automáticamente. Un valor de 0 desactiva esta eliminación automática.'
 
 settings.key.quality_verification_days.label: 'Días hasta la verificación de eficacia'
-settings.key.quality_verification_days.description: 'Cuando se terminan todas las acciones de una no conformidad, días que se dejan pasar antes de comprobar si han sido eficaces. Es la fecha que se propone a la coordinación de calidad; puede verificarse antes.'
+settings.key.quality_verification_days.description: 'Cuando se terminan todas las acciones de una no conformidad, días que se dejan pasar antes de comprobar si han sido eficaces. Es la fecha que se propone a la persona responsable de calidad; puede verificarse antes.'
 
 settings.key.quality_measurement_days.label: 'Días para registrar el valor de un indicador'
 settings.key.quality_measurement_days.description: 'Desde que termina un periodo de medición, días que tiene su responsable para registrar el valor antes de que conste como «Sin dato».'
@@ -89,7 +89,7 @@ settings.key.notifications_document_rejected_notification_mode.choice.individual
 settings.key.notifications_document_rejected_notification_mode.choice.daily_digest: 'Resumen diario'
 
 settings.key.notifications_document_next_review_reminder_enabled.label: 'Recordatorio de revisión de documentos'
-settings.key.notifications_document_next_review_reminder_enabled.description: 'Envía, una vez por semana (el primer día lectivo), la lista de documentos de las carpetas a tu cargo con la fecha de próxima revisión vencida o cerca. Si una carpeta no tiene responsables, lo reciben los responsables de calidad del centro.'
+settings.key.notifications_document_next_review_reminder_enabled.description: 'Envía, una vez por semana (el primer día lectivo), la lista de documentos de las carpetas a tu cargo con la fecha de próxima revisión vencida o cerca. Si una carpeta no tiene responsables, lo reciben las personas responsables de calidad del centro.'
 
 settings.key.notifications_document_next_review_reminder_warning_days.label: 'Días de preaviso de la revisión de documentos'
 settings.key.notifications_document_next_review_reminder_warning_days.description: 'Con cuántos días de antelación sobre la fecha de próxima revisión empieza a incluirse un documento en el recordatorio (además de los ya vencidos).'

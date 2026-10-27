@@ -92,7 +92,7 @@ activity.deadline_per_element: 'Plazos por elemento: %start% – %end%'
 activity.opens_on: 'Se abre el %date%'
 activity.no_folder_hint: 'Esta actividad no tiene entregas asociadas.'
 activity.deadline_enforced: 'Plazo estricto'
-activity.deadline_enforced_help: 'Fuera de plazo no se puede entregar ni marcar como completada, salvo para coordinadores de calidad, responsables de la carpeta y administradores.'
+activity.deadline_enforced_help: 'Fuera de plazo no se puede entregar ni marcar como completada, salvo para las personas responsables de calidad, responsables de la carpeta y administradores.'
 
 folder.link: 'Ir a la carpeta'
 

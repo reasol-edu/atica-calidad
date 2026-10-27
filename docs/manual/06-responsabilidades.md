@@ -1,6 +1,6 @@
 # Responsabilidades
 
-Este capítulo es para el responsable de calidad y el equipo directivo. Además de los dos perfiles
+Este capítulo es para la persona responsable de calidad y el equipo directivo. Además de los dos perfiles
 fijos del centro —**responsable de calidad** y **auditor/a interno/a**, descritos en
 [Preparar el curso académico](02-preparar-el-curso-academico.md#perfiles)—, cada centro puede
 necesitar responsabilidades propias: tutorías, jefaturas de familia profesional, coordinaciones...

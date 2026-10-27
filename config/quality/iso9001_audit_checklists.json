@@ -41,7 +41,7 @@
             "name": "5.3 Roles, responsabilidades y autoridades",
             "clause": "5.3",
             "items": [
-                {"clause": "5.3", "question": "¿Están asignadas y comunicadas las responsabilidades del sistema (coordinación de calidad, responsables de proceso, jefaturas)?", "guidance": "Ver la sección de Responsabilidades y el organigrama."},
+                {"clause": "5.3", "question": "¿Están asignadas y comunicadas las responsabilidades del sistema (responsable de calidad, responsables de proceso, jefaturas)?", "guidance": "Ver la sección de Responsabilidades y el organigrama."},
                 {"clause": "5.3", "question": "¿Las personas conocen sus responsabilidades en el sistema?", "guidance": "Preguntar a un responsable de proceso por sus tareas."}
             ]
         },

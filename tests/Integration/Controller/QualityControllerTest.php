@@ -116,7 +116,7 @@ final class QualityControllerTest extends ControllerTestCase
         $content = (string) $this->client->getResponse()->getContent();
         self::assertStringContainsString('El proyector del aula 12 no funciona', $content);
         self::assertStringContainsString('foto.txt', $content);
-        self::assertStringContainsString('La coordinación de calidad tiene que revisarla', $content);
+        self::assertStringContainsString('La persona responsable de calidad tiene que revisarla', $content);
         $this->client->request('GET', '/mejora');
         self::assertStringContainsString('El proyector del aula 12 no funciona', (string) $this->client->getResponse()->getContent());
 

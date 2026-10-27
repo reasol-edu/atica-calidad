@@ -19,7 +19,7 @@ el que se muestra por defecto al profesorado.
 : Perfil que realiza las auditorías internas del sistema de gestión de la calidad de un centro.
 
 **Responsabilidades**
-: Sección del menú lateral, accesible al responsable de calidad, al equipo directivo y a la
+: Sección del menú lateral, accesible a la persona responsable de calidad, al equipo directivo y a la
 administración, donde se gestionan las listas, los perfiles específicos y sus asignaciones.
 
 **Lista**
@@ -122,7 +122,7 @@ cuanto se publican todos los documentos que hay que entregar. Lo contrario es «
 
 **Papelera**
 : Donde quedan los documentos y las actividades eliminados antes de borrarse para siempre (30 días
-por defecto, configurable). Desde ella, la dirección y la coordinación de calidad pueden recuperarlos
+por defecto, configurable). Desde ella, la dirección y la persona responsable de calidad pueden recuperarlos
 tal como estaban — ver [Papelera](07-arbol-documental.md#papelera).
 
 **Recordar a pendientes**
@@ -131,7 +131,7 @@ tal como estaban — ver [Papelera](07-arbol-documental.md#papelera).
 
 **Incidencia**
 : Algo que no funciona como debería, comunicado por cualquier docente desde **Mejora continua**. La
-coordinación de calidad la clasifica como no conformidad, observación u oportunidad de mejora, o la
+persona responsable de calidad la clasifica como no conformidad, observación u oportunidad de mejora, o la
 descarta — ver [Mejora continua](09-mejora-continua.md).
 
 **No conformidad (NC)**
@@ -175,7 +175,7 @@ establecido. Lo que se encuentra se convierte en fichas de Mejora continua — v
 
 **Programa de auditorías**
 : Las auditorías internas de un curso —qué se audita, en qué mes y quién—, que prepara la
-coordinación de calidad y aprueba el equipo directivo.
+persona responsable de calidad y aprueba el equipo directivo.
 
 **Lista de comprobación**
 : Los puntos que se revisan en una auditoría, con el apartado de la norma y cómo comprobar cada uno.

@@ -137,7 +137,7 @@ lista sus obligaciones pendientes en esa actividad, con un enlace al hueco que l
 y espera el visto bueno, quien la completó y quien no tiene dirección de correo no lo reciben. Cada
 envío queda registrado (a quién, cuándo, quién lo envió, el texto y si el correo salió).
 
-El botón lo ven la dirección, la coordinación de calidad y quien gestiona o revisa la carpeta de la
+El botón lo ven la dirección, la persona responsable de calidad y quien gestiona o revisa la carpeta de la
 actividad. Pide confirmación antes de enviar, y cada actividad admite **un recordatorio por hora**,
 aunque lo pulsen varias personas. El envío queda anotado en el
 [registro de actividad](10-administrar-la-plataforma.md#registro-de-actividad).

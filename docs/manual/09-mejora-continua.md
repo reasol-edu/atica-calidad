@@ -37,7 +37,7 @@ El botón **Comunicar incidencia** está en la portada de Mejora continua y en l
   si se sabe. Si no, «No lo sé / otro».
 - **Fotos o documentos** (opcional) — hasta 5 ficheros, cada uno dentro del tamaño máximo por fichero (20 MB por defecto).
 
-Al enviarla, la ficha queda **Comunicada** y la coordinación de calidad recibe un aviso. Quien la
+Al enviarla, la ficha queda **Comunicada** y la persona responsable de calidad recibe un aviso. Quien la
 comunicó recibe otro cuando se descarta o se resuelve.
 
 !!! warning "Datos del alumnado"
@@ -45,7 +45,7 @@ comunicó recibe otro cuando se descarta o se resuelve.
 
 ## La portada
 
-![Portada de Mejora continua, vista por el responsable de calidad](img/mejora-portada.png)
+![Portada de Mejora continua, vista por la persona responsable de calidad](img/mejora-portada.png)
 
 La portada reúne, en este orden:
 
@@ -95,10 +95,10 @@ el análisis y la verificación: *Comunicada → En ejecución → Cerrada*. Cua
 
 | Estado | Qué significa | A quién le toca |
 | --- | --- | --- |
-| **Comunicada** | Pendiente de revisar. | Coordinación de calidad |
+| **Comunicada** | Pendiente de revisar. | Responsable de calidad |
 | **Análisis de causas** | Solo no conformidades: buscar la causa raíz y proponer acciones correctivas. | Responsable del análisis |
 | **En ejecución** | Hay acciones en marcha. | Responsable de cada acción |
-| **Pendiente de verificar** | Solo no conformidades: todas las acciones están hechas; falta comprobar si han funcionado. | Coordinación de calidad |
+| **Pendiente de verificar** | Solo no conformidades: todas las acciones están hechas; falta comprobar si han funcionado. | Responsable de calidad |
 | **Cerrada** | Resuelta. | — |
 | **Descartada** | No requiere actuaciones del sistema de calidad (el motivo queda escrito). | — |
 
@@ -115,7 +115,7 @@ Quien gestiona abre la incidencia desde la bandeja y decide **qué es**:
 - **No conformidad** — no se cumple un requisito (de la norma, de un procedimiento del centro o de
   un compromiso). Recibe un código `NC-AAAA-NNN`, una **gravedad** (*Menor*: un fallo puntual;
   *Mayor*: afecta de forma importante a lo que el centro ofrece o se repite de forma sistemática),
-  una persona **responsable del análisis** (por defecto, la propia coordinación de calidad) y un
+  una persona **responsable del análisis** (por defecto, la propia persona responsable de calidad) y un
   **plazo** para el análisis. La persona elegida recibe un aviso.
 - **Observación** (`OB-AAAA-NNN`) — todavía no es un incumplimiento, pero podría llegar a serlo.
 - **Oportunidad de mejora** (`OM-AAAA-NNN`) — algo que ya funciona y podría ir mejor.
@@ -316,7 +316,7 @@ periodo con su valor, su estado y quién lo registró.
 
 ![Un valor fuera de meta, a la espera de que se decida qué hacer](img/mejora-indicador.png)
 
-Cuando un valor queda **fuera de meta**, la coordinación de calidad recibe un aviso por correo y la
+Cuando un valor queda **fuera de meta**, la persona responsable de calidad recibe un aviso por correo y la
 tarea **Fuera de meta**. En el periodo del indicador decide qué se hace:
 
 - **Abrir no conformidad**: crea una incidencia con el origen «Indicador fuera de meta», el indicador,
@@ -343,7 +343,7 @@ seleccionado en el menú lateral: una línea con los meses del curso y cada audi
 la lista con su código (`AI-AAAA-NN`), su alcance, su equipo, su estado y su fecha. El PDF del
 programa se descarga desde aquí.
 
-La coordinación de calidad lo prepara con **Nueva auditoría**:
+La persona responsable de calidad lo prepara con **Nueva auditoría**:
 
 ![Formulario de una auditoría nueva](img/mejora-auditoria-nueva.png)
 
@@ -408,7 +408,7 @@ Al emitir el informe:
 - cada **no conformidad**, **observación** o **mejora** se convierte en una ficha ya clasificada,
   con su código, el origen «Auditoría interna» y el proceso auditado; la no conformidad pasa al
   análisis de causas (con 15 días de plazo) y el resto, a ejecución;
-- las **personas auditadas**, el equipo y la coordinación de calidad reciben el aviso por correo, y
+- las **personas auditadas**, el equipo y la persona responsable de calidad reciben el aviso por correo, y
   las personas auditadas pueden ver la auditoría;
 - se genera el **informe en PDF** con el membrete del centro: alcance, equipo, personas auditadas,
   resumen por resultado, puntos fuertes, hallazgos, lista de comprobación y conclusión.
@@ -435,7 +435,7 @@ reúne lo que sabe del periodo; en la reunión se anota lo demás, las conclusio
 ![Revisiones por la dirección del centro](img/mejora-revisiones.png)
 
 **Mejora continua → Revisión por la dirección** muestra las revisiones del centro, la más reciente
-primero. La coordinación de calidad o el equipo directivo pulsan **Nueva revisión** e indican la
+primero. La persona responsable de calidad o el equipo directivo pulsan **Nueva revisión** e indican la
 fecha de la reunión y el **periodo** que repasa, que por defecto va desde el día siguiente al final
 de la revisión anterior (o desde el 1 de septiembre, si es la primera) hasta hoy.
 
