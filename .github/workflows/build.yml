@@ -22,7 +22,10 @@ env:
   # mueren con SIGILL (status=4/ILL) en CPUs sin SHA-NI al llamar a hash('sha256')
   # (https://github.com/php/frankenphp/issues/2743). Corregido en la 1.13.3 (PR #2749).
   # Desde la 1.13.2 no se publica binario para Mac con procesador Intel (la 1.13.1 sí lo publicaba).
-  FRANKENPHP_VERSION: "1.13.3"
+  # La 1.13.4 es de seguridad: corrige un fallo de la 1.13.2 y la 1.13.3 que tumbaba el proceso con
+  # una sola petición sin autenticar en modo worker, varios use-after-free y fugas entre peticiones,
+  # y trae Brotli parcheado (CVE-2026-111497) y Go 1.27.3 en los binarios de Windows y macOS.
+  FRANKENPHP_VERSION: "1.13.4"
   # Solo para compilar la aplicación (composer, assets); el PHP que ejecuta la app es el del binario.
   PHP_VERSION: "8.4"
 
@@ -104,23 +107,23 @@ jobs:
           # vuelve a fijarlas justo antes de etiquetar.
           - platform: linux-x86_64
             fp_asset:   frankenphp-linux-x86_64
-            fp_sha256:  3e3812f30a9a544b301344f599715d1a3ca5de0daa7fefb99c09ba323258f61e
+            fp_sha256:  5c33da36b76a9173200ce0d49356aee013473be149ee3df6c38fd6e2b5a0e580
             binary:     frankenphp
             archive:    tar.gz
           - platform: linux-aarch64
             fp_asset:   frankenphp-linux-aarch64
-            fp_sha256:  4840772c160117f8eb257dc0a4433c402dffc77670e93ac8dc28d409444da905
+            fp_sha256:  2957e4a99592169aa136ec492e849f1ce591d3e9e216cd7713165c42656656e0
             binary:     frankenphp
             archive:    tar.gz
           # Sin binario para Mac con procesador Intel: FrankenPHP solo lo publica para Apple Silicon desde la 1.13.2.
           - platform: macos-arm64
             fp_asset:   frankenphp-mac-arm64
-            fp_sha256:  64e93fc7787af432fa191f034c0d8268659e9384f93579a0dc4148778ce56188
+            fp_sha256:  660e802d87762361282e274ddca5e2d67344247673bc452353eaaf0aa5cce393
             binary:     frankenphp
             archive:    tar.gz
           - platform: windows-x86_64
             fp_asset:   frankenphp-windows-x86_64.zip
-            fp_sha256:  eb6cbfc5a86b04d294d84f39d55fb6ac32826cacf3e6ce55412ed95cce50d9fb
+            fp_sha256:  d2873471e918e762ff4207c6e403fcacc0083ea6c5165512107215e4d2576ace
             binary:     frankenphp.exe
             archive:    zip
 

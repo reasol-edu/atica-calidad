@@ -7,6 +7,23 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.25.1] - 2026-10-27
+
+### Security
+
+- Ejecutables e imagen Docker pasan a **FrankenPHP 1.13.4**, una versión de seguridad. Corrige un
+  fallo de la 1.13.2 y la 1.13.3 que tumbaba todo el proceso con una sola petición sin autenticar
+  en modo worker, varios accesos a memoria liberada y fugas de datos entre peticiones, e incorpora
+  Brotli parcheado (CVE-2026-111497) y Go 1.27.3 en los binarios de Windows y macOS. La aplicación
+  no usa el modo worker por defecto, pero se recomienda actualizar.
+
+### Changed
+
+- El perfil que revisa y clasifica las incidencias, prepara las auditorías y recibe los avisos se
+  llama ahora siempre **persona responsable de calidad** (antes, según la pantalla, «coordinación de
+  calidad», «coordinadores de calidad» o «responsable de calidad»), en los avisos de la aplicación,
+  la lista de verificación de auditoría y el manual.
+
 ## [1.25.0] - 2026-10-24
 
 ### Fixed
