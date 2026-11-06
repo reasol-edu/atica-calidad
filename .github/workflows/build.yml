@@ -22,10 +22,12 @@ env:
   # mueren con SIGILL (status=4/ILL) en CPUs sin SHA-NI al llamar a hash('sha256')
   # (https://github.com/php/frankenphp/issues/2743). Corregido en la 1.13.3 (PR #2749).
   # Desde la 1.13.2 no se publica binario para Mac con procesador Intel (la 1.13.1 sí lo publicaba).
-  # La 1.13.4 es de seguridad: corrige un fallo de la 1.13.2 y la 1.13.3 que tumbaba el proceso con
-  # una sola petición sin autenticar en modo worker, varios use-after-free y fugas entre peticiones,
-  # y trae Brotli parcheado (CVE-2026-111497) y Go 1.27.3 en los binarios de Windows y macOS.
-  FRANKENPHP_VERSION: "1.13.4"
+  # La 1.13.4 corrigió un fallo de la 1.13.2 y la 1.13.3 que tumbaba el proceso con una sola petición
+  # sin autenticar en modo worker, y trajo Brotli parcheado (CVE-2026-111497) y Go 1.27.3 en los
+  # binarios de Windows y macOS. La 1.13.5 es otra versión de seguridad (17 vulnerabilidades, entre
+  # ellas la ejecución como PHP de un fichero subido con doble extensión, una redirección abierta y
+  # Caddy 2.11.9): no bajar de ella.
+  FRANKENPHP_VERSION: "1.13.5"
   # Solo para compilar la aplicación (composer, assets); el PHP que ejecuta la app es el del binario.
   PHP_VERSION: "8.4"
 
@@ -107,23 +109,23 @@ jobs:
           # vuelve a fijarlas justo antes de etiquetar.
           - platform: linux-x86_64
             fp_asset:   frankenphp-linux-x86_64
-            fp_sha256:  5c33da36b76a9173200ce0d49356aee013473be149ee3df6c38fd6e2b5a0e580
+            fp_sha256:  6de5829a1b02e562b036db8af4396f6d2e8eccf25eb0ec9596efa4ab096af3c0
             binary:     frankenphp
             archive:    tar.gz
           - platform: linux-aarch64
             fp_asset:   frankenphp-linux-aarch64
-            fp_sha256:  2957e4a99592169aa136ec492e849f1ce591d3e9e216cd7713165c42656656e0
+            fp_sha256:  4d0311de6986d4fe9dc9bc3467d9549d26b89ab7ac6804cbe68fbb5352f8b153
             binary:     frankenphp
             archive:    tar.gz
           # Sin binario para Mac con procesador Intel: FrankenPHP solo lo publica para Apple Silicon desde la 1.13.2.
           - platform: macos-arm64
             fp_asset:   frankenphp-mac-arm64
-            fp_sha256:  660e802d87762361282e274ddca5e2d67344247673bc452353eaaf0aa5cce393
+            fp_sha256:  86ecfc50430de41c283eafe638a595307272b7af432a4f1e01ee31e64c747679
             binary:     frankenphp
             archive:    tar.gz
           - platform: windows-x86_64
             fp_asset:   frankenphp-windows-x86_64.zip
-            fp_sha256:  d2873471e918e762ff4207c6e403fcacc0083ea6c5165512107215e4d2576ace
+            fp_sha256:  3f9a5c9157885a26a5ef5d2b021d6fef83d63c66ff581148350734c786a2e8fe
             binary:     frankenphp.exe
             archive:    zip
 

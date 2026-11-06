@@ -7,6 +7,30 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.26.0] - 2026-11-06
+
+### Added
+
+- Zona horaria de la aplicación: la variable `APP_TIMEZONE` (por defecto `Europe/Madrid`; en Canarias,
+  `Atlantic/Canary`) fija la hora que ven las personas y la de «hoy», los plazos y los avisos. Hasta
+  ahora la aplicación trabajaba en UTC, porque PHP ignora la zona del sistema operativo, y las horas
+  salían una o dos horas desfasadas. Las fechas con hora se siguen guardando en UTC, así que no hace
+  falta migrar datos. Una zona que PHP no conozca se trata como UTC. Con Docker se pasa en
+  `compose.yaml`; está documentada en el capítulo de instalación y en `.env.example`.
+
+### Changed
+
+- Las suscripciones de calendario (`.ics`) declaran la zona horaria configurada en vez de
+  `Europe/Madrid` fijo.
+
+### Security
+
+- Ejecutables e imagen Docker pasan a **FrankenPHP 1.13.5**, otra versión de seguridad (17
+  vulnerabilidades): corrige, entre otras, la ejecución como PHP de un fichero subido con doble
+  extensión, una redirección abierta, la suplantación del `Host` en HTTP/2 y un cierre del proceso
+  con la configuración de PHP de las imágenes oficiales, e incorpora Caddy 2.11.9. Las sumas de los
+  binarios se han vuelto a fijar: upstream había reconstruido los de la 1.13.4 tras publicarlos.
+
 ## [1.25.1] - 2026-10-27
 
 ### Security
