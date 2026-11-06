@@ -7,6 +7,16 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.26.1] - 2026-11-06
+
+### Changed
+
+- La publicación de ejecutables ya no compara los binarios de FrankenPHP con una suma fijada.
+  Upstream vuelve a subir los de una versión ya publicada cuando actualiza sus bibliotecas, y esa
+  comprobación hacía fallar la publicación sin que hubiera nada roto (así se quedó la 1.24.0 sin
+  ejecutables). El proceso imprime la suma de lo que empaqueta. Para subir de versión de FrankenPHP
+  basta con cambiar `FRANKENPHP_VERSION`.
+
 ## [1.26.0] - 2026-11-06
 
 ### Added
