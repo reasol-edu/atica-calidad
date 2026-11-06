@@ -22,6 +22,7 @@ x-app-environment: &app-environment
   DATABASE_URL:                 "postgresql://atica:${DB_PASSWORD:?Define DB_PASSWORD en .env.local (ver .env.example): no hay contraseña por defecto}@database:5432/atica?serverVersion=16&charset=utf8"
   DEFAULT_URI:                  "${DEFAULT_URI:-http://localhost}"
   MIGRATIONS_PATH:              migrations/postgresql
+  APP_TIMEZONE:                 "${APP_TIMEZONE:-Europe/Madrid}"
   APP_LOG:                      "${APP_LOG:-true}"
   APP_EXTERNAL_ENABLED:         "${APP_EXTERNAL_ENABLED:-true}"
   APP_EXTERNAL_URL:             "${APP_EXTERNAL_URL:-https://seneca.juntadeandalucia.es/seneca/jsp/ComprobarUsuarioExt.jsp}"

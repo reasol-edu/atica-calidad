@@ -11,6 +11,10 @@ parameters:
     app.name:                   "ÁTICA Calidad"
     app.version:                "1.25.1"
     app.pub_date:               "2026-10-27"
+    # Zona horaria de la aplicación (la que ven las personas y la de «hoy», los plazos y los avisos). Las fechas con hora
+    # siguen guardándose en UTC; ver App\Doctrine\Type\UtcDateTimeImmutableType. Se cambia con APP_TIMEZONE.
+    env(APP_TIMEZONE):          "Europe/Madrid"
+    app.timezone:               "%env(APP_TIMEZONE)%"
     # Minimum time (in microseconds) the POST branch of the password-reset
     # request takes. Equalizes the two branches (user exists / does not
     # exist) so that the synchronous email send doesn't allow account

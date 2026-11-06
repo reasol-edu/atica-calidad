@@ -74,6 +74,23 @@ final class CalendarFeedControllerTest extends ControllerTestCase
         self::assertStringContainsString('X-WR-CALNAME:ÁTICA Calidad · Centro\, de prueba', $body);
     }
 
+    public function testTheFeedDeclaresTheApplicationTimezone(): void
+    {
+        [$teacher, $centre] = $this->scenario();
+        $feed = new CalendarFeedToken($teacher, $centre, new \DateTimeImmutable());
+        $this->persist($feed);
+        $previous = date_default_timezone_get();
+
+        try {
+            date_default_timezone_set('Atlantic/Canary');
+            $this->client->request('GET', '/calendario/feed/' . $feed->getToken() . '.ics');
+
+            self::assertStringContainsString("X-WR-TIMEZONE:Atlantic/Canary\r\n", (string) $this->client->getResponse()->getContent());
+        } finally {
+            date_default_timezone_set($previous);
+        }
+    }
+
     public function testAnUnknownTokenIs404(): void
     {
         $this->client->request('GET', '/calendario/feed/' . str_repeat('a', 48) . '.ics');

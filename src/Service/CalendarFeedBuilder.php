@@ -40,7 +40,8 @@ final class CalendarFeedBuilder
             'CALSCALE:GREGORIAN',
             'METHOD:PUBLISH',
             'X-WR-CALNAME:' . $this->escape($this->translator->trans('feed.name', ['%centre%' => $centre->getName()], 'calendar')),
-            'X-WR-TIMEZONE:Europe/Madrid',
+            // La zona efectiva de la aplicación (APP_TIMEZONE, ver App\Kernel), no una fija.
+            'X-WR-TIMEZONE:' . date_default_timezone_get(),
             'REFRESH-INTERVAL;VALUE=DURATION:PT6H',
             'X-PUBLISHED-TTL:PT6H',
         ];

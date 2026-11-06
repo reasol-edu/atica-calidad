@@ -151,6 +151,7 @@ raíz del repositorio. Las más habituales:
 | --- | --- |
 | `DATABASE_URL` | Cadena de conexión a la base de datos. |
 | `MAILER_DSN` | Transporte de correo saliente (por defecto, descarta los correos). |
+| `APP_TIMEZONE` | Zona horaria de la aplicación: la hora que ve cada persona y la de «hoy», los plazos y los avisos. PHP ignora la zona del servidor, así que se indica aquí. Las fechas con hora se guardan siempre en UTC. Por defecto, `Europe/Madrid` (Canarias: `Atlantic/Canary`). |
 | `APP_EXTERNAL_ENABLED` / `APP_EXTERNAL_URL` | Autenticación externa del profesorado (iSéneca). |
 | `SYMFONY_TRUSTED_PROXIES` | IPs de proxies de confianza, si la app va detrás de uno. |
 
