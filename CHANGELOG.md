@@ -7,6 +7,38 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-13
+
+Versión **mayor** porque elimina funcionalidad: el generador de calendarios y la calculadora de fechas
+desaparecen, y una migración borra sus datos (irreversible). Antes de actualizar, haz una copia de
+seguridad (Administración → Copias de seguridad).
+
+### Fixed
+
+- **Botones en el móvil.** Pasada de usabilidad por unas 350 pantallas con un móvil emulado (320–768 px),
+  con administración, dirección, coordinación de calidad y docentes. Se arreglan los desbordes que hacían
+  desplazarse la página hacia un lado (el árbol documental con títulos largos, el seguimiento de
+  actividades, los días no lectivos, las listas de Responsabilidades, los cursos, el listado de docentes,
+  la cola de revisiones, los ajustes del centro y la pantalla de copias de seguridad) y se compactan las
+  filas de botones, que ahora pasan a la línea siguiente. En pantallas táctiles, los botones compactos
+  miden al menos 40 px y los iconos y etiquetas pequeñas tienen una zona de pulsación mayor, sin cambiar su
+  aspecto. Se añade `scripts/audit-touch-targets.mjs` para repetir la comprobación.
+
+### Changed
+
+- Las capturas del manual, de la presentación y de las fichas se han regenerado: el menú lateral ya no
+  muestra «Utilidades».
+
+### Removed
+
+- **Generador de calendarios** y **calculadora de fechas**, de la sección Utilidades: esa funcionalidad
+  se ha trasladado a otra aplicación. Una migración elimina las tablas de calendarios guardados y los
+  dos ajustes de plantilla PDF del generador (con sus valores y los PDF subidos); **no se puede
+  deshacer**. Los ajustes de plantilla de informes quedan en dos (general vertical y apaisada). Se
+  quita el capítulo «Utilidades» del manual.
+- La sección **Utilidades** queda vacía y **oculta** del menú (la ruta `/utilidades` sigue existiendo,
+  con un aviso de que no hay herramientas) hasta que vuelva a tener contenido.
+
 ## [1.27.1] - 2026-11-13
 
 ### Security
