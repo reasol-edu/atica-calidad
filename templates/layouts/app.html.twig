@@ -151,7 +151,9 @@
                 ) }}
             {% endif %}
 
-            {# Utilities — personal tools, everyone in the centre (calendar generator today) #}
+            {# Utilities — personal tools, everyone in the centre. HIDDEN while it has no tools (the calendar generator
+               and the date calculator moved to another application): restore this block when one comes back,
+               and add its card to templates/utilities/index.html.twig.
             {% if active_centre %}
                 {{ _self.nav_item(
                     'utilities'|trans({}, 'navigation'),
@@ -161,6 +163,7 @@
                     'app_utilities_'
                 ) }}
             {% endif %}
+            #}
 
             {# Management group — only for those who see at least one of its entries #}
             {% set can_reports = active_centre and is_granted('educational_centre.reports', active_centre) %}

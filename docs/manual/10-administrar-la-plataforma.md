@@ -225,7 +225,7 @@ seguidos.
 
 ### Plantillas de informes
 
-![Sección «Plantillas de informes»: cuatro zonas para arrastrar un PDF (general vertical, general apaisada, generador de calendarios vertical y apaisada)](img/plataforma-ajustes-plantillas.png)
+![Sección «Plantillas de informes»: dos zonas para arrastrar un PDF (general vertical y general apaisada)](img/plataforma-ajustes-plantillas.png)
 
 - **Plantilla PDF general (vertical / apaisada)** — un PDF de una sola página que se usa como fondo
   (membrete) de los informes que se generen en cada orientación, cuando existan. Ajustable a nivel

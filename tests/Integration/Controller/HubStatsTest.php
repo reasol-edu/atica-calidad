@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Controller;
 
-use App\Entity\AcademicYear;
 use App\Entity\EducationalCentre;
 use App\Entity\PersonName;
-use App\Entity\PrintableCalendar;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Tests\Integration\ControllerTestCase;
 
-/** The status line each card of the Responsabilidades and Utilidades hubs shows under its description. */
+/** The status line each card of the Responsabilidades hub shows under its description. */
 final class HubStatsTest extends ControllerTestCase
 {
     private function centre(): EducationalCentre
@@ -43,22 +41,19 @@ final class HubStatsTest extends ControllerTestCase
         self::assertStringContainsString('1 perfil.', $html);
     }
 
-    public function testUtilitiesCountsTheOwnCalendarsOfTheYear(): void
+    /** Utilidades has no tools for now (they moved to another application): empty page, no menu entry. */
+    public function testTheEmptyUtilitiesHubIsNotLinkedFromTheMenu(): void
     {
-        $centre = $this->centre();
-        $year   = (new AcademicYear())->setName('2026-2027')->setEducationalCentre($centre);
-        $centre->setActiveAcademicYear($year);
+        $centre  = $this->centre();
         $teacher = $this->teacher('docente');
-        $teacher->addAcademicYear($year);
-        $mine  = new PrintableCalendar($centre, $year, $teacher, 'FCT');
-        $other = new PrintableCalendar($centre, $year, $this->teacher('otro'), 'De otro');
-        $this->persist($centre, $year, $teacher, $other->getOwner(), $mine, $other);
+        $centre->getAdmins()->add($teacher);
+        $this->persist($centre, $teacher);
 
         $this->loginAs($teacher, $centre);
-        $this->client->request('GET', '/utilidades');
-        $html = (string) $this->client->getResponse()->getContent();
+        $crawler = $this->client->request('GET', '/utilidades');
 
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
-        self::assertStringContainsString('1 guardado este curso.', $html);
+        self::assertStringContainsString('Por ahora no hay ninguna herramienta disponible.', $crawler->text());
+        self::assertCount(0, $crawler->filter('a[href="/utilidades"]'), 'The menu does not link to the empty section.');
     }
 }

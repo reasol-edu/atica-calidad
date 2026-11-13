@@ -21,20 +21,13 @@ final class PdfTemplateResolver
 
     /**
      * A report without a template setting of its own always gets the general one for its
-     * orientation instead. "printable_calendar" is the one report type that's actually generated
-     * in either orientation (the teacher chooses per calendar), so — unlike every other report,
-     * fixed to a single orientation — it gets its own specific setting per orientation, not one
-     * shared between both.
+     * orientation instead.
      *
      * @param ReportType $reportType
      */
     public function resolve(string $reportType, string $orientation, EducationalCentre $centre): ?ResolvedSettingFile
     {
-        $suffix      = $orientation === 'L' ? 'landscape' : 'portrait';
-        $specificKey = $reportType === 'printable_calendar'
-            ? "reports.{$reportType}_pdf_template_{$suffix}"
-            : "reports.{$reportType}_pdf_template";
-        $specific    = $this->settings->getFileForCentre($specificKey, $centre);
+        $specific = $this->settings->getFileForCentre("reports.{$reportType}_pdf_template", $centre);
         if ($specific !== null) {
             return $specific;
         }

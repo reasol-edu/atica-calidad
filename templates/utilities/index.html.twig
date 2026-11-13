@@ -3,9 +3,20 @@
 {% block title %}{{ 'title'|trans({}, 'utilities') }} · {{ app_name }}{% endblock %}
 
 {#
-   Hub of personal tools that don't belong to the quality system itself — today, just the calendar
-   generator. Same card layout as Informes (templates/reports/index.html.twig), so more tools can
-   be added later without a new top-level menu entry.
+   Hub of personal tools that don't belong to the quality system itself. Same card layout as Informes
+   (templates/reports/index.html.twig). EMPTY for now (the calendar generator and the date calculator
+   moved to another application) and not linked from the menu: see UtilitiesController.
+
+   To add a tool, put its card inside the grid, e.g.:
+
+       <a href="{{ path('app_utilities_<tool>') }}"
+          class="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-xs hover:border-forest-300 hover:bg-forest-50/30 transition-colors">
+           <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900">
+               {{ ux_icon('heroicons:<icon>', {class: 'h-5 w-5 text-forest-600'}) }}
+               {{ '<tool>.title'|trans({}, 'utilities') }}
+           </h2>
+           <p class="mt-2 text-sm text-gray-600">{{ '<tool>.description'|trans({}, 'utilities') }}</p>
+       </a>
 #}
 {% block content %}
 <div class="px-6 py-8 max-w-7xl mx-auto">
@@ -16,25 +27,7 @@
     </div>
 
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <a href="{{ path('app_utilities_calendar_generator_index') }}"
-           class="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-xs hover:border-forest-300 hover:bg-forest-50/30 transition-colors">
-            <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900">
-                {{ ux_icon('heroicons:calendar-days', {class: 'h-5 w-5 text-forest-600'}) }}
-                {{ 'calendar_generator.title'|trans({}, 'utilities') }}
-            </h2>
-            <p class="mt-2 text-sm text-gray-600">{{ 'calendar_generator.description'|trans({}, 'utilities') }}</p>
-            {% if stats.calendars is not null %}
-                <p class="mt-2 text-xs font-medium text-forest-700">{{ 'calendar_generator.stat'|trans({'%count%': stats.calendars}, 'utilities') }}</p>
-            {% endif %}
-        </a>
-        <a href="{{ path('app_utilities_date_calculator') }}"
-           class="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-xs hover:border-forest-300 hover:bg-forest-50/30 transition-colors">
-            <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900">
-                {{ ux_icon('heroicons:calculator', {class: 'h-5 w-5 text-forest-600'}) }}
-                {{ 'date_calculator.title'|trans({}, 'utilities') }}
-            </h2>
-            <p class="mt-2 text-sm text-gray-600">{{ 'date_calculator.description'|trans({}, 'utilities') }}</p>
-        </a>
+        <p class="text-sm text-gray-500">{{ 'empty'|trans({}, 'utilities') }}</p>
     </div>
 
 </div>
