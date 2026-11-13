@@ -165,7 +165,8 @@
             {% set recent_docs = this.recentDocuments %}
             {% if pending_read is not empty or recent_docs is not empty %}
                 {% set quick_max = constant('App\\Twig\\Components\\SectionBrowserComponent::QUICK_ACCESS_ITEMS') %}
-                <div class="grid gap-4 {{ pending_read is not empty and recent_docs is not empty ? 'lg:grid-cols-2' : '' }}">
+                {# grid-cols-1 (minmax(0, 1fr)), not the implicit auto column: a long document title would widen the page on a phone. #}
+                <div class="grid grid-cols-1 gap-4 {{ pending_read is not empty and recent_docs is not empty ? 'lg:grid-cols-2' : '' }}">
                     {% for quick in [
                         {key: 'pending', docs: pending_read, icon: 'heroicons:check-badge', accent: 'text-amber-500'},
                         {key: 'recent', docs: recent_docs, icon: 'heroicons:clock', accent: 'text-forest-500'},

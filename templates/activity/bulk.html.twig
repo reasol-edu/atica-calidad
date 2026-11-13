@@ -79,7 +79,7 @@
                 <div data-controller="check-all" class="rounded-xl border border-gray-100">
                     <div class="flex items-center justify-between gap-3 bg-gray-50 px-4 py-2">
                         <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ path }}</p>
-                        <button type="button" data-action="check-all#toggle" class="text-xs font-medium text-forest-700 hover:text-forest-800">{{ 'bulk.toggle_all'|trans({}, 'activity_content') }}</button>
+                        <button type="button" data-action="check-all#toggle" class="py-1.5 text-xs font-medium text-forest-700 hover:text-forest-800">{{ 'bulk.toggle_all'|trans({}, 'activity_content') }}</button>
                     </div>
                     <ul class="divide-y divide-gray-50">
                         {% for activity in items %}

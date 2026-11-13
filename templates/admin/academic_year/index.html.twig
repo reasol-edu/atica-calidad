@@ -36,7 +36,7 @@
         {% else %}
             <ul class="divide-y divide-gray-100">
                 {% for year in years %}
-                    <li class="flex items-center gap-4 px-6 py-4">
+                    <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-4">
                         <div class="flex-1 min-w-0 flex items-center gap-3">
                             <span class="text-sm font-medium text-gray-900">{{ year.name }}</span>
                             {% if centre.activeAcademicYear and centre.activeAcademicYear.id == year.id %}
@@ -45,7 +45,7 @@
                                 </span>
                             {% endif %}
                         </div>
-                        <div class="flex items-center gap-2 shrink-0">
+                        <div class="flex flex-wrap items-center gap-2 sm:shrink-0">
                             {# Set active #}
                             {% if not centre.activeAcademicYear or centre.activeAcademicYear.id != year.id %}
                                 <form method="post"
@@ -98,7 +98,7 @@
                 <input type="hidden" name="_token" value="{{ csrf_token('add_year_' ~ centre.id) }}">
                 <input type="text" name="name"
                        placeholder="{{ 'years.field.name_placeholder'|trans({}, 'admin') }}"
-                       class="flex-1 rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-sm
+                       class="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-sm
                               focus:border-forest-500 focus:ring-3 focus:ring-forest-500/20 focus:outline-none transition-colors"
                        required>
                 <button type="submit"

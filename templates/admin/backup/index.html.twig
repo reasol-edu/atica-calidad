@@ -32,7 +32,7 @@
                 <p class="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-amber-800">
                     {{ ux_icon('heroicons:exclamation-triangle', {class: 'h-4 w-4 inline -mt-0.5 mr-1'}) }}{{ 'backup.download.warning'|trans({}, 'admin') }}
                 </p>
-                <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                         <label for="backup-password" class="block text-sm font-medium text-gray-700 mb-1.5">{{ 'backup.download.password'|trans({}, 'admin') }}</label>
                         <input id="backup-password" type="password" name="password" autocomplete="new-password"
@@ -79,7 +79,8 @@
             <h2 class="text-base font-semibold text-gray-900">{{ 'backup.copies.title'|trans({}, 'admin') }}</h2>
         </div>
         <div class="px-6 py-4 space-y-3 text-sm text-gray-600">
-            <p>{{ 'backup.copies.description'|trans({'%dir%': backup_dir}, 'admin') }}</p>
+            {# The folder is a long path with no spaces: let it break, or it widens the page on a phone. #}
+            <p class="break-words">{{ 'backup.copies.description'|trans({'%dir%': backup_dir}, 'admin') }}</p>
             {% if not can_restore %}
                 <p class="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-amber-800">{{ 'backup.restore.unavailable'|trans({}, 'admin') }}</p>
             {% endif %}

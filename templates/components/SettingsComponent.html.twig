@@ -90,11 +90,11 @@
                 </div>
 
                 {# ── Control ── #}
-                <div class="flex gap-3 {{ (isRichText or isPdf) ? 'w-full items-start' : 'items-center shrink-0' }}">
+                <div class="flex gap-3 {{ (isRichText or isPdf) ? 'w-full items-start' : 'items-center max-w-full sm:shrink-0' }}">
 
                     {% if def.type.value == 'boolean' %}
                         <select
-                            class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-3 pr-8 text-sm text-gray-900
+                            class="min-w-0 max-w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-3 pr-8 text-sm text-gray-900
                                    focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20
                                    transition-colors cursor-pointer
                                    disabled:cursor-not-allowed disabled:opacity-50"
@@ -140,7 +140,7 @@
 
                     {% elseif def.type.value == 'choice' %}
                         <select
-                            class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-3 pr-8 text-sm text-gray-900
+                            class="min-w-0 max-w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-3 pr-8 text-sm text-gray-900
                                    focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20
                                    transition-colors cursor-pointer
                                    disabled:cursor-not-allowed disabled:opacity-50"
@@ -167,11 +167,11 @@
                         {% set shownParts     = (displayValue ?? effective)|split('-') %}
                         {% set shownDay       = shownParts|last|number_format %}
                         {% set shownMonth     = displayValue is null ? '__default__' : shownParts|first|number_format %}
-                        <div class="flex items-center gap-2"
+                        <div class="flex min-w-0 items-center gap-2"
                              data-controller="setting-save"
                              data-setting-key="{{ key }}"
                              data-setting-save-default-month-value="{{ effectiveParts|first|number_format }}">
-                            {% set selectClasses = 'rounded-lg border py-1.5 pl-3 pr-8 text-sm text-gray-900 focus:outline-none focus:ring-3 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 '
+                            {% set selectClasses = 'min-w-0 max-w-full rounded-lg border py-1.5 pl-3 pr-8 text-sm text-gray-900 focus:outline-none focus:ring-3 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 '
                                 ~ (isError ? 'border-red-400 bg-red-50 focus:border-red-400 focus:ring-red-500/20' : 'border-gray-200 bg-gray-50 focus:border-forest-500 focus:ring-forest-500/20') %}
                             <select class="{{ selectClasses }}"
                                     aria-label="{{ 'settings.day_month.day'|trans({}, 'settings') }}"

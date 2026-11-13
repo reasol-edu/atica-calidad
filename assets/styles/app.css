@@ -658,3 +658,50 @@ input[type="search"]::-ms-clear { display: none; }
 :root .ql-toolbar .ql-picker-item.ql-selected {
     color: var(--color-forest-600);
 }
+
+/* A horizontal scroll container must also be the containing block of whatever is absolutely positioned inside it. Otherwise the
+   `sr-only` labels of a table header (position: absolute) escape its clipping, land past the screen edge and make the whole page
+   scroll sideways on a phone (the activities tracking table did). */
+.overflow-x-auto:not(.absolute, .fixed, .sticky) {
+    position: relative;
+}
+
+/* ── Touch targets ──────────────────────────────────────────────────────────────────────────────────────────────────
+   On touch screens («coarse» pointer) small controls, designed for the mouse, end up 16–30 px tall: hard to hit and easy to
+   confuse with the one next to them. Two rules, so hundreds of templates need no change:
+   · Buttons and button-looking links with compact padding (py-1, py-1.5, py-2, py-2.5): minimum height of 2.5 rem (40 px).
+   · Icons and «pills» (p-0.5, p-1, p-1.5, p-2, py-0.5, h-6…h-9): their look does not change, but the area that answers to the finger
+     grows with a transparent ::after (scripts/audit-touch-targets.mjs recognises it).
+   The sidebar (nav) is left out: its rows are already tall. */
+@media (pointer: coarse) {
+    /* Only min-height, never `display`: a `hidden sm:inline-flex` (a button that only shows on wide screens) would show again. A
+       pure inline link takes no minimum height (nothing changes), but one that is a flex or grid item does. */
+    :is(button, a):is(.py-1, .py-1\.5, .py-2, .py-2\.5, .sm\:py-1, .sm\:py-1\.5, .sm\:py-2, .sm\:py-2\.5):not(nav *) {
+        min-height: 2.5rem;
+    }
+    summary:is(.py-2, .py-2\.5):not(nav *) {
+        min-height: 2.5rem;
+    }
+
+    /* Enlarged touch area, vertical only: sideways, an ::after sticking out even a few pixels from the screen edge (the header
+       icons sit against it) would widen the page and make it scroll horizontally. */
+    :is(button, a):is(.p-0\.5, .p-1, .p-1\.5, .p-2, .sm\:p-1\.5, .py-0\.5, .h-6, .h-7, .h-8, .h-9):not(nav *):not(.absolute, .fixed, .sticky, .relative),
+    main th > button:not(.absolute, .fixed, .sticky, .relative),
+    main button:has(> svg:only-child):not(.absolute, .fixed, .sticky, .relative),
+    main a.rounded-md:not([class*="p-"], [class*="px-"], [class*="py-"]):not(.absolute, .fixed, .sticky, .relative) {
+        position: relative;
+    }
+    :is(button, a):is(.p-0\.5, .p-1, .p-1\.5, .p-2, .sm\:p-1\.5, .py-0\.5, .h-6, .h-7, .h-8, .h-9):not(nav *)::after,
+    main th > button::after,
+    main button:has(> svg:only-child)::after,
+    main a.rounded-md:not([class*="p-"], [class*="px-"], [class*="py-"])::after {
+        content: '';
+        position: absolute;
+        inset: -0.625rem 0;
+    }
+
+    /* The summaries of collapsible sections. */
+    main details > summary {
+        padding-block: 0.75rem;
+    }
+}

@@ -57,7 +57,7 @@
                                 {% endif %}
                             </p>
                         </div>
-                        <div class="flex shrink-0 flex-wrap items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2 sm:shrink-0">
                             <a href="{{ item.activity
                                     ? path('app_activities', {category: item.activity.category.id.toRfc4122, activity: item.activity.id.toRfc4122, highlight: document.id.toRfc4122})
                                     : path('app_document_tree', {section: folder.documentSection.id.toRfc4122, folder: folder.id.toRfc4122, document: document.id.toRfc4122}) }}"

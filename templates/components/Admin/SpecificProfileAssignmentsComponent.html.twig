@@ -109,7 +109,7 @@
                                         <tr class="{{ is_sel ? 'bg-forest-50/60' : 'hover:bg-gray-50' }} transition-colors {{ not row.active ? 'opacity-60' }}">
                                             <td data-label="{{ 'responsibilities.assignments.profiles.col.profile'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-3">
                                                 <button type="button" data-action="live#action" data-live-action-param="selectRow" data-live-key-param="{{ row.key }}"
-                                                        class="text-left font-medium {{ is_sel ? 'text-forest-800' : 'text-gray-800 hover:text-forest-700' }}">
+                                                        class="py-2 text-left font-medium sm:py-0 {{ is_sel ? 'text-forest-800' : 'text-gray-800 hover:text-forest-700' }}">
                                                     {{ row.displayName }}
                                                 </button>
                                                 {% if not row.active %}
@@ -323,7 +323,7 @@
                                             {% endif %}
                                             <td data-label="{{ 'responsibilities.assignments.teachers.col.teacher'|trans({}, 'admin')|e('html_attr') }}" class="px-6 py-3">
                                                 <button type="button" data-action="live#action" data-live-action-param="selectTeacher" data-live-id-param="{{ teacher_id }}"
-                                                        class="text-left font-medium {{ is_sel ? 'text-forest-800' : 'text-gray-800 hover:text-forest-700' }}">
+                                                        class="py-2 text-left font-medium sm:py-0 {{ is_sel ? 'text-forest-800' : 'text-gray-800 hover:text-forest-700' }}">
                                                     {{ entry.teacher.name.lastName }}, {{ entry.teacher.name.firstName }}
                                                 </button>
                                                 {% if not entry.inActiveYear %}
