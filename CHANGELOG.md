@@ -7,6 +7,17 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.27.1] - 2026-11-13
+
+### Security
+
+- Se actualizan las dependencias de PHP a sus últimas versiones compatibles. `composer audit` avisaba
+  de 14 paquetes con vulnerabilidades publicadas (Symfony `http-foundation`, `http-kernel`,
+  `framework-bundle`, `routing`, `security-http`, `html-sanitizer`, `http-client`, `validator`,
+  `config`, `filesystem`, `mime` y `yaml`, además de `phpseclib` y `phpunit`); ahora no avisa de
+  ninguno. Symfony pasa de 8.1.8 a 8.1.11, y también suben Doctrine ORM / DBAL / DoctrineBundle,
+  Symfony UX (Live Component, Autocomplete, Icons), PHPStan y PHPUnit. No hay cambios de comportamiento.
+
 ## [1.27.0] - 2026-11-13
 
 ### Added
