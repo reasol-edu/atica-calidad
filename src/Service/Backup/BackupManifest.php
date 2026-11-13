@@ -25,6 +25,14 @@ final readonly class BackupManifest
         public array $tables,
     ) {}
 
+    /** The engine the backup was taken on, readable: `Doctrine\DBAL\Platforms\PostgreSQLPlatform` → "PostgreSQL". */
+    public function platformName(): string
+    {
+        $short = substr(strrchr('\\' . $this->databasePlatform, '\\') ?: $this->databasePlatform, 1);
+
+        return preg_replace(['/Platform$/', '/\d+$/'], '', $short) ?? $short;
+    }
+
     public function tableCount(): int
     {
         return \count($this->tables);

@@ -311,7 +311,8 @@ final class DatabaseRestoreService
         return $binary;
     }
 
-    private function databaseSchemaVersion(): ?string
+    /** The latest migration applied to the live database, or null if it cannot be told. */
+    public function databaseSchemaVersion(): ?string
     {
         try {
             $versions = $this->connection->fetchFirstColumn('SELECT version FROM doctrine_migration_versions');

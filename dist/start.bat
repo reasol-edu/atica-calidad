@@ -24,6 +24,8 @@ set "DATA_FWD=%DATA:\=/%"
 set DATABASE_URL=sqlite:///%DATA_FWD%/atica-calidad.db
 
 set MIGRATIONS_PATH=migrations/sqlite
+:: Copias de seguridad guardadas en el servidor: fuera de app\ para que sobrevivan a las actualizaciones.
+if not defined APP_BACKUP_DIR set "APP_BACKUP_DIR=%DATA_FWD%/backups"
 set DEFAULT_URI=http://localhost:%PORT%
 if "%APP_LOG%"==""                     set APP_LOG=false
 if "%APP_LOG_RETENTION_DAYS%"==""      set APP_LOG_RETENTION_DAYS=90
@@ -51,6 +53,7 @@ set /p APP_SECRET=<"%DATA%\.secret"
     echo APP_SECRET=%APP_SECRET%
     echo DATABASE_URL=%DATABASE_URL%
     echo MIGRATIONS_PATH=%MIGRATIONS_PATH%
+    echo APP_BACKUP_DIR=%APP_BACKUP_DIR%
     echo DEFAULT_URI=%DEFAULT_URI%
     echo APP_LOG=%APP_LOG%
     echo APP_LOG_RETENTION_DAYS=%APP_LOG_RETENTION_DAYS%

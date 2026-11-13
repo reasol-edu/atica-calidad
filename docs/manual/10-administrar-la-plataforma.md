@@ -295,14 +295,73 @@ Haz copia de seguridad con regularidad de:
 - El secreto de la aplicación (`APP_SECRET` en `.env.local`, o `data/.secret` en el binario nativo).
   No lo genera la copia del comando `app:backup`; guárdalo aparte.
 
+### Desde el panel de administración {#copias-desde-el-panel}
+
+**Administración → Copias de seguridad** (solo administradores globales) permite descargar una
+copia, guardarla en el servidor y restaurar una de las guardadas, sin tocar la línea de órdenes.
+
+![Pantalla «Copias de seguridad»: la tarjeta «Descargar una copia» con los campos opcionales de contraseña, el aviso verde «La última restauración terminó bien» y la lista de copias guardadas en el servidor: una cifrada (solo se restaura por consola), una con otro esquema de base de datos (no se puede restaurar desde aquí) y tres restaurables, cada una con Restaurar, Descargar y Eliminar](img/plataforma-copias.png)
+
+- **Descargar una copia.** El botón genera al momento un `.zip` con todos los datos, igual que
+  `app:backup`, y lo descarga. Si escribes una contraseña (dos veces, para evitar errores de
+  tecleo) la copia se cifra con AES-256 y solo se abre con ella: es lo recomendable si vas a
+  sacarla del servidor. Cada descarga queda anotada en el
+  [registro de actividad](#registro-de-actividad).
+- **Guardar en el servidor.** Deja una copia, **sin cifrar**, en la carpeta de copias del
+  servidor: `var/backups/` por defecto, o la que indique `APP_BACKUP_DIR` (en el ejecutable
+  nativo es `data/backups/`, para que sobreviva a las actualizaciones). Es la misma carpeta donde
+  `app:backup` deja sus copias, así que una tarea programada con ese comando aparece también en la
+  lista. Las copias **no se suben desde el navegador**: solo se restauran las que ya están en esa
+  carpeta.
+- **La lista de copias** muestra el tamaño, la fecha, la versión de la aplicación y el motor de
+  cada una, y si no se puede restaurar desde el panel, por qué: está **cifrada** con contraseña
+  (solo con `app:restore --password`) o se hizo con **otra versión del esquema** de la base de
+  datos (actualiza la aplicación a la versión de la copia). Cada copia se puede **descargar** (para
+  llevarla a otra máquina; sale tal cual está guardada) y **eliminar**.
+
+#### Restaurar una copia desde el panel
+
+**Restaurar** en una copia abre una pantalla de revisión que explica qué va a pasar, y que **no
+cambia nada** hasta que la confirmas.
+
+![Pantalla «Restaurar una copia de seguridad»: la copia (nombre, versión 1.26.1, fecha, base de datos SQLite y 539 filas), un cuadro rojo «Esto sustituye todos los datos» con cinco avisos, y el formulario con los campos «Tu contraseña actual» y «Escribe RESTAURAR para confirmar»](img/plataforma-copias-restaurar.png)
+
+Para confirmar hay que escribir **tu contraseña actual** y la palabra `RESTAURAR`. Quien accede por
+un sistema externo y no tiene contraseña propia no puede confirmar desde la web: tiene que usar
+`app:restore`. Si tu usuario no figura en la copia, la pantalla te lo advierte: al terminar no
+podrás entrar con él.
+
+Al confirmar:
+
+1. La restauración se lanza como **un proceso aparte** (sobrevive a que cierres el navegador) y
+   la aplicación responde a **todo el mundo**, administradores incluidos, con una página de
+   «Restaurando una copia de seguridad» que se actualiza sola. Es independiente del
+   [modo mantenimiento](#modo-mantenimiento): se controla con un fichero, no con la base de
+   datos, que es justo lo que se está sustituyendo.
+
+   ![Página «Restaurando una copia de seguridad»: sobre fondo verde oscuro, un indicador giratorio ámbar, la etiqueta «Restauración», el título, el texto «vuelve en unos minutos. Esta página se actualiza sola» y el nombre de la aplicación](img/plataforma-copias-restaurando.png)
+
+2. Antes de tocar nada se guarda una copia de los datos actuales en la misma carpeta
+   (`atica-calidad-before-restore-…`), por si hay que volver atrás.
+3. La carga es **transaccional**: si algo falla, no se cambia ningún dato, y el resultado queda
+   anotado en la pantalla de copias («La última restauración … terminó bien / falló»).
+4. Al terminar bien se **cierran todas las sesiones**: hay que volver a entrar, con las cuentas y
+   contraseñas que tenga la copia.
+
+Si el servidor no permite lanzar procesos desde la web (algunos alojamientos compartidos lo
+desactivan), la pantalla lo avisa y la restauración solo se puede hacer por consola. Si la
+aplicación se queda en «Restaurando…» sin que haya nada en marcha (un fallo grave del proceso),
+`php bin/console app:restore --unlock` quita el bloqueo; también caduca solo a las pocas horas, o
+en cuanto el proceso deja de existir.
+
 ### El comando `app:backup`
 
 ```bash
 php bin/console app:backup [carpeta-o-fichero.zip] [--password[=CONTRASEÑA]]
 ```
 
-Vuelca toda la base de datos a un único fichero ZIP. Sin argumento lo deja en `var/backups/` con
-un nombre con la fecha y la hora; también acepta una carpeta de destino o la ruta completa de un
+Vuelca toda la base de datos a un único fichero ZIP. Sin argumento lo deja en `var/backups/` (o en
+`APP_BACKUP_DIR`) con un nombre con la fecha y la hora; también acepta una carpeta de destino o la ruta completa de un
 `.zip`. El volcado es lógico e independiente del motor (una tabla por fichero NDJSON, con los
 valores binarios en base64 y un `manifest.json` con la versión de la aplicación, el motor y el
 número de filas de cada tabla), de modo que una copia hecha con SQLite se puede leer con
@@ -334,6 +393,13 @@ La carga es **transaccional**: si algo falla, la base de datos queda como estaba
 se suspenden las comprobaciones de clave ajena; en **PostgreSQL** esto requiere conectarse con un
 rol con privilegios (el propietario de la base de datos o un superusuario), igual que
 `pg_restore --disable-triggers`. En SQLite y MySQL no hace falta nada especial.
+
+Mientras dura, la aplicación responde con la página «Restaurando…» a todo el mundo, igual que
+cuando se restaura desde el panel, y al terminar bien se cierran todas las sesiones. Otras opciones:
+
+- `--previous-backup`: guarda antes una copia de los datos actuales en la carpeta de copias.
+- `--unlock`: quita el bloqueo de una restauración atascada y termina (no necesita copia).
+- `--by=NOMBRE`: quién la pide, para el registro del servidor (el panel lo rellena solo).
 
 Tras restaurar, **reinicia los procesos de la aplicación** (incluido el worker de Messenger) para
 descartar cualquier dato en caché.

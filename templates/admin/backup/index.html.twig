@@ -1,0 +1,148 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'backup.title'|trans({}, 'admin') }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-3xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_admin') }}" class="hover:text-forest-600 transition-colors">
+                {{ 'administration'|trans({}, 'navigation') }}
+            </a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'backup.title'|trans({}, 'admin') }}</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ 'backup.subtitle'|trans({}, 'admin') }}</p>
+    </div>
+
+    {# ── Descargar una copia ── #}
+    <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+        <div class="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-forest-100 text-forest-600">
+                {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-5 w-5'}) }}
+            </div>
+            <h2 class="text-base font-semibold text-gray-900">{{ 'backup.download.title'|trans({}, 'admin') }}</h2>
+        </div>
+        <form method="post" action="{{ path('app_admin_backup_download') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('backup_download') }}">
+            <div class="px-6 py-4 space-y-3 text-sm text-gray-600">
+                <p>{{ 'backup.download.description'|trans({}, 'admin') }}</p>
+                <p class="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-amber-800">
+                    {{ ux_icon('heroicons:exclamation-triangle', {class: 'h-4 w-4 inline -mt-0.5 mr-1'}) }}{{ 'backup.download.warning'|trans({}, 'admin') }}
+                </p>
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label for="backup-password" class="block text-sm font-medium text-gray-700 mb-1.5">{{ 'backup.download.password'|trans({}, 'admin') }}</label>
+                        <input id="backup-password" type="password" name="password" autocomplete="new-password"
+                               class="block w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm focus:border-forest-500 focus:bg-white focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                    </div>
+                    <div>
+                        <label for="backup-password-confirm" class="block text-sm font-medium text-gray-700 mb-1.5">{{ 'backup.download.password_confirm'|trans({}, 'admin') }}</label>
+                        <input id="backup-password-confirm" type="password" name="password_confirm" autocomplete="new-password"
+                               class="block w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm focus:border-forest-500 focus:bg-white focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500">{{ 'backup.download.password_help'|trans({}, 'admin') }}</p>
+            </div>
+            <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex flex-col gap-2 rounded-b-2xl sm:flex-row sm:items-center sm:justify-end">
+                <button type="submit"
+                        class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-forest-600 px-4 py-3 text-sm font-semibold text-white
+                               hover:bg-forest-700 transition-colors shadow-xs sm:w-auto sm:py-2.5">
+                    {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-4 w-4'}) }}
+                    {{ 'backup.download.submit'|trans({}, 'admin') }}
+                </button>
+            </div>
+        </form>
+    </section>
+
+    {# ── Resultado de la última restauración ── #}
+    {% if last_restore %}
+        <section class="rounded-2xl border {{ last_restore.ok ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50' }} px-6 py-4 text-sm {{ last_restore.ok ? 'text-green-800' : 'text-red-800' }}">
+            <p class="font-medium">
+                {{ ux_icon(last_restore.ok ? 'heroicons:check-circle' : 'heroicons:x-circle', {class: 'h-4 w-4 inline -mt-0.5 mr-1'}) }}
+                {{ (last_restore.ok ? 'backup.restore.last_ok' : 'backup.restore.last_failed')|trans({'%date%': last_restore.at|date('d/m/Y H:i'), '%by%': last_restore.by, '%file%': last_restore.file}, 'admin') }}
+            </p>
+            {% if not last_restore.ok and last_restore.message is defined %}
+                <p class="mt-1 whitespace-pre-line">{{ last_restore.message }}</p>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    {# ── Copias guardadas en el servidor y restauración ── #}
+    <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+        <div class="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-forest-100 text-forest-600">
+                {{ ux_icon('heroicons:arrow-uturn-left', {class: 'h-5 w-5'}) }}
+            </div>
+            <h2 class="text-base font-semibold text-gray-900">{{ 'backup.copies.title'|trans({}, 'admin') }}</h2>
+        </div>
+        <div class="px-6 py-4 space-y-3 text-sm text-gray-600">
+            <p>{{ 'backup.copies.description'|trans({'%dir%': backup_dir}, 'admin') }}</p>
+            {% if not can_restore %}
+                <p class="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-amber-800">{{ 'backup.restore.unavailable'|trans({}, 'admin') }}</p>
+            {% endif %}
+            <form method="post" action="{{ path('app_admin_backup_save') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('backup_save') }}">
+                <button type="submit"
+                        class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700
+                               hover:bg-gray-50 transition-colors shadow-xs sm:w-auto sm:py-2.5">
+                    {{ ux_icon('heroicons:archive-box-arrow-down', {class: 'h-4 w-4'}) }}
+                    {{ 'backup.copies.save'|trans({}, 'admin') }}
+                </button>
+            </form>
+        </div>
+
+        {% if copies is empty %}
+            <p class="px-6 pb-5 text-sm text-gray-400">{{ 'backup.copies.empty'|trans({}, 'admin') }}</p>
+        {% else %}
+            <ul class="divide-y divide-gray-100 border-t border-gray-100">
+                {% for copy in copies %}
+                    <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-4">
+                        {# En pantallas estrechas el nombre ocupa toda la fila (y se parte si hace falta) y los botones van debajo; desde «sm», todo en una línea. #}
+                        <div class="min-w-0 basis-full sm:flex-1 sm:basis-0">
+                            <p class="break-words text-sm font-medium text-gray-900 sm:truncate" title="{{ copy.name }}">{{ copy.name }}</p>
+                            <p class="text-xs text-gray-500">
+                                {{ copy.modifiedAt|date('d/m/Y H:i') }} · {{ copy.size < 1048576 ? (copy.size / 1024)|round ~ ' KB' : (copy.size / 1048576)|number_format(1, ',', '.') ~ ' MB' }}
+                                {% if copy.manifest %}· {{ app_name }} {{ copy.manifest.appVersion }} · {{ copy.manifest.platformName }}{% endif %}
+                                {% if copy.encrypted %}· <span class="inline-flex items-center gap-0.5 font-medium text-gray-700">{{ ux_icon('heroicons:lock-closed', {class: 'h-3 w-3'}) }}{{ 'backup.copies.encrypted'|trans({}, 'admin') }}</span>{% endif %}
+                            </p>
+                            {% if copy.problem %}
+                                <p class="mt-1 text-xs {{ copy.encrypted ? 'text-gray-500' : 'text-red-600' }}">{{ ('backup.copies.problem.' ~ copy.problem)|trans({}, 'admin') }}</p>
+                            {% endif %}
+                        </div>
+                        {# Botones: en móvil, en columnas del mismo ancho y de altura táctil (~40 px); desde «sm», compactos y en línea. #}
+                        <div class="grid w-full grid-flow-col auto-cols-fr gap-2 sm:flex sm:w-auto sm:shrink-0 sm:items-center">
+                            {% if copy.restorable and can_restore %}
+                                <a href="{{ path('app_admin_backup_restore', {name: copy.name}) }}"
+                                   class="inline-flex items-center justify-center gap-1 rounded-lg border border-forest-200 px-2.5 py-3 text-xs font-medium text-forest-700 hover:bg-forest-50 transition-colors sm:py-1.5">
+                                    {{ ux_icon('heroicons:arrow-uturn-left', {class: 'h-3.5 w-3.5'}) }}{{ 'backup.copies.restore'|trans({}, 'admin') }}
+                                </a>
+                            {% endif %}
+                            <form method="post" action="{{ path('app_admin_backup_download_stored', {name: copy.name}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('backup_download_' ~ copy.name) }}">
+                                <button type="submit"
+                                        class="inline-flex w-full items-center justify-center gap-1 rounded-lg border border-gray-200 px-2.5 py-3 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors sm:w-auto sm:py-1.5">
+                                    {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-3.5 w-3.5'}) }}{{ 'backup.copies.download'|trans({}, 'admin') }}
+                                </button>
+                            </form>
+                            <form method="post" action="{{ path('app_admin_backup_delete', {name: copy.name}) }}"
+                                  class="js-confirm-form" data-confirm="{{ 'backup.copies.delete_confirm'|trans({'%name%': copy.name}, 'admin')|e('html_attr') }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('backup_delete_' ~ copy.name) }}">
+                                <button type="submit"
+                                        class="js-confirm-trigger inline-flex w-full items-center justify-center gap-1 rounded-lg border border-red-200 px-2.5 py-3 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors sm:w-auto sm:py-1.5">
+                                    {{ ux_icon('heroicons:trash', {class: 'h-3.5 w-3.5'}) }}{{ 'backup.copies.delete'|trans({}, 'admin') }}
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 rounded-b-2xl">{{ 'backup.restore.console_hint'|trans({}, 'admin') }}</div>
+    </section>
+
+</div>
+{% endblock %}

@@ -58,6 +58,7 @@ final class MaintenanceModeSubscriber implements EventSubscriberInterface
         $event->setResponse(new Response(
             $this->twig->render('maintenance/index.html.twig', ['signed_in' => $this->security->getUser() !== null]),
             Response::HTTP_SERVICE_UNAVAILABLE,
+            ['Retry-After' => '300'],
         ));
     }
 

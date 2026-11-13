@@ -21,8 +21,8 @@ class BackupCommand extends Command
     public function __construct(
         private readonly DatabaseBackupService $backupService,
         private readonly TranslatorInterface $translator,
-        #[Autowire('%kernel.project_dir%')]
-        private readonly string $projectDir,
+        #[Autowire('%app.backup_dir%')]
+        private readonly string $defaultDirectory,
     ) {
         parent::__construct();
     }
@@ -45,7 +45,7 @@ class BackupCommand extends Command
         $destinationArg = $input->getArgument('destination');
         $destination    = \is_string($destinationArg) && trim($destinationArg) !== ''
             ? trim($destinationArg)
-            : $this->projectDir . '/var/backups';
+            : $this->defaultDirectory;
 
         [$directory, $filename] = $this->resolveTarget($destination);
 

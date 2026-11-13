@@ -97,6 +97,7 @@ SHOTS_OUT_DIR=docs/manual/img node scripts/capture-calendar-shots.mjs
 node scripts/capture-centro-shots.mjs
 node scripts/capture-informes-shots.mjs
 node scripts/capture-plataforma-shots.mjs
+SHOTS_BACKUP_DIR="$APP_BACKUP_DIR" node scripts/capture-copias-shots.mjs   # el servidor y el script con APP_BACKUP_DIR = una carpeta vacía y desechable
 node scripts/capture-utilidades-shots.mjs
 node scripts/capture-mejora-shots.mjs
 node scripts/capture-responsabilidades-shots.mjs

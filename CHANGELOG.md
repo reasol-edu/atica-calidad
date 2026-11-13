@@ -7,6 +7,34 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [1.27.0] - 2026-11-13
+
+### Added
+
+- **Copias de seguridad desde el panel de administración** (**Administración → Copias de seguridad**,
+  solo administradores globales). Se puede **descargar** una copia completa (con una contraseña
+  opcional que la cifra con AES-256), **guardarla en el servidor** y **restaurar** una de las
+  guardadas. Las copias guardadas están en `var/backups/`, o en `APP_BACKUP_DIR` (en el ejecutable
+  nativo, `data/backups/`, para que sobrevivan a las actualizaciones): la misma carpeta de
+  `app:backup`, así que una tarea programada con ese comando aparece en la lista. Cada copia se puede
+  descargar y eliminar, y la lista avisa de las que no se pueden restaurar desde la web (cifradas, o
+  hechas con otra versión del esquema). Las descargas y los guardados quedan en el registro de actividad.
+- **Restaurar desde la web**, con confirmación: pantalla de revisión, contraseña de quien la pide y la
+  palabra «RESTAURAR», y aviso si su usuario no figura en la copia. No se suben copias desde el
+  navegador. La restauración la hace un proceso aparte: mientras dura, la aplicación responde a todo el
+  mundo (administradores incluidos) con una página «Restaurando una copia de seguridad» que se
+  actualiza sola, antes se guarda una copia de los datos actuales, es una sola transacción (si falla,
+  no cambia nada), y al terminar se cierran todas las sesiones. Si el servidor no permite lanzar
+  procesos, solo queda la consola. Documentado en el manual, con tres capturas.
+
+### Changed
+
+- `app:restore` pone la aplicación en «Restaurando…» mientras restaura y cierra las sesiones al
+  terminar; admite `--previous-backup` (guarda antes una copia de los datos actuales), `--unlock`
+  (quita un bloqueo atascado) y `--by`. `app:backup` usa `APP_BACKUP_DIR` como carpeta por defecto.
+- La página de mantenimiento envía la cabecera `Retry-After`.
+- `symfony/process` pasa a ser una dependencia directa. El límite de memoria de las pruebas sube a 512 MB.
+
 ## [1.26.1] - 2026-11-06
 
 ### Changed

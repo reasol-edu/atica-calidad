@@ -1,0 +1,84 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'backup.restore.title'|trans({}, 'admin') }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-3xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1 flex-wrap">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_admin') }}" class="hover:text-forest-600 transition-colors">
+                {{ 'administration'|trans({}, 'navigation') }}
+            </a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            <a href="{{ path('app_admin_backups') }}" class="hover:text-forest-600 transition-colors">{{ 'backup.title'|trans({}, 'admin') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'backup.restore.title'|trans({}, 'admin') }}</h1>
+    </div>
+
+    {# ── La copia ── #}
+    <section class="rounded-2xl border border-gray-200 bg-white px-6 py-5 shadow-xs">
+        <h2 class="text-base font-semibold text-gray-900 break-words">{{ copy.name }}</h2>
+        <dl class="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+            <div><dt class="text-xs text-gray-500">{{ 'backup.restore.info.version'|trans({}, 'admin') }}</dt><dd class="font-medium text-gray-900">{{ manifest.appVersion }}</dd></div>
+            <div><dt class="text-xs text-gray-500">{{ 'backup.restore.info.date'|trans({}, 'admin') }}</dt><dd class="font-medium text-gray-900">{{ manifest.createdAt|date('d/m/Y H:i') }}</dd></div>
+            <div><dt class="text-xs text-gray-500">{{ 'backup.restore.info.platform'|trans({}, 'admin') }}</dt><dd class="font-medium text-gray-900">{{ manifest.platformName }}</dd></div>
+            <div><dt class="text-xs text-gray-500">{{ 'backup.restore.info.rows'|trans({}, 'admin') }}</dt><dd class="font-medium text-gray-900">{{ manifest.totalRows|number_format(0, ',', '.') }}</dd></div>
+        </dl>
+    </section>
+
+    {# ── Qué va a pasar ── #}
+    <section class="rounded-2xl border border-red-200 bg-red-50 px-6 py-5 text-sm text-red-900 space-y-2">
+        <h2 class="text-base font-semibold">{{ ux_icon('heroicons:exclamation-triangle', {class: 'h-5 w-5 inline -mt-0.5 mr-1'}) }}{{ 'backup.restore.warning.title'|trans({}, 'admin') }}</h2>
+        <ul class="list-disc space-y-1 pl-5">
+            <li>{{ 'backup.restore.warning.replaces'|trans({}, 'admin') }}</li>
+            <li>{{ 'backup.restore.warning.previous'|trans({}, 'admin') }}</li>
+            <li>{{ 'backup.restore.warning.maintenance'|trans({}, 'admin') }}</li>
+            <li>{{ 'backup.restore.warning.sessions'|trans({}, 'admin') }}</li>
+            <li>{{ 'backup.restore.warning.credentials'|trans({}, 'admin') }}</li>
+        </ul>
+        {% if user_in_copy is same as(false) %}
+            <p class="mt-2 rounded-lg bg-white/70 px-3 py-2 font-medium">{{ 'backup.restore.warning.user_missing'|trans({'%user%': username}, 'admin') }}</p>
+        {% endif %}
+    </section>
+
+    {# ── Confirmación ── #}
+    <form method="post" class="rounded-2xl border border-gray-200 bg-white px-6 py-5 shadow-xs space-y-4">
+        <input type="hidden" name="_token" value="{{ csrf_token('backup_restore_' ~ copy.name) }}">
+
+        {% if error %}
+            <p role="alert" class="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{{ error }}</p>
+        {% endif %}
+
+        {% if has_password %}
+            <div>
+                <label for="restore-password" class="block text-sm font-medium text-gray-700 mb-1.5">{{ 'backup.restore.field.password'|trans({}, 'admin') }}</label>
+                <input id="restore-password" type="password" name="password" autocomplete="current-password" required
+                       class="block w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm focus:border-forest-500 focus:bg-white focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+            </div>
+            <div>
+                <label for="restore-confirm" class="block text-sm font-medium text-gray-700 mb-1.5">{{ 'backup.restore.field.confirm'|trans({'%word%': confirm_word}, 'admin') }}</label>
+                <input id="restore-confirm" type="text" name="confirm" autocomplete="off" required placeholder="{{ confirm_word }}"
+                       class="block w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm focus:border-forest-500 focus:bg-white focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+            </div>
+        {% else %}
+            <p class="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800">{{ 'backup.restore.error.no_password'|trans({}, 'admin') }}</p>
+        {% endif %}
+
+        {# En móvil, los botones van apilados y a todo el ancho, con el de restaurar (el peligroso) arriba y Cancelar debajo; desde «sm», en una fila. #}
+        <div class="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-end">
+            <a href="{{ path('app_admin_backups') }}" class="rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors sm:py-2.5">
+                {{ 'backup.restore.cancel'|trans({}, 'admin') }}
+            </a>
+            {% if has_password %}
+                <button type="submit" class="rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 transition-colors shadow-xs sm:py-2.5">
+                    {{ 'backup.restore.submit'|trans({}, 'admin') }}
+                </button>
+            {% endif %}
+        </div>
+    </form>
+
+</div>
+{% endblock %}

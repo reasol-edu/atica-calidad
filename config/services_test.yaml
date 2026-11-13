@@ -6,3 +6,13 @@ when@test:
         # In tests, the anti-timing padding for the password reset is disabled
         # to avoid adding ~900 ms to every POST to /contrasena/recuperar.
         app.password_reset.request_min_duration_us: 0
+        # Restore state and saved backups live in the test cache folder: a failing test must not leave a lock behind that
+        # puts the following ones in 503 (ControllerTestCase and RepositoryTestCase empty it when they finish).
+        app.restore_state_dir: '%kernel.cache_dir%/restore-state'
+        app.backup_dir: '%kernel.cache_dir%/backups'
+
+    services:
+        # Web restores never start a real process in tests (restoring for real would replace the database): see RecordingRestoreLauncher.
+        App\Tests\Support\RecordingRestoreLauncher:
+            public: true
+        App\Service\Backup\RestoreLauncher: '@App\Tests\Support\RecordingRestoreLauncher'

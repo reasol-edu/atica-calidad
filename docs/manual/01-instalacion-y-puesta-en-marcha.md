@@ -152,6 +152,7 @@ raíz del repositorio. Las más habituales:
 | `DATABASE_URL` | Cadena de conexión a la base de datos. |
 | `MAILER_DSN` | Transporte de correo saliente (por defecto, descarta los correos). |
 | `APP_TIMEZONE` | Zona horaria de la aplicación: la hora que ve cada persona y la de «hoy», los plazos y los avisos. PHP ignora la zona del servidor, así que se indica aquí. Las fechas con hora se guardan siempre en UTC. Por defecto, `Europe/Madrid` (Canarias: `Atlantic/Canary`). |
+| `APP_BACKUP_DIR` | Carpeta de las [copias de seguridad](10-administrar-la-plataforma.md#copias-de-seguridad) guardadas en el servidor. Por defecto, `var/backups` (en Docker, dentro del volumen `data/var`; en el ejecutable nativo, `data/backups`). |
 | `APP_EXTERNAL_ENABLED` / `APP_EXTERNAL_URL` | Autenticación externa del profesorado (iSéneca). |
 | `SYMFONY_TRUSTED_PROXIES` | IPs de proxies de confianza, si la app va detrás de uno. |
 
@@ -221,7 +222,9 @@ php bin/console app:backup [carpeta-o-fichero.zip] [--password[=CONTRASEÑA]]
 
 Restaura una copia creada con `app:backup`, **reemplazando todos los datos actuales**. Pide
 confirmación (salvo `--force`) y se niega si el esquema no coincide con el de la copia (salvo
-`--force`). En PostgreSQL necesita un rol con privilegios. Ver
+`--force`). Pone la aplicación en «Restaurando…» mientras dura y cierra las sesiones al terminar;
+`--unlock` quita un bloqueo atascado. También se puede hacer desde el panel de administración. En
+PostgreSQL necesita un rol con privilegios. Ver
 [Administrar la plataforma → Copias de seguridad](10-administrar-la-plataforma.md#copias-de-seguridad).
 
 ```bash

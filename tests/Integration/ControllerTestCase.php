@@ -41,6 +41,7 @@ abstract class ControllerTestCase extends WebTestCase
         (new SchemaTool($this->em))->dropSchema(
             $this->em->getMetadataFactory()->getAllMetadata()
         );
+        \App\Tests\Support\RestoreStateCleaner::clean(self::getContainer());
 
         parent::tearDown();
     }

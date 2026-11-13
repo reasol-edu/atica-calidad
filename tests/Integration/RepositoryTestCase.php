@@ -30,6 +30,7 @@ abstract class RepositoryTestCase extends KernelTestCase
         (new SchemaTool($this->em))->dropSchema(
             $this->em->getMetadataFactory()->getAllMetadata()
         );
+        \App\Tests\Support\RestoreStateCleaner::clean(self::getContainer());
 
         parent::tearDown();
     }

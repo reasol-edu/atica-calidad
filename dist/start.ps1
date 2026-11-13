@@ -24,6 +24,8 @@ $dataFwd = $Data -replace "\\", "/"
 $env:DATABASE_URL  = "sqlite:///$dataFwd/atica-calidad.db"
 
 $env:MIGRATIONS_PATH = "migrations/sqlite"
+# Copias de seguridad guardadas en el servidor: fuera de app\ para que sobrevivan a las actualizaciones.
+if (-not $env:APP_BACKUP_DIR) { $env:APP_BACKUP_DIR = "$dataFwd/backups" }
 $env:DEFAULT_URI = "http://localhost:$Port"
 if (-not $env:APP_LOG)                     { $env:APP_LOG = "false" }
 if (-not $env:APP_LOG_RETENTION_DAYS)      { $env:APP_LOG_RETENTION_DAYS = "90" }
@@ -54,6 +56,7 @@ APP_DEBUG=0
 APP_SECRET=$($env:APP_SECRET)
 DATABASE_URL=$($env:DATABASE_URL)
 MIGRATIONS_PATH=$($env:MIGRATIONS_PATH)
+APP_BACKUP_DIR=$($env:APP_BACKUP_DIR)
 DEFAULT_URI=$($env:DEFAULT_URI)
 APP_LOG=$($env:APP_LOG)
 APP_LOG_RETENTION_DAYS=$($env:APP_LOG_RETENTION_DAYS)

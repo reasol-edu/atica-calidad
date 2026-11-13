@@ -8,6 +8,6 @@ namespace App\Service\Backup;
  * The backup archive is missing, unreadable, not an ÁTICA Calidad backup, or needs a password
  * that was not supplied (or was wrong).
  */
-final class BackupArchiveException extends \RuntimeException
+final class BackupArchiveException extends BackupException
 {
 }

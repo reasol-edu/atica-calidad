@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+{# Standalone and database-free: served while a backup is restored, when the tables are being emptied and refilled.
+   No application layout (it reads the settings), no session, nothing about who restores or from which backup. It reloads itself. #}
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="10">
+    <meta name="robots" content="noindex">
+    <title>{{ 'restore.in_progress.title'|trans({}, 'admin') }} · {{ app_name }}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('static/favicon.svg') }}">
+    <link rel="shortcut icon" href="{{ asset('static/favicon.ico') }}">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background: #1a2415;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem 1.5rem;
+            -webkit-font-smoothing: antialiased;
+        }
+        main { max-width: 32rem; }
+        .spinner {
+            width: 56px; height: 56px; margin: 0 auto 1.75rem;
+            border: 5px solid rgba(255, 255, 255, 0.18);
+            border-top-color: #d69b3b;
+            border-radius: 50%;
+            animation: spin 1.2s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .tag { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: #d69b3b; margin-bottom: 0.75rem; }
+        h1 { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.9rem; }
+        p { color: #aec094; line-height: 1.55; font-size: 1rem; }
+        .app { margin-top: 2.25rem; font-size: 0.8rem; color: rgba(174, 192, 148, 0.6); }
+        @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+    </style>
+</head>
+<body>
+    <main role="status">
+        <div class="spinner" aria-hidden="true"></div>
+        <p class="tag">{{ 'restore.in_progress.tag'|trans({}, 'admin') }}</p>
+        <h1>{{ 'restore.in_progress.title'|trans({}, 'admin') }}</h1>
+        <p>{{ 'restore.in_progress.text'|trans({}, 'admin') }}</p>
+        <p class="app">{{ app_name }}</p>
+    </main>
+</body>
+</html>

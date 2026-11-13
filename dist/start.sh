@@ -23,6 +23,8 @@ export DOCUMENT_ROOT="${APP}/public"
 export SERVER_ADDR=":${PORT}"
 export DATABASE_URL="sqlite:///${DATA}/atica-calidad.db"
 export MIGRATIONS_PATH=migrations/sqlite
+# Copias de seguridad guardadas en el servidor: fuera de app/ para que sobrevivan a las actualizaciones.
+export APP_BACKUP_DIR="${APP_BACKUP_DIR:-${DATA}/backups}"
 export DEFAULT_URI="http://localhost:${PORT}"
 export APP_LOG="${APP_LOG:-false}"
 export APP_LOG_RETENTION_DAYS="${APP_LOG_RETENTION_DAYS:-90}"
@@ -57,6 +59,7 @@ APP_DEBUG=0
 APP_SECRET=${APP_SECRET}
 DATABASE_URL=${DATABASE_URL}
 MIGRATIONS_PATH=${MIGRATIONS_PATH}
+APP_BACKUP_DIR=${APP_BACKUP_DIR}
 DEFAULT_URI=${DEFAULT_URI}
 APP_LOG=${APP_LOG}
 APP_LOG_RETENTION_DAYS=${APP_LOG_RETENTION_DAYS}
