@@ -27,6 +27,7 @@ settings.category.trash.label: 'Papelera'
 settings.category.uploads.label: 'Subida de ficheros'
 settings.category.quality.label: 'Mejora continua'
 settings.category.maintenance.label: 'Mantenimiento'
+settings.category.backup.label: 'Copias de seguridad'
 
 # ── Definiciones de ajustes ───────────────────────────────────────────────────
 settings.key.page_size.label: 'Resultados por página'
@@ -100,6 +101,14 @@ settings.key.notifications_email_subject_prefix.description: 'Texto que se antep
 settings.key.academic_year_start_date.label: 'Inicio del curso académico'
 settings.key.academic_year_start_date.description: 'Día y mes en que empieza cada curso académico (15 de septiembre por defecto). Las actividades se repiten cada curso en sus fechas, y este día marca cuándo pasan a contar las del curso siguiente: p. ej., una actividad de enero a febrero, consultada en octubre, se refiere a la del próximo enero, no a la del enero ya pasado.'
 
+settings.key.backup_auto_policy.label: 'Copias automáticas'
+settings.key.backup_auto_policy.description: 'Si la aplicación guarda una copia de seguridad cada noche (02:30) en el servidor y cuántas conserva. Se guarda siempre una copia al día; con el tiempo se van borrando las antiguas, dejando una por semana y una por mes, para poder volver atrás si un problema se descubre tarde. Las copias que guardas a mano nunca se borran. Cada copia ocupa lo que la base de datos, ficheros incluidos, y se guarda sin cifrar en el mismo disco: no sustituye a una copia fuera del servidor.'
+settings.key.backup_auto_policy.choice.off: 'Desactivadas'
+settings.key.backup_auto_policy.choice.basic: 'Básica: 7 diarias'
+settings.key.backup_auto_policy.choice.recommended: 'Recomendada: 7 diarias, 4 semanales y 3 mensuales (unos 3 meses atrás)'
+settings.key.backup_auto_policy.choice.extended: 'Ampliada: 14 diarias, 8 semanales y 12 mensuales (hasta un año atrás)'
+settings.key.backup_auto_max_size_mb.label: 'Espacio máximo de las copias automáticas (MB)'
+settings.key.backup_auto_max_size_mb.description: 'Espacio que pueden ocupar, entre todas, las copias automáticas. Si se supera, se borran las más antiguas hasta que quepan; la más reciente se conserva siempre, aunque ella sola ocupe más. Un valor de 0 significa sin límite de espacio (solo cuenta la política de copias elegida).'
 settings.key.maintenance_enabled.label: 'Modo mantenimiento'
 settings.key.maintenance_enabled.description: 'Con el modo mantenimiento activado, solo los administradores globales pueden usar la aplicación: el resto del profesorado, esté o no con la sesión iniciada, ve una página de mantenimiento. Los avisos por correo y las demás tareas automáticas siguen funcionando.'
 

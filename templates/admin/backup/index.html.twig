@@ -17,6 +17,10 @@
         <p class="mt-1 text-sm text-gray-500">{{ 'backup.subtitle'|trans({}, 'admin') }}</p>
     </div>
 
+    <section class="rounded-2xl border border-gray-200 bg-white px-6 py-4 shadow-xs">
+        {% include 'admin/backup/_status.html.twig' with {backup: backup, full: true} only %}
+    </section>
+
     {# ── Descargar una copia ── #}
     <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
         <div class="flex items-center gap-4 px-6 py-5 border-b border-gray-100">

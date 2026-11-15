@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Repository\EducationalCentreRepository;
 use App\Repository\TeacherRepository;
+use App\Service\Backup\AutomaticBackup;
 use App\Service\ProxyConfigurationChecker;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,6 +21,7 @@ class AdminController extends AbstractController
         private readonly TeacherRepository $teachers,
         private readonly EducationalCentreRepository $centres,
         private readonly ProxyConfigurationChecker $proxyChecker,
+        private readonly AutomaticBackup $automaticBackup,
     ) {}
 
     #[Route('/admin', name: 'app_admin')]
@@ -27,6 +29,7 @@ class AdminController extends AbstractController
     {
         return $this->render('admin/index.html.twig', [
             'proxyWarning' => $this->proxyChecker->check($request),
+            'backup'       => $this->automaticBackup->status(),
             'stats'        => [
                 'teachers_total'  => $this->teachers->countAll(),
                 'teachers_active' => $this->teachers->countActive(),

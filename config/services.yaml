@@ -19,6 +19,11 @@ parameters:
     # actualizaciones: en Docker, var/ es un volumen; en el binario nativo, dist/start.* la apunta a data/backups.
     env(APP_BACKUP_DIR):        "%kernel.project_dir%/var/backups"
     app.backup_dir:             "%env(APP_BACKUP_DIR)%"
+    # Copias automáticas: cada noche (02:30) se guarda una copia en APP_BACKUP_DIR. Cuántas conservar y el espacio máximo
+    # son ajustes globales (backup.auto_keep, backup.auto_max_size_mb; 0 = desactivadas, por defecto). Más de estos días sin ninguna copia (manual o automática) y Administración lo avisa.
+    app.backup_stale_days:      7
+    # Hechos sobre el sistema en ficheros (última copia automática, latido del planificador): compartidos por web, consola y worker.
+    app.state_dir:              "%kernel.project_dir%/var/state"
     # Estado de una restauración (bloqueo, resultado y hora de la última): ficheros, no base de datos, porque es la base de
     # datos lo que se sustituye. Debe ser común a todos los procesos de la aplicación (web, consola y worker).
     app.restore_state_dir:      "%kernel.project_dir%/var/restore"

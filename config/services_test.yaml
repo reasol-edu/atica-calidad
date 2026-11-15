@@ -10,6 +10,7 @@ when@test:
         # puts the following ones in 503 (ControllerTestCase and RepositoryTestCase empty it when they finish).
         app.restore_state_dir: '%kernel.cache_dir%/restore-state'
         app.backup_dir: '%kernel.cache_dir%/backups'
+        app.state_dir: '%kernel.cache_dir%/state'
 
     services:
         # Web restores never start a real process in tests (restoring for real would replace the database): see RecordingRestoreLauncher.

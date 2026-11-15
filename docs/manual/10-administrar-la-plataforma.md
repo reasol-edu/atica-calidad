@@ -313,6 +313,33 @@ copia, guardarla en el servidor y restaurar una de las guardadas, sin tocar la l
   `app:backup` deja sus copias, así que una tarea programada con ese comando aparece también en la
   lista. Las copias **no se suben desde el navegador**: solo se restauran las que ya están en esa
   carpeta.
+- **Copias automáticas.** En **Ajustes globales → Copias de seguridad** hay dos ajustes (solo a nivel
+  global, porque la copia es de toda la plataforma y no de un centro). El primero, **Copias
+  automáticas**, es una política de conservación con cuatro opciones:
+
+  | Política | Qué conserva |
+  |---|---|
+  | Desactivadas (por defecto) | Nada: no se hacen copias automáticas |
+  | Básica | Las últimas 7 diarias |
+  | Recomendada | 7 diarias, 4 semanales y 3 mensuales (unos 3 meses atrás) |
+  | Ampliada | 14 diarias, 8 semanales y 12 mensuales (hasta un año atrás) |
+
+  Con cualquiera activada, la aplicación guarda **una copia cada noche** a las 02:30 en la carpeta de
+  copias (con nombre `atica-calidad-auto-…`). Con el tiempo se van borrando las antiguas, pero se deja
+  la última de cada semana y de cada mes, para poder volver atrás si un problema —un documento
+  borrado, un error al importar— se descubre semanas después. El segundo ajuste, **Espacio máximo de
+  las copias automáticas (MB)**, es un tope de seguridad: si entre todas lo superan, se borran las más
+  antiguas hasta que quepan (la más reciente se conserva siempre, aunque ella sola lo supere); `0`
+  significa sin límite. Se borran **solo** las automáticas, **nunca** las que guardas a mano ni las
+  de `app:backup`. Por defecto están desactivadas porque cada copia ocupa lo que la base de datos
+  —ficheros incluidos— y se guarda sin cifrar en el mismo disco.
+  Para que funcionen tiene que estar en marcha el proceso en segundo plano (en Docker, el servicio
+  `worker`; en el ejecutable nativo, lo lanza `start`). Si una copia automática falla, no se
+  reintenta: el motivo queda anotado en esta pantalla.
+- **Aviso de «última copia».** Esta pantalla y la tarjeta de Administración muestran cuándo se guardó
+  la última copia (manual o automática) y avisan en ámbar si hace más de 7 días o si no hay ninguna.
+  Una copia automática en el mismo disco no sustituye a una copia fuera del servidor: descarga
+  copias de vez en cuando y guárdalas en otro sitio.
 - **La lista de copias** muestra el tamaño, la fecha, la versión de la aplicación y el motor de
   cada una, y si no se puede restaurar desde el panel, por qué: está **cifrada** con contraseña
   (solo con `app:restore --password`) o se hizo con **otra versión del esquema** de la base de

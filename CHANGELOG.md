@@ -7,6 +7,23 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **Copias de seguridad automáticas y aviso de «última copia».** Dos ajustes globales nuevos, en Ajustes
+  globales → Copias de seguridad: una política de conservación (desactivadas por defecto; «Básica» 7
+  diarias; «Recomendada» 7 diarias, 4 semanales y 3 mensuales; «Ampliada» 14, 8 y 12) y el espacio máximo
+  que pueden ocupar las copias automáticas en MB (`0` = sin límite). Con una política activa, la aplicación
+  guarda una copia cada noche (02:30) en la carpeta de copias y, al podar, deja la última de cada día,
+  semana y mes que pida la política, para poder volver atrás si un problema se descubre tarde. Si se supera
+  el espacio máximo se borran las más antiguas (la más reciente se conserva siempre); las copias manuales y
+  las de `app:backup` nunca se borran. Los ajustes son solo globales, no de centro, porque la copia es de
+  toda la plataforma. La copia se escribe como
+  fichero temporal y se renombra al terminar, así que una caída no deja un archivo a medias en la lista.
+  Una copia fallida no se reintenta: el motivo se anota en la pantalla de copias. La tarjeta de Administración
+  y la pantalla de copias muestran cuándo se hizo la última (manual o automática) y avisan si hace más de 7
+  días o no hay ninguna. Migración `Version20261115100000` (definición de los dos ajustes); revertirla borra
+  los valores que se les hayan dado.
+
 ### Fixed
 
 - **Copias de seguridad y restauración de bases de datos grandes.** Con PostgreSQL y MySQL, el volcado cargaba

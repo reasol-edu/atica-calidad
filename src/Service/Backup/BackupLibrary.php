@@ -18,6 +18,9 @@ class BackupLibrary
     /** Letters, digits, dot, dash and underscore only, ending in .zip, not starting with a dot. */
     private const NAME_PATTERN = '/^[A-Za-z0-9][A-Za-z0-9._-]*\.zip$/';
 
+    /** Name prefix of the scheduled backups: the only ones retention may delete. */
+    public const AUTO_PREFIX = 'atica-calidad-auto';
+
     /** More than this are not listed (the screen is not a file explorer). */
     private const MAX_LISTED = 50;
 
@@ -90,6 +93,126 @@ class BackupLibrary
         }
 
         return $this->find($name) ?? throw new BackupException('The backup was created but it is not in the backups folder.');
+    }
+
+    /**
+     * The scheduled nightly backup. Written under a `.part` name that the listing pattern does not match and renamed
+     * when complete, so a crash (or a run still going) never leaves a half-written archive that looks like a backup.
+     *
+     * @throws BackupException
+     */
+    public function saveAutomatic(): StoredBackup
+    {
+        $name = \sprintf('%s-%s.zip', self::AUTO_PREFIX, $this->clock->now()->format('Y-m-d-His'));
+        $part = $name . '.part';
+
+        try {
+            $this->backup->create($this->dir, $part);
+            if (!@rename($this->dir . '/' . $part, $this->dir . '/' . $name)) {
+                throw new \RuntimeException('The finished backup could not be renamed.');
+            }
+        } catch (\Throwable $e) {
+            @unlink($this->dir . '/' . $part);
+
+            throw new BackupException($e->getMessage(), previous: $e);
+        }
+
+        return $this->find($name) ?? throw new BackupException('The backup was created but it is not in the backups folder.');
+    }
+
+    /**
+     * Prunes the automatic backups according to the retention policy: it keeps the newest backup of each of the last N days,
+     * of the last N weeks and of the last N months that have one (see BackupRetentionPolicy) and deletes the rest, plus any
+     * `.part` leftover of an interrupted run. If `$maxBytes` is above 0 it then deletes the oldest of those kept until they
+     * fit; the newest backup is always kept, even if it alone is bigger (better one backup too big than none). Only files
+     * named `atica-calidad-auto-*.zip`: backups saved by hand, by `app:backup` or put there over SSH are never touched.
+     *
+     * The date of a backup is the one in its name (when it was made), not the file's modification time, which copying
+     * or restoring a folder changes.
+     *
+     * @return int how many backups were deleted
+     */
+    public function pruneAutomatic(BackupRetentionPolicy $policy, int $maxBytes = 0): int
+    {
+        if (!$policy->isOn() || !is_dir($this->dir)) {
+            return 0;
+        }
+
+        $automatic = [];
+        foreach (scandir($this->dir) ?: [] as $name) {
+            $path = $this->dir . '/' . $name;
+            if (preg_match('/^' . preg_quote(self::AUTO_PREFIX, '/') . '-(\d{4})-(\d{2})-(\d{2})-(\d{2})(\d{2})(\d{2})\.zip$/', $name, $m) === 1 && is_file($path)) {
+                $madeAt = \DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', \sprintf('%s-%s-%s %s:%s:%s', $m[1], $m[2], $m[3], $m[4], $m[5], $m[6]));
+                $automatic[$name] = $madeAt !== false ? $madeAt : (new \DateTimeImmutable())->setTimestamp((int) filemtime($path));
+            } elseif (preg_match('/^' . preg_quote(self::AUTO_PREFIX, '/') . '-[0-9-]+\.zip\.part$/', $name) === 1 && is_file($path) && time() - (int) filemtime($path) > 6 * 3600) {
+                @unlink($path);
+            }
+        }
+        // Newest first.
+        uksort($automatic, static fn (string $a, string $b): int => [$automatic[$b], $b] <=> [$automatic[$a], $a]);
+        $names = array_keys($automatic);
+
+        // Newest of each day / ISO week / month, for as many days / weeks / months as the policy asks.
+        $keepNames = [];
+        foreach (['daily' => 'Y-m-d', 'weekly' => 'o-\WW', 'monthly' => 'Y-m'] as $tier => $format) {
+            $limit = $policy->tiers()[$tier];
+            $seen  = [];
+            foreach ($names as $name) {
+                $bucket = $automatic[$name]->format($format);
+                if (isset($seen[$bucket])) {
+                    continue; // an even newer one already represents this day/week/month
+                }
+                if (\count($seen) >= $limit) {
+                    break;
+                }
+                $seen[$bucket]    = true;
+                $keepNames[$name] = true;
+            }
+        }
+        if ($names !== []) {
+            $keepNames[$names[0]] = true; // the newest is never pruned
+        }
+
+        $deleted = 0;
+        foreach ($names as $name) {
+            if (!isset($keepNames[$name]) && @unlink($this->dir . '/' . $name)) {
+                ++$deleted;
+            }
+        }
+
+        if ($maxBytes > 0) {
+            $remaining = array_values(array_filter($names, static fn (string $name): bool => isset($keepNames[$name])));
+            $total     = array_sum(array_map(fn (string $name): int => (int) @filesize($this->dir . '/' . $name), $remaining));
+            while (\count($remaining) > 1 && $total > $maxBytes) {
+                $oldest = array_pop($remaining);
+                $total -= (int) @filesize($this->dir . '/' . $oldest);
+                if (@unlink($this->dir . '/' . $oldest)) {
+                    ++$deleted;
+                }
+            }
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * When the newest backup in the folder (manual or automatic) was written, or null if there is none. Cheap: it only
+     * reads modification times, it opens no archive (the listing opens every one to describe it).
+     */
+    public function lastBackupAt(): ?int
+    {
+        if (!is_dir($this->dir)) {
+            return null;
+        }
+
+        $latest = null;
+        foreach (scandir($this->dir) ?: [] as $name) {
+            if (preg_match(self::NAME_PATTERN, $name) === 1 && is_file($this->dir . '/' . $name)) {
+                $latest = max($latest ?? 0, (int) filemtime($this->dir . '/' . $name));
+            }
+        }
+
+        return $latest;
     }
 
     public function delete(string $name): bool
