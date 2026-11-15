@@ -9,6 +9,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Fixed
 
+- **Copias de seguridad y restauración de bases de datos grandes.** Con PostgreSQL y MySQL, el volcado cargaba
+  cada tabla entera en memoria antes de escribirla, y la restauración leía entero el fichero de cada tabla:
+  el consumo crecía con el total de documentos (con 1 GB de ficheros, el volcado ocupaba 1,5 GB de memoria en
+  PostgreSQL y se agotaba en MySQL; la restauración pedía 1,4 GB de golpe). Ahora el volcado lee por páginas de
+  clave primaria (un fichero cada vez en la tabla de contenidos) y la restauración lee línea a línea: con 1 GB
+  de ficheros y PHP limitado a 256 MB, copiar usa unos 50–80 MB y restaurar unos 60–70 MB, y el contenido
+  es idéntico al de antes. El formato de las copias no cambia, así que las copias antiguas se siguen
+  restaurando. Además, la copia sube el límite de memoria de PHP a 512 MB si era menor.
 - **Accesibilidad y contraste.** Los grises de texto (ayudas, fechas, etiquetas) y el ámbar de los botones
   de aviso se oscurecen para cumplir el contraste AA de WCAG (el gris más claro, `gray-400`, lo cumple sobre
   blanco y crema, pero no sobre las etiquetas grises, donde hay que usar `gray-500`); los días de otro mes

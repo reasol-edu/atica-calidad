@@ -232,18 +232,31 @@ final class DatabaseRestoreService
 
     private function loadTable(\ZipArchive $zip, string $table): int
     {
-        $ndjson = $zip->getFromName('tables/' . $table . '.ndjson');
-        if ($ndjson === false) {
+        // Read the entry line by line: the file table is the size of every document together, and getFromName() plus
+        // explode() held it in memory twice (a 1 GB database tried to allocate 1.4 GB in one go).
+        $stream = $zip->getStream('tables/' . $table . '.ndjson');
+        if ($stream === false) {
             throw new BackupArchiveException(\sprintf('The backup is missing the data file for table "%s".', $table));
         }
 
+        try {
+            return $this->loadRows($stream, $table);
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    /** @param resource $stream NDJSON, one row per line */
+    private function loadRows($stream, string $table): int
+    {
         $binaryColumns = $this->binaryColumnsOf($table);
 
         $statement = null;
         $columns   = [];
         $rows      = 0;
 
-        foreach (explode("\n", $ndjson) as $line) {
+        while (($line = fgets($stream)) !== false) {
+            $line = rtrim($line, "\r\n");
             if ($line === '') {
                 continue;
             }

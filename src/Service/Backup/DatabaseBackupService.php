@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Service\Backup;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Types\BinaryType;
 use Doctrine\DBAL\Types\BlobType;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -43,8 +45,18 @@ final class DatabaseBackupService
      */
     private const EXCLUDED_TABLES = ['messenger_messages'];
 
+    /** Rows read per query in a table with no file contents (one at a time in the ones that have them). */
+    private const BATCH_ROWS = 200;
+
+    /** A backup raises PHP's memory limit to this if it is lower: encoding one big file takes several times its size. */
+    private const MIN_MEMORY_LIMIT_BYTES = 512 * 1048576;
+
+    /** @var array<string, true>|null */
+    private ?array $fileTables = null;
+
     public function __construct(
         private readonly Connection $connection,
+        private readonly EntityManagerInterface $entityManager,
         private readonly ClockInterface $clock,
         #[Autowire('%app.name%')]
         private readonly string $appName,
@@ -75,6 +87,8 @@ final class DatabaseBackupService
             throw new \RuntimeException(\sprintf('Backup directory "%s" is not writable.', $directory));
         }
 
+        $this->raiseMemoryLimit();
+
         $now      = $this->clock->now();
         $filename ??= \sprintf('atica-calidad-backup-%s.zip', $now->format('Y-m-d-His'));
         $target   = $directory . '/' . $filename;
@@ -101,6 +115,49 @@ final class DatabaseBackupService
         $bytes = filesize($target);
 
         return new DatabaseBackup($target, $bytes === false ? 0 : $bytes, $tableRowCounts, $password !== null);
+    }
+
+    /**
+     * Tables that hold file contents (an entity field of type `blob`: DocumentFile, SettingFile).
+     *
+     * @return array<string, true>
+     */
+    private function fileTables(): array
+    {
+        if ($this->fileTables !== null) {
+            return $this->fileTables;
+        }
+
+        $tables = [];
+        foreach ($this->entityManager->getMetadataFactory()->getAllMetadata() as $metadata) {
+            foreach ($metadata->getFieldNames() as $field) {
+                if ($metadata->getTypeOfField($field) === 'blob') {
+                    $tables[$metadata->getTableName()] = true;
+                }
+            }
+        }
+
+        return $this->fileTables = $tables;
+    }
+
+    /** Dumping is paged, so memory no longer grows with the data, but one big file still needs a few times its size. */
+    private function raiseMemoryLimit(): void
+    {
+        $raw = trim((string) \ini_get('memory_limit'));
+        if ($raw === '' || $raw === '-1') {
+            return;
+        }
+
+        $bytes = (int) $raw;
+        $bytes *= match (strtoupper(substr($raw, -1))) {
+            'G'     => 1073741824,
+            'M'     => 1048576,
+            'K'     => 1024,
+            default => 1,
+        };
+        if ($bytes < self::MIN_MEMORY_LIMIT_BYTES) {
+            @ini_set('memory_limit', (string) self::MIN_MEMORY_LIMIT_BYTES);
+        }
     }
 
     /**
@@ -133,21 +190,75 @@ final class DatabaseBackupService
             throw new \RuntimeException(\sprintf('Could not open "%s" for writing.', $path));
         }
 
+        $meta          = $this->connection->createSchemaManager()->introspectTable($table);
         $binaryColumns = $this->binaryColumnsOf($table);
+
+        // One row at a time in a table that holds file contents; in batches in the rest. The tables with file contents
+        // come from the ORM mapping, not from the column type: on SQLite a UUID key is a BLOB too.
+        $batch    = isset($this->fileTables()[$table]) ? 1 : self::BATCH_ROWS;
+        $pk       = $meta->getPrimaryKeyConstraint()?->getColumnNames() ?? [];
+        $pkColumn = \count($pk) === 1 ? $pk[0]->toString() : null;
+        $pkType   = null;
+        if ($pkColumn !== null) {
+            foreach ($meta->getColumns() as $column) {
+                if ($column->getObjectName()->toString() === $pkColumn) {
+                    $pkType = $column->getType();
+                }
+            }
+        }
 
         $rows = 0;
         try {
-            $sql = 'SELECT * FROM ' . $this->connection->quoteSingleIdentifier($table);
-            foreach ($this->connection->iterateAssociative($sql) as $row) {
-                $line = json_encode($this->encodeRow($row, $binaryColumns), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-                fwrite($handle, $line . "\n");
-                ++$rows;
+            $quotedTable = $this->connection->quoteSingleIdentifier($table);
+            if ($pkColumn === null) {
+                // No single-column primary key (a join table, small): nothing to page by.
+                foreach ($this->connection->iterateAssociative('SELECT * FROM ' . $quotedTable) as $row) {
+                    $this->writeRow($handle, $row, $binaryColumns);
+                    ++$rows;
+                }
+
+                return $rows;
             }
+
+            // Keyset paging: the driver (pdo_mysql, pdo_pgsql) loads a whole result set in memory before handing the
+            // first row over, so a single `SELECT *` on the file table would hold every file at once.
+            $quotedPk = $this->connection->quoteSingleIdentifier($pkColumn);
+            $last     = null;
+            do {
+                $sql    = 'SELECT * FROM ' . $quotedTable . ($last === null ? '' : ' WHERE ' . $quotedPk . ' > ?') . ' ORDER BY ' . $quotedPk . ' LIMIT ' . $batch;
+                $params = $last === null ? [] : [$last];
+                $types  = $last === null ? [] : [$pkType instanceof BinaryType || $pkType instanceof BlobType ? ParameterType::BINARY : (\is_int($last) ? ParameterType::INTEGER : ParameterType::STRING)];
+                $result = $this->connection->fetchAllAssociative($sql, $params, $types);
+
+                $previous = $last;
+                foreach ($result as $row) {
+                    $last = $row[$pkColumn] ?? $row[strtolower($pkColumn)];
+                    $this->writeRow($handle, $row, $binaryColumns);
+                    ++$rows;
+                }
+                $count = \count($result);
+                unset($result, $row);
+
+                if ($count > 0 && $last === $previous) {
+                    throw new \RuntimeException(\sprintf('Paging of table "%s" does not advance (key "%s").', $table, $pkColumn));
+                }
+            } while ($count === $batch);
         } finally {
             fclose($handle);
         }
 
         return $rows;
+    }
+
+    /**
+     * @param resource             $handle
+     * @param array<string, mixed> $row
+     * @param array<string, true>  $binaryColumns
+     */
+    private function writeRow($handle, array $row, array $binaryColumns): void
+    {
+        $line = json_encode($this->encodeRow($row, $binaryColumns), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        fwrite($handle, $line . "\n");
     }
 
     /**
