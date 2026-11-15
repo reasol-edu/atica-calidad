@@ -41,6 +41,12 @@
      data-confirm-close-value="{{ 'ui.close'|trans }}"
      class="h-full">
 
+    {# Skip link: first focusable element, visible only when it receives keyboard focus. #}
+    <a href="#main-content"
+       class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-forest-800 focus:shadow-lg focus:ring-2 focus:ring-forest-500">
+        {{ 'skip_to_content'|trans({}, 'navigation') }}
+    </a>
+
     {# ── Mobile backdrop ─────────────────────────────────────────────────────── #}
     <div data-sidebar-target="backdrop"
          data-action="click->sidebar#close"
@@ -319,7 +325,7 @@
             </div>
         </header>
 
-        <main class="flex-1">
+        <main id="main-content" tabindex="-1" class="flex-1 focus:outline-none">
             {# Maintenance mode: only global administrators reach this layout while it is on, so say so. #}
             {% if is_granted('ROLE_ADMIN') and maintenance_active() %}
                 <div class="flex items-start gap-3 border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm text-amber-900" role="status">

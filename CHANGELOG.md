@@ -7,6 +7,17 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Accesibilidad y contraste.** Los grises de texto (ayudas, fechas, etiquetas) y el ámbar de los botones
+  de aviso se oscurecen para cumplir el contraste AA de WCAG (el gris más claro, `gray-400`, lo cumple sobre
+  blanco y crema, pero no sobre las etiquetas grises, donde hay que usar `gray-500`); los días de otro mes
+  del calendario se leen mejor. Se añade el enlace «Saltar al contenido», y los botones de icono, los campos sin etiqueta y las
+  cabeceras de tabla reciben nombre accesible y `scope`. Las acciones del árbol de secciones y de las listas
+  (añadir, restringir, borrar) ya se ven en pantallas táctiles y al navegar con teclado.
+- **Documentos en el móvil.** En una carpeta con confirmación de lectura, el botón «Confirmar lectura» ya no
+  se monta sobre el título ni las etiquetas: pasa a su propia línea.
+
 ## [2.0.0] - 2026-11-13
 
 Versión **mayor** porque elimina funcionalidad: el generador de calendarios y la calculadora de fechas

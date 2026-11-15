@@ -109,7 +109,7 @@
                         {% set nonWorking = this.isNonWorkingDay(day) %}
                         <a href="{{ path('app_calendar_day', {date: day.format('Y-m-d')}) }}"
                            class="block py-1 px-1.5 text-right text-xs hover:font-semibold transition-colors
-                                    {{ this.isCurrentMonth(day) ? 'text-gray-600' : 'text-gray-300' }}
+                                    {{ this.isCurrentMonth(day) ? 'text-gray-600' : 'text-gray-400' }}
                                     {{ nonWorking ? 'line-through decoration-gray-300' : '' }}"
                              {% if nonWorking %}title="{{ this.nonWorkingDayDescription(day) ?? 'non_working_day'|trans({}, 'calendar') }}"{% endif %}>
                             {% if this.isToday(day) %}

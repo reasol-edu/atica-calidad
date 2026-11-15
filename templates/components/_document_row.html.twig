@@ -15,7 +15,7 @@
 
 <div>
     <div {{ (highlighted ? 'data-controller="scroll-into-view"' : '')|raw }}
-         class="group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50 {{ highlighted ? 'document-highlight-pulse' : '' }}">
+         class="group flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50 sm:flex-nowrap {{ highlighted ? 'document-highlight-pulse' : '' }}">
         {% if active %}
             <a href="{{ path('app_folder_document_revision_download', {folderId: fid, documentId: did, revisionId: active.id.toRfc4122}) }}"
                class="shrink-0 text-gray-400 hover:text-forest-600" title="{{ 'download'|trans({}, 'document_content') }}">
@@ -46,7 +46,8 @@
                 <button type="button" data-action="live#action" data-live-action-param="cancelRenameDocument" class="shrink-0 text-gray-400 hover:text-gray-600">{{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}</button>
             </form>
         {% else %}
-            <div class="min-w-0 flex-1">
+            {# On small screens the name gets a 12 rem basis, so the «Confirmar lectura» / read-status buttons wrap to their own line instead of overlapping the chips. #}
+            <div class="min-w-0 grow basis-48 sm:basis-0">
                 <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                     <span class="min-w-0 max-w-full truncate text-sm text-gray-800">{{ document.name|highlight(localSearchQuery) }}</span>
                     {% set past_year = past_submission_academic_year(document) %}
@@ -88,7 +89,7 @@
         {% if must_read and not my_ack %}
             <button type="button" data-action="live#action" data-live-action-param="acknowledgeDocument" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
                     title="{{ 'read_ack.confirm_help'|trans({'%version%': active.version}, 'document_content') }}"
-                    class="shrink-0 inline-flex items-center gap-1 rounded-md border border-forest-200 bg-white px-2 py-0.5 text-xs font-medium text-forest-700 hover:bg-forest-50">
+                    class="shrink-0 inline-flex items-center gap-1 rounded-md border border-forest-200 bg-white px-2 py-0.5 text-xs font-medium text-forest-700 hover:bg-forest-50 max-sm:ml-6">
                 {{ ux_icon('heroicons:check-badge', {class: 'h-3.5 w-3.5'}) }}
                 {{ 'read_ack.confirm'|trans({}, 'document_content') }}
             </button>

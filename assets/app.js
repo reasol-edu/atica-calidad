@@ -1,5 +1,8 @@
 import './stimulus_bootstrap.js';
 import './styles/app.css';
+import { initA11y } from './utils/a11y.js';
+
+document.addEventListener('DOMContentLoaded', initA11y);
 
 // When the user types in a remote autocomplete (ux-autocomplete), clear the existing
 // options and the search cache so that new results replace the previous ones instead

@@ -151,9 +151,12 @@ summary:focus-visible {
     --color-gray-100: #f1ead9;
     --color-gray-200: #e3d8c1;
     --color-gray-300: #cdbc9e;
-    --color-gray-400: #b3a186;
-    --color-gray-500: #93826a;
-    --color-gray-600: #776552;
+    /* gray-400/500/600 are used as TEXT colour all over the app (help texts, dates, chips). Contrast (WCAG AA = 4.5:1):
+       gray-400 → 4.8 on white, 4.5 on cream (gray-50), 4.0 on gray-100 chips (below AA there: use gray-500);
+       gray-500 → 5.7 / 5.3 / 4.7;  gray-600 → 6.7 / 6.2 / 5.5. Use gray-300 only for decorative icons and borders. */
+    --color-gray-400: #82705a;
+    --color-gray-500: #766450;
+    --color-gray-600: #695a49;
     --color-gray-700: #5e5044;
     --color-gray-800: #453b32;
     --color-gray-900: #2e2822;
@@ -167,7 +170,7 @@ summary:focus-visible {
     --color-amber-300: #e4b15c;
     --color-amber-400: #d69b3b;
     --color-amber-500: #c9902e;
-    --color-amber-600: #ad7a24;
+    --color-amber-600: #946718;
     --color-amber-700: #8a5f1d;
     --color-amber-800: #6b4a18;
     --color-amber-900: #4f3711;
