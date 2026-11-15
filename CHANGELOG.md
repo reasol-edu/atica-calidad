@@ -7,6 +7,15 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-11-15
+
+### Fixed
+
+- **Ajuste de copias automáticas.** Las opciones del desplegable («Básica», «Recomendada», «Ampliada») eran
+  tan largas que se veían mal en el formulario de ajustes: ahora son cortas y el detalle de cada política
+  está en la descripción del ajuste. En móvil, el botón «Restaurar» de la lista de copias vuelve a tener
+  altura táctil y en escritorio sigue compacto.
+
 ## [2.1.0] - 2026-11-15
 
 Incluye una migración nueva (`Version20261115100000`, los dos ajustes de las copias automáticas): se aplica

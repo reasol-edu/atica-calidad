@@ -121,7 +121,7 @@
                         <div class="grid w-full grid-flow-col auto-cols-fr gap-2 sm:flex sm:w-auto sm:shrink-0 sm:items-center">
                             {% if copy.restorable and can_restore %}
                                 <a href="{{ path('app_admin_backup_restore', {name: copy.name}) }}"
-                                   class="inline-flex items-center justify-center gap-1 rounded-lg border border-forest-200 px-2.5 py-3 text-xs font-medium text-forest-700 hover:bg-forest-50 transition-colors sm:py-1.5">
+                                   class="inline-flex items-center justify-center gap-1 rounded-lg border border-forest-200 px-2.5 py-1.5 max-sm:py-3 text-xs font-medium text-forest-700 hover:bg-forest-50 transition-colors">
                                     {{ ux_icon('heroicons:arrow-uturn-left', {class: 'h-3.5 w-3.5'}) }}{{ 'backup.copies.restore'|trans({}, 'admin') }}
                                 </a>
                             {% endif %}
