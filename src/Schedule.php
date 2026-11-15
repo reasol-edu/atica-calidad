@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App;
 
 use App\Message\CreateAutomaticBackupMessage;
+use App\Message\HeartbeatMessage;
 use App\Message\PurgeActivityLogMessage;
 use App\Message\PurgeEmailNotificationLogMessage;
 use App\Message\PurgeTrashMessage;
@@ -29,8 +30,12 @@ class Schedule implements ScheduleProviderInterface
     {
         return (new SymfonySchedule())
             ->add(
+                // Proves the worker is alive (Administración → Estado del sistema).
+                RecurringMessage::every('5 minutes', new HeartbeatMessage()),
+            )
+            ->add(
                 // Before the purges (03:30–04:00) so the copy still holds what they are about to delete. It does nothing
-                // unless the global setting backup.auto_keep is above 0.
+                // unless the global setting backup.auto_policy is not "off".
                 RecurringMessage::cron('30 2 * * *', new CreateAutomaticBackupMessage()),
             )
             ->add(

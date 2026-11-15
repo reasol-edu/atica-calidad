@@ -5,8 +5,9 @@ sección **Administración**, con gestión de todos los centros alojados en el s
 
 ## El panel de administración
 
-**Administración**, al final del menú lateral, es la portada de este capítulo: cuatro tarjetas con
-un resumen de lo que gestiona cada una.
+**Administración**, al final del menú lateral, es la portada de este capítulo: una tarjeta por cada
+área (docentes, centros, ajustes, registro de actividad, copias de seguridad y estado del sistema) con
+un resumen de lo que gestiona.
 
 ![Panel de administración con las tarjetas Docentes (35 registrados, 35 activos, 1 administrador), Centros educativos (2), Ajustes globales y Registro de actividad](img/plataforma-panel.png)
 
@@ -444,6 +445,26 @@ php bin/console messenger:consume async scheduler_default --time-limit=3540 --me
 En un despliegue con Docker, el worker ya se levanta como un servicio aparte (`compose.yaml`). En
 un despliegue con binario nativo, se gestiona como un servicio systemd independiente — ver las
 [guías de despliegue](https://github.com/reasol-edu/atica-calidad/tree/main/docs/despliegue).
+
+### Estado del sistema {#estado-del-sistema}
+
+**Administración → Estado del sistema** muestra, en una sola pantalla, si las tareas en segundo plano
+funcionan sin tener que abrir una consola:
+
+- **Tareas en segundo plano.** El planificador deja una señal cada 5 minutos. Si la última tiene más de
+  15 minutos, la pantalla avisa en rojo de que el worker no responde: mientras no se reinicie no se
+  envían correos ni recordatorios ni se hacen las copias automáticas. Si aún no hay ninguna señal (la
+  aplicación acaba de arrancar o el worker nunca se ha lanzado) lo indica sin alarma.
+- **Mensajes fallidos.** Los correos o tareas que fallaron y agotaron sus reintentos. Cada uno se puede
+  **reintentar** (vuelve a la cola y el worker lo procesa; no se ejecuta durante la petición web) o
+  **descartar**. Ambas acciones quedan en el registro de actividad. La tarjeta de Administración avisa
+  cuando hay alguno.
+- **Correo de prueba.** Envía un mensaje a **tu propia dirección** (la de tu perfil), directamente y no
+  por la cola, para que un fallo de configuración del correo aparezca al instante con el motivo que
+  devuelve el servidor. Se limita a 3 envíos cada 15 minutos.
+- **Espacio.** Tamaño de la base de datos (ficheros incluidos), de las copias de seguridad guardadas y
+  espacio libre en el disco donde se guardan. Cada copia ocupa tanto como la base de datos.
+- **Copias de seguridad.** El resultado de la última copia automática y el aviso de «última copia».
 
 ## Actualización {#actualizacion}
 

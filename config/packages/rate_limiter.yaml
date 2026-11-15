@@ -15,6 +15,11 @@ framework:
             policy: fixed_window
             limit: 1
             interval: '1 hour'
+        # Correo de prueba de Administración → Estado del sistema (por administrador)
+        admin_test_email:
+            policy: fixed_window
+            limit: 3
+            interval: '15 minutes'
 
 when@test:
     framework:

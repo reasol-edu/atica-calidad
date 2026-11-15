@@ -1,0 +1,18 @@
+{# worker: SystemStatus::worker() — {state: ok|stale|never, at: epoch|null}; compact: the short wording for the dashboard card. #}
+{% set suffix = compact|default(false) ? '_short' : '' %}
+{% if worker.state == 'ok' %}
+    <p class="flex items-start gap-1.5 text-sm text-gray-600">
+        {{ ux_icon('heroicons:check-circle', {class: 'mt-0.5 h-4 w-4 shrink-0 text-forest-600'}) }}
+        <span>{{ ('system.worker.ok' ~ suffix)|trans({'%date%': worker.at|date('d/m/Y H:i')}, 'admin') }}</span>
+    </p>
+{% elseif worker.state == 'stale' %}
+    <p class="flex items-start gap-1.5 text-sm font-medium text-red-700" role="status">
+        {{ ux_icon('heroicons:x-circle', {class: 'mt-0.5 h-4 w-4 shrink-0 text-red-600'}) }}
+        <span>{{ ('system.worker.stale' ~ suffix)|trans({'%date%': worker.at|date('d/m/Y H:i')}, 'admin') }}</span>
+    </p>
+{% else %}
+    <p class="flex items-start gap-1.5 text-sm text-gray-600">
+        {{ ux_icon('heroicons:question-mark-circle', {class: 'mt-0.5 h-4 w-4 shrink-0 text-gray-500'}) }}
+        <span>{{ ('system.worker.never' ~ suffix)|trans({}, 'admin') }}</span>
+    </p>
+{% endif %}

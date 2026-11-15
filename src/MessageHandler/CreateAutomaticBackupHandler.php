@@ -8,7 +8,7 @@ use App\Message\CreateAutomaticBackupMessage;
 use App\Service\Backup\AutomaticBackup;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
-/** Nightly (see Schedule.php): saves an automatic backup and prunes by count and size (global settings `backup.auto_keep` / `backup.auto_max_size_mb`; 0 = off). Never throws, so Messenger never retries it. */
+/** Nightly (see Schedule.php): saves an automatic backup and prunes by count and size (global settings `backup.auto_policy` / `backup.auto_max_size_mb`; "off" / 0 = off). Never throws, so Messenger never retries it. */
 #[AsMessageHandler]
 final class CreateAutomaticBackupHandler
 {

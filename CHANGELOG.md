@@ -9,6 +9,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Added
 
+- **Estado del sistema en Administración.** Una pantalla nueva y una tarjeta en la portada que muestran si el
+  worker está vivo (el planificador deja una señal cada 5 minutos; con más de 15 sin señal se avisa en rojo),
+  los mensajes de Messenger que fallaron y agotaron sus reintentos (se pueden reintentar, devolviéndolos a la
+  cola, o descartar; ambas acciones con POST y token CSRF y anotadas en el registro de actividad), un botón de
+  correo de prueba a la dirección del propio administrador (envío directo, sin cola, con el motivo del fallo,
+  3 cada 15 minutos) y el espacio que ocupan la base de datos, las copias y lo que queda libre en el disco.
+  Muestra además el resultado de la última copia automática. No hay ninguna ruta de salud sin autenticar.
 - **Copias de seguridad automáticas y aviso de «última copia».** Dos ajustes globales nuevos, en Ajustes
   globales → Copias de seguridad: una política de conservación (desactivadas por defecto; «Básica» 7
   diarias; «Recomendada» 7 diarias, 4 semanales y 3 mensuales; «Ampliada» 14, 8 y 12) y el espacio máximo

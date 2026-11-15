@@ -59,3 +59,6 @@ emails.document_review_digest.rejected_heading: 'Rechazados'
 emails.document_review_digest.new_heading: 'Nuevo desde el último resumen'
 emails.document_review_digest.rest_heading: 'Ya avisado, sigue pendiente'
 emails.document_review_digest.cta: 'Ver árbol documental'
+
+emails.test.subject: 'Correo de prueba de %app%'
+emails.test.body: 'Si lees este mensaje, el correo de %app% está bien configurado. Lo has pedido tú desde Administración → Estado del sistema.'

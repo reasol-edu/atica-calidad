@@ -1,0 +1,115 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'system.title'|trans({}, 'admin') }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-3xl mx-auto space-y-6">
+
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_admin') }}" class="hover:text-forest-600 transition-colors">
+                {{ 'administration'|trans({}, 'navigation') }}
+            </a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'system.title'|trans({}, 'admin') }}</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ 'system.subtitle'|trans({}, 'admin') }}</p>
+    </div>
+
+    {# ── Worker ── #}
+    <section class="rounded-2xl border border-gray-200 bg-white px-6 py-4 shadow-xs">
+        <h2 class="mb-2 text-base font-semibold text-gray-900">{{ 'system.worker.title'|trans({}, 'admin') }}</h2>
+        {% include 'admin/system_status/_worker.html.twig' with {worker: worker} only %}
+    </section>
+
+    {# ── Failed messages ── #}
+    <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-base font-semibold text-gray-900">{{ 'system.failed.title'|trans({}, 'admin') }}</h2>
+            <p class="mt-0.5 text-sm text-gray-500">{{ 'system.failed.help'|trans({}, 'admin') }}</p>
+        </div>
+        {% if failed is null %}
+            <p class="px-6 py-4 text-sm text-gray-600">{{ 'system.failed.unavailable'|trans({}, 'admin') }}</p>
+        {% elseif failed is empty %}
+            <p class="flex items-center gap-1.5 px-6 py-4 text-sm text-gray-600">
+                {{ ux_icon('heroicons:check-circle', {class: 'h-4 w-4 shrink-0 text-forest-600'}) }}
+                {{ 'system.failed.none'|trans({}, 'admin') }}
+            </p>
+        {% else %}
+            <ul class="divide-y divide-gray-100">
+                {% for item in failed %}
+                    <li class="px-6 py-3 text-sm">
+                        <div class="flex flex-wrap items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <p class="font-medium text-gray-900">{{ item.message }}</p>
+                                {% if item.at %}<p class="text-xs text-gray-500">{{ item.at|date('d/m/Y H:i') }}</p>{% endif %}
+                                {% if item.error %}<p class="mt-1 break-words text-xs text-red-700">{{ item.error }}</p>{% endif %}
+                            </div>
+                            <form method="post" class="flex flex-wrap gap-2">
+                                <input type="hidden" name="_token" value="{{ csrf_token('system_failed_' ~ item.id) }}">
+                                <button type="submit" formaction="{{ path('app_admin_system_failed_retry', {id: item.id}) }}"
+                                        class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                    {{ 'system.failed.retry'|trans({}, 'admin') }}
+                                </button>
+                                <button type="submit" formaction="{{ path('app_admin_system_failed_discard', {id: item.id}) }}"
+                                        class="rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors">
+                                    {{ 'system.failed.discard'|trans({}, 'admin') }}
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+            {% if failed_count is not null and failed_count > failed|length %}
+                <p class="px-6 py-3 text-xs text-gray-500 border-t border-gray-100">{{ 'system.failed.more'|trans({'%shown%': failed|length, '%total%': failed_count}, 'admin') }}</p>
+            {% endif %}
+        {% endif %}
+    </section>
+
+    {# ── Mail ── #}
+    <section class="rounded-2xl border border-gray-200 bg-white px-6 py-4 shadow-xs">
+        <h2 class="text-base font-semibold text-gray-900">{{ 'system.email.title'|trans({}, 'admin') }}</h2>
+        <p class="mt-1 text-sm text-gray-600">{{ 'system.email.help'|trans({}, 'admin') }}</p>
+        <form method="post" action="{{ path('app_admin_system_test_email') }}" class="mt-3">
+            <input type="hidden" name="_token" value="{{ csrf_token('system_test_email') }}">
+            {% if email %}
+                <button type="submit" class="rounded-xl bg-forest-600 px-4 py-3 text-sm font-medium text-white hover:bg-forest-700 transition-colors sm:py-2.5">
+                    {{ 'system.email.send'|trans({'%email%': email}, 'admin') }}
+                </button>
+            {% else %}
+                <p class="text-sm font-medium text-amber-800">{{ 'system.email.no_address'|trans({}, 'admin') }}</p>
+            {% endif %}
+        </form>
+    </section>
+
+    {# ── Storage ── #}
+    <section class="rounded-2xl border border-gray-200 bg-white px-6 py-4 shadow-xs">
+        <h2 class="mb-2 text-base font-semibold text-gray-900">{{ 'system.storage.title'|trans({}, 'admin') }}</h2>
+        <dl class="space-y-1.5 text-sm">
+            <div class="flex items-baseline justify-between gap-4">
+                <dt class="text-gray-500">{{ 'system.storage.database'|trans({}, 'admin') }}</dt>
+                <dd class="font-medium text-gray-900">{{ storage.database is null ? '—' : storage.database|file_size }}</dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-4">
+                <dt class="text-gray-500">{{ 'system.storage.backups'|trans({'%count%': storage.backup_count}, 'admin') }}</dt>
+                <dd class="font-medium text-gray-900">{{ storage.backups|file_size }}</dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-4">
+                <dt class="text-gray-500">{{ 'system.storage.free'|trans({}, 'admin') }}</dt>
+                <dd class="whitespace-nowrap font-medium text-gray-900">{{ storage.disk_free is null ? '—' : storage.disk_free|file_size }}</dd>
+            </div>
+        </dl>
+        <p class="mt-2 text-xs text-gray-500">{{ 'system.storage.note'|trans({}, 'admin') }}</p>
+    </section>
+
+    {# ── Backups ── #}
+    <section class="rounded-2xl border border-gray-200 bg-white px-6 py-4 shadow-xs">
+        <div class="mb-2 flex items-center justify-between gap-4">
+            <h2 class="text-base font-semibold text-gray-900">{{ 'backup.title'|trans({}, 'admin') }}</h2>
+            <a href="{{ path('app_admin_backups') }}" class="text-sm font-medium text-forest-700 underline hover:text-forest-900">{{ 'backup.card.action'|trans({}, 'admin') }}</a>
+        </div>
+        {% include 'admin/backup/_status.html.twig' with {backup: backup, full: true} only %}
+    </section>
+</div>
+{% endblock %}

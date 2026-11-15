@@ -215,6 +215,27 @@ class BackupLibrary
         return $latest;
     }
 
+    /**
+     * Bytes taken by all the backups in the folder and how many there are (file sizes only, no archive is opened).
+     *
+     * @return array{bytes: int, count: int}
+     */
+    public function usage(): array
+    {
+        $bytes = 0;
+        $count = 0;
+        if (is_dir($this->dir)) {
+            foreach (scandir($this->dir) ?: [] as $name) {
+                if (preg_match(self::NAME_PATTERN, $name) === 1 && is_file($this->dir . '/' . $name)) {
+                    $bytes += (int) filesize($this->dir . '/' . $name);
+                    ++$count;
+                }
+            }
+        }
+
+        return ['bytes' => $bytes, 'count' => $count];
+    }
+
     public function delete(string $name): bool
     {
         if (preg_match(self::NAME_PATTERN, $name) !== 1 || !$this->isInside($name)) {
