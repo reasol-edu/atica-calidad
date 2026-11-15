@@ -7,6 +7,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-15
+
+Incluye una migración nueva (`Version20261115100000`, los dos ajustes de las copias automáticas): se aplica
+al actualizar, como siempre.
+
 ### Added
 
 - **Estado del sistema en Administración.** Una pantalla nueva y una tarjeta en la portada que muestran si el
