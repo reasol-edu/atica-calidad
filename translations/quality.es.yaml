@@ -8,9 +8,12 @@ cancel: 'Cancelar'
 error.date: 'Fecha no válida.'
 step.error.not_now: 'Este paso ya no está disponible. Recarga la página.'
 
+# ── Navegación entre secciones ───────────────────────────────────────────────
+nav.label: 'Secciones de Mejora continua'
+nav.summary: 'Resumen'
+
 # ── Portada ──────────────────────────────────────────────────────────────────
 hub.intro: 'Comunica lo que no funciona como debería y sigue qué se hace para resolverlo. Las tareas pendientes también aparecen en el panel principal.'
-hub.all: 'Ver todas las fichas'
 hub.inbox: 'Bandeja: por clasificar'
 hub.inbox_empty: 'No hay nada pendiente de clasificar.'
 hub.classify: 'Clasificar'
@@ -233,7 +236,6 @@ action_status.overdue: 'Vencida'
 
 # ── Plan de mejora ───────────────────────────────────────────────────────────
 plan.title: 'Plan de mejora'
-plan.hub_link: 'Plan de mejora'
 plan.intro: 'Las acciones preventivas y de mejora que el centro se propone este curso, sin que haya una incidencia detrás. Las acciones de las fichas están en cada ficha.'
 plan.add: 'Nueva acción'
 plan.add_first: 'Añadir la primera acción'
@@ -280,7 +282,6 @@ plan.flash.deleted: 'Acción eliminada.'
 # ── Indicadores ──────────────────────────────────────────────────────────────
 indicator.title: 'Indicadores'
 indicator.one: 'Indicador'
-indicator.hub_link: 'Indicadores'
 indicator.intro: 'Cómo van los procesos del centro, curso a curso: cada indicador con su meta, su valor en cada periodo y la comparación con el curso anterior.'
 indicator.add: 'Nuevo indicador'
 indicator.new_title: 'Nuevo indicador'
@@ -505,7 +506,6 @@ checklist.flash.deleted: 'Lista eliminada.'
 
 # ── Revisión por la dirección ────────────────────────────────────────────────
 review.title: 'Revisión por la dirección'
-review.hub_link: 'Revisión por la dirección'
 review.intro: 'Una vez al año (o cuando haga falta), el equipo directivo repasa cómo va el sistema de calidad y decide qué cambiar. La aplicación reúne lo que sabe del periodo; en la reunión se añade lo demás, las conclusiones y las decisiones.'
 review.add: 'Nueva revisión'
 review.empty: 'Todavía no hay ninguna revisión por la dirección.'

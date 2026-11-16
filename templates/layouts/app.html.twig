@@ -338,6 +338,11 @@
                 </div>
             {% endif %}
 
+            {# "Mejora continua": persistent sub-navigation between its sections, for whoever sees all of it. #}
+            {% if active_centre and current_route starts with 'app_quality_' and is_granted('quality.view_all', active_centre) %}
+                {% include 'quality/_section_nav.html.twig' with {current: current_route} only %}
+            {% endif %}
+
             {# Flash messages — live region for screen readers. Success messages
                are announced with polite (non-interrupting); error ones with assertive. #}
             {% set flashes = app.flashes(['success', 'error']) %}

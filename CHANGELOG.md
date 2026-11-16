@@ -7,6 +7,16 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Mejora continua: barra de secciones y migas completas.** Quien ve todas las fichas tiene ahora, en lo alto
+  de todas las pantallas de Mejora continua, una barra con Resumen, Fichas, Plan de mejora, Indicadores,
+  Auditorías y Revisión por la dirección, con la sección actual marcada (también dentro de una ficha, un
+  indicador o una auditoría): ya no hay que volver a la portada para cambiar de sección. Sustituye a los
+  cinco botones de la portada. En el móvil la barra se desplaza hacia los lados y deja visible la pestaña
+  actual. Las migas de pan de las pantallas de auditoría, listas de comprobación, calendarios de medición
+  y revisión por la dirección ya incluyen «Mejora continua» y la sección a la que pertenecen.
+
 ## [2.1.1] - 2026-11-15
 
 ### Fixed

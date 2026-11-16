@@ -8,6 +8,10 @@
     <div>
         <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
             {% include 'components/_breadcrumb_home.html.twig' %}
+            <a href="{{ path('app_quality_index') }}" class="hover:text-forest-600 transition-colors">{{ 'quality'|trans({}, 'navigation') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            <a href="{{ path('app_quality_audits') }}" class="hover:text-forest-600 transition-colors">{{ 'audit.program'|trans({}, 'quality') }}</a>
+            {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
             <a href="{{ path('app_quality_audit', {id: audit.id.toRfc4122}) }}" class="hover:text-forest-600 transition-colors">{{ audit.code }}</a>
             {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
         </div>

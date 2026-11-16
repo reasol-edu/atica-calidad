@@ -56,8 +56,12 @@ La portada reúne, en este orden:
 - **Recuentos por estado** — para quien ve todas las fichas; cada uno abre el listado filtrado.
 - **Lo que has comunicado** — las incidencias propias y en qué punto están.
 
-Quien ve todas las fichas tiene además los botones **Ver todas las fichas**, **Plan de mejora**,
-**Indicadores**, **Auditorías** y **Revisión por la dirección**.
+Quien ve todas las fichas tiene además, en una barra de pestañas fija en lo alto de **todas** las
+pantallas de Mejora continua, las secciones **Resumen**, **Fichas**, **Plan de mejora**,
+**Indicadores**, **Auditorías** y **Revisión por la dirección**: la sección en la que estás aparece
+marcada, también cuando estás dentro de una ficha, un indicador o una auditoría, y se pasa de una a
+otra sin volver a la portada. En el móvil la barra se desplaza hacia los lados. Las migas de pan
+(inicio › Mejora continua › sección) completan el recorrido hacia atrás.
 
 ## Dónde aparece lo que te toca {#donde-aparece-lo-que-te-toca}
 

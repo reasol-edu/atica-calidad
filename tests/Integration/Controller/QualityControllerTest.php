@@ -272,4 +272,40 @@ final class QualityControllerTest extends ControllerTestCase
         self::assertSame(422, $this->client->getResponse()->getStatusCode());
         self::assertStringContainsString('Cuenta qué ha pasado.', (string) $this->client->getResponse()->getContent());
     }
+
+    public function testWhoSeesEverythingGetsTheSectionNavigationWithTheCurrentOneMarked(): void
+    {
+        $this->loginAs($this->manager, $this->centre);
+
+        foreach (['/mejora' => 'Resumen', '/mejora/plan' => 'Plan de mejora', '/mejora/indicadores' => 'Indicadores', '/mejora/auditorias' => 'Auditorías', '/mejora/fichas' => 'Fichas'] as $path => $current) {
+            $crawler = $this->client->request('GET', $path);
+            self::assertResponseIsSuccessful($path);
+            $nav = $crawler->filter('nav[aria-label="Secciones de Mejora continua"]');
+            self::assertCount(1, $nav, $path);
+            self::assertCount(6, $nav->filter('a'), $path);
+            $marked = $nav->filter('a[aria-current="page"]');
+            self::assertCount(1, $marked, $path);
+            self::assertStringContainsString($current, $marked->text(), $path);
+        }
+    }
+
+    public function testASectionStaysMarkedOnThePagesInsideIt(): void
+    {
+        $this->loginAs($this->manager, $this->centre);
+        $finding = new Finding($this->centre, 'Fallo', 'Descripción', $this->reporter, new \DateTimeImmutable());
+        $this->persist($finding);
+
+        $crawler = $this->client->request('GET', '/mejora/fichas/' . $finding->getId()->toRfc4122());
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Fichas', $crawler->filter('nav[aria-label="Secciones de Mejora continua"] a[aria-current="page"]')->text());
+    }
+
+    public function testThoseWhoDoNotSeeEverythingHaveNoSectionNavigation(): void
+    {
+        $this->loginAs($this->reporter, $this->centre);
+
+        $this->client->request('GET', '/mejora');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('nav[aria-label="Secciones de Mejora continua"]');
+    }
 }

@@ -1,0 +1,33 @@
+{#
+   Persistent sub-navigation of "Mejora continua": every section one click away from any page of the area, with the current
+   one marked. Shown to whoever sees every finding (the rest only reach their own tasks and have no sections to move between);
+   included by the layout for any `app_quality_*` route. On a narrow screen it scrolls on its own, never the page.
+   `current` is the route name; a section is current for its own routes and for the pages inside it (a finding, an indicator…).
+#}
+{% set sections = [
+    {label: 'nav.summary'|trans({}, 'quality'),   route: 'app_quality_index',      icon: 'heroicons:home',                     match: ['app_quality_index', 'app_quality_report']},
+    {label: 'list.title'|trans({}, 'quality'),     route: 'app_quality_findings',   icon: 'heroicons:queue-list',               match: ['app_quality_finding']},
+    {label: 'plan.title'|trans({}, 'quality'),     route: 'app_quality_plan',       icon: 'heroicons:rocket-launch',            match: ['app_quality_plan', 'app_quality_action']},
+    {label: 'indicator.title'|trans({}, 'quality'), route: 'app_quality_indicators', icon: 'heroicons:chart-bar',                match: ['app_quality_indicator', 'app_quality_measurement', 'app_quality_calendar']},
+    {label: 'audit.hub_link'|trans({}, 'quality'), route: 'app_quality_audits',     icon: 'heroicons:clipboard-document-check', match: ['app_quality_audit', 'app_quality_checklist']},
+    {label: 'review.title'|trans({}, 'quality'),   route: 'app_quality_reviews',    icon: 'heroicons:presentation-chart-line',  match: ['app_quality_review']},
+] %}
+<nav aria-label="{{ 'nav.label'|trans({}, 'quality') }}" class="border-b border-gray-200 bg-white">
+    <ul data-controller="scroll-active-tab" class="relative flex gap-1 overflow-x-auto px-4 sm:px-6">
+        {% for section in sections %}
+            {% set active = false %}
+            {% for prefix in section.match %}
+                {% if current starts with prefix %}{% set active = true %}{% endif %}
+            {% endfor %}
+            <li class="shrink-0">
+                <a href="{{ path(section.route) }}"
+                   {{ active ? 'aria-current="page"' : '' }}
+                   class="-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-3 text-sm font-medium whitespace-nowrap transition-colors
+                          {{ active ? 'border-forest-600 text-forest-700' : 'border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900' }}">
+                    {{ ux_icon(section.icon, {class: 'h-4 w-4'}) }}
+                    {{ section.label }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+</nav>
