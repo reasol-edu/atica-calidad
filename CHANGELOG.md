@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-11-19
+
 Incluye una migración nueva (`Version20261119120000`, la tabla `document_file_text` con el texto de los ficheros):
 se aplica al actualizar, como siempre. Tras actualizar, el proceso de segundo plano (worker) lee poco a poco
 los documentos que ya había subidos; no hay que hacer nada, y el avance se ve en Administración → Estado del
