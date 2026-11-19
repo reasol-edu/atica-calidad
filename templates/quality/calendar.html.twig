@@ -40,10 +40,10 @@
             <table class="w-full min-w-[34rem] text-sm">
                 <thead>
                     <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        <th class="pb-2 pr-2 font-semibold">{{ 'calendar.period'|trans({}, 'quality') }}</th>
-                        <th class="pb-2 pr-2 font-semibold">{{ 'calendar.start'|trans({}, 'quality') }}</th>
-                        <th class="pb-2 pr-2 font-semibold">{{ 'calendar.end'|trans({}, 'quality') }}</th>
-                        {% if writable %}<th class="pb-2 font-semibold">{{ 'calendar.remove'|trans({}, 'quality') }}</th>{% endif %}
+                        <th scope="col" class="pb-2 pr-2 font-semibold">{{ 'calendar.period'|trans({}, 'quality') }}</th>
+                        <th scope="col" class="pb-2 pr-2 font-semibold">{{ 'calendar.start'|trans({}, 'quality') }}</th>
+                        <th scope="col" class="pb-2 pr-2 font-semibold">{{ 'calendar.end'|trans({}, 'quality') }}</th>
+                        {% if writable %}<th scope="col" class="pb-2 font-semibold">{{ 'calendar.remove'|trans({}, 'quality') }}</th>{% endif %}
                     </tr>
                 </thead>
                 <tbody class="align-top">

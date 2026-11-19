@@ -155,7 +155,7 @@
                                             <summary class="cursor-pointer list-none text-xs font-medium text-gray-600 hover:text-gray-800 [&::-webkit-details-marker]:hidden">{{ 'indicator.dismiss'|trans({}, 'quality') }}</summary>
                                             <form method="post" action="{{ path('app_quality_measurement_dismiss', {id: m.id.toRfc4122}) }}" class="mt-2 flex flex-wrap items-center gap-2">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('quality_review_' ~ m.id.toRfc4122) }}">
-                                                <input type="text" name="note" required placeholder="{{ 'indicator.dismiss_placeholder'|trans({}, 'quality') }}"
+                                                <input type="text" name="note" required placeholder="{{ 'indicator.dismiss_placeholder'|trans({}, 'quality') }}" aria-label="{{ 'indicator.dismiss_placeholder'|trans({}, 'quality') }}"
                                                        class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
                                                 <button type="submit" class="{{ secondary }}">{{ 'indicator.dismiss_submit'|trans({}, 'quality') }}</button>
                                             </form>

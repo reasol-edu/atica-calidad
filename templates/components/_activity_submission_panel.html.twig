@@ -89,7 +89,7 @@
                     <form action="{{ path('app_folder_document_revision_approve', {folderId: folder.id.toRfc4122, documentId: did, revisionId: revision.id.toRfc4122}) }}" method="post"
                           class="flex flex-wrap items-center gap-2">
                         <input type="hidden" name="_token" value="{{ csrf_token('folder_document_revision_review_' ~ revision.id.toRfc4122) }}">
-                        <input type="text" name="reviewResult" placeholder="{{ 'review.result_placeholder'|trans({}, 'activity_content') }}"
+                        <input type="text" name="reviewResult" placeholder="{{ 'review.result_placeholder'|trans({}, 'activity_content') }}" aria-label="{{ 'review.result_placeholder'|trans({}, 'activity_content') }}"
                                class="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                         <button type="submit" class="shrink-0 rounded-md bg-forest-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-forest-700">
                             {{ 'review.approve'|trans({}, 'activity_content') }}

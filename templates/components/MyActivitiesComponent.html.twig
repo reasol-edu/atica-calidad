@@ -49,6 +49,7 @@
             {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400'}) }}
             <input type="search" data-model="debounce(300)|searchQuery" value="{{ searchQuery }}"
                    placeholder="{{ 'mine.search_placeholder'|trans({}, 'activity_content') }}"
+                   aria-label="{{ 'mine.search_placeholder'|trans({}, 'activity_content') }}"
                    class="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 {{ searchQuery is not empty ? 'pr-9' : 'pr-3' }} text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
             {% if searchQuery is not empty %}
                 <button type="button" data-action="live#action" data-live-action-param="clearSearch"

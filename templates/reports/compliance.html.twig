@@ -63,15 +63,15 @@
             <table class="w-full min-w-[820px] text-sm">
                 <thead class="border-b border-gray-200 bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
                     <tr>
-                        <th class="px-4 py-2.5 font-semibold">{{ 'compliance.col.activity'|trans({}, 'reports') }}</th>
-                        <th class="px-4 py-2.5 font-semibold">{{ 'compliance.col.kind'|trans({}, 'reports') }}</th>
-                        <th class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.expected'|trans({}, 'reports') }}</th>
-                        <th class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.done'|trans({}, 'reports') }}</th>
-                        <th class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.percent'|trans({}, 'reports') }}</th>
-                        <th class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.on_time'|trans({}, 'reports') }}</th>
+                        <th scope="col" class="px-4 py-2.5 font-semibold">{{ 'compliance.col.activity'|trans({}, 'reports') }}</th>
+                        <th scope="col" class="px-4 py-2.5 font-semibold">{{ 'compliance.col.kind'|trans({}, 'reports') }}</th>
+                        <th scope="col" class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.expected'|trans({}, 'reports') }}</th>
+                        <th scope="col" class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.done'|trans({}, 'reports') }}</th>
+                        <th scope="col" class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.percent'|trans({}, 'reports') }}</th>
+                        <th scope="col" class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.on_time'|trans({}, 'reports') }}</th>
                         {% if compare is not null %}
-                            <th class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.compare_percent'|trans({}, 'reports') }} {{ labels[compare] }}</th>
-                            <th class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.delta'|trans({}, 'reports') }}</th>
+                            <th scope="col" class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.compare_percent'|trans({}, 'reports') }} {{ labels[compare] }}</th>
+                            <th scope="col" class="px-4 py-2.5 text-right font-semibold">{{ 'compliance.col.delta'|trans({}, 'reports') }}</th>
                         {% endif %}
                     </tr>
                 </thead>
