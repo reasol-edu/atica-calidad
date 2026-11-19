@@ -355,8 +355,41 @@ lector de pantalla anuncia, y el de la sección explica su alcance al pasar el r
 - **Paleta de comandos** (**⌘K** / **Ctrl+K**, desde cualquier pantalla) — la misma búsqueda global,
   accesible sin estar ya en el árbol documental. Muestra primero lo que te afecta a diario: las
   **actividades** (las que tienes pendientes de hacer, antes que las demás), sus categorías y los
-  documentos; después las carpetas, las secciones y los docentes. Ver
+  documentos; después lo que hay dentro de los documentos (ver abajo), las **fichas, acciones,
+  indicadores y auditorías** de [Mejora continua](09-mejora-continua.md) que puedes abrir, las
+  carpetas, las secciones y los docentes. Ver
   [Buscar con la paleta de comandos](https://github.com/reasol-edu/atica-calidad/blob/main/docs/cheatsheets/busqueda-rapida.md).
+
+### Buscar dentro de los documentos {#buscar-dentro-de-los-documentos}
+
+![La paleta de comandos con «tutoría acogida»: el grupo «En el contenido» muestra el Acta ETCP nº1 y el plan de acción tutorial de 1º ESO A, cada uno con el fragmento donde aparecen las dos palabras resaltadas y, debajo, la casilla «Incluir cursos anteriores»](img/arbol-busqueda-contenido.png)
+
+Además de por el nombre, la paleta encuentra un documento por **lo que está escrito en él**. Los
+resultados salen en el grupo **«En el contenido»**, con el nombre, el lugar donde está y un
+fragmento del texto con las palabras buscadas resaltadas. Hay que escribir al menos una palabra de
+**3 letras** y el documento tiene que contenerlas **todas** (sin importar mayúsculas ni tildes: «educacion»
+encuentra «Educación»).
+
+- **Qué se lee.** PDF que llevan su texto (los exportados desde un procesador de textos o un
+  formulario), documentos de Word, hojas de cálculo y presentaciones (`.docx`, `.xlsx`, `.pptx`),
+  sus equivalentes de LibreOffice (`.odt`, `.ods`, `.odp`) y ficheros de texto (`.txt`, `.md`,
+  `.csv`). **No** se leen los formatos antiguos de Office (`.doc`, `.xls`, `.ppt`) ni las imágenes, y
+  tampoco un **PDF escaneado**: es una fotografía de una página, sin texto dentro. Esos documentos se
+  encuentran solo por su nombre. Si no aparece lo que esperas, comprueba antes que no sea un escaneo.
+- **Qué versión.** Solo la **revisión en vigor** de cada documento: una versión pendiente de visto
+  bueno o una anterior no se buscan.
+- **Quién lo ve.** Lo mismo que al navegar: nunca sale un documento (ni un trozo de su texto) de una
+  carpeta que no puedes abrir, ni la entrega de una actividad oculta. También se buscan los ficheros
+  adjuntos a las fichas, acciones y auditorías de Mejora continua que puedes abrir.
+- **Cursos anteriores.** Por defecto solo se buscan los documentos del árbol y las entregas del curso
+  actual de cada actividad. La casilla **«Incluir cursos anteriores»** de la paleta añade las
+  entregas de cursos pasados (el resultado indica su curso y se abre en la carpeta, ya en ese curso)
+  y, para quien gestiona los documentos del centro, las carpetas retiradas.
+- **Documentos recién subidos.** El texto lo lee el proceso de segundo plano (el mismo que envía los
+  correos), así que un documento nuevo tarda unos segundos en poder encontrarse y, justo después de
+  actualizar la aplicación por primera vez, los ya existentes se leen poco a poco durante unos
+  minutos. El administrador puede ver el avance en
+  [Estado del sistema](10-administrar-la-plataforma.md#estado-del-sistema).
 
 ## Permisos, de un vistazo
 

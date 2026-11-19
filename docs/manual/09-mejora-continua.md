@@ -63,6 +63,11 @@ marcada, también cuando estás dentro de una ficha, un indicador o una auditor�
 otra sin volver a la portada. En el móvil la barra se desplaza hacia los lados. Las migas de pan
 (inicio › Mejora continua › sección) completan el recorrido hacia atrás.
 
+La **paleta de búsqueda** (**⌘K** / **Ctrl+K**) también encuentra, desde cualquier pantalla, las
+**fichas**, **acciones de mejora**, **indicadores** y **auditorías** por su título, código o
+descripción —solo las que puedes abrir— y, con 3 letras o más, lo que está escrito dentro de los
+ficheros adjuntos a ellas. Ver [Buscar dentro de los documentos](07-arbol-documental.md#buscar-dentro-de-los-documentos).
+
 ## Dónde aparece lo que te toca {#donde-aparece-lo-que-te-toca}
 
 Nadie tiene que entrar en Mejora continua para enterarse de que tiene algo que hacer. Cada tarea

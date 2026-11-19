@@ -78,6 +78,7 @@ Depending on the area you're touching, also consult:
 | `Twig/Components/` | Live Components (calendar, live-filtered listings, settings) |
 | `Security/Voter/` | Per-entity authorization voters (EducationalCentre…) |
 | `MessageHandler/` / `Message/` | Symfony Messenger handlers (currently: email log purge) |
+| `Search/` | Text search plumbing: `TextNormalizer` (the one definition of "same text": lower case, no accents, `fold()` keeps the length), `SnippetBuilder`, and `Extractor/` (one class per file kind, tagged `app.text_extractor`, read in the worker). The search itself lives in `Service/Search/` (`QualitySearcher`, `DocumentContentSearcher`, `AttachmentContentSearcher`, shared `DocumentSearchVisibility`); the index is the `document_file_text` table, written by `DocumentTextIndexer` (async `IndexDocumentFileMessage` on upload, a sweep in `Schedule`, `app:index-documents`). A result and its snippet are only produced after the same permission check as the screen they open. |
 | `EventSubscriber/` | Subscribers (tenant context, forced password change) |
 | `Command/` | Console commands (`app:setup`, `app:create-admin`, `app:create-educational-centre`) |
 | `Autocomplete/` | `symfony/ux-autocomplete` autocompleters |

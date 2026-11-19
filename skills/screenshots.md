@@ -84,7 +84,7 @@ The second centre is «CEIP Miguel Hernández» (`18700123`), empty, only so `mu
 | `capture-plataforma-shots.mjs` | `plataforma-panel`, `-centros`, `-centro-editar`, `-docentes`, `-docente-editar`, `-suplantacion`, `plataforma-ajustes-*` (one per settings category), `plataforma-mantenimiento-{aviso,pagina,login}` | `10` | **yes, at the end**: turns maintenance mode on and puts it back off |
 | `capture-copias-shots.mjs` | `plataforma-copias`, `plataforma-copias-restaurar`, `plataforma-copias-restaurando` (the panel image `plataforma-panel` shows its card too) | `10` | **yes**: saves 5 backups in a throwaway folder and writes `var/restore/` by hand (removed at the end). Needs `APP_BACKUP_DIR` = `SHOTS_BACKUP_DIR` (an empty, disposable folder) set on the server **and** on the script, and the same `DATABASE_URL` env as the server (it runs `app:backup --password`). Never confirms a restore |
 | `capture-responsabilidades-shots.mjs` | `responsabilidades-*` (lists, tree, mobile, element panels, move, profiles, assign, picker, Séneca previews) | `06` | **yes**, at the end (Séneca setup) |
-| `capture-actividades-shots.mjs`, `-arbol-`, `-calendar-`, `-mejora-` | the older chapters' images (`calendar` also makes `calendario-no-lectivos` and `calendario-dia-no-lectivo`) | `07`, `08`, `03`, `09` | no (`calendar` writes the feed token) |
+| `capture-actividades-shots.mjs`, `-arbol-`, `-calendar-`, `-mejora-` | the older chapters' images (`calendar` also makes `calendario-no-lectivos` and `calendario-dia-no-lectivo`; `arbol` also makes `arbol-busqueda-contenido`, the ⌘K palette finding «tutoría acogida» inside the demo PDFs: run `app:index-documents` after loading the demo data, because no worker reads their text) | `07`, `08`, `03`, `09` | no (`calendar` writes the feed token) |
 | `capture-gestion-shots.mjs` | `curso-preparar`, `papelera`, `lectura-*`, `registro-actividad`... | `02`, `07` | **yes: deletes data — run it last** |
 | `capture-curso-nuevo-shots.mjs`, `capture-cheatsheet-shots.mjs` | cheat sheets (`docs/cheatsheets/img`) | — | `curso-nuevo` needs **its own database** |
 
@@ -108,6 +108,7 @@ No screenshot exists, on purpose, for first start, backups and updates: they are
    export DATABASE_URL='sqlite:///%kernel.project_dir%/var/capturas.db' APP_ENV=dev MIGRATIONS_PATH=migrations/sqlite
    php -d memory_limit=1G bin/console doctrine:migrations:migrate -n
    php -d memory_limit=1G bin/console app:load-demo-data -n
+   php -d memory_limit=1G bin/console app:index-documents   # the demo files are real PDFs (LoadDemoDataCommand::demoPdf()); their text is what the search finds
    ```
 3. **Serve it** with `-t public` and the router, and `-d variables_order=EGPCS` (otherwise PHP ignores
    the exported `DATABASE_URL` and uses `.env.local`, i.e. **your real database**):

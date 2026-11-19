@@ -396,7 +396,10 @@ Vuelca toda la base de datos a un único fichero ZIP. Sin argumento lo deja en `
 `.zip`. El volcado es lógico e independiente del motor (una tabla por fichero NDJSON, con los
 valores binarios en base64 y un `manifest.json` con la versión de la aplicación, el motor y el
 número de filas de cada tabla), de modo que una copia hecha con SQLite se puede leer con
-PostgreSQL y al revés. La cola de correos y tareas (`messenger_messages`) se excluye a propósito.
+PostgreSQL y al revés. La cola de correos y tareas (`messenger_messages`) se excluye a propósito, y
+también el texto leído de los documentos para la búsqueda (`document_file_text`): se puede volver a
+calcular y su ausencia solo hace que, tras una restauración, el worker tenga que leer de nuevo los
+ficheros (unos minutos) antes de que la búsqueda dentro de los documentos vuelva a encontrarlos.
 
 **Cifrado (opcional).** Con `--password=CONTRASEÑA` el ZIP se cifra entero con AES-256; con
 `--password` sin valor la contraseña se pide por consola y se confirma. El archivo cifrado se abre
@@ -467,6 +470,15 @@ funcionan sin tener que abrir una consola:
   devuelve el servidor. Se limita a 3 envíos cada 15 minutos.
 - **Espacio.** Tamaño de la base de datos (ficheros incluidos), de las copias de seguridad guardadas y
   espacio libre en el disco donde se guardan. Cada copia ocupa tanto como la base de datos.
+- **Búsqueda dentro de los documentos.** Cuántos ficheros tienen ya su texto leído para
+  [buscar dentro de los documentos](07-arbol-documental.md#buscar-dentro-de-los-documentos), cuántos no
+  tienen texto que leer (PDF escaneados, fotos), cuántos son de un formato que no se lee, cuántos son
+  demasiado grandes o están dañados o protegidos con contraseña, y cuántos esperan turno. Tras una
+  actualización, los ya subidos se leen en segundo plano, unos pocos cada dos minutos, sin que haya
+  que hacer nada; si la cifra de pendientes no baja, el worker no está en marcha. El botón
+  **«Reintentar los ficheros que fallaron»** los vuelve a poner en cola (útil después de una
+  actualización que lea mejor un formato). También se puede leer todo de una vez desde la consola:
+  `php bin/console app:index-documents` (con `--retry-failed` para los que fallaron o `--reindex` para empezar de cero).
 - **Copias de seguridad.** El resultado de la última copia automática y el aviso de «última copia».
 
 ## Actualización {#actualizacion}

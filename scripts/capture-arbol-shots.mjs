@@ -108,5 +108,17 @@ await page.waitForTimeout(1500);
 await hideToolbar();
 await page.screenshot({ path: `${outDir}/arbol-busqueda-global.png` });
 
+// ── 6. Search inside the documents (command palette, "En el contenido") ─────
+// The demo's documents are real PDFs with a few sentences (LoadDemoDataCommand::demoPdf()), read into the index by
+// `app:index-documents` (run it once after loading the demo data: no worker runs against the scratch database).
+await page.goto(`${baseUrl}/arbol-documental`);
+await page.waitForLoadState('networkidle');
+await hideToolbar();
+await page.keyboard.press('Control+k');
+await page.fill('[data-command-palette-target="input"]', 'tutoría acogida');
+await page.waitForSelector('[data-command-palette-target="results"] mark', { state: 'visible', timeout: 10000 });
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${outDir}/arbol-busqueda-contenido.png` });
+
 await browser.close();
 console.log('Capturas guardadas en', outDir);

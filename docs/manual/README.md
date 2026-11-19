@@ -82,6 +82,7 @@ export DATABASE_URL="sqlite:///$PWD/var/capturas.db" MIGRATIONS_PATH=migrations/
 rm -f var/capturas.db
 php bin/console doctrine:migrations:migrate -n
 php bin/console app:load-demo-data -n
+php bin/console app:index-documents   # lee el texto de los PDF de la demo (no hay worker): imprescindible para `arbol-busqueda-contenido`
 php bin/console tailwind:build
 
 # 2. Servidor en el puerto 8744 (en otra terminal, con las mismas variables exportadas)

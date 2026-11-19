@@ -42,8 +42,12 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
   <span class="num">4</span>
   <div class="text">
     <p>Busca a la vez en el árbol documental (secciones, carpetas y documentos, incluido el perfil de
-    subida y quién subió la última revisión), en las actividades y, para administración y equipo
-    directivo, entre los docentes del curso activo (por nombre o usuario).</p>
+    subida y quién subió la última revisión), en las actividades, en las fichas, acciones, indicadores
+    y auditorías de Mejora continua que puedes abrir y, para administración y equipo directivo, entre
+    los docentes del curso activo (por nombre o usuario). Con 3 letras o más, también <strong>dentro
+    de los documentos</strong> (PDF con texto, Word, Excel, PowerPoint, LibreOffice y texto): el grupo
+    «En el contenido» muestra el fragmento donde aparece lo que buscas. Los PDF escaneados no se
+    leen, solo se encuentran por su nombre.</p>
   </div>
 </div>
 

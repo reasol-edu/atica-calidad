@@ -7,7 +7,27 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+Incluye una migración nueva (`Version20261119120000`, la tabla `document_file_text` con el texto de los ficheros):
+se aplica al actualizar, como siempre. Tras actualizar, el proceso de segundo plano (worker) lee poco a poco
+los documentos que ya había subidos; no hay que hacer nada, y el avance se ve en Administración → Estado del
+sistema. Se añade la dependencia `smalot/pdfparser` (LGPL-3.0, PHP puro) para leer el texto de los PDF.
+
 ### Added
+
+- **Buscar dentro de los documentos.** La paleta de búsqueda (⌘K / Ctrl+K) encuentra ahora un documento por lo
+  que está escrito en él: un grupo «En el contenido» muestra el fragmento donde aparecen las palabras buscadas,
+  resaltadas, sin distinguir mayúsculas ni tildes. Se leen los PDF con texto, Word, Excel y PowerPoint
+  (`.docx`, `.xlsx`, `.pptx`), LibreOffice (`.odt`, `.ods`, `.odp`) y ficheros de texto; no los formatos
+  antiguos (`.doc`, `.xls`, `.ppt`), las imágenes ni los PDF escaneados. Solo se busca en la revisión en vigor
+  y nunca sale un documento, ni un trozo de su texto, que la persona no pueda abrir. Por defecto se buscan los
+  documentos del árbol y las entregas del curso actual de cada actividad; la casilla «Incluir cursos
+  anteriores» añade las de cursos pasados y, para quien gestiona los documentos, las carpetas retiradas.
+  También se buscan los ficheros adjuntos a fichas, acciones y auditorías que se pueden abrir. El texto se lee
+  en segundo plano: Estado del sistema muestra cuántos ficheros están leídos, sin texto, dañados o pendientes,
+  y permite reintentar los que fallaron; `php bin/console app:index-documents` lo hace de una vez desde la
+  consola. El texto no se incluye en las copias de seguridad (se vuelve a calcular tras restaurar).
+- **Fichas, acciones, indicadores y auditorías en la paleta de búsqueda.** Se encuentran por su título, código
+  o descripción, y cada resultado solo sale a quien puede abrir esa pantalla.
 
 - **«Primeros pasos» en la portada de un centro nuevo.** Quien gestiona el centro ve una tarjeta con lo que
   falta para que funcione (curso activo, profesorado, responsabilidades, árbol documental y primera

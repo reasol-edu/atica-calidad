@@ -164,6 +164,14 @@ To measure, boot the test kernel against a seeded SQLite database, request the p
 query log (`doctrine.debug_data_holder`), listing each query's table and the `src/` frame that
 issued it — the repeated ones are the N+1.
 
+## A UUID in a scalar DQL result: select the field, not the association
+
+On the engines that store a UUID as 16 bytes (SQLite, MySQL, MariaDB) `getScalarResult()` and `IDENTITY(t.assoc)` hand back the
+**raw bytes**, which `Uuid::isValid()` rejects, and the lookup that depends on them silently matches nothing (the text index's
+first sweep and snippet lookup both did). Select the id *field* (`SELECT f.id …`, joining the association if needed) and read it
+with `getArrayResult()`: that comes back as a `Uuid` on every engine. Whenever a repository method returns ids, test it on SQLite
+**and** against a PostgreSQL/MySQL container.
+
 ## File contents (BLOB columns): never hydrate many at once
 
 `DocumentFile::$content` (and `SettingFile`'s) is a BLOB column on the entity itself — Doctrine
