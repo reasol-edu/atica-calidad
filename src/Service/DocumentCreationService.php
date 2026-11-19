@@ -12,9 +12,12 @@ use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Repository\DocumentFileRepository;
+use App\Message\IndexDocumentFileMessage;
 use App\Repository\DocumentRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Shared "store a file, create a Document with its first revision" logic, extracted from
@@ -29,9 +32,14 @@ final class DocumentCreationService
         private readonly EntityManagerInterface $em,
         private readonly DocumentFileRepository $documentFiles,
         private readonly DocumentRepository $documents,
+        private readonly MessageBusInterface $bus,
+        private readonly LoggerInterface $logger,
     ) {}
 
-    /** Deduplicates by SHA-256 content hash: reuses an existing DocumentFile if one already matches. */
+    /**
+     * Deduplicates by SHA-256 content hash: reuses an existing DocumentFile if one already matches. A file that is new is also
+     * handed to the worker to read its text for the search (a reused one already was).
+     */
     public function storeFile(string $content, string $mimeType, string $originalFilename): DocumentFile
     {
         $hash         = hash('sha256', $content);
@@ -40,9 +48,22 @@ final class DocumentCreationService
             $documentFile = new DocumentFile($hash, $content, $mimeType, $originalFilename, strlen($content));
             $this->em->persist($documentFile);
             $this->em->flush();
+            $this->scheduleIndexing($documentFile);
         }
 
         return $documentFile;
+    }
+
+    /**
+     * Never allowed to fail an upload: if the message cannot be queued, the sweep in Schedule reads the file a few minutes later anyway.
+     */
+    private function scheduleIndexing(DocumentFile $file): void
+    {
+        try {
+            $this->bus->dispatch(new IndexDocumentFileMessage($file->getId()->toRfc4122()));
+        } catch (\Throwable $e) {
+            $this->logger->warning('Could not queue the text indexing of a new file: {reason}', ['reason' => $e->getMessage()]);
+        }
     }
 
     /**

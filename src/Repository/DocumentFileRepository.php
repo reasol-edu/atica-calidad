@@ -46,6 +46,27 @@ class DocumentFileRepository extends ServiceEntityRepository
             ->execute();
     }
 
+    /**
+     * What kind of file it is, as plain columns: going through findById() would hydrate the whole content just to learn this.
+     *
+     * @return array{mimeType: string, originalFilename: string, size: int}|null null when there is no such file
+     */
+    public function findMetadata(Uuid $id): ?array
+    {
+        $row = $this->createQueryBuilder('f')
+            ->select('f.mimeType AS mimeType, f.originalFilename AS originalFilename, f.size AS size')
+            ->where('f.id = :id')
+            ->setParameter('id', $id, 'uuid')
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if (!\is_array($row) || !\is_string($row['mimeType'] ?? null) || !\is_string($row['originalFilename'] ?? null) || !\is_int($row['size'] ?? null)) {
+            return null;
+        }
+
+        return ['mimeType' => $row['mimeType'], 'originalFilename' => $row['originalFilename'], 'size' => $row['size']];
+    }
+
     /** Looked up by bare id; callers must verify ownership before trusting it. */
     public function findById(string $id): ?DocumentFile
     {

@@ -8,6 +8,7 @@ use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\Document;
 use App\Entity\DocumentSection;
+use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Entity\Teacher;
 use App\Repository\ActivityCategoryRepository;
@@ -17,8 +18,13 @@ use App\Repository\DocumentSectionRepository;
 use App\Repository\FolderRepository;
 use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivityObligationFinder;
 use App\Service\DocumentTreeAccessChecker;
+use App\Service\Search\AttachmentContentSearcher;
+use App\Service\Search\DocumentContentSearcher;
+use App\Service\Search\DocumentSearchVisibility;
+use App\Service\Search\QualitySearcher;
 use App\Service\TenantContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Target;
@@ -42,6 +48,10 @@ class SearchController extends AbstractController
         private readonly ActivityRepository $activityRepository,
         private readonly DocumentTreeAccessChecker $documentTreeAccess,
         private readonly ActivityObligationFinder $obligations,
+        private readonly QualitySearcher $qualitySearch,
+        private readonly DocumentSearchVisibility $documentVisibility,
+        private readonly DocumentContentSearcher $contentSearch,
+        private readonly AttachmentContentSearcher $attachmentSearch,
         private readonly TranslatorInterface $translator,
         #[Target('search')]
         private readonly RateLimiterFactoryInterface $searchLimiter,
@@ -120,10 +130,7 @@ class SearchController extends AbstractController
 
             $documents = [];
             foreach ($this->documentRepository->searchByCentre($centre, $q, 5) as $document) {
-                // A submission of a hidden activity only turns up for whoever can edit activities.
-                $hiddenSubmission = $document->getFolder()->getActivity()?->isHidden() === true
-                    && !$this->isGranted(EducationalCentreVoter::RESPONSIBILITIES, $centre);
-                if (!$hiddenSubmission && $this->documentTreeAccess->canViewDocument($user, $document)) {
+                if ($this->documentVisibility->canSee($user, $document, $centre)) {
                     $documents[] = $document;
                 }
             }
@@ -177,7 +184,52 @@ class SearchController extends AbstractController
             }
         }
 
+        if ($user instanceof Teacher) {
+            // Fichas, acciones, indicadores and auditorías: each result is checked against its own page's permission.
+            $groups = [...$groups, ...$this->qualitySearch->groups($centre, $q)];
+
+            $content = $this->contentResults($user, $centre, $q, $request->query->getBoolean('past'));
+            if ($content !== []) {
+                $groups['content'] = $content;
+            }
+        }
+
         return $this->json(['groups' => $this->inPriorityOrder($groups)]);
+    }
+
+    /**
+     * "En el contenido": what is written inside the documents (the revision in force) and inside the files attached in Mejora
+     * continua, each with the words around the match. A submission of an earlier course shows its course next to its path and
+     * links to the document tree, which opens the folder on that course (the Actividades screen only lists the current one).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function contentResults(Teacher $user, EducationalCentre $centre, string $q, bool $includePast): array
+    {
+        $items = [];
+        foreach ($this->contentSearch->search($user, $centre, $q, $includePast) as $hit) {
+            $path = $this->documentPath($hit->document);
+            $items[] = [
+                'label'    => $hit->document->getName(),
+                'sublabel' => $hit->cycleYear === null ? $path : $path . ' · ' . ActivityDeadlineChecker::academicYearLabel($hit->cycleYear),
+                'url'      => $hit->past ? $this->documentTreeUrl($hit->document) : $this->documentSearchUrl($hit->document),
+                'snippet'  => $hit->snippet,
+            ];
+        }
+
+        return [...$items, ...$this->attachmentSearch->search($centre, $q)];
+    }
+
+    /** Deep link to the document's own place in the tree, the folder open on the document's course. */
+    private function documentTreeUrl(Document $document): string
+    {
+        $folder = $document->getFolder();
+
+        return $this->generateUrl('app_document_tree', [
+            'section'   => $folder->getDocumentSection()->getId()->toRfc4122(),
+            'folder'    => $folder->getId()->toRfc4122(),
+            'highlight' => $document->getId()->toRfc4122(),
+        ]);
     }
 
     /**
@@ -185,14 +237,14 @@ class SearchController extends AbstractController
      * the structure (folders, sections) and the staff list after: the palette shows the groups in
      * this order.
      *
-     * @param array<string, list<array<string, string>>> $groups
+     * @param array<string, list<array<string, mixed>>> $groups
      *
-     * @return array<string, list<array<string, string>>>
+     * @return array<string, list<array<string, mixed>>>
      */
     private function inPriorityOrder(array $groups): array
     {
         $ordered = [];
-        foreach (['activities', 'activity_categories', 'documents', 'folders', 'sections', 'teachers'] as $key) {
+        foreach (['activities', 'activity_categories', 'documents', 'content', 'findings', 'improvement_actions', 'indicators', 'audits', 'folders', 'sections', 'teachers'] as $key) {
             if (isset($groups[$key])) {
                 $ordered[$key] = $groups[$key];
             }

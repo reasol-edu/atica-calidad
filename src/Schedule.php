@@ -6,6 +6,7 @@ namespace App;
 
 use App\Message\CreateAutomaticBackupMessage;
 use App\Message\HeartbeatMessage;
+use App\Message\IndexPendingDocumentFilesMessage;
 use App\Message\PurgeActivityLogMessage;
 use App\Message\PurgeEmailNotificationLogMessage;
 use App\Message\PurgeTrashMessage;
@@ -32,6 +33,11 @@ class Schedule implements ScheduleProviderInterface
             ->add(
                 // Proves the worker is alive (Administración → Estado del sistema).
                 RecurringMessage::every('5 minutes', new HeartbeatMessage()),
+            )
+            ->add(
+                // Reads the text of stored files that are not in the search yet (all of them after the first update, then only what a
+                // worker missed). Costs one cheap query when there is nothing to do.
+                RecurringMessage::every('2 minutes', new IndexPendingDocumentFilesMessage()),
             )
             ->add(
                 // Before the purges (03:30–04:00) so the copy still holds what they are about to delete. It does nothing

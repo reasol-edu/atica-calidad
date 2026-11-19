@@ -11,6 +11,7 @@ use App\Entity\ImprovementAction;
 use App\Entity\ImprovementActionStatus;
 use App\Entity\ImprovementActionType;
 use App\Entity\ManagementReview;
+use App\Search\TextNormalizer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
@@ -199,6 +200,28 @@ class ImprovementActionRepository extends ServiceEntityRepository
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('done', ImprovementActionStatus::Done->value)
             ->orderBy('a.dueDate')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Actions of the centre whose code or description contains $query, newest first. Not filtered by who may see
+     * them: the caller checks each one.
+     *
+     * @return list<ImprovementAction>
+     */
+    public function searchByCentre(EducationalCentre $centre, string $query, int $limit = 30): array
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.educationalCentre = :centre')
+            ->andWhere(
+                "UNACCENT(LOWER(a.code)) LIKE UNACCENT(LOWER(:query)) ESCAPE '!'"
+                . " OR UNACCENT(LOWER(a.description)) LIKE UNACCENT(LOWER(:query)) ESCAPE '!'"
+            )
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('query', TextNormalizer::likeContains($query))
+            ->orderBy('a.dueDate', 'DESC')
+            ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
     }

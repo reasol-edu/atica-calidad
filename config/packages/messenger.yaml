@@ -17,9 +17,14 @@ framework:
             # sent in the background. Password reset does NOT use the bus: it is sent
             # synchronously via TransportInterface because it's urgent (1-hour token).
             'Symfony\Component\Mailer\Messenger\SendEmailMessage': async
+            # Reading a stored file's text for the search is slow and must never run inside the upload request.
+            'App\Message\IndexDocumentFileMessage': async
 
 when@test:
     framework:
         messenger:
             routing:
                 'Symfony\Component\Mailer\Messenger\SendEmailMessage': sync
+                # Inline, so a test that uploads a file can search it straight away; the indexer writes through plain SQL and
+                # leaves the request's unit of work alone.
+                'App\Message\IndexDocumentFileMessage': sync

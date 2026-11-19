@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Audit;
 use App\Entity\AuditItem;
 use App\Entity\EducationalCentre;
+use App\Search\TextNormalizer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
@@ -92,5 +93,27 @@ class AuditRepository extends ServiceEntityRepository
             ->getArrayResult();
 
         return array_column($rows, 'code');
+    }
+
+    /**
+     * Audits of the centre whose code or title contains $query, newest code first. Not filtered by who may see
+     * them: the caller checks each one.
+     *
+     * @return list<Audit>
+     */
+    public function searchByCentre(EducationalCentre $centre, string $query, int $limit = 30): array
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.educationalCentre = :centre')
+            ->andWhere(
+                "UNACCENT(LOWER(a.code)) LIKE UNACCENT(LOWER(:query)) ESCAPE '!'"
+                . " OR UNACCENT(LOWER(a.title)) LIKE UNACCENT(LOWER(:query)) ESCAPE '!'"
+            )
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('query', TextNormalizer::likeContains($query))
+            ->orderBy('a.code', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
     }
 }

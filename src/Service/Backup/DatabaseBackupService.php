@@ -41,9 +41,11 @@ final class DatabaseBackupService
      * Transient tables deliberately left out: restoring their rows would do harm, not good.
      * `messenger_messages` is the async mail / scheduler queue — reviving old jobs on a restore
      * would fire outdated notifications. (In the test schema the table doesn't exist at all; the
-     * list still documents the intent.)
+     * list still documents the intent.) `document_file_text` is the search index of the stored files' text: derived data the
+     * worker rebuilds by itself after a restore, and the biggest table per document after the files themselves, so it is
+     * not worth the room in every copy.
      */
-    private const EXCLUDED_TABLES = ['messenger_messages'];
+    private const EXCLUDED_TABLES = ['messenger_messages', 'document_file_text'];
 
     /** Rows read per query in a table with no file contents (one at a time in the ones that have them). */
     private const BATCH_ROWS = 200;

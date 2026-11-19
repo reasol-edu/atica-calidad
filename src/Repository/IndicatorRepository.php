@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\EducationalCentre;
 use App\Entity\Indicator;
+use App\Search\TextNormalizer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Uid\Uuid;
@@ -62,5 +63,27 @@ class IndicatorRepository extends ServiceEntityRepository
         }
 
         return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Indicators of the centre whose name or description contains $query, by name. Not filtered by who may see
+     * them: the caller checks each one.
+     *
+     * @return list<Indicator>
+     */
+    public function searchByCentre(EducationalCentre $centre, string $query, int $limit = 30): array
+    {
+        return $this->createQueryBuilder('i')
+            ->where('i.educationalCentre = :centre')
+            ->andWhere(
+                "UNACCENT(LOWER(i.name)) LIKE UNACCENT(LOWER(:query)) ESCAPE '!'"
+                . " OR UNACCENT(LOWER(i.description)) LIKE UNACCENT(LOWER(:query)) ESCAPE '!'"
+            )
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('query', TextNormalizer::likeContains($query))
+            ->orderBy('i.name')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
     }
 }

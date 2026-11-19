@@ -8,6 +8,7 @@ use App\Entity\EducationalCentre;
 use App\Entity\Finding;
 use App\Entity\FindingStatus;
 use App\Entity\Teacher;
+use App\Search\TextNormalizer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Query;
@@ -319,5 +320,28 @@ class FindingRepository extends ServiceEntityRepository
         krsort($years);
 
         return array_keys($years);
+    }
+
+    /**
+     * Findings of the centre whose code, title or description contains $query (accent- and case-insensitive on the
+     * engines that can), newest first. Not filtered by who may see them: the caller checks each one.
+     *
+     * @return list<Finding>
+     */
+    public function searchByCentre(EducationalCentre $centre, string $query, int $limit = 30): array
+    {
+        return $this->createQueryBuilder('f')
+            ->where('f.educationalCentre = :centre')
+            ->andWhere(
+                "UNACCENT(LOWER(f.code)) LIKE UNACCENT(LOWER(:query)) ESCAPE '!'"
+                . " OR UNACCENT(LOWER(f.title)) LIKE UNACCENT(LOWER(:query)) ESCAPE '!'"
+                . " OR UNACCENT(LOWER(f.description)) LIKE UNACCENT(LOWER(:query)) ESCAPE '!'"
+            )
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('query', TextNormalizer::likeContains($query))
+            ->orderBy('f.reportedAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
     }
 }

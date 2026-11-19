@@ -75,4 +75,10 @@ restore.error.schema_mismatch: 'La copia se hizo con el esquema «%backup%» y l
 restore.error.failed: 'La restauración ha fallado y se ha revertido: %reason%'
 restore.error.needs_force: 'En modo no interactivo, añade --force para confirmar que quieres reemplazar todos los datos.'
 
+index_documents.description: 'Lee el texto de los ficheros guardados para que se pueda buscar dentro de los documentos'
+index_documents.option.reindex: 'Olvida todo el texto ya leído y empieza de cero'
+index_documents.option.retry_failed: 'Vuelve a intentar los ficheros que no se pudieron leer'
+index_documents.progress: '%count% ficheros leídos…'
+index_documents.done: '{0}No había ficheros pendientes de leer.|{1}Se ha leído 1 fichero.|]1,Inf[Se han leído %count% ficheros.'
+
 field.required: 'Este campo es obligatorio.'

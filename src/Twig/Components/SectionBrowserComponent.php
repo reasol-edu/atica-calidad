@@ -262,6 +262,10 @@ class SectionBrowserComponent extends AbstractController
             $folder = $this->folders->findByIdAndSection($folderId, $section);
             if ($folder !== null && $this->access->canViewFolder($this->teacher(), $folder)) {
                 $this->expandedFolderIds[] = $folderId;
+                // A link to a retired folder (a search result) must not land on a list that hides it: whoever may see those gets them shown.
+                if ($folder->isObsolete() && $this->access->isAdminOrQualityManager($this->teacher(), $this->centre)) {
+                    $this->showObsoleteFolders = true;
+                }
                 if ($documentId !== '' && $this->documents->findByIdAndFolder($documentId, $folder) !== null) {
                     $this->revisionPanelDocumentId = $documentId;
                 }

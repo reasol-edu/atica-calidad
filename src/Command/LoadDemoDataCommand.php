@@ -48,6 +48,8 @@ use App\Service\IndicatorService;
 use App\Service\ManagementReviewBuilder;
 use App\Service\ManagementReviewService;
 use Doctrine\ORM\EntityManagerInterface;
+use Mpdf\Mpdf;
+use Mpdf\Output\Destination;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -1332,6 +1334,32 @@ class LoadDemoDataCommand extends Command
         return $document;
     }
 
+    /**
+     * A real PDF with a few sentences of text: the worker reads the text of every file for the search, and a file that merely carries
+     * the name ".pdf" would be recorded as unreadable. The sentences are what the manual's «En el contenido» screenshot finds (see
+     * skills/screenshots.md): «mejora continua» in the quality policy, «tutoría» in the tutoring plans, «metodología activa» in the
+     * department programmes.
+     */
+    private function demoPdf(string $name): string
+    {
+        $body = match (true) {
+            str_contains($name, 'Política') => 'La dirección del centro se compromete con la mejora continua, con la satisfacción de las familias y con la formación del profesorado. Esta política se revisa cada curso y se comunica a toda la comunidad educativa.',
+            str_contains($name, 'Acta')     => 'En la reunión del equipo técnico de coordinación pedagógica se acordó revisar las programaciones didácticas, fijar las fechas de las evaluaciones y planificar la tutoría de acogida del alumnado nuevo.',
+            str_contains($name, 'Tutor')    => 'Plan de acción tutorial del grupo: tutoría de acogida en septiembre, seguimiento de la convivencia, reuniones con las familias y orientación académica y profesional.',
+            default                         => 'La programación didáctica recoge la metodología activa del departamento, los criterios de evaluación, la atención a la diversidad y las actividades complementarias del curso.',
+        };
+
+        $mpdf = new Mpdf(['tempDir' => sys_get_temp_dir()]);
+        $mpdf->WriteHTML('<h1>' . htmlspecialchars($name, ENT_QUOTES) . '</h1><p>' . htmlspecialchars($body, ENT_QUOTES) . '</p><p>Documento de demostración del IES Ada Lovelace.</p>');
+
+        $pdf = $mpdf->Output('', Destination::STRING_RETURN);
+        if (!\is_string($pdf)) {
+            throw new \RuntimeException('mPDF did not return the demo PDF.');
+        }
+
+        return $pdf;
+    }
+
     private function uploadSample(
         Folder $folder,
         string $name,
@@ -1342,9 +1370,8 @@ class LoadDemoDataCommand extends Command
         ?Teacher $reviewer,
         ?string $reviewResult = null,
     ): Document {
-        $content = "{$name} — documento de demostración.";
-        $path    = tempnam(sys_get_temp_dir(), 'demo_doc_');
-        file_put_contents($path, $content);
+        $path = tempnam(sys_get_temp_dir(), 'demo_doc_');
+        file_put_contents($path, $this->demoPdf($name));
         $file = new UploadedFile($path, $name . '.pdf', 'application/pdf', null, true);
 
         $document = $this->documentCreation->createWithFirstRevision($folder, $name, $profile, $listItem, $file, $uploader);

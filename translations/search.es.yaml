@@ -9,6 +9,18 @@ groups:
     documents: 'Documentos'
     activity_categories: 'Categorías de actividades'
     activities: 'Actividades'
+    findings: 'Fichas de mejora'
+    improvement_actions: 'Acciones de mejora'
+    indicators: 'Indicadores'
+    audits: 'Auditorías'
+    content: 'En el contenido'
+attachment:
+    of_finding: 'Adjunto de la ficha «%title%»'
+    of_action: 'Adjunto de la acción «%title%»'
+    of_audit: 'Adjunto de la auditoría %code% · %title%'
+past:
+    label: 'Incluir cursos anteriores'
+    hint: 'Entregas de cursos pasados y, si gestionas los documentos, carpetas retiradas'
 actions:
     change_year: 'Cambiar de curso'
     report_incident: 'Comunicar incidencia'

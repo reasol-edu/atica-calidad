@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Document;
+use App\Entity\DocumentFileText;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
+use App\Entity\TextIndexStatus;
+use App\Search\TextNormalizer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use SortDirection;
@@ -214,6 +217,47 @@ class DocumentRepository extends ServiceEntityRepository
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Documents of the centre whose active revision's text contains every one of $terms (folded: see TextNormalizer), by name.
+     * Only the revision in force counts (a pending or superseded one is not a search target), and only a file whose text was
+     * read. Obsolete folders are left out unless $includeObsolete. Paged because the caller filters candidates afterwards (who may
+     * see them, which course they belong to) and may need more than the first page to fill its list.
+     *
+     * Starts from Document so the trash filter and the centre scope apply; the text itself is matched in SQL but never selected
+     * here, and the file (a BLOB) is only joined, never hydrated.
+     *
+     * @param list<string> $terms
+     *
+     * @return list<Document>
+     */
+    public function searchContentByCentre(EducationalCentre $centre, array $terms, bool $includeObsolete, int $limit, int $offset = 0): array
+    {
+        if ($terms === []) {
+            return [];
+        }
+
+        $qb = $this->createQueryBuilder('d')
+            ->addSelect('f', 'rev')
+            ->join('d.folder', 'f')
+            ->join('f.documentSection', 's')
+            ->join('d.activeRevision', 'rev')
+            ->join('rev.file', 'file')
+            ->join(DocumentFileText::class, 't', 'WITH', 't.file = file')
+            ->where('s.educationalCentre = :centre')
+            ->andWhere('t.status = :indexed')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->setParameter('indexed', TextIndexStatus::Indexed);
+
+        foreach ($terms as $i => $term) {
+            $qb->andWhere(\sprintf("t.folded LIKE :term%d ESCAPE '!'", $i))->setParameter('term' . $i, TextNormalizer::likeContains($term));
+        }
+        if (!$includeObsolete) {
+            $qb->andWhere('f.obsolete = false');
+        }
+
+        return $qb->orderBy('d.name')->addOrderBy('d.id')->setMaxResults($limit)->setFirstResult($offset)->getQuery()->getResult();
     }
 
     /**

@@ -6,7 +6,7 @@ const normalize = (text) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, ''
 // server-rendered data-*-value attributes (see templates/layouts/app.html.twig), which read them
 // from translations/search.es.yaml, same as every other string in this app.
 export default class extends Controller {
-    static targets = ['backdrop', 'dialog', 'input', 'results', 'itemTemplate', 'groupTemplate'];
+    static targets = ['backdrop', 'dialog', 'input', 'results', 'itemTemplate', 'groupTemplate', 'past'];
     static values  = { url: String, actions: Array, noResults: String, groupLabels: Object };
 
     #debounce = null;
@@ -86,8 +86,10 @@ export default class extends Controller {
         this.#abort = new AbortController();
 
         try {
+            // "past" widens the search inside documents to earlier courses' submissions and retired folders.
+            const past = this.hasPastTarget && this.pastTarget.checked ? '&past=1' : '';
             const res = await fetch(
-                this.urlValue + '?q=' + encodeURIComponent(q),
+                this.urlValue + '?q=' + encodeURIComponent(q) + past,
                 { signal: this.#abort.signal },
             );
             if (!res.ok) return;
@@ -132,12 +134,32 @@ export default class extends Controller {
                 const node = this.itemTemplateTarget.content.cloneNode(true);
                 node.querySelector('[data-slot="label"]').textContent    = item.label;
                 node.querySelector('[data-slot="sublabel"]').textContent = item.sublabel ?? '';
+                this.#renderSnippet(node.querySelector('[data-slot="snippet"]'), item.snippet);
                 const link = node.querySelector('a');
                 link.href            = item.url;
                 link.dataset.item    = '1';
                 this.resultsTarget.appendChild(node);
             }
         }
+    }
+
+    // The words around a match inside a document: [[text, isMatch], …]. Built from text nodes and <mark> elements, never as HTML,
+    // because the text comes from files anyone could have uploaded.
+    #renderSnippet(slot, parts) {
+        if (!slot || !Array.isArray(parts) || parts.length === 0) return;
+
+        for (const part of parts) {
+            if (!Array.isArray(part) || typeof part[0] !== 'string') continue;
+            if (part[1] === true) {
+                const mark = document.createElement('mark');
+                mark.className = 'rounded-sm bg-amber-100 px-0.5 text-gray-900';
+                mark.textContent = part[0];
+                slot.appendChild(mark);
+            } else {
+                slot.appendChild(document.createTextNode(part[0]));
+            }
+        }
+        slot.classList.remove('hidden');
     }
 
     #highlightItem(items) {

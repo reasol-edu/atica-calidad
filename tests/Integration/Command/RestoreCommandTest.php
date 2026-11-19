@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Command;
 
+use App\Entity\DocumentFile;
 use App\Entity\SettingFile;
+use App\Entity\TextIndexStatus;
+use App\Repository\DocumentFileTextRepository;
+use App\Service\DocumentTextIndexer;
 use App\Tests\Integration\RepositoryTestCase;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
@@ -75,6 +79,34 @@ final class RestoreCommandTest extends RepositoryTestCase
             [hash('sha256', 'b')],
         );
         self::assertSame($binary, \is_resource($restoredBlob) ? stream_get_contents($restoredBlob) : $restoredBlob);
+    }
+
+    /**
+     * The search index is derived data: a copy leaves it out (it would only make every copy bigger) and a restore empties it, so
+     * no text survives for files the restore has just replaced; the worker reads the restored files again.
+     */
+    public function testTheSearchIndexIsNotBackedUpAndIsEmptiedByARestore(): void
+    {
+        $file = new DocumentFile(hash('sha256', 'doc'), 'Texto del documento', 'text/plain', 'doc.txt', 19);
+        $this->persist($file);
+        /** @var DocumentFileTextRepository $texts */
+        $texts = self::getContainer()->get(DocumentFileTextRepository::class);
+        $texts->save($file->getId(), TextIndexStatus::Indexed, DocumentTextIndexer::VERSION, 'Texto del documento', 'texto del documento', null, new \DateTimeImmutable());
+        self::assertSame(1, $this->countRows('document_file_text'));
+
+        $archive = $this->backup();
+        $zip     = new \ZipArchive();
+        self::assertTrue($zip->open($archive));
+        self::assertFalse($zip->locateName('tables/document_file_text.ndjson'), 'the index is not part of the copy');
+        self::assertNotFalse($zip->locateName('tables/document_file.ndjson'));
+        $zip->close();
+
+        // A text row left behind by the old files (foreign keys are suspended during a restore, so nothing cascades).
+        $this->restore->execute(['archive' => $archive, '--force' => true]);
+
+        self::assertSame(0, $this->restore->getStatusCode(), $this->restore->getDisplay());
+        self::assertSame(1, $this->countRows('document_file'));
+        self::assertSame(0, $this->countRows('document_file_text'));
     }
 
     public function testRestoresAnEncryptedArchive(): void

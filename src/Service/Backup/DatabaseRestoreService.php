@@ -31,8 +31,12 @@ final class DatabaseRestoreService
     private const SUPPORTED_FORMAT         = 'atica-calidad-backup';
     private const SUPPORTED_FORMAT_VERSION = 1;
 
-    /** Transient tables the backup never captures; emptied on restore so nothing stale survives. */
-    private const TRANSIENT_TABLES = ['messenger_messages'];
+    /**
+     * Transient tables the backup never captures; emptied on restore so nothing stale survives. For `document_file_text` it is
+     * also a matter of integrity: foreign keys are suspended while the files are replaced, so text rows of files that no
+     * longer exist would otherwise stay behind. The worker reads every restored file again (nothing to do by hand).
+     */
+    private const TRANSIENT_TABLES = ['messenger_messages', 'document_file_text'];
 
     public function __construct(
         private readonly Connection $connection,
