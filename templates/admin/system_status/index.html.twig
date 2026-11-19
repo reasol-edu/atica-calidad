@@ -103,6 +103,31 @@
         <p class="mt-2 text-xs text-gray-500">{{ 'system.storage.note'|trans({}, 'admin') }}</p>
     </section>
 
+    {# ── Search inside documents ── #}
+    <section class="rounded-2xl border border-gray-200 bg-white px-6 py-4 shadow-xs">
+        <h2 class="mb-1 text-base font-semibold text-gray-900">{{ 'system.search_index.title'|trans({}, 'admin') }}</h2>
+        <p class="mb-3 text-sm text-gray-600">{{ 'system.search_index.help'|trans({}, 'admin') }}</p>
+        <dl class="space-y-1.5 text-sm">
+            {% for key in ['indexed', 'no_text', 'unsupported', 'too_large', 'failed', 'pending'] %}
+                <div class="flex items-baseline justify-between gap-4">
+                    <dt class="text-gray-500">{{ ('system.search_index.status.' ~ key)|trans({}, 'admin') }}</dt>
+                    <dd class="font-medium {{ key == 'failed' and search_index[key] > 0 ? 'text-red-700' : 'text-gray-900' }}">{{ search_index[key] }}</dd>
+                </div>
+            {% endfor %}
+        </dl>
+        {% if search_index.pending > 0 %}
+            <p class="mt-2 text-xs text-gray-500">{{ 'system.search_index.pending_note'|trans({}, 'admin') }}</p>
+        {% endif %}
+        {% if search_index.failed > 0 %}
+            <form method="post" action="{{ path('app_admin_system_search_index_retry') }}" class="mt-3">
+                <input type="hidden" name="_token" value="{{ csrf_token('system_search_index_retry') }}">
+                <button type="submit" class="rounded-xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors sm:py-2.5">
+                    {{ 'system.search_index.retry'|trans({}, 'admin') }}
+                </button>
+            </form>
+        {% endif %}
+    </section>
+
     {# ── Backups ── #}
     <section class="rounded-2xl border border-gray-200 bg-white px-6 py-4 shadow-xs">
         <div class="mb-2 flex items-center justify-between gap-4">

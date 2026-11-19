@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\Teacher;
+use App\Entity\TextIndexStatus;
+use App\Repository\DocumentFileTextRepository;
 use App\Service\ActivityLogger;
 use App\Service\Backup\AutomaticBackup;
+use App\Service\DocumentTextIndexer;
 use App\Service\FailedMessages;
 use App\Service\SystemStatus;
 use App\Service\TestEmailSender;
@@ -31,6 +34,7 @@ class SystemStatusController extends AbstractController
         private readonly FailedMessages $failed,
         private readonly AutomaticBackup $automaticBackup,
         private readonly TestEmailSender $testEmail,
+        private readonly DocumentFileTextRepository $searchTexts,
         private readonly RateLimiterFactoryInterface $adminTestEmailLimiter,
         private readonly ActivityLogger $activityLog,
         private readonly TranslatorInterface $translator,
@@ -46,6 +50,7 @@ class SystemStatusController extends AbstractController
             'storage'      => $this->status->storage(),
             'failed_count' => $this->failed->count(),
             'failed'       => $this->failed->list(),
+            'search_index' => $this->searchTexts->countByStatus(DocumentTextIndexer::VERSION),
             'backup'       => $this->automaticBackup->status(),
             'email'        => $user instanceof Teacher ? $user->getEmail() : null,
         ]);
@@ -79,6 +84,19 @@ class SystemStatusController extends AbstractController
             $this->activityLog->record('system.failed_discarded', ['message' => $class]);
             $this->addFlash('success', $this->translator->trans('system.failed.discarded', ['%message%' => $class], 'admin'));
         }
+
+        return $this->redirectToRoute('app_admin_system_status');
+    }
+
+    /** Forgets the files that could not be read so the background sweep tries them again (after, say, a fixed extractor). */
+    #[Route('/indice-busqueda/reintentar', name: 'app_admin_system_search_index_retry', methods: ['POST'])]
+    public function retrySearchIndex(Request $request): Response
+    {
+        $this->requireCsrf('system_search_index_retry', $request);
+
+        $count = $this->searchTexts->deleteByStatus(TextIndexStatus::Failed);
+        $this->activityLog->record('system.search_index_retried', ['count' => $count]);
+        $this->addFlash('success', $this->translator->trans('system.search_index.retried', ['%count%' => $count], 'admin'));
 
         return $this->redirectToRoute('app_admin_system_status');
     }

@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Controller\Admin;
 
 use App\Entity\ActivityLog;
+use App\Entity\DocumentFile;
 use App\Entity\PersonName;
 use App\Entity\Teacher;
+use App\Entity\TextIndexStatus;
 use App\Message\HeartbeatMessage;
 use App\MessageHandler\HeartbeatHandler;
+use App\Repository\DocumentFileTextRepository;
+use App\Service\DocumentTextIndexer;
 use App\Service\SystemState;
 use App\Service\SystemStatus;
 use App\Tests\Integration\ControllerTestCase;
@@ -86,7 +90,7 @@ final class SystemStatusControllerTest extends ControllerTestCase
         $this->persist($teacher);
         $this->loginAs($teacher);
 
-        foreach (['GET /admin/estado', 'POST /admin/estado/correo-prueba', 'POST /admin/estado/fallidos/1/reintentar', 'POST /admin/estado/fallidos/1/descartar'] as $route) {
+        foreach (['GET /admin/estado', 'POST /admin/estado/correo-prueba', 'POST /admin/estado/fallidos/1/reintentar', 'POST /admin/estado/fallidos/1/descartar', 'POST /admin/estado/indice-busqueda/reintentar'] as $route) {
             [$method, $path] = explode(' ', $route);
             $this->client->request($method, $path, ['_token' => 'x']);
             self::assertResponseStatusCodeSame(403, $route);
@@ -251,6 +255,55 @@ final class SystemStatusControllerTest extends ControllerTestCase
             $_ENV['APP_LOG']    = 'false';
             $_SERVER['APP_LOG'] = 'false';
         }
+    }
+
+    private function fileWithStatus(string $status, string $name): DocumentFile
+    {
+        $file = new DocumentFile(hash('sha256', $name), $name, 'text/plain', $name . '.txt', \strlen($name));
+        $this->persist($file);
+        /** @var DocumentFileTextRepository $texts */
+        $texts = self::getContainer()->get(DocumentFileTextRepository::class);
+        $texts->save($file->getId(), TextIndexStatus::from($status), DocumentTextIndexer::VERSION, null, null, null, new \DateTimeImmutable());
+
+        return $file;
+    }
+
+    public function testTheSearchIndexSectionCountsEachStateAndRetriesTheFailedOnes(): void
+    {
+        $this->fileWithStatus('indexed', 'uno');
+        $this->fileWithStatus('failed', 'dos');
+        $this->fileWithStatus('failed', 'tres');
+        $this->persist(new DocumentFile(hash('sha256', 'sin leer'), 'sin leer', 'text/plain', 'x.txt', 8));
+
+        $this->admin();
+        $crawler = $this->client->request('GET', '/admin/estado');
+        self::assertSelectorTextContains('body', 'Búsqueda dentro de los documentos');
+        self::assertSelectorTextContains('body', 'Pendientes de leer');
+        $token = (string) $crawler->filter('form[action$="/indice-busqueda/reintentar"] input[name="_token"]')->attr('value');
+
+        $this->client->request('POST', '/admin/estado/indice-busqueda/reintentar', ['_token' => $token]);
+        self::assertResponseRedirects('/admin/estado');
+
+        /** @var DocumentFileTextRepository $texts */
+        $texts  = self::getContainer()->get(DocumentFileTextRepository::class);
+        $counts = $texts->countByStatus(DocumentTextIndexer::VERSION);
+        self::assertSame(0, $counts['failed']);
+        self::assertSame(1, $counts['indexed']);
+        // The two that failed (and the one never read) are pending again.
+        self::assertSame(3, $counts['pending']);
+    }
+
+    public function testRetryingTheSearchIndexNeedsAValidToken(): void
+    {
+        $this->fileWithStatus('failed', 'roto');
+        $this->admin();
+
+        $this->client->request('POST', '/admin/estado/indice-busqueda/reintentar', ['_token' => 'nope']);
+
+        self::assertResponseStatusCodeSame(403);
+        /** @var DocumentFileTextRepository $texts */
+        $texts = self::getContainer()->get(DocumentFileTextRepository::class);
+        self::assertSame(1, $texts->countByStatus(DocumentTextIndexer::VERSION)['failed']);
     }
 
     public function testStorageFiguresArePresent(): void
