@@ -33,6 +33,34 @@ final class DashboardControllerTest extends ControllerTestCase
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
     }
 
+    public function testAnEmptyCentreShowsItsManagerTheFirstStepsChecklist(): void
+    {
+        $centre  = $this->centre();
+        $manager = $this->teacher('direccion');
+        $centre->getAdmins()->add($manager);
+        $this->persist($centre, $manager);
+
+        $this->loginAs($manager, $centre);
+        $this->client->request('GET', '/');
+
+        $html = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('Primeros pasos', $html);
+        self::assertStringContainsString('Activar un curso académico', $html);
+        self::assertStringContainsString('0 de 5', $html);
+    }
+
+    public function testThePlainTeacherDoesNotSeeTheFirstStepsChecklist(): void
+    {
+        $centre  = $this->centre();
+        $teacher = $this->teacher('docente');
+        $this->persist($centre, $teacher);
+
+        $this->loginAs($teacher, $centre);
+        $this->client->request('GET', '/');
+
+        self::assertStringNotContainsString('Primeros pasos', (string) $this->client->getResponse()->getContent());
+    }
+
     public function testRedirectsToLoginForAnAnonymousVisitor(): void
     {
         $this->client->request('GET', '/');

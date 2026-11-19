@@ -1,6 +1,6 @@
 {% extends 'layouts/app.html.twig' %}
 
-{% block title %}{{ 'page_title'|trans({}, 'dashboard') }}{% endblock %}
+{% block title %}{{ 'page_title'|trans({}, 'dashboard') }} · {{ active_centre().name }} · {{ app_name }}{% endblock %}
 
 {% block content %}
 {% set active_centre = active_centre() %}
@@ -39,6 +39,7 @@
     {% endif %}
 
     {% if active_centre %}
+        <twig:DashboardOnboardingComponent :centre="active_centre" />
         <twig:DashboardActivitySummaryComponent :centre="active_centre" />
         <twig:DashboardReadAcknowledgementComponent :centre="active_centre" />
         <twig:DashboardPendingReviewComponent :centre="active_centre" />
