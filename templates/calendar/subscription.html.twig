@@ -59,7 +59,7 @@
             <form method="post" action="{{ path('app_calendar_subscription_generate') }}" class="js-confirm-form"
                   data-confirm="{{ 'subscription.regenerate_confirm'|trans({}, 'calendar')|e('html_attr') }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('calendar_feed') }}">
-                <button type="submit" title="{{ 'subscription.regenerate_hint'|trans({}, 'calendar') }}"
+                <button type="submit" aria-label="{{ 'subscription.regenerate_hint'|trans({}, 'calendar') }}" title="{{ 'subscription.regenerate_hint'|trans({}, 'calendar') }}"
                         class="js-confirm-trigger inline-flex items-center gap-2 rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
                     {{ ux_icon('heroicons:arrow-path', {class: 'h-4 w-4'}) }}
                     {{ 'subscription.regenerate'|trans({}, 'calendar') }}

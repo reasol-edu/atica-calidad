@@ -68,16 +68,18 @@
                                     </span>
                                 {% endif %}
                                 <button type="button" data-action="live#action" data-live-action-param="moveUp" data-live-id-param="{{ cid }}"
+                                        aria-label="{{ 'activity_category.move_up'|trans({}, 'admin') }}" title="{{ 'activity_category.move_up'|trans({}, 'admin') }}"
                                         class="hidden sm:inline-flex shrink-0 items-center justify-center p-1 text-gray-300 hover:text-gray-600">
                                     {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4'}) }}
                                 </button>
                                 <button type="button" data-action="live#action" data-live-action-param="moveDown" data-live-id-param="{{ cid }}"
+                                        aria-label="{{ 'activity_category.move_down'|trans({}, 'admin') }}" title="{{ 'activity_category.move_down'|trans({}, 'admin') }}"
                                         class="hidden sm:inline-flex shrink-0 items-center justify-center p-1 text-gray-300 hover:text-gray-600">
                                     {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4'}) }}
                                 </button>
                                 <div class="relative shrink-0" data-controller="dropdown" data-dropdown-float-value="true">
                                     <button type="button" data-action="dropdown#toggle"
-                                            class="p-1 text-gray-300 hover:text-gray-600" title="{{ 'activity_category.more_actions'|trans({}, 'admin') }}">
+                                            class="p-1 text-gray-300 hover:text-gray-600" aria-label="{{ 'activity_category.more_actions'|trans({}, 'admin') }}" title="{{ 'activity_category.more_actions'|trans({}, 'admin') }}">
                                         {{ ux_icon('heroicons:ellipsis-vertical', {class: 'h-4 w-4'}) }}
                                     </button>
                                     <div data-dropdown-target="menu" class="hidden absolute right-0 z-40 mt-1 w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
@@ -104,7 +106,7 @@
                                     </div>
                                 </div>
                                 <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ cid }}"
-                                        title="{{ 'activity_category.action.open'|trans({}, 'admin') }}"
+                                        aria-label="{{ 'activity_category.action.open'|trans({}, 'admin') }}" title="{{ 'activity_category.action.open'|trans({}, 'admin') }}"
                                         class="shrink-0 inline-flex items-center justify-center p-1 text-gray-300 hover:text-forest-500 transition-colors">
                                     {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
                                 </button>
@@ -121,13 +123,13 @@
             <input type="text"
                    data-model="norender|addValue"
                    value="{{ addValue }}"
-                   placeholder="{{ 'activity_category.field.name_placeholder'|trans({}, 'admin') }}"
+                   placeholder="{{ 'activity_category.field.name_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'activity_category.field.name'|trans({}, 'admin') }}"
                    class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
                           placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
             <button type="submit"
                     class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white
                            hover:bg-forest-700 transition-colors"
-                    title="{{ 'activity_category.add'|trans({}, 'admin') }}">
+                    aria-label="{{ 'activity_category.add'|trans({}, 'admin') }}" title="{{ 'activity_category.add'|trans({}, 'admin') }}">
                 {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
             </button>
         </form>

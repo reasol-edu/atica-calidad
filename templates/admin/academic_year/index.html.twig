@@ -97,7 +97,7 @@
                   class="flex gap-3">
                 <input type="hidden" name="_token" value="{{ csrf_token('add_year_' ~ centre.id) }}">
                 <input type="text" name="name"
-                       placeholder="{{ 'years.field.name_placeholder'|trans({}, 'admin') }}"
+                       placeholder="{{ 'years.field.name_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'years.field.name'|trans({}, 'admin') }}"
                        class="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-sm
                               focus:border-forest-500 focus:ring-3 focus:ring-forest-500/20 focus:outline-none transition-colors"
                        required>

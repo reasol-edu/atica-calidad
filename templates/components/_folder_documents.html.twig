@@ -64,7 +64,7 @@
                     {% if can_manage and group.documents|length > 1 %}
                         <button type="button" data-action="live#action" data-live-action-param="sortDocumentsAlphabetically"
                                 data-live-folder-id-param="{{ fid }}" data-live-row-key-param="{{ group.rowKey }}"
-                                class="text-gray-400 hover:text-forest-600" title="{{ 'sort_alphabetically'|trans({}, 'document_content') }}">
+                                class="text-gray-400 hover:text-forest-600" aria-label="{{ 'sort_alphabetically'|trans({}, 'document_content') }}" title="{{ 'sort_alphabetically'|trans({}, 'document_content') }}">
                             {{ ux_icon('heroicons:bars-arrow-down', {class: 'h-4 w-4'}) }}
                         </button>
                     {% endif %}
@@ -73,7 +73,7 @@
                 <div class="mb-2 flex justify-end">
                     <button type="button" data-action="live#action" data-live-action-param="sortDocumentsAlphabetically"
                             data-live-folder-id-param="{{ fid }}" data-live-row-key-param=""
-                            class="text-gray-400 hover:text-forest-600" title="{{ 'sort_alphabetically'|trans({}, 'document_content') }}">
+                            class="text-gray-400 hover:text-forest-600" aria-label="{{ 'sort_alphabetically'|trans({}, 'document_content') }}" title="{{ 'sort_alphabetically'|trans({}, 'document_content') }}">
                         {{ ux_icon('heroicons:bars-arrow-down', {class: 'h-4 w-4'}) }}
                     </button>
                 </div>
@@ -118,7 +118,7 @@
                      class="flex items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-white px-4 py-3 cursor-pointer hover:border-forest-300 hover:bg-forest-50/50 transition-colors">
                     {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
                     <span class="text-sm text-gray-500">{{ 'upload.dropzone_hint'|trans({}, 'document_content') }}</span>
-                    <input type="file" id="upload-{{ fid }}" name="files[]" multiple
+                    <input type="file" id="upload-{{ fid }}" name="files[]" multiple aria-label="{{ 'upload.dropzone_hint'|trans({}, 'document_content') }}"
                            data-file-drop-target="input" data-action="change->file-drop#change" class="sr-only">
                 </div>
 

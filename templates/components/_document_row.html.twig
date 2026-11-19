@@ -18,7 +18,7 @@
          class="group flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50 sm:flex-nowrap {{ highlighted ? 'document-highlight-pulse' : '' }}">
         {% if active %}
             <a href="{{ path('app_folder_document_revision_download', {folderId: fid, documentId: did, revisionId: active.id.toRfc4122}) }}"
-               class="shrink-0 text-gray-400 hover:text-forest-600" title="{{ 'download'|trans({}, 'document_content') }}">
+               class="shrink-0 text-gray-400 hover:text-forest-600" aria-label="{{ 'download'|trans({}, 'document_content') }}" title="{{ 'download'|trans({}, 'document_content') }}">
                 {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-4 w-4'}) }}
             </a>
             {% if this.canPreview(active) %}
@@ -96,6 +96,7 @@
 
         {% if must_read and not my_ack %}
             <button type="button" data-action="live#action" data-live-action-param="acknowledgeDocument" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
+                    aria-label="{{ 'read_ack.confirm_help'|trans({'%version%': active.version}, 'document_content') }}"
                     title="{{ 'read_ack.confirm_help'|trans({'%version%': active.version}, 'document_content') }}"
                     class="shrink-0 inline-flex items-center gap-1 rounded-md border border-forest-200 bg-white px-2 py-0.5 text-xs font-medium text-forest-700 hover:bg-forest-50 max-sm:ml-6">
                 {{ ux_icon('heroicons:check-badge', {class: 'h-3.5 w-3.5'}) }}
@@ -105,6 +106,7 @@
         {% if read_status %}
             <button type="button" data-action="live#action" data-live-action-param="toggleReadStatus" data-live-id-param="{{ did }}"
                     aria-expanded="{{ readStatusDocumentId == did ? 'true' : 'false' }}"
+                    aria-label="{{ 'read_ack.status_help'|trans({}, 'document_content') }}"
                     title="{{ 'read_ack.status_help'|trans({}, 'document_content') }}"
                     class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium {{ read_status.complete ? 'bg-forest-50 text-forest-700' : 'bg-gray-100 text-gray-600' }} hover:ring-1 hover:ring-gray-300">
                 {{ ux_icon('heroicons:eye', {class: 'h-3 w-3'}) }}
@@ -115,6 +117,7 @@
         {% if can_manage or can_upload_revision %}
             <button type="button" data-action="live#action" data-live-action-param="toggleRevisionPanel" data-live-id-param="{{ did }}"
                     class="shrink-0 transition-colors {{ revisionPanelDocumentId == did ? 'text-forest-600' : 'text-gray-300 hover:text-forest-600' }}"
+                    aria-label="{{ 'revision.manage'|trans({}, 'document_content') }}"
                     title="{{ 'revision.manage'|trans({}, 'document_content') }}">
                 {{ ux_icon('heroicons:clock', {class: 'h-4 w-4'}) }}
             </button>
@@ -133,20 +136,20 @@
                     {# Move up/down live outside the menu on non-small screens; on small screens they move inside it with the rest, to keep the row from getting too cramped for touch. #}
                     {% if index > 0 %}
                         <button type="button" data-action="live#action" data-live-action-param="moveDocumentUp" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
-                                class="hidden sm:inline-flex shrink-0 p-1 text-gray-300 hover:text-gray-600" title="{{ 'move_up'|trans({}, 'document_content') }}">
+                                class="hidden sm:inline-flex shrink-0 p-1 text-gray-300 hover:text-gray-600" aria-label="{{ 'move_up'|trans({}, 'document_content') }}" title="{{ 'move_up'|trans({}, 'document_content') }}">
                             {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4'}) }}
                         </button>
                     {% endif %}
                     {% if index < count - 1 %}
                         <button type="button" data-action="live#action" data-live-action-param="moveDocumentDown" data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
-                                class="hidden sm:inline-flex shrink-0 p-1 text-gray-300 hover:text-gray-600" title="{{ 'move_down'|trans({}, 'document_content') }}">
+                                class="hidden sm:inline-flex shrink-0 p-1 text-gray-300 hover:text-gray-600" aria-label="{{ 'move_down'|trans({}, 'document_content') }}" title="{{ 'move_down'|trans({}, 'document_content') }}">
                             {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4'}) }}
                         </button>
                     {% endif %}
                 {% endif %}
                 <div class="shrink-0 relative" data-controller="dropdown" data-dropdown-float-value="true">
                     <button type="button" data-action="dropdown#toggle"
-                            class="p-1 text-gray-300 hover:text-gray-600" title="{{ 'more_actions'|trans({}, 'document_content') }}">
+                            class="p-1 text-gray-300 hover:text-gray-600" aria-label="{{ 'more_actions'|trans({}, 'document_content') }}" title="{{ 'more_actions'|trans({}, 'document_content') }}">
                         {{ ux_icon('heroicons:ellipsis-vertical', {class: 'h-4 w-4'}) }}
                     </button>
                     <div data-dropdown-target="menu" class="hidden absolute right-0 z-40 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
@@ -271,13 +274,13 @@
                         {% if can_manage %}
                             <button type="button" data-action="live#action" data-live-action-param="startEditRevision"
                                     data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}" data-live-revision-id-param="{{ revision.id.toRfc4122 }}"
-                                    class="shrink-0 text-gray-300 hover:text-forest-600" title="{{ 'revision.edit'|trans({}, 'document_content') }}">
+                                    class="shrink-0 text-gray-300 hover:text-forest-600" aria-label="{{ 'revision.edit'|trans({}, 'document_content') }}" title="{{ 'revision.edit'|trans({}, 'document_content') }}">
                                 {{ ux_icon('heroicons:pencil', {class: 'h-3 w-3'}) }}
                             </button>
                         {% endif %}
                     {% endif %}
                     <a href="{{ path('app_folder_document_revision_download', {folderId: fid, documentId: did, revisionId: revision.id.toRfc4122}) }}"
-                       class="shrink-0 text-gray-400 hover:text-forest-600" title="{{ 'download'|trans({}, 'document_content') }}">
+                       class="shrink-0 text-gray-400 hover:text-forest-600" aria-label="{{ 'download'|trans({}, 'document_content') }}" title="{{ 'download'|trans({}, 'document_content') }}">
                         {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-3.5 w-3.5'}) }}
                     </a>
                     {% if this.canPreview(revision) %}
@@ -322,7 +325,7 @@
                         {% else %}
                             <button type="button" data-action="live#action" data-live-action-param="askDeleteRevision"
                                     data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}" data-live-revision-id-param="{{ revision.id.toRfc4122 }}"
-                                    class="shrink-0 text-gray-300 hover:text-red-600" title="{{ 'revision.delete'|trans({}, 'document_content') }}">
+                                    class="shrink-0 text-gray-300 hover:text-red-600" aria-label="{{ 'revision.delete'|trans({}, 'document_content') }}" title="{{ 'revision.delete'|trans({}, 'document_content') }}">
                                 {{ ux_icon('heroicons:trash', {class: 'h-3.5 w-3.5'}) }}
                             </button>
                         {% endif %}
@@ -371,7 +374,7 @@
                          class="flex items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-white px-4 py-3 cursor-pointer hover:border-forest-300 hover:bg-forest-50/50 transition-colors">
                         {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
                         <span class="text-sm text-gray-500">{{ 'revision.dropzone_hint'|trans({}, 'document_content') }}</span>
-                        <input type="file" id="revision-upload-{{ did }}" name="file"
+                        <input type="file" id="revision-upload-{{ did }}" name="file" aria-label="{{ 'revision.dropzone_hint'|trans({}, 'document_content') }}"
                                data-file-drop-target="input" data-action="change->file-drop#change" class="sr-only">
                     </div>
 

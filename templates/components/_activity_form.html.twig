@@ -260,7 +260,7 @@
                 <div class="relative">
                     {{ ux_icon('heroicons:magnifying-glass', {class: 'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400'}) }}
                     <input type="search" data-model="debounce(300)|relatedDocumentSearchQuery" value="{{ relatedDocumentSearchQuery }}"
-                           placeholder="{{ 'activity.field.related_documents_placeholder'|trans({}, 'admin') }}"
+                           placeholder="{{ 'activity.field.related_documents_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'activity.field.related_documents_placeholder'|trans({}, 'admin') }}"
                            class="block w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                 </div>
                 {% if relatedDocumentSearchQuery|trim|length >= 2 %}

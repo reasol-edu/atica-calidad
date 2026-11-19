@@ -33,7 +33,7 @@
 
             {% set availableProfileRows = this.availableProfileRows %}
             {% if availableProfileRows is not empty %}
-                <select data-model="norender|profileRowKey"
+                <select data-model="norender|profileRowKey" aria-label="{{ 'school_event.filter.all_profiles'|trans({}, 'admin') }}"
                         data-action="change->live#action"
                         data-live-action-param="resetPage"
                         class="rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-8 text-sm text-gray-700

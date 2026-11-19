@@ -39,7 +39,7 @@
         {% endif %}
 
         <button type="button" data-action="live#action" data-live-action-param="toggleAdd" data-live-parent-id-param="{{ lid }}"
-                title="{{ 'responsibilities.lists.add_child'|trans({}, 'admin') }}"
+                aria-label="{{ 'responsibilities.lists.add_child'|trans({}, 'admin') }}" title="{{ 'responsibilities.lists.add_child'|trans({}, 'admin') }}"
                 class="shrink-0 inline-flex items-center justify-center rounded-full p-1 text-gray-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 hover:text-forest-600 hover:bg-forest-50 transition-opacity">
             {{ ux_icon('heroicons:plus', {class: 'h-3.5 w-3.5'}) }}
         </button>
@@ -49,7 +49,7 @@
         <form data-action="submit->live#action:prevent" data-live-action-param="addItem" data-live-parent-id-param="{{ lid }}"
               class="ml-8 mb-2 flex items-center gap-2">
             <input type="text" data-model="norender|addName" value="{{ addName }}" autofocus
-                   placeholder="{{ 'responsibilities.lists.field.name_placeholder'|trans({}, 'admin') }}"
+                   placeholder="{{ 'responsibilities.lists.field.name_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'responsibilities.lists.field.name'|trans({}, 'admin') }}"
                    class="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
             <button type="submit" class="shrink-0 rounded-md bg-forest-600 px-2 py-1 text-white hover:bg-forest-700">
                 {{ ux_icon('heroicons:plus', {class: 'h-3.5 w-3.5'}) }}

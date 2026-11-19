@@ -58,7 +58,7 @@
             </label>
             <label class="flex flex-col gap-1 text-sm font-semibold text-gray-900">
                 {{ 'audit.objective'|trans({}, 'quality') }}
-                <input name="objective" value="{{ values.objective }}" placeholder="{{ 'audit.objective_placeholder'|trans({}, 'quality') }}" class="{{ cell }} font-normal">
+                <input name="objective" value="{{ values.objective }}" placeholder="{{ 'audit.objective_placeholder'|trans({}, 'quality') }}" aria-label="{{ 'audit.objective_placeholder'|trans({}, 'quality') }}" class="{{ cell }} font-normal">
             </label>
         </div>
         {% if errors.date is defined %}<p class="text-xs text-red-600">{{ errors.date }}</p>{% endif %}

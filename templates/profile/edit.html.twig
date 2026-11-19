@@ -81,11 +81,11 @@
 
                 {# Username (read-only) #}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label for="profile-username" class="block text-sm font-medium text-gray-700 mb-1.5">
                         {{ 'profile.field.username'|trans({}, 'messages') }}
                     </label>
                     <div class="flex items-center gap-3">
-                        <input type="text" readonly value="{{ teacher.username }}"
+                        <input id="profile-username" type="text" readonly value="{{ teacher.username }}"
                                class="block w-full rounded-xl border border-gray-200 bg-gray-100 py-2.5 px-3.5
                                       text-sm font-mono text-gray-500 cursor-not-allowed">
                         {% if teacher.isExternal() %}

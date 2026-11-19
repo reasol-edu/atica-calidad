@@ -30,7 +30,7 @@
                 {%- if individual -%}{{ document.name }}{%- else -%}{{ revision.uploadedBy.name.lastName }}, {{ revision.uploadedBy.name.firstName }}{%- endif %} · {{ revision.revisedAt|date('d/m/Y') -}}
             </span>
             <a href="{{ path('app_folder_document_revision_download', {folderId: document.folder.id.toRfc4122, documentId: document.id.toRfc4122, revisionId: revision.id.toRfc4122}) }}"
-               class="shrink-0 text-gray-300 hover:text-forest-600" title="{{ 'download'|trans({}, 'document_content') }}">
+               class="shrink-0 text-gray-300 hover:text-forest-600" aria-label="{{ 'download'|trans({}, 'document_content') }}" title="{{ 'download'|trans({}, 'document_content') }}">
                 {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-3.5 w-3.5'}) }}
             </a>
         </label>

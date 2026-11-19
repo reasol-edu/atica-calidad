@@ -24,11 +24,11 @@
             <input type="hidden" name="_token" value="{{ csrf_token('edit_centre_profiles_' ~ centre.id) }}">
 
             <div class="px-6 py-5 border-b border-gray-100">
-                <label class="block text-sm font-medium text-gray-700 mb-0.5">
+                <label for="centre-profile-quality-managers" class="block text-sm font-medium text-gray-700 mb-0.5">
                     {{ 'centre_profiles.quality_managers.label'|trans({}, 'admin') }}
                 </label>
                 <p class="text-xs text-gray-400 mb-2">{{ 'centre_profiles.quality_managers.help'|trans({}, 'admin') }}</p>
-                <select name="quality_managers[]" multiple
+                <select id="centre-profile-quality-managers" name="quality_managers[]" multiple
                         data-controller="symfony--ux-autocomplete--autocomplete"
                         data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('app_entity_autocomplete', {alias: 'teacher_centre', academicYearId: centre.activeAcademicYear.id}) }}"
                         data-symfony--ux-autocomplete--autocomplete-min-characters-value="2"
@@ -42,11 +42,11 @@
             </div>
 
             <div class="px-6 py-5 border-b border-gray-100">
-                <label class="block text-sm font-medium text-gray-700 mb-0.5">
+                <label for="centre-profile-internal-auditors" class="block text-sm font-medium text-gray-700 mb-0.5">
                     {{ 'centre_profiles.internal_auditors.label'|trans({}, 'admin') }}
                 </label>
                 <p class="text-xs text-gray-400 mb-2">{{ 'centre_profiles.internal_auditors.help'|trans({}, 'admin') }}</p>
-                <select name="internal_auditors[]" multiple
+                <select id="centre-profile-internal-auditors" name="internal_auditors[]" multiple
                         data-controller="symfony--ux-autocomplete--autocomplete"
                         data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('app_entity_autocomplete', {alias: 'teacher_centre', academicYearId: centre.activeAcademicYear.id}) }}"
                         data-symfony--ux-autocomplete--autocomplete-min-characters-value="2"

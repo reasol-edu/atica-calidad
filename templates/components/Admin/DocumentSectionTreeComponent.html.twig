@@ -21,7 +21,7 @@
             <form data-action="submit->live#action:prevent" data-live-action-param="addSection" data-live-parent-id-param=""
                   class="mb-3 flex items-center gap-2">
                 <input type="text" data-model="norender|addValue" value="{{ addValue }}" autofocus
-                       placeholder="{{ 'document_section.field.name_placeholder'|trans({}, 'admin') }}"
+                       placeholder="{{ 'document_section.field.name_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'document_section.field.name_placeholder'|trans({}, 'admin') }}"
                        class="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                 <button type="submit" class="shrink-0 rounded-md bg-forest-600 px-2.5 py-1.5 text-white hover:bg-forest-700">
                     {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
@@ -79,11 +79,11 @@
                                           class="flex flex-1 items-center gap-1.5 min-w-0">
                                         <input type="text" data-model="norender|renameValue" value="{{ renameValue }}" autofocus
                                                class="min-w-0 flex-1 rounded-md border border-forest-300 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
-                                        <button type="submit" class="shrink-0 text-forest-600" title="{{ 'document_section.save'|trans({}, 'admin') }}">
+                                        <button type="submit" class="shrink-0 text-forest-600" aria-label="{{ 'document_section.save'|trans({}, 'admin') }}" title="{{ 'document_section.save'|trans({}, 'admin') }}">
                                             {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
                                         </button>
                                         <button type="button" data-action="live#action" data-live-action-param="cancelRename"
-                                                class="shrink-0 text-gray-400" title="{{ 'document_section.cancel'|trans({}, 'admin') }}">
+                                                class="shrink-0 text-gray-400" aria-label="{{ 'document_section.cancel'|trans({}, 'admin') }}" title="{{ 'document_section.cancel'|trans({}, 'admin') }}">
                                             {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
                                         </button>
                                     </form>
@@ -95,18 +95,18 @@
                                 {% endif %}
 
                                 <button type="button" data-action="live#action" data-live-action-param="moveUp" data-live-id-param="{{ sid }}"
-                                        title="{{ 'document_section.move_up'|trans({}, 'admin') }}"
+                                        aria-label="{{ 'document_section.move_up'|trans({}, 'admin') }}" title="{{ 'document_section.move_up'|trans({}, 'admin') }}"
                                         class="shrink-0 p-1 text-gray-400 hover:text-gray-600">
                                     {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4'}) }}
                                 </button>
                                 <button type="button" data-action="live#action" data-live-action-param="moveDown" data-live-id-param="{{ sid }}"
-                                        title="{{ 'document_section.move_down'|trans({}, 'admin') }}"
+                                        aria-label="{{ 'document_section.move_down'|trans({}, 'admin') }}" title="{{ 'document_section.move_down'|trans({}, 'admin') }}"
                                         class="shrink-0 p-1 text-gray-400 hover:text-gray-600">
                                     {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4'}) }}
                                 </button>
 
                                 <button type="button" data-action="live#action" data-live-action-param="toggleProfilePanel" data-live-id-param="{{ sid }}"
-                                        title="{{ 'document_section.profiles.title'|trans({}, 'admin') }}"
+                                        aria-label="{{ 'document_section.profiles.title'|trans({}, 'admin') }}" title="{{ 'document_section.profiles.title'|trans({}, 'admin') }}"
                                         class="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs
                                                {{ section.isRestricted ? 'bg-violet-50 text-violet-700' : 'text-gray-300' }}">
                                     {{ ux_icon('heroicons:shield-check', {class: 'h-3.5 w-3.5'}) }}
@@ -114,7 +114,7 @@
                                 </button>
 
                                 <button type="button" data-action="live#action" data-live-action-param="openLevel" data-live-id-param="{{ sid }}"
-                                        title="{{ 'document_section.action.open'|trans({}, 'admin') }}"
+                                        aria-label="{{ 'document_section.action.open'|trans({}, 'admin') }}" title="{{ 'document_section.action.open'|trans({}, 'admin') }}"
                                         class="shrink-0 inline-flex items-center justify-center p-1 text-gray-300 hover:text-forest-500">
                                     {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
                                     {% set child_count = child_counts[sid] ?? 0 %}
@@ -134,7 +134,7 @@
                                     </button>
                                 {% else %}
                                     <button type="button" data-action="live#action" data-live-action-param="askDelete" data-live-id-param="{{ sid }}"
-                                            title="{{ 'document_section.delete'|trans({}, 'admin') }}"
+                                            aria-label="{{ 'document_section.delete'|trans({}, 'admin') }}" title="{{ 'document_section.delete'|trans({}, 'admin') }}"
                                             class="shrink-0 p-1 text-gray-300 hover:text-red-600">
                                         {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}
                                     </button>
@@ -172,11 +172,11 @@
             <form data-action="submit->live#action:prevent" data-live-action-param="addSection" data-live-parent-id-param="{{ currentParentId }}"
                   class="flex items-center gap-2 border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
                 <input type="text" data-model="norender|addValue" value="{{ addValue }}"
-                       placeholder="{{ 'document_section.field.name_placeholder'|trans({}, 'admin') }}"
+                       placeholder="{{ 'document_section.field.name_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'document_section.field.name_placeholder'|trans({}, 'admin') }}"
                        class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                 <button type="submit"
                         class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white hover:bg-forest-700 transition-colors"
-                        title="{{ 'document_section.add'|trans({}, 'admin') }}">
+                        aria-label="{{ 'document_section.add'|trans({}, 'admin') }}" title="{{ 'document_section.add'|trans({}, 'admin') }}">
                     {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
                 </button>
             </form>

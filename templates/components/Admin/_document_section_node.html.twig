@@ -13,11 +13,11 @@
                   class="flex flex-1 items-center gap-1.5 min-w-0">
                 <input type="text" data-model="norender|renameValue" value="{{ renameValue }}" autofocus
                        class="min-w-0 flex-1 rounded-md border border-forest-300 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
-                <button type="submit" class="shrink-0 text-forest-600 hover:text-forest-800" title="{{ 'document_section.save'|trans({}, 'admin') }}">
+                <button type="submit" class="shrink-0 text-forest-600 hover:text-forest-800" aria-label="{{ 'document_section.save'|trans({}, 'admin') }}" title="{{ 'document_section.save'|trans({}, 'admin') }}">
                     {{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}
                 </button>
                 <button type="button" data-action="live#action" data-live-action-param="cancelRename"
-                        class="shrink-0 text-gray-400 hover:text-gray-600" title="{{ 'document_section.cancel'|trans({}, 'admin') }}">
+                        class="shrink-0 text-gray-400 hover:text-gray-600" aria-label="{{ 'document_section.cancel'|trans({}, 'admin') }}" title="{{ 'document_section.cancel'|trans({}, 'admin') }}">
                     {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
                 </button>
             </form>
@@ -29,7 +29,7 @@
         {% endif %}
 
         <button type="button" data-action="live#action" data-live-action-param="toggleProfilePanel" data-live-id-param="{{ sid }}"
-                title="{{ 'document_section.profiles.title'|trans({}, 'admin') }}"
+                aria-label="{{ 'document_section.profiles.title'|trans({}, 'admin') }}" title="{{ 'document_section.profiles.title'|trans({}, 'admin') }}"
                 class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs transition-opacity
                        {{ section.isRestricted ? 'bg-violet-50 text-violet-700' : 'text-gray-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 hover:text-violet-500 hover:bg-violet-50' }}">
             {{ ux_icon('heroicons:shield-check', {class: 'h-3.5 w-3.5'}) }}
@@ -37,7 +37,7 @@
         </button>
 
         <button type="button" data-action="live#action" data-live-action-param="toggleAdd" data-live-parent-id-param="{{ sid }}"
-                title="{{ 'document_section.add_child'|trans({}, 'admin') }}"
+                aria-label="{{ 'document_section.add_child'|trans({}, 'admin') }}" title="{{ 'document_section.add_child'|trans({}, 'admin') }}"
                 class="shrink-0 inline-flex items-center justify-center rounded-full p-1 text-gray-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 hover:text-forest-600 hover:bg-forest-50 transition-opacity">
             {{ ux_icon('heroicons:plus', {class: 'h-3.5 w-3.5'}) }}
         </button>
@@ -55,7 +55,7 @@
             </span>
         {% else %}
             <button type="button" data-action="live#action" data-live-action-param="askDelete" data-live-id-param="{{ sid }}"
-                    title="{{ 'document_section.delete'|trans({}, 'admin') }}"
+                    aria-label="{{ 'document_section.delete'|trans({}, 'admin') }}" title="{{ 'document_section.delete'|trans({}, 'admin') }}"
                     class="shrink-0 inline-flex items-center justify-center rounded-full p-1 text-gray-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 hover:text-red-600 hover:bg-red-50 transition-opacity">
                 {{ ux_icon('heroicons:trash', {class: 'h-3.5 w-3.5'}) }}
             </button>
@@ -95,7 +95,7 @@
         <form data-action="submit->live#action:prevent" data-live-action-param="addSection" data-live-parent-id-param="{{ sid }}"
               class="ml-8 mb-2 flex items-center gap-2">
             <input type="text" data-model="norender|addValue" value="{{ addValue }}" autofocus
-                   placeholder="{{ 'document_section.field.name_placeholder'|trans({}, 'admin') }}"
+                   placeholder="{{ 'document_section.field.name_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'document_section.field.name_placeholder'|trans({}, 'admin') }}"
                    class="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/20">
             <button type="submit" class="shrink-0 rounded-md bg-forest-600 px-2 py-1 text-white hover:bg-forest-700">
                 {{ ux_icon('heroicons:plus', {class: 'h-3.5 w-3.5'}) }}

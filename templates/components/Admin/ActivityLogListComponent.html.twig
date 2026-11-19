@@ -22,14 +22,14 @@
 
         <div class="flex flex-wrap items-end gap-3">
             <div class="flex flex-col gap-1 min-w-44">
-                <label class="text-xs font-medium text-gray-500">{{ 'activity_log.list.date_from'|trans({}, 'admin') }}</label>
-                <input type="datetime-local" data-model="dateFrom" value="{{ dateFrom }}"
+                <label for="activity-log-date-from" class="text-xs font-medium text-gray-500">{{ 'activity_log.list.date_from'|trans({}, 'admin') }}</label>
+                <input id="activity-log-date-from" type="datetime-local" data-model="dateFrom" value="{{ dateFrom }}"
                        class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
                               focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
             </div>
             <div class="flex flex-col gap-1 min-w-44">
-                <label class="text-xs font-medium text-gray-500">{{ 'activity_log.list.date_to'|trans({}, 'admin') }}</label>
-                <input type="datetime-local" data-model="dateTo" value="{{ dateTo }}"
+                <label for="activity-log-date-to" class="text-xs font-medium text-gray-500">{{ 'activity_log.list.date_to'|trans({}, 'admin') }}</label>
+                <input id="activity-log-date-to" type="datetime-local" data-model="dateTo" value="{{ dateTo }}"
                        class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
                               focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
             </div>
@@ -52,7 +52,7 @@
                         {{ ux_icon('heroicons:magnifying-glass', {class: 'h-4 w-4 text-gray-400'}) }}
                     </div>
                     <input type="search" data-model="norender|userQuery" data-action="input->live#action" data-live-action-param="resetPage"
-                           placeholder="{{ 'activity_log.list.user_placeholder'|trans({}, 'admin') }}" value="{{ userQuery }}"
+                           placeholder="{{ 'activity_log.list.user_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'activity_log.list.user_placeholder'|trans({}, 'admin') }}" value="{{ userQuery }}"
                            class="block w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm
                                   text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none
                                   focus:ring-3 focus:ring-forest-500/20 transition-colors">
@@ -60,8 +60,8 @@
             </div>
 
             <div class="flex flex-col gap-1 min-w-52">
-                <label class="text-xs font-medium text-gray-500">{{ 'activity_log.list.col.centre'|trans({}, 'admin') }}</label>
-                <select data-model="centreId"
+                <label for="activity-log-centre" class="text-xs font-medium text-gray-500">{{ 'activity_log.list.col.centre'|trans({}, 'admin') }}</label>
+                <select id="activity-log-centre" data-model="centreId"
                         class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
                                focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
                     <option value="">{{ 'activity_log.list.centre_all'|trans({}, 'admin') }}</option>
@@ -72,8 +72,8 @@
             </div>
 
             <div class="flex flex-col gap-1 min-w-52">
-                <label class="text-xs font-medium text-gray-500">{{ 'activity_log.list.col.action'|trans({}, 'admin') }}</label>
-                <select data-model="actionType"
+                <label for="activity-log-action" class="text-xs font-medium text-gray-500">{{ 'activity_log.list.col.action'|trans({}, 'admin') }}</label>
+                <select id="activity-log-action" data-model="actionType"
                         class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
                                focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
                     <option value="">{{ 'activity_log.list.action_all'|trans({}, 'admin') }}</option>

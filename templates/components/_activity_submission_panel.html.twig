@@ -78,7 +78,7 @@
                     {% else %}
                         <button type="button" data-action="live#action" data-live-action-param="askDeleteRevision"
                                 data-live-id-param="{{ did }}" data-live-revision-id-param="{{ revision.id.toRfc4122 }}"
-                                class="shrink-0 text-gray-300 hover:text-red-600" title="{{ 'revision.delete'|trans({}, 'activity_content') }}">
+                                class="shrink-0 text-gray-300 hover:text-red-600" aria-label="{{ 'revision.delete'|trans({}, 'activity_content') }}" title="{{ 'revision.delete'|trans({}, 'activity_content') }}">
                             {{ ux_icon('heroicons:trash', {class: 'h-3.5 w-3.5'}) }}
                         </button>
                     {% endif %}

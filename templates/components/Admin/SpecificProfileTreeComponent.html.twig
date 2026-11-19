@@ -23,7 +23,7 @@
                     {% if can_write and profiles|length > 1 %}
                         <button type="button" data-action="live#action" data-live-action-param="sortAlphabetically"
                                 class="ml-auto shrink-0 inline-flex items-center justify-center rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                                title="{{ 'responsibilities.specific_profiles.sort_alphabetically'|trans({}, 'admin') }}">
+                                aria-label="{{ 'responsibilities.specific_profiles.sort_alphabetically'|trans({}, 'admin') }}" title="{{ 'responsibilities.specific_profiles.sort_alphabetically'|trans({}, 'admin') }}">
                             {{ ux_icon('heroicons:bars-arrow-down', {class: 'h-4 w-4'}) }}
                         </button>
                     {% endif %}
@@ -78,13 +78,13 @@
                         <input type="text"
                                data-model="norender|addName"
                                value="{{ addName }}"
-                               placeholder="{{ 'responsibilities.specific_profiles.field.name_placeholder'|trans({}, 'admin') }}"
+                               placeholder="{{ 'responsibilities.specific_profiles.field.name_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'responsibilities.specific_profiles.field.name'|trans({}, 'admin') }}"
                                class="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm
                                       placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                         <button type="submit"
                                 class="inline-flex shrink-0 items-center justify-center rounded-lg bg-forest-600 p-1.5 text-white
                                        hover:bg-forest-700 transition-colors"
-                                title="{{ 'responsibilities.specific_profiles.add'|trans({}, 'admin') }}">
+                                aria-label="{{ 'responsibilities.specific_profiles.add'|trans({}, 'admin') }}" title="{{ 'responsibilities.specific_profiles.add'|trans({}, 'admin') }}">
                             {{ ux_icon('heroicons:plus', {class: 'h-4 w-4'}) }}
                         </button>
                     </form>
@@ -116,12 +116,12 @@
                                 <div class="flex items-end gap-2 sm:col-span-1">
                                     <button type="button" data-action="live#action" data-live-action-param="moveUp" data-live-id-param="{{ sel.id }}"
                                             class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-500 hover:bg-gray-50 transition-colors"
-                                            title="{{ 'responsibilities.specific_profiles.detail.move_up'|trans({}, 'admin') }}">
+                                            aria-label="{{ 'responsibilities.specific_profiles.detail.move_up'|trans({}, 'admin') }}" title="{{ 'responsibilities.specific_profiles.detail.move_up'|trans({}, 'admin') }}">
                                         {{ ux_icon('heroicons:chevron-up', {class: 'h-4 w-4'}) }}
                                     </button>
                                     <button type="button" data-action="live#action" data-live-action-param="moveDown" data-live-id-param="{{ sel.id }}"
                                             class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-500 hover:bg-gray-50 transition-colors"
-                                            title="{{ 'responsibilities.specific_profiles.detail.move_down'|trans({}, 'admin') }}">
+                                            aria-label="{{ 'responsibilities.specific_profiles.detail.move_down'|trans({}, 'admin') }}" title="{{ 'responsibilities.specific_profiles.detail.move_down'|trans({}, 'admin') }}">
                                         {{ ux_icon('heroicons:chevron-down', {class: 'h-4 w-4'}) }}
                                     </button>
                                 </div>
@@ -293,7 +293,7 @@
                                                             data-live-action-param="removeTeacher" data-live-teacher-id-param="{{ teacher.id }}"
                                                             class="shrink-0 inline-flex items-center justify-center rounded-lg p-1 text-gray-400
                                                                    hover:bg-red-50 hover:text-red-600 transition-colors"
-                                                            title="{{ 'responsibilities.specific_profiles.action.remove_teacher'|trans({}, 'admin') }}">
+                                                            aria-label="{{ 'responsibilities.specific_profiles.action.remove_teacher'|trans({}, 'admin') }}" title="{{ 'responsibilities.specific_profiles.action.remove_teacher'|trans({}, 'admin') }}">
                                                         {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
                                                     </button>
                                                 {% endif %}
@@ -310,7 +310,7 @@
                                                 data-symfony--ux-autocomplete--autocomplete-min-characters-value="2"
                                                 data-symfony--ux-autocomplete--autocomplete-no-results-found-text-value="{{ 'autocomplete.no_results'|trans({}, 'admin') }}"
                                                 data-symfony--ux-autocomplete--autocomplete-tom-select-options-value='{"dropdownParent":"body"}'
-                                                data-placeholder="{{ 'responsibilities.specific_profiles.teachers.search_placeholder'|trans({}, 'admin') }}">
+                                                data-placeholder="{{ 'responsibilities.specific_profiles.teachers.search_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'responsibilities.specific_profiles.teachers.search_placeholder'|trans({}, 'admin') }}">
                                         </select>
                                         <p class="mt-1 text-xs text-gray-400">{{ 'responsibilities.specific_profiles.teachers.search_help'|trans({}, 'admin') }}</p>
                                     </div>

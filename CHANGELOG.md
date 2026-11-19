@@ -7,6 +7,15 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Accesibilidad: nombres propios en botones de icono y campos.** Los botones que solo llevan un icono (descargar,
+  subir y bajar, eliminar, más acciones, añadir, cerrar…) y los campos de búsqueda, de nombre, de fichero y de
+  fecha tienen ahora un nombre accesible en el propio código de la página, en lugar de depender del parche de
+  JavaScript, que se mantiene como red de seguridad. Los filtros de los registros de actividad y de avisos, y los
+  selectores de responsables de calidad, auditores y equipo directivo, asocian además su etiqueta visible al
+  campo, de modo que un lector de pantalla la anuncia al llegar a él.
+
 ## [2.2.0] - 2026-11-19
 
 Incluye una migración nueva (`Version20261119120000`, la tabla `document_file_text` con el texto de los ficheros):

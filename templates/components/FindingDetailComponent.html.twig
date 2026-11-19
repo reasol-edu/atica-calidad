@@ -392,7 +392,7 @@
                                     {% if completingActionId == aid %}
                                         <form data-action="submit->live#action:prevent" data-live-action-param="completeAction" class="space-y-2 rounded-lg border border-forest-100 bg-forest-50/40 p-3">
                                             <label for="complete-{{ aid }}" class="{{ label }}">{{ 'action.result'|trans({}, 'quality') }}</label>
-                                            <textarea id="complete-{{ aid }}" rows="2" data-model="norender|completeResult" class="{{ input }}" placeholder="{{ 'action.result_placeholder'|trans({}, 'quality') }}">{{ completeResult }}</textarea>
+                                            <textarea id="complete-{{ aid }}" rows="2" data-model="norender|completeResult" class="{{ input }}" placeholder="{{ 'action.result_placeholder'|trans({}, 'quality') }}" aria-label="{{ 'action.result_placeholder'|trans({}, 'quality') }}">{{ completeResult }}</textarea>
                                             {% if errors.completeResult is defined %}<p class="text-xs text-red-600">{{ errors.completeResult }}</p>{% endif %}
                                             <div class="flex flex-wrap items-center gap-3">
                                                 <button type="submit" class="{{ primary }}">{{ ux_icon('heroicons:check', {class: 'h-4 w-4'}) }}{{ 'action.mark_done'|trans({}, 'quality') }}</button>

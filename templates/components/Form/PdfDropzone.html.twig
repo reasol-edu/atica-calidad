@@ -11,6 +11,7 @@
         {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
         <span class="text-sm text-gray-500">{{ 'settings.pdf_template.dropzone_hint'|trans({}, 'settings') }}</span>
         <input type="file" id="{{ id }}" name="{{ name }}"
+               aria-label="{{ 'settings.pdf_template.dropzone_hint'|trans({}, 'settings') }}"
                accept="application/pdf"
                data-file-drop-target="input"
                data-action="change->file-drop#change"

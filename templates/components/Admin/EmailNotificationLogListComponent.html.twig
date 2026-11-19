@@ -11,16 +11,16 @@
         {# Row 1: date range + quick access #}
         <div class="flex flex-wrap items-end gap-3">
             <div class="flex flex-col gap-1 min-w-44">
-                <label class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.date_from'|trans({}, 'admin') }}</label>
-                <input type="datetime-local"
+                <label for="email-log-date-from" class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.date_from'|trans({}, 'admin') }}</label>
+                <input id="email-log-date-from" type="datetime-local"
                        data-model="dateFrom"
                        value="{{ dateFrom }}"
                        class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
                               focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
             </div>
             <div class="flex flex-col gap-1 min-w-44">
-                <label class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.date_to'|trans({}, 'admin') }}</label>
-                <input type="datetime-local"
+                <label for="email-log-date-to" class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.date_to'|trans({}, 'admin') }}</label>
+                <input id="email-log-date-to" type="datetime-local"
                        data-model="dateTo"
                        value="{{ dateTo }}"
                        class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
@@ -59,6 +59,7 @@
                            data-action="input->live#action"
                            data-live-action-param="resetPage"
                            placeholder="{{ 'email_notification_log.list.search_placeholder'|trans({}, 'admin') }}"
+                           aria-label="{{ 'email_notification_log.list.search_placeholder'|trans({}, 'admin') }}"
                            value="{{ search }}"
                            class="block w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm
                                   text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none
@@ -67,8 +68,8 @@
             </div>
 
             <div class="flex flex-col gap-1 min-w-52">
-                <label class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.col.event'|trans({}, 'admin') }}</label>
-                <select data-model="eventKey"
+                <label for="email-log-event" class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.col.event'|trans({}, 'admin') }}</label>
+                <select id="email-log-event" data-model="eventKey"
                         class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
                                focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
                     <option value="">{{ 'email_notification_log.list.event_all'|trans({}, 'admin') }}</option>
@@ -81,8 +82,8 @@
             </div>
 
             <div class="flex flex-col gap-1 min-w-40">
-                <label class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.col.status'|trans({}, 'admin') }}</label>
-                <select data-model="status"
+                <label for="email-log-status" class="text-xs font-medium text-gray-500">{{ 'email_notification_log.list.col.status'|trans({}, 'admin') }}</label>
+                <select id="email-log-status" data-model="status"
                         class="rounded-lg border border-gray-200 bg-white py-1.5 px-3 text-sm text-gray-900
                                focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20 transition-colors">
                     <option value="">{{ 'email_notification_log.list.status_all'|trans({}, 'admin') }}</option>

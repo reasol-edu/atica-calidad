@@ -42,7 +42,7 @@
                                    data-model="norender|profileSearch"
                                    data-action="input->live#action"
                                    data-live-action-param="setProfilePage" data-live-page-param="1"
-                                   placeholder="{{ 'responsibilities.assignments.profiles.search_placeholder'|trans({}, 'admin') }}"
+                                   placeholder="{{ 'responsibilities.assignments.profiles.search_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'responsibilities.assignments.profiles.search_placeholder'|trans({}, 'admin') }}"
                                    value="{{ profileSearch }}"
                                    class="block w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm
                                           text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none
@@ -135,6 +135,7 @@
                                             </td>
                                             <td class="px-6 py-3 text-right">
                                                 <button type="button" data-action="live#action" data-live-action-param="selectRow" data-live-key-param="{{ row.key }}"
+                                                        aria-label="{{ row.displayName }}"
                                                         class="inline-flex items-center justify-center text-gray-300 hover:text-forest-500 transition-colors">
                                                     {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
                                                 </button>
@@ -157,6 +158,7 @@
                                 {{ 'responsibilities.assignments.profiles.detail.title'|trans({}, 'admin') }} — {{ sel_row.displayName }}
                             </span>
                             <button type="button" data-action="live#action" data-live-action-param="clearRowSelection"
+                                    aria-label="{{ 'ui.close'|trans }}" title="{{ 'ui.close'|trans }}"
                                     class="ml-auto shrink-0 inline-flex items-center justify-center rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
                                 {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
                             </button>
@@ -181,7 +183,7 @@
                                                         data-live-action-param="removeTeacherFromRow" data-live-teacher-id-param="{{ teacher.id }}"
                                                         class="shrink-0 inline-flex items-center justify-center rounded-lg p-1 text-gray-400
                                                                hover:bg-red-50 hover:text-red-600 transition-colors"
-                                                        title="{{ 'responsibilities.assignments.action.remove'|trans({}, 'admin') }}">
+                                                        aria-label="{{ 'responsibilities.assignments.action.remove'|trans({}, 'admin') }}" title="{{ 'responsibilities.assignments.action.remove'|trans({}, 'admin') }}">
                                                     {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
                                                 </button>
                                             {% endif %}
@@ -198,7 +200,7 @@
                                             data-symfony--ux-autocomplete--autocomplete-min-characters-value="2"
                                             data-symfony--ux-autocomplete--autocomplete-no-results-found-text-value="{{ 'autocomplete.no_results'|trans({}, 'admin') }}"
                                             data-symfony--ux-autocomplete--autocomplete-tom-select-options-value='{"dropdownParent":"body"}'
-                                            data-placeholder="{{ 'responsibilities.assignments.profiles.detail.search_placeholder'|trans({}, 'admin') }}">
+                                            data-placeholder="{{ 'responsibilities.assignments.profiles.detail.search_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'responsibilities.assignments.profiles.detail.search_placeholder'|trans({}, 'admin') }}">
                                     </select>
                                     <p class="mt-1 text-xs text-gray-400">{{ 'responsibilities.assignments.profiles.detail.search_help'|trans({}, 'admin') }}</p>
                                 </div>
@@ -223,7 +225,7 @@
                                    data-model="norender|teacherSearch"
                                    data-action="input->live#action"
                                    data-live-action-param="setTeacherPage" data-live-page-param="1"
-                                   placeholder="{{ 'responsibilities.assignments.teachers.search_placeholder'|trans({}, 'admin') }}"
+                                   placeholder="{{ 'responsibilities.assignments.teachers.search_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'responsibilities.assignments.teachers.search_placeholder'|trans({}, 'admin') }}"
                                    value="{{ teacherSearch }}"
                                    class="block w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm
                                           text-gray-900 placeholder-gray-400 focus:border-forest-500 focus:outline-none
@@ -263,7 +265,7 @@
                         <div class="px-4 py-4 sm:px-6 space-y-3">
                             <p class="text-xs text-gray-500">{{ 'responsibilities.assignments.teachers.bulk.help'|trans({}, 'admin') }}</p>
                             <input type="text" data-model="bulkSearch" value="{{ bulkSearch }}"
-                                   placeholder="{{ 'responsibilities.assignments.teachers.detail.add_placeholder'|trans({}, 'admin') }}"
+                                   placeholder="{{ 'responsibilities.assignments.teachers.detail.add_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'responsibilities.assignments.teachers.detail.add_placeholder'|trans({}, 'admin') }}"
                                    class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm
                                           placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                             {% set bulk_rows = this.bulkAssignableRows %}
@@ -348,6 +350,7 @@
                                             </td>
                                             <td class="px-6 py-3 text-right">
                                                 <button type="button" data-action="live#action" data-live-action-param="selectTeacher" data-live-id-param="{{ teacher_id }}"
+                                                        aria-label="{{ entry.teacher.name.lastName }}, {{ entry.teacher.name.firstName }}"
                                                         class="inline-flex items-center justify-center text-gray-300 hover:text-forest-500 transition-colors">
                                                     {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
                                                 </button>
@@ -371,6 +374,7 @@
                                 — {{ sel_entry.teacher.name.lastName }}, {{ sel_entry.teacher.name.firstName }}
                             </span>
                             <button type="button" data-action="live#action" data-live-action-param="clearTeacherSelection"
+                                    aria-label="{{ 'ui.close'|trans }}" title="{{ 'ui.close'|trans }}"
                                     class="ml-auto shrink-0 inline-flex items-center justify-center rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
                                 {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
                             </button>
@@ -394,7 +398,7 @@
                                                         data-live-action-param="removeRowFromTeacher" data-live-row-key-param="{{ row.key }}"
                                                         class="shrink-0 inline-flex items-center justify-center rounded-lg p-1 text-gray-400
                                                                hover:bg-red-50 hover:text-red-600 transition-colors"
-                                                        title="{{ 'responsibilities.assignments.action.remove'|trans({}, 'admin') }}">
+                                                        aria-label="{{ 'responsibilities.assignments.action.remove'|trans({}, 'admin') }}" title="{{ 'responsibilities.assignments.action.remove'|trans({}, 'admin') }}">
                                                     {{ ux_icon('heroicons:x-mark', {class: 'h-4 w-4'}) }}
                                                 </button>
                                             {% endif %}
@@ -409,7 +413,7 @@
                                     <input type="text"
                                            data-model="pickerSearch"
                                            value="{{ pickerSearch }}"
-                                           placeholder="{{ 'responsibilities.assignments.teachers.detail.add_placeholder'|trans({}, 'admin') }}"
+                                           placeholder="{{ 'responsibilities.assignments.teachers.detail.add_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'responsibilities.assignments.teachers.detail.add_placeholder'|trans({}, 'admin') }}"
                                            class="mb-2 block w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm
                                                   placeholder-gray-400 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                                     {% if assignable is empty %}

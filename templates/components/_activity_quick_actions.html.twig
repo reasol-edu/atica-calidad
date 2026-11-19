@@ -32,14 +32,14 @@
         <form method="post" enctype="multipart/form-data" data-controller="quick-upload" data-action="change->quick-upload#send"
               action="{{ path('app_folder_document_new_revision', {folderId: item.activity.folder.id.toRfc4122, documentId: item.uploadDocumentId}) }}" class="{{ margin }} flex shrink-0 items-center">
             <input type="hidden" name="_token" value="{{ csrf_token('folder_document_revision_' ~ item.uploadDocumentId) }}">
-            <input type="file" name="file" data-quick-upload-target="input" class="sr-only" tabindex="-1">
+            <input type="file" name="file" data-quick-upload-target="input" class="sr-only" tabindex="-1" aria-label="{{ 'agenda.upload_revision_hint'|trans({}, 'dashboard') }}">
     {% else %}
         <form method="post" enctype="multipart/form-data" data-controller="quick-upload" data-action="change->quick-upload#send"
               action="{{ path('app_activity_submission_upload', {activityId: item.activity.id.toRfc4122}) }}" class="{{ margin }} flex shrink-0 items-center">
             <input type="hidden" name="_token" value="{{ csrf_token('activity_submission_upload_' ~ item.activity.id.toRfc4122) }}">
             <input type="hidden" name="items[0][slotKey]" value="{{ item.uploadSlotKey }}">
             <input type="hidden" name="return" value="{{ return }}">
-            <input type="file" name="files[0]" data-quick-upload-target="input" class="sr-only" tabindex="-1">
+            <input type="file" name="files[0]" data-quick-upload-target="input" class="sr-only" tabindex="-1" aria-label="{{ 'agenda.upload_hint'|trans({}, 'dashboard') }}">
     {% endif %}
             <button type="button" data-action="quick-upload#choose"
                     title="{{ (revision ? 'agenda.upload_revision_hint' : 'agenda.upload_hint')|trans({}, 'dashboard') }}"

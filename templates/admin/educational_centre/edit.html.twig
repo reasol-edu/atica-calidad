@@ -116,11 +116,11 @@
 
             {# Management team #}
             <div class="pt-3 border-t border-gray-100">
-                <label class="block text-sm font-medium text-gray-700 mb-0.5">
+                <label for="centre-admins" class="block text-sm font-medium text-gray-700 mb-0.5">
                     {{ 'centre.admins.label'|trans({}, 'admin') }}
                 </label>
                 <p class="text-xs text-gray-400 mb-2">{{ 'centre.admins.help'|trans({}, 'admin') }}</p>
-                <select name="admins[]" multiple
+                <select id="centre-admins" name="admins[]" multiple
                         data-controller="symfony--ux-autocomplete--autocomplete"
                         data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('app_entity_autocomplete', {alias: 'teacher_admin'}) }}"
                         data-symfony--ux-autocomplete--autocomplete-min-characters-value="2"

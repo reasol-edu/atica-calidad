@@ -79,12 +79,12 @@
                   action="{{ path('app_centre_non_working_days_add', {centreId: centre.id}) }}"
                   class="flex flex-wrap gap-3">
                 <input type="hidden" name="_token" value="{{ csrf_token('add_non_working_day_' ~ centre.id) }}">
-                <input type="date" name="date"
+                <input type="date" name="date" aria-label="{{ 'non_working_day.field.date'|trans({}, 'admin') }}"
                        class="rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-sm
                               focus:border-forest-500 focus:ring-3 focus:ring-forest-500/20 focus:outline-none transition-colors"
                        required>
                 <input type="text" name="description"
-                       placeholder="{{ 'non_working_day.field.description_placeholder'|trans({}, 'admin') }}"
+                       placeholder="{{ 'non_working_day.field.description_placeholder'|trans({}, 'admin') }}" aria-label="{{ 'non_working_day.field.description'|trans({}, 'admin') }}"
                        class="flex-1 min-w-[12rem] rounded-xl border border-gray-200 bg-white py-2.5 px-3.5 text-sm
                               focus:border-forest-500 focus:ring-3 focus:ring-forest-500/20 focus:outline-none transition-colors">
                 <button type="submit"

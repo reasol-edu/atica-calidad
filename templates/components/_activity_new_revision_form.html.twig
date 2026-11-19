@@ -12,7 +12,7 @@
          class="flex items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-white px-4 py-3 cursor-pointer hover:border-forest-300 hover:bg-forest-50/50 transition-colors">
         {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-5 w-5 text-gray-400 shrink-0'}) }}
         <span class="text-sm text-gray-500">{{ 'revision.dropzone_hint'|trans({}, 'activity_content') }}</span>
-        <input type="file" id="activity-revision-upload-{{ did }}" name="file" data-file-drop-target="input" data-action="change->file-drop#change" class="sr-only">
+        <input type="file" id="activity-revision-upload-{{ did }}" name="file" aria-label="{{ 'revision.dropzone_hint'|trans({}, 'activity_content') }}" data-file-drop-target="input" data-action="change->file-drop#change" class="sr-only">
     </div>
     <div data-file-drop-target="list" class="mt-2 space-y-1.5"></div>
     <template data-file-drop-target="itemTemplate">

@@ -71,7 +71,7 @@
                               data-confirm="{{ 'remind_pending.hint'|trans({}, 'activity_content')|e('html_attr') }}"
                               data-confirm-label="{{ 'remind_pending.button'|trans({}, 'activity_content')|e('html_attr') }}">
                             <input type="hidden" name="_token" value="{{ csrf_token('activity_remind_pending_' ~ aid) }}">
-                            <button type="submit" title="{{ 'remind_pending.hint'|trans({}, 'activity_content') }}"
+                            <button type="submit" aria-label="{{ 'remind_pending.hint'|trans({}, 'activity_content') }}" title="{{ 'remind_pending.hint'|trans({}, 'activity_content') }}"
                                     class="js-confirm-trigger inline-flex items-center gap-1 text-xs text-gray-400 hover:text-forest-600">
                                 {{ ux_icon('heroicons:bell-alert', {class: 'h-3.5 w-3.5 shrink-0'}) }}
                                 {{ 'remind_pending.button'|trans({}, 'activity_content') }}
@@ -106,7 +106,7 @@
                                                 {{ document.name }}
                                             </span>
                                         {% endif %}
-                                        <a href="{{ this.getDocumentTreeUrl(document) }}" title="{{ 'related_documents.view_in_tree'|trans({}, 'activity_content') }}"
+                                        <a href="{{ this.getDocumentTreeUrl(document) }}" aria-label="{{ 'related_documents.view_in_tree'|trans({}, 'activity_content') }}" title="{{ 'related_documents.view_in_tree'|trans({}, 'activity_content') }}"
                                            class="text-gray-300 hover:text-gray-600">
                                             {{ ux_icon('heroicons:folder-open', {class: 'h-3.5 w-3.5'}) }}
                                         </a>
@@ -161,7 +161,7 @@
                     {% else %}
                         <div class="relative shrink-0" data-controller="dropdown" data-dropdown-float-value="true">
                             <button type="button" data-action="dropdown#toggle"
-                                    class="p-1.5 text-gray-300 hover:text-gray-600" title="{{ 'activity.more_actions'|trans({}, 'admin') }}">
+                                    class="p-1.5 text-gray-300 hover:text-gray-600" aria-label="{{ 'activity.more_actions'|trans({}, 'admin') }}" title="{{ 'activity.more_actions'|trans({}, 'admin') }}">
                                 {{ ux_icon('heroicons:ellipsis-vertical', {class: 'h-5 w-5'}) }}
                             </button>
                             <div data-dropdown-target="menu" class="hidden absolute right-0 z-40 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">

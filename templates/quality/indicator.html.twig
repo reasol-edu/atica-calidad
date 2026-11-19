@@ -178,7 +178,7 @@
                                     </label>
                                     <label class="flex min-w-48 flex-1 flex-col gap-1 text-xs font-medium text-gray-500">
                                         {{ 'indicator.notes'|trans({}, 'quality') }}
-                                        <input type="text" name="notes" value="{{ m ? m.notes : '' }}" placeholder="{{ 'indicator.notes_placeholder'|trans({}, 'quality') }}"
+                                        <input type="text" name="notes" value="{{ m ? m.notes : '' }}" placeholder="{{ 'indicator.notes_placeholder'|trans({}, 'quality') }}" aria-label="{{ 'indicator.notes_placeholder'|trans({}, 'quality') }}"
                                                class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
                                     </label>
                                     <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-forest-700">
