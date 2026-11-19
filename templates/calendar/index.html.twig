@@ -1,6 +1,6 @@
 {% extends 'layouts/app.html.twig' %}
 
-{% block title %}{{ 'page_title'|trans({}, 'calendar') }}{% endblock %}
+{% block title %}{{ 'page_title'|trans({}, 'calendar') }} · {{ active_centre().name }} · {{ app_name }}{% endblock %}
 
 {% block content %}
 <div class="px-6 py-8 max-w-7xl mx-auto space-y-6">
