@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-11-20
+
 ### Changed
 
 - **Accesibilidad: nombres propios en botones de icono y campos.** Los botones que solo llevan un icono (descargar,
