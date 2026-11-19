@@ -1,5 +1,6 @@
 # ── Títulos y secciones ───────────────────────────────────────────────────────
 settings.title: 'Ajustes'
+settings.index.label: 'Categorías de ajustes'
 settings.global.title: 'Ajustes globales'
 settings.global.description: 'Valores predeterminados para toda la aplicación. Los centros pueden sobrescribirlos.'
 settings.centre.title: 'Ajustes del centro'

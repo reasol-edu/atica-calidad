@@ -8,6 +8,21 @@
             <p class="text-sm text-gray-500">{{ 'settings.no_settings_for_scope'|trans({}, 'settings') }}</p>
         </div>
     {% else %}
+        {# Index of the categories on screen: the global scope has many, so jump straight to one instead of scrolling. #}
+        {% set categories = [] %}
+        {% for row in rows %}
+            {% if row.definition.category not in categories %}{% set categories = categories|merge([row.definition.category]) %}{% endif %}
+        {% endfor %}
+        {% if categories|length > 1 %}
+            <nav aria-label="{{ 'settings.index.label'|trans({}, 'settings') }}" class="flex flex-wrap gap-2 border-b border-gray-100 bg-gray-50/60 px-6 py-3">
+                {% for category in categories %}
+                    <a href="#settings-category-{{ category }}"
+                       class="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 transition-colors hover:border-forest-300 hover:text-forest-700 max-sm:py-2">
+                        {{ (category ~ '.label')|trans({}, 'settings') }}
+                    </a>
+                {% endfor %}
+            </nav>
+        {% endif %}
         {% set currentCategory = null %}
         {% for row in rows %}
             {% set def        = row.definition %}
@@ -28,7 +43,7 @@
                     </section>
                 {% endif %}
                 {% set currentCategory = def.category %}
-                <section class="{{ loop.first ? '' : 'border-t border-gray-100' }}">
+                <section id="settings-category-{{ def.category }}" class="scroll-mt-4 {{ loop.first ? '' : 'border-t border-gray-100' }}">
                     <h3 class="px-6 pt-5 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
                         {{ (def.category ~ '.label')|trans({}, 'settings') }}
                     </h3>
@@ -43,15 +58,25 @@
 
                 {# ── Label + description ── #}
                 <div class="flex-1 min-w-0">
+                    {# A real <label> for the controls that are one field; the compound ones (day + month, editor, PDF) are
+                       named through the group they sit in (aria-labelledby on the control wrapper below). #}
+                    {% set hasSingleField = def.type.value in ['boolean', 'integer', 'choice', 'string'] %}
                     <div class="flex items-center gap-1.5">
-                        <p class="text-sm font-medium text-gray-900">
-                            {{ ('settings.key.' ~ keySlug ~ '.label')|trans({}, 'settings') }}
-                        </p>
+                        {% if hasSingleField %}
+                            <label for="setting-control-{{ keySlug }}" class="text-sm font-medium text-gray-900">
+                                {{ ('settings.key.' ~ keySlug ~ '.label')|trans({}, 'settings') }}
+                            </label>
+                        {% else %}
+                            <p id="setting-label-{{ keySlug }}" class="text-sm font-medium text-gray-900">
+                                {{ ('settings.key.' ~ keySlug ~ '.label')|trans({}, 'settings') }}
+                            </p>
+                        {% endif %}
                         {% if isRichText %}
                             <div class="relative" data-controller="dropdown">
                                 <button type="button"
                                         data-action="dropdown#toggle"
                                         class="text-gray-300 hover:text-forest-600 transition-colors"
+                                        aria-label="{{ 'settings.placeholder_help.title'|trans({}, 'settings') }}"
                                         title="{{ 'settings.placeholder_help.title'|trans({}, 'settings') }}">
                                     {{ ux_icon('heroicons:information-circle', {class: 'h-4 w-4'}) }}
                                 </button>
@@ -90,10 +115,12 @@
                 </div>
 
                 {# ── Control ── #}
-                <div class="flex gap-3 {{ (isRichText or isPdf) ? 'w-full items-start' : 'items-center max-w-full sm:shrink-0' }}">
+                <div class="flex gap-3 {{ (isRichText or isPdf) ? 'w-full items-start' : 'items-center max-w-full sm:shrink-0' }}"
+                     {% if not hasSingleField %}role="group" aria-labelledby="setting-label-{{ keySlug }}"{% endif %}>
 
                     {% if def.type.value == 'boolean' %}
                         <select
+                            id="setting-control-{{ keySlug }}"
                             class="min-w-0 max-w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-3 pr-8 text-sm text-gray-900
                                    focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20
                                    transition-colors cursor-pointer
@@ -122,6 +149,7 @@
                         {% endif %}
 
                         <input
+                            id="setting-control-{{ keySlug }}"
                             type="number"
                             {% if def.minValue is not null %}min="{{ def.minValue }}"{% endif %}
                             {% if def.maxValue is not null %}max="{{ def.maxValue }}"{% endif %}
@@ -140,6 +168,7 @@
 
                     {% elseif def.type.value == 'choice' %}
                         <select
+                            id="setting-control-{{ keySlug }}"
                             class="min-w-0 max-w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-3 pr-8 text-sm text-gray-900
                                    focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20
                                    transition-colors cursor-pointer
@@ -258,6 +287,7 @@
 
                     {% else %}
                         <input
+                            id="setting-control-{{ keySlug }}"
                             type="text"
                             {% if def.minValue is not null %}minlength="{{ def.minValue }}"{% endif %}
                             {% if def.maxValue is not null %}maxlength="{{ def.maxValue }}"{% endif %}
@@ -284,7 +314,9 @@
                                 data-action="click->live#action:prevent"
                                 data-live-action-param="toggleLock"
                                 data-live-key-param="{{ key }}"
-                                title="{{ isLocked ? 'settings.unlock.title'|trans({}, 'settings') : (lockDisabled ? 'settings.lock.no_value_title'|trans({}, 'settings') : 'settings.lock.title'|trans({}, 'settings')) }}">
+                                {% set lockTitle = isLocked ? 'settings.unlock.title'|trans({}, 'settings') : (lockDisabled ? 'settings.lock.no_value_title'|trans({}, 'settings') : 'settings.lock.title'|trans({}, 'settings')) %}
+                                aria-label="{{ lockTitle }}"
+                                title="{{ lockTitle }}">
                             {{ ux_icon(isLocked ? 'heroicons:lock-closed' : 'heroicons:lock-open', {class: 'h-4 w-4'}) }}
                         </button>
                     {% endif %}
