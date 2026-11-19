@@ -38,6 +38,23 @@ class DocumentRevisionRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * MIME type of a revision's file, read as a scalar: going through getFile() would hydrate the DocumentFile with its
+     * whole BLOB just to learn what kind of file it is.
+     */
+    public function findMimeType(DocumentRevision $revision): ?string
+    {
+        $mime = $this->createQueryBuilder('r')
+            ->select('f.mimeType')
+            ->join('r.file', 'f')
+            ->where('r.id = :id')
+            ->setParameter('id', $revision->getId(), 'uuid')
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return \is_array($mime) && \is_string($mime['mimeType'] ?? null) ? $mime['mimeType'] : null;
+    }
+
     public function findByIdAndDocument(string $id, Document $document): ?DocumentRevision
     {
         $result = $this->createQueryBuilder('r')

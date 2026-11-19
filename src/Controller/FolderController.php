@@ -243,7 +243,7 @@ class FolderController extends AbstractController
     }
 
     #[Route('/documentos/{documentId}/revisiones/{revisionId}/descargar', name: 'app_folder_document_revision_download', methods: ['GET'])]
-    public function download(string $folderId, string $documentId, string $revisionId, #[CurrentCentre] EducationalCentre $centre): Response
+    public function download(string $folderId, string $documentId, string $revisionId, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
     {
         $folder   = $this->requireFolder($folderId, $centre);
         $document = $this->requireDocument($documentId, $folder);
@@ -256,13 +256,16 @@ class FolderController extends AbstractController
 
         $file = $revision->getFile();
 
-        $this->activityLogger->record('document.download', [
+        // `?ver=1` asks to see it in the browser (the "Ver" link); a type the browser cannot show safely downloads as usual.
+        $inline = $request->query->getBoolean('ver') && $this->downloadResponder->isPreviewable($file->getMimeType());
+
+        $this->activityLogger->record($inline ? 'document.view' : 'document.download', [
             'folder'   => $folder->getName(),
             'document' => $document->getName(),
             'version'  => $revision->getVersion(),
         ], $centre);
 
-        return $this->downloadResponder->respond($file->getContent(), $file->getMimeType(), $this->downloadFilename($document, $file));
+        return $this->downloadResponder->respond($file->getContent(), $file->getMimeType(), $this->downloadFilename($document, $file), $inline);
     }
 
     /**

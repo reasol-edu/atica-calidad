@@ -23,6 +23,7 @@ use App\Security\Voter\EducationalCentreVoter;
 use App\Security\Voter\FolderVoter;
 use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivityFolderCycleFilter;
+use App\Service\AttachmentDownloadResponder;
 use App\Service\DocumentFileGarbageCollector;
 use App\Service\FolderProfileSynchronizer;
 use App\Service\TrashService;
@@ -211,7 +212,19 @@ class SectionBrowserComponent extends AbstractController
         private readonly TeacherRepository $teachers,
         private readonly ActivityFolderCycleFilter $cycleFilter,
         private readonly ReadAcknowledgementService $readAcknowledgements,
+        private readonly AttachmentDownloadResponder $downloadResponder,
     ) {}
+
+    /** @var array<string, bool> memoised per render: revision id → can the browser show it? */
+    private array $previewable = [];
+
+    /** Whether the revision's file is one the browser can show in place (PDF, raster image): offers the "Ver" link. */
+    public function canPreview(DocumentRevision $revision): bool
+    {
+        $id = $revision->getId()->toRfc4122();
+
+        return $this->previewable[$id] ??= $this->downloadResponder->isPreviewable($this->revisions->findMimeType($revision) ?? '');
+    }
 
     public function mount(
         EducationalCentre $centre,

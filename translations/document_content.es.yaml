@@ -28,6 +28,7 @@ move_down: 'Bajar'
 more_actions: 'Más acciones'
 empty: 'Esta carpeta todavía no tiene documentos.'
 download: 'Descargar la revisión activa'
+preview: 'Ver en el navegador (en una pestaña nueva)'
 sort_alphabetically: 'Ordenar alfabéticamente'
 
 search.placeholder: 'Buscar secciones, carpetas y documentos en todo el árbol…'

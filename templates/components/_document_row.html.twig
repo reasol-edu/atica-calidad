@@ -21,6 +21,14 @@
                class="shrink-0 text-gray-400 hover:text-forest-600" title="{{ 'download'|trans({}, 'document_content') }}">
                 {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-4 w-4'}) }}
             </a>
+            {% if this.canPreview(active) %}
+                <a href="{{ path('app_folder_document_revision_download', {folderId: fid, documentId: did, revisionId: active.id.toRfc4122, ver: 1}) }}"
+                   target="_blank" rel="noopener"
+                   class="shrink-0 text-gray-400 hover:text-forest-600" title="{{ 'preview'|trans({}, 'document_content') }}"
+                   aria-label="{{ 'preview'|trans({}, 'document_content') }}">
+                    {{ ux_icon('heroicons:eye', {class: 'h-4 w-4'}) }}
+                </a>
+            {% endif %}
         {% else %}
             <span class="shrink-0 text-gray-300" title="{{ 'status.no_revision'|trans({}, 'document_content') }}">
                 {{ ux_icon('heroicons:clock', {class: 'h-4 w-4'}) }}
@@ -272,6 +280,14 @@
                        class="shrink-0 text-gray-400 hover:text-forest-600" title="{{ 'download'|trans({}, 'document_content') }}">
                         {{ ux_icon('heroicons:arrow-down-tray', {class: 'h-3.5 w-3.5'}) }}
                     </a>
+                    {% if this.canPreview(revision) %}
+                        <a href="{{ path('app_folder_document_revision_download', {folderId: fid, documentId: did, revisionId: revision.id.toRfc4122, ver: 1}) }}"
+                           target="_blank" rel="noopener"
+                           class="shrink-0 text-gray-400 hover:text-forest-600" title="{{ 'preview'|trans({}, 'document_content') }}"
+                           aria-label="{{ 'preview'|trans({}, 'document_content') }}">
+                            {{ ux_icon('heroicons:eye', {class: 'h-3.5 w-3.5'}) }}
+                        </a>
+                    {% endif %}
                     <span class="shrink-0 text-xs text-gray-400">{{ revision.revisedAt|date('d/m/Y H:i') }} · {{ revision.uploadedBy.name.lastName }}, {{ revision.uploadedBy.name.firstName }}</span>
                     {% if revision.pendingReview %}
                         <span class="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">{{ 'status.pending'|trans({}, 'document_content') }}</span>
@@ -318,7 +334,7 @@
                         <form action="{{ path('app_folder_document_revision_approve', {folderId: fid, documentId: did, revisionId: revision.id.toRfc4122}) }}"
                               method="post" class="flex flex-1 items-center gap-1.5 min-w-[12rem]">
                             <input type="hidden" name="_token" value="{{ csrf_token('folder_document_revision_review_' ~ revision.id.toRfc4122) }}">
-                            <input type="text" name="reviewResult" placeholder="{{ 'review.result_placeholder'|trans({}, 'document_content') }}"
+                            <input type="text" name="reviewResult" placeholder="{{ 'review.result_placeholder'|trans({}, 'document_content') }}" aria-label="{{ 'review.result_placeholder'|trans({}, 'document_content') }}"
                                    class="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs">
                             <button type="submit" class="shrink-0 rounded-md bg-forest-600 px-2 py-1 text-xs font-medium text-white hover:bg-forest-700">
                                 {{ 'review.approve'|trans({}, 'document_content') }}

@@ -313,10 +313,10 @@ final class FolderControllerTest extends ControllerTestCase
 
     // ── uploadRevision() ─────────────────────────────────────────────────────
 
-    private function documentWithFirstRevision(Folder $folder, Teacher $uploader, string $name = 'Doc'): Document
+    private function documentWithFirstRevision(Folder $folder, Teacher $uploader, string $name = 'Doc', string $mimeType = 'text/plain'): Document
     {
         $document = new Document($folder, $name);
-        $file     = new DocumentFile(hash('sha256', $name . random_int(1, PHP_INT_MAX)), 'v1', 'text/plain', 'v1.txt', 2);
+        $file     = new DocumentFile(hash('sha256', $name . random_int(1, PHP_INT_MAX)), 'v1', $mimeType, 'v1.txt', 2);
         $revision = new DocumentRevision($document, 1, $file, false, $uploader);
         $document->getRevisions()->add($revision);
         $document->setActiveRevision($revision);
@@ -542,6 +542,47 @@ final class FolderControllerTest extends ControllerTestCase
 
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
         self::assertSame('v1', $this->getStreamedContent());
+    }
+
+    /** Content-Disposition of the response when downloading a one-revision document whose file is of $mimeType, with $query on the URL. */
+    private function dispositionOfADocumentOfType(string $mimeType, string $query): string
+    {
+        $centre   = $this->centre();
+        $folder   = $this->folder($centre);
+        $uploader = $this->teacher('subidor');
+        $document = $this->documentWithFirstRevision($folder, $uploader, 'Doc', $mimeType);
+        $revision = $document->getActiveRevision();
+        self::assertNotNull($revision);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $uploader, $document);
+        $folderId   = $folder->getId()->toRfc4122();
+        $documentId = $document->getId()->toRfc4122();
+        $revisionId = $revision->getId()->toRfc4122();
+
+        $this->loginAs($uploader, $centre);
+        $this->client->request('GET', "/arbol-documental/carpetas/{$folderId}/documentos/{$documentId}/revisiones/{$revisionId}/descargar{$query}");
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+
+        return (string) $this->client->getResponse()->headers->get('Content-Disposition');
+    }
+
+    public function testAskingToViewAPdfShowsItInTheBrowser(): void
+    {
+        self::assertStringStartsWith('inline', $this->dispositionOfADocumentOfType('application/pdf', '?ver=1'));
+    }
+
+    public function testAPdfIsStillDownloadedWithoutAskingToView(): void
+    {
+        self::assertStringStartsWith('attachment', $this->dispositionOfADocumentOfType('application/pdf', ''));
+    }
+
+    public function testAskingToViewHtmlStillDownloadsIt(): void
+    {
+        self::assertStringStartsWith('attachment', $this->dispositionOfADocumentOfType('text/html', '?ver=1'));
+    }
+
+    public function testAskingToViewSvgStillDownloadsIt(): void
+    {
+        self::assertStringStartsWith('attachment', $this->dispositionOfADocumentOfType('image/svg+xml', '?ver=1'));
     }
 
     public function testDownloadDeniedWhenFolderVisibilityRestrictsTheTeacher(): void

@@ -9,7 +9,19 @@ use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class AttachmentDownloadResponder
 {
-    public function respond(string $content, string $mimeType, string $filename): Response
+    /**
+     * Types a browser can show on its own without running anything of the uploaded file: a PDF in its viewer and the
+     * raster images. Never SVG or HTML (they carry script), whatever the user uploaded them as.
+     */
+    private const array PREVIEWABLE = ['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+
+    public function isPreviewable(string $mimeType): bool
+    {
+        return \in_array(strtolower($mimeType), self::PREVIEWABLE, true);
+    }
+
+    /** @param bool $inline Show it in the browser instead of downloading it; honoured only for a previewable type. */
+    public function respond(string $content, string $mimeType, string $filename, bool $inline = false): Response
     {
         $filename = $this->sanitizeFilename($filename);
 
@@ -21,7 +33,7 @@ class AttachmentDownloadResponder
         $response->headers->set(
             'Content-Disposition',
             $response->headers->makeDisposition(
-                ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+                $inline && $this->isPreviewable($mimeType) ? ResponseHeaderBag::DISPOSITION_INLINE : ResponseHeaderBag::DISPOSITION_ATTACHMENT,
                 $filename,
                 $this->asciiFilenameFallback($filename),
             ),
