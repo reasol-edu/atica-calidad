@@ -4,6 +4,21 @@ Este capítulo es para el equipo directivo y la administración del centro. Ante
 profesorado pueda usar la aplicación con normalidad, conviene dejar preparados unos pocos datos
 básicos del curso académico.
 
+## Primeros pasos en un centro nuevo {#primeros-pasos}
+
+Mientras el centro esté a medio montar, la **portada** de quien lo gestiona (equipo directivo y
+administración) muestra una tarjeta **«Primeros pasos»** con lo que falta, en el orden en que conviene
+hacerlo, y cada línea lleva al sitio donde se resuelve:
+
+1. **Activar un curso académico**, de donde cuelga todo lo demás.
+2. **Incorporar al profesorado**, al menos a alguien más que a quien configura el centro.
+3. **Asignar responsabilidades** (perfiles específicos), para que las tareas lleguen a alguien.
+4. **Crear la estructura de documentos**: al menos una carpeta en el árbol documental.
+5. **Programar la primera actividad.**
+
+Los pasos hechos se tachan, la tarjeta cuenta cuántos van («2 de 5») y **desaparece sola** cuando están
+todos. El resto del profesorado no la ve.
+
 ## Cursos académicos
 
 Cada centro tiene uno o varios cursos académicos (p. ej. «2026-2027»), y siempre hay uno marcado

@@ -201,6 +201,12 @@ fichero descargado usa el **nombre del documento**, no el del fichero original q
 conservando su extensión. Si el documento es la entrega de una actividad, el nombre lleva delante
 el título de la actividad — ver [Nombre del fichero descargado](08-actividades.md#nombre-del-fichero-descargado).
 
+Si la revisión es un **PDF o una imagen** (PNG, JPG, GIF o WebP), al lado del icono de descarga aparece un
+**ojo («Ver en el navegador»)**: abre el fichero en una pestaña nueva, sin descargarlo, para echarle un
+vistazo antes de decidir si lo necesitas. Lo mismo vale para cada versión del historial. Con cualquier otro
+formato (Word, Excel…) solo está la descarga. Ver un documento queda anotado en el registro de actividad
+como «Revisión consultada en el navegador».
+
 El enlace **«Descargar la carpeta (ZIP)»**, encima de la lista de documentos, empaqueta de una vez
 la revisión activa de todos los documentos de la carpeta (los que aún no tienen revisión activa
 quedan fuera). Cada fichero dentro del ZIP lleva el mismo nombre que tendría al descargarse suelto

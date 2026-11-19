@@ -103,6 +103,9 @@ aplica, **personal** (**Mi perfil → Ajustes**, accesible a cualquier docente d
 lateral). Un valor de un nivel más específico sobrescribe al de un nivel más general, salvo que
 este último esté **bloqueado**.
 
+Cuando hay varias categorías (en los ajustes globales hay muchas), encima de la lista aparece un **índice**
+con un botón por categoría que lleva directo a ella, sin recorrer toda la página.
+
 ### Bloqueo de ajustes {#bloqueo-de-ajustes}
 
 Un administrador global puede bloquear un ajuste en **Administración → Ajustes**: el valor

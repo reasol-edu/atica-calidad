@@ -7,7 +7,28 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- **«Primeros pasos» en la portada de un centro nuevo.** Quien gestiona el centro ve una tarjeta con lo que
+  falta para que funcione (curso activo, profesorado, responsabilidades, árbol documental y primera
+  actividad), cada paso enlazado a donde se hace; los hechos se tachan y la tarjeta desaparece cuando están
+  todos. El profesorado sin gestión no la ve.
+- **Ver un PDF o una imagen sin descargarlo.** Junto al icono de descarga de un documento (y en cada versión
+  del historial) aparece un ojo que abre el fichero en una pestaña nueva. Solo para PDF y PNG, JPG, GIF y
+  WebP: el resto de formatos, y siempre SVG y HTML, se siguen descargando. Se anota en el registro de
+  actividad («Revisión consultada en el navegador»).
+- **Índice de categorías en los ajustes.** Cuando hay varias categorías, un índice encima de la lista lleva
+  directo a cada una.
+
 ### Changed
+
+- **Títulos de pestaña coherentes.** Inicio, Actividades, Árbol documental, Calendario, Seleccionar centro,
+  Iniciar sesión y la recuperación de contraseña acababan sin el nombre de la aplicación; ahora todos lo
+  llevan, y los de dentro de un centro incluyen también su nombre.
+- **Accesibilidad: etiquetas reales.** Los ajustes usan un `<label>` asociado a su control (y un grupo
+  nombrado en los compuestos: día y mes, editor, plantilla PDF); las cabeceras de 8 tablas llevan
+  `scope="col"` y varios campos de texto, el candado y la ayuda de marcadores tienen nombre propio. El
+  parche de JavaScript sigue como red de seguridad para los botones de icono generados en muchos sitios.
 
 - **Mejora continua: barra de secciones y migas completas.** Quien ve todas las fichas tiene ahora, en lo alto
   de todas las pantallas de Mejora continua, una barra con Resumen, Fichas, Plan de mejora, Indicadores,
