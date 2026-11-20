@@ -7,6 +7,20 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+Incluye una migración nueva (`Version20261120100000`, el ajuste `documents.min_revision`): se aplica al
+actualizar, como siempre.
+
+### Added
+
+- **Número mínimo de revisión de los documentos, configurable.** Un ajuste nuevo, «Número mínimo de revisión de un
+  documento» (categoría Documentos), admite **0** o **1** y se fija en los ajustes globales o en los de cada centro
+  (un valor global bloqueado se impone). Con 0, la primera revisión de un documento es la «v0» y la siguiente la
+  «v1», como numeran la edición inicial muchos sistemas de calidad; con 1 (el valor por defecto, como hasta ahora),
+  la primera es la «v1». Es la versión que se propone al subir un documento nuevo (y la de las entregas de
+  actividades) y el mínimo que admiten los campos de versión; un campo en blanco ya no se toma por 0. Los documentos
+  y revisiones que ya existen no cambian, y una revisión «v0» sigue siendo editable si el centro sube después el
+  mínimo a 1.
+
 ## [2.3.0] - 2026-11-20
 
 ### Changed

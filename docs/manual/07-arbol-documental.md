@@ -169,7 +169,8 @@ si la carpeta tiene **perfiles de subida** configurados, con qué perfil se etiq
 es responsable de la carpeta puede elegir libremente entre todos ellos; quien solo tiene permiso de
 subida solo puede etiquetar con su propio perfil o subperfil.
 
-Cada documento subido nace con su primera revisión, **versión 1**. Si la carpeta tiene perfiles de
+Cada documento subido nace con su primera revisión, **versión 1** (o **versión 0**, si el centro numera
+así la edición inicial: ver [Número mínimo de revisión](#numero-minimo-de-revision)). Si la carpeta tiene perfiles de
 revisión configurados, esa primera revisión queda **pendiente de visto bueno** hasta que se apruebe
 o se rechace (ver [Revisar una versión pendiente](#revisar-una-version-pendiente)); si no, se
 activa directamente.
@@ -181,6 +182,24 @@ revisión activa) arrastra un nuevo fichero al recuadro **«Para subir una nueva
 fichero aquí o haz clic para seleccionarlo»**, dentro del panel de versiones (icono de reloj). El
 número de versión se incrementa automáticamente; no puede coincidir con el de otra revisión ya
 existente del mismo documento — la aplicación lo impide con un aviso claro.
+
+### Número mínimo de revisión {#numero-minimo-de-revision}
+
+Muchos sistemas de calidad numeran la edición inicial de un documento como **revisión 0** y la
+primera modificación como **revisión 1**; otros empiezan en 1. Cada centro lo decide con el ajuste
+**«Número mínimo de revisión de un documento»** (categoría **Documentos**), que admite **0** o **1**
+(por defecto, 1) y puede fijarse para todos los centros en **Administración → Ajustes globales** o
+para uno solo en **Centro educativo → Ajustes del centro** (un valor global bloqueado se impone).
+El número mínimo hace tres cosas:
+
+- es la **versión que se propone** al subir un documento nuevo (y la que reciben las entregas de
+  actividades), de modo que con 0 la primera revisión es la «v0»;
+- es el **mínimo que admiten los campos de versión**: al elegir a mano el número de una nueva
+  revisión o al corregirlo en un panel de versiones, un número menor se rechaza con un aviso, y un
+  campo en blanco nunca se toma por 0;
+- no toca lo que ya existe: los documentos y revisiones con otro número siguen como están, y una
+  revisión «v0» sigue siendo editable aunque el centro suba después el mínimo a 1. La siguiente
+  revisión sigue siendo «la más alta más uno».
 
 ![Panel de versiones de un documento: historial de revisiones aprobadas y zona para subir una nueva](img/arbol-revisiones.png)
 

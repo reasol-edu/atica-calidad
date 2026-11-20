@@ -64,6 +64,7 @@ await open('/admin/ajustes');
 for (const [heading, name] of [
     ['Mantenimiento', 'mantenimiento'],
     ['Curso académico', 'curso'],
+    ['Documentos', 'documentos'],
     ['Avisos por correo', 'avisos'],
     ['Plantillas de informes', 'plantillas'],
     ['Seguridad', 'seguridad'],

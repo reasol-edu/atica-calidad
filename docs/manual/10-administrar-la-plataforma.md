@@ -196,6 +196,17 @@ propias páginas (estilos, scripts, imágenes).
   mismo mes: con el valor por defecto, una actividad del 1 al 14 de septiembre es del curso que
   acaba. Solo admite fechas que existen todos los años (no el 29 de febrero).
 
+### Documentos {#documentos}
+
+![Sección «Documentos» de los ajustes globales: el ajuste «Número mínimo de revisión de un documento», con las opciones 0 y 1](img/plataforma-ajustes-documentos.png)
+
+- **Número mínimo de revisión de un documento** (global y de centro) — **0** o **1**, por defecto 1.
+  Es el número más bajo que puede tener la revisión de un documento: con 1, la primera revisión es
+  la «v1»; con 0, es la «v0» y la siguiente la «v1», como numeran la edición inicial muchos sistemas
+  de calidad. Es la versión que se propone al subir un documento nuevo y el mínimo que admiten los
+  campos de versión; los documentos que ya existen no cambian. Ver
+  [Número mínimo de revisión](07-arbol-documental.md#numero-minimo-de-revision).
+
 ### Avisos por correo
 
 ![Sección «Avisos por correo» de los ajustes globales: registro de avisos, retención, interruptor general, recordatorios, avisos de documentos con «Resumen diario» por defecto, prefijo del asunto y recordatorio de revisión de documentos](img/plataforma-ajustes-avisos.png)
