@@ -149,6 +149,76 @@ final class IndicatorServiceTest extends RepositoryTestCase
         self::assertNotNull($this->em->find(\App\Entity\Measurement::class, $value->getId()));
     }
 
+    /** A row of the board for an indicator whose first periods have the given values (target 85, alert from 80). */
+    private function rowWithValues(float ...$values): \App\Model\IndicatorRow
+    {
+        $calendar  = $this->service()->createCalendar($this->centre, $this->year, 'Evaluaciones', 'evaluations');
+        $indicator = $this->indicator($this->year, $calendar);
+        foreach ($values as $i => $value) {
+            $this->service()->record($indicator, $calendar->getPeriods()->get($i) ?: throw new \LogicException(), $value, null, $this->teacher);
+        }
+
+        /** @var IndicatorBoardBuilder $board */
+        $board = self::getContainer()->get(IndicatorBoardBuilder::class);
+
+        return $board->row($indicator, $this->year);
+    }
+
+    public function testTheChartLabelsEachPointWithItsValuePeriodAndStatus(): void
+    {
+        $row = $this->rowWithValues(90.0, 82.0, 70.0);
+
+        $points = $row->chart['points'];
+        self::assertCount(3, $points);
+        self::assertSame([90.0, 82.0, 70.0], array_column($points, 'value'));
+        // On target, in the alert band, off target: the colour of each point comes from this.
+        self::assertSame(['on_target', 'alert', 'off_target'], array_column($points, 'status'));
+        self::assertSame(['1.ª evaluación', '2.ª evaluación', '3.ª evaluación'], array_column($points, 'label'));
+    }
+
+    public function testTheChartAxisHasRoundValuesThatContainTheDataTheTargetAndTheThreshold(): void
+    {
+        $row = $this->rowWithValues(90.0, 82.0, 70.0);
+
+        $ticks = array_column($row->chart['ticks'], 'value');
+        // The data (70–90), the target (85) and the threshold (80) all fit between the first and the last tick, and the ticks are steps of a round number.
+        self::assertSame([70.0, 75.0, 80.0, 85.0, 90.0], $ticks);
+        foreach ($row->chart['ticks'] as $tick) {
+            self::assertGreaterThanOrEqual(0.0, $tick['y']);
+            self::assertLessThanOrEqual(40.0, $tick['y']);
+        }
+        // The highest tick is drawn above the lowest one (a smaller y is higher).
+        self::assertLessThan($row->chart['ticks'][0]['y'], $row->chart['ticks'][4]['y']);
+        // The target (85) sits exactly on its tick.
+        self::assertSame($row->chart['ticks'][3]['y'], $row->chart['targetY']);
+    }
+
+    public function testAFlatSeriesStillGetsAnAxisWithRoomAroundIt(): void
+    {
+        $row = $this->rowWithValues(85.0, 85.0);
+
+        $ticks = array_column($row->chart['ticks'], 'value');
+        self::assertGreaterThanOrEqual(3, \count($ticks));
+        self::assertLessThan(85.0, min($ticks));
+        self::assertGreaterThan(85.0, max($ticks));
+    }
+
+    public function testThereIsNoChartUntilThereIsSomethingToDraw(): void
+    {
+        $calendar  = $this->service()->createCalendar($this->centre, $this->year, 'Evaluaciones', 'evaluations');
+        $indicator = $this->service()->saveIndicator($this->centre, null, $this->year, [
+            'name' => 'Sin meta', 'description' => null, 'section' => null, 'unit' => null, 'higherIsBetter' => true,
+            'teacher' => $this->teacher, 'profile' => null, 'active' => true, 'calendar' => $calendar, 'target' => null, 'alertThreshold' => null,
+        ]);
+
+        /** @var IndicatorBoardBuilder $board */
+        $board = self::getContainer()->get(IndicatorBoardBuilder::class);
+        $row   = $board->row($indicator, $this->year);
+
+        self::assertSame([], $row->chart['points']);
+        self::assertSame([], $row->chart['ticks']);
+    }
+
     public function testANewYearCopiesTheCalendarsAYearLaterAndTheTargets(): void
     {
         $calendar  = $this->service()->createCalendar($this->centre, $this->previous, 'Evaluaciones', 'evaluations');

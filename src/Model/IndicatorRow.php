@@ -19,7 +19,7 @@ final readonly class IndicatorRow
     /**
      * @param list<IndicatorCell>                                                                                                   $cells
      * @param array{value: float, label: string}|null                                                                               $previous the year before's value for the same period (or its last one)
-     * @param array{points: list<array{x: float, y: float}>, previous: list<array{x: float, y: float}>, targetY: ?float, thresholdY: ?float} $chart    in a 100 × 40 box
+     * @param array{points: list<array{x: float, y: float, value: float, label: string, status: ?string}>, previous: list<array{x: float, y: float}>, targetY: ?float, thresholdY: ?float, ticks: list<array{value: float, y: float}>} $chart    in a 100 × 40 box
      */
     public function __construct(
         public Indicator $indicator,

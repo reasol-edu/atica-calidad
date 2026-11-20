@@ -159,10 +159,13 @@ final class IndicatorBoardBuilder
     }
 
     /**
+     * The chart's geometry in a 100 × 40 box: this year's points (with their value, period and status, so the screen can colour and
+     * label them), last year's line, the target and alert-threshold levels, and a vertical axis with round values (see axis()).
+     *
      * @param list<IndicatorCell>  $cells
      * @param array<string, float> $previousValues
      *
-     * @return array{points: list<array{x: float, y: float}>, previous: list<array{x: float, y: float}>, targetY: ?float, thresholdY: ?float}
+     * @return array{points: list<array{x: float, y: float, value: float, label: string, status: ?string}>, previous: list<array{x: float, y: float}>, targetY: ?float, thresholdY: ?float, ticks: list<array{value: float, y: float}>}
      */
     private function chart(array $cells, array $previousValues, ?float $target, ?float $threshold): array
     {
@@ -182,20 +185,70 @@ final class IndicatorBoardBuilder
 
         $all = [...array_values($current), ...array_values($previous), ...array_filter([$target, $threshold], static fn (?float $v): bool => $v !== null)];
         if ($all === []) {
-            return ['points' => [], 'previous' => [], 'targetY' => null, 'thresholdY' => null];
+            return ['points' => [], 'previous' => [], 'targetY' => null, 'thresholdY' => null, 'ticks' => []];
         }
-        $min  = min($all);
-        $max  = max($all);
-        $span = $max - $min ?: 1.0;
+        [$min, $max, $axis] = self::axis($all);
+        $span = $max - $min;
         $n    = max(1, \count($cells) - 1);
         $x    = static fn (int $i): float => round(self::MARGIN + $i * (self::WIDTH - 2 * self::MARGIN) / $n, 2);
         $y    = static fn (float $v): float => round(self::HEIGHT - self::MARGIN - ($v - $min) * (self::HEIGHT - 2 * self::MARGIN) / $span, 2);
+
+        $points = [];
+        foreach ($current as $i => $value) {
+            $points[] = [
+                'x'      => $x($i),
+                'y'      => $y($value),
+                'value'  => $value,
+                'label'  => $cells[$i]->period->getName(),
+                'status' => $cells[$i]->status()?->value,
+            ];
+        }
+
         return [
-            'points'     => self::line($current, $x, $y),
+            'points'     => $points,
             'previous'   => self::line($previous, $x, $y),
             'targetY'    => $target !== null ? $y($target) : null,
             'thresholdY' => $threshold !== null ? $y($threshold) : null,
+            'ticks'      => array_map(static fn (float $v): array => ['value' => $v, 'y' => $y($v)], $axis),
         ];
+    }
+
+    /**
+     * A vertical axis that reads: round bounds (the data's lowest and highest value pushed out to a multiple of a 1, 2 or 5 step) and
+     * a tick at each step, three to six of them. A flat series gets some room above and below so its line is not drawn on an edge.
+     *
+     * @param non-empty-list<float> $values
+     *
+     * @return array{0: float, 1: float, 2: list<float>} lower bound, upper bound and the tick values
+     */
+    private static function axis(array $values): array
+    {
+        $low  = min($values);
+        $high = max($values);
+        if ($high - $low < 1e-9) {
+            $pad   = abs($low) * 0.1 ?: 1.0;
+            $low  -= $pad;
+            $high += $pad;
+        }
+
+        $raw  = ($high - $low) / 4;
+        $exp  = floor(log10($raw));
+        $frac = $raw / 10 ** $exp;
+        $step = (match (true) {
+            $frac <= 1 => 1,
+            $frac <= 2 => 2,
+            $frac <= 5 => 5,
+            default    => 10,
+        }) * 10 ** $exp;
+
+        $min   = floor($low / $step + 1e-9) * $step;
+        $max   = ceil($high / $step - 1e-9) * $step;
+        $ticks = [];
+        for ($v = $min; $v <= $max + $step / 2; $v += $step) {
+            $ticks[] = round($v, 10);
+        }
+
+        return [round($min, 10), round($max, 10), $ticks];
     }
 
     /**
