@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-11-20
+
 Incluye una migración nueva (`Version20261120100000`, el ajuste `documents.min_revision`): se aplica al
 actualizar, como siempre.
 
