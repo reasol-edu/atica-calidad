@@ -16,6 +16,7 @@ settings.saved: 'Guardado'
 settings.no_settings_for_scope: 'No hay ajustes disponibles para este nivel.'
 settings.hub.help: 'Personaliza los ajustes predeterminados para este centro.'
 settings.hub.manage: 'Configurar'
+settings.hub.status: '{0}Todos los ajustes tienen su valor por defecto.|{1}1 ajuste con valor propio.|]1,Inf[%count% ajustes con valor propio.'
 
 # ── Categorías de ajustes ────────────────────────────────────────────────────
 settings.category.display.label: 'Visualización'

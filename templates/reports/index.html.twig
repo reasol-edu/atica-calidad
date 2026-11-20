@@ -12,15 +12,16 @@
             </h2>
             <p class="text-sm text-gray-600">{{ description }}</p>
             <p class="text-xs font-medium {{ summary_class ?? 'text-gray-500' }}">{{ summary }}</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 px-6 py-3">
+            {# Going to the screen is a link inside the card, not a third button in the footer: every footer is then the same PDF + Excel pair, the same height in every card. #}
             {% if screen_route is defined and screen_route %}
                 <a href="{{ path(screen_route, {centreId: centre.id.toRfc4122}) }}"
-                   class="inline-flex items-center gap-1.5 rounded-lg border border-forest-600 px-3 py-1.5 text-xs font-medium text-forest-700 hover:bg-forest-50 transition-colors">
+                   class="inline-flex items-center gap-1.5 pt-1 text-sm font-medium text-forest-700 hover:text-forest-900 hover:underline max-sm:py-2">
                     {{ ux_icon(screen_icon ?? 'heroicons:eye', {class: 'h-4 w-4'}) }}
                     {{ (screen_label ?? 'view_on_screen')|trans({}, 'reports') }}
                 </a>
             {% endif %}
+        </div>
+        <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 px-6 py-3">
             {% if nothing_to_export is defined and nothing_to_export %}
                 {# Same box as a button (text-xs, py-1.5, 1px border) so every card footer has the same height. #}
                 <span class="inline-flex items-center border border-transparent py-1.5 text-xs text-gray-500">{{ 'nothing_to_export'|trans({}, 'reports') }}</span>

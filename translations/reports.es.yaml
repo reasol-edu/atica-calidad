@@ -33,7 +33,7 @@ document_reviews.state.overdue: 'Vencida'
 document_reviews.state.soon: 'Próxima'
 document_reviews.state.ok: 'Programada'
 
-view_on_screen: 'Ver'
+view_on_screen: 'Ver en pantalla'
 compliance.title: 'Cumplimiento de las actividades'
 compliance.filename: 'cumplimiento-de-actividades'
 compliance.description: 'Cómo ha ido cada actividad en un curso y frente al anterior: lo esperado, lo hecho y qué parte llegó en plazo. Para demostrar en una auditoría que se hace lo que se dice.'

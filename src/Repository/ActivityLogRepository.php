@@ -86,6 +86,17 @@ class ActivityLogRepository extends ServiceEntityRepository
         return $qb->getQuery();
     }
 
+    /** When the newest entry of the log was written (the administration card's status), or null while the log is empty. */
+    public function latestCreatedAt(): ?\DateTimeImmutable
+    {
+        $row = $this->createQueryBuilder('l')
+            ->select('MAX(l.createdAt) AS latest')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return \is_string($row) && $row !== '' ? new \DateTimeImmutable($row) : null;
+    }
+
     /** @return list<string> distinct action types seen in the log, alphabetically */
     public function findDistinctActionTypes(): array
     {

@@ -1280,7 +1280,7 @@ class LoadDemoDataCommand extends Command
         $quality   = $this->teachers['calidad'];
         $direccion = $this->teachers['direccion'];
         // Rich text (Quill), like a teacher would actually leave it: paragraphs, a list, a bit of emphasis.
-        $attendees = '<ul><li>Javier Morales Peña (director)</li><li>Laura Jiménez Soto (coordinadora de calidad)</li><li>Jefatura de estudios</li><li>Secretaría</li></ul>';
+        $attendees = '<ul><li>Javier Morales Peña (director)</li><li>Laura Jiménez Soto (responsable de calidad)</li><li>Jefatura de estudios</li><li>Secretaría</li></ul>';
 
         $held = new \DateTimeImmutable($first . '-06-30');
         $last = $this->reviewService->create($centre, $previous, $quality, 'Revisión por la dirección ' . $previous->getName(), $held, new \DateTimeImmutable(($first - 1) . '-09-01'), $held);

@@ -87,6 +87,7 @@
             </div>
             <div class="px-6 py-4 flex-1">
                 <p class="text-sm text-gray-500">{{ 'settings.global.description'|trans({}, 'settings') }}</p>
+                <p class="mt-3 text-sm font-medium text-gray-700">{{ 'settings.hub.status'|trans({'%count%': settings_set}, 'settings') }}</p>
             </div>
             <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-end">
                 <span class="inline-flex items-center gap-1.5 text-sm font-medium text-forest-600 group-hover:text-forest-800 transition-colors">
@@ -109,6 +110,9 @@
             </div>
             <div class="px-6 py-4 flex-1">
                 <p class="text-sm text-gray-500">{{ 'activity_log.card.help'|trans({}, 'admin') }}</p>
+                <p class="mt-3 text-sm font-medium text-gray-700">
+                    {{ log_latest is null ? 'activity_log.card.empty'|trans({}, 'admin') : 'activity_log.card.latest'|trans({'%date%': log_latest|date('d/m/Y H:i')}, 'admin') }}
+                </p>
             </div>
             <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-end">
                 <span class="inline-flex items-center gap-1.5 text-sm font-medium text-forest-600 group-hover:text-forest-800 transition-colors">

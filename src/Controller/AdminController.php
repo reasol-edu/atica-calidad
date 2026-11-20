@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Repository\ActivityLogRepository;
 use App\Repository\EducationalCentreRepository;
+use App\Repository\GlobalSettingValueRepository;
 use App\Repository\TeacherRepository;
 use App\Service\Backup\AutomaticBackup;
 use App\Service\FailedMessages;
@@ -26,6 +28,8 @@ class AdminController extends AbstractController
         private readonly AutomaticBackup $automaticBackup,
         private readonly SystemStatus $systemStatus,
         private readonly FailedMessages $failedMessages,
+        private readonly ActivityLogRepository $activityLog,
+        private readonly GlobalSettingValueRepository $globalSettings,
     ) {}
 
     #[Route('/admin', name: 'app_admin')]
@@ -36,6 +40,8 @@ class AdminController extends AbstractController
             'backup'       => $this->automaticBackup->status(),
             'worker'       => $this->systemStatus->worker(),
             'failed_count' => $this->failedMessages->count(),
+            'log_latest'   => $this->activityLog->latestCreatedAt(),
+            'settings_set' => $this->globalSettings->countAll(),
             'stats'       => [
                 'teachers_total'  => $this->teachers->countAll(),
                 'teachers_active' => $this->teachers->countActive(),

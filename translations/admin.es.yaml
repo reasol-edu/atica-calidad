@@ -825,6 +825,8 @@ activity_log.subtitle: 'Auditoría de seguridad: qué hace cada usuario y desde 
 activity_log.card.title: 'Registro de actividad'
 activity_log.card.help: 'Consulta qué hace cada usuario (accesos, altas, cambios, descargas, subidas) y desde qué IP.'
 activity_log.card.action: 'Ver registro'
+activity_log.card.latest: 'Último registro: %date%'
+activity_log.card.empty: 'Aún no hay ningún registro.'
 
 backup.card.title: 'Copias de seguridad'
 backup.card.help: 'Descarga una copia de todos los datos, guarda copias en el servidor y restaura una de ellas.'

@@ -46,4 +46,10 @@ class GlobalSettingValueRepository extends ServiceEntityRepository
     {
         return (int) $this->count(['file' => $file]);
     }
+
+    /** How many global settings have a value of their own (set by an administrator, not the default) — the administration card's status. */
+    public function countAll(): int
+    {
+        return (int) $this->createQueryBuilder('v')->select('COUNT(v.id)')->getQuery()->getSingleScalarResult();
+    }
 }
