@@ -34,6 +34,7 @@ final class DocumentCreationService
         private readonly DocumentRepository $documents,
         private readonly MessageBusInterface $bus,
         private readonly LoggerInterface $logger,
+        private readonly DocumentVersioning $versioning,
     ) {}
 
     /**
@@ -69,9 +70,10 @@ final class DocumentCreationService
     /**
      * Creates a brand-new Document in $folder with its first revision, activating it immediately
      * unless the folder requires review. Persists but never flushes — callers batch their own
-     * flush, so several documents can be created atomically in one request. $version defaults to 1
-     * (the only choice offered anywhere except the document tree's own "upload a new document"
-     * dropzone, which lets whoever is creating it pick an arbitrary starting version).
+     * flush, so several documents can be created atomically in one request. $version defaults to the
+     * lowest number the centre allows (DocumentVersioning: 1, or 0 where the first edition is "v0"),
+     * which is the only choice offered anywhere except the document tree's own "upload a new
+     * document" dropzone, which lets whoever is creating it pick a starting version.
      */
     public function createWithFirstRevision(
         Folder $folder,
@@ -80,8 +82,10 @@ final class DocumentCreationService
         ?ListItem $listItem,
         UploadedFile $file,
         Teacher $uploader,
-        int $version = 1,
+        ?int $version = null,
     ): Document {
+        $version ??= $this->versioning->minimum($folder->getEducationalCentre());
+
         $content      = (string) file_get_contents($file->getPathname());
         $documentFile = $this->storeFile($content, $file->getMimeType() ?? 'application/octet-stream', $file->getClientOriginalName());
 

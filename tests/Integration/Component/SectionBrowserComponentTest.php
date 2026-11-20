@@ -13,8 +13,11 @@ use App\Entity\DocumentRevision;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
+use App\Entity\GlobalSettingValue;
 use App\Entity\ListItem;
 use App\Entity\PersonName;
+use App\Entity\SettingDefinition;
+use App\Entity\SettingType;
 use App\Entity\SpecificProfile;
 use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
@@ -436,6 +439,72 @@ final class SectionBrowserComponentTest extends ControllerTestCase
         self::assertNotNull($reloaded);
         self::assertTrue($reloaded->hasVersion(1));
         self::assertTrue($reloaded->hasVersion(2), 'the rejected rename must leave the original version untouched');
+    }
+
+    /**
+     * A manager types $typed as the version of a document's only revision (numbered $initial) with the global minimum revision
+     * set to $minimum (null = nothing configured); returns the revision's version afterwards and the error the component showed.
+     *
+     * @return array{0: int, 1: string|null}
+     */
+    private function editVersionTo(int $initial, string $typed, ?string $minimum): array
+    {
+        $centre  = $this->centre();
+        $section = $this->section($centre);
+        $folder  = $this->folder($section);
+        $manager = $this->teacher('responsable');
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Responsable');
+        $folder->addResponsibleProfile($profile);
+        $assignment = new SpecificProfileAssignment($profile, null, $manager);
+        $document   = new Document($folder, 'Doc');
+        $file       = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1);
+        $revision   = new DocumentRevision($document, $initial, $file, false, $manager);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+        $this->persist($centre, $section, $folder, $profile, $manager, $assignment, $document, $file, $revision);
+        if ($minimum !== null) {
+            $definition = (new SettingDefinition())->setKey('documents.min_revision')->setType(SettingType::Choice)->setChoices('0,1')
+                ->setDefaultValue('1')->setGlobalScope(true)->setCentreScope(true);
+            $this->persist($definition, (new GlobalSettingValue())->setDefinition($definition)->setValue($minimum));
+        }
+        $folderId   = $folder->getId()->toRfc4122();
+        $documentId = $document->getId()->toRfc4122();
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('SectionBrowserComponent', $this->inSection($section, $centre), $this->client);
+        $component->call('startEditRevision', ['folderId' => $folderId, 'id' => $documentId, 'revisionId' => $revision->getId()->toRfc4122()]);
+        $component->set('editVersionValue', $typed)->call('saveEditRevision', ['folderId' => $folderId, 'id' => $documentId]);
+        $html = $component->render()->toString();
+        $error = str_contains($html, 'o mayor') ? 'invalid' : null;
+
+        $this->em->clear();
+        /** @var DocumentRepository $documents */
+        $documents = self::getContainer()->get(DocumentRepository::class);
+        $reloaded  = $documents->findById($documentId);
+        self::assertNotNull($reloaded);
+
+        return [$reloaded->getRevisions()->first()->getVersion(), $error];
+    }
+
+    public function testEditingARevisionToV0NeedsAMinimumOfZero(): void
+    {
+        self::assertSame([0, null], $this->editVersionTo(3, '0', '0'));
+    }
+
+    public function testEditingARevisionToV0IsRefusedWithTheDefaultMinimumOfOne(): void
+    {
+        self::assertSame([3, 'invalid'], $this->editVersionTo(3, '0', null));
+    }
+
+    public function testABlankVersionIsRefusedEvenWhenZeroIsAllowed(): void
+    {
+        self::assertSame([3, 'invalid'], $this->editVersionTo(3, '', '0'));
+    }
+
+    public function testAV0RevisionKeepsItsNumberWhenTheMinimumIsLaterRaisedToOne(): void
+    {
+        // The floor only applies to a number being changed; an existing v0 stays editable (its other fields) as v0.
+        self::assertSame([0, null], $this->editVersionTo(0, '0', '1'));
     }
 
     public function testSaveEditRevisionOnlyLetsAQualityManagerRewriteUploaderAndDate(): void

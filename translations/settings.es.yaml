@@ -21,6 +21,7 @@ settings.hub.status: '{0}Todos los ajustes tienen su valor por defecto.|{1}1 aju
 # ── Categorías de ajustes ────────────────────────────────────────────────────
 settings.category.display.label: 'Visualización'
 settings.category.academic_year.label: 'Curso académico'
+settings.category.documents.label: 'Documentos'
 settings.category.email_alerts.label: 'Avisos por correo'
 settings.category.report_templates.label: 'Plantillas de informes'
 settings.category.audit.label: 'Registro de actividad'
@@ -103,6 +104,10 @@ settings.key.notifications_email_subject_prefix.description: 'Texto que se antep
 settings.key.academic_year_start_date.label: 'Inicio del curso académico'
 settings.key.academic_year_start_date.description: 'Día y mes en que empieza cada curso académico (15 de septiembre por defecto). Las actividades se repiten cada curso en sus fechas, y este día marca cuándo pasan a contar las del curso siguiente: p. ej., una actividad de enero a febrero, consultada en octubre, se refiere a la del próximo enero, no a la del enero ya pasado.'
 
+settings.key.documents_min_revision.label: 'Número mínimo de revisión de un documento'
+settings.key.documents_min_revision.description: 'Con 1, la primera revisión de un documento es la «v1»; con 0, es la «v0» y la siguiente la «v1», como numeran la edición inicial muchos sistemas de calidad. Es el número que se propone al subir un documento nuevo y el mínimo que admiten los campos de versión; los documentos que ya existen no cambian. 1 por defecto.'
+settings.key.documents_min_revision.choice.0: '0'
+settings.key.documents_min_revision.choice.1: '1'
 settings.key.backup_auto_policy.label: 'Copias automáticas'
 settings.key.backup_auto_policy.description: 'Si la aplicación guarda una copia de seguridad cada noche (02:30) en el servidor y cuántas conserva. Se guarda siempre una copia al día; con el tiempo se van borrando las antiguas, dejando una por semana y una por mes, para poder volver atrás si un problema se descubre tarde. Básica: 7 diarias. Recomendada: 7 diarias, 4 semanales y 3 mensuales (unos 3 meses atrás). Ampliada: 14 diarias, 8 semanales y 12 mensuales (hasta un año atrás). Las copias que guardas a mano nunca se borran. Cada copia ocupa lo que la base de datos, ficheros incluidos, y se guarda sin cifrar en el mismo disco: no sustituye a una copia fuera del servidor.'
 settings.key.backup_auto_policy.choice.off: 'Desactivadas'

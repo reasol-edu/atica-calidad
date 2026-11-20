@@ -164,7 +164,7 @@ revision.uploader_only_hint: 'Solo el responsable de la carpeta puede ver el his
 revision.edit: 'Editar revisión'
 revision.delete: 'Eliminar revisión'
 revision.uploaded_by_placeholder: 'Buscar docente…'
-revision.error.invalid_version: 'El número de versión debe ser mayor que 0.'
+revision.error.invalid_version: 'El número de versión debe ser un número entero, %min% o mayor.'
 revision.error.version_in_use: 'La versión %version% ya está en uso por otra revisión de este documento.'
 
 review.result_placeholder: 'Resultado de la revisión (opcional)…'

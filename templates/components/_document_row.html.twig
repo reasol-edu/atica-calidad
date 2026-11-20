@@ -251,7 +251,7 @@
                               data-live-folder-id-param="{{ fid }}" data-live-id-param="{{ did }}"
                               class="flex flex-wrap shrink-0 items-center gap-1.5">
                             <span class="text-xs text-gray-400">v</span>
-                            <input type="number" min="1" data-model="norender|editVersionValue" value="{{ editVersionValue }}" autofocus
+                            <input type="number" min="{{ this.minRevision }}" data-model="norender|editVersionValue" value="{{ editVersionValue }}" autofocus
                                    class="w-14 rounded-md border border-forest-300 bg-white px-1.5 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                             {% if can_edit_metadata %}
                                 <select data-controller="tom-select"
@@ -364,7 +364,7 @@
                     {% if can_manage %}
                         <label class="mb-2 flex items-center gap-1.5 text-xs text-gray-500">
                             {{ 'upload.version'|trans({}, 'document_content') }}
-                            <input type="number" name="version" min="1" value="{{ document.nextVersion }}"
+                            <input type="number" name="version" min="{{ this.minRevision }}" value="{{ document.nextVersion }}"
                                    class="w-16 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs">
                         </label>
                     {% endif %}

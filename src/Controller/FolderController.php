@@ -22,6 +22,7 @@ use App\Service\DocumentCreationService;
 use App\Service\DocumentReviewNotifier;
 use App\Service\DocumentRevisionReviewer;
 use App\Service\DocumentTreeAccessChecker;
+use App\Service\DocumentVersioning;
 use App\Service\FolderZipExporter;
 use App\Service\UploadLimits;
 use Doctrine\ORM\EntityManagerInterface;
@@ -60,6 +61,7 @@ class FolderController extends AbstractController
         private readonly ActivityLogger $activityLogger,
         private readonly ActivitySubmissionFilenameBuilder $submissionFilename,
         private readonly UploadLimits $uploadLimits,
+        private readonly DocumentVersioning $versioning,
     ) {}
 
     /**
@@ -114,7 +116,10 @@ class FolderController extends AbstractController
 
             $item   = $items[$i] ?? [];
             $name    = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-            $version = max(1, (int) ($item['version'] ?? 1));
+            // The starting version typed in the dropzone, never below what the centre allows (a blank or odd value becomes that minimum).
+            $minimum = $this->versioning->minimum($centre);
+            $typed   = trim((string) ($item['version'] ?? ''));
+            $version = $typed !== '' && is_numeric($typed) ? max($minimum, (int) $typed) : $minimum;
 
             $profileKey = (string) ($item['profileKey'] ?? '');
             $profile    = null;
@@ -199,9 +204,12 @@ class FolderController extends AbstractController
         $canManage = $this->access->canManageFolder($teacher, $folder);
         $version   = $document->getNextVersion();
         if ($canManage && $request->request->has('version')) {
-            $requestedVersion = $request->request->getInt('version');
-            if ($requestedVersion < 1) {
-                $this->addFlash('error', $this->t('revision.error.invalid_version'));
+            $minimum          = $this->versioning->minimum($centre);
+            $typed            = trim($request->request->getString('version'));
+            $requestedVersion = (int) $typed;
+            // A blank field is not "0": with a minimum of 0 it would otherwise pass for the lowest number.
+            if ($typed === '' || !is_numeric($typed) || $requestedVersion < $minimum) {
+                $this->addFlash('error', $this->translator->trans('revision.error.invalid_version', ['%min%' => $minimum], 'document_content'));
 
                 return $this->redirectToFolder($folder, $request);
             }

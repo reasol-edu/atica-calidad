@@ -114,6 +114,39 @@ final class SettingsComponentTest extends ControllerTestCase
         self::assertSame('Título del centro', $stored->getValue());
     }
 
+    /** The whole path a choice goes through when picked in the browser: "0" must arrive as a value, not be mistaken for "nothing". */
+    public function testPickingTheChoiceZeroSavesItAndTheScreenKeepsItSelected(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $def = (new SettingDefinition())->setKey('documents.min_revision')->setType(SettingType::Choice)->setChoices('0,1')
+            ->setDefaultValue('1')->setGlobalScope(true)->setCentreScope(true);
+        $this->persist($centre, $admin, $def);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('SettingsComponent', ['scope' => 'centre'], $this->client);
+        $component->call('save', ['key' => 'documents.min_revision', 'value' => '0']);
+
+        $this->em->clear();
+        /** @var CentreSettingValueRepository $centreValues */
+        $centreValues = self::getContainer()->get(CentreSettingValueRepository::class);
+        /** @var SettingDefinitionRepository $definitions */
+        $definitions = self::getContainer()->get(SettingDefinitionRepository::class);
+        $reloadedDef = $definitions->findOneBy(['key' => 'documents.min_revision']);
+        self::assertNotNull($reloadedDef);
+        /** @var EducationalCentreRepository $centres */
+        $centres        = self::getContainer()->get(EducationalCentreRepository::class);
+        $reloadedCentre = $centres->findById($centre->getId()->toRfc4122());
+        self::assertNotNull($reloadedCentre);
+        $stored = $centreValues->findByDefinitionAndCentre($reloadedDef, $reloadedCentre);
+        self::assertNotNull($stored);
+        self::assertSame('0', $stored->getValue());
+
+        $html = $component->render()->toString();
+        self::assertMatchesRegularExpression('/<option value="0"\s+selected\b/', $html);
+    }
+
     public function testSaveWithAnInvalidValueSetsLastErrorWithoutPersisting(): void
     {
         $centre = $this->centre();

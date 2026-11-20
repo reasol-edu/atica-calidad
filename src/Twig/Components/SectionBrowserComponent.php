@@ -28,6 +28,7 @@ use App\Service\DocumentFileGarbageCollector;
 use App\Service\FolderProfileSynchronizer;
 use App\Service\TrashService;
 use App\Service\DocumentTreeAccessChecker;
+use App\Service\DocumentVersioning;
 use App\Service\ProfileAssignmentRowBuilder;
 use App\Service\ReadAcknowledgementService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -213,7 +214,14 @@ class SectionBrowserComponent extends AbstractController
         private readonly ActivityFolderCycleFilter $cycleFilter,
         private readonly ReadAcknowledgementService $readAcknowledgements,
         private readonly AttachmentDownloadResponder $downloadResponder,
+        private readonly DocumentVersioning $versioning,
     ) {}
+
+    /** The lowest revision number the centre allows (0 or 1): the starting version offered on an upload and the floor of every number typed. */
+    public function getMinRevision(): int
+    {
+        return $this->versioning->minimum($this->centre);
+    }
 
     /** @var array<string, bool> memoised per render: revision id → can the browser show it? */
     private array $previewable = [];
@@ -1291,9 +1299,11 @@ class SectionBrowserComponent extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $newVersion = (int) trim($this->editVersionValue);
-        if ($newVersion < 1) {
-            $this->errors = ['editRevision' => $this->t('document.error.invalid_version')];
+        $typed      = trim($this->editVersionValue);
+        $newVersion = (int) $typed;
+        // The floor only applies to a number being changed: a revision that already is "v0" stays editable if the centre later raises its minimum to 1.
+        if ($typed === '' || !is_numeric($typed) || ($newVersion !== $revision->getVersion() && $newVersion < $this->getMinRevision())) {
+            $this->errors = ['editRevision' => $this->translator->trans('document.error.invalid_version', ['%min%' => $this->getMinRevision()], 'admin')];
 
             return;
         }

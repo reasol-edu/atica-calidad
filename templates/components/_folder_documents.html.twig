@@ -137,7 +137,7 @@
                         <div class="flex flex-wrap items-center gap-3 pl-7">
                             <label class="flex items-center gap-1.5 text-xs text-gray-500">
                                 {{ 'upload.version'|trans({}, 'document_content') }}
-                                <input type="number" data-role="version-input" value="1" min="1"
+                                <input type="number" data-role="version-input" value="{{ this.minRevision }}" min="{{ this.minRevision }}"
                                        class="w-16 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs">
                             </label>
                             {% if folder.groupByProfile and upload_profile_rows is not empty %}

@@ -45,6 +45,26 @@ final class SettingsManagerTest extends RepositoryTestCase
         return (new SettingDefinition())->setKey($key)->setType(SettingType::String)->setDefaultValue($default)->setCentreScope(true)->setTeacherScope(true)->setGlobalScope(true);
     }
 
+    /** A choice setting whose options are "0" and "1" (documents.min_revision): "0" is a value, not an empty one that resets the setting. */
+    public function testAChoiceOfZeroIsSavedAndResolvedAsZero(): void
+    {
+        $centre = $this->centre();
+        $def    = (new SettingDefinition())->setKey('documents.min_revision')->setType(SettingType::Choice)->setChoices('0,1')
+            ->setDefaultValue('1')->setGlobalScope(true)->setCentreScope(true);
+        $this->persist($centre, $def);
+
+        self::assertSame(SettingsSaveOutcome::Saved, $this->manager->save('global', 'documents.min_revision', '0', null, null));
+        self::assertSame(SettingsSaveOutcome::Saved, $this->manager->save('centre', 'documents.min_revision', '1', $centre, null));
+        self::assertSame(SettingsSaveOutcome::RejectedInvalid, $this->manager->save('global', 'documents.min_revision', '2', null, null));
+
+        $this->em->clear();
+        /** @var GlobalSettingValueRepository $globalValues */
+        $globalValues = self::getContainer()->get(GlobalSettingValueRepository::class);
+        $stored       = $globalValues->findAllIndexedByKey()['documents.min_revision'] ?? null;
+        self::assertNotNull($stored);
+        self::assertSame('0', $stored->getValue());
+    }
+
     public function testSaveCreatesACentreValue(): void
     {
         $centre = $this->centre();

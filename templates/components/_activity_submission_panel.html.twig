@@ -18,7 +18,7 @@
                     <form data-action="submit->live#action:prevent" data-live-action-param="saveEditRevision" data-live-id-param="{{ did }}"
                           class="flex flex-wrap shrink-0 items-center gap-1.5">
                         <span class="text-xs text-gray-400">v</span>
-                        <input type="number" min="1" data-model="norender|editVersionValue" value="{{ editVersionValue }}" autofocus
+                        <input type="number" min="{{ this.minRevision }}" data-model="norender|editVersionValue" value="{{ editVersionValue }}" autofocus
                                class="w-14 rounded-md border border-forest-300 bg-white px-1.5 py-0.5 text-xs focus:outline-none focus:ring-2 focus:ring-forest-500/20">
                         {% if can_edit_metadata %}
                             <select data-controller="tom-select"

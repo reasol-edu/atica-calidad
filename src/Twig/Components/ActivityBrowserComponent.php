@@ -50,6 +50,7 @@ use App\Service\ActivityWindowChecker;
 use App\Service\DocumentFileGarbageCollector;
 use App\Service\FolderProfileSynchronizer;
 use App\Service\DocumentTreeAccessChecker;
+use App\Service\DocumentVersioning;
 use App\Service\OwnCompletionManager;
 use App\Service\ProfileAssignmentRowBuilder;
 use App\Service\TrashService;
@@ -344,7 +345,14 @@ class ActivityBrowserComponent extends AbstractController
         private readonly ActivitySubmissionFilenameBuilder $submissionFilename,
         private readonly ActivitySubmissionSlotBuilder $submissionSlots,
         private readonly TrashService $trash,
+        private readonly DocumentVersioning $versioning,
     ) {}
+
+    /** The lowest revision number the centre allows (0 or 1): the floor of the version typed when editing a submission's revision. */
+    public function getMinRevision(): int
+    {
+        return $this->versioning->minimum($this->centre);
+    }
 
     public function mount(
         EducationalCentre $centre,
@@ -2106,9 +2114,11 @@ class ActivityBrowserComponent extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $newVersion = (int) trim($this->editVersionValue);
-        if ($newVersion < 1) {
-            $this->errors = ['editRevision' => $this->t('document.error.invalid_version')];
+        $typed      = trim($this->editVersionValue);
+        $newVersion = (int) $typed;
+        // The floor only applies to a number being changed: a revision that already is "v0" stays editable if the centre later raises its minimum to 1.
+        if ($typed === '' || !is_numeric($typed) || ($newVersion !== $revision->getVersion() && $newVersion < $this->getMinRevision())) {
+            $this->errors = ['editRevision' => $this->translator->trans('document.error.invalid_version', ['%min%' => $this->getMinRevision()], 'admin')];
 
             return;
         }

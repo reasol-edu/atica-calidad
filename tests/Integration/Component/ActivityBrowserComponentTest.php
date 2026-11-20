@@ -16,10 +16,14 @@ use App\Entity\DocumentRevision;
 use App\Entity\DocumentSection;
 use App\Entity\EducationalCentre;
 use App\Entity\Folder;
+use App\Entity\GlobalSettingValue;
 use App\Entity\PersonName;
+use App\Entity\SettingDefinition;
+use App\Entity\SettingType;
 use App\Entity\SpecificProfile;
 use App\Entity\SpecificProfileAssignment;
 use App\Entity\Teacher;
+use App\Repository\DocumentRevisionRepository;
 use App\Tests\Integration\ControllerTestCase;
 use App\Twig\Components\ActivityBrowserComponent;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
@@ -2054,6 +2058,49 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
 
         self::assertSame('1', $this->stringProp($component, 'editVersionValue'));
         self::assertSame('', $this->stringProp($component, 'editUploadedById'), 'a plain folder manager (not admin/quality manager) must not see the uploader field populated');
+    }
+
+    /** A folder manager types $typed as the version of a submission's revision (numbered 3), with the global minimum revision $minimum (null = unset). */
+    private function versionAfterEditingTo(string $typed, ?string $minimum): int
+    {
+        $centre             = $this->centre();
+        $folder             = $this->folder($centre);
+        $responsibleProfile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Responsable');
+        $folder->addResponsibleProfile($responsibleProfile);
+        $manager    = $this->teacher('responsable');
+        $assignment = new SpecificProfileAssignment($responsibleProfile, null, $manager);
+        $document   = $this->documentWithApprovedRevision($folder, $manager);
+        $revision   = $document->getActiveRevision();
+        self::assertNotNull($revision);
+        $revision->setVersion(3);
+        $this->persist($centre, $folder->getDocumentSection(), $folder, $responsibleProfile, $manager, $assignment, $document);
+        if ($minimum !== null) {
+            $definition = (new SettingDefinition())->setKey('documents.min_revision')->setType(SettingType::Choice)->setChoices('0,1')
+                ->setDefaultValue('1')->setGlobalScope(true)->setCentreScope(true);
+            $this->persist($definition, (new GlobalSettingValue())->setDefinition($definition)->setValue($minimum));
+        }
+
+        $this->loginAs($manager, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', ['centre' => $centre], $this->client);
+        $component->call('startEditRevision', ['id' => $document->getId()->toRfc4122(), 'revisionId' => $revision->getId()->toRfc4122()]);
+        $component->set('editVersionValue', $typed)->call('saveEditRevision', ['id' => $document->getId()->toRfc4122()]);
+
+        $this->em->clear();
+        /** @var DocumentRevisionRepository $revisions */
+        $revisions = self::getContainer()->get(DocumentRevisionRepository::class);
+        $reloaded  = $revisions->findByIdAndDocument($revision->getId()->toRfc4122(), $document);
+
+        return $reloaded?->getVersion() ?? -1;
+    }
+
+    public function testEditingASubmissionRevisionToV0NeedsAMinimumRevisionOfZero(): void
+    {
+        self::assertSame(0, $this->versionAfterEditingTo('0', '0'));
+    }
+
+    public function testEditingASubmissionRevisionToV0IsRefusedWithTheDefaultMinimum(): void
+    {
+        self::assertSame(3, $this->versionAfterEditingTo('0', null));
     }
 
     public function testStartEditRevisionExposesUploaderAndDateFieldsToAQualityManager(): void
