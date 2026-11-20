@@ -8,7 +8,11 @@ Cada informe se descarga en **PDF** —con la plantilla de membrete del centro, 
 configurada en **Ajustes del centro → Plantillas de informes**— o en **Excel**, para trabajar con
 los datos. La portada de la sección resume qué contiene cada uno antes de descargarlo.
 
-![Portada de Informes: una tarjeta por informe con su descripción, un resumen (por ejemplo «7 actividades» o «47 perfiles y subperfiles») y los botones PDF y Excel](img/informes-indice.png)
+![Portada de Informes: una tarjeta por informe con su descripción, un resumen (por ejemplo «7 actividades» o «47 perfiles y subperfiles») y, al pie, los botones PDF y Excel; algunas llevan además un enlace («Ver en pantalla», «Asignar perfiles») dentro de la tarjeta](img/informes-indice.png)
+
+Todas las tarjetas terminan igual, con los botones **PDF** y **Excel**. Los informes que también se
+pueden ver en pantalla, o que llevan a otra pantalla donde corregir los datos, añaden un enlace
+dentro de la propia tarjeta (**Ver en pantalla**, **Asignar perfiles**), debajo del resumen.
 
 El texto gris al pie de cada tarjeta adelanta qué hay dentro: cuántos documentos entrarían en el
 listado maestro, cuántas revisiones hay pendientes o próximas (y cuántas ya vencidas: el texto se
@@ -153,6 +157,6 @@ docente** («—», como «Coordinador/a de Nivel 2º DAW»: es una responsabili
 subperfil **inactivo** (el de un elemento de lista retirado) y un perfil con **más de un docente**
 («Coordinador/a TIC»).
 
-La tarjeta del informe tiene un botón **Asignar perfiles** que lleva a
+La tarjeta del informe tiene un enlace **Asignar perfiles** que lleva a
 [Responsabilidades → Asignar perfiles](06-responsabilidades.md#asignar-perfiles), donde se
 corrigen las asignaciones (lo ven quienes pueden gestionarlas).

@@ -317,9 +317,18 @@ principal, la campana, el calendario y el recordatorio diario) hasta 15 días de
 la página del indicador, escribe el **valor** —con coma o con punto— y, si quiere, unas
 **observaciones** sobre de dónde sale el dato. Un valor ya registrado se puede **corregir**.
 
-La página muestra la meta y el umbral del curso, una gráfica con los valores del curso (en verde), los
-del curso anterior en los mismos periodos (en gris) y las líneas de la meta y del umbral, y cada
-periodo con su valor, su estado y quién lo registró.
+La página muestra la meta y el umbral del curso, una gráfica y cada periodo con su valor, su estado y
+quién lo registró. La gráfica lleva:
+
+- un **eje vertical** con valores redondos, que siempre incluye los datos, la meta y el umbral;
+- el **valor escrito sobre cada punto** del curso, y el punto coloreado según su estado: verde si
+  está en meta, ámbar si está en la franja de alerta y rojo si está fuera de meta (el estado también
+  está escrito en la lista de periodos y en el texto flotante del punto, para quien no distingue los
+  colores);
+- la línea de los valores del curso (en verde), la de los del curso anterior en los mismos periodos
+  (en gris) y las líneas de puntos de la meta y del umbral;
+- los nombres de los periodos justo debajo de su punto. En el móvil, si hay muchos periodos, la
+  gráfica se desplaza hacia los lados en lugar de apretar los nombres.
 
 ### Un valor fuera de meta
 

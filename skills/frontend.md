@@ -103,6 +103,33 @@ quality / teachers in an emulated phone and reports page overflow, controls past
 grouped by class signature (needs the disposable demo database of `skills/screenshots.md`; it only does GETs). It must report
 0 overflows and no signatures at 320, 360, 390 and 768 px.
 
+## Accessible names: write them in the template
+
+Every control needs a name a screen reader announces. `assets/utils/a11y.js` patches missing ones at run time (a `title` or
+`placeholder` becomes the `aria-label`, `<th>` gets `scope`), but it is a safety net for markup generated in many places, not
+the way to write a template:
+
+- **Icon-only button or link** (no text inside): `aria-label="{{ KEY|trans(...) }}"` next to the same `title`, never `title` alone
+  (touch screens do not show it and screen readers treat it unevenly). On a phone, prefer a short visible word beside the icon.
+- **Field with a visible label:** `<label for="x">` and `id="x"` on the control. A label sitting next to a field is not
+  associated until it has `for`. Tom Select moves the label's `for` to its own visible input, so the original `<select>` looks
+  unlabelled to an audit while the control a person uses is named: judge by the visible one.
+- **Field with no room for a label** (a search box, an inline add/rename box): `aria-label`, with a text that says what it is
+  («Nombre de la carpeta…»), not an example («ej: Grupo»).
+- **Table header:** `<th scope="col">` (or `row`); an empty one gets an `sr-only` text.
+- **Hidden file input behind a dropzone:** `aria-label` with the dropzone's hint.
+- **Audit:** crawl the demo with `assets/utils/a11y.js` blocked (Playwright `route` that answers an empty module) and list what
+  is still unnamed; the Symfony debug toolbar's tables and `aria-hidden` overlays are expected noise.
+
+## Charts: lines in SVG, text and points in HTML
+
+The indicator chart (`quality/indicator.html.twig`, geometry in `IndicatorBoardBuilder::chart()`) is an SVG of **lines only**
+(`preserveAspectRatio="none"`, `vector-effect="non-scaling-stroke"`) with the axis, points, values and period names laid over
+it as HTML positioned by percentage. Text inside a stretched SVG would be squashed or blown up with the width. Colour never
+carries a meaning alone: the status is also in the periods list and in the point's `title`. On a narrow screen the chart gets
+a minimum width proportional to its number of periods inside an `overflow-x-auto` wrapper (the grid cell needs `min-w-0`, or the
+whole page scrolls instead).
+
 ## Non-working days in date pickers
 
 There's no date-picker library: everything is a native `<input type="date">`,

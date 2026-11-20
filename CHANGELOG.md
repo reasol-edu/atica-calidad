@@ -7,6 +7,22 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Gráfica del indicador más legible.** La página de un indicador tiene ahora un eje vertical con valores
+  redondos que incluye los datos, la meta y el umbral; cada punto lleva su valor escrito y se colorea según su
+  estado (verde en meta, ámbar en alerta, rojo fuera de meta, además del texto en la lista de periodos); los
+  nombres de los periodos quedan justo debajo de su punto, y en el móvil la gráfica se desplaza hacia los lados
+  en lugar de apretarlos. Tiene un texto alternativo para lectores de pantalla.
+- **Informes: todas las tarjetas terminan igual.** Los botones PDF y Excel son siempre lo único del pie, así que
+  las tarjetas de una fila tienen la misma altura; «Ver en pantalla» y «Asignar perfiles» pasan a ser un enlace
+  dentro de la tarjeta.
+- **Administración: cada tarjeta dice su estado.** Ajustes globales indica cuántos ajustes tienen un valor
+  propio y Registro de actividad, cuándo se escribió el último registro.
+- **Inicio en el móvil:** los botones de «Marcar hecha» y «Subir» de las tareas muestran una palabra corta
+  junto al icono, en lugar de un icono solo.
+- **Demostración:** el acta de ejemplo habla de «responsable de calidad», como el resto de la aplicación.
+
 ## [2.2.1] - 2026-11-20
 
 ### Changed
