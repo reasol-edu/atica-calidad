@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-20
+
 ### Changed
 
 - **Gráfica del indicador más legible.** La página de un indicador tiene ahora un eje vertical con valores
