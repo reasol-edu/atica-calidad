@@ -6,13 +6,13 @@ sección **Administración**, con gestión de todos los centros alojados en el s
 ## El panel de administración
 
 **Administración**, al final del menú lateral, es la portada de este capítulo: una tarjeta por cada
-área (docentes, centros, ajustes, registro de actividad, copias de seguridad y estado del sistema) con
-un resumen de lo que gestiona y, en cada una, una línea de estado: las cifras de docentes y centros,
+área (docentes, centros, registro de actividad, copias de seguridad, estado del sistema y, siempre la
+última, los ajustes) con un resumen de lo que gestiona y, en cada una, una línea de estado: las cifras de docentes y centros,
 cuántos ajustes globales tienen un valor propio («1 ajuste con valor propio», o «Todos los ajustes tienen
 su valor por defecto»), cuándo se escribió el último registro de actividad, el aviso de la última copia
 de seguridad y la señal del proceso de segundo plano.
 
-![Panel de administración con las tarjetas Docentes (35 registrados, 35 activos, 1 administrador), Centros educativos (2), Ajustes globales y Registro de actividad](img/plataforma-panel.png)
+![Panel de administración con las tarjetas Docentes (35 registrados, 35 activos, 1 administrador), Centros educativos (2), Registro de actividad, Copias de seguridad, Estado del sistema y, la última, Ajustes globales](img/plataforma-panel.png)
 
 ### Centros educativos
 

@@ -7,6 +7,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+- Ajustes de tipo PDF (plantillas de informes): el botón «Subir» solo aparece cuando se ha elegido o
+  arrastrado un fichero al recuadro, y desaparece si se quita.
+- Administración: la tarjeta de Ajustes pasa a ser siempre la última del panel.
+
 ## [2.5.0] - 2026-11-21
 
 Incluye una migración nueva (`Version20261121100000`: la columna `document_file_text.ocr_page` y el ajuste
