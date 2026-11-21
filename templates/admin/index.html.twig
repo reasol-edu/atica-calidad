@@ -74,29 +74,6 @@
             </div>
         </a>
 
-        {# ── Card: Settings ───────────────────────────────────────────────────── #}
-        <a href="{{ path('app_admin_settings') }}"
-           class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
-                  hover:border-forest-200 hover:shadow-sm transition-all">
-            <div class="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-forest-100 text-forest-600
-                            group-hover:bg-forest-600 group-hover:text-white transition-colors">
-                    {{ ux_icon('heroicons:adjustments-horizontal', {class: 'h-5 w-5'}) }}
-                </div>
-                <h2 class="text-base font-semibold text-gray-900">{{ 'settings.global.title'|trans({}, 'settings') }}</h2>
-            </div>
-            <div class="px-6 py-4 flex-1">
-                <p class="text-sm text-gray-500">{{ 'settings.global.description'|trans({}, 'settings') }}</p>
-                <p class="mt-3 text-sm font-medium text-gray-700">{{ 'settings.hub.status'|trans({'%count%': settings_set}, 'settings') }}</p>
-            </div>
-            <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-end">
-                <span class="inline-flex items-center gap-1.5 text-sm font-medium text-forest-600 group-hover:text-forest-800 transition-colors">
-                    {{ 'settings.hub.manage'|trans({}, 'settings') }}
-                    {{ ux_icon('heroicons:arrow-right', {class: 'h-4 w-4'}) }}
-                </span>
-            </div>
-        </a>
-
         {# ── Card: Activity log ───────────────────────────────────────────────── #}
         <a href="{{ path('app_admin_activity_log') }}"
            class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
@@ -168,6 +145,29 @@
             <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-end">
                 <span class="inline-flex items-center gap-1.5 text-sm font-medium text-forest-600 group-hover:text-forest-800 transition-colors">
                     {{ 'system.card.action'|trans({}, 'admin') }}
+                    {{ ux_icon('heroicons:arrow-right', {class: 'h-4 w-4'}) }}
+                </span>
+            </div>
+        </a>
+
+        {# ── Card: Settings ─── ALWAYS THE LAST CARD of the grid: add any new card ABOVE this one (AdminHomeTest checks it). ── #}
+        <a href="{{ path('app_admin_settings') }}"
+           class="group rounded-2xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col
+                  hover:border-forest-200 hover:shadow-sm transition-all">
+            <div class="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-forest-100 text-forest-600
+                            group-hover:bg-forest-600 group-hover:text-white transition-colors">
+                    {{ ux_icon('heroicons:adjustments-horizontal', {class: 'h-5 w-5'}) }}
+                </div>
+                <h2 class="text-base font-semibold text-gray-900">{{ 'settings.global.title'|trans({}, 'settings') }}</h2>
+            </div>
+            <div class="px-6 py-4 flex-1">
+                <p class="text-sm text-gray-500">{{ 'settings.global.description'|trans({}, 'settings') }}</p>
+                <p class="mt-3 text-sm font-medium text-gray-700">{{ 'settings.hub.status'|trans({'%count%': settings_set}, 'settings') }}</p>
+            </div>
+            <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-end">
+                <span class="inline-flex items-center gap-1.5 text-sm font-medium text-forest-600 group-hover:text-forest-800 transition-colors">
+                    {{ 'settings.hub.manage'|trans({}, 'settings') }}
                     {{ ux_icon('heroicons:arrow-right', {class: 'h-4 w-4'}) }}
                 </span>
             </div>

@@ -368,6 +368,26 @@ final class SettingsComponentTest extends ControllerTestCase
         return $centreValues->findByDefinitionAndCentre($reloadedDef, $reloadedCentre)?->getValue();
     }
 
+    public function testThePdfUploadButtonIsHiddenUntilAFileIsPickedAndLivesInsideTheDropzone(): void
+    {
+        $centre = $this->centre();
+        $admin  = $this->teacher('director');
+        $centre->getAdmins()->add($admin);
+        $pdf = (new SettingDefinition())->setKey('reports.pdf_template_portrait')->setType(SettingType::Pdf)->setDefaultValue('')->setCentreScope(true);
+        $this->persist($centre, $admin, $pdf);
+
+        $this->loginAs($admin, $centre);
+        $crawler = $this->createLiveComponent('SettingsComponent', ['scope' => 'centre'], $this->client)->render()->crawler();
+
+        // The file-drop controller can only show a button that is inside its own element, and it starts hidden.
+        $button = $crawler->filter('[data-controller="file-drop"] button[data-file-drop-target="submit"]');
+        self::assertCount(1, $button);
+        self::assertStringContainsString('hidden', (string) $button->attr('class'));
+        self::assertSame('Subir', trim($button->text()));
+        // No second, always-visible upload button next to the dropzone.
+        self::assertCount(1, $crawler->filter('form[enctype="multipart/form-data"] button[type="submit"]'));
+    }
+
     public function testDayMonthRendersDaySelectAndMonthSelectWithTheDefaultOption(): void
     {
         $centre = $this->centre();

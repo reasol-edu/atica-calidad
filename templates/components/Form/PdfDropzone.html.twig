@@ -33,4 +33,11 @@
     </template>
 
     <p data-file-drop-target="clientError" class="mt-1 text-xs text-red-600 hidden"></p>
+
+    {# Only offered once a file has been picked or dropped (the file-drop controller shows it); it has to live inside the controller's element to be its target. #}
+    <button type="submit" data-file-drop-target="submit"
+            class="hidden mt-2 items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium
+                   text-gray-700 hover:bg-gray-50 transition-colors">
+        {{ 'settings.pdf_template.upload'|trans({}, 'settings') }}
+    </button>
 </div>

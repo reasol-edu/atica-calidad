@@ -275,12 +275,8 @@
                             {% else %}
                                 <form method="post" action="{{ path('app_settings_pdf_template_upload', {key: key}) }}" enctype="multipart/form-data">
                                     <input type="hidden" name="_token" value="{{ csrf_token('settings_pdf_template_' ~ key) }}">
+                                    {# The "Subir" button is inside the dropzone: it only shows once a file is picked or dropped. #}
                                     <twig:Form:PdfDropzone id="pdf-template-{{ keySlug }}" name="file" />
-                                    <button type="submit"
-                                            class="mt-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium
-                                                   text-gray-700 hover:bg-gray-50 transition-colors">
-                                        {{ 'settings.pdf_template.upload'|trans({}, 'settings') }}
-                                    </button>
                                 </form>
                             {% endif %}
                         </div>

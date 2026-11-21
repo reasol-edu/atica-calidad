@@ -37,6 +37,17 @@ final class AdminHomeTest extends ControllerTestCase
         self::assertSelectorTextContains('body', 'Último registro: 04/03/2026 10:15');
     }
 
+    public function testTheSettingsCardIsAlwaysTheLastOne(): void
+    {
+        $this->admin();
+        $crawler = $this->client->request('GET', '/admin');
+
+        $cards = $crawler->filter('main .grid > a');
+        self::assertGreaterThan(1, $cards->count());
+        self::assertSame('/admin/ajustes', $cards->last()->attr('href'));
+        self::assertCount(1, $crawler->filter('main .grid > a[href="/admin/ajustes"]'));
+    }
+
     public function testTheSettingsCardSaysEverythingIsDefaultWhenNothingWasChanged(): void
     {
         $this->admin();
