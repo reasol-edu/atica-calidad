@@ -10,6 +10,7 @@ use App\Message\IndexPendingDocumentFilesMessage;
 use App\Message\PurgeActivityLogMessage;
 use App\Message\PurgeEmailNotificationLogMessage;
 use App\Message\PurgeTrashMessage;
+use App\Message\ReadScannedDocumentFilesMessage;
 use App\Message\SendDocumentNextReviewReminderMessage;
 use App\Message\SendDocumentReviewDigestMessage;
 use App\Message\SendPendingActivityReminderMessage;
@@ -38,6 +39,11 @@ class Schedule implements ScheduleProviderInterface
                 // Reads the text of stored files that are not in the search yet (all of them after the first update, then only what a
                 // worker missed). Costs one cheap query when there is nothing to do.
                 RecurringMessage::every('2 minutes', new IndexPendingDocumentFilesMessage()),
+            )
+            ->add(
+                // One minute of OCR on scanned documents, then back to the queue: a long scan is read over several turns so it never
+                // holds the worker (e-mails, backups, heartbeat). Does nothing unless the administrator turned OCR on and installed it.
+                RecurringMessage::every('2 minutes', new ReadScannedDocumentFilesMessage()),
             )
             ->add(
                 // Before the purges (03:30–04:00) so the copy still holds what they are about to delete. It does nothing

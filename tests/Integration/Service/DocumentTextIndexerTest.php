@@ -12,8 +12,11 @@ use App\Repository\DocumentFileRepository;
 use App\Repository\DocumentFileTextRepository;
 use App\Search\Extractor\TextExtractorInterface;
 use App\Service\DocumentCreationService;
+use App\Service\DocumentOcrService;
 use App\Service\DocumentTextIndexer;
 use App\Tests\Integration\RepositoryTestCase;
+use App\Tests\Support\FakeOcrEngine;
+use App\Tests\Support\FixedGlobalSettings;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Clock\NativeClock;
@@ -145,7 +148,142 @@ final class DocumentTextIndexerTest extends RepositoryTestCase
             }
         };
 
-        return new DocumentTextIndexer([$extractor], $files, $this->texts, new NativeClock(), new NullLogger());
+        return new DocumentTextIndexer([$extractor], $files, $this->texts, $this->ocrService(), new NativeClock(), new NullLogger());
+    }
+
+    /** The OCR service with a fake engine; turned off (and its engine absent) unless $enabled. */
+    private function ocrService(bool $enabled = false, ?FakeOcrEngine $engine = null): DocumentOcrService
+    {
+        /** @var DocumentFileRepository $files */
+        $files = self::getContainer()->get(DocumentFileRepository::class);
+
+        return new DocumentOcrService(
+            $engine ?? new FakeOcrEngine(),
+            new FixedGlobalSettings(['search.ocr' => $enabled ? 'on' : 'off']),
+            $files,
+            $this->texts,
+            new NativeClock(),
+            new NullLogger(),
+        );
+    }
+
+    /** @return array<string, mixed>|null */
+    private function ocrRow(DocumentFile $file): ?array
+    {
+        $row = $this->em->getConnection()->fetchAssociative('SELECT status, ocr_page, text FROM document_file_text WHERE file_id = ?', [$file->getId()], ['uuid']);
+
+        return \is_array($row) ? $row : null;
+    }
+
+    /** An indexer whose reader finds $text in every file (and has no size limit that matters), with OCR on or off. */
+    private function ocrIndexer(string $text, bool $ocrOn, FakeOcrEngine $engine): DocumentTextIndexer
+    {
+        /** @var DocumentFileRepository $files */
+        $files = self::getContainer()->get(DocumentFileRepository::class);
+
+        $extractor = new class($text) implements TextExtractorInterface {
+            public function __construct(private readonly string $text) {}
+
+            public function supports(string $mimeType, string $filename): bool
+            {
+                return $mimeType === 'application/pdf';
+            }
+
+            public function maxFileBytes(): int
+            {
+                return 1_000;
+            }
+
+            public function extract(string $path, int $maxChars): string
+            {
+                return $this->text;
+            }
+        };
+
+        return new DocumentTextIndexer([$extractor], $files, $this->texts, $this->ocrService($ocrOn, $engine), new NativeClock(), new NullLogger());
+    }
+
+    public function testAScannedPdfStaysAsNoTextWhenOcrIsOff(): void
+    {
+        $engine = new FakeOcrEngine();
+        $file   = $this->file('x', 'escaneo.pdf', 'application/pdf');
+
+        $this->ocrIndexer('', false, $engine)->index($file->getId());
+
+        $row = $this->ocrRow($file);
+        self::assertNotNull($row);
+        self::assertSame('no_text', $row['status']);
+        self::assertNull($row['ocr_page']);
+        self::assertSame(0, $engine->pageCountCalls);
+    }
+
+    public function testAScannedPdfIsQueuedForOcrWhenItIsOn(): void
+    {
+        $file = $this->file('x', 'escaneo.pdf', 'application/pdf');
+
+        $this->ocrIndexer('', true, new FakeOcrEngine())->index($file->getId());
+
+        $row = $this->ocrRow($file);
+        self::assertSame('ocr_pending', $row['status'] ?? null);
+        self::assertSame(0, (int) ($row['ocr_page'] ?? -1));
+    }
+
+    public function testAPdfWithAStampButScannedPagesIsAlsoQueued(): void
+    {
+        $engine        = new FakeOcrEngine();
+        $engine->pages = 30;
+        $file          = $this->file('x', 'firmado.pdf', 'application/pdf');
+
+        // 30 pages and one line of stamp text: far less than a page's worth of text per page.
+        $this->ocrIndexer('Firmado electrónicamente por Dirección', true, $engine)->index($file->getId());
+
+        $row = $this->ocrRow($file);
+        self::assertSame('ocr_pending', $row['status'] ?? null);
+        // What the normal reader did find stays searchable until OCR replaces it.
+        self::assertSame('Firmado electrónicamente por Dirección', $row['text'] ?? null);
+    }
+
+    public function testAPdfWithRealTextIsNotSentToOcr(): void
+    {
+        $engine        = new FakeOcrEngine();
+        $engine->pages = 2;
+        $file          = $this->file('x', 'acta.pdf', 'application/pdf');
+
+        $this->ocrIndexer(str_repeat('Texto normal de un acta con contenido real. ', 10), true, $engine)->index($file->getId());
+
+        self::assertSame('indexed', $this->ocrRow($file)['status'] ?? null);
+    }
+
+    public function testAnImageIsQueuedForOcrWhenItIsOnAndUnsupportedWhenOff(): void
+    {
+        $on  = $this->file("\x89PNG\r\n\x1a\n", 'foto.png', 'image/png');
+        $off = $this->file("\x89PNG\r\n\x1a\n", 'otra.png', 'image/png');
+
+        $this->ocrIndexer('', true, new FakeOcrEngine())->index($on->getId());
+        $this->ocrIndexer('', false, new FakeOcrEngine())->index($off->getId());
+
+        self::assertSame('ocr_pending', $this->ocrRow($on)['status'] ?? null);
+        self::assertSame('unsupported', $this->ocrRow($off)['status'] ?? null);
+    }
+
+    public function testAPdfTooBigForTheNormalReaderGoesToOcrWhenItIsOn(): void
+    {
+        $big = $this->file('x', 'gordo.pdf', 'application/pdf', 5_000); // the test reader's limit is 1000 bytes
+
+        $this->ocrIndexer('', true, new FakeOcrEngine())->index($big->getId());
+
+        self::assertSame('ocr_pending', $this->ocrRow($big)['status'] ?? null);
+    }
+
+    public function testOcrOnButToolsMissingChangesNothing(): void
+    {
+        $engine            = new FakeOcrEngine();
+        $engine->available = false;
+        $file              = $this->file('x', 'escaneo.pdf', 'application/pdf');
+
+        $this->ocrIndexer('', true, $engine)->index($file->getId());
+
+        self::assertSame('no_text', $this->ocrRow($file)['status'] ?? null);
     }
 
     public function testAFileIsMarkedAsInterruptedWhileItIsBeingReadSoACrashCannotRepeatForEver(): void

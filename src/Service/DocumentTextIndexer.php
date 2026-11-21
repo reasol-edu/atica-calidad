@@ -50,6 +50,7 @@ final class DocumentTextIndexer
         private readonly iterable $extractors,
         private readonly DocumentFileRepository $files,
         private readonly DocumentFileTextRepository $texts,
+        private readonly DocumentOcrService $ocr,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
     ) {}
@@ -68,12 +69,16 @@ final class DocumentTextIndexer
 
         $extractor = $this->extractorFor($meta['mimeType'], $meta['originalFilename']);
         if ($extractor === null) {
-            $this->record($fileId, TextIndexStatus::Unsupported, null, null);
+            // A picture has no text for any reader here, but OCR (when turned on) reads it.
+            $ocr = $this->ocr->isUsable() && DocumentOcrService::isImage($meta['mimeType']) && $this->ocr->canRead($meta['mimeType'], $meta['size']);
+            $this->record($fileId, $ocr ? TextIndexStatus::OcrPending : TextIndexStatus::Unsupported, null, null, $ocr ? 0 : null);
 
             return true;
         }
         if ($meta['size'] > $extractor->maxFileBytes()) {
-            $this->record($fileId, TextIndexStatus::TooLarge, null, null);
+            // Too big for the normal reader, but OCR never loads the file into memory.
+            $ocr = $this->ocr->isUsable() && DocumentOcrService::isPdf($meta['mimeType']) && $this->ocr->canRead($meta['mimeType'], $meta['size']);
+            $this->record($fileId, $ocr ? TextIndexStatus::OcrPending : TextIndexStatus::TooLarge, null, null, $ocr ? 0 : null);
 
             return true;
         }
@@ -89,12 +94,16 @@ final class DocumentTextIndexer
         // outcome below replaces it, and "Reintentar los ficheros que fallaron" is the way back once the cause is fixed.
         $this->record($fileId, TextIndexStatus::Failed, null, self::INTERRUPTED);
 
+        $scanned = false;
+
         try {
             // Not caught: a database problem here is for Messenger to retry, not a verdict on the file.
             $this->files->writeContentTo($fileId, $tmp);
 
             try {
                 $raw = $this->withExtractionLimits(static fn (): string => $extractor->extract($tmp, DocumentFileText::MAX_CHARS));
+                // With OCR on, a PDF with hardly any text for its pages is a scan: it goes on to OCR instead of being left as it is.
+                $scanned = $this->ocr->looksScanned($meta['mimeType'], $tmp, TextNormalizer::clean($raw));
             } catch (ExtractionException $e) {
                 $this->logger->info('Text index: file {file} unreadable: {reason}', ['file' => $fileId->toRfc4122(), 'reason' => $e->getMessage()]);
                 $this->record($fileId, TextIndexStatus::Failed, null, mb_strimwidth($e->getMessage(), 0, 250, '…'));
@@ -114,7 +123,8 @@ final class DocumentTextIndexer
         $text = TextNormalizer::clean($raw);
         $text = mb_strlen($text) > DocumentFileText::MAX_CHARS ? mb_substr($text, 0, DocumentFileText::MAX_CHARS) : $text;
         // A document whose only "text" is a page number or a stray character is, for any search, a scan.
-        $this->record($fileId, mb_strlen($text) < 3 ? TextIndexStatus::NoText : TextIndexStatus::Indexed, mb_strlen($text) < 3 ? null : $text, null);
+        $found = mb_strlen($text) < 3 ? null : $text;
+        $this->record($fileId, $scanned ? TextIndexStatus::OcrPending : ($found === null ? TextIndexStatus::NoText : TextIndexStatus::Indexed), $found, null, $scanned ? 0 : null);
 
         return true;
     }
@@ -191,7 +201,7 @@ final class DocumentTextIndexer
         return null;
     }
 
-    private function record(Uuid $fileId, TextIndexStatus $status, ?string $text, ?string $error): void
+    private function record(Uuid $fileId, TextIndexStatus $status, ?string $text, ?string $error, ?int $ocrPage = null): void
     {
         $this->texts->save(
             $fileId,
@@ -201,6 +211,7 @@ final class DocumentTextIndexer
             $text === null ? null : TextNormalizer::fold($text),
             $error,
             $this->clock->now(),
+            $ocrPage,
         );
     }
 }

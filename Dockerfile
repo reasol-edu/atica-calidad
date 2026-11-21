@@ -52,6 +52,11 @@ RUN install-php-extensions \
     pdo_sqlite \
     zip
 
+# OCR opcional de los documentos escaneados (Ajustes → Documentos → «Leer el texto de los documentos escaneados»): Tesseract
+# con los idiomas español e inglés, y poppler-utils para convertir las páginas de un PDF en imagen. Unos 90 MB; sin activar el
+# ajuste no se ejecutan.
+RUN apk add --no-cache tesseract-ocr tesseract-ocr-data-spa tesseract-ocr-data-eng poppler-utils
+
 COPY docker/php.ini /usr/local/etc/php/conf.d/99-app.ini
 
 WORKDIR /app

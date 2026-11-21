@@ -9,6 +9,8 @@ use App\Entity\TextIndexStatus;
 use App\Repository\DocumentFileTextRepository;
 use App\Service\ActivityLogger;
 use App\Service\Backup\AutomaticBackup;
+use App\Search\Ocr\OcrEngineInterface;
+use App\Service\DocumentOcrService;
 use App\Service\DocumentTextIndexer;
 use App\Service\FailedMessages;
 use App\Service\SystemStatus;
@@ -35,6 +37,8 @@ class SystemStatusController extends AbstractController
         private readonly AutomaticBackup $automaticBackup,
         private readonly TestEmailSender $testEmail,
         private readonly DocumentFileTextRepository $searchTexts,
+        private readonly DocumentOcrService $ocr,
+        private readonly OcrEngineInterface $ocrEngine,
         private readonly RateLimiterFactoryInterface $adminTestEmailLimiter,
         private readonly ActivityLogger $activityLog,
         private readonly TranslatorInterface $translator,
@@ -51,6 +55,13 @@ class SystemStatusController extends AbstractController
             'failed_count' => $this->failed->count(),
             'failed'       => $this->failed->list(),
             'search_index' => $this->searchTexts->countByStatus(DocumentTextIndexer::VERSION),
+            'ocr'          => [
+                'enabled'   => $this->ocr->isEnabled(),
+                'usable'    => $this->ocr->isUsable(),
+                'languages' => $this->ocrEngine->languages(),
+                'reason'    => $this->ocrEngine->unavailableReason(),
+                'awaiting'  =>$this->ocr->isUsable() ? $this->searchTexts->countAwaitingOcr(DocumentOcrService::mimeTypes(), DocumentOcrService::MAX_BYTES) : 0,
+            ],
             'backup'       => $this->automaticBackup->status(),
             'email'        => $user instanceof Teacher ? $user->getEmail() : null,
         ]);

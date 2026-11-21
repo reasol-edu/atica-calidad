@@ -78,6 +78,11 @@ restore.error.needs_force: 'En modo no interactivo, añade --force para confirma
 index_documents.description: 'Lee el texto de los ficheros guardados para que se pueda buscar dentro de los documentos'
 index_documents.option.reindex: 'Olvida todo el texto ya leído y empieza de cero'
 index_documents.option.retry_failed: 'Vuelve a intentar los ficheros que no se pudieron leer'
+index_documents.option.retry_ocr: 'Olvida lo que leyó el OCR y vuelve a leer esos escaneos desde el principio'
+index_documents.option.skip_ocr: 'No hace la lectura de escaneos con OCR (aunque esté activada)'
+index_documents.ocr_unavailable: 'El OCR está activado en los ajustes pero faltan herramientas en este servidor (Tesseract o poppler-utils); se omite.'
+index_documents.ocr_progress: '%count% unidades de OCR (páginas leídas)…'
+index_documents.ocr_done: '{1}OCR: 1 unidad (página o fichero) procesada.|]1,Inf[OCR: %count% unidades (páginas o ficheros) procesadas.'
 index_documents.progress: '%count% ficheros leídos…'
 index_documents.done: '{0}No había ficheros pendientes de leer.|{1}Se ha leído 1 fichero.|]1,Inf[Se han leído %count% ficheros.'
 

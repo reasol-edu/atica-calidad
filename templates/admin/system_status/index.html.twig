@@ -108,13 +108,27 @@
         <h2 class="mb-1 text-base font-semibold text-gray-900">{{ 'system.search_index.title'|trans({}, 'admin') }}</h2>
         <p class="mb-3 text-sm text-gray-600">{{ 'system.search_index.help'|trans({}, 'admin') }}</p>
         <dl class="space-y-1.5 text-sm">
-            {% for key in ['indexed', 'no_text', 'unsupported', 'too_large', 'failed', 'pending'] %}
-                <div class="flex items-baseline justify-between gap-4">
-                    <dt class="text-gray-500">{{ ('system.search_index.status.' ~ key)|trans({}, 'admin') }}</dt>
-                    <dd class="font-medium {{ key == 'failed' and search_index[key] > 0 ? 'text-red-700' : 'text-gray-900' }}">{{ search_index[key] }}</dd>
-                </div>
+            {% for key in ['indexed', 'no_text', 'ocr_pending', 'unsupported', 'too_large', 'failed', 'pending'] %}
+                {% if key != 'ocr_pending' or search_index[key] > 0 %}
+                    <div class="flex items-baseline justify-between gap-4">
+                        <dt class="text-gray-500">{{ ('system.search_index.status.' ~ key)|trans({}, 'admin') }}</dt>
+                        <dd class="font-medium {{ key == 'failed' and search_index[key] > 0 ? 'text-red-700' : 'text-gray-900' }}">{{ search_index[key] }}</dd>
+                    </div>
+                {% endif %}
             {% endfor %}
         </dl>
+        <div class="mt-3 border-t border-gray-100 pt-3 text-sm">
+            <h3 class="mb-1 font-medium text-gray-900">{{ 'system.search_index.ocr.title'|trans({}, 'admin') }}</h3>
+            {% if not ocr.enabled %}
+                <p class="text-gray-600">{{ 'system.search_index.ocr.off'|trans({}, 'admin') }}</p>
+            {% elseif ocr.usable %}
+                <p class="text-gray-600">{{ 'system.search_index.ocr.on'|trans({'%languages%': ocr.languages}, 'admin') }}</p>
+                <p class="text-gray-600">{{ 'system.search_index.ocr.awaiting'|trans({'%count%': ocr.awaiting}, 'admin') }}</p>
+                <p class="mt-1 text-xs text-gray-500">{{ 'system.search_index.ocr.note'|trans({}, 'admin') }}</p>
+            {% else %}
+                <p class="text-red-700">{{ 'system.search_index.ocr.missing'|trans({'%reason%': ocr.reason}, 'admin') }}</p>
+            {% endif %}
+        </div>
         {% if search_index.pending > 0 %}
             <p class="mt-2 text-xs text-gray-500">{{ 'system.search_index.pending_note'|trans({}, 'admin') }}</p>
         {% endif %}

@@ -24,6 +24,12 @@ enum TextIndexStatus: string
     /** The file is damaged, encrypted or otherwise unreadable. */
     case Failed = 'failed';
 
+    /**
+     * A scan being read with OCR a few pages at a time (see DocumentOcrService): what has been read so far is already searchable,
+     * and the row turns into Indexed or NoText when the last page is done.
+     */
+    case OcrPending = 'ocr_pending';
+
     /** Translation key (admin domain) of the label shown in the system status. */
     public function labelKey(): string
     {

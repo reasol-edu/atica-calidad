@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\DocumentFile;
 use App\Entity\DocumentFileText;
 use App\Entity\TextIndexStatus;
+use Doctrine\ORM\AbstractQuery;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\Persistence\ManagerRegistry;
@@ -27,7 +28,7 @@ class DocumentFileTextRepository extends ServiceEntityRepository
      * middle of someone else's unit of work (a request that has just stored the file) and must not flush it. Two workers
      * reading the same file at once end up with the same row either way.
      */
-    public function save(Uuid $fileId, TextIndexStatus $status, int $version, ?string $text, ?string $folded, ?string $error, \DateTimeImmutable $at): void
+    public function save(Uuid $fileId, TextIndexStatus $status, int $version, ?string $text, ?string $folded, ?string $error, \DateTimeImmutable $at, ?int $ocrPage = null): void
     {
         $metadata   = $this->getClassMetadata();
         $connection = $this->getEntityManager()->getConnection();
@@ -39,6 +40,7 @@ class DocumentFileTextRepository extends ServiceEntityRepository
             $metadata->getColumnName('text')             => $text,
             $metadata->getColumnName('folded')           => $folded,
             $metadata->getColumnName('error')            => $error,
+            $metadata->getColumnName('ocrPage')          => $ocrPage,
             $metadata->getColumnName('indexedAt')        => $at,
         ];
         $types = [
@@ -56,6 +58,137 @@ class DocumentFileTextRepository extends ServiceEntityRepository
         } catch (UniqueConstraintViolationException) {
             $update();
         }
+    }
+
+    /**
+     * Where the OCR of a file stands: its status, the last page done (null = OCR never tried) and the text so far.
+     *
+     * @return array{status: TextIndexStatus, page: int|null, text: string|null}|null null when the file has no row
+     */
+    public function findOcrState(Uuid $fileId): ?array
+    {
+        $row = $this->createQueryBuilder('t')
+            ->select('t.status AS status, t.ocrPage AS page, t.text AS text')
+            ->where('t.file = :file')
+            ->setParameter('file', $fileId, 'uuid')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult(AbstractQuery::HYDRATE_ARRAY);
+        if (!\is_array($row) || !($row['status'] ?? null) instanceof TextIndexStatus) {
+            return null;
+        }
+
+        return [
+            'status' => $row['status'],
+            'page'   => \is_int($row['page'] ?? null) ? $row['page'] : null,
+            'text'   => \is_string($row['text'] ?? null) ? $row['text'] : null,
+        ];
+    }
+
+    /**
+     * Records the progress of the OCR of a file — only if nobody else moved it since $expectedPage was read (two workers on the
+     * same scan would otherwise append the same pages twice). Plain SQL, like save().
+     *
+     * @return bool whether the row was still at $expectedPage and has been updated
+     */
+    public function saveOcrProgress(Uuid $fileId, ?int $expectedPage, TextIndexStatus $status, int $version, ?string $text, ?string $folded, ?string $error, int $page, \DateTimeImmutable $at): bool
+    {
+        $metadata   = $this->getClassMetadata();
+        $connection = $this->getEntityManager()->getConnection();
+
+        $affected = $connection->update(
+            $metadata->getTableName(),
+            [
+                $metadata->getColumnName('status')           => $status->value,
+                $metadata->getColumnName('extractorVersion') => $version,
+                $metadata->getColumnName('text')             => $text,
+                $metadata->getColumnName('folded')           => $folded,
+                $metadata->getColumnName('error')            => $error,
+                $metadata->getColumnName('ocrPage')          => $page,
+                $metadata->getColumnName('indexedAt')        => $at,
+            ],
+            ['file_id' => $fileId, $metadata->getColumnName('ocrPage') => $expectedPage],
+            [$metadata->getColumnName('indexedAt') => 'datetime_immutable', 'file_id' => 'uuid', $metadata->getColumnName('ocrPage') => 'integer'],
+        );
+
+        return (int) $affected > 0;
+    }
+
+    /**
+     * The files OCR still has to read, the ones already under way first and then the oldest waiting: scans recorded without text,
+     * PDFs too big for the normal reader and pictures. Only types OCR can read and files up to $maxBytes. A file OCR already
+     * tried (it has a page number) is not offered again.
+     *
+     * @param list<string> $mimeTypes
+     *
+     * @return list<Uuid>
+     */
+    public function findIdsForOcr(array $mimeTypes, int $maxBytes, int $limit): array
+    {
+        $ids = [];
+
+        foreach ([[TextIndexStatus::OcrPending], [TextIndexStatus::NoText, TextIndexStatus::Unsupported, TextIndexStatus::TooLarge]] as $statuses) {
+            $qb = $this->createQueryBuilder('t')
+                ->select('f.id AS id')
+                ->join('t.file', 'f')
+                ->where('t.status IN (:statuses)')
+                ->andWhere('f.mimeType IN (:types)')
+                ->andWhere('f.size <= :max')
+                ->setParameter('statuses', $statuses)
+                ->setParameter('types', $mimeTypes)
+                ->setParameter('max', $maxBytes)
+                ->orderBy('t.indexedAt', 'ASC')
+                ->addOrderBy('t.id', 'ASC')
+                ->setMaxResults($limit - \count($ids));
+            if ($statuses[0] !== TextIndexStatus::OcrPending) {
+                $qb->andWhere('t.ocrPage IS NULL');
+            }
+
+            foreach ($qb->getQuery()->getArrayResult() as $row) {
+                $id = \is_array($row) ? ($row['id'] ?? null) : null;
+                if ($id instanceof Uuid) {
+                    $ids[] = $id;
+                }
+            }
+            if (\count($ids) >= $limit) {
+                break;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * How many files wait for OCR (not counting the ones under way).
+     *
+     * @param list<string> $mimeTypes
+     */
+    public function countAwaitingOcr(array $mimeTypes, int $maxBytes): int
+    {
+        return (int) $this->createQueryBuilder('t')
+            ->select('COUNT(t.id)')
+            ->join('t.file', 'f')
+            ->where('t.status IN (:statuses)')
+            ->andWhere('t.ocrPage IS NULL')
+            ->andWhere('f.mimeType IN (:types)')
+            ->andWhere('f.size <= :max')
+            ->setParameter('statuses', [TextIndexStatus::NoText, TextIndexStatus::Unsupported, TextIndexStatus::TooLarge])
+            ->setParameter('types', $mimeTypes)
+            ->setParameter('max', $maxBytes)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * Forgets what OCR read (every file it tried) so the sweep reads those files again from scratch; returns how many.
+     */
+    public function deleteOcrResults(): int
+    {
+        return (int) $this->createQueryBuilder('t')
+            ->delete()
+            ->where('t.ocrPage IS NOT NULL')
+            ->getQuery()
+            ->execute();
     }
 
     /**

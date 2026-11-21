@@ -6,6 +6,7 @@ namespace App\Command;
 
 use App\Entity\TextIndexStatus;
 use App\Repository\DocumentFileTextRepository;
+use App\Service\DocumentOcrService;
 use App\Service\DocumentTextIndexer;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -25,6 +26,7 @@ class IndexDocumentsCommand extends Command
     public function __construct(
         private readonly DocumentTextIndexer $indexer,
         private readonly DocumentFileTextRepository $texts,
+        private readonly DocumentOcrService $ocr,
         private readonly TranslatorInterface $translator,
     ) {
         parent::__construct();
@@ -37,7 +39,9 @@ class IndexDocumentsCommand extends Command
         $this
             ->setDescription($t('index_documents.description'))
             ->addOption('reindex', null, InputOption::VALUE_NONE, $t('index_documents.option.reindex'))
-            ->addOption('retry-failed', null, InputOption::VALUE_NONE, $t('index_documents.option.retry_failed'));
+            ->addOption('retry-failed', null, InputOption::VALUE_NONE, $t('index_documents.option.retry_failed'))
+            ->addOption('retry-ocr', null, InputOption::VALUE_NONE, $t('index_documents.option.retry_ocr'))
+            ->addOption('skip-ocr', null, InputOption::VALUE_NONE, $t('index_documents.option.skip_ocr'));
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -47,8 +51,13 @@ class IndexDocumentsCommand extends Command
 
         if ($input->getOption('reindex') === true) {
             $this->texts->deleteAll();
-        } elseif ($input->getOption('retry-failed') === true) {
-            $this->texts->deleteByStatus(TextIndexStatus::Failed);
+        } else {
+            if ($input->getOption('retry-failed') === true) {
+                $this->texts->deleteByStatus(TextIndexStatus::Failed);
+            }
+            if ($input->getOption('retry-ocr') === true) {
+                $this->texts->deleteOcrResults();
+            }
         }
 
         $total = 0;
@@ -58,6 +67,22 @@ class IndexDocumentsCommand extends Command
         }
 
         $io->success($t('index_documents.done', ['%count%' => $total]));
+
+        // The scanned ones, if OCR is on and installed: as many turns as it takes (the worker would do the same a minute at a time).
+        if ($input->getOption('skip-ocr') !== true) {
+            if ($this->ocr->isEnabled() && !$this->ocr->isUsable()) {
+                $io->warning($t('index_documents.ocr_unavailable'));
+            }
+
+            $units = 0;
+            while (($turn = $this->ocr->run(DocumentOcrService::TURN_SECONDS)) > 0) {
+                $units += $turn;
+                $io->writeln($t('index_documents.ocr_progress', ['%count%' => $units]));
+            }
+            if ($units > 0) {
+                $io->success($t('index_documents.ocr_done', ['%count%' => $units]));
+            }
+        }
 
         return Command::SUCCESS;
     }

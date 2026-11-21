@@ -57,6 +57,13 @@ class DocumentFileText
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $error = null;
 
+    /**
+     * Pages already read with OCR: null while OCR has not been tried on this file, 0 when it is queued, and the last page done
+     * while it is under way (status OcrPending) or finished. A scan that OCR found nothing in keeps its number, so it is not tried again.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?int $ocrPage = null;
+
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $indexedAt;
 
@@ -103,7 +110,12 @@ class DocumentFileText
         return $this->error;
     }
 
-    public function getIndexedAt(): \DateTimeImmutable
+    public function getOcrPage(): ?int
+    {
+        return $this->ocrPage;
+    }
+
+    public function getIndexedAt():\DateTimeImmutable
     {
         return $this->indexedAt;
     }
