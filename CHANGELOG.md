@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-11-21
+
 ### Changed
 - Ajustes de tipo PDF (plantillas de informes): el botón «Subir» solo aparece cuando se ha elegido o
   arrastrado un fichero al recuadro, y desaparece si se quita.
