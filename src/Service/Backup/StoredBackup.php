@@ -9,8 +9,8 @@ namespace App\Service\Backup;
  *
  * `problem` says why it cannot be restored from the web (null = it can): `encrypted` (the manifest
  * is locked behind a password, so only `app:restore --password` can read it), `unreadable` (not a
- * backup of this application) or `schema_mismatch` (taken with another migration than the one the
- * database is at, so the rows may not fit).
+ * backup of this application) or `schema_mismatch` (taken with a migration this application does not know, i.e. a newer
+ * version: one from an earlier version is restorable, the restore rebuilds the schema first).
  */
 final readonly class StoredBackup
 {

@@ -440,11 +440,46 @@ final class BackupControllerTest extends ControllerTestCase
         $zip->close();
 
         $crawler = $this->client->request('GET', '/admin/copias');
-        self::assertSelectorTextContains('main, body', 'otra versión del esquema');
+        self::assertSelectorTextContains('main, body', 'más nueva que esta');
         self::assertCount(0, $crawler->filter('a[href$="/restaurar"]'));
 
         $this->client->request('GET', '/admin/copias/' . $name . '/restaurar');
         self::assertResponseRedirects('/admin/copias');
+    }
+
+    public function testACopyOfAnEarlierVersionIsRestorableAndTheReviewScreenWarnsThatTheSchemaIsRebuilt(): void
+    {
+        $this->loginAsAdminWithPassword();
+        $name = $this->aCopy();
+        $zip  = new \ZipArchive();
+        $zip->open($this->library()->directory() . '/' . $name);
+        $manifest                  = json_decode((string) $zip->getFromName('manifest.json'), true, 512, JSON_THROW_ON_ERROR);
+        $manifest['schemaVersion'] = 'DoctrineMigrations\\Version20261115100000'; // a migration this version ships, not the one the database is at
+        $manifest['appVersion']    = '2.1.1';
+        $zip->addFromString('manifest.json', json_encode($manifest, JSON_THROW_ON_ERROR));
+        $zip->close();
+
+        $crawler = $this->client->request('GET', '/admin/copias');
+        self::assertCount(1, $crawler->filter('a[href$="/restaurar"]'), 'An earlier version is restorable from here.');
+        self::assertStringNotContainsString('más nueva que esta', $crawler->text());
+
+        $this->client->request('GET', '/admin/copias/' . $name . '/restaurar');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main, body', 'La copia es de una versión anterior (2.1.1)');
+        self::assertSelectorTextContains('main, body', 'Ese proceso no se deshace solo');
+        self::assertSelectorTextNotContains('main, body', 'los datos se sustituyen en una sola transacción');
+    }
+
+    public function testTheReviewScreenOfACurrentCopyPromisesNothingChangesIfItFails(): void
+    {
+        $this->loginAsAdminWithPassword();
+        $name = $this->aCopy();
+
+        $this->client->request('GET', '/admin/copias/' . $name . '/restaurar');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main, body', 'los datos se sustituyen en una sola transacción');
+        self::assertSelectorTextNotContains('main, body', 'La copia es de una versión anterior');
     }
 
     // ── sessions after a restore ─────────────────────────────────────────────

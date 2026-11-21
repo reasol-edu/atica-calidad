@@ -18,6 +18,8 @@ final readonly class DatabaseRestore
         public ?string $fromSchemaVersion,
         public \DateTimeImmutable $backupCreatedAt,
         public bool $schemaOverridden,
+        /** The schema was rebuilt at the backup's migration and migrated to the latest afterwards (a backup from an earlier version). */
+        public bool $rebuilt = false,
     ) {}
 
     public function tableCount(): int

@@ -297,7 +297,11 @@ class BackupLibrary
             return new StoredBackup($name, $size, $modifiedAt, null, StoredBackup::PROBLEM_UNREADABLE);
         }
 
-        $problem = $manifest->schemaVersion !== $this->restore->databaseSchemaVersion() ? StoredBackup::PROBLEM_SCHEMA_MISMATCH : null;
+        // A backup from another migration is only a problem when this application does not know it (it is from a newer
+        // version): one from an earlier version is restored by rebuilding the schema at its migration (DatabaseRestoreService).
+        $problem = $manifest->schemaVersion !== $this->restore->databaseSchemaVersion() && !$this->restore->isKnownSchema($manifest)
+            ? StoredBackup::PROBLEM_SCHEMA_MISMATCH
+            : null;
 
         return new StoredBackup($name, $size, $modifiedAt, $manifest, $problem);
     }

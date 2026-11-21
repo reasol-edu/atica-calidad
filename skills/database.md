@@ -95,6 +95,25 @@ Per engine:
 
 Run PHPUnit only after the migrations are verified: the test suite runs on SQLite.
 
+### Restoring an old backup replays your migrations
+
+A backup made at an earlier migration is restored by `Service/Backup/SchemaMigrator`: it **drops every table, runs the migrations
+from scratch up to the backup's version** (never a `down()`), loads the data, then runs the rest. That makes the migrations a
+contract, not just history:
+
+- An **old migration must keep working on an empty database, forever**, on every engine. Never edit or delete one that shipped
+  (add a new one); a squash would orphan every older backup.
+- A migration that **transforms data** runs on the restored backup's rows, so it must tolerate whatever the old data looked like
+  and must not assume it is the one run at deploy time.
+- Migrations must not depend on the **current entity mapping** (use SQL or the DBAL types, as the existing ones do): at version X the
+  mapping describes a later schema. Services a migration calls (like `ActivityCycleCorrection`) use the default connection, which is
+  the one being rebuilt.
+- The restore is **not transactional** (MySQL commits DDL by itself): that is why the console always saves the current data first
+  and goes back to it if the load fails. The worker is kept off the database meanwhile (`Messenger/RestoreLockMiddleware`).
+- To check a change to this, restore a backup made by an **old tag** (`git worktree add <dir> v2.1.1`, `composer install`, migrate,
+  `app:load-demo-data`, `app:backup`) with the current code on all four engines; the unit suite only covers SQLite
+  (`RestoreOlderSchemaTest`, which uses a database file of its own because dropping every table would break the suite's one).
+
 ## Repositories: named methods only, never generic access
 
 A project-specific PHPStan rule

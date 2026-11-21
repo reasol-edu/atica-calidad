@@ -35,6 +35,11 @@
         <ul class="list-disc space-y-1 pl-5">
             <li>{{ 'backup.restore.warning.replaces'|trans({}, 'admin') }}</li>
             <li>{{ 'backup.restore.warning.previous'|trans({}, 'admin') }}</li>
+            {% if upgrade %}
+                <li class="font-medium">{{ 'backup.restore.warning.upgrade'|trans({'%version%': manifest.appVersion}, 'admin') }}</li>
+            {% else %}
+                <li>{{ 'backup.restore.warning.atomic'|trans({}, 'admin') }}</li>
+            {% endif %}
             <li>{{ 'backup.restore.warning.maintenance'|trans({}, 'admin') }}</li>
             <li>{{ 'backup.restore.warning.sessions'|trans({}, 'admin') }}</li>
             <li>{{ 'backup.restore.warning.credentials'|trans({}, 'admin') }}</li>

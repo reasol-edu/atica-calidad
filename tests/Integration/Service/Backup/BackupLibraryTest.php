@@ -131,6 +131,24 @@ final class BackupLibraryTest extends RepositoryTestCase
         self::assertInstanceOf(BackupManifest::class, $found->manifest);
     }
 
+    public function testACopyOfAnEarlierMigrationThisVersionShipsIsRestorable(): void
+    {
+        $stored = $this->library->save();
+        $path   = $this->library->path($stored);
+
+        $zip = new \ZipArchive();
+        $zip->open($path);
+        $data                  = json_decode((string) $zip->getFromName('manifest.json'), true, 512, JSON_THROW_ON_ERROR);
+        $data['schemaVersion'] = 'DoctrineMigrations\\Version20261115100000';
+        $zip->addFromString('manifest.json', json_encode($data, JSON_THROW_ON_ERROR));
+        $zip->close();
+
+        $found = $this->library->find($stored->name);
+        self::assertNotNull($found);
+        self::assertTrue($found->isRestorable(), 'The restore rebuilds the schema at that migration first.');
+        self::assertNull($found->problem);
+    }
+
     public function testAnEncryptedCopyIsListedButOnlyRestorableFromTheConsole(): void
     {
         /** @var DatabaseBackupService $backup */

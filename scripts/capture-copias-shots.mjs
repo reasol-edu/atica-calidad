@@ -3,9 +3,9 @@
  * docs/manual/img/plataforma-copias*.png):
  *
  *  · plataforma-copias.png            — the whole page: download card (with the optional password), result of the last
- *                                       restore and the list of backups kept on the server (one encrypted, one taken
- *                                       with another schema, which cannot be restored from the web)
- *  · plataforma-copias-restaurar.png  — review and confirmation screen of a restore
+ *                                       restore and the list of backups kept on the server (one encrypted, one from a
+ *                                       newer version, which cannot be restored, and one from an earlier version)
+ *  · plataforma-copias-restaurar.png  — review and confirmation screen of a restore (of the copy from the earlier version)
  *  · plataforma-copias-restaurando.png — the page everybody gets while a restore runs
  *
  * Logs in as the platform administrator («admin») of the demo data. Needs a server already running at SHOTS_BASE_URL on a
@@ -63,13 +63,26 @@ for (let i = 0; i < 2; i++) {
 
 const first = readdirSync(backupDir).filter((n) => n.endsWith('.zip')).sort()[0];
 
-// A backup «from another version» (another schema), which cannot be restored here: a real one with its manifest changed.
+// A backup from a NEWER version (a migration this application does not have), which cannot be restored: a real one with its manifest changed.
 const other = `${backupDir}/atica-calidad-backup-2026-10-12-031500.zip`;
 copyFileSync(`${backupDir}/${first}`, other);
 execFileSync('php', ['-r', `
     $z = new ZipArchive(); $z->open('${other}');
     $m = json_decode($z->getFromName('manifest.json'), true);
-    $m['schemaVersion'] = 'DoctrineMigrations\\\\Version20260101000000';
+    $m['schemaVersion'] = 'DoctrineMigrations\\\\Version29991231000000';
+    $m['appVersion'] = '9.9.0';
+    $z->addFromString('manifest.json', json_encode($m));
+    $z->close();
+`]);
+
+// A backup from an EARLIER version (a migration this application ships): restorable, the restore rebuilds the schema first.
+const older = 'atica-calidad-backup-2026-11-10-031500.zip';
+copyFileSync(`${backupDir}/${first}`, `${backupDir}/${older}`);
+execFileSync('php', ['-r', `
+    $z = new ZipArchive(); $z->open('${backupDir}/${older}');
+    $m = json_decode($z->getFromName('manifest.json'), true);
+    $m['schemaVersion'] = 'DoctrineMigrations\\\\Version20261115100000';
+    $m['appVersion'] = '2.1.1';
     $z->addFromString('manifest.json', json_encode($m));
     $z->close();
 `]);
@@ -94,9 +107,10 @@ await page.evaluate((dir) => {
 }, backupDir);
 await page.screenshot({ path: `${outDir}/plataforma-copias.png`, fullPage: true });
 
-// Review and confirmation screen (looking at it changes nothing).
+// Review and confirmation screen (looking at it changes nothing): the one of the copy from an earlier version, which shows the warning
+// that the database is rebuilt first.
 const name = (await page.locator('a[href$="/restaurar"]').first().getAttribute('href')).split('/copias/')[1].split('/')[0];
-await open(`/admin/copias/${name}/restaurar`);
+await open(`/admin/copias/${older}/restaurar`);
 await page.screenshot({ path: `${outDir}/plataforma-copias-restaurar.png`, fullPage: true });
 
 // The 503 page while a restore runs: lock written by hand (no process: it expires after a minute, and is deleted at the end).

@@ -11,6 +11,8 @@ use App\Service\Backup\BackupManifest;
 use App\Service\Backup\DatabaseRestoreService;
 use App\Service\Backup\RestoreState;
 use App\Service\Backup\SchemaMismatchException;
+use App\Service\Backup\SchemaTouchedException;
+use App\Service\Backup\StoredBackup;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -153,15 +155,25 @@ class RestoreCommand extends Command
     /** @param \Closure(string, array<string, mixed>=): string $t */
     private function perform(SymfonyStyle $io, \Closure $t, BackupManifest $manifest, string $archive, ?string $password, bool $force, string $by, bool $previousBackup): int
     {
+        // A backup from an earlier migration rebuilds the schema, which cannot be undone by itself: the copy of the current data
+        // is then mandatory (also without --previous-backup) because it is the only way back if it fails.
+        $rebuild  = $this->restoreService->needsRebuild($manifest);
+        $previous = null;
+
         try {
-            if ($previousBackup) {
+            if ($previousBackup || $rebuild) {
                 $previous = $this->library->save('atica-calidad-before-restore');
                 $io->note($t('restore.previous_saved', ['%name%' => $previous->name]));
             }
+            if ($rebuild) {
+                $io->note($t('restore.upgrading', ['%from%' => $manifest->schemaVersion ?? '—']));
+            }
 
-            $this->logger->warning('Backup restore started.', ['by' => $by, 'file' => basename($archive), 'copy_version' => $manifest->appVersion]);
+            $this->logger->warning('Backup restore started.', ['by' => $by, 'file' => basename($archive), 'copy_version' => $manifest->appVersion, 'rebuild_schema' => $rebuild]);
 
             $restore = $this->restoreService->restore($archive, $password, $force);
+        } catch (SchemaTouchedException $e) {
+            return $this->recover($io, $t, $e, $previous, $by, $archive);
         } catch (SchemaMismatchException $e) {
             return $this->fail($io, $t('restore.error.schema_mismatch', [
                 '%backup%'   => $e->backupSchemaVersion ?? '—',
@@ -187,10 +199,35 @@ class RestoreCommand extends Command
         if ($restore->schemaOverridden) {
             $io->warning($t('restore.schema_overridden'));
         }
+        if ($restore->rebuilt) {
+            $io->note($t('restore.upgraded'));
+        }
         $io->newLine();
         $io->note($t('restore.note.restart'));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * The restore failed with the schema already rebuilt: go back to the data it had before with the copy saved for it
+     * (rebuilding the schema again, because it may be half way). If that fails too, the result says which copy to restore by hand.
+     *
+     * @param \Closure(string, array<string, mixed>=): string $t
+     */
+    private function recover(SymfonyStyle $io, \Closure $t, SchemaTouchedException $e, ?StoredBackup $previous, string $by, string $archive): int
+    {
+        if ($previous === null) {
+            return $this->fail($io, $e->getMessage(), $by, $archive, true);
+        }
+
+        $io->warning($t('restore.recovering', ['%name%' => $previous->name]));
+        try {
+            $this->restoreService->restore($this->library->path($previous), null, true, true);
+        } catch (\Throwable $again) {
+            return $this->fail($io, $e->getMessage() . "\n" . $t('restore.recover_failed', ['%name%' => $previous->name, '%reason%' => $again->getMessage()]), $by, $archive, true);
+        }
+
+        return $this->fail($io, $e->getMessage() . "\n" . $t('restore.recovered', ['%name%' => $previous->name]), $by, $archive, true);
     }
 
     /**

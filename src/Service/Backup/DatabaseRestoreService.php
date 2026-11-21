@@ -17,8 +17,10 @@ use Doctrine\DBAL\Types\BlobType;
  * — every table the backup covers is emptied and repopulated from its NDJSON, inside one
  * transaction, with foreign-key enforcement suspended for the duration.
  *
- * The schema is NOT recreated: the target database must already be at the same migration as the
- * backup (`inspect()` / the `schemaVersion` check enforces this unless overridden). Values wrapped
+ * With a backup at the same migration as the database the schema is left alone and everything happens in one transaction.
+ * With a backup from an earlier migration the application knows, the schema is first rebuilt at that migration and migrated
+ * to the latest afterwards (see SchemaMigrator; that path is not transactional). A backup from a migration the application
+ * does not know is refused unless overridden. Values wrapped
  * as `{"@b64": "…"}` are decoded back to raw bytes; everything else is inserted as the JSON type
  * it was stored as (string, int, bool, null).
  *
@@ -40,7 +42,30 @@ final class DatabaseRestoreService
 
     public function __construct(
         private readonly Connection $connection,
+        private readonly SchemaMigrator $migrator,
     ) {}
+
+    /**
+     * Whether restoring this backup first rebuilds the schema at the backup's migration and migrates it afterwards: the
+     * backup is from a migration this application knows (an earlier version) and the database is not at it. A backup from a
+     * migration the application does not know (a newer version) never is. `$force` (to go back to a backup after a failure
+     * that left the schema half way, when the versions table may be gone) only needs the migration to be known.
+     */
+    public function needsRebuild(BackupManifest $manifest, bool $force = false): bool
+    {
+        $schema = $manifest->schemaVersion;
+        if ($schema === null || !$this->migrator->isKnown($schema)) {
+            return false;
+        }
+
+        return $force || $schema !== $this->databaseSchemaVersion();
+    }
+
+    /** Whether this application ships the migration the backup was taken at (a backup from a newer version does not). */
+    public function isKnownSchema(BackupManifest $manifest): bool
+    {
+        return $manifest->schemaVersion !== null && $this->migrator->isKnown($manifest->schemaVersion);
+    }
 
     /**
      * Parse and validate the archive's manifest without touching the database.
@@ -58,17 +83,36 @@ final class DatabaseRestoreService
     }
 
     /**
+     * A backup from an earlier migration this application knows is restored by rebuilding the schema at that migration,
+     * loading the data and migrating to the latest (needsRebuild()): that wins over `$force`, which only matters for a backup
+     * from a migration the application does not know. The rebuild is not transactional.
+     *
+     * @param bool $rebuild rebuild the schema even if the database seems to be at the backup's migration (to go back to a
+     *                      backup after a failure that left the schema half way)
+     *
      * @throws BackupArchiveException  archive missing/unreadable/wrong password/unsupported format
-     * @throws SchemaMismatchException backup schema != database schema and $force is false
+     * @throws SchemaMismatchException backup schema != database schema, unknown to this application, and $force is false
+     * @throws SchemaTouchedException  failed after the schema was rebuilt: the database is no longer as it was
      * @throws \RuntimeException       a covered table is missing, FK suspension unavailable, row
      *                                 counts don't add up
      */
-    public function restore(string $archivePath, ?string $password = null, bool $force = false): DatabaseRestore
+    public function restore(string $archivePath, ?string $password = null, bool $force = false, bool $rebuild = false): DatabaseRestore
     {
         $zip = $this->openArchive($archivePath, $password);
 
         try {
             $manifest = $this->readManifest($zip, $password !== null);
+
+            if ($this->needsRebuild($manifest, $rebuild)) {
+                return new DatabaseRestore(
+                    $this->restoreRebuilding($zip, $manifest),
+                    $manifest->appVersion,
+                    $manifest->schemaVersion,
+                    $manifest->createdAt,
+                    false,
+                    true,
+                );
+            }
 
             $dbSchemaVersion = $this->databaseSchemaVersion();
             $schemaMismatch  = $manifest->schemaVersion !== $dbSchemaVersion;
@@ -98,6 +142,36 @@ final class DatabaseRestoreService
             $manifest->createdAt,
             $schemaMismatch,
         );
+    }
+
+    /**
+     * Drops everything, migrates from scratch up to the backup's migration, loads the data and migrates to the latest. The
+     * tables are listed AFTER the rebuild: a backup from before a table existed (or from before one was dropped) has the
+     * tables of its own version, not today's.
+     *
+     * @return array<string, int> table => rows inserted
+     *
+     * @throws SchemaTouchedException whatever fails, the schema is no longer as it was
+     */
+    private function restoreRebuilding(\ZipArchive $zip, BackupManifest $manifest): array
+    {
+        try {
+            $this->migrator->rebuildAt((string) $manifest->schemaVersion);
+
+            $existingTables = $this->connection->createSchemaManager()->listTableNames();
+            foreach (array_keys($manifest->tables) as $table) {
+                if (!\in_array($table, $existingTables, true)) {
+                    throw new \RuntimeException(\sprintf('The backup covers a table ("%s") that the schema of its own version does not have.', $table));
+                }
+            }
+
+            $rows = $this->load($zip, $manifest, $existingTables);
+            $this->migrator->migrateToLatest();
+        } catch (\Throwable $e) {
+            throw new SchemaTouchedException('The restore failed after the database was rebuilt, which is left in an intermediate state: ' . $e->getMessage(), 0, $e);
+        }
+
+        return $rows;
     }
 
     private function openArchive(string $archivePath, ?string $password): \ZipArchive
