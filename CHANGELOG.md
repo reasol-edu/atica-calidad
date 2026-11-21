@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-11-21
+
 ### Added
 - **Restaurar copias de seguridad hechas con una versión anterior.** Antes, una copia cuya migración no coincidía con la de la
   base de datos aparecía como «no se puede restaurar desde aquí» y había que instalar la versión antigua. Ahora, si la
