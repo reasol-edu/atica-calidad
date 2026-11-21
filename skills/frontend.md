@@ -32,6 +32,17 @@ requires a minimum of 2 characters. The autocompleters under `src/Autocomplete/`
 (`TeacherAutocompleter`, `TeacherCentreAutocompleter`) need a centre selected in
 session (`TenantContext`) to resolve meaningful results.
 
+## Live Components: big browsers are split into traits
+
+`SectionBrowserComponent` (document tree) and `ActivityBrowserComponent` (activities) keep the
+class, constructor, `mount()`, shared props and permission helpers; the rest lives in traits under
+`src/Twig/Components/Concerns/`, one per responsibility (`Section{Navigation,Folders,
+ReadAcknowledgement,Documents,Revisions,Search}`, `Activity{CategoryNavigation,FormOptions,
+FormActions,Submissions,Completion,Revisions,Search}`). A trait carries its own `#[LiveProp]`s and
+`#[LiveAction]`s (Live reads them by reflection, so the template contract is unchanged) and uses the
+component's private services (`$this->em`, `$this->access`…) directly. Put new code in the trait
+that owns that area, not back in the class; a trait over ~600 lines is a signal to split it.
+
 ## Live Components: `checked` state on radios/checkboxes
 
 On selection radios or checkboxes inside a Live Component, always use
