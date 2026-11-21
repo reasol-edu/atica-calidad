@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-11-21
+
 ### Changed
 - Interno: `SectionBrowserComponent` y `ActivityBrowserComponent` (4.000 líneas entre los dos) se reparten
   en traits por responsabilidad (`src/Twig/Components/Concerns/`). Sin cambios de comportamiento.
