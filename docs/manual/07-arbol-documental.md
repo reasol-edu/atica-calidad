@@ -392,9 +392,13 @@ encuentra «Educación»).
 - **Qué se lee.** PDF que llevan su texto (los exportados desde un procesador de textos o un
   formulario), documentos de Word, hojas de cálculo y presentaciones (`.docx`, `.xlsx`, `.pptx`),
   sus equivalentes de LibreOffice (`.odt`, `.ods`, `.odp`) y ficheros de texto (`.txt`, `.md`,
-  `.csv`). **No** se leen los formatos antiguos de Office (`.doc`, `.xls`, `.ppt`) ni las imágenes, y
-  tampoco un **PDF escaneado**: es una fotografía de una página, sin texto dentro. Esos documentos se
-  encuentran solo por su nombre. Si no aparece lo que esperas, comprueba antes que no sea un escaneo.
+  `.csv`). **No** se leen los formatos antiguos de Office (`.doc`, `.xls`, `.ppt`) ni, por defecto,
+  las imágenes ni un **PDF escaneado**: es una fotografía de una página, sin texto dentro. Esos
+  documentos se encuentran solo por su nombre. Si no aparece lo que esperas, comprueba antes que no
+  sea un escaneo. La administración de la plataforma puede activar, de forma **opcional**, el
+  [OCR](10-administrar-la-plataforma.md#ocr-documentos-escaneados), que lee también los PDF
+  escaneados y las imágenes (PNG, JPEG, TIFF); un escaneo largo tarda un tiempo en estar completo,
+  pero lo ya leído se puede buscar.
 - **Qué versión.** Solo la **revisión en vigor** de cada documento: una versión pendiente de visto
   bueno o una anterior no se buscan.
 - **Quién lo ve.** Lo mismo que al navegar: nunca sale un documento (ni un trozo de su texto) de una

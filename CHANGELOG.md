@@ -7,6 +7,21 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+Incluye una migración nueva (`Version20261121100000`: la columna `document_file_text.ocr_page` y el ajuste
+`search.ocr`): se aplica al actualizar. Como todos los ajustes nuevos, el OCR llega **desactivado**.
+
+### Added
+- OCR **opcional** de los documentos escaneados: con el ajuste global «Leer el texto de los documentos
+  escaneados (OCR)» (Ajustes → Documentos, desactivado por defecto) y Tesseract + poppler-utils instalados, los
+  PDF escaneados (o con casi texto para sus páginas) y las imágenes PNG, JPEG y TIFF entran en la búsqueda
+  dentro de los documentos. Trabaja por turnos de un minuto cada dos, guardando la página por la que va, así que un
+  escaneo de cientos de páginas no frena los correos ni las copias y lo ya leído se puede buscar; hasta 500 páginas
+  y 200 MB por documento. Los escaneos que ya estaban subidos se leen solos al activarlo. La imagen Docker ya
+  trae las herramientas (unos 90 MB); en el resto de instalaciones se instalan aparte (manual de administración) y
+  sin ellas todo sigue como antes. Estado del sistema muestra si el OCR funciona y cuántos ficheros esperan;
+  `app:index-documents` admite `--retry-ocr` y `--skip-ocr`. Variables opcionales `APP_OCR_TESSERACT`,
+  `APP_OCR_PDFTOPPM` y `APP_OCR_PDFINFO` para indicar la ruta de las herramientas (Windows).
+
 ## [2.4.1] - 2026-11-21
 
 ### Changed

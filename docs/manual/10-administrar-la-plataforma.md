@@ -198,7 +198,7 @@ propias páginas (estilos, scripts, imágenes).
 
 ### Documentos {#documentos}
 
-![Sección «Documentos» de los ajustes globales: el ajuste «Número mínimo de revisión de un documento», con las opciones 0 y 1](img/plataforma-ajustes-documentos.png)
+![Sección «Documentos» de los ajustes globales: «Número mínimo de revisión de un documento» (0 o 1) y «Leer el texto de los documentos escaneados (OCR)», desactivado por defecto](img/plataforma-ajustes-documentos.png)
 
 - **Número mínimo de revisión de un documento** (global y de centro) — **0** o **1**, por defecto 1.
   Es el número más bajo que puede tener la revisión de un documento: con 1, la primera revisión es
@@ -206,6 +206,65 @@ propias páginas (estilos, scripts, imágenes).
   de calidad. Es la versión que se propone al subir un documento nuevo y el mínimo que admiten los
   campos de versión; los documentos que ya existen no cambian. Ver
   [Número mínimo de revisión](07-arbol-documental.md#numero-minimo-de-revision).
+- **Leer el texto de los documentos escaneados (OCR)** (solo global) — **Desactivado** o **Activado**,
+  por defecto desactivado. Es **completamente opcional**: sin activarlo, la aplicación funciona igual
+  que siempre y los escaneos se encuentran solo por su nombre. Ver
+  [Lectura de documentos escaneados](#ocr-documentos-escaneados).
+
+### Lectura de documentos escaneados (OCR, opcional) {#ocr-documentos-escaneados}
+
+> **Es completamente opcional.** Nada de esto hace falta para usar la aplicación ni la búsqueda dentro
+> de los documentos: sin OCR, un PDF escaneado o una foto se encuentra por su nombre, como el resto de
+> ficheros sin texto. Actívalo solo si en el centro se suben muchos documentos escaneados (actas
+> firmadas, partes, justificantes) y quieres poder buscar dentro de ellos.
+
+Un PDF escaneado es una fotografía de cada página: no tiene texto que leer. El **OCR**
+(reconocimiento óptico de caracteres) «lee» esas imágenes y obtiene el texto, que pasa a la búsqueda
+como el de cualquier otro documento. Se aplica a los **PDF** sin texto (o con muy poco para su número
+de páginas, como un escaneo con solo un sello de firma) y a las imágenes **PNG, JPEG y TIFF**.
+
+**Qué necesita.** Dos programas externos instalados en el servidor, gratuitos y de código abierto:
+
+- **Tesseract**, que reconoce el texto, con los datos de los idiomas **español** (obligatorio) e
+  **inglés** (se usa si está).
+- **poppler-utils** (los comandos `pdfinfo` y `pdftoppm`), que convierten cada página del PDF en imagen.
+
+**Instalación según cómo ejecutes la aplicación:**
+
+| Instalación | Qué hacer |
+| --- | --- |
+| **Docker** (imagen oficial) | Nada: la imagen ya incluye Tesseract, el español, el inglés y poppler-utils (unos 90 MB). Solo falta activar el ajuste. |
+| **Ubuntu / Debian** (con o sin binario nativo) | `sudo apt install tesseract-ocr tesseract-ocr-spa tesseract-ocr-eng poppler-utils` |
+| **macOS** | `brew install tesseract tesseract-lang poppler` |
+| **Windows** | Instala [Tesseract para Windows](https://github.com/UB-Mannheim/tesseract/wiki) (marca el idioma *Spanish* en el instalador) y descarga [poppler para Windows](https://github.com/oschwartz10612/poppler-windows/releases), descomprimiéndolo en una carpeta fija. Si sus carpetas no están en el `PATH`, indica la ruta de cada programa con las variables `APP_OCR_TESSERACT`, `APP_OCR_PDFTOPPM` y `APP_OCR_PDFINFO` (por ejemplo `C:\Program Files\Tesseract-OCR\tesseract.exe`) antes de arrancar la aplicación. |
+
+Con el **ejecutable nativo** no hay nada que reinstalar: los programas son del sistema, no van
+dentro del ejecutable. Instálalos como arriba y reinicia la aplicación para que los encuentre. En
+Linux y macOS se buscan en el `PATH`; las variables `APP_OCR_*` sirven si están en otro sitio
+(ver [Variables de entorno](01-instalacion-y-puesta-en-marcha.md#variables-de-entorno-opcionales)).
+
+**Activarlo.** En **Ajustes globales → Documentos**, pon **«Leer el texto de los documentos
+escaneados (OCR)»** en **Activado**. En **Administración → Estado del sistema**, la sección «Lectura de
+escaneos (OCR)» comprueba que las herramientas están instaladas y avisa en rojo, con el motivo, si
+faltan (por ejemplo, que no esté el idioma español). Mientras falten, no ocurre nada y todo sigue
+como antes.
+
+**Cómo trabaja.** Un escaneo puede tener cientos de páginas y cada una tarda unos segundos, y el
+mismo proceso en segundo plano envía los correos y hace las copias. Por eso el OCR trabaja **por
+turnos**: cada dos minutos lee durante un minuto como máximo, guarda por qué página va y vuelve a la
+cola. Un documento de 200 páginas tarda, por tanto, varias horas en estar completo, pero **lo que ya
+se ha leído se puede buscar** desde el primer turno y no se pierde nada si el servidor se reinicia.
+
+- **Qué se lee.** Hasta **500 páginas** por documento y ficheros de hasta **200 MB**.
+- **Los que ya estaban subidos.** Al activarlo, los escaneos que antes quedaron «sin texto» se leen
+  solos en segundo plano, sin hacer nada. También se leen los PDF demasiado grandes para el lector
+  normal.
+- **Calidad.** Funciona bien con escaneos nítidos y texto impreso. Con manuscritos, fotos torcidas o
+  de poca calidad el resultado es aproximado y puede que una palabra no se encuentre.
+- **Si un escaneo no se pudo leer** (dañado, con contraseña), aparece en «Dañados o protegidos» del
+  estado del sistema.
+- **Desde la consola.** `php bin/console app:index-documents` también procesa el OCR hasta terminar
+  (con `--skip-ocr` se omite, y con `--retry-ocr` se olvida lo que leyó y se vuelve a empezar).
 
 ### Avisos por correo
 
@@ -487,7 +546,9 @@ funcionan sin tener que abrir una consola:
 - **Búsqueda dentro de los documentos.** Cuántos ficheros tienen ya su texto leído para
   [buscar dentro de los documentos](07-arbol-documental.md#buscar-dentro-de-los-documentos), cuántos no
   tienen texto que leer (PDF escaneados, fotos), cuántos son de un formato que no se lee, cuántos son
-  demasiado grandes o están dañados o protegidos con contraseña, y cuántos esperan turno. Tras una
+  demasiado grandes o están dañados o protegidos con contraseña, y cuántos esperan turno. Debajo,
+  la lectura de escaneos con [OCR](#ocr-documentos-escaneados) (opcional): si está desactivada, si
+  las herramientas funcionan y cuántos ficheros esperan. Tras una
   actualización, los ya subidos se leen en segundo plano, unos pocos cada dos minutos, sin que haya
   que hacer nada; si la cifra de pendientes no baja, el worker no está en marcha. El botón
   **«Reintentar los ficheros que fallaron»** los vuelve a poner en cola (útil después de una

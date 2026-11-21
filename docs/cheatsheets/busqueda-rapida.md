@@ -46,8 +46,8 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
     y auditorías de Mejora continua que puedes abrir y, para administración y equipo directivo, entre
     los docentes del curso activo (por nombre o usuario). Con 3 letras o más, también <strong>dentro
     de los documentos</strong> (PDF con texto, Word, Excel, PowerPoint, LibreOffice y texto): el grupo
-    «En el contenido» muestra el fragmento donde aparece lo que buscas. Los PDF escaneados no se
-    leen, solo se encuentran por su nombre.</p>
+    «En el contenido» muestra el fragmento donde aparece lo que buscas. Los PDF escaneados y las
+    imágenes solo se encuentran por su nombre, salvo que la administración active el OCR opcional.</p>
   </div>
 </div>
 

@@ -153,6 +153,7 @@ raíz del repositorio. Las más habituales:
 | `MAILER_DSN` | Transporte de correo saliente (por defecto, descarta los correos). |
 | `APP_TIMEZONE` | Zona horaria de la aplicación: la hora que ve cada persona y la de «hoy», los plazos y los avisos. PHP ignora la zona del servidor, así que se indica aquí. Las fechas con hora se guardan siempre en UTC. Por defecto, `Europe/Madrid` (Canarias: `Atlantic/Canary`). |
 | `APP_BACKUP_DIR` | Carpeta de las [copias de seguridad](10-administrar-la-plataforma.md#copias-de-seguridad) guardadas en el servidor. Por defecto, `var/backups` (en Docker, dentro del volumen `data/var`; en el ejecutable nativo, `data/backups`). |
+| `APP_OCR_TESSERACT` / `APP_OCR_PDFTOPPM` / `APP_OCR_PDFINFO` | Ruta completa de las herramientas del [OCR opcional](10-administrar-la-plataforma.md#ocr-documentos-escaneados), solo si no están en el `PATH` (típico en Windows). |
 | `APP_EXTERNAL_ENABLED` / `APP_EXTERNAL_URL` | Autenticación externa del profesorado (iSéneca). |
 | `SYMFONY_TRUSTED_PROXIES` | IPs de proxies de confianza, si la app va detrás de uno. |
 
