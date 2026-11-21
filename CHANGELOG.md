@@ -7,6 +7,26 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+- **Restaurar copias de seguridad hechas con una versión anterior.** Antes, una copia cuya migración no coincidía con la de la
+  base de datos aparecía como «no se puede restaurar desde aquí» y había que instalar la versión antigua. Ahora, si la
+  migración de la copia es anterior y esta versión la conoce, la restauración borra las tablas, las recrea ejecutando las
+  migraciones desde cero hasta la versión de la copia (sin ejecutar ningún `down()`), carga los datos y migra hasta la última,
+  de modo que las migraciones que transforman datos se aplican sobre los de la copia. Funciona desde el panel y con
+  `app:restore`, también con `--force` (la reconstrucción tiene prioridad). Este camino no es transaccional, así que la **copia
+  previa de los datos actuales es obligatoria** y, si la restauración falla después de reconstruir el esquema, se vuelve sola a
+  los datos de antes con esa copia (si tampoco eso es posible, el resultado indica qué copia restaurar a mano). La pantalla de
+  restauración avisa cuando la copia es de este tipo. Una copia de una versión **posterior** sigue rechazándose antes de tocar
+  nada. Probado con una copia real de la v2.1.1 con datos de demostración en SQLite, PostgreSQL, MySQL y MariaDB, y con fallos
+  forzados tras la reconstrucción (con vuelta atrás automática) en SQLite y MySQL.
+
+### Changed
+- Mientras se restaura una copia, el proceso en segundo plano no toca la base de datos: las tareas programadas (índice de
+  búsqueda, OCR, recordatorios) se saltan ese turno y los demás mensajes esperan en la cola, en lugar de escribir en un
+  esquema que se está reconstruyendo.
+- El aviso de la pantalla de restauración sobre «si algo falla no se cambia nada» solo aparece en la restauración
+  transaccional (copia de la misma versión), y el de la última restauración fallida ya no asegura que no se cambió ningún dato.
+
 ## [2.5.1] - 2026-11-21
 
 ### Changed

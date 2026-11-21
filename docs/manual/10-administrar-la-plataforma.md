@@ -377,7 +377,7 @@ Haz copia de seguridad con regularidad de:
 **Administración → Copias de seguridad** (solo administradores globales) permite descargar una
 copia, guardarla en el servidor y restaurar una de las guardadas, sin tocar la línea de órdenes.
 
-![Pantalla «Copias de seguridad»: la tarjeta «Descargar una copia» con los campos opcionales de contraseña, el aviso verde «La última restauración terminó bien» y la lista de copias guardadas en el servidor: una cifrada (solo se restaura por consola), una con otro esquema de base de datos (no se puede restaurar desde aquí) y tres restaurables, cada una con Restaurar, Descargar y Eliminar](img/plataforma-copias.png)
+![Pantalla «Copias de seguridad»: la tarjeta «Descargar una copia» con los campos opcionales de contraseña, el aviso verde «La última restauración terminó bien» y la lista de copias guardadas en el servidor: una de una versión más nueva (9.9.0, no se puede restaurar), una cifrada (solo se restaura por consola) y cuatro restaurables —una de ellas de la versión 2.1.1—, cada una con Restaurar, Descargar y Eliminar](img/plataforma-copias.png)
 
 - **Descargar una copia.** El botón genera al momento un `.zip` con todos los datos, igual que
   `app:backup`, y lo descarga. Si escribes una contraseña (dos veces, para evitar errores de
@@ -419,16 +419,18 @@ copia, guardarla en el servidor y restaurar una de las guardadas, sin tocar la l
   copias de vez en cuando y guárdalas en otro sitio.
 - **La lista de copias** muestra el tamaño, la fecha, la versión de la aplicación y el motor de
   cada una, y si no se puede restaurar desde el panel, por qué: está **cifrada** con contraseña
-  (solo con `app:restore --password`) o se hizo con **otra versión del esquema** de la base de
-  datos (actualiza la aplicación a la versión de la copia). Cada copia se puede **descargar** (para
-  llevarla a otra máquina; sale tal cual está guardada) y **eliminar**.
+  (solo con `app:restore --password`) o se hizo con una **versión más nueva** que la instalada
+  (actualiza la aplicación a la versión de la copia o a una posterior). Una copia de una versión
+  **anterior** sí se puede restaurar: ver
+  [Copias de versiones anteriores](#copias-de-versiones-anteriores). Cada copia se puede
+  **descargar** (para llevarla a otra máquina; sale tal cual está guardada) y **eliminar**.
 
 #### Restaurar una copia desde el panel
 
 **Restaurar** en una copia abre una pantalla de revisión que explica qué va a pasar, y que **no
 cambia nada** hasta que la confirmas.
 
-![Pantalla «Restaurar una copia de seguridad»: la copia (nombre, versión 1.26.1, fecha, base de datos SQLite y 539 filas), un cuadro rojo «Esto sustituye todos los datos» con cinco avisos, y el formulario con los campos «Tu contraseña actual» y «Escribe RESTAURAR para confirmar»](img/plataforma-copias-restaurar.png)
+![Pantalla «Restaurar una copia de seguridad»: la copia (nombre, versión 2.1.1, fecha, base de datos SQLite y 546 filas), un cuadro rojo «Esto sustituye todos los datos» con cinco avisos —entre ellos, en negrita, que la copia es de una versión anterior y se reconstruye la base de datos— y el formulario con los campos «Tu contraseña actual» y «Escribe RESTAURAR para confirmar»](img/plataforma-copias-restaurar.png)
 
 Para confirmar hay que escribir **tu contraseña actual** y la palabra `RESTAURAR`. Quien accede por
 un sistema externo y no tiene contraseña propia no puede confirmar desde la web: tiene que usar
@@ -448,7 +450,9 @@ Al confirmar:
 2. Antes de tocar nada se guarda una copia de los datos actuales en la misma carpeta
    (`atica-calidad-before-restore-…`), por si hay que volver atrás.
 3. La carga es **transaccional**: si algo falla, no se cambia ningún dato, y el resultado queda
-   anotado en la pantalla de copias («La última restauración … terminó bien / falló»).
+   anotado en la pantalla de copias («La última restauración … terminó bien / falló»). (Si la copia
+   es de una versión anterior el proceso es otro: ver
+   [Copias de versiones anteriores](#copias-de-versiones-anteriores).)
 4. Al terminar bien se **cierran todas las sesiones**: hay que volver a entrar, con las cuentas y
    contraseñas que tenga la copia.
 
@@ -492,11 +496,13 @@ Reemplaza **todos** los datos actuales por los de la copia indicada —también 
 el [modo mantenimiento](#modo-mantenimiento) queda como estuviera cuando se hizo la copia: si lo
 habías activado para restaurar, tendrás que volver a activarlo, o desactivarlo, después—. Antes de tocar nada muestra
 la fecha, la versión de la aplicación y el contenido de la copia, y pide confirmación; `--force`
-la omite (obligatorio en modo no interactivo). Si el esquema con el que se hizo la copia no
-coincide con el de la base de datos actual —hay migraciones pendientes o de más—, se niega salvo
-que se añada `--force`.
+la omite (obligatorio en modo no interactivo). Si la copia se hizo con una migración **anterior**
+que esta versión conoce, se actualiza sola (ver
+[Copias de versiones anteriores](#copias-de-versiones-anteriores)), con o sin `--force`. Si se hizo
+con una migración que esta versión **no conoce** (una versión más nueva), se niega salvo que se
+añada `--force`, que carga los datos en la estructura actual aunque puedan no encajar.
 
-La carga es **transaccional**: si algo falla, la base de datos queda como estaba. Mientras dura,
+Con una copia de la misma versión la carga es **transaccional**: si algo falla, la base de datos queda como estaba. Mientras dura,
 se suspenden las comprobaciones de clave ajena; en **PostgreSQL** esto requiere conectarse con un
 rol con privilegios (el propietario de la base de datos o un superusuario), igual que
 `pg_restore --disable-triggers`. En SQLite y MySQL no hace falta nada especial.
@@ -510,6 +516,34 @@ cuando se restaura desde el panel, y al terminar bien se cierran todas las sesio
 
 Tras restaurar, **reinicia los procesos de la aplicación** (incluido el worker de Messenger) para
 descartar cualquier dato en caché.
+
+#### Copias de versiones anteriores {#copias-de-versiones-anteriores}
+
+Una copia hecha con una versión anterior de la aplicación se puede restaurar en la versión actual:
+no hace falta instalar la versión antigua. Como la estructura de las tablas ha cambiado desde
+entonces, el proceso es distinto del de una copia de la misma versión:
+
+1. Se guarda **siempre una copia previa** de los datos actuales (`atica-calidad-before-restore-…`).
+   Aquí no es opcional, aunque en la consola no pases `--previous-backup`.
+2. Se **borran todas las tablas** y se vuelven a crear ejecutando las migraciones desde cero hasta
+   la versión de la copia (sin deshacer ninguna migración).
+3. Se cargan los datos de la copia.
+4. Se ejecutan las **migraciones que faltan** hasta la última, que transforman los datos de la
+   copia a la estructura actual y añaden los ajustes y tablas nuevos.
+
+La pantalla de restauración avisa cuando la copia es de este tipo. Tiene una diferencia importante
+con la restauración normal: **no es transaccional** (en MySQL cada cambio de estructura se
+confirma solo), así que si algo falla a medias, la base de datos no se queda como estaba. Por eso
+la aplicación intenta **volver sola a los datos de antes** con la copia previa; si tampoco eso
+funciona, el resultado de la última restauración dice qué copia previa hay que restaurar a mano
+(`php bin/console app:restore <copia>`). Una copia de una versión **posterior** a la instalada no
+se puede restaurar: actualiza antes la aplicación.
+
+Mientras dura, el proceso en segundo plano no toca la base de datos: las tareas programadas
+(índice de búsqueda, OCR, recordatorios) se saltan ese turno y los correos en cola esperan a que
+termine. Como la cola de mensajes también se reconstruye, **reinicia el worker** al acabar (el
+mismo reinicio que ya se pide tras cualquier restauración); si el worker se detuvo mientras tanto
+porque no encontraba la cola, vuelve a arrancarlo.
 
 ## Correos en cola (Messenger) {#correos-en-cola-messenger}
 
