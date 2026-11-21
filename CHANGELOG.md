@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-11-21
+
 Incluye una migración nueva (`Version20261121100000`: la columna `document_file_text.ocr_page` y el ajuste
 `search.ocr`): se aplica al actualizar. Como todos los ajustes nuevos, el OCR llega **desactivado**.
 
