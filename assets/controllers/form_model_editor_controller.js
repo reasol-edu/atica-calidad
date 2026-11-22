@@ -13,8 +13,8 @@ const CELL_TYPES = ['number', 'short', 'long', 'date', 'time', 'bool'];
 const FUNCTION_SNIPPETS = ['sum(', 'avg(', 'min(', 'max(', 'count(', 'count_if(', 'pct_if(', 'if(', 'round(', 'abs(', 'empty('];
 const BTN = 'rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-forest-500';
 const INPUT = 'w-full min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-forest-500 focus:ring-forest-500';
-// The room on the right (and the arrow moved in from the edge) keeps the arrow of a native drop-down off the border of the box.
-const SELECT = 'min-w-0 rounded-lg border border-gray-200 py-1.5 pl-2 pr-9 text-sm bg-position-[right_0.75rem_center] focus:border-forest-500 focus:ring-forest-500';
+// The chevron and the room under it come from the global rule for `select` in app.css.
+const SELECT = 'min-w-0 rounded-lg border border-gray-200 py-1.5 pl-2 text-sm focus:border-forest-500 focus:ring-forest-500';
 
 /**
  * The editor of a document model. It works on the definition (a JSON tree of sections, see App\Service\Form\FormDefinition),

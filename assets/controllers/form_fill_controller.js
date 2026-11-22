@@ -8,8 +8,8 @@ import { asMap, sync, walk, numbers, references, fieldSpecs, progress, newKey, M
 Quill.register(Quill.import('attributors/style/align'), true);
 
 const INPUT = 'w-full min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-forest-500 focus:ring-forest-500 disabled:bg-gray-50 disabled:text-gray-500';
-// A native drop-down: the room on the right keeps the arrow off the edge of the box.
-const SELECT = INPUT + ' pr-9 bg-position-[right_0.75rem_center]';
+// A native drop-down (its chevron and the room under it come from the global rule for `select` in app.css).
+const SELECT = INPUT;
 // What is shown wrong in a field (the look of a Tom Select box in error comes from `.has-error`, see app.css).
 const INVALID = ['border-red-400', 'bg-red-50', 'focus:border-red-500', 'focus:ring-red-500'];
 const BTN ='rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-forest-500 disabled:opacity-50';
