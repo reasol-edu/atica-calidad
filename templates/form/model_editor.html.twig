@@ -213,13 +213,24 @@
             {% if impact.drafts + impact.delivered > 0 or hasRevisions %}
                 <fieldset class="w-full">
                     <legend class="block text-sm font-medium text-gray-700">{{ 'editor.policy'|trans({}, 'forms') }}</legend>
-                    <div class="mt-1 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-700">
-                        <label class="inline-flex items-center gap-2"><input type="radio" name="policy" value="optional" checked class="text-forest-600 focus:ring-forest-500">{{ 'editor.policy_optional'|trans({}, 'forms') }}</label>
-                        <label class="inline-flex items-center gap-2"><input type="radio" name="policy" value="mandatory" class="text-forest-600 focus:ring-forest-500">{{ 'editor.policy_mandatory'|trans({}, 'forms') }}</label>
-                        <label class="inline-flex items-center gap-2">{{ 'editor.policy_deadline'|trans({}, 'forms') }}
-                            <input type="date" name="deadline" class="rounded-lg border border-gray-200 px-2 py-1 text-sm focus:border-forest-500 focus:ring-forest-500">
-                        </label>
+                    <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <twig:Form:RadioCard
+                            name="policy"
+                            value="optional"
+                            label="{{ 'editor.policy_optional'|trans({}, 'forms') }}"
+                            help="{{ 'editor.policy_optional_help'|trans({}, 'forms') }}"
+                            :checked="true"
+                        />
+                        <twig:Form:RadioCard
+                            name="policy"
+                            value="mandatory"
+                            label="{{ 'editor.policy_mandatory'|trans({}, 'forms') }}"
+                            help="{{ 'editor.policy_mandatory_help'|trans({}, 'forms') }}"
+                        />
                     </div>
+                    <label class="mt-2 inline-flex items-center gap-2 text-sm text-gray-700">{{ 'editor.policy_deadline'|trans({}, 'forms') }}
+                        <input type="date" name="deadline" class="rounded-lg border border-gray-200 px-2 py-1 text-sm focus:border-forest-500 focus:ring-forest-500">
+                    </label>
                 </fieldset>
             {% endif %}
             <div class="min-w-0 flex-1">
