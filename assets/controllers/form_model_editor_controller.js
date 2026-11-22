@@ -245,7 +245,13 @@ export default class extends Controller {
             this.rulesEl(),
             this.approvalEl(),
         );
-        this.outlineTarget.replaceChildren(...this.outlineItems(this.def.sections, numbers, 0));
+        this.outlineTarget.replaceChildren(...(this.def.sections.length === 0
+            ? [h('div', { class: 'flex flex-col items-center gap-1.5 px-2 py-6 text-center text-gray-400' }, [
+                h('span', { class: 'text-2xl leading-none', 'aria-hidden': 'true', text: '☰' }),
+                h('p', { class: 'text-sm font-medium text-gray-500', text: this.l.outline_empty }),
+                h('p', { class: 'text-xs', text: this.l.outline_empty_help }),
+            ])]
+            : this.outlineItems(this.def.sections, numbers, 0)));
         this.enhanceSelects();
         if (this.focusKey) {
             const target = this.canvasTarget.querySelector('[data-focus="' + this.focusKey + '"]');
