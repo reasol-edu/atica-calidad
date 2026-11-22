@@ -60,8 +60,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   cambiarlo), y un documento entregado **congela los nombres** con que se entregó, así que renombrar o borrar después no cambia lo
   aprobado (PDF, revisión, comparación, explorador de datos y agrupación de indicadores). La biblioteca JSON exporta la lista por
   nombre y ruta y la enlaza al importar con la del mismo nombre del centro destino (si no la hay, avisa y deja el campo sin lista).
-  Al borrar elementos en Responsabilidades, la confirmación avisa de en cuántos documentos entregados aparecen. Migración nueva
-  (columna de nombres congelados), probada en las cuatro bases.
+  Al borrar o mover elementos en Responsabilidades, la confirmación avisa de en cuántos documentos entregados aparecen, y la
+  vista previa de la importación de Séneca también; un elemento que figura en un documento entregado se desactiva en lugar de
+  eliminarse. En el formulario de un indicador, la condición sobre un campo de opciones se elige de una lista con buscador (antes
+  había que teclear la clave interna). Las selecciones múltiples del índice de valores guardan hasta 27 opciones (columna ampliada).
+  Migración nueva (columna de nombres congelados), probada en las cuatro bases. El manual gana las capturas del capítulo y el
+  comando opcional `app:load-demo-form-models` las hace posibles.
 - **Indicadores que se recalculan al aprobarse una entrega (fase 6).** Antes solo con la tarea programada o al guardar el indicador.
 - **Modelos de documento: Word y OpenDocument, biblioteca JSON y duplicado (fase 7).** Un documento entregado se descarga también en
   `.docx` y `.odt`, igual que un modelo en blanco. Un modelo se exporta a JSON y se importa en otro centro (o en el mismo) como borrador

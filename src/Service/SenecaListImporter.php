@@ -40,7 +40,25 @@ final class SenecaListImporter
         private readonly SpecificProfileRepository $profiles,
         private readonly SpecificProfileAssignmentRepository $assignments,
         private readonly DocumentRepository $documents,
+        private readonly \App\Repository\FormValueRepository $formValues,
     ) {}
+
+    /**
+     * In how many delivered documents of the models filled in online the items the import would remove or deactivate appear: those
+     * documents keep the names they were delivered with, but the items stop being offered and the drafts that have them chosen cannot
+     * be delivered until they pick another one.
+     */
+    public function formUsage(SenecaListImportPlan $plan): int
+    {
+        $ids = [];
+        foreach ([...$plan->deletions, ...$plan->deactivations] as $row) {
+            if ($row->item !== null) {
+                $ids[] = $row->item->getId()->toRfc4122();
+            }
+        }
+
+        return $ids === [] ? 0 : $this->formValues->countDocumentsUsingItems($ids);
+    }
 
     /** @param SenecaImportNode[] $desired */
     public function plan(EducationalCentre $centre, string $rootName, array $desired): SenecaListImportPlan
@@ -266,7 +284,9 @@ final class SenecaListImporter
     {
         return $this->profiles->isListItemInUse($item)
             || $this->assignments->isListItemAssigned($item)
-            || $this->documents->isListItemUsedByDocument($item);
+            || $this->documents->isListItemUsedByDocument($item)
+            // Chosen in a delivered document of a model filled in online: it is deactivated, not deleted, so it keeps its name there.
+            || $this->formValues->countDocumentsUsingItems([$item->getId()->toRfc4122()]) > 0;
     }
 
     private function findRootByName(EducationalCentre $centre, string $name): ?ListItem

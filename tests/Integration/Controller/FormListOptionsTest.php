@@ -270,6 +270,39 @@ final class FormListOptionsTest extends ControllerTestCase
         self::assertSame(0, $values->countDocumentsUsingItems([$this->physics->getId()->toRfc4122()]));
     }
 
+    public function testTheIndicatorFormOffersTheOptionsOfAListFedChoiceForTheCondition(): void
+    {
+        // Indicators belong to the centre's active academic year.
+        $centre = $this->em->getRepository(EducationalCentre::class)->find($this->centre->getId());
+        $year   = (new \App\Entity\AcademicYear())->setName('2026-2027')->setEducationalCentre($centre);
+        $centre->setActiveAcademicYear($year);
+        $this->persist($year);
+        $this->loginAs($this->admin, $this->centre);
+        $this->client->request('GET', '/mejora/indicadores/nuevo');
+        self::assertResponseIsSuccessful();
+        $page = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('data-controller="indicator-condition"', $page);
+        // The options of «Departamento» by "activity|field", in the attribute the picker reads (accent and backslash escaped).
+        self::assertStringContainsString($this->activity->getId()->toRfc4122() . '|' . $this->fieldKey, $page);
+        self::assertStringContainsString('Matem&#x5C;u00e1ticas', $page);
+        self::assertStringContainsString($this->maths->getId()->toRfc4122(), $page);
+    }
+
+    public function testSenecaImportRemovesNothingThatDeliveredDocumentsUseAndWarnsAboutIt(): void
+    {
+        $this->save($this->maths->getId()->toRfc4122());
+        $this->deliver();
+        $this->em->clear();
+
+        $importer = self::getContainer()->get(\App\Service\SenecaListImporter::class);
+        $centre   = $this->em->getRepository(EducationalCentre::class)->find($this->centre->getId());
+        // The new file no longer has «Matemáticas»: it would be removed, but a delivered document has it chosen.
+        $plan = $importer->plan($centre, 'Departamento', [new \App\Model\SenecaImportNode('Física', [])]);
+        self::assertCount(0, $plan->deletions, 'in use by a delivered document: not deleted');
+        self::assertContains('Matemáticas', array_map(static fn (\App\Model\SenecaListImportPlanItem $r): string => $r->item?->getName() ?? '', $plan->deactivations));
+        self::assertSame(1, $importer->formUsage($plan));
+    }
+
     public function testTheEditorOffersTheListsOfTheCentre(): void
     {
         $this->loginAs($this->admin, $this->centre);

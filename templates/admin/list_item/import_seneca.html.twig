@@ -145,6 +145,12 @@
                         </div>
                     {% endif %}
 
+                    {% if formUsage|default(0) > 0 %}
+                        <p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="form-usage">
+                            {{ 'responsibilities.lists.import_seneca.preview.form_usage'|trans({'%count%': formUsage}, 'admin') }}
+                        </p>
+                    {% endif %}
+
                     {% if plan.deactivations is not empty %}
                         <div>
                             <h3 class="flex items-center gap-1.5 text-sm font-semibold text-amber-700">

@@ -66,7 +66,7 @@ Las capturas de `img/` salen de scripts de Node/[Playwright](https://playwright.
 selección de centro), `actividades`, `arbol`, `calendar`, `centro` (Centro educativo: cursos,
 docentes y su importación, días no lectivos, registro de avisos), `informes` (portada y PDF; necesita
 `pdftoppm`), `plataforma` (administración global y ajustes), `responsabilidades` (listas, perfiles,
-asignaciones e importaciones de Séneca; necesita la CLI `sqlite3`), `mejora` (Mejora continua; solo lee, no envía nada) y `gestion` (preparar el nuevo
+asignaciones e importaciones de Séneca; necesita la CLI `sqlite3`), `mejora` (Mejora continua; solo lee, no envía nada), `modelos` (modelos de documento rellenables; **rellena y entrega** un formulario, y necesita `app:load-demo-form-models` y la CLI `sqlite3`) y `gestion` (preparar el nuevo
 curso, papelera y registro de actividad). Se ejecutan contra un servidor local con una **base de
 datos desechable** sembrada con los datos de demostración, **nunca contra la real**: `gestion`
 elimina una actividad y una entrega para que la papelera tenga contenido, y `responsabilidades`
@@ -82,6 +82,7 @@ export DATABASE_URL="sqlite:///$PWD/var/capturas.db" MIGRATIONS_PATH=migrations/
 rm -f var/capturas.db
 php bin/console doctrine:migrations:migrate -n
 php bin/console app:load-demo-data -n
+php bin/console app:load-demo-form-models -n   # solo para `capture-modelos-shots.mjs`
 php bin/console app:index-documents   # lee el texto de los PDF de la demo (no hay worker): imprescindible para `arbol-busqueda-contenido`
 php bin/console tailwind:build
 
@@ -99,6 +100,7 @@ node scripts/capture-plataforma-shots.mjs
 SHOTS_BACKUP_DIR="$APP_BACKUP_DIR" node scripts/capture-copias-shots.mjs   # el servidor y el script con APP_BACKUP_DIR = una carpeta vacía y desechable
 node scripts/capture-mejora-shots.mjs
 node scripts/capture-responsabilidades-shots.mjs
+node scripts/capture-modelos-shots.mjs   # entrega un formulario: después de las de solo lectura
 node scripts/capture-gestion-shots.mjs
 ```
 

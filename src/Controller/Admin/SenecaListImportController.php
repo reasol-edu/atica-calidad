@@ -112,7 +112,8 @@ class SenecaListImportController extends AbstractController
             'centre'    => $centre,
             'kind'      => $kind,
             'rootName'  => $rootName,
-            'plan'      => $this->importer->plan($centre, $rootName, $desired),
+            'plan'      => $plan = $this->importer->plan($centre, $rootName, $desired),
+            'formUsage' => $this->importer->formUsage($plan),
             'csvBase64' => base64_encode($content),
         ]);
     }

@@ -166,12 +166,14 @@ trap: a list-fed field normalized against the raw definition has no options, so 
   again in the same process must call `reset()` (see `FormListOptionsTest::change`).
 - Responsabilidades: the delete confirmations of `ListItemTreeComponent` show `FormValueRepository::countDocumentsUsingItems()` (delivered
   documents (not revisions) with a value equal to / containing the item id), for a single item, a whole list (it is the same component:
-  "Editar la lista" → delete) and the bulk delete. Not covered: the Séneca import (its removals) and "move to another list" do not
-  warn; a moved item stops being offered by the fields of the list it left, and drafts that had it keep it marked as gone.
+  "Editar la lista" → delete) and the bulk delete. "Move to another list" (`getMoveImpact()`) asks for confirmation when the moved items are
+  in delivered documents or change profiles; the Séneca import (`SenecaListImporter::formUsage()`, shown in the preview) treats an item
+  that delivered documents use as IN USE, so it is deactivated, never deleted. A moved item stops being offered by the fields of the list
+  it left, and drafts that had it keep it marked as gone.
 - `FormValue::text` holds the keys of a multiple choice joined by commas (VARCHAR 1000: 27 keys; whole keys only, the rest is cut). The
   delete count and the explorer therefore miss the 28th selected item and beyond of one multiple choice.
-- A condition (`count_if` / `percent_if`) on a choice field of an indicator is typed as the option's key: the indicator form has no picker
-  for it (true for typed options as well as for lists).
+- The condition (`count_if` / `percent_if`) of an indicator on a choice field is picked in a searchable Tom Select
+  (`indicator_condition_controller.js`, fed by `FormSourceChoices` with the options as the lists are now); the stored value is the option's key.
 - Not done: rows of a fixed table taken from a list (one row per item), a list-fed field in a double-entry table's cells.
 
 ## Files in and out, and offline (phase 7)

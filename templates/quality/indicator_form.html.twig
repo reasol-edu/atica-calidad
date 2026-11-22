@@ -136,12 +136,17 @@
 
         {# ── Computed from documents ─────────────────────────────────────────────── #}
         {% if sourceChoices is not empty %}
-        <fieldset class="space-y-4 border-t border-gray-100 pt-5" data-testid="source-fieldset">
+        {# The options of every choice field the condition can read, by "activity|field": the controller turns the value box into a searchable list. #}
+        {% set choiceOptions = {} %}
+        {% for a in sourceChoices %}{% for f in a.fields %}{% if f.options is not empty %}{% set choiceOptions = choiceOptions|merge({ (a.id ~ '|' ~ f.key): f.options }) %}{% endif %}{% endfor %}{% endfor %}
+        <fieldset class="space-y-4 border-t border-gray-100 pt-5" data-testid="source-fieldset"
+                  data-controller="indicator-condition" data-indicator-condition-options-value="{{ choiceOptions|json_encode|e('html_attr') }}">
             <legend class="text-sm font-semibold uppercase tracking-wide text-forest-700">{{ 'indicator.source.title'|trans({}, 'quality') }}</legend>
             <p class="text-xs text-gray-500">{{ 'indicator.source.help'|trans({}, 'quality') }}</p>
             <div class="space-y-1.5">
                 <label for="ind-source-field" class="{{ label }}">{{ 'indicator.source.field'|trans({}, 'quality') }}</label>
-                <select id="ind-source-field" name="source_field" class="{{ field }} border-gray-200">
+                <select id="ind-source-field" name="source_field" class="{{ field }} border-gray-200"
+                        data-indicator-condition-target="field" data-action="change->indicator-condition#sync">
                     <option value="">{{ 'indicator.source.none'|trans({}, 'quality') }}</option>
                     {% for a in sourceChoices %}<optgroup label="{{ a.name }}">{% for f in a.fields %}<option value="{{ a.id }}|{{ f.key }}" {{ source.field == a.id ~ '|' ~ f.key ? 'selected' : '' }}>{{ f.label }}</option>{% endfor %}</optgroup>{% endfor %}
                 </select>
@@ -167,7 +172,7 @@
                         <select id="ind-source-op" name="source_op" class="{{ field }} border-gray-200 w-24">
                             {% for o, sym in {eq: '=', ne: '≠', gt: '>', ge: '≥', lt: '<', le: '≤'} %}<option value="{{ o }}" {{ source.op == o ? 'selected' : '' }}>{{ sym }}</option>{% endfor %}
                         </select>
-                        <input name="source_value" value="{{ source.value }}" class="{{ field }} border-gray-200" aria-label="{{ 'indicator.source.condition'|trans({}, 'quality') }}">
+                        <input name="source_value" value="{{ source.value }}" data-indicator-condition-target="input" class="{{ field }} border-gray-200" aria-label="{{ 'indicator.source.condition'|trans({}, 'quality') }}">
                     </div>
                 </div>
                 <div class="space-y-1.5">

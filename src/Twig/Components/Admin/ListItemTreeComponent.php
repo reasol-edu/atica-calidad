@@ -158,6 +158,27 @@ class ListItemTreeComponent extends AbstractController
             return 0;
         }
 
+        return $this->formUsageOf($roots);
+    }
+
+    /**
+     * What a pending move would change: whether the profiles that apply to the moved items change, and in how many delivered documents of
+     * the models filled in online they appear (a moved item stops being offered by the fields that take their options from the list it
+     * leaves, and starts being offered by those of the list it joins).
+     *
+     * @return array{profiles: bool, forms: int}
+     */
+    public function getMoveImpact(): array
+    {
+        $roots  = array_values($this->topLevelSelectedItems());
+        $target = $this->bulkMoveTargetId === '' ? null : $this->items->findByIdAndCentre($this->bulkMoveTargetId, $this->centre);
+
+        return ['profiles' => $roots !== [] && $this->moveChangesProfiles($roots, $target), 'forms' => $this->formUsageOf($roots)];
+    }
+
+    /** @param iterable<ListItem> $roots branches */
+    private function formUsageOf(iterable $roots): int
+    {
         $ids = [];
         foreach ($roots as $root) {
             foreach ($this->items->findSubtree($root) as $node) {
@@ -915,7 +936,7 @@ class ListItemTreeComponent extends AbstractController
         $ordered = array_values($roots);
         usort($ordered, static fn (ListItem $a, ListItem $b): int => $a->getPosition() <=> $b->getPosition());
 
-        if (!$confirmed && $this->moveChangesProfiles($ordered, $target)) {
+        if (!$confirmed && ($this->moveChangesProfiles($ordered, $target) || $this->formUsageOf($ordered) > 0)) {
             $this->bulkMoveConfirmKey = $this->getBulkMoveKey();
             $this->errors             = [];
 

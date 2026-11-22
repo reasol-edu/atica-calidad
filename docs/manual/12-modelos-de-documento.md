@@ -29,6 +29,8 @@ En **Modelos de documento** escribe el nombre, el código que irá en la cabecer
 ejemplo `MD850703`) y la carpeta, y pulsa **Crear y editar**. El editor guarda el borrador solo mientras
 escribes; si otra persona o pestaña guarda a la vez, te avisa en vez de pisar sus cambios.
 
+![Pantalla «Modelos de documento»: formularios para crear e importar un modelo y, debajo, la «Memoria de departamento» (MD-07) en vigor, con sus botones Editar, Exportar y Duplicar](img/modelos-lista.png)
+
 Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) con estos bloques:
 
 - **Texto**: fijo (no se toca), de partida (se adapta) o a rellenar, con formato.
@@ -62,6 +64,8 @@ puede ser una lista entera o una rama («Enseñanza › FP»). Las opciones son 
 en su orden, y cada una se llama por su ruta bajo el elemento elegido («Ciencias › Física»); los
 elementos inactivos no se ofrecen.
 
+![Editor del campo «Departamento» de la «Memoria de departamento»: Opciones «De una lista del centro», lista «Departamento», y debajo cuántas opciones ofrece ahora (9: Matemáticas, Lengua Castellana y Literatura…)](img/modelos-editor-lista.png)
+
 Las opciones **no se copian al modelo: se leen de la lista cada vez que alguien rellena**, igual que
 las actividades siguen a las listas. Un elemento nuevo aparece solo, uno renombrado cambia de nombre y
 uno desactivado deja de ofrecerse, sin tocar el modelo ni crear una revisión nueva. Qué ocurre con lo
@@ -81,6 +85,22 @@ Al **exportar** un modelo a JSON, la lista viaja por sus nombres (no por identif
 **importarlo** en otro centro se enlaza con la lista que tenga **el mismo nombre y la misma ruta**. Si
 ese centro no la tiene, el campo queda sin opciones, se avisa de cuáles son y hay que elegir una lista
 (o escribir las opciones) antes de enviar el modelo a revisión.
+
+#### Qué avisa Responsabilidades al cambiar una lista
+
+Quitar o mover elementos de una lista afecta a los modelos que la usan, y las pantallas de
+[Responsabilidades](06-responsabilidades.md#eliminar-elementos) lo dicen **antes** de hacerlo:
+
+- Al **eliminar** un elemento (o una rama, o una lista entera), la confirmación indica en cuántos
+  documentos ya entregados aparece.
+- Al **mover** elementos a otro sitio, la confirmación dice lo mismo, y que los campos que toman sus
+  opciones de la lista de origen dejarán de ofrecerlos (y los de la lista de destino los ofrecerán).
+- Al **importar desde Séneca**, la vista previa avisa del mismo recuento, y un elemento que aparece en
+  un documento entregado **no se elimina: se desactiva**, como los que están en uso por otros motivos.
+
+![Confirmación de eliminar «Matemáticas» en la lista «Departamento»: «Aparece en 1 documento ya entregado de los modelos rellenables; seguirá mostrándose con el nombre que tenía al entregarlo, pero ya no se podrá elegir»](img/modelos-borrar-elemento.png)
+
+![Confirmación de mover «Matemáticas» a la lista «Grupo»: el aviso de que aparece en 1 documento entregado, seguido del de los perfiles, con los botones «Sí, mover» y «Cancelar»](img/modelos-mover-elemento.png)
 
 ## Aprobación de los documentos rellenados
 
@@ -122,6 +142,13 @@ cuánto falta para poder entregarlo. Lo que debes saber:
   **Entregar** se genera el PDF y la entrega entra en la revisión de la carpeta.
 - Una entrega rechazada o a corregir se **corrige** con una versión siguiente; las anteriores se
   conservan.
+
+![Formulario «Memoria de departamento» a medio rellenar: el departamento «Matemáticas» elegido entre los de la lista, 11 reuniones, una valoración y, en la tabla de coordinación, una fila con dos departamentos marcados](img/modelos-rellenar.png)
+
+Entregado y aprobado, el documento se ve así, con los departamentos por su nombre y los botones para
+bajarlo en PDF, Word u OpenDocument:
+
+![Documento entregado «Memoria de departamento», aprobado: Departamento Matemáticas, 11 reuniones, la valoración y la fila de coordinación con «Matemáticas, Física y Química»](img/modelos-entregado.png)
 
 ### Sin conexión
 
@@ -166,7 +193,11 @@ sí/no, de opciones o calculado; también se elige en el formulario del indicado
 desde documentos*.
 
 - Se puede **sumar, promediar, tomar el mínimo o el máximo, contar**, contar o sacar el **porcentaje de
-  los que cumplen una condición**, o dividir un campo por otro (×100).
+  los que cumplen una condición**, o dividir un campo por otro (×100). Si el campo es de opciones, la
+  condición se **elige de una lista con buscador** (escribe para filtrar), con las opciones tal como
+  están ahora: no hace falta conocer ningún código.
+
+![Formulario de un indicador, sección «Calculado desde documentos»: campo «Departamento», «Cuántos cumplen la condición» y, abierta, la lista con buscador de la condición con Matemáticas, Lengua Castellana y Literatura, Inglés…](img/modelos-indicador-condicion.png)
 - **Desglose**: el valor global y, además, el de cada entrega (perfil o docente) o de cada opción de un
   campo. Si un grupo queda por debajo del umbral aunque el global cumpla, se puede **abrir un
   hallazgo solo de ese grupo**.
@@ -180,6 +211,8 @@ desde documentos*.
 **Informes → Datos de modelos** lista, fila a fila, los valores de las entregas aprobadas de una
 actividad y un curso (entrega, versión, copia, fila, campo y valor), con un filtro de texto en
 pantalla y **exportación completa a CSV y Excel**. Lo ve quien puede ver los demás informes.
+
+![Datos de modelos: cinco valores de la «Memoria final de departamento» del curso 2026-2027 (departamento Matemáticas, 11 reuniones, la valoración y las dos columnas de la fila de coordinación), con el filtro y los botones CSV y Excel](img/modelos-explorador.png)
 
 ## Permisos, de un vistazo
 
