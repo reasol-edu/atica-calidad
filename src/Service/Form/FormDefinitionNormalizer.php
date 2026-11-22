@@ -417,9 +417,14 @@ final class FormDefinitionNormalizer
 
         $blocks = [];
         foreach (FormDefinition::listOf($raw['blocks'] ?? []) as $block) {
+            // The field of a named foot total is made again from its column every time, so a stored one is left out.
+            if (($block['foot'] ?? false) === true) {
+                continue;
+            }
             $clean = $this->block($block);
             if ($clean !== null) {
                 $blocks[] = $clean;
+                array_push($blocks, ...$this->footFields($clean));
             }
         }
         $children = [];
@@ -562,6 +567,46 @@ final class FormDefinitionNormalizer
     }
 
     /**
+     * The fields of the foot totals that have a name: a calculated field (`sum([t:TABLE.COLUMN])`) marked `foot`, which is not shown as
+     * a block (the table shows the value at the foot of its column) but is a field of the document like any other: formulas,
+     * indicators, rules and the data explorer can use it.
+     *
+     * @param array<string, mixed> $block
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function footFields(array $block): array
+    {
+        if (($block['type'] ?? '') !== 'table') {
+            return [];
+        }
+        $fields = [];
+        foreach (FormDefinition::listOf($block['columns'] ?? []) as $column) {
+            $name    = FormDefinition::str($column['totalName'] ?? '');
+            $fn      = FormDefinition::str($column['total'] ?? '');
+            $custom  = $fn === 'custom';
+            $formula = $custom
+                ? FormDefinition::str($column['totalFormula'] ?? '')
+                : sprintf('%s([t:%s.%s])', $fn, FormDefinition::str($block['key'] ?? ''), FormDefinition::str($column['key'] ?? ''));
+            if ($fn === '' || $formula === '' || ($name === '' && !$custom)) {
+                continue;
+            }
+            $calculated = ($column['fieldType'] ?? '') === 'calculated';
+            $fields[]   = ['key' => FormDefinition::str($column['totalKey'] ?? ''), 'type' => 'field', 'name' => '']
+                + $this->fieldProperties([
+                    'label'     => $name !== '' ? $name : FormDefinition::str($column['label'] ?? ''),
+                    'fieldType' => 'calculated',
+                    'formula'   => $formula,
+                    'decimals'  => $fn === 'count' ? 0 : ($calculated ? FormDefinition::int($column['decimals'] ?? 2) : 2),
+                    'unit'      => $fn === 'count' ? '' : FormDefinition::str($column['unit'] ?? ''),
+                ])
+                + ['help' => '', 'visibleIf' => null, 'foot' => true];
+        }
+
+        return $fields;
+    }
+
+    /**
      * @param array<string, mixed> $raw
      *
      * @return array<string, mixed>
@@ -573,7 +618,15 @@ final class FormDefinitionNormalizer
 
         $columns = [];
         foreach (array_slice(FormDefinition::listOf($raw['columns'] ?? []), 0, self::MAX_COLUMNS) as $column) {
-            $columns[] = ['key' => $this->key($column['key'] ?? null), 'name' => $this->name($column['name'] ?? '')] + $this->fieldProperties($column);
+            $props    = $this->fieldProperties($column);
+            $key      = $this->key($column['key'] ?? null);
+            // A foot total with a name is also a field of the document (see footFields()); its key is kept so that what reads it still finds it.
+            $footName = $props['total'] === '' ? '' : $this->text($column['totalName'] ?? '', 255);
+            // A custom total is a formula of its own (over the whole table, not a row); it is always a field, named or not.
+            $formula  = $props['total'] === 'custom' ? mb_substr(trim(FormDefinition::str($column['totalFormula'] ?? '')), 0, 1000) : '';
+            $isField  = $footName !== '' || $formula !== '';
+            $columns[] = ['key' => $key, 'name' => $this->name($column['name'] ?? '')] + $props
+                + ['totalName' => $footName, 'totalFormula' => $formula, 'totalKey' => $isField ? $this->key($column['totalKey'] ?? null) : ''];
         }
         $rows = [];
         if ($mode === 'fixed') {

@@ -98,7 +98,7 @@ final class FormWalker
     {
         $blocks = [];
         foreach (FormDefinition::listOf($section['blocks'] ?? []) as $block) {
-            $blocks[] = ['block' => $block, 'visible' => $visible && FormConditions::holds($block['visibleIf'] ?? null, $chain)];
+            $blocks[] = ['block' => $block, 'visible' => $visible && ($block['foot'] ?? false) !== true && FormConditions::holds($block['visibleIf'] ?? null, $chain)];
         }
 
         return [

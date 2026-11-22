@@ -31,6 +31,9 @@ export default class extends Controller {
         this.def = this.configValue.definition && Array.isArray(this.configValue.definition.sections)
             ? this.configValue.definition
             : { version: 1, sections: [] };
+        // The fields made from the named totals of the columns are not edited as blocks: the server makes them from the columns.
+        const dropFoot = (sections) => sections.forEach((s) => { s.blocks = (s.blocks || []).filter((b) => !b.foot); dropFoot(s.children || []); });
+        dropFoot(this.def.sections);
         this.version = this.configValue.version;
         this.dirty = false;
         this.saving = false;
@@ -418,7 +421,14 @@ export default class extends Controller {
         const out = [];
         const visit = (sections) => {
             for (const s of sections) {
-                s.blocks.filter((b) => b.type === 'field' && !exclude.has(b.key)).forEach((b) => out.push(b));
+                s.blocks.forEach((b) => {
+                    if (b.type === 'field' && !exclude.has(b.key)) { out.push(b); }
+                    // The named totals at the foot of a table's columns are fields too (the server makes them, see FormDefinitionNormalizer).
+                    if (b.type === 'table') {
+                        (b.columns || []).filter((c) => c.total && c.totalKey && ((c.totalName || '').trim() || (c.total === 'custom' && (c.totalFormula || '').trim())) && !exclude.has(c.totalKey))
+                            .forEach((c) => out.push({ key: c.totalKey, type: 'field', fieldType: 'calculated', label: (c.totalName || '').trim() || c.label, name: '' }));
+                    }
+                });
                 visit(s.children);
             }
         };
@@ -727,36 +737,6 @@ export default class extends Controller {
         ]);
     }
 
-    /**
-     * The simple way to a calculated field: an operation (count, sum, average, minimum, maximum) over a column of a table. It only writes
-     * the formula (`sum([t:TABLE.COLUMN])`), so the field is an ordinary calculated one that can be edited as a formula afterwards; and it
-     * reads the formula back, so a formula of exactly that shape shows its operation and column here.
-     */
-    summaryPicker(spec) {
-        const found = /^(count|sum|avg|min|max)\(\[t:([^.\]]+\.[^\]]+)\]\)$/.exec((spec.formula || '').trim());
-        let fn = found ? found[1] : '';
-        let ref = found ? found[2] : '';
-        const columns = [];
-        this.tableList().filter((t) => t.mode !== 'matrix').forEach((t) => (t.columns || []).forEach((c) => columns.push([t.key + '.' + c.key, (t.label || '…') + ' · ' + (c.label || '…')])));
-        // The formula is rewritten (and the page redrawn to show it) once both are chosen; one alone is kept until the other comes.
-        const apply = () => {
-            if (fn && ref) {
-                spec.formula = fn + '([t:' + ref + '])';
-                this.changed();
-            }
-        };
-        const ops = [['', '—'], ['count', this.l.total_count], ['sum', this.l.total_sum], ['avg', this.l.total_avg], ['min', this.l.total_min], ['max', this.l.total_max]];
-
-        return h('div', { class: 'rounded-lg border border-gray-200 bg-gray-50/60 p-2.5' }, [
-            h('p', { class: 'mb-1 text-xs font-medium text-gray-600', text: this.l.summary }),
-            h('div', { class: 'flex flex-wrap items-end gap-3' }, [
-                this.labelled(this.l.summary_op, this.select(fn, ops, (v) => { fn = v; apply(); }, this.l.summary_op), 'w-40'),
-                this.labelled(this.l.summary_column, this.select(ref, [['', '—'], ...columns], (v) => { ref = v; apply(); }, this.l.summary_column), 'flex-1 basis-56'),
-            ]),
-            h('p', { class: 'mt-1 text-xs text-gray-500', text: this.l.summary_help }),
-        ]);
-    }
-
     /** What a field and a table column share: type, required, number limits, options, formula, relation and total. */
     fieldProps(spec, context = {}) {
         const parts = [
@@ -770,9 +750,6 @@ export default class extends Controller {
             ]),
         ];
         if (spec.fieldType === 'calculated') {
-            if (!context.table && !context.cell) {
-                parts.push(this.summaryPicker(spec));
-            }
             parts.push(this.formulaEditor(spec, 'formula', context.table || null, this.l.formula));
             parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
                 this.labelled(this.l.decimals, h('input', {
@@ -792,8 +769,22 @@ export default class extends Controller {
             ]));
         }
         if (context.table && (spec.fieldType === 'number' || spec.fieldType === 'calculated')) {
-            const totalsList = [['', this.l.total_none], ['sum', this.l.total_sum], ['avg', this.l.total_avg], ['min', this.l.total_min], ['max', this.l.total_max], ['count', this.l.total_count]];
-            parts.push(this.labelled(this.l.total, this.select(spec.total || '', totalsList, (v) => { spec.total = v; this.touch(); }, this.l.total)));
+            const totalsList = [['', this.l.total_none], ['sum', this.l.total_sum], ['avg', this.l.total_avg], ['min', this.l.total_min], ['max', this.l.total_max], ['count', this.l.total_count], ['custom', this.l.total_custom]];
+            // With a name, the total is also a field of the document (it is still shown only at the foot of the column).
+            const named = (e) => {
+                spec.totalName = e.target.value;
+                if (spec.totalName.trim() !== '' && !spec.totalKey) { spec.totalKey = uid(); }
+                this.touch();
+            };
+            parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
+                this.labelled(this.l.total, this.select(spec.total || '', totalsList, (v) => { spec.total = v; this.changed(); }, this.l.total), 'w-48'),
+                ...(spec.total ? [this.labelled(this.l.total_name, h('input', { class: INPUT, value: spec.totalName ?? '', maxlength: 255, placeholder: this.l.total_name_hint, oninput: named }), 'flex-1 basis-64')] : []),
+            ]));
+            if (spec.total === 'custom') {
+                // A formula over the whole table (no "this row"): e.g. sum([t:…]) / count([t:…]).
+                if (!spec.totalKey) { spec.totalKey = uid(); }
+                parts.push(this.formulaEditor(spec, 'totalFormula', null, this.l.total_formula));
+            }
         }
         if (spec.fieldType === 'number') {
             const num = (prop, text) => this.labelled(text, h('input', {

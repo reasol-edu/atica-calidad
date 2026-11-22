@@ -110,6 +110,21 @@ test('a counted table has as many rows as its number field says and keeps the fi
     assert.equal(countedCount(def.sections[0].blocks[1], [state]), 0);
 });
 
+test('the field of a named foot total is calculated but not shown as a block', () => {
+    const def = { version: 1, sections: [{ key: k('s'), title: 'Todo', numbered: true, children: [], blocks: [
+        { key: k('t'), type: 'table', mode: 'free', label: 'T', columns: [{ key: k('c'), label: 'N', fieldType: 'number', total: 'sum', totalName: 'Suma', totalKey: k('f') }] },
+        { key: k('f'), type: 'field', fieldType: 'calculated', label: 'Suma', formula: `sum([t:${k('t')}.${k('c')}])`, decimals: 2, foot: true },
+    ] }] };
+    const rows = [3, 4].map((v, i) => ({ _key: `e000000${i}-0000-4000-8000-000000000000`, [k('c')]: v }));
+    const state = { fields: {}, texts: {}, copies: {}, tables: { [k('t')]: rows } };
+    sync(def.sections, state);
+    calculate(def, state);
+
+    assert.equal(Number(state.fields[k('f')]), 7);
+    const shown = walk(def, state)[0].blocks.filter((b) => b.visible).map((b) => b.block.key);
+    assert.deepEqual(shown, [k('t')]);
+});
+
 test('the summary of a table column counts the filled values and sums, averages and finds the extremes (as the server does)', () => {
     const fns = ['count', 'sum', 'avg', 'min', 'max'];
     const def = { version: 1, sections: [{ key: k('s'), title: 'Todo', numbered: true, children: [], blocks: [

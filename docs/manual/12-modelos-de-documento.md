@@ -35,11 +35,13 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
 
 - **Texto**: fijo (no se toca), de partida (se adapta) o a rellenar, con formato.
 - **Campo**: texto corto o largo, número (con mínimo, máximo y unidad), fecha, hora, sí/no, una o
-  varias opciones, o un valor **calculado** a partir de los demás. Para lo más habitual, un
-  **resumen de una columna de tabla** (cuenta, suma, media, mínimo o máximo), el campo calculado
-  tiene un selector de *Operación* y *Columna* que escribe la fórmula por ti; «cuenta» cuenta los
-  valores rellenados de la columna, no las filas. El resultado es un campo más del documento: se
-  ve, sale en el PDF y sirve para indicadores, reglas y el explorador de datos.
+  varias opciones, o un valor **calculado** a partir de los demás.
+- **Total al pie de una columna** numérica o calculada (cuenta, suma, media, mínimo o máximo): el
+  valor se ve al final de la columna. Si le pones un **nombre**, además es un campo del documento
+  (no se muestra aparte: está solo al pie de la tabla) y sirve en fórmulas, indicadores, reglas y
+  en el explorador de datos. «Cuenta» cuenta los valores rellenados, no las filas. Eliges qué valor
+  mostrar columna a columna (o ninguno) y, con **Personalizado**, escribes tú la fórmula del total
+  (por ejemplo, máximo menos mínimo); un total personalizado es siempre un campo del documento.
 - **Tabla** de filas libres (quien rellena añade las que necesite, con un máximo), de filas fijas, de
   **tantas filas como diga un campo** (se elige un campo numérico del modelo, por ejemplo «Reuniones
   celebradas»: la tabla tiene esas filas, numeradas, y quien rellena no las añade ni las quita) o de

@@ -187,7 +187,7 @@ final class FormResolver
             'columnKeys' => array_map(static fn (array $c): string => FormDefinition::str($c['key'] ?? ''), $columns),
             'columns'    => array_map(static fn (array $c): string => FormDefinition::str($c['label'] ?? ''), $columns),
             'rows'      => $resolved,
-            'totals'    => $this->totals($columns, $rows),
+            'totals'    => $this->totals($columns, $rows, FormDefinition::map(FormDefinition::map($chain[0] ?? null)['fields'] ?? null) ?? []),
         ];
     }
 
@@ -197,10 +197,11 @@ final class FormResolver
      *
      * @param list<array<string, mixed>> $columns
      * @param list<array<string, mixed>> $rows
+     * @param array<string, mixed>       $fields the fields of the scope: a custom total is the value of its field
      *
      * @return list<string>|null
      */
-    private function totals(array $columns, array $rows): ?array
+    private function totals(array $columns, array $rows, array $fields = []): ?array
     {
         if (array_filter($columns, static fn (array $c): bool => ($c['total'] ?? '') !== '') === []) {
             return null;
@@ -211,6 +212,11 @@ final class FormResolver
             $kind = FormDefinition::str($column['total'] ?? '');
             if ($kind === '') {
                 $out[] = '';
+                continue;
+            }
+            if ($kind === 'custom') {
+                $value = $fields[FormDefinition::str($column['totalKey'] ?? '')] ?? null;
+                $out[] = is_numeric($value) ? $this->number((float) $value, $column) : '';
                 continue;
             }
             $values  = array_filter(array_map(static fn (array $r): mixed => $r[FormDefinition::str($column['key'] ?? '')] ?? null, $rows), static fn ($v): bool => $v !== null && $v !== '');

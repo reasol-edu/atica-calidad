@@ -269,7 +269,76 @@ final class FormCalculationTest extends TestCase
         self::assertSame(10, $data['copies'][$dev][1]['fields'][$twice]);
     }
 
-    /** The formulas the editor's «Resumen de una columna de tabla» writes: an operation over one column of one table. */
+    public function testANamedFootTotalIsAFieldOfTheDocumentThatIsOnlyShownAtTheFootOfItsColumn(): void
+    {
+        $table  = 'c0000000-0000-4000-8000-000000000001';
+        $column = 'c0000000-0000-4000-8000-000000000002';
+        $total  = 'c0000000-0000-4000-8000-000000000003';
+        $other  = 'c0000000-0000-4000-8000-000000000004';
+        $raw    = ['sections' => [['title' => 'Datos', 'blocks' => [
+            ['key' => $table, 'type' => 'table', 'label' => 'Reuniones', 'mode' => 'free', 'columns' => [
+                ['key' => $column, 'label' => 'Asistentes', 'fieldType' => 'number', 'total' => 'sum', 'totalName' => 'Total de asistentes', 'totalKey' => $total],
+            ]],
+            ['key' => $other, 'type' => 'field', 'fieldType' => 'calculated', 'label' => 'Doble', 'formula' => '[f:' . $total . '] * 2', 'decimals' => 0],
+        ]]]];
+        $def = $this->definitions->normalize($raw);
+        self::assertSame([], $this->definitions->problems($def));
+
+        $blocks = $def['sections'][0]['blocks'];
+        self::assertCount(3, $blocks, 'the table, the field of its named total and the other field');
+        self::assertSame($total, $blocks[1]['key'], 'the key given to the total is kept');
+        self::assertTrue($blocks[1]['foot']);
+        self::assertSame('sum([t:' . $table . '.' . $column . '])', $blocks[1]['formula']);
+
+        // Saving what has already been normalized changes nothing: the field is made again, not duplicated.
+        self::assertEquals($def, $this->definitions->normalize($def));
+
+        $rows = [['_key' => 'd0000000-0000-4000-8000-000000000001', $column => 10], ['_key' => 'd0000000-0000-4000-8000-000000000002', $column => 4]];
+        $data = $this->data->normalize($def, ['tables' => [$table => $rows]]);
+        self::assertEquals(14, $data['fields'][$total]);
+        self::assertEquals(28, $data['fields'][$other], 'a formula can read it');
+
+        $view   = $this->resolver->resolve($def, $data);
+        $kinds  = array_map(static fn (array $b): string => $b['kind'], $view[0]['blocks']);
+        $fields = array_values(array_filter($view[0]['blocks'], static fn (array $b): bool => $b['kind'] === 'fields'));
+        self::assertSame(['table', 'fields'], $kinds);
+        self::assertCount(1, $fields[0]['items'], 'only the other field is shown as a field');
+        self::assertSame('14', $view[0]['blocks'][0]['totals'][0]);
+
+        // Without a total or without a name there is no field.
+        $raw['sections'][0]['blocks'][0]['columns'][0]['total'] = '';
+        $def = $this->definitions->normalize($raw);
+        self::assertCount(2, $def['sections'][0]['blocks']);
+        self::assertSame('', $def['sections'][0]['blocks'][0]['columns'][0]['totalName']);
+    }
+
+    public function testACustomFootTotalIsAFormulaShownAtTheFootEvenWithoutAName(): void
+    {
+        $table  = 'c0000000-0000-4000-8000-000000000001';
+        $column = 'c0000000-0000-4000-8000-000000000002';
+        $total  = 'c0000000-0000-4000-8000-000000000003';
+        $def    = $this->definitions->normalize(['sections' => [['title' => 'Datos', 'blocks' => [
+            ['key' => $table, 'type' => 'table', 'label' => 'Reuniones', 'mode' => 'free', 'columns' => [
+                ['key' => $column, 'label' => 'Asistentes', 'fieldType' => 'number', 'total' => 'custom', 'totalFormula' => 'max([t:' . $table . '.' . $column . ']) - min([t:' . $table . '.' . $column . '])'],
+            ]],
+        ]]]]);
+        self::assertSame([], $this->definitions->problems($def));
+        self::assertCount(2, $def['sections'][0]['blocks'], 'a custom total is always a field');
+        self::assertSame('Asistentes', $def['sections'][0]['blocks'][1]['label'], 'named after its column when it has no name');
+
+        $rows = [['_key' => 'd0000000-0000-4000-8000-000000000001', $column => 10], ['_key' => 'd0000000-0000-4000-8000-000000000002', $column => 4]];
+        $data = $this->data->normalize($def, ['tables' => [$table => $rows]]);
+        $view = $this->resolver->resolve($def, $data);
+        self::assertSame('6', $view[0]['blocks'][0]['totals'][0]);
+
+        // Without a formula there is nothing to show.
+        $def = $this->definitions->normalize(['sections' => [['title' => 'Datos', 'blocks' => [
+            ['key' => $table, 'type' => 'table', 'label' => 'R', 'mode' => 'free', 'columns' => [['key' => $column, 'label' => 'A', 'fieldType' => 'number', 'total' => 'custom']]],
+        ]]]]);
+        self::assertCount(1, $def['sections'][0]['blocks']);
+    }
+
+    /** The formulas an operation over one column of one table takes: count, sum, avg, min and max. */
     public function testTheSummaryOfATableColumnCountsSumsAveragesAndFindsTheExtremes(): void
     {
         $table  = 'c0000000-0000-4000-8000-000000000001';

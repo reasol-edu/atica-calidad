@@ -75,10 +75,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   como **etiquetas**. Un número con mínimo o máximo usa los atributos `min` y `max` del campo y se marca en rojo al salirse. Los datos
   obligatorios vacíos o inválidos se marcan **en rojo, con su mensaje, en el propio campo** (al salir de él, o todos a la vez al
   pulsar un punto de «Pendiente antes de entregar»). Nuevo botón **Previsualizar**, que abre el borrador como quedará entregado.
-- **Modelos de documento: resumen de una columna de tabla.** Un campo calculado tiene un selector de *Operación* (cuenta, suma, media,
-  mínimo, máximo) y *Columna* que escribe la fórmula por quien edita el modelo, sin teclearla. Sigue siendo un campo calculado normal
-  (se ve, sale en el PDF y sirve para indicadores, reglas y el explorador de datos) y se puede retocar como fórmula. «Cuenta» cuenta los
-  valores rellenados, no las filas. Sin migración.
+- **Modelos de documento: total al pie de una columna con nombre.** El total al pie de una columna (cuenta, suma, media, mínimo, máximo)
+  admite un nombre opcional; con él, el valor se sigue viendo solo al pie de la tabla, pero además es un campo del documento
+  (fórmulas, indicadores, reglas, explorador de datos). Nueva opción **Personalizado** con fórmula propia sobre toda la tabla. «Cuenta»
+  cuenta los valores rellenados, no las filas. Sin migración.
 - **Indicadores que se recalculan al aprobarse una entrega (fase 6).** Antes solo con la tarea programada o al guardar el indicador.
 - **Modelos de documento: Word y OpenDocument, biblioteca JSON y duplicado (fase 7).** Un documento entregado se descarga también en
   `.docx` y `.odt`, igual que un modelo en blanco. Un modelo se exporta a JSON y se importa en otro centro (o en el mismo) como borrador

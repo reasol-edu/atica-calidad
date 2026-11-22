@@ -66,7 +66,11 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
 - **Calculated fields and columns** (`fieldType: calculated`, `formula`, `decimals`, `unit`): never typed (the normalizer drops what the
   browser sends), filled by `FormCalculator` after the data is cleaned, in up to four passes so a formula can read another calculated
   value; a cycle is a model problem. The result is stored with the data, so it is frozen with each delivered revision. A column can show a
-  **total at its foot** (`total`: sum, avg, min, max, count), display-only.
+  **total at its foot** (`total`: sum, avg, min, max, count, or `custom` with a `totalFormula`, always a field and shown from its value),
+  display-only unless it has a `totalName`: then `totalKey` is also the key of
+  a calculated field (`fn([t:TABLE.COL])`, `foot: true`) that `FormDefinitionNormalizer::footFields()` writes right after the table every
+  time (stored `foot` blocks are dropped and remade; the editor hides them). `FormWalker` / `walk()` mark it not visible, so nothing
+  renders or validates it, but calculation, indicators, rules and the explorer see it as a field.
 - **Consistency rules** (`definition.rules`: `{expr, message, severity: warning|block}`): evaluated against the whole document by
   `FormDataValidator`; a broken rule blocks the delivery or only warns, as the model says; a rule that cannot be decided is not broken.
   The save response carries `problems` (blocking) and `warnings`.

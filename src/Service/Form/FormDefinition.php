@@ -41,7 +41,7 @@ final class FormDefinition
     /** The most rows a counted table gets, whatever the number says (and the cap used when the model sets none). */
     public const int MAX_COUNTED_ROWS = 100;
 
-    public const array TOTALS = ['', 'sum', 'avg', 'min', 'max', 'count'];
+    public const array TOTALS = ['', 'sum', 'avg', 'min', 'max', 'count', 'custom'];
 
     /** @return array<string, mixed> */
     public static function blank(): array

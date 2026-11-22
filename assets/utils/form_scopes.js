@@ -251,7 +251,7 @@ export function walk(definition, data) {
 
     const instance = (section, path, own, copy, origin, scope, chain, visible) => ({
         section, path, own, copy, origin, scope, chain, visible,
-        blocks: (section.blocks || []).map((block) => ({ block, visible: visible && holds(block.visibleIf, chain) })),
+        blocks: (section.blocks || []).map((block) => ({ block, visible: visible && !block.foot && holds(block.visibleIf, chain) })),
         children: sections(section.children, scope, chain, path + '/', visible, copy, origin),
     });
 
@@ -564,13 +564,18 @@ function numberText(value, column) {
 }
 
 /** The foot of a table: for each column that asks for it, its sum, average, minimum, maximum or count; null when none does. */
-export function totals(columns, rows) {
+export function totals(columns, rows, fields = {}) {
     if (!columns.some((c) => c.total)) {
         return null;
     }
     return columns.map((column) => {
         if (!column.total) {
             return '';
+        }
+        // A custom total is the value of its field (calculated like any other).
+        if (column.total === 'custom') {
+            const value = fields[column.totalKey];
+            return value !== undefined && value !== null && value !== '' && Number.isFinite(Number(value)) ? numberText(Number(value), column) : '';
         }
         const values = rows.map((r) => r[column.key]).filter((v) => v !== undefined && v !== null && v !== '');
         const numbers = values.filter((v) => Number.isFinite(Number(v))).map(Number);

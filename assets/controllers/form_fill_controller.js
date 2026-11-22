@@ -910,11 +910,12 @@ export default class extends Controller {
         ])));
 
         // The foot: the totals the columns ask for, recalculated as the rows change.
-        const foot = totals(block.columns, rows) === null ? null : h('tfoot', { class: 'border-t border-gray-200 bg-gray-50 font-medium text-gray-900' }, [h('tr', {}, [
+        const footValues = () => totals(block.columns, rows, inst.scope.fields);
+        const foot = footValues() === null ? null : h('tfoot', { class: 'border-t border-gray-200 bg-gray-50 font-medium text-gray-900' }, [h('tr', {}, [
             ...(fixed ? [h('th', { scope: 'row', class: 'px-2 py-2 text-left', text: this.l.total })] : []),
             ...block.columns.map((c, i) => {
-                const cell = h('td', { class: 'px-2 py-2', text: totals(block.columns, rows)[i] });
-                this.calcEls.push({ el: cell, read: () => (totals(block.columns, rows) || [])[i] || '' });
+                const cell = h('td', { class: 'px-2 py-2', text: footValues()[i] });
+                this.calcEls.push({ el: cell, read: () => (footValues() || [])[i] || '' });
                 return cell;
             }),
             ...(fixed ? [] : [h('td')]),
