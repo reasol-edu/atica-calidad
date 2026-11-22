@@ -28,14 +28,15 @@ export default class extends Controller {
         const data = this.configValue.data || {};
         // PHP writes an empty map as [] and an array loses its string keys in JSON.stringify: always plain objects here.
         this.state = { fields: asMap(data.fields), texts: asMap(data.texts), tables: asMap(data.tables), copies: asMap(data.copies) };
+        this.version = this.configValue.version;
+        this.readOnly = this.configValue.readOnly === true;
+        this.recovered = this.readOnly ? false : this.recoverLocal();
         this.index = buildIndex(this.def);
         sync(this.def.sections || [], this.state);
         calculate(this.def, this.state, this.index);
         this.specs = fieldSpecs(this.def);
         this.structural = this.structuralFields();
-        this.version = this.configValue.version;
-        this.readOnly = this.configValue.readOnly === true;
-        this.dirty = false;
+        this.dirty = this.recovered;
         this.saving = false;
         this.stale = false;
         this.failed = false;
@@ -63,6 +64,64 @@ export default class extends Controller {
         }
 
         this.render();
+        if (!this.readOnly) {
+            this.registerWorker();
+            this.onOnline = () => { if (this.dirty && !this.stale) { this.flush(); } };
+            window.addEventListener('online', this.onOnline);
+            if (this.recovered) {
+                this.setStatus(this.l.recovered, 'text-amber-700');
+                this.timer = setTimeout(() => this.save(false), 300);
+            }
+        }
+    }
+
+    // ── Offline ──────────────────────────────────────────────────────────────
+    // The page and its scripts are kept by a service worker (public/formularios-sw.js) so that it opens without a connection, and what
+    // is typed without one is kept in this browser until it can be saved. A local copy only counts if it started from the version of
+    // the draft the server still has: otherwise somebody else saved in between and the server's version wins.
+
+    storageKey() {
+        return 'atica-form:' + this.configValue.saveUrl;
+    }
+
+    recoverLocal() {
+        try {
+            const raw = window.localStorage.getItem(this.storageKey());
+            if (raw === null) {
+                return false;
+            }
+            const saved = JSON.parse(raw);
+            if (saved.version !== this.version || typeof saved.state !== 'object' || saved.state === null) {
+                window.localStorage.removeItem(this.storageKey());
+                return false;
+            }
+            this.state = { fields: asMap(saved.state.fields), texts: asMap(saved.state.texts), tables: asMap(saved.state.tables), copies: asMap(saved.state.copies) };
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    keepLocal() {
+        try {
+            window.localStorage.setItem(this.storageKey(), JSON.stringify({ version: this.version, state: this.state }));
+        } catch (e) {
+            // No storage (private window, full): the in-memory retry is all there is.
+        }
+    }
+
+    dropLocal() {
+        try {
+            window.localStorage.removeItem(this.storageKey());
+        } catch (e) {
+            // Nothing to drop.
+        }
+    }
+
+    registerWorker() {
+        if ('serviceWorker' in navigator && window.isSecureContext) {
+            navigator.serviceWorker.register('/formularios-sw.js', { scope: '/' }).catch(() => {});
+        }
     }
 
     async heartbeat() {
@@ -87,6 +146,9 @@ export default class extends Controller {
         clearInterval(this.beat);
         clearTimeout(this.timer);
         window.removeEventListener('pagehide', this.onHide);
+        if (this.onOnline) {
+            window.removeEventListener('online', this.onOnline);
+        }
         if (this.hasDeliverTarget && this.onSubmit) {
             this.deliverTarget.form.removeEventListener('submit', this.onSubmit);
         }
@@ -118,6 +180,7 @@ export default class extends Controller {
             return;
         }
         this.dirty = true;
+        this.keepLocal();
         this.setStatus(this.l.saving, 'text-gray-500');
         clearTimeout(this.timer);
         this.timer = setTimeout(() => this.save(false), 700);
@@ -163,6 +226,11 @@ export default class extends Controller {
             }
             this.failed = false;
             this.version = body.version;
+            if (!this.dirty) {
+                this.dropLocal();
+            } else {
+                this.keepLocal();
+            }
             this.showProblems(body.problems || [], body.warnings || []);
             this.setStatus(this.dirty ? this.l.saving : this.l.saved, this.dirty ? 'text-gray-500' : 'text-forest-700');
         } catch (e) {

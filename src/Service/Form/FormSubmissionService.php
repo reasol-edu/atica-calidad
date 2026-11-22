@@ -49,6 +49,7 @@ final class FormSubmissionService
         private readonly FormPrefiller $prefiller,
         private readonly FormUpdateService $updates,
         private readonly FormValueIndexer $values,
+        private readonly FormIndicatorCalculator $indicators,
     ) {}
 
     /**
@@ -393,6 +394,10 @@ final class FormSubmissionService
         // With a chain the folder's reviewers are not the ones who decide: the people of the first step find it waiting for them.
         if ($revision->isPendingReview() && !$hasChain) {
             $this->notifier->notifyReviewers($revision);
+        }
+        // Approved at once (nobody reviews this folder): the indicators fed from it have a new value now.
+        if ($revision->isApproved()) {
+            $this->indicators->recalculateForActivity($activity);
         }
 
         return $revision;

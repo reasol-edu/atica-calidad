@@ -29,6 +29,12 @@
            class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">
             {{ ux_icon('heroicons:document-arrow-down', {class: 'h-4 w-4'}) }}PDF
         </a>
+        {% for f in ['docx', 'odt'] %}
+            <a href="{{ path('app_form_revision_export', {revisionId: revision.id.toRfc4122, _format: f}) }}" data-testid="export-{{ f }}"
+               class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">
+                {{ ux_icon('heroicons:document-arrow-down', {class: 'h-4 w-4'}) }}{{ f|upper }}
+            </a>
+        {% endfor %}
     </div>
 
     {% if steps is not empty %}

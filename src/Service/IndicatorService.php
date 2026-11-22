@@ -219,6 +219,21 @@ final class IndicatorService
         return $measurement;
     }
 
+    /**
+     * Hands a value calculated from documents over to a person: it stays as it is, signed by $actor, and is no longer recalculated
+     * (from now on it is corrected by hand like any other).
+     */
+    public function makeManual(Measurement $measurement, Teacher $actor): void
+    {
+        $measurement->makeManual()->correct($measurement->getValue(), $measurement->getNotes(), $actor, $this->clock->now());
+        $this->em->flush();
+
+        $this->activityLogger->record('measurement.make_manual', [
+            'indicator' => $measurement->getIndicator()->getName(),
+            'period'    => $measurement->getPeriod()->getName(),
+        ], $measurement->getIndicator()->getEducationalCentre());
+    }
+
     /** An off-target value that needs nothing done, and why. */
     public function dismiss(Measurement $measurement, Teacher $actor, string $note): void
     {

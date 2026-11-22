@@ -53,6 +53,17 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - **Explorador «Datos de modelos» en Informes (fase 6).** Los valores de las entregas aprobadas de una actividad rellenada en línea, fila a
   fila, para un curso: se pueden filtrar en pantalla y exportar a CSV o Excel. Y en el editor de modelos, un botón «Indicador con
   “campo”» por cada campo numérico, de sí/no, de opciones o calculado, que abre el formulario del indicador ya apuntando a ese campo.
+- **Indicadores que se recalculan al aprobarse una entrega (fase 6).** Antes solo con la tarea programada o al guardar el indicador.
+- **Modelos de documento: Word y OpenDocument, biblioteca JSON y duplicado (fase 7).** Un documento entregado se descarga también en
+  `.docx` y `.odt`, igual que un modelo en blanco. Un modelo se exporta a JSON y se importa en otro centro (o en el mismo) como borrador
+  nuevo, sin los pasos de aprobación, que nombran perfiles de un centro concreto. Se puede **duplicar** un modelo y crear un primer
+  borrador a partir de un `.docx` o `.odt` (títulos → secciones, párrafos → textos fijos, tablas → tablas de filas libres).
+- **Modelos de documento: modo sin conexión (fase 7).** Un formulario ya abierto antes con conexión se vuelve a abrir sin ella (un
+  *service worker* guarda la página y sus ficheros), lo que se escribe se conserva en el navegador y se guarda solo al volver la conexión; si
+  alguien guardó el borrador mientras tanto, vale lo del servidor. Al cerrar sesión se borran las páginas guardadas. Entregar sigue
+  necesitando conexión.
+- **Manual:** capítulo nuevo «Modelos de documento», «Datos de modelos» en Informes, indicadores calculados en Mejora continua y entradas
+  en el glosario y en los permisos.
 
 ## [2.6.0] - 2026-11-21
 

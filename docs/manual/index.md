@@ -47,6 +47,8 @@ No hace falta leerlo de principio a fin; cada persona puede ir directamente a lo
   documento?** Consulta [Árbol documental](07-arbol-documental.md).
 - **¿Buscas tus plazos pendientes, o cómo entregar o revisar una actividad?** Consulta
   [Actividades](08-actividades.md).
+- **¿Vas a crear un formulario que el profesorado rellene en línea, o te toca rellenar uno?** Consulta
+  [Modelos de documento](12-modelos-de-documento.md).
 - **¿Algo no funciona como debería, o te han asignado un análisis o una acción?** Consulta
   [Mejora continua](09-mejora-continua.md).
 - **¿Vas a instalar la aplicación o mantener el servidor?** Los capítulos

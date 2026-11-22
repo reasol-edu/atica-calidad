@@ -249,6 +249,20 @@ class IndicatorController extends AbstractController
         return $this->redirectToRoute('app_quality_finding', ['id' => $finding->getId()->toRfc4122()]);
     }
 
+    /** Stops recalculating a value calculated from documents: from now on it is typed by hand. */
+    #[Route('/mediciones/{id}/manual', name: 'app_quality_measurement_make_manual', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    public function makeManual(string $id, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
+    {
+        $measurement = $this->requireMeasurementToReview($id, $centre, $request);
+        if (!$measurement->isComputed()) {
+            throw $this->createNotFoundException();
+        }
+        $this->service->makeManual($measurement, $this->teacher());
+        $this->addFlash('success', $this->t('indicator.flash.make_manual'));
+
+        return $this->redirectToRoute('app_quality_indicator', ['id' => $measurement->getIndicator()->getId()->toRfc4122()]);
+    }
+
     /** Opens a finding for one group of a computed value that is below the alert threshold. */
     #[Route('/mediciones/{id}/grupo/{groupKey}/hallazgo', name: 'app_quality_measurement_group_finding', requirements: ['id' => Requirement::UUID, 'groupKey' => '.+'], methods: ['POST'])]
     public function openGroupFinding(string $id, string $groupKey, Request $request, #[CurrentCentre] EducationalCentre $centre): Response

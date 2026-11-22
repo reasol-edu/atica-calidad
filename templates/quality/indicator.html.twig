@@ -180,6 +180,12 @@
                         {% if m and m.computed %}
                             <div class="space-y-2" data-testid="computed-value">
                                 <p class="text-xs text-gray-600">{{ 'indicator.computed'|trans({'%sample%': m.sampleCount, '%expected%': m.expectedCount}, 'quality') }}</p>
+                                {% if canManage and writable %}
+                                    <form method="post" action="{{ path('app_quality_measurement_make_manual', {id: m.id.toRfc4122}) }}" onsubmit="return confirm('{{ 'indicator.make_manual_confirm'|trans({}, 'quality')|e('js') }}')">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('quality_review_' ~ m.id.toRfc4122) }}">
+                                        <button type="submit" class="{{ secondary }}" data-testid="make-manual">{{ 'indicator.make_manual'|trans({}, 'quality') }}</button>
+                                    </form>
+                                {% endif %}
                                 {% if m.breakdown is not empty %}
                                     <table class="w-full text-sm">
                                         <caption class="sr-only">{{ 'indicator.breakdown'|trans({}, 'quality') }}</caption>

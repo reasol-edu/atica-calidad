@@ -841,7 +841,9 @@ export default class extends Controller {
         return h('div', { class: 'space-y-2' }, [
             h('p', { class: 'text-xs font-medium text-gray-600', text: title }),
             ...rows,
-            h('button', { type: 'button', class: BTN, text: '+ ' + addLabel, onclick: () => { const it = { key: uid(), label: '' }; items.push(it); this.changed(it.key); } }),
+            h('div', { class: 'flex flex-wrap items-center gap-2' }, [
+                h('button', { type: 'button', class: BTN, text: '+ ' + addLabel, onclick: () => { const it = { key: uid(), label: '' }; items.push(it); this.changed(it.key); } }),
+            ]),
         ]);
     }
 }

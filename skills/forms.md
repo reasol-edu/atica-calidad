@@ -118,7 +118,7 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
 - **Drafts for everybody**: `Activity::formDraftsForAll` + `bin/console app:create-form-drafts` (run daily from cron; idempotent) creates the
   missing draft of every slot once the period has started. Nothing creates them lazily: without the cron they appear when each person opens.
 
-## Data, computed indicators and group findings (phase 6, partial)
+## Data, computed indicators and group findings (phase 6)
 
 - **`FormValue`** is the derived index of scalar values (field/column key, copy path, row key, num/text/flag) of each delivered revision, written
   by `FormValueIndexer` in `deliver()` and rebuilt with `bin/console app:forms:reindex`. It is never the source of truth; indicators and the
@@ -135,8 +135,35 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
   full export to CSV (`;`, BOM, formula-injection guard) and XLSX. Same permission as the other reports (`EducationalCentreVoter::REPORTS`).
 - **"Indicador con este campo"** in the model editor: links to `/mejora/indicadores/nuevo?fuente=ACTIVITY|FIELD&agg=` for each number/yes-no/
   choice/calculated field of the activities that use the model (`FormSourceChoices::forCentre($centre, $model)`).
-- Not done yet: centre catalogues (+JSON), a single activity per indicator (the spec allows several), the "approval date" period mode,
-  recalculation on approval (only cron / saving the form), "pass this period to manual" (`Measurement::makeManual()` exists but has no screen).
+- **Recalculation on approval**: an approved delivery (at once when nobody reviews the folder, or via `FormReviewController::decide`) calls
+  `FormIndicatorCalculator::recalculateForActivity()`. A delivery approved through another path (e.g. the generic document review screens)
+  waits for cron / saving the indicator form.
+- "Pass this period to manual": `IndicatorService::makeManual()` behind the button of the measurement screen
+  (`app_quality_measurement_make_manual`).
+- Not done: a single activity per indicator (the spec allows several) and the "approval date" period mode.
+
+## Files in and out, and offline (phase 7)
+
+- **JSON library** (`FormModelPorter`, `FormModelLibraryController`, routes under `/modelos`): `GET /modelos/{id}/exportar.json` →
+  `{"format":"atica-modelo","version":1,name,code,definition}`; `POST /modelos/importar` creates a NEW model (draft) in a chosen folder.
+  The approval chain is not exported (it names profiles of one centre). Keys (UUIDs) are kept: they only need to be unique inside a model,
+  and keeping them lets the data of two models with the same field names be pre-filled by key.
+- **Duplicate** (`POST /modelos/{id}/duplicar`): the draft as a new model in the same folder, "Copia de …".
+- **DOCX / ODT export** (`FormOfficeWriter`): hand-made ZIP of XML from the output of `FormResolver` (same sections, texts, field lists and
+  tables as web and PDF). Available for a model (blank, `/modelos/{id}/exportar.docx|odt`) and for a delivered revision
+  (`/formularios/revision/{revisionId}/exportar.docx|odt`, same access as viewing it). No library: the format needed (headings, paragraphs,
+  tables) is small. ODF `mimetype` must be the first entry and stored (not compressed).
+- **DOCX / ODT import** (`FormOfficeReader`): creates the *first draft* of a model: headings (levels 1–5) → nested sections, paragraphs →
+  fixed texts, tables → free tables whose columns are the first row. What is to be filled in (fields, types) is added in the editor — a word
+  document does not say it. Hardened: only `word/document.xml` / `content.xml`, ≤ 8 MB, `LIBXML_NONET`, uploads ≤ 8 MB. PHP's `DOMDocument`
+  does not accept `'*'` as a namespace in `getAttributeNS`: use the namespace URI.
+- **Offline mode**: `public/formularios-sw.js` (service worker, scope `/`) keeps the last copy of the form page
+  (`/actividades/<a>/formulario/<slot>`, network first) and the `/assets/` files (cache first, refreshed), never answers anything but GET and
+  deletes the cached pages on `/logout` (they hold centre data). `form_fill_controller.js` keeps what is typed in `localStorage`
+  (`atica-form:<saveUrl>`, with the draft version it started from) until a save succeeds; on opening, a local copy is restored and saved
+  only if its version equals the server's (otherwise someone else saved in between and the server wins). Saving, delivering and every other
+  action still need the connection. Verified only by reading and the integration tests (no browser run: service workers need HTTPS or
+  `localhost`).
 
 ## Front end
 
@@ -169,5 +196,6 @@ and read the screenshots. Migrations: all four engines with Docker, as in `skill
    fields, free and fixed tables, activity mode "fill", autosave, delivery with PDF, web view, correction as next revision.
 2. **Done** — repetition (by table rows, by number, by hand, nested), references, conditions, progress, per-field help (the sources "list of
    the centre" and "another document" wait for phases 5–6). 3. **Done** — calculations, totals, consistency rules, relation columns, double-entry tables. 4. **Done** — multi-step approval chain, anchored comments, revision comparison, edit lock (per draft), field history.
-   5. **Done** — impact on publishing, update to the revision in force, pre-filling, drafts for everyone. 6. Computed indicators,
-   `FormValue` index, explorer and CSV, centre catalogues. 7. ODT/DOCX import and export, JSON library, offline mode.
+   5. **Done** — impact on publishing, update to the revision in force, pre-filling, drafts for everyone. 6. **Done (with gaps listed
+   above)** — computed indicators, `FormValue` index, explorer and CSV/XLSX. 7. **Done** — ODT/DOCX import and export, JSON
+   library, duplicate, offline mode.

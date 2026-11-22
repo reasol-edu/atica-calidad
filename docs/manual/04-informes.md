@@ -134,6 +134,13 @@ materias suspensas» (24 % en la evaluación inicial, frente a una meta del 15 %
 **Fuera de meta**. En el resto, los periodos aún sin dato aparecen con «—» y se compara con el
 valor del curso anterior de la última columna.
 
+## Datos de modelos {#datos-de-modelos}
+
+Los valores de los [documentos rellenados en línea](12-modelos-de-documento.md#datos-de-modelos-informes)
+(solo entregas aprobadas) de una actividad y un curso, una fila por valor, para filtrarlos en pantalla
+y **exportarlos a CSV o Excel**. Su tarjeta lleva solo el enlace «Ver en pantalla»: las exportaciones
+están en la propia página.
+
 ## Acuses de lectura {#acuses-de-lectura}
 
 Para cada documento de las carpetas con [acuse de lectura](07-arbol-documental.md#acuse-de-lectura),

@@ -6,6 +6,7 @@
 | Acceder al árbol documental (contenido según perfiles y restricciones — ver [Árbol documental](07-arbol-documental.md#permisos-de-un-vistazo)) | ✅¹ | ✅ | ✅ | ✅ | ✅ |
 | Ver y completar/entregar sus propias actividades (ver [Actividades](08-actividades.md#permisos-de-un-vistazo)) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Crear o editar categorías y actividades | — | — | ✅ | ✅ | ✅ |
+| Crear y editar [modelos de documento](12-modelos-de-documento.md), y ver «Datos de modelos» | — | — | ✅ | ✅ | ✅ |
 | Gestionar Responsabilidades (listas y perfiles específicos) | — | — | ✅ | ✅ | ✅ |
 | Confirmar la lectura de los documentos con [acuse de lectura](07-arbol-documental.md#acuse-de-lectura) de las carpetas que ve | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Ver quién ha leído cada documento (en la carpeta, si la gestiona; o en el informe) | — | ✅ (informe) | ✅ | ✅ | ✅ |

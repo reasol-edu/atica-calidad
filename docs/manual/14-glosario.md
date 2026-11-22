@@ -154,6 +154,11 @@ buscarse con la técnica de los **5 porqués**.
 ocurrir; la preventiva evita un problema que aún no ha ocurrido; la de mejora mejora algo que ya
 funciona — ver [Acciones](09-mejora-continua.md#acciones).
 
+**Modelo de documento**
+: Documento con estructura (secciones, textos, campos y tablas) que se rellena en línea. Es un documento
+del árbol documental con versiones propias; una actividad puede pedir que se entregue rellenándolo —
+ver [Modelos de documento](12-modelos-de-documento.md).
+
 **Indicador**
 : Medida de cómo va un proceso del centro (por ejemplo, el alumnado que promociona), con su meta y su
 umbral de alerta en cada curso. Sus valores se registran en cada periodo de su calendario de medición

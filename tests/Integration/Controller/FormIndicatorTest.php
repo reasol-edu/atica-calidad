@@ -222,6 +222,39 @@ final class FormIndicatorTest extends ControllerTestCase
         self::assertSame(100.0, $this->em->getRepository(\App\Entity\Measurement::class)->findAll()[0]->getValue());
     }
 
+    public function testAnApprovedDeliveryRecalculatesItsIndicatorsAtOnce(): void
+    {
+        $this->indicatorWithSource('sum');
+        $this->deliver('1º A', 7);
+        $this->em->clear();
+        $measurements = $this->em->getRepository(\App\Entity\Measurement::class)->findAll();
+        self::assertCount(1, $measurements);
+        self::assertSame(7.0, $measurements[0]->getValue());
+    }
+
+    public function testAComputedValueCanBeHandedOverToAPersonAndIsThenNeverRecalculated(): void
+    {
+        $this->indicatorWithSource('sum');
+        $this->deliver('1º A', 7);
+        $this->em->clear();
+        $measurement = $this->em->getRepository(\App\Entity\Measurement::class)->findAll()[0];
+        self::assertTrue($measurement->isComputed());
+        $mid = $measurement->getId()->toRfc4122();
+
+        $this->loginAs($this->admin, $this->centre);
+        $this->client->request('GET', '/mejora/indicadores/' . $measurement->getIndicator()->getId()->toRfc4122());
+        self::assertStringContainsString('data-testid="make-manual"', (string) $this->client->getResponse()->getContent());
+        $this->client->request('POST', "/mejora/indicadores/mediciones/{$mid}/manual", ['_token' => $this->csrfToken('quality_review_' . $mid)]);
+        self::assertTrue($this->client->getResponse()->isRedirect());
+
+        $this->em->clear();
+        $measurement = $this->em->getRepository(\App\Entity\Measurement::class)->find($measurement->getId());
+        self::assertFalse($measurement->isComputed());
+        self::assertSame(7.0, $measurement->getValue());
+        $source = $this->em->getRepository(\App\Entity\IndicatorFormSource::class)->findAll()[0];
+        self::assertSame(0, self::getContainer()->get(\App\Service\Form\FormIndicatorCalculator::class)->recalculate($source));
+    }
+
     public function testTheExplorerListsApprovedValuesAndExportsThem(): void
     {
         $this->deliver('1º A', 5, 'a;b');
@@ -250,6 +283,26 @@ final class FormIndicatorTest extends ControllerTestCase
         $this->loginAs($this->author, $this->centre);
         $this->client->request('GET', $base . $query);
         self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testADeliveredDocumentExportsToWordAndOpenDocument(): void
+    {
+        $this->deliver('1º A', 5);
+        $this->em->clear();
+        $revisionId = $this->em->getRepository(\App\Entity\FormSubmissionRevision::class)->findAll()[0]->getRevision()->getId()->toRfc4122();
+
+        $this->loginAs($this->admin, $this->centre);
+        foreach (['docx' => 'word/document.xml', 'odt' => 'content.xml'] as $format => $entry) {
+            $this->client->request('GET', "/formularios/revision/{$revisionId}/exportar.{$format}");
+            self::assertResponseIsSuccessful();
+            $path = tempnam(sys_get_temp_dir(), 'rev');
+            file_put_contents($path, $this->client->getResponse()->getContent());
+            $zip = new \ZipArchive();
+            self::assertTrue($zip->open($path));
+            $xml = (string) $zip->getFromName($entry);
+            self::assertStringContainsString('1º A', $xml);
+            self::assertStringContainsString('Horas', $xml);
+        }
     }
 
     public function testTheModelEditorOffersToCreateAnIndicatorFromAField(): void

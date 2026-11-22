@@ -19,6 +19,12 @@ class IndicatorFormSourceRepository extends ServiceEntityRepository
         parent::__construct($registry, IndicatorFormSource::class);
     }
 
+    /** @return list<IndicatorFormSource> the indicators fed from an activity's documents */
+    public function findByActivity(\App\Entity\Activity $activity): array
+    {
+        return $this->findBy(['activity' => $activity]);
+    }
+
     public function findByIndicator(Indicator $indicator): ?IndicatorFormSource
     {
         return $this->findOneBy(['indicator' => $indicator]);

@@ -346,6 +346,14 @@ tarea **Fuera de meta**. En el periodo del indicador decide qué se hace:
 A partir de ahí, el periodo muestra lo que se abrió (con enlace) o la nota, y la tarea desaparece. Si
 el valor se corrige después, vuelve a quedar pendiente de decidir.
 
+### Indicadores calculados desde documentos {#indicadores-calculados}
+
+Si la actividad se entrega [rellenando un modelo de documento](12-modelos-de-documento.md#indicadores-calculados-desde-los-documentos),
+un indicador puede tomar su valor de un campo de esas entregas (suma, media, porcentaje que cumple una
+condición…) en vez de teclearlo cada periodo. La medición indica con cuántas entregas se ha calculado,
+muestra el **desglose** por entrega u opción y, si un grupo queda por debajo del umbral, permite abrir
+un hallazgo solo de ese grupo. Un valor tecleado a mano no se sobrescribe.
+
 ## Auditoría interna {#auditoria-interna}
 
 La auditoría interna comprueba, con una lista de puntos, que un proceso funciona como se ha

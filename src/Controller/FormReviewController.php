@@ -42,6 +42,8 @@ class FormReviewController extends AbstractController
         private readonly FormApprovalChain $chain,
         private readonly DocumentRevisionReviewer $reviewer,
         private readonly FormResolver $resolver,
+        private readonly \App\Service\Form\FormOfficeWriter $office,
+        private readonly \App\Service\Form\FormIndicatorCalculator $indicators,
         private readonly FormDiff $diff,
         private readonly FormSubmissionService $service,
         private readonly FormSlotAccess $slotAccess,
@@ -103,6 +105,27 @@ class FormReviewController extends AbstractController
         ]);
     }
 
+    /** The delivered document as a Word or OpenDocument file, to keep working on it outside the application. */
+    #[Route('/formularios/revision/{revisionId}/exportar.{_format}', name: 'app_form_revision_export', requirements: ['_format' => 'docx|odt'], methods: ['GET'])]
+    public function export(string $revisionId, string $_format, #[CurrentCentre] EducationalCentre $centre): Response
+    {
+        $filled = $this->requireRevision($revisionId, $centre);
+        $title  = $filled->getRevision()->getDocument()->getName();
+        $body   = $this->office->build(
+            $_format,
+            $title,
+            $filled->getModelRevision()->getCode(),
+            $centre->getName() . ' · REV: ' . $filled->getModelRevision()->getRevision()->getVersion(),
+            $this->resolver->resolve($filled->getModelRevision()->getDefinition(), $filled->getData(), $this->context($filled)),
+        );
+
+        $response = new Response($body);
+        $response->headers->set('Content-Type', $_format === 'odt' ? 'application/vnd.oasis.opendocument.text' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . (preg_replace('/[^A-Za-z0-9._-]+/', '-', $title) ?: 'documento') . '.' . $_format . '"');
+
+        return $response;
+    }
+
     /** Approves or rejects: the current step of the chain, or the revision itself when it has no chain. */
     #[Route('/formularios/revision/{revisionId}/decidir', name: 'app_form_decide', methods: ['POST'])]
     public function decide(string $revisionId, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
@@ -130,6 +153,10 @@ class FormReviewController extends AbstractController
         $approve
             ? $this->reviewer->approve($revision, $teacher, $note === '' ? null : $note, $centre)
             : $this->reviewer->reject($revision, $teacher, $note, $centre);
+        // An approval changes what the indicators fed from this activity's documents say.
+        if ($approve && $revision->isApproved() && $folder->getActivity() !== null) {
+            $this->indicators->recalculateForActivity($folder->getActivity());
+        }
         $this->addFlash('success', $this->translator->trans($approve ? 'review.flash.approved' : 'review.flash.rejected', [], 'forms'));
 
         return $this->redirectToRoute('app_form_revision_view', ['revisionId' => $revisionId]);

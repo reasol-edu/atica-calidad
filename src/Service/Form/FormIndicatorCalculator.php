@@ -48,6 +48,17 @@ final class FormIndicatorCalculator
         return $written;
     }
 
+    /** Recalculates the indicators fed from one activity (when one of its deliveries is approved); returns how many measurements were written. */
+    public function recalculateForActivity(\App\Entity\Activity $activity): int
+    {
+        $written = 0;
+        foreach ($this->sources->findByActivity($activity) as $source) {
+            $written += $this->recalculate($source);
+        }
+
+        return $written;
+    }
+
     public function recalculate(IndicatorFormSource $source): int
     {
         $today   = $this->clock->now()->setTime(0, 0);
