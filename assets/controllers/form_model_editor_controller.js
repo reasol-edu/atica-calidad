@@ -727,6 +727,36 @@ export default class extends Controller {
         ]);
     }
 
+    /**
+     * The simple way to a calculated field: an operation (count, sum, average, minimum, maximum) over a column of a table. It only writes
+     * the formula (`sum([t:TABLE.COLUMN])`), so the field is an ordinary calculated one that can be edited as a formula afterwards; and it
+     * reads the formula back, so a formula of exactly that shape shows its operation and column here.
+     */
+    summaryPicker(spec) {
+        const found = /^(count|sum|avg|min|max)\(\[t:([^.\]]+\.[^\]]+)\]\)$/.exec((spec.formula || '').trim());
+        let fn = found ? found[1] : '';
+        let ref = found ? found[2] : '';
+        const columns = [];
+        this.tableList().filter((t) => t.mode !== 'matrix').forEach((t) => (t.columns || []).forEach((c) => columns.push([t.key + '.' + c.key, (t.label || '…') + ' · ' + (c.label || '…')])));
+        // The formula is rewritten (and the page redrawn to show it) once both are chosen; one alone is kept until the other comes.
+        const apply = () => {
+            if (fn && ref) {
+                spec.formula = fn + '([t:' + ref + '])';
+                this.changed();
+            }
+        };
+        const ops = [['', '—'], ['count', this.l.total_count], ['sum', this.l.total_sum], ['avg', this.l.total_avg], ['min', this.l.total_min], ['max', this.l.total_max]];
+
+        return h('div', { class: 'rounded-lg border border-gray-200 bg-gray-50/60 p-2.5' }, [
+            h('p', { class: 'mb-1 text-xs font-medium text-gray-600', text: this.l.summary }),
+            h('div', { class: 'flex flex-wrap items-end gap-3' }, [
+                this.labelled(this.l.summary_op, this.select(fn, ops, (v) => { fn = v; apply(); }, this.l.summary_op), 'w-40'),
+                this.labelled(this.l.summary_column, this.select(ref, [['', '—'], ...columns], (v) => { ref = v; apply(); }, this.l.summary_column), 'flex-1 basis-56'),
+            ]),
+            h('p', { class: 'mt-1 text-xs text-gray-500', text: this.l.summary_help }),
+        ]);
+    }
+
     /** What a field and a table column share: type, required, number limits, options, formula, relation and total. */
     fieldProps(spec, context = {}) {
         const parts = [
@@ -740,6 +770,9 @@ export default class extends Controller {
             ]),
         ];
         if (spec.fieldType === 'calculated') {
+            if (!context.table && !context.cell) {
+                parts.push(this.summaryPicker(spec));
+            }
             parts.push(this.formulaEditor(spec, 'formula', context.table || null, this.l.formula));
             parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
                 this.labelled(this.l.decimals, h('input', {

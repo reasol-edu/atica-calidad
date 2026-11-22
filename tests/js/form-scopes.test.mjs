@@ -109,3 +109,17 @@ test('a counted table has as many rows as its number field says and keeps the fi
     assert.equal(state.tables[k('t')].length, 0, 'no number, no rows');
     assert.equal(countedCount(def.sections[0].blocks[1], [state]), 0);
 });
+
+test('the summary of a table column counts the filled values and sums, averages and finds the extremes (as the server does)', () => {
+    const fns = ['count', 'sum', 'avg', 'min', 'max'];
+    const def = { version: 1, sections: [{ key: k('s'), title: 'Todo', numbered: true, children: [], blocks: [
+        { key: k('t'), type: 'table', mode: 'free', label: 'Reuniones', columns: [{ key: k('c'), label: 'Asistentes', fieldType: 'number' }] },
+        ...fns.map((fn, i) => ({ key: k('f' + i), type: 'field', fieldType: 'calculated', label: fn, formula: `${fn}([t:${k('t')}.${k('c')}])`, decimals: 2 })),
+    ] }] };
+    const rows = [10, 4, null, 7].map((v, i) => ({ _key: `e000000${i}-0000-4000-8000-000000000000`, ...(v === null ? {} : { [k('c')]: v }) }));
+    const state = { fields: {}, texts: {}, copies: {}, tables: { [k('t')]: rows } };
+    sync(def.sections, state);
+    calculate(def, state);
+
+    assert.deepEqual(fns.map((_, i) => Number(state.fields[k('f' + i)])), [3, 21, 7, 4, 10]);
+});

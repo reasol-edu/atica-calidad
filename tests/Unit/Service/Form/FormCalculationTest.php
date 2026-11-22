@@ -269,6 +269,33 @@ final class FormCalculationTest extends TestCase
         self::assertSame(10, $data['copies'][$dev][1]['fields'][$twice]);
     }
 
+    /** The formulas the editor's «Resumen de una columna de tabla» writes: an operation over one column of one table. */
+    public function testTheSummaryOfATableColumnCountsSumsAveragesAndFindsTheExtremes(): void
+    {
+        $table  = 'c0000000-0000-4000-8000-000000000001';
+        $column = 'c0000000-0000-4000-8000-000000000002';
+        $fields = [];
+        foreach (['count' => 3, 'sum' => 4, 'avg' => 5, 'min' => 6, 'max' => 7] as $fn => $n) {
+            $fields[$fn] = 'c0000000-0000-4000-8000-00000000000' . $n;
+        }
+        $blocks = [['key' => $table, 'type' => 'table', 'label' => 'Reuniones', 'mode' => 'free', 'columns' => [['key' => $column, 'label' => 'Asistentes', 'fieldType' => 'number']]]];
+        foreach ($fields as $fn => $key) {
+            $blocks[] = ['key' => $key, 'type' => 'field', 'fieldType' => 'calculated', 'label' => $fn, 'formula' => $fn . '([t:' . $table . '.' . $column . '])', 'decimals' => 2];
+        }
+        $def = $this->definitions->normalize(['sections' => [['title' => 'Datos', 'blocks' => $blocks]]]);
+        self::assertSame([], $this->definitions->problems($def));
+
+        $row  = static fn (int $n): string => 'd0000000-0000-4000-8000-00000000000' . $n;
+        $rows = [['_key' => $row(1), $column => 10], ['_key' => $row(2), $column => 4], ['_key' => $row(3)], ['_key' => $row(4), $column => 7]];
+        $data = $this->data->normalize($def, ['tables' => [$table => $rows]]);
+
+        self::assertEquals(3, $data['fields'][$fields['count']], 'counts the values filled in, not the rows');
+        self::assertEquals(21, $data['fields'][$fields['sum']]);
+        self::assertEquals(7, $data['fields'][$fields['avg']]);
+        self::assertEquals(4, $data['fields'][$fields['min']]);
+        self::assertEquals(10, $data['fields'][$fields['max']]);
+    }
+
     public function testProblemsOfCalculationsThatCannotWork(): void
     {
         $a = $this->key('a');
