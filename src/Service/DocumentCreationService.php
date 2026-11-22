@@ -84,10 +84,25 @@ final class DocumentCreationService
         Teacher $uploader,
         ?int $version = null,
     ): Document {
-        $version ??= $this->versioning->minimum($folder->getEducationalCentre());
-
         $content      = (string) file_get_contents($file->getPathname());
         $documentFile = $this->storeFile($content, $file->getMimeType() ?? 'application/octet-stream', $file->getClientOriginalName());
+
+        return $this->createFromStoredFile($folder, $name, $profile, $listItem, $documentFile, $uploader, $version);
+    }
+
+    /**
+     * The same as createWithFirstRevision() for a file already stored (the PDF a filled document generates).
+     */
+    public function createFromStoredFile(
+        Folder $folder,
+        string $name,
+        ?SpecificProfile $profile,
+        ?ListItem $listItem,
+        DocumentFile $documentFile,
+        Teacher $uploader,
+        ?int $version = null,
+    ): Document {
+        $version ??= $this->versioning->minimum($folder->getEducationalCentre());
 
         $document = new Document($folder, $name);
         $document->setUploadProfile($profile, $listItem);
@@ -109,5 +124,24 @@ final class DocumentCreationService
         }
 
         return $document;
+    }
+
+    /**
+     * A new revision of an existing document, with the next version number: pending when the folder requires review, active at
+     * once otherwise (the same rule as an upload in the tree). Persists but never flushes, and does not notify the reviewers.
+     */
+    public function addRevision(Document $document, DocumentFile $documentFile, Teacher $uploader, ?string $description = null): DocumentRevision
+    {
+        $pendingReview = $document->getFolder()->requiresReview();
+        $revision      = new DocumentRevision($document, $document->getNextVersion(), $documentFile, $pendingReview, $uploader);
+        $revision->setDescription($description);
+        $this->em->persist($revision);
+        $document->getRevisions()->add($revision);
+
+        if (!$pendingReview) {
+            $document->setActiveRevision($revision);
+        }
+
+        return $revision;
     }
 }

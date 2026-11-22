@@ -180,7 +180,8 @@
             {% set can_reports = active_centre and is_granted('educational_centre.reports', active_centre) %}
             {% set can_responsibilities = active_centre and is_granted('educational_centre.responsibilities', active_centre) %}
             {% set can_centre = active_centre and is_granted('educational_centre.section', active_centre) %}
-            {% if can_reports or can_responsibilities or can_centre %}
+            {% set can_models = active_centre and is_granted('quality.manage', active_centre) %}
+            {% if can_reports or can_responsibilities or can_centre or can_models %}
                 <div class="my-3 h-px bg-white/8"></div>
                 <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-forest-300">{{ 'management'|trans({}, 'navigation') }}</p>
             {% endif %}
@@ -194,6 +195,18 @@
                           group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
                     {{ ux_icon('heroicons:chart-bar', {class: 'h-5 w-5 shrink-0'}) }}
                     <span class="truncate">{{ 'reports'|trans({}, 'navigation') }}</span>
+                </a>
+            {% endif %}
+
+            {# Document models — whoever manages quality (QualityVoter::MANAGE) #}
+            {% if can_models %}
+                {% set models_active = current_route starts with 'app_form_model' %}
+                <a href="{{ path('app_form_models') }}"
+                    {{ models_active ? 'aria-current="page"' : '' }}
+                   class="{{ models_active ? 'bg-forest-800 text-white border-l-2 border-forest-300' : 'text-forest-100 hover:bg-forest-900 hover:text-white border-l-2 border-transparent' }}
+                          group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150">
+                    {{ ux_icon('heroicons:document-text', {class: 'h-5 w-5 shrink-0'}) }}
+                    <span class="truncate">{{ 'form_models'|trans({}, 'navigation') }}</span>
                 </a>
             {% endif %}
 

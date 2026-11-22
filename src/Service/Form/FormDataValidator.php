@@ -1,0 +1,144 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Service\Form;
+
+/**
+ * What still prevents a filled document from being delivered: a required answer missing, a number out of its limits, too few or
+ * too many rows. Only what is shown counts: a section or block hidden by its condition is not validated (FormWalker). A draft can
+ * always be saved with problems (nobody should lose work for it); delivering is what they stop. `code` is a key of the translation
+ * domain "forms" under `fill.problem.`; `path` identifies the copy of a repeating section the problem is in ('' outside copies).
+ */
+final class FormDataValidator
+{
+    public function __construct(
+        private readonly FormWalker $walker,
+        private readonly FormResolver $resolver,
+    ) {}
+
+    /**
+     * @param array<string, mixed> $definition
+     * @param array<string, mixed> $data       normalized by FormDataNormalizer
+     *
+     * @return list<array{block: string, path: string, row: ?string, column: ?string, code: string, params: array<string, string>}>
+     */
+    public function problems(array $definition, array $data): array
+    {
+        $problems = [];
+        $this->check($this->walker->walk($definition, $data), $this->resolver->fieldSpecs($definition), $problems);
+
+        return $problems;
+    }
+
+    /**
+     * @param list<array<string, mixed>>          $instances
+     * @param array<string, array<string, mixed>> $specs
+     * @param list<array{block: string, path: string, row: ?string, column: ?string, code: string, params: array<string, string>}> $problems
+     */
+    private function check(array $instances, array $specs, array &$problems): void
+    {
+        foreach ($instances as $instance) {
+            if ($instance['visible'] !== true) {
+                continue;
+            }
+            /** @var array<string, mixed> $scope */
+            $scope  = $instance['scope'];
+            $path   = FormDefinition::str($instance['path'] ?? '');
+            $copy   = is_array($instance['copy'] ?? null) ? $instance['copy'] : null;
+            // A problem inside a copy says which one: the title of the section as it reads there ("UD 1. Redes (40 h)").
+            $prefix = $copy === null ? '' : $this->resolver->label(FormDefinition::str($copy['title'] ?? ''), $instance, $specs) . ' · ';
+
+            $fields = is_array($scope['fields'] ?? null) ? $scope['fields'] : [];
+            $texts  = is_array($scope['texts'] ?? null) ? $scope['texts'] : [];
+            $tables = is_array($scope['tables'] ?? null) ? $scope['tables'] : [];
+
+            foreach (FormDefinition::listOf($instance['blocks'] ?? []) as $entry) {
+                if ($entry['visible'] !== true || !is_array($entry['block'] ?? null)) {
+                    continue;
+                }
+                /** @var array<string, mixed> $block */
+                $block = $entry['block'];
+                $key   = FormDefinition::str($block['key'] ?? '');
+                $label = $prefix . $this->resolver->label(FormDefinition::str($block['label'] ?? ''), $instance, $specs);
+
+                switch ($block['type'] ?? '') {
+                    case 'field':
+                        $this->checkValue($block, $fields[$key] ?? null, $key, $path, null, null, $label, $problems);
+                        break;
+
+                    case 'text':
+                        $html = is_array($texts[$key] ?? null) ? FormDefinition::str($texts[$key]['html'] ?? '') : '';
+                        if (($block['required'] ?? false) === true && trim(strip_tags($html)) === '') {
+                            $problems[] = ['block' => $key, 'path' => $path, 'row' => null, 'column' => null, 'code' => 'required', 'params' => ['%label%' => $label]];
+                        }
+                        break;
+
+                    case 'table':
+                        $this->checkTable($block, FormDefinition::listOf($tables[$key] ?? []), $key, $path, $label, $problems);
+                        break;
+                }
+            }
+
+            $this->check(FormDefinition::listOf($instance['children'] ?? []), $specs, $problems);
+        }
+    }
+
+    /**
+     * @param array<string, mixed>       $block
+     * @param list<array<string, mixed>> $rows
+     * @param list<array{block: string, path: string, row: ?string, column: ?string, code: string, params: array<string, string>}> $problems
+     */
+    private function checkTable(array $block, array $rows, string $key, string $path, string $label, array &$problems): void
+    {
+        $min = FormDefinition::int($block['minRows'] ?? 0);
+        $max = FormDefinition::int($block['maxRows'] ?? 0);
+        if (count($rows) < $min) {
+            $problems[] = ['block' => $key, 'path' => $path, 'row' => null, 'column' => null, 'code' => 'rows_min', 'params' => ['%label%' => $label, '%min%' => (string) $min]];
+        }
+        if ($max > 0 && count($rows) > $max) {
+            $problems[] = ['block' => $key, 'path' => $path, 'row' => null, 'column' => null, 'code' => 'rows_max', 'params' => ['%label%' => $label, '%max%' => (string) $max]];
+        }
+        foreach ($rows as $index => $row) {
+            foreach (FormDefinition::listOf($block['columns'] ?? []) as $column) {
+                $columnKey = FormDefinition::str($column['key'] ?? '');
+                $this->checkValue(
+                    $column,
+                    $row[$columnKey] ?? null,
+                    $key,
+                    $path,
+                    FormDefinition::str($row['_key'] ?? ''),
+                    $columnKey,
+                    $label . ' · ' . ($index + 1) . ' · ' . FormDefinition::str($column['label'] ?? ''),
+                    $problems,
+                );
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $spec
+     * @param list<array{block: string, path: string, row: ?string, column: ?string, code: string, params: array<string, string>}> $problems
+     */
+    private function checkValue(array $spec, mixed $value, string $block, string $path, ?string $row, ?string $column, string $label, array &$problems): void
+    {
+        if ($value === null || $value === '' || $value === []) {
+            if (($spec['required'] ?? false) === true) {
+                $problems[] = ['block' => $block, 'path' => $path, 'row' => $row, 'column' => $column, 'code' => 'required', 'params' => ['%label%' => $label]];
+            }
+
+            return;
+        }
+        if (($spec['fieldType'] ?? '') !== 'number' || !is_numeric($value)) {
+            return;
+        }
+        $min = $spec['min'] ?? null;
+        $max = $spec['max'] ?? null;
+        if (is_numeric($min) && $value < $min) {
+            $problems[] = ['block' => $block, 'path' => $path, 'row' => $row, 'column' => $column, 'code' => 'number_min', 'params' => ['%label%' => $label, '%min%' => (string) $min]];
+        }
+        if (is_numeric($max) && $value > $max) {
+            $problems[] = ['block' => $block, 'path' => $path, 'row' => $row, 'column' => $column, 'code' => 'number_max', 'params' => ['%label%' => $label, '%max%' => (string) $max]];
+        }
+    }
+}

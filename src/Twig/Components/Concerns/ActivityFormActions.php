@@ -54,6 +54,7 @@ trait ActivityFormActions
         $this->formEndDateEnforced   = false;
         $this->formEndDateGraceDays  = '0';
         $this->formScope       = 'by_profile';
+        $this->formModelId     = '';
         $this->formHidden      = false;
         $this->formGeneral     = true;
         $this->formProfileKeys = [];
@@ -108,6 +109,7 @@ trait ActivityFormActions
         $this->formEndDateEnforced   = $activity->isEndDateEnforced();
         $this->formEndDateGraceDays  = (string) $activity->getEndDateGraceDays();
         $this->formScope        = $activity->getSubmissionScope()->value;
+        $this->formModelId      = $activity->getFormModel()?->getId()->toRfc4122() ?? '';
         $this->formHidden       = $activity->isHidden();
         $this->formGeneral      = $activity->isGeneral();
         $this->formProfileKeys  = array_map(
@@ -363,6 +365,8 @@ trait ActivityFormActions
         // setEndDateGraceDays() zeroes itself when the end date isn't enforced.
         $activity->setEndDateGraceDays(max(0, (int) $this->formEndDateGraceDays));
         $activity->setFolder($folder);
+        // A model only makes sense where there is a folder to keep what is delivered; an id from another centre never matches.
+        $activity->setFormModel($folder !== null && $this->formModelId !== '' ? $this->formModels->findByIdAndCentre($this->formModelId, $this->centre) : null);
         // Safe unconditionally: the guard above already ensures $folder isn't null whenever
         // $this->formAutoComplete is true, and setAutoComplete(false) never throws either way.
         $activity->setAutoComplete($this->formAutoComplete);

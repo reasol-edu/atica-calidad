@@ -152,6 +152,14 @@ class Activity implements Trashable
     #[ORM\Column(enumType: ActivitySubmissionScope::class)]
     private ActivitySubmissionScope $submissionScope = ActivitySubmissionScope::ByProfile;
 
+    #[ORM\Column(length: 10, enumType: ActivitySubmissionMode::class, options: ['default' => 'file'])]
+    private ActivitySubmissionMode $submissionMode = ActivitySubmissionMode::File;
+
+    /** The model that is filled in when the mode is Form (null otherwise). */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?FormModel $formModel = null;
+
     #[ORM\Column]
     private int $position = 0;
 
@@ -590,6 +598,29 @@ class Activity implements Trashable
     public function setSubmissionScope(ActivitySubmissionScope $submissionScope): static
     {
         $this->submissionScope = $submissionScope;
+
+        return $this;
+    }
+
+    public function getSubmissionMode(): ActivitySubmissionMode
+    {
+        return $this->submissionMode;
+    }
+
+    public function isForm(): bool
+    {
+        return $this->submissionMode === ActivitySubmissionMode::Form && $this->formModel !== null;
+    }
+
+    public function getFormModel(): ?FormModel
+    {
+        return $this->formModel;
+    }
+
+    public function setFormModel(?FormModel $model): static
+    {
+        $this->formModel      = $model;
+        $this->submissionMode = $model === null ? ActivitySubmissionMode::File : ActivitySubmissionMode::Form;
 
         return $this;
     }

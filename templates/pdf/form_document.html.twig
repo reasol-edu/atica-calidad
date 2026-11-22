@@ -1,0 +1,81 @@
+{% extends 'pdf/layout.html.twig' %}
+
+{#
+   A document model (blank) or a filled document as a PDF: the sections already numbered, the values already formatted
+   (App\Service\Form\FormResolver). Tables and rules are plain (mPDF), no flex/grid.
+#}
+{% macro section(s, blank) %}
+    <div class="form-section">
+        {% if s.title %}
+            <h{{ min(s.level + 1, 5) }} class="form-title">{% if s.number %}{{ s.number }}. {% endif %}{{ s.title }}</h{{ min(s.level + 1, 5) }}>
+        {% endif %}
+        {% for b in s.blocks %}
+            {% if b.kind == 'text' %}
+                {% if b.label %}<p class="form-label">{{ b.label }}</p>{% endif %}
+                {% if b.empty %}
+                    {% if blank and b.label %}<div class="form-blank"></div>{% endif %}
+                {% else %}
+                    <div class="form-text">{{ b.html|sanitize_html('app.rich_text') }}</div>
+                {% endif %}
+            {% elseif b.kind == 'fields' %}
+                <table class="form-fields">
+                    {% for item in b.items %}
+                        <tr>
+                            <td class="form-field-label">{{ item.label }}</td>
+                            <td class="form-field-value">{{ item.value }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% elseif b.kind == 'table' %}
+                {% if b.label %}<p class="form-label">{{ b.label }}</p>{% endif %}
+                <table class="form-table">
+                    <thead>
+                        <tr>
+                            {% if b.fixed %}<th>{{ b.rowHeader }}</th>{% endif %}
+                            {% for c in b.columns %}<th>{{ c }}</th>{% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in b.rows %}
+                            <tr>
+                                {% if b.fixed %}<td class="form-rowlabel">{{ r.label }}</td>{% endif %}
+                                {% for cell in r.cells %}<td>{{ cell }}</td>{% endfor %}
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="{{ b.columns|length + (b.fixed ? 1 : 0) }}" class="form-blank-row">&nbsp;</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        {% endfor %}
+        {% for child in s.children %}{{ _self.section(child, blank) }}{% endfor %}
+    </div>
+{% endmacro %}
+
+{% block content %}
+<style>
+    .form-title { color: #2e2822; margin: 12px 0 4px; }
+    h2.form-title { font-size: 13pt; border-bottom: 1px solid #e3d8c1; padding-bottom: 2px; }
+    h3.form-title { font-size: 11.5pt; }
+    h4.form-title, h5.form-title { font-size: 10pt; }
+    .form-label { font-weight: bold; color: #5e5044; margin: 6px 0 2px; }
+    .form-text { margin: 2px 0 6px; }
+    .form-text p { margin: 0 0 4px; }
+    .form-fields { width: 100%; border-collapse: collapse; margin: 4px 0 8px; }
+    .form-field-label { width: 32%; background: #f6f1e6; border: 1px solid #e3d8c1; padding: 4px 6px; font-weight: bold; color: #5e5044; }
+    .form-field-value { border: 1px solid #e3d8c1; padding: 4px 6px; }
+    .form-table { width: 100%; border-collapse: collapse; margin: 4px 0 8px; }
+    .form-table th { background: #f6f1e6; border: 1px solid #e3d8c1; padding: 4px 6px; text-align: left; color: #5e5044; }
+    .form-table td { border: 1px solid #e3d8c1; padding: 4px 6px; }
+    .form-rowlabel { background: #fbf9f3; }
+    .form-blank { border: 1px solid #e3d8c1; height: 60px; margin: 2px 0 8px; }
+    .form-blank-row { height: 20px; }
+</style>
+
+<div class="page-header">
+    <h1>{{ title }}</h1>
+    {% if code %}<div class="meta">{{ code }}</div>{% endif %}
+</div>
+
+{% for s in sections %}{{ _self.section(s, blank) }}{% endfor %}
+{% endblock %}

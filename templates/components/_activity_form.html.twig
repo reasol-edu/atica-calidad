@@ -312,6 +312,21 @@
                 </div>
             </div>
 
+            {# Delivering by filling a document model in instead of uploading a file: only where there is a folder to keep what is delivered. #}
+            {% if formWithSubmissions %}
+            <div class="sm:col-span-2">
+                <label for="activity-form-model-{{ formActivityId ?: 'new' }}" class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.form_model'|trans({}, 'admin') }}</label>
+                <select id="activity-form-model-{{ formActivityId ?: 'new' }}" data-model="formModelId"
+                        class="w-full min-w-0 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-forest-500 focus:ring-forest-500">
+                    <option value="" {{ formModelId == '' ? 'selected' : '' }}>{{ 'activity.field.form_model_none'|trans({}, 'admin') }}</option>
+                    {% for m in this.formModelChoices %}
+                        <option value="{{ m.id }}" {{ formModelId == m.id ? 'selected' : '' }}>{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-gray-500">{{ 'activity.field.form_model_help'|trans({}, 'admin') }}</p>
+            </div>
+            {% endif %}
+
             {# With a folder, who is asked and who manages it come from the folder's own profiles, edited in the block below. #}
             {% if not formWithSubmissions %}
             <div class="sm:col-span-2" id="activity-form-visibility-{{ formActivityId ?: 'new' }}">

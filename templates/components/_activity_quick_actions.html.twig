@@ -26,7 +26,14 @@
         <span class="sr-only sm:hidden">{{ 'agenda.mark_done'|trans({}, 'dashboard') }}</span>
     </button>
 {% endif %}
-{% if item.uploadMode != '' %}
+{% if item.uploadMode != '' and item.activity.isForm and item.uploadSlotKey != '' %}
+    {# An activity delivered by filling a document model in: the page of the form, not a file chooser. #}
+    <a href="{{ path('app_form_fill', {activityId: item.activity.id.toRfc4122, slotKey: item.uploadSlotKey}) }}"
+       class="{{ margin }} inline-flex shrink-0 items-center gap-1 self-center rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:border-forest-300 hover:bg-forest-50 hover:text-forest-700 max-sm:min-h-11 max-sm:min-w-11 max-sm:justify-center">
+        {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4'}) }}
+        <span>{{ (item.uploadMode == 'revision' ? 'agenda.fill_revision' : 'agenda.fill')|trans({}, 'dashboard') }}</span>
+    </a>
+{% elseif item.uploadMode != '' %}
     {# A single file settles it: choosing one sends it (see quick_upload_controller.js). #}
     {% set revision = item.uploadMode == 'revision' %}
     {% if revision %}

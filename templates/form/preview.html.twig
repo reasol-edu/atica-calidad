@@ -1,0 +1,22 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ title }} · {{ app_name }}{% endblock %}
+
+{# The web view of a model (blank, as people will see it) or of a delivered document. #}
+{% block content %}
+<div class="px-4 sm:px-6 py-8 max-w-4xl mx-auto">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <a href="{{ backUrl }}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-forest-600">
+            {{ ux_icon('heroicons:arrow-left', {class: 'h-4 w-4'}) }}{{ 'view.back'|trans({}, 'forms') }}
+        </a>
+        {% if blank %}<span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">{{ 'view.preview_badge'|trans({}, 'forms') }}</span>{% endif %}
+    </div>
+    <article class="rounded-2xl border border-gray-200 bg-white px-5 py-6 shadow-xs sm:px-8">
+        <header class="border-b-2 border-forest-600 pb-3">
+            <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
+            {% if code %}<p class="text-sm text-gray-500">{{ code }}</p>{% endif %}
+        </header>
+        {% include 'form/_document.html.twig' with {sections: sections, blank: blank} only %}
+    </article>
+</div>
+{% endblock %}

@@ -72,6 +72,14 @@
             {% endif %}
         </div>
 
+        {% if activity.isForm %}
+            {# Delivered by filling a model in: the web view and, while it can still be corrected, the form. #}
+            <a href="{{ path('app_form_fill', {activityId: aid, slotKey: slot.key}) }}"
+               class="shrink-0 text-gray-300 hover:text-forest-600 transition-colors" aria-label="{{ 'submission.form_open'|trans({}, 'activity_content') }}" title="{{ 'submission.form_open'|trans({}, 'activity_content') }}">
+                {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4'}) }}
+            </a>
+        {% endif %}
+
         {% if can_manage or can_manage_as_uploader or can_review %}
             <button type="button" data-action="live#action" data-live-action-param="toggleRevisionPanel" data-live-id-param="{{ did }}"
                     class="shrink-0 transition-colors {{ revisionPanelDocumentId == did ? 'text-forest-600' : 'text-gray-300 hover:text-forest-600' }}"
@@ -135,6 +143,22 @@
         </div>
         <span class="shrink-0 text-xs italic text-gray-400">{{ 'status.no_revision'|trans({}, 'activity_content') }}</span>
     </div>
+{% elseif activity.isForm %}
+    {# Delivered by filling a model in: instead of a dropzone, the way into the form. #}
+    <a href="{{ path('app_form_fill', {activityId: aid, slotKey: slot.key}) }}" data-role="submission-row"
+       class="flex items-center gap-3 rounded-lg border-2 border-dashed border-gray-200 bg-white px-3 py-2.5 hover:border-forest-300 hover:bg-forest-50/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-500/40 transition-colors">
+        {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
+        <div class="min-w-0 flex-1">
+            {% if slot.teacher %}
+                <p class="truncate text-sm font-medium text-gray-700">{{ slot.teacher.name.lastName }}, {{ slot.teacher.name.firstName }}</p>
+            {% endif %}
+            <span class="block truncate text-sm text-gray-600">{{ slot.displayName }}</span>
+            {% if slot.ownerLabel %}
+                <span class="block truncate text-xs font-medium text-forest-700">{{ slot.ownerLabel }}</span>
+            {% endif %}
+            <span class="block truncate text-xs text-gray-400">{{ 'submission.form_fill_hint'|trans({}, 'activity_content') }}</span>
+        </div>
+    </a>
 {% else %}
     {# The row a link landed on (…&slot=…): scrolled to, pulsed, and focused so Enter opens its file chooser. #}
     {% set slot_landed = highlightedSlotKey != '' and this.getSlotToHighlight(activity) == slot.key %}

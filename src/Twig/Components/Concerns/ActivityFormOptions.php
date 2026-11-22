@@ -164,6 +164,10 @@ trait ActivityFormOptions
     #[LiveProp(writable: true)]
     public string $formScope = 'by_profile';
 
+    /** The document model the activity is delivered by filling in ('' = uploading a file, the usual way). */
+    #[LiveProp(writable: true)]
+    public string $formModelId = '';
+
     /** Hidden from everyone but whoever can edit activities, and counted nowhere — see Activity::isHidden(). */
     #[LiveProp(writable: true)]
     public bool $formHidden = false;
@@ -421,6 +425,17 @@ trait ActivityFormOptions
             $this->formWithSubmissions = true;
         }
         $this->loadFolderProfileKeys($this->formFolderId === '' ? null : $this->resolveAvailableFolder($this->formFolderId));
+    }
+
+    /** @return list<array{id: string, name: string}> the centre's document models an activity can be delivered with, by name */
+    public function getFormModelChoices(): array
+    {
+        $choices = [];
+        foreach ($this->formModels->findByCentre($this->centre) as $model) {
+            $choices[] = ['id' => $model->getId()->toRfc4122(), 'name' => $model->getDocument()->getName()];
+        }
+
+        return $choices;
     }
 
     /** LiveProp(onUpdated:) hook for $formWithSubmissions: a manual activity has no folder. */

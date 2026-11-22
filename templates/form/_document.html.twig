@@ -1,0 +1,55 @@
+{# A resolved document (App\Service\Form\FormResolver) as the web shows it: the same as the PDF. #}
+{% macro section(s, blank) %}
+    <section id="s-{{ s.key }}" class="mt-6">
+        {% if s.title %}
+            {% set tag = 'h' ~ min(s.level + 1, 5) %}
+            <{{ tag }} class="{{ s.level == 1 ? 'text-lg border-b border-gray-200 pb-1' : 'text-base' }} font-semibold text-gray-900">
+                {% if s.number %}<span class="text-forest-700">{{ s.number }}.</span> {% endif %}{{ s.title }}
+            </{{ tag }}>
+        {% endif %}
+        <div class="mt-2 space-y-3">
+            {% for b in s.blocks %}
+                {% if b.kind == 'text' %}
+                    {% if b.label %}<p class="text-sm font-medium text-gray-600">{{ b.label }}</p>{% endif %}
+                    {% if b.empty %}
+                        {% if blank and b.label %}<div class="h-16 rounded-lg border border-dashed border-gray-300"></div>{% endif %}
+                    {% else %}
+                        <div class="prose prose-sm max-w-none text-gray-800">{{ b.html|sanitize_html('app.rich_text') }}</div>
+                    {% endif %}
+                {% elseif b.kind == 'fields' %}
+                    <dl class="grid grid-cols-1 overflow-hidden rounded-xl border border-gray-200 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+                        {% for item in b.items %}
+                            <dt class="bg-gray-50 px-3 py-2 text-sm font-medium text-gray-600 sm:border-t sm:border-gray-200 {{ loop.first ? 'sm:border-t-0' : '' }}">{{ item.label }}</dt>
+                            <dd class="px-3 py-2 text-sm text-gray-900 break-words sm:border-t sm:border-gray-200 {{ loop.first ? 'sm:border-t-0' : '' }}">{{ item.empty ? '—' : item.value }}</dd>
+                        {% endfor %}
+                    </dl>
+                {% elseif b.kind == 'table' %}
+                    {% if b.label %}<p class="text-sm font-medium text-gray-600">{{ b.label }}</p>{% endif %}
+                    <div class="overflow-x-auto rounded-xl border border-gray-200">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-50 text-left text-gray-600">
+                                <tr>
+                                    {% if b.fixed %}<th scope="col" class="px-3 py-2 font-medium">{{ b.rowHeader }}</th>{% endif %}
+                                    {% for c in b.columns %}<th scope="col" class="px-3 py-2 font-medium">{{ c }}</th>{% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                {% for r in b.rows %}
+                                    <tr>
+                                        {% if b.fixed %}<th scope="row" class="px-3 py-2 text-left font-normal text-gray-700">{{ r.label }}</th>{% endif %}
+                                        {% for cell in r.cells %}<td class="px-3 py-2 text-gray-900">{{ cell }}</td>{% endfor %}
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="{{ b.columns|length + (b.fixed ? 1 : 0) }}" class="px-3 py-3 text-gray-400">—</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% for child in s.children %}{{ _self.section(child, blank) }}{% endfor %}
+    </section>
+{% endmacro %}
+
+{% for s in sections %}{{ _self.section(s, blank|default(false)) }}{% endfor %}

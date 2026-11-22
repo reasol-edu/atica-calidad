@@ -1,0 +1,146 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ document.name }} · {{ 'editor.title'|trans({}, 'forms') }} · {{ app_name }}{% endblock %}
+
+{# The editor of a model: the Stimulus controller builds it from the definition and saves the draft as it changes. #}
+{% block content %}
+{% set labels = {
+    section: 'editor.section'|trans({}, 'forms'),
+    section_title: 'editor.section_title'|trans({}, 'forms'),
+    add_section: 'editor.add_section'|trans({}, 'forms'),
+    add_subsection: 'editor.add_subsection'|trans({}, 'forms'),
+    add_text: 'editor.add_text'|trans({}, 'forms'),
+    add_field: 'editor.add_field'|trans({}, 'forms'),
+    add_table: 'editor.add_table'|trans({}, 'forms'),
+    numbered: 'editor.numbered'|trans({}, 'forms'),
+    up: 'editor.up'|trans({}, 'forms'),
+    down: 'editor.down'|trans({}, 'forms'),
+    indent: 'editor.indent'|trans({}, 'forms'),
+    outdent: 'editor.outdent'|trans({}, 'forms'),
+    remove: 'editor.remove'|trans({}, 'forms'),
+    confirm_remove: 'editor.confirm_remove'|trans({}, 'forms'),
+    text_mode: 'editor.text_mode'|trans({}, 'forms'),
+    mode_fixed: 'editor.mode_fixed'|trans({}, 'forms'),
+    mode_starter: 'editor.mode_starter'|trans({}, 'forms'),
+    mode_fill: 'editor.mode_fill'|trans({}, 'forms'),
+    label: 'editor.label'|trans({}, 'forms'),
+    help: 'editor.help'|trans({}, 'forms'),
+    required: 'editor.required'|trans({}, 'forms'),
+    edit_text: 'editor.edit_text'|trans({}, 'forms'),
+    empty_text: 'editor.empty_text'|trans({}, 'forms'),
+    field_type: 'editor.field_type'|trans({}, 'forms'),
+    type_short: 'editor.type_short'|trans({}, 'forms'),
+    type_long: 'editor.type_long'|trans({}, 'forms'),
+    type_number: 'editor.type_number'|trans({}, 'forms'),
+    type_date: 'editor.type_date'|trans({}, 'forms'),
+    type_time: 'editor.type_time'|trans({}, 'forms'),
+    type_bool: 'editor.type_bool'|trans({}, 'forms'),
+    type_choice: 'editor.type_choice'|trans({}, 'forms'),
+    type_multichoice: 'editor.type_multichoice'|trans({}, 'forms'),
+    unit: 'editor.unit'|trans({}, 'forms'),
+    min: 'editor.min'|trans({}, 'forms'),
+    max: 'editor.max'|trans({}, 'forms'),
+    options: 'editor.options'|trans({}, 'forms'),
+    add_option: 'editor.add_option'|trans({}, 'forms'),
+    option: 'editor.option'|trans({}, 'forms'),
+    table_mode: 'editor.table_mode'|trans({}, 'forms'),
+    table_free: 'editor.table_free'|trans({}, 'forms'),
+    table_fixed: 'editor.table_fixed'|trans({}, 'forms'),
+    columns: 'editor.columns'|trans({}, 'forms'),
+    add_column: 'editor.add_column'|trans({}, 'forms'),
+    column: 'editor.column'|trans({}, 'forms'),
+    rows: 'editor.rows'|trans({}, 'forms'),
+    add_row: 'editor.add_row'|trans({}, 'forms'),
+    row: 'editor.row'|trans({}, 'forms'),
+    row_header: 'editor.row_header'|trans({}, 'forms'),
+    min_rows: 'editor.min_rows'|trans({}, 'forms'),
+    max_rows: 'editor.max_rows'|trans({}, 'forms'),
+    saving: 'editor.saving'|trans({}, 'forms'),
+    saved: 'editor.saved'|trans({}, 'forms'),
+    offline: 'editor.offline'|trans({}, 'forms'),
+    stale: 'editor.stale'|trans({}, 'forms'),
+    outline: 'editor.outline'|trans({}, 'forms'),
+    no_sections: 'editor.no_sections'|trans({}, 'forms'),
+    block_actions: 'editor.block_actions'|trans({}, 'forms'),
+    options_summary: 'editor.options_summary'|trans({}, 'forms'),
+    repeat: 'editor.repeat'|trans({}, 'forms'),
+    repeat_none: 'editor.repeat_none'|trans({}, 'forms'),
+    repeat_manual: 'editor.repeat_manual'|trans({}, 'forms'),
+    repeat_field: 'editor.repeat_field'|trans({}, 'forms'),
+    repeat_table: 'editor.repeat_table'|trans({}, 'forms'),
+    repeat_min: 'editor.repeat_min'|trans({}, 'forms'),
+    repeat_max: 'editor.repeat_max'|trans({}, 'forms'),
+    repeat_source_field: 'editor.repeat_source_field'|trans({}, 'forms'),
+    repeat_source_table: 'editor.repeat_source_table'|trans({}, 'forms'),
+    number_copies: 'editor.number_copies'|trans({}, 'forms'),
+    condition: 'editor.condition'|trans({}, 'forms'),
+    cond_always: 'editor.cond_always'|trans({}, 'forms'),
+    cond_filled: 'editor.cond_filled'|trans({}, 'forms'),
+    cond_empty: 'editor.cond_empty'|trans({}, 'forms'),
+    cond_true: 'editor.cond_true'|trans({}, 'forms'),
+    cond_false: 'editor.cond_false'|trans({}, 'forms'),
+    cond_eq: 'editor.cond_eq'|trans({}, 'forms'),
+    cond_neq: 'editor.cond_neq'|trans({}, 'forms'),
+    cond_field: 'editor.cond_field'|trans({}, 'forms'),
+    cond_value: 'editor.cond_value'|trans({}, 'forms'),
+    insert_ref: 'editor.insert_ref'|trans({}, 'forms'),
+    ref_copy_number: 'editor.ref_copy_number'|trans({}, 'forms'),
+    ref_copy_total: 'editor.ref_copy_total'|trans({}, 'forms'),
+    ref_row: 'editor.ref_row'|trans({}, 'forms'),
+    ref_field: 'editor.ref_field'|trans({}, 'forms'),
+    ref_ctx_centre: 'editor.ref_ctx_centre'|trans({}, 'forms'),
+    ref_ctx_year: 'editor.ref_ctx_year'|trans({}, 'forms'),
+    ref_ctx_activity: 'editor.ref_ctx_activity'|trans({}, 'forms'),
+    ref_ctx_slot: 'editor.ref_ctx_slot'|trans({}, 'forms'),
+    ref_ctx_date: 'editor.ref_ctx_date'|trans({}, 'forms'),
+} %}
+<div class="px-4 sm:px-6 py-6 max-w-7xl mx-auto"
+     data-controller="form-model-editor"
+     data-form-model-editor-config-value="{{ editor|json_encode|e('html_attr') }}"
+     data-form-model-editor-labels-value="{{ labels|json_encode|e('html_attr') }}">
+
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+            <a href="{{ path('app_form_models') }}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-forest-600">
+                {{ ux_icon('heroicons:arrow-left', {class: 'h-4 w-4'}) }}{{ 'models.title'|trans({}, 'forms') }}
+            </a>
+            <h1 class="mt-1 break-words text-2xl font-bold text-gray-900">{{ document.name }}</h1>
+            <p class="text-sm text-gray-500">{{ document.folder.documentSection.name }} › {{ document.folder.name }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <label for="model-code-input" class="text-sm text-gray-600">{{ 'models.code'|trans({}, 'forms') }}</label>
+            <input id="model-code-input" data-form-model-editor-target="code" maxlength="40" value="{{ model.code }}"
+                   class="w-32 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-forest-500 focus:ring-forest-500">
+            <a href="{{ path('app_form_model_preview', {id: model.id.toRfc4122}) }}" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {{ ux_icon('heroicons:eye', {class: 'h-4 w-4'}) }}{{ 'editor.preview'|trans({}, 'forms') }}
+            </a>
+        </div>
+    </div>
+
+    <p class="mt-3 text-sm" role="status" aria-live="polite" data-form-model-editor-target="status"></p>
+
+    <div class="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+        <nav aria-label="{{ 'editor.outline'|trans({}, 'forms') }}" class="hidden lg:block">
+            <div class="sticky top-4 max-h-[80vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-3 shadow-xs" data-form-model-editor-target="outline"></div>
+        </nav>
+        <div class="min-w-0 space-y-4" data-form-model-editor-target="canvas"></div>
+    </div>
+
+    <section class="mt-8 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs sm:p-5">
+        <h2 class="text-base font-semibold text-gray-900">{{ 'editor.send_title'|trans({}, 'forms') }}</h2>
+        <p class="mt-1 text-sm text-gray-500">{{ (document.folder.requiresReview ? 'editor.send_review' : 'editor.send_direct')|trans({}, 'forms') }}</p>
+        <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-amber-800" data-form-model-editor-target="problems">
+            {% for p in problems %}<li>{{ p }}</li>{% endfor %}
+        </ul>
+        <form method="post" action="{{ path('app_form_model_send', {id: model.id.toRfc4122}) }}" class="mt-3 flex flex-wrap items-end gap-3">
+            <input type="hidden" name="_token" value="{{ csrf_token('form_model_send_' ~ model.id.toRfc4122) }}">
+            <div class="min-w-0 flex-1">
+                <label for="send-description" class="block text-sm font-medium text-gray-700">{{ 'editor.send_description'|trans({}, 'forms') }}</label>
+                <input id="send-description" name="description" maxlength="2000" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-forest-500 focus:ring-forest-500">
+            </div>
+            <button type="submit" data-form-model-editor-target="send" class="w-full rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 sm:w-auto">{{ 'editor.send'|trans({}, 'forms') }}</button>
+        </form>
+    </section>
+</div>
+{% endblock %}
