@@ -40,6 +40,12 @@ class MeasurementRepository extends ServiceEntityRepository
         return $result instanceof Measurement ? $result : null;
     }
 
+    /** How many values are recorded for an indicator (what findings and plan actions of the indicator hang from). */
+    public function countByIndicator(Indicator $indicator): int
+    {
+        return $this->count(['indicator' => $indicator]);
+    }
+
     public function findOneByIndicatorAndPeriod(Indicator $indicator, MeasurementPeriod $period): ?Measurement
     {
         return $this->findOneBy(['indicator' => $indicator, 'period' => $period]);

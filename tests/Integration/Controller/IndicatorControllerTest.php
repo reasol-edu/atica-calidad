@@ -184,6 +184,52 @@ final class IndicatorControllerTest extends ControllerTestCase
         }
     }
 
+    public function testAnIndicatorNothingDependsOnCanBeDeletedAndOneWithValuesCannot(): void
+    {
+        [$indicatorId, $periodId] = $this->setUpIndicator();
+
+        // Nothing recorded: the page offers to delete it, and deleting it removes it with its target.
+        $this->client->request('GET', '/mejora/indicadores/' . $indicatorId);
+        $page = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('data-testid="indicator-delete"', $page);
+        self::assertStringNotContainsString('data-testid="indicator-delete-blocked"', $page);
+
+        // Without the right token or the right person nothing is deleted.
+        $this->client->request('POST', '/mejora/indicadores/' . $indicatorId . '/eliminar', ['_token' => 'mal']);
+        self::assertSame(403, $this->client->getResponse()->getStatusCode());
+        $this->loginAs($this->responsible, $this->centre);
+        $this->client->request('POST', '/mejora/indicadores/' . $indicatorId . '/eliminar', ['_token' => $this->csrfToken('quality_indicator_delete_' . $indicatorId)]);
+        self::assertSame(403, $this->client->getResponse()->getStatusCode(), 'whoever records a value does not delete the indicator');
+
+        // With a value recorded it is history: the page says why it cannot be deleted, and the server refuses.
+        $this->loginAs($this->responsible, $this->centre);
+        $this->client->request('POST', '/mejora/indicadores/' . $indicatorId . '/periodos/' . $periodId, [
+            '_token' => $this->csrfToken('quality_measurement_' . $indicatorId),
+            'value'  => '90',
+            'notes'  => '',
+        ]);
+        $this->loginAs($this->manager, $this->centre);
+        $this->client->request('GET', '/mejora/indicadores/' . $indicatorId);
+        $page = (string) $this->client->getResponse()->getContent();
+        self::assertStringNotContainsString('data-testid="indicator-delete"', $page);
+        self::assertStringContainsString('data-testid="indicator-delete-blocked"', $page);
+        $this->client->request('POST', '/mejora/indicadores/' . $indicatorId . '/eliminar', ['_token' => $this->csrfToken('quality_indicator_delete_' . $indicatorId)]);
+        self::assertTrue($this->client->getResponse()->isRedirect('/mejora/indicadores/' . $indicatorId));
+        $this->em->clear();
+        self::assertNotNull($this->em->find(Indicator::class, $indicatorId), 'an indicator with values is kept');
+    }
+
+    public function testDeletingAnIndicatorWithNoValuesRemovesIt(): void
+    {
+        [$indicatorId] = $this->setUpIndicator();
+
+        $this->client->request('GET', '/mejora/indicadores/' . $indicatorId);
+        $this->client->request('POST', '/mejora/indicadores/' . $indicatorId . '/eliminar', ['_token' => $this->csrfToken('quality_indicator_delete_' . $indicatorId)]);
+        self::assertTrue($this->client->getResponse()->isRedirect('/mejora/indicadores'));
+        $this->em->clear();
+        self::assertNull($this->em->find(Indicator::class, $indicatorId));
+    }
+
     public function testOpeningAFindingFromAValue(): void
     {
         [$indicatorId, $periodId] = $this->setUpIndicator();

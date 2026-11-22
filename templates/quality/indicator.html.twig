@@ -41,7 +41,20 @@
                     {{ ux_icon('heroicons:pencil-square', {class: 'h-4 w-4'}) }}{{ 'plan.edit'|trans({}, 'quality') }}
                 </a>
             {% endif %}
+            {% if canDelete %}
+                {# Only an indicator nothing depends on (no value recorded) can be deleted; the app's confirmation dialog asks first. #}
+                <form method="post" action="{{ path('app_quality_indicator_delete', {id: iid}) }}" class="js-confirm-form" data-testid="indicator-delete"
+                      data-confirm="{{ 'indicator.delete_confirm'|trans({'%name%': indicator.name}, 'quality')|e('html_attr') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('quality_indicator_delete_' ~ iid) }}">
+                    <button type="submit" class="js-confirm-trigger inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
+                        {{ ux_icon('heroicons:trash', {class: 'h-4 w-4'}) }}{{ 'indicator.delete'|trans({}, 'quality') }}
+                    </button>
+                </form>
+            {% endif %}
         </div>
+        {% if canManage and writable and not canDelete %}
+            <p class="mt-2 text-xs text-gray-500" data-testid="indicator-delete-blocked">{{ 'indicator.delete_blocked'|trans({}, 'quality') }}</p>
+        {% endif %}
         {% if indicator.description %}
             <p class="mt-3 rounded-lg bg-gray-50 px-3.5 py-2.5 text-sm text-gray-700 whitespace-pre-line"><span class="font-medium">{{ 'indicator.how'|trans({}, 'quality') }}</span> {{ indicator.description }}</p>
         {% endif %}

@@ -152,6 +152,7 @@ class IndicatorController extends AbstractController
             'followUps' => $followUps,
             'canRecord' => $writable && $this->isGranted(QualityVoter::INDICATOR_RECORD, $indicator),
             'canManage' => $this->isGranted(QualityVoter::MANAGE, $centre),
+            'canDelete' => $writable && $this->isGranted(QualityVoter::MANAGE, $centre) && $this->service->canDeleteIndicator($indicator),
             'writable'  => $writable,
             'canList'   => $this->isGranted(QualityVoter::VIEW_ALL, $centre),
         ]);
@@ -191,6 +192,25 @@ class IndicatorController extends AbstractController
         }
 
         return $this->renderIndicatorForm($centre, $year, $indicator, $values, $errors, $request);
+    }
+
+    /** Deletes an indicator nothing depends on (no value was recorded for it); otherwise it can only be left unmeasured. */
+    #[Route('/{id}/eliminar', name: 'app_quality_indicator_delete', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    public function delete(string $id, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
+    {
+        $this->denyAccessUnlessGranted(QualityVoter::MANAGE, $centre);
+        $indicator = $this->requireIndicator($id, $centre, QualityVoter::INDICATOR_VIEW);
+        $this->checkToken($request, 'quality_indicator_delete_' . $id);
+        $this->writableYear($centre);
+        if (!$this->service->canDeleteIndicator($indicator)) {
+            $this->addFlash('error', $this->t('indicator.error.delete_in_use'));
+
+            return $this->redirectToRoute('app_quality_indicator', ['id' => $id]);
+        }
+        $this->service->deleteIndicator($indicator);
+        $this->addFlash('success', $this->t('indicator.flash.deleted'));
+
+        return $this->redirectToRoute('app_quality_indicators');
     }
 
     /** Records (or corrects) the value of one of the indicator's periods of the active year. */

@@ -188,6 +188,30 @@ final class IndicatorService
         return $indicator;
     }
 
+    /**
+     * Whether an indicator can be deleted: nothing else depends on it, that is, no value was ever recorded for it (the values, and the
+     * findings and plan actions opened from them, are the history of the centre). Its targets and its feed from the documents of a model
+     * are its own configuration and go with it.
+     */
+    public function canDeleteIndicator(Indicator $indicator): bool
+    {
+        return $this->measurements->countByIndicator($indicator) === 0;
+    }
+
+    /** Deletes an indicator that nothing depends on (see canDeleteIndicator()). */
+    public function deleteIndicator(Indicator $indicator): void
+    {
+        if (!$this->canDeleteIndicator($indicator)) {
+            throw new \DomainException('The indicator has recorded values.');
+        }
+        $name   = $indicator->getName();
+        $centre = $indicator->getEducationalCentre();
+        $this->em->remove($indicator);
+        $this->em->flush();
+
+        $this->activityLogger->record('indicator.delete', ['indicator' => $name], $centre);
+    }
+
     // ── Measurements ─────────────────────────────────────────────────────────
 
     /**

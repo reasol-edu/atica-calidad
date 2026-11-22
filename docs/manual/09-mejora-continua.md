@@ -307,6 +307,12 @@ calendario copiado. Después solo queda revisar las fechas.
 Al editarlo se puede desmarcar **Se sigue midiendo**: conserva su historia, pero deja de pedir
 valores. La meta, el umbral y el calendario son de cada curso; el resto, del indicador.
 
+Un indicador **sin ningún valor registrado** (por ejemplo, uno creado por error) se puede **eliminar**
+desde su página, con el botón **Eliminar** y una confirmación; se borran también su meta y su origen
+en documentos. En cuanto tiene valores —y con ellos las incidencias y acciones que se abrieron a
+partir de ellos— ya es historia del centro: no se puede eliminar, y la página lo dice. Para dejar de
+medirlo, desmarca **Se sigue midiendo**.
+
 ### Registrar los valores
 
 ![Página de un indicador, con el valor de la evaluación inicial por registrar](img/mejora-indicador-registrar.png)

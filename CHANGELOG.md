@@ -75,6 +75,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   como **etiquetas**. Un número con mínimo o máximo usa los atributos `min` y `max` del campo y se marca en rojo al salirse. Los datos
   obligatorios vacíos o inválidos se marcan **en rojo, con su mensaje, en el propio campo** (al salir de él, o todos a la vez al
   pulsar un punto de «Pendiente antes de entregar»). Nuevo botón **Previsualizar**, que abre el borrador como quedará entregado.
+- **Indicadores: eliminar un indicador que nada usa.** La página de un indicador sin ningún valor registrado tiene un botón **Eliminar**
+  (con el cuadro de confirmación de la aplicación) que lo borra junto con su meta y su origen en documentos; se anota en el registro de
+  actividad. Con valores registrados —y las incidencias y acciones que cuelgan de ellos— no se puede eliminar: la página lo explica y
+  propone dejar de medirlo. Sin migración.
 - **Modelos de documento: editor con pestañas y barra de envío fija.** El editor se divide en *Contenido*, *Reglas de coherencia*,
   *Pasos de aprobación* e *Indicadores*, cada una con un punto ámbar si difiere de la última revisión enviada y un número rojo con sus
   problemas. Una barra fija arriba muestra el estado de guardado, qué falta por enviar y el botón (**Enviar a revisión**, o **Guardar
