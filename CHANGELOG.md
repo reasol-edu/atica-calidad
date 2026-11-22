@@ -7,6 +7,25 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+- **Modelos de documento rellenables (fase 1).** Quien gestiona la calidad puede definir un *modelo* (Gestión › Modelos de
+  documento): un documento del árbol cuyo contenido es una estructura de secciones numeradas jerárquicamente, con texto fijo,
+  texto de partida (que se adapta) o a rellenar, campos con tipo (texto, número, fecha, hora, sí/no, una o varias opciones) y
+  tablas de filas libres o fijas. El editor guarda el borrador solo mientras se escribe, tiene vista previa y «Enviar a
+  revisión» crea una revisión nueva del documento (con su PDF en blanco) que aprueba el perfil revisor de la carpeta, como
+  cualquier otro. Una actividad con carpeta puede entregarse **rellenando el modelo en línea** en lugar de subir un fichero
+  (campo «Cómo se entrega» del formulario de la actividad): el borrador se guarda al escribir, avisa de lo que falta antes de
+  entregar, y al entregar se genera el PDF y se crea el documento (o su revisión siguiente, si se corrige) con el flujo de
+  revisión de siempre. Funciona igual de bien en el móvil. Migración nueva en las tres carpetas; probada en SQLite, PostgreSQL,
+  MySQL y MariaDB. Detalle y decisiones en `skills/forms.md`.
+- **Modelos de documento: secciones que se repiten, referencias y condiciones (fase 2).** Una sección puede repetirse **una vez por
+  fila de una tabla** (la lista de unidades didácticas genera una sección por unidad, y cada copia sigue a su fila si se reordenan y
+  desaparece con ella si se borra), según un número o a mano, con repetición anidada y con la numeración de las copias (3.1, 3.2…) a
+  elección del modelo. Los títulos, etiquetas y textos admiten **referencias** (número de la copia, columnas de la fila de origen, otros
+  campos, centro, curso, actividad, fecha) que se rellenan solas y siguen lo que se escribe; las secciones y bloques pueden mostrarse
+  solo **si otro campo cumple una condición** (lo oculto no se pide, no se valida ni se imprime, y no se pierde lo escrito). El
+  formulario muestra una barra de progreso de lo obligatorio y los avisos de «pendiente» indican en qué copia está cada dato.
+
 ## [2.6.0] - 2026-11-21
 
 ### Added

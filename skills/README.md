@@ -13,6 +13,7 @@ that matches the kind of change you're making:
 | [`database.md`](database.md) | Before creating a migration (and to verify it on every engine with Docker), a repository, or any new query, or when touching Doctrine entities |
 | [`testing.md`](testing.md) | Before writing or debugging a test, or before considering a task done |
 | [`frontend.md`](frontend.md) | Before touching a Twig template, a Stimulus controller, a Live Component, or adding/editing an icon |
+| [`forms.md`](forms.md) | Before touching document models (`FormModel*`, `FormSubmission*`, `src/Service/Form/`, `templates/form/`, the `form_*` Stimulus controllers) or an activity delivered by filling a model in |
 | [`i18n.md`](i18n.md) | Before adding any user-facing text |
 | [`screenshots.md`](screenshots.md) | Before adding or regenerating a manual screenshot, or changing `app:load-demo-data`: the fixture catalogue, accounts, script → image → chapter matrix and the runbook |
 | [`release.md`](release.md) | Before a commit, updating CHANGELOG.md, touching `.github/workflows/build.yml`, or generating the manual/slides |
