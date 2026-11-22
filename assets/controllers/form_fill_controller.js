@@ -2,7 +2,7 @@ import { Controller } from '@hotwired/stimulus';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import { h } from '../utils/form_dom.js';
-import { asMap, sync, walk, numbers, references, fieldSpecs, progress, newKey, MAX_COPIES, calculate, buildIndex, totals, rowsOf, format } from '../utils/form_scopes.js';
+import { asMap, sync, walk, numbers, references, fieldSpecs, progress, newKey, MAX_COPIES, calculate, buildIndex, totals, rowsOf, format, countedCount } from '../utils/form_scopes.js';
 
 Quill.register(Quill.import('attributors/style/align'), true);
 
@@ -163,6 +163,7 @@ export default class extends Controller {
                 if (s.visibleIf && s.visibleIf.field) { keys.add(s.visibleIf.field); }
                 for (const b of s.blocks || []) {
                     if (b.visibleIf && b.visibleIf.field) { keys.add(b.visibleIf.field); }
+                    if (b.type === 'table' && b.mode === 'counted' && b.rowsField) { keys.add(b.rowsField); }
                 }
                 visit(s.children);
             }
@@ -289,6 +290,27 @@ export default class extends Controller {
             map[key] = value;
         }
         this.touch();
+    }
+
+    /**
+     * How many rows with something typed in them the tables that have as many rows as the field $fieldKey says would lose with the
+     * value it holds now (they are still there until the next redraw).
+     */
+    rowsLost(fieldKey) {
+        const filled = (row) => Object.entries(row).some(([k, v]) => k !== '_key' && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0));
+        const count = (instances) => instances.reduce((lost, inst) => {
+            if (inst.adder) {
+                return lost;
+            }
+            const here = inst.blocks
+                .map(({ block }) => block)
+                .filter((block) => block.type === 'table' && block.mode === 'counted' && block.rowsField === fieldKey)
+                .reduce((sum, block) => sum + (inst.scope.tables[block.key] || []).slice(countedCount(block, inst.chain)).filter(filled).length, 0);
+
+            return lost + here + count(inst.children);
+        }, 0);
+
+        return count(walk(this.def, this.state));
     }
 
     /** What decides the copies or what is shown may have changed (a row added or removed, a number or a condition field): redraw. */
@@ -482,7 +504,15 @@ export default class extends Controller {
             const id = 'f-' + inst.path + '-' + block.key;
             const control = this.control(block, inst.scope.fields[block.key], (v) => this.setIn(inst.scope.fields, block.key, v), id, false, { chain: inst.chain, map: inst.scope.fields, key: block.key });
             if (this.structural.has(block.key)) {
-                control.addEventListener('change', () => this.refresh());
+                // What this field held before the change: lowering a number that sets the rows of a table asks first, and puts it back on "no".
+                let previous = inst.scope.fields[block.key];
+                control.addEventListener('change', () => {
+                    if (this.rowsLost(block.key) > 0 && !window.confirm(this.l.confirm_remove_rows.replace('%count%', String(this.rowsLost(block.key))))) {
+                        this.setIn(inst.scope.fields, block.key, previous);
+                    }
+                    previous = inst.scope.fields[block.key];
+                    this.refresh();
+                });
             }
             return wrap([
                 this.labelEl(block, inst, id),
@@ -675,7 +705,9 @@ export default class extends Controller {
         if (block.mode === 'matrix') {
             return this.matrixEl(block, inst);
         }
-        const fixed = block.mode === 'fixed';
+        // A counted table has as many rows as a number says: like a fixed one nobody adds or removes them, and they are told by number.
+        const counted = block.mode === 'counted';
+        const fixed = block.mode === 'fixed' || counted;
         const tables = inst.scope.tables;
         if (!Array.isArray(tables[block.key])) {
             tables[block.key] = [];
@@ -691,7 +723,7 @@ export default class extends Controller {
         ]);
 
         const body = h('tbody', { class: 'divide-y divide-gray-100' }, rows.map((row, index) => h('tr', {}, [
-            ...(fixed ? [h('th', { scope: 'row', class: 'px-2 py-2 text-left align-top font-normal text-gray-700', text: labels.get(row._key) ?? '' })] : []),
+            ...(fixed ? [h('th', { scope: 'row', class: 'px-2 py-2 text-left align-top font-normal text-gray-700', text: counted ? String(index + 1) : labels.get(row._key) ?? '' })] : []),
             ...block.columns.map((c) => h('td', { class: 'min-w-[9rem] px-2 py-1.5 align-top' }, [
                 this.control({ ...c, label: c.label + ' · ' + this.l.row + ' ' + (index + 1) }, row[c.key], (v) => this.setIn(row, c.key, v), null, true, { chain: inst.chain, map: row, key: c.key }),
             ])),
@@ -719,6 +751,7 @@ export default class extends Controller {
             h('div', { class: 'overflow-x-auto rounded-xl border border-gray-200' }, [
                 h('table', { class: 'min-w-full text-sm' }, [h('thead', { class: 'bg-gray-50 text-gray-600' }, [head]), body, ...(foot ? [foot] : [])]),
             ]),
+            ...(counted && rows.length === 0 ? [h('p', { class: 'mt-1 text-xs text-gray-500', text: this.l.counted_empty })] : []),
             ...(fixed ? [] : [h('button', {
                 type: 'button', class: BTN + ' mt-2', disabled: this.readOnly || rows.length >= max, text: '+ ' + this.l.add_row,
                 onclick: () => { rows.push({ _key: newKey() }); this.refresh(); },

@@ -161,6 +161,9 @@ final class FormDataNormalizer
                 continue;
             }
             $rows = FormDefinition::listOf($tables[$key] ?? []);
+            if (($block['mode'] ?? '') === 'counted') {
+                $rows = $this->countedRows($block, $rows, $chain);
+            }
             foreach (FormDefinition::listOf($block['columns'] ?? []) as $column) {
                 if (($column['fieldType'] ?? '') !== 'relation') {
                     continue;
@@ -182,6 +185,30 @@ final class FormDataNormalizer
         $data['tables'] = $tables;
 
         return $data;
+    }
+
+    /**
+     * The rows of a counted table: as many as its number field says (never more than the table's cap), the first ones kept as they
+     * were typed and, when the number grows, blank rows after them. When the number drops, the last rows go.
+     *
+     * @param array<string, mixed>       $block
+     * @param list<array<string, mixed>> $rows
+     * @param list<array<string, mixed>> $chain
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function countedRows(array $block, array $rows, array $chain): array
+    {
+        $cap   = FormDefinition::int($block['maxRows'] ?? 0);
+        $cap   = $cap > 0 ? min($cap, FormDefinition::MAX_COUNTED_ROWS) : FormDefinition::MAX_COUNTED_ROWS;
+        $count = min($cap, max(0, FormDefinition::int($this->fieldOf($chain, FormDefinition::str($block['rowsField'] ?? '')))));
+
+        $rows = array_slice($rows, 0, $count);
+        while (count($rows) < $count) {
+            $rows[] = ['_key' => FormDefinition::newKey()];
+        }
+
+        return $rows;
     }
 
     /**

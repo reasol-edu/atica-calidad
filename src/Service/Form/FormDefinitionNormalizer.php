@@ -116,7 +116,7 @@ final class FormDefinitionNormalizer
                 if ($type === 'field') {
                     $this->checkField($block, $label, $problems);
                 } elseif ($type === 'table') {
-                    $this->checkTable($block, $label, $problems);
+                    $this->checkTable($block, $label, $fieldTypes, $problems);
                 } elseif ($type === 'text' && ($block['mode'] ?? '') === 'fill' && $label === '') {
                     $problems[] = ['code' => 'text_without_label', 'params' => ['%section%' => FormDefinition::str($section['title'] ?? '')]];
                 }
@@ -377,9 +377,10 @@ final class FormDefinitionNormalizer
 
     /**
      * @param array<string, mixed> $block
+     * @param array<string, string> $fieldTypes field key → type
      * @param list<array{code: string, params: array<string, string>}> $problems
      */
-    private function checkTable(array $block, string $label, array &$problems): void
+    private function checkTable(array $block, string $label, array $fieldTypes, array &$problems): void
     {
         $columns = FormDefinition::listOf($block['columns'] ?? []);
         // A double-entry table has no columns of its own (its sources are checked with the calculations).
@@ -394,6 +395,11 @@ final class FormDefinitionNormalizer
         }
         if (($block['mode'] ?? '') === 'fixed' && FormDefinition::listOf($block['rows'] ?? []) === []) {
             $problems[] = ['code' => 'fixed_table_without_rows', 'params' => ['%label%' => $label]];
+        }
+        // The number that says how many rows a counted table has: a number field the person types (a calculated one is worked out
+        // only once the rows are there).
+        if (($block['mode'] ?? '') === 'counted' && ($fieldTypes[FormDefinition::str($block['rowsField'] ?? '')] ?? null) !== 'number') {
+            $problems[] = ['code' => 'counted_table_invalid', 'params' => ['%label%' => $label]];
         }
     }
 
@@ -578,6 +584,13 @@ final class FormDefinitionNormalizer
         $min = max(0, FormDefinition::int($raw['minRows'] ?? 0));
         $max = max(0, FormDefinition::int($raw['maxRows'] ?? 0));
 
+        // A counted table has as many rows as a number field says, up to a cap (no minimum: the field decides).
+        $counted = [];
+        if ($mode === 'counted') {
+            $counted = ['rowsField' => $this->reference($raw['rowsField'] ?? null) ?? ''];
+            $max     = min($max > 0 ? $max : FormDefinition::MAX_COUNTED_ROWS, FormDefinition::MAX_COUNTED_ROWS);
+        }
+
         // A double-entry table has no columns of its own: its rows are the rows of one table and its columns the rows of another,
         // and every cell is of the same kind.
         $matrix = [];
@@ -603,10 +616,10 @@ final class FormDefinitionNormalizer
             'columns'   => $columns,
             'rows'      => $rows,
             'minRows'   => $mode === 'free' ? $min : 0,
-            'maxRows'   => $mode === 'free' ? $max : 0,
+            'maxRows'   => in_array($mode, ['free', 'counted'], true) ? $max : 0,
             'help'      => $this->text($raw['help'] ?? '', 1000),
             'visibleIf' => $this->condition($raw['visibleIf'] ?? null),
-        ] + $matrix;
+        ] + $matrix + $counted;
     }
 
     /**

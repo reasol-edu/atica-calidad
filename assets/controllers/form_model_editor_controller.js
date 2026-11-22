@@ -820,7 +820,7 @@ export default class extends Controller {
     }
 
     tableBody(block) {
-        const modes = [['free', this.l.table_free], ['fixed', this.l.table_fixed], ['matrix', this.l.table_matrix]];
+        const modes = [['free', this.l.table_free], ['fixed', this.l.table_fixed], ['counted', this.l.table_counted], ['matrix', this.l.table_matrix]];
         const columns = block.columns.map((c, i) => h('div', { class: 'rounded-lg border border-gray-200 bg-gray-50/60 p-2.5 space-y-2' }, [
             h('div', { class: 'flex items-end gap-2' }, [
                 this.textInput(c, 'label', this.l.column + ' ' + (i + 1), 'flex-1'),
@@ -834,7 +834,15 @@ export default class extends Controller {
         const parts = [
             h('div', { class: 'flex flex-wrap items-end gap-3' }, [
                 this.textInput(block, 'label', this.l.label, 'flex-1 basis-48'),
-                this.labelled(this.l.table_mode, this.select(block.mode, modes, (v) => { block.mode = v; this.changed(); }, this.l.table_mode)),
+                this.labelled(this.l.table_mode, this.select(block.mode, modes, (v) => {
+                    block.mode = v;
+                    if (v === 'counted') {
+                        // The first number field of the model is the likeliest source; the cap starts at the most a table gets.
+                        block.rowsField = block.rowsField || (this.fieldList().find((f) => f.fieldType === 'number') || {}).key || '';
+                        block.maxRows = block.maxRows > 0 ? block.maxRows : 100;
+                    }
+                    this.changed();
+                }, this.l.table_mode)),
             ]),
         ];
         if (block.mode === 'matrix') {
@@ -851,6 +859,16 @@ export default class extends Controller {
         if (block.mode === 'fixed') {
             parts.push(this.textInput(block, 'rowHeader', this.l.row_header));
             parts.push(this.listEditor(block.rows, this.l.rows, this.l.add_row, this.l.row));
+        } else if (block.mode === 'counted') {
+            const numbers = this.fieldList().filter((f) => f.fieldType === 'number').map((f) => [f.key, f.label || '…']);
+            parts.push(this.textInput(block, 'rowHeader', this.l.row_header));
+            parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
+                this.labelled(this.l.rows_field, this.select(block.rowsField || '', [['', '—'], ...numbers], (v) => { block.rowsField = v; this.changed(); }, this.l.rows_field)),
+                this.labelled(this.l.counted_max, h('input', {
+                    type: 'number', min: 1, max: 100, class: INPUT, value: block.maxRows || 100,
+                    oninput: (e) => { block.maxRows = Math.min(100, Math.max(1, Number(e.target.value) || 100)); this.touch(); },
+                }), 'w-40'),
+            ]));
         } else {
             const num = (prop, text) => this.labelled(text, h('input', {
                 type: 'number', min: 0, class: INPUT, value: block[prop] ?? 0,

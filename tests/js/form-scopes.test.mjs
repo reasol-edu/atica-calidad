@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 globalThis.window = globalThis;
-const { sync, calculate, totals, walk, numbers } = await import('../../assets/utils/form_scopes.js');
+const { sync, calculate, totals, walk, numbers, countedCount } = await import('../../assets/utils/form_scopes.js');
 
 const k = (n) => `${n}0000000-0000-4000-8000-000000000000`;
 
@@ -82,4 +82,30 @@ test('sections that repeat by the rows of a table are numbered with their copies
     sync(def.sections, state);
     const nums = numbers(walk(def, state));
     assert.deepEqual([...nums.values()], ['1', '2', '2.1', '2.2']);
+});
+
+test('a counted table has as many rows as its number field says and keeps the first ones', () => {
+    const def = { version: 1, sections: [{ key: k('s'), title: 'Todo', numbered: true, children: [], blocks: [
+        { key: k('n'), type: 'field', fieldType: 'number', label: 'Reuniones' },
+        { key: k('t'), type: 'table', mode: 'counted', rowsField: k('n'), maxRows: 4, label: 'Fechas', columns: [{ key: k('c'), label: 'Asunto', fieldType: 'short' }] },
+    ] }] };
+    const state = { fields: { [k('n')]: 3 }, texts: {}, copies: {}, tables: {} };
+    sync(def.sections, state);
+    assert.equal(state.tables[k('t')].length, 3);
+
+    const first = state.tables[k('t')][0]._key;
+    state.tables[k('t')][0][k('c')] = 'Primera';
+    state.fields[k('n')] = 9;
+    sync(def.sections, state);
+    assert.equal(state.tables[k('t')].length, 4, 'the cap of the table limits the rows');
+    assert.equal(state.tables[k('t')][0]._key, first);
+
+    state.fields[k('n')] = 1;
+    sync(def.sections, state);
+    assert.deepEqual(state.tables[k('t')].map((r) => r[k('c')]), ['Primera']);
+
+    delete state.fields[k('n')];
+    sync(def.sections, state);
+    assert.equal(state.tables[k('t')].length, 0, 'no number, no rows');
+    assert.equal(countedCount(def.sections[0].blocks[1], [state]), 0);
 });

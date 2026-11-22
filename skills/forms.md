@@ -73,6 +73,12 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
 - **Relation columns** (`fieldType: relation`, `relTable`, `relLabel`, `multiple`) pick rows of another table of the document and keep only rows
   that still exist. **Double-entry tables** (`mode: matrix`, `rowTable`/`rowLabel`/`colTable`/`colLabel`, one kind of `cell`) have a row per row
   of one table and a cell per row of another, keyed by those rows' keys.
+- **Counted tables** (`mode: counted`, `rowsField` = key of a typed `number` field, `maxRows` ≤ `FormDefinition::MAX_COUNTED_ROWS` = 100) have as
+  many rows as the field says, sized in `FormDataNormalizer::relatedData()` → `countedRows()` (PHP) and `related()` → `countedRows()` (JS; keep
+  the twins in step): the first rows keep their keys and what was typed, blank ones are appended, the last ones are dropped when the number
+  drops. The field is read through the scope chain, so it may live in an outer section. It cannot be a calculated field (calculations run
+  after the rows exist): `counted_table_invalid` says so. The fill screen shows them numbered, like a fixed table, and asks before a lowered
+  number drops rows with data (`rowsLost()`; the server drops them regardless, so offline syncs converge). Blank rows are not stripped at delivery.
 - The names of the rows and columns of a matrix and the options of a relation follow what is typed **without redrawing the form**: a redraw
   when a field loses focus swallows the click on the next button (the mousedown removes the element the mouseup lands on).
 - Not done: rules inside a copy (they see the whole document, aggregating with `[c:…]`), and calculated values deciding how many copies there are.

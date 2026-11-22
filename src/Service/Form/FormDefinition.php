@@ -13,8 +13,8 @@ use Symfony\Component\Uid\Uuid;
  *   Section = { key, title, numbered, help, blocks: [ Block ], children: [ Section ] }
  *   Block   = text  { key, type: "text", mode: fixed|starter|fill, label, html, required, help }
  *           | field { key, type: "field", fieldType, name, label, required, help, options?, min?, max?, unit? }
- *           | table { key, type: "table", name, label, mode: free|fixed, columns: [ Column ], rows: [ { key, label } ],
- *                     rowHeader, minRows, maxRows, help }
+ *           | table { key, type: "table", name, label, mode: free|fixed|matrix|counted, columns: [ Column ], rows: [ { key, label } ],
+ *                     rowHeader, minRows, maxRows, rowsField (counted: the key of a number field), help }
  *   Column  = { key, name, label, fieldType, required, options?, min?, max?, unit? }
  *
  * Every section, block, column, fixed row and option has a `key` (a UUID) that is stable for ever across the revisions of a
@@ -32,8 +32,14 @@ final class FormDefinition
 
     public const array TEXT_MODES = ['fixed', 'starter', 'fill'];
 
-    /** `matrix` is a double-entry table: its rows are those of one table and its columns those of another. */
-    public const array TABLE_MODES = ['free', 'fixed', 'matrix'];
+    /**
+     * `matrix` is a double-entry table: its rows are those of one table and its columns those of another. `counted` has as many
+     * rows as a number field says (`rowsField`, capped by `maxRows`): nobody adds or removes them, they follow the number.
+     */
+    public const array TABLE_MODES = ['free', 'fixed', 'matrix', 'counted'];
+
+    /** The most rows a counted table gets, whatever the number says (and the cap used when the model sets none). */
+    public const int MAX_COUNTED_ROWS = 100;
 
     public const array TOTALS = ['', 'sum', 'avg', 'min', 'max', 'count'];
 

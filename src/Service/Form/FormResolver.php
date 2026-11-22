@@ -157,7 +157,8 @@ final class FormResolver
     private function table(array $block, string $label, array $rows, array $chain, FormIndex $index): array
     {
         $columns = FormDefinition::listOf($block['columns'] ?? []);
-        $fixed   = ($block['mode'] ?? '') === 'fixed';
+        $counted = ($block['mode'] ?? '') === 'counted';
+        $fixed   = $counted || ($block['mode'] ?? '') === 'fixed';
 
         $labels = [];
         foreach (FormDefinition::listOf($block['rows'] ?? []) as $row) {
@@ -165,7 +166,11 @@ final class FormResolver
         }
 
         $resolved = [];
-        foreach ($rows as $row) {
+        foreach ($rows as $number => $row) {
+            // The rows of a counted table have no name: their number is what tells them apart.
+            if ($counted) {
+                $labels[FormDefinition::str($row['_key'] ?? '')] = (string) ($number + 1);
+            }
             $cells = [];
             foreach ($columns as $column) {
                 $cells[] = $this->format($column, $row[FormDefinition::str($column['key'] ?? '')] ?? null, $chain, $index);

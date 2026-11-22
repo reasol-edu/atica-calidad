@@ -10,6 +10,7 @@
 import { parse, evaluate, round } from './form_expression.js';
 
 export const MAX_COPIES = 100;
+export const MAX_COUNTED_ROWS = 100;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -81,6 +82,24 @@ function prepare(blocks, scope) {
     }
 }
 
+/** How many rows a counted table has: what its number field says (never negative), up to the table's cap (the twin of the PHP one). */
+export function countedCount(block, chain) {
+    const n = Number(lookup(chain, 'fields', block.rowsField));
+    const cap = Math.min(block.maxRows > 0 ? block.maxRows : MAX_COUNTED_ROWS, MAX_COUNTED_ROWS);
+
+    return Math.min(cap, Math.max(0, Number.isFinite(n) ? Math.trunc(n) : 0));
+}
+
+/** The rows of a counted table: the first ones as they were typed, blank ones after them when the number grows, the last ones gone when it drops. */
+function countedRows(block, rows, chain) {
+    const out = rows.slice(0, countedCount(block, chain));
+    while (out.length < countedCount(block, chain)) {
+        out.push({ _key: newKey() });
+    }
+
+    return out;
+}
+
 /**
  * What depends on other tables of the chain: a row for each row of the table a double-entry table takes its rows from, and the
  * relation columns, which keep only rows that still exist (the twin of FormDataNormalizer::relatedData()).
@@ -98,6 +117,9 @@ function related(blocks, scope, chain) {
                 return row;
             });
             continue;
+        }
+        if (block.mode === 'counted') {
+            scope.tables[block.key] = countedRows(block, scope.tables[block.key] || [], chain);
         }
         for (const column of block.columns || []) {
             if (column.fieldType !== 'relation') {

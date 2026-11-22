@@ -36,8 +36,14 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
 - **Texto**: fijo (no se toca), de partida (se adapta) o a rellenar, con formato.
 - **Campo**: texto corto o largo, número (con mínimo, máximo y unidad), fecha, hora, sí/no, una o
   varias opciones, o un valor **calculado** a partir de los demás.
-- **Tabla** de filas libres (quien rellena añade las que necesite, con un máximo), de filas fijas, o
-  de **doble entrada** (las filas son las de una tabla y las columnas las de otra).
+- **Tabla** de filas libres (quien rellena añade las que necesite, con un máximo), de filas fijas, de
+  **tantas filas como diga un campo** (se elige un campo numérico del modelo, por ejemplo «Reuniones
+  celebradas»: la tabla tiene esas filas, numeradas, y quien rellena no las añade ni las quita) o de
+  **doble entrada** (las filas son las de una tabla y las columnas las de otra).
+
+  En la tabla según un campo, si el número sube se añaden filas en blanco al final; si baja, se
+  quitan las últimas, y antes de hacerlo la pantalla avisa cuando alguna de esas filas tiene algo
+  escrito. Se puede poner un máximo de filas (hasta 100), que prevalece sobre el número.
 
 Además:
 
