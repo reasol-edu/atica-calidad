@@ -23,6 +23,7 @@ final class FormDefinitionNormalizer
     public const int MAX_COLUMNS    = 40;
     public const int MAX_OPTIONS    = 100;
     public const int MAX_FIXED_ROWS = 200;
+    public const int MAX_RULES      = 100;
 
     private int $sections = 0;
     private int $blocks   = 0;
@@ -53,7 +54,18 @@ final class FormDefinitionNormalizer
             }
         }
 
-        return ['version' => FormDefinition::VERSION, 'sections' => $sections];
+        $rules = [];
+        foreach (array_slice(FormDefinition::listOf($raw['rules'] ?? []), 0, self::MAX_RULES) as $rule) {
+            $severity = FormDefinition::str($rule['severity'] ?? '') === 'block' ? 'block' : 'warning';
+            $rules[]  = [
+                'key'      => $this->key($rule['key'] ?? null),
+                'expr'     => mb_substr(trim(FormDefinition::str($rule['expr'] ?? '')), 0, 1000),
+                'message'  => $this->text($rule['message'] ?? '', 500),
+                'severity' => $severity,
+            ];
+        }
+
+        return ['version' => FormDefinition::VERSION, 'sections' => $sections, 'rules' => $rules];
     }
 
     /**
@@ -109,8 +121,172 @@ final class FormDefinitionNormalizer
         if ($count === 0) {
             $problems[] = ['code' => 'empty', 'params' => []];
         }
+        $this->checkCalculations($definition, $problems);
 
         return $problems;
+    }
+
+    /**
+     * Formulas, relations, double-entry tables and rules: what they point at has to exist, formulas have to be readable and
+     * calculated values cannot depend on each other in a circle.
+     *
+     * @param array<string, mixed> $definition
+     * @param list<array{code: string, params: array<string, string>}> $problems
+     */
+    private function checkCalculations(array $definition, array &$problems): void
+    {
+        $index = FormIndex::of($definition);
+        $sections = [];
+        foreach (FormDefinition::sectionsOf($definition['sections'] ?? []) as $section) {
+            $sections[FormDefinition::str($section['key'] ?? '')] = true;
+        }
+
+        /** @var array<string, list<string>> $graph calculated value → the calculated values its formula reads */
+        $graph  = [];
+        $labels = [];
+
+        $checkFormula = function (string $formula, string $label, string $node, ?string $table) use ($index, $sections, &$problems, &$graph): void {
+            if (trim($formula) === '') {
+                $problems[] = ['code' => 'formula_missing', 'params' => ['%label%' => $label]];
+
+                return;
+            }
+            $parsed = FormExpression::parse($formula);
+            if ($parsed['ast'] === null) {
+                $problems[] = ['code' => 'formula_invalid', 'params' => ['%label%' => $label]];
+
+                return;
+            }
+            foreach (FormExpression::references($parsed['ast']) as $ref) {
+                $target = $this->referenceTarget($ref, $index, $sections, $table);
+                if ($target === false) {
+                    $problems[] = ['code' => 'formula_ref_missing', 'params' => ['%label%' => $label, '%ref%' => $ref]];
+                } elseif ($target !== null && $node !== '') {
+                    $graph[$node][] = $target;
+                }
+            }
+        };
+
+        foreach ($index->fields as $key => $field) {
+            if (($field['fieldType'] ?? '') === 'calculated') {
+                $labels[$key] = FormDefinition::str($field['label'] ?? '');
+                $graph[$key]  = [];
+                $checkFormula(FormDefinition::str($field['formula'] ?? ''), $labels[$key], $key, null);
+            }
+        }
+        foreach ($index->tables as $tableKey => $table) {
+            foreach (FormDefinition::listOf($table['columns'] ?? []) as $column) {
+                $columnKey = FormDefinition::str($column['key'] ?? '');
+                $label     = FormDefinition::str($table['label'] ?? '') . ' · ' . FormDefinition::str($column['label'] ?? '');
+                if (($column['fieldType'] ?? '') === 'calculated') {
+                    $labels[$tableKey . '.' . $columnKey] = $label;
+                    $graph[$tableKey . '.' . $columnKey]  = [];
+                    $checkFormula(FormDefinition::str($column['formula'] ?? ''), $label, $tableKey . '.' . $columnKey, $tableKey);
+                }
+                if (($column['fieldType'] ?? '') === 'relation') {
+                    $source = $index->tables[FormDefinition::str($column['relTable'] ?? '')] ?? null;
+                    if ($source === null || ($source['mode'] ?? '') === 'matrix' || $index->column(FormDefinition::str($column['relTable'] ?? ''), FormDefinition::str($column['relLabel'] ?? '')) === null) {
+                        $problems[] = ['code' => 'relation_invalid', 'params' => ['%label%' => $label]];
+                    }
+                }
+            }
+            if (($table['mode'] ?? '') === 'matrix') {
+                foreach (['row', 'col'] as $side) {
+                    $source = FormDefinition::str($table[$side . 'Table'] ?? '');
+                    if (!isset($index->tables[$source]) || $source === $tableKey || $index->column($source, FormDefinition::str($table[$side . 'Label'] ?? '')) === null) {
+                        $problems[] = ['code' => 'matrix_invalid', 'params' => ['%label%' => FormDefinition::str($table['label'] ?? '')]];
+                        break;
+                    }
+                }
+            }
+        }
+
+        foreach (FormDefinition::listOf($definition['rules'] ?? []) as $rule) {
+            $message = FormDefinition::str($rule['message'] ?? '');
+            if ($message === '') {
+                $problems[] = ['code' => 'rule_without_message', 'params' => []];
+            }
+            $checkFormula(FormDefinition::str($rule['expr'] ?? ''), $message === '' ? '…' : $message, '', null);
+        }
+
+        // A calculated value that depends on itself, however far.
+        foreach (array_keys($graph) as $start) {
+            if ($this->reaches($graph, $start, $start, [])) {
+                $problems[] = ['code' => 'formula_cycle', 'params' => ['%label%' => $labels[$start] ?? '']];
+            }
+        }
+    }
+
+    /**
+     * What a reference of a formula points at: false when it does not exist, a calculated-value node (to look for cycles) when it
+     * reads one, null otherwise.
+     *
+     * @param array<string, true> $sections
+     */
+    private function referenceTarget(string $ref, FormIndex $index, array $sections, ?string $table): string|false|null
+    {
+        [$kind, $rest] = array_pad(explode(':', $ref, 2), 2, '');
+        $node          = static fn (string $t, string $c): string => $t . '.' . $c;
+
+        switch ($kind) {
+            case 'f':
+                return isset($index->fields[$rest]) ? $rest : false;
+
+            case 't':
+                [$t, $c] = array_pad(explode('.', $rest, 2), 2, '');
+
+                return $index->column($t, $c) === null ? false : $node($t, $c);
+
+            case 'r':
+                return $table !== null && $index->column($table, $rest) !== null ? $node($table, $rest) : false;
+
+            case 'o':
+                return null;
+
+            case 'c':
+                [$s, $tail] = array_pad(explode('.', $rest, 2), 2, '');
+                if (!isset($sections[$s])) {
+                    return false;
+                }
+                if (str_starts_with($tail, 'f:')) {
+                    return isset($index->fields[substr($tail, 2)]) ? substr($tail, 2) : false;
+                }
+                if (str_starts_with($tail, 't:')) {
+                    [$t, $c] = array_pad(explode('.', substr($tail, 2), 2), 2, '');
+
+                    return $index->column($t, $c) === null ? false : $node($t, $c);
+                }
+
+                return false;
+
+            case 'm':
+                [$m] = array_pad(explode('.', $rest, 2), 2, '');
+
+                return ($index->tables[$m]['mode'] ?? '') === 'matrix' ? null : false;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, list<string>> $graph
+     * @param list<string>                $seen
+     */
+    private function reaches(array $graph, string $from, string $target, array $seen): bool
+    {
+        foreach ($graph[$from] ?? [] as $next) {
+            if ($next === $target) {
+                return true;
+            }
+            if (!isset($graph[$next]) || in_array($next, $seen, true)) {
+                continue;
+            }
+            if ($this->reaches($graph, $next, $target, [...$seen, $next])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -186,7 +362,8 @@ final class FormDefinitionNormalizer
     private function checkTable(array $block, string $label, array &$problems): void
     {
         $columns = FormDefinition::listOf($block['columns'] ?? []);
-        if ($columns === []) {
+        // A double-entry table has no columns of its own (its sources are checked with the calculations).
+        if ($columns === [] && ($block['mode'] ?? '') !== 'matrix') {
             $problems[] = ['code' => 'table_without_columns', 'params' => ['%label%' => $label]];
         }
         foreach ($columns as $column) {
@@ -378,8 +555,23 @@ final class FormDefinitionNormalizer
                 $rows[] = ['key' => $this->key($row['key'] ?? null), 'label' => $this->text($row['label'] ?? '', 500)];
             }
         }
-        $min = max(0, (int) FormDefinition::str($raw['minRows'] ?? 0));
-        $max = max(0, (int) FormDefinition::str($raw['maxRows'] ?? 0));
+        $min = max(0, FormDefinition::int($raw['minRows'] ?? 0));
+        $max = max(0, FormDefinition::int($raw['maxRows'] ?? 0));
+
+        // A double-entry table has no columns of its own: its rows are the rows of one table and its columns the rows of another,
+        // and every cell is of the same kind.
+        $matrix = [];
+        if ($mode === 'matrix') {
+            $cell   = FormDefinition::map($raw['cell'] ?? null) ?? [];
+            $matrix = [
+                'rowTable' => $this->reference($raw['rowTable'] ?? null) ?? '',
+                'rowLabel' => $this->reference($raw['rowLabel'] ?? null) ?? '',
+                'colTable' => $this->reference($raw['colTable'] ?? null) ?? '',
+                'colLabel' => $this->reference($raw['colLabel'] ?? null) ?? '',
+                'cell'     => $this->fieldProperties(['label' => ''] + $cell, true),
+            ];
+            $columns = [];
+        }
 
         return [
             'key'       => $this->key($raw['key'] ?? null),
@@ -394,20 +586,25 @@ final class FormDefinitionNormalizer
             'maxRows'   => $mode === 'free' ? $max : 0,
             'help'      => $this->text($raw['help'] ?? '', 1000),
             'visibleIf' => $this->condition($raw['visibleIf'] ?? null),
-        ];
+        ] + $matrix;
     }
 
     /**
-     * What a field and a table column share: label, type, constraints and options.
+     * What a field and a table column share: label, type, constraints and options (and, by type, the formula of a calculated one,
+     * what a relation points at, and the total a column shows at its foot).
      *
      * @param array<string, mixed> $raw
      *
      * @return array<string, mixed>
      */
-    private function fieldProperties(array $raw): array
+    private function fieldProperties(array $raw, bool $cell = false): array
     {
         $type = FormDefinition::str($raw['fieldType'] ?? '');
         $type = in_array($type, FormDefinition::FIELD_TYPES, true) ? $type : 'short';
+        // The cells of a double-entry table are typed in: no formulas or relations there.
+        if ($cell && in_array($type, ['calculated', 'relation', 'choice', 'multichoice'], true)) {
+            $type = 'number';
+        }
 
         $options = [];
         if (in_array($type, ['choice', 'multichoice'], true)) {
@@ -416,14 +613,23 @@ final class FormDefinitionNormalizer
             }
         }
 
+        $calculated = $type === 'calculated';
+        $total      = FormDefinition::str($raw['total'] ?? '');
+
         return [
             'label'     => $this->text($raw['label'] ?? '', 255),
             'fieldType' => $type,
-            'required'  => ($raw['required'] ?? false) === true,
+            'required'  => !$calculated && ($raw['required'] ?? false) === true,
             'options'   => $options,
             'min'       => $type === 'number' ? $this->number($raw['min'] ?? null) : null,
             'max'       => $type === 'number' ? $this->number($raw['max'] ?? null) : null,
-            'unit'      => $type === 'number' ? $this->text($raw['unit'] ?? '', 20) : '',
+            'unit'      => in_array($type, ['number', 'calculated'], true) ? $this->text($raw['unit'] ?? '', 20) : '',
+            'formula'   => $calculated ? mb_substr(trim(FormDefinition::str($raw['formula'] ?? '')), 0, 1000) : '',
+            'decimals'  => $calculated ? min(6, max(0, FormDefinition::int($raw['decimals'] ?? 2))) : 0,
+            'relTable'  => $type === 'relation' ? ($this->reference($raw['relTable'] ?? null) ?? '') : '',
+            'relLabel'  => $type === 'relation' ? ($this->reference($raw['relLabel'] ?? null) ?? '') : '',
+            'multiple'  => $type === 'relation' && ($raw['multiple'] ?? false) === true,
+            'total'     => in_array($total, FormDefinition::TOTALS, true) && in_array($type, ['number', 'calculated'], true) ? $total : '',
         ];
     }
 

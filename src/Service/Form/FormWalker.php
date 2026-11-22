@@ -36,7 +36,7 @@ final class FormWalker
             }
         }
 
-        return $this->sections(FormDefinition::listOf($definition['sections'] ?? []), $data, [$data], $tables, '', true, null, null);
+        return $this->sections(FormDefinition::listOf($definition['sections'] ?? []), $data, [$data], $tables, '', true, null, null, []);
     }
 
     /**
@@ -46,10 +46,11 @@ final class FormWalker
      * @param array<string, array<string, mixed>> $tables
      * @param array<string, mixed>|null           $inheritedCopy
      * @param array<string, mixed>|null           $inheritedOrigin
+     * @param list<array{0: string, 1: string}>   $address
      *
      * @return list<array<string, mixed>>
      */
-    private function sections(array $sections, array $scope, array $chain, array $tables, string $path, bool $parentVisible, ?array $inheritedCopy, ?array $inheritedOrigin): array
+    private function sections(array $sections, array $scope, array $chain, array $tables, string $path, bool $parentVisible, ?array $inheritedCopy, ?array $inheritedOrigin, array $address): array
     {
         $out = [];
         foreach ($sections as $section) {
@@ -58,7 +59,7 @@ final class FormWalker
             $repeat  = is_array($section['repeat'] ?? null) ? $section['repeat'] : null;
 
             if ($repeat === null) {
-                $out[] = $this->instance($section, $path . $key, false, $inheritedCopy, $inheritedOrigin, $scope, $chain, $visible, $tables);
+                $out[] = $this->instance($section, $path . $key, false, $inheritedCopy, $inheritedOrigin, $scope, $chain, $visible, $tables, $address);
                 continue;
             }
 
@@ -75,7 +76,7 @@ final class FormWalker
                     }
                 }
                 $info  = ['index' => $index + 1, 'total' => $total, 'key' => $copyKey, 'source' => isset($copy['_source']) ? FormDefinition::str($copy['_source']) : null, 'title' => FormDefinition::str($section['title'] ?? '')];
-                $out[] = $this->instance($section, $path . $key . ':' . $copyKey, true, $info, $origin, $copy, [$copy, ...$chain], $visible, $tables);
+                $out[] = $this->instance($section, $path . $key . ':' . $copyKey, true, $info, $origin, $copy, [$copy, ...$chain], $visible, $tables, [...$address, [$key, $copyKey]]);
             }
         }
 
@@ -89,10 +90,11 @@ final class FormWalker
      * @param array<string, mixed>                $scope
      * @param list<array<string, mixed>>          $chain
      * @param array<string, array<string, mixed>> $tables
+     * @param list<array{0: string, 1: string}>   $address
      *
      * @return array<string, mixed>
      */
-    private function instance(array $section, string $path, bool $own, ?array $copy, ?array $origin, array $scope, array $chain, bool $visible, array $tables): array
+    private function instance(array $section, string $path, bool $own, ?array $copy, ?array $origin, array $scope, array $chain, bool $visible, array $tables, array $address): array
     {
         $blocks = [];
         foreach (FormDefinition::listOf($section['blocks'] ?? []) as $block) {
@@ -108,8 +110,9 @@ final class FormWalker
             'scope'    => $scope,
             'chain'    => $chain,
             'visible'  => $visible,
+            'address'  => $address,
             'blocks'   => $blocks,
-            'children' => $this->sections(FormDefinition::listOf($section['children'] ?? []), $scope, $chain, $tables, $path . '/', $visible, $copy, $origin),
+            'children' => $this->sections(FormDefinition::listOf($section['children'] ?? []), $scope, $chain, $tables, $path . '/', $visible, $copy, $origin, $address),
         ];
     }
 

@@ -53,6 +53,30 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
 - Not done yet in this phase: the "list of the centre" and "another document" sources of repetition (need the catalogues of phase 6 and the
   pre-fill of phase 5) and a minimum of manual copies as a delivery problem (it only applies when the document is created).
 
+## Calculations, rules, relations and double-entry tables (phase 3)
+
+- **Expression language** (`FormExpression`, closed grammar, no `eval`): numbers, texts, `+ - * /`, comparisons, `&& || !`, and
+  `sum avg min max count count_if pct_if if round abs empty`, arguments separated by `;`. References are `[f:KEY]` (field), `[t:TABLE.COL]`
+  (column, a list), `[r:COL]` (cell of the row being calculated), `[o:COL]` (column of the row a copy comes from), `[c:SECTION.f:KEY]` /
+  `[c:SECTION.t:TABLE.COL]` (across the copies of a repeating section) and `[m:MATRIX]` `.rows` `.cols` (cells, row sums, column sums of a
+  double-entry table). Empty is contagious in arithmetic and false in a comparison. **It is implemented twice**, PHP
+  (`FormExpression`) and JavaScript (`assets/utils/form_expression.js`), against one shared set of cases,
+  `tests/Fixtures/form-expressions.json`: add a case there when you change either, and run both (`php bin/phpunit tests/Unit/Service/Form`
+  and `node --test tests/js/form-expression.test.mjs tests/js/form-scopes.test.mjs` — pass the files, not the directory).
+- **Calculated fields and columns** (`fieldType: calculated`, `formula`, `decimals`, `unit`): never typed (the normalizer drops what the
+  browser sends), filled by `FormCalculator` after the data is cleaned, in up to four passes so a formula can read another calculated
+  value; a cycle is a model problem. The result is stored with the data, so it is frozen with each delivered revision. A column can show a
+  **total at its foot** (`total`: sum, avg, min, max, count), display-only.
+- **Consistency rules** (`definition.rules`: `{expr, message, severity: warning|block}`): evaluated against the whole document by
+  `FormDataValidator`; a broken rule blocks the delivery or only warns, as the model says; a rule that cannot be decided is not broken.
+  The save response carries `problems` (blocking) and `warnings`.
+- **Relation columns** (`fieldType: relation`, `relTable`, `relLabel`, `multiple`) pick rows of another table of the document and keep only rows
+  that still exist. **Double-entry tables** (`mode: matrix`, `rowTable`/`rowLabel`/`colTable`/`colLabel`, one kind of `cell`) have a row per row
+  of one table and a cell per row of another, keyed by those rows' keys.
+- The names of the rows and columns of a matrix and the options of a relation follow what is typed **without redrawing the form**: a redraw
+  when a field loses focus swallows the click on the next button (the mousedown removes the element the mouseup lands on).
+- Not done: rules inside a copy (they see the whole document, aggregating with `[c:…]`), and calculated values deciding how many copies there are.
+
 ## Front end
 
 The editor and the form are **Stimulus controllers that build the page from the JSON** (`form_model_editor_controller.js`,
@@ -83,7 +107,6 @@ and read the screenshots. Migrations: all four engines with Docker, as in `skill
 1. **Done** — models as documents (draft, revision, approval of one step), sections with numbering, fixed/starter/fill texts, typed
    fields, free and fixed tables, activity mode "fill", autosave, delivery with PDF, web view, correction as next revision.
 2. **Done** — repetition (by table rows, by number, by hand, nested), references, conditions, progress, per-field help (the sources "list of
-   the centre" and "another document" wait for phases 5–6). 3. Calculations and consistency rules, double-entry tables,
-   relation columns. 4. Multi-step approval chain, anchored comments, revision comparison, co-authors with section locks, field history.
+   the centre" and "another document" wait for phases 5–6). 3. **Done** — calculations, totals, consistency rules, relation columns, double-entry tables. 4. Multi-step approval chain, anchored comments, revision comparison, co-authors with section locks, field history.
    5. Impact on publishing, update wizard, pre-filling (last year, another document), drafts for everyone. 6. Computed indicators,
    `FormValue` index, explorer and CSV, centre catalogues. 7. ODT/DOCX import and export, JSON library, offline mode.

@@ -2,11 +2,14 @@ import { Controller } from '@hotwired/stimulus';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import { h, uid, sectionNumbers } from '../utils/form_dom.js';
+import { parse } from '../utils/form_expression.js';
 
 // Same as the rich text editor of the rest of the application: align is written inline, which the sanitizer lets through.
 Quill.register(Quill.import('attributors/style/align'), true);
 
-const FIELD_TYPES = ['short', 'long', 'number', 'date', 'time', 'bool', 'choice', 'multichoice'];
+const FIELD_TYPES = ['short', 'long', 'number', 'date', 'time', 'bool', 'choice', 'multichoice', 'calculated', 'relation'];
+const CELL_TYPES = ['number', 'short', 'long', 'date', 'time', 'bool'];
+const FUNCTION_SNIPPETS = ['sum(', 'avg(', 'min(', 'max(', 'count(', 'count_if(', 'pct_if(', 'if(', 'round(', 'abs(', 'empty('];
 const BTN = 'rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-forest-500';
 const INPUT = 'w-full min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-forest-500 focus:ring-forest-500';
 const SELECT = 'min-w-0 rounded-lg border border-gray-200 px-2 py-1.5 text-sm focus:border-forest-500 focus:ring-forest-500';
@@ -223,6 +226,7 @@ export default class extends Controller {
             ...this.def.sections.map((s) => this.sectionEl(s, numbers, 0)),
             ...(this.def.sections.length === 0 ? [h('p', { class: 'rounded-xl border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500', text: this.l.no_sections })] : []),
             h('button', { type: 'button', class: BTN + ' py-2', text: '+ ' + this.l.add_section, onclick: () => this.addSection(this.def.sections) }),
+            this.rulesEl(),
         );
         this.outlineTarget.replaceChildren(...this.outlineItems(this.def.sections, numbers, 0));
         if (this.focusKey) {
@@ -233,6 +237,29 @@ export default class extends Controller {
             }
             this.focusKey = null;
         }
+    }
+
+    /** The consistency rules of the model: a condition that should hold, and what to say (and whether to stop the delivery) when not. */
+    rulesEl() {
+        this.def.rules = Array.isArray(this.def.rules) ? this.def.rules : [];
+        const rules = this.def.rules;
+        const cards = rules.map((rule, i) => h('div', { class: 'space-y-2 rounded-xl border border-gray-200 bg-white p-3' }, [
+            h('div', { class: 'flex justify-end' }, [
+                h('button', { type: 'button', class: BTN + ' text-red-700', title: this.l.remove, 'aria-label': this.l.remove, text: '✕', onclick: () => this.removeFrom(rules, i) }),
+            ]),
+            this.formulaEditor(rule, 'expr', null, this.l.rule_expr),
+            h('div', { class: 'flex flex-wrap items-end gap-3' }, [
+                this.textInput(rule, 'message', this.l.rule_message, 'flex-1 basis-64', 500),
+                this.labelled(this.l.rule_severity, this.select(rule.severity || 'warning', [['warning', this.l.rule_warning], ['block', this.l.rule_block]], (v) => { rule.severity = v; this.touch(); }, this.l.rule_severity)),
+            ]),
+        ]));
+
+        return h('section', { class: 'rounded-2xl border border-gray-200 bg-white p-3 shadow-xs sm:p-4' }, [
+            h('h2', { class: 'text-base font-semibold text-gray-900', text: this.l.rules }),
+            h('p', { class: 'mt-1 text-xs text-gray-500', text: this.l.rules_help }),
+            h('div', { class: 'mt-3 space-y-3' }, cards),
+            h('button', { type: 'button', class: BTN + ' mt-3', text: '+ ' + this.l.add_rule, onclick: () => { const r = { key: uid(), expr: '', message: '', severity: 'warning' }; rules.push(r); this.changed(); } }),
+        ]);
     }
 
     outlineItems(sections, numbers, depth) {
@@ -562,18 +589,127 @@ export default class extends Controller {
         return holder;
     }
 
-    fieldTypeOptions() {
-        return FIELD_TYPES.map((t) => [t, this.l['type_' + t]]);
+    /** A relation only makes sense in a table column; the cells of a double-entry table are plain values. */
+    fieldTypeOptions(context) {
+        const allowed = context.cell ? CELL_TYPES : FIELD_TYPES.filter((t) => t !== 'relation' || context.table);
+        return allowed.map((t) => [t, this.l['type_' + t]]);
     }
 
-    /** What a field and a table column share: type, required, number limits and the options of a choice. */
-    fieldProps(spec) {
+    /** The references a formula can use here, as [text between brackets, readable label]. */
+    formulaOptions(table) {
+        const options = [];
+        const tables = this.tableList().filter((t) => t.mode !== 'matrix');
+        this.fieldList().forEach((f) => options.push(['f:' + f.key, this.l.ref_field + ': ' + (f.label || '…')]));
+        tables.forEach((t) => (t.columns || []).forEach((c) => options.push(['t:' + t.key + '.' + c.key, (t.label || '…') + ' · ' + (c.label || '…')])));
+        if (table) {
+            (table.columns || []).forEach((c) => options.push(['r:' + c.key, this.l.formula_this_row + ': ' + (c.label || '…')]));
+        }
+        // The same across the copies of a repeating section.
+        const visit = (sections) => {
+            for (const s of sections) {
+                if (s.repeat) {
+                    const sub = (list) => list.forEach((x) => {
+                        x.blocks.filter((b) => b.type === 'field').forEach((f) => options.push(['c:' + s.key + '.f:' + f.key, this.l.formula_copies + ' «' + (s.title || '…') + '»: ' + (f.label || '…')]));
+                        x.blocks.filter((b) => b.type === 'table' && b.mode !== 'matrix').forEach((t) => (t.columns || []).forEach((c) => options.push(['c:' + s.key + '.t:' + t.key + '.' + c.key, this.l.formula_copies + ' «' + (s.title || '…') + '»: ' + (t.label || '…') + ' · ' + (c.label || '…')])));
+                        sub(x.children);
+                    });
+                    sub([s]);
+                }
+                visit(s.children);
+            }
+        };
+        visit(this.def.sections);
+        this.tableList().filter((t) => t.mode === 'matrix').forEach((t) => {
+            options.push(['m:' + t.key, this.l.formula_matrix + ' «' + (t.label || '…') + '»']);
+            options.push(['m:' + t.key + '.rows', this.l.formula_matrix_rows + ' «' + (t.label || '…') + '»']);
+            options.push(['m:' + t.key + '.cols', this.l.formula_matrix_cols + ' «' + (t.label || '…') + '»']);
+        });
+        return options;
+    }
+
+    /** A formula input with a picker for references and functions, and a readable echo of what it says (or why it cannot be read). */
+    formulaEditor(owner, prop, table, labelText) {
+        const options = this.formulaOptions(table);
+        const names = new Map(options);
+        const preview = h('p', { class: 'mt-1 text-xs text-gray-500' });
+        const input = h('input', {
+            class: INPUT + ' font-mono', value: owner[prop] || '', maxlength: 1000, placeholder: 'sum([…]) / 2',
+            oninput: (e) => { owner[prop] = e.target.value; echo(); this.touch(); },
+        });
+        const echo = () => {
+            const source = owner[prop] || '';
+            const { error } = parse(source);
+            if (source === '') {
+                preview.textContent = '';
+            } else if (error) {
+                preview.className = 'mt-1 text-xs text-red-700';
+                preview.textContent = this.l.formula_invalid;
+            } else {
+                preview.className = 'mt-1 text-xs text-gray-500';
+                preview.textContent = source.replace(/\[([^\]]+)\]/g, (all, ref) => '«' + (names.get(ref.trim()) || '?') + '»');
+            }
+        };
+        const insert = (text) => {
+            const start = input.selectionStart ?? input.value.length;
+            const end = input.selectionEnd ?? input.value.length;
+            input.value = input.value.slice(0, start) + text + input.value.slice(end);
+            owner[prop] = input.value;
+            input.focus();
+            input.setSelectionRange(start + text.length, start + text.length);
+            echo();
+            this.touch();
+        };
+        const pick = (list, label, wrap) => h('select', {
+            class: SELECT + ' text-xs text-gray-600', 'aria-label': label,
+            onchange: (e) => { const v = e.target.value; e.target.value = ''; if (v) { insert(wrap(v)); } },
+        }, [h('option', { value: '', text: label }), ...list.map(([v, t]) => h('option', { value: v, text: t }))]);
+        echo();
+
+        return h('div', { class: 'space-y-1' }, [
+            this.labelled(labelText, input),
+            h('div', { class: 'flex flex-wrap gap-2' }, [
+                pick(options, '[ ] ' + this.l.formula_insert_ref, (v) => '[' + v + ']'),
+                pick(FUNCTION_SNIPPETS.map((f) => [f, f + ')']), 'ƒ ' + this.l.formula_insert_function, (v) => v),
+            ]),
+            preview,
+        ]);
+    }
+
+    /** What a field and a table column share: type, required, number limits, options, formula, relation and total. */
+    fieldProps(spec, context = {}) {
         const parts = [
             h('div', { class: 'flex flex-wrap items-end gap-3' }, [
-                this.labelled(this.l.field_type, this.select(spec.fieldType, this.fieldTypeOptions(), (v) => { spec.fieldType = v; this.changed(); }, this.l.field_type)),
-                h('div', { class: 'pb-1.5' }, [this.checkbox(spec, 'required', this.l.required)]),
+                this.labelled(this.l.field_type, this.select(spec.fieldType, this.fieldTypeOptions(context), (v) => {
+                    spec.fieldType = v;
+                    if (v === 'calculated' && spec.decimals === undefined) { spec.decimals = 2; }
+                    this.changed();
+                }, this.l.field_type)),
+                ...(spec.fieldType === 'calculated' ? [] : [h('div', { class: 'pb-1.5' }, [this.checkbox(spec, 'required', this.l.required)])]),
             ]),
         ];
+        if (spec.fieldType === 'calculated') {
+            parts.push(this.formulaEditor(spec, 'formula', context.table || null, this.l.formula));
+            parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
+                this.labelled(this.l.decimals, h('input', {
+                    type: 'number', min: 0, max: 6, class: INPUT, value: spec.decimals ?? 2,
+                    oninput: (e) => { spec.decimals = Math.min(6, Math.max(0, Number(e.target.value) || 0)); this.touch(); },
+                }), 'w-24'),
+                this.textInput(spec, 'unit', this.l.unit, 'w-28', 20),
+            ]));
+        }
+        if (spec.fieldType === 'relation') {
+            const tables = this.tableList().filter((t) => t.mode !== 'matrix' && (!context.table || t.key !== context.table.key));
+            const source = tables.find((t) => t.key === spec.relTable);
+            parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
+                this.labelled(this.l.rel_table, this.select(spec.relTable || '', [['', '—'], ...tables.map((t) => [t.key, t.label || '…'])], (v) => { spec.relTable = v; spec.relLabel = ''; this.changed(); }, this.l.rel_table)),
+                this.labelled(this.l.rel_label, this.select(spec.relLabel || '', [['', '—'], ...((source ? source.columns : []).map((c) => [c.key, c.label || '…']))], (v) => { spec.relLabel = v; this.touch(); }, this.l.rel_label)),
+                h('div', { class: 'pb-1.5' }, [this.checkbox(spec, 'multiple', this.l.rel_multiple)]),
+            ]));
+        }
+        if (context.table && (spec.fieldType === 'number' || spec.fieldType === 'calculated')) {
+            const totalsList = [['', this.l.total_none], ['sum', this.l.total_sum], ['avg', this.l.total_avg], ['min', this.l.total_min], ['max', this.l.total_max], ['count', this.l.total_count]];
+            parts.push(this.labelled(this.l.total, this.select(spec.total || '', totalsList, (v) => { spec.total = v; this.touch(); }, this.l.total)));
+        }
         if (spec.fieldType === 'number') {
             const num = (prop, text) => this.labelled(text, h('input', {
                 type: 'number', step: 'any', class: INPUT, value: spec[prop] ?? '',
@@ -590,13 +726,31 @@ export default class extends Controller {
     fieldBody(block) {
         return h('div', { class: 'space-y-3' }, [
             this.textInput(block, 'label', this.l.label),
-            ...this.fieldProps(block),
+            ...this.fieldProps(block, {}),
             this.textInput(block, 'help', this.l.help, '', 1000),
         ]);
     }
 
+    /** A double-entry table: its rows are the rows of one table, its columns the rows of another, and every cell is of one kind. */
+    matrixConfig(block) {
+        const tables = this.tableList().filter((t) => t.mode !== 'matrix' && t.key !== block.key);
+        const columnsOf = (key) => (tables.find((t) => t.key === key) || { columns: [] }).columns.map((c) => [c.key, c.label || '…']);
+        const side = (tableProp, labelProp, tableLabel, columnLabel) => h('div', { class: 'flex flex-wrap items-end gap-3' }, [
+            this.labelled(tableLabel, this.select(block[tableProp] || '', [['', '—'], ...tables.map((t) => [t.key, t.label || '…'])], (v) => { block[tableProp] = v; block[labelProp] = ''; this.changed(); }, tableLabel)),
+            this.labelled(columnLabel, this.select(block[labelProp] || '', [['', '—'], ...columnsOf(block[tableProp])], (v) => { block[labelProp] = v; this.touch(); }, columnLabel)),
+        ]);
+        block.cell = block.cell || { fieldType: 'number', required: false, options: [], min: null, max: null, unit: '' };
+
+        return h('div', { class: 'space-y-3 rounded-lg border border-gray-200 bg-gray-50/60 p-2.5' }, [
+            side('rowTable', 'rowLabel', this.l.matrix_rows_table, this.l.matrix_rows_label),
+            side('colTable', 'colLabel', this.l.matrix_cols_table, this.l.matrix_cols_label),
+            h('p', { class: 'text-xs font-medium text-gray-600', text: this.l.matrix_cell }),
+            ...this.fieldProps(block.cell, { cell: true }),
+        ]);
+    }
+
     tableBody(block) {
-        const modes = [['free', this.l.table_free], ['fixed', this.l.table_fixed]];
+        const modes = [['free', this.l.table_free], ['fixed', this.l.table_fixed], ['matrix', this.l.table_matrix]];
         const columns = block.columns.map((c, i) => h('div', { class: 'rounded-lg border border-gray-200 bg-gray-50/60 p-2.5 space-y-2' }, [
             h('div', { class: 'flex items-end gap-2' }, [
                 this.textInput(c, 'label', this.l.column + ' ' + (i + 1), 'flex-1'),
@@ -604,7 +758,7 @@ export default class extends Controller {
                 h('button', { type: 'button', class: BTN, title: this.l.down, 'aria-label': this.l.down, text: '↓', disabled: i === block.columns.length - 1, onclick: () => this.moveIn(block.columns, i, 1) }),
                 h('button', { type: 'button', class: BTN + ' text-red-700', title: this.l.remove, 'aria-label': this.l.remove, text: '✕', onclick: () => this.removeFrom(block.columns, i) }),
             ]),
-            ...this.fieldProps(c),
+            ...this.fieldProps(c, { table: block }),
         ]));
 
         const parts = [
@@ -612,12 +766,18 @@ export default class extends Controller {
                 this.textInput(block, 'label', this.l.label, 'flex-1 basis-48'),
                 this.labelled(this.l.table_mode, this.select(block.mode, modes, (v) => { block.mode = v; this.changed(); }, this.l.table_mode)),
             ]),
-            h('div', { class: 'space-y-2' }, [
-                h('p', { class: 'text-xs font-medium text-gray-600', text: this.l.columns }),
-                ...columns,
-                h('button', { type: 'button', class: BTN, text: '+ ' + this.l.add_column, onclick: () => { const c = this.newColumn(); block.columns.push(c); this.changed(c.key); } }),
-            ]),
         ];
+        if (block.mode === 'matrix') {
+            parts.push(this.matrixConfig(block));
+            parts.push(this.textInput(block, 'help', this.l.help, '', 1000));
+
+            return h('div', { class: 'space-y-3' }, parts);
+        }
+        parts.push(h('div', { class: 'space-y-2' }, [
+            h('p', { class: 'text-xs font-medium text-gray-600', text: this.l.columns }),
+            ...columns,
+            h('button', { type: 'button', class: BTN, text: '+ ' + this.l.add_column, onclick: () => { const c = this.newColumn(); block.columns.push(c); this.changed(c.key); } }),
+        ]));
         if (block.mode === 'fixed') {
             parts.push(this.textInput(block, 'rowHeader', this.l.row_header));
             parts.push(this.listEditor(block.rows, this.l.rows, this.l.add_row, this.l.row));

@@ -11,9 +11,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * hidden ones left out, the references replaced by their values, the values already formatted as people read them and the help
  * texts left out. One resolved document, so every output shows the same.
  *
- *   section = { key, number: ?string, title, level, blocks: [ block ], children: [ section ] }
+ *   section = { key, path, number: ?string, title, level, blocks: [ block ], children: [ section ] }
  *   block   = { kind: "text", label, html, empty } | { kind: "fields", items: [ { label, value, empty } ] }
- *           | { kind: "table", label, rowHeader, fixed, columns: [ label ], rows: [ { label, cells: [ value ] } ] }
+ *           | { kind: "table", label, rowHeader, fixed, columns: [ label ], rows: [ { label, cells: [ value ] } ], totals: ?[ value ] }
  *
  * A section that is not numbered has no number below it either (its subtree is not numbered), and a repeating section whose copies
  * are not numbered does not number its copies' contents either.
@@ -39,48 +39,27 @@ final class FormResolver
      */
     public function resolve(array $definition, array $data, array $context = []): array
     {
-        return $this->sections($this->walker->walk($definition, $data), '', true, 1, $this->fieldSpecs($definition), $context);
-    }
-
-    /**
-     * Every field block of the definition by key (what `f:` references are formatted with).
-     *
-     * @param array<string, mixed> $definition
-     *
-     * @return array<string, array<string, mixed>>
-     */
-    public function fieldSpecs(array $definition): array
-    {
-        $specs = [];
-        foreach (FormDefinition::blocks($definition) as $entry) {
-            if (($entry['block']['type'] ?? '') === 'field') {
-                $specs[FormDefinition::str($entry['block']['key'] ?? '')] = $entry['block'];
-            }
-        }
-
-        return $specs;
+        return $this->sections($this->walker->walk($definition, $data), '', true, 1, FormIndex::of($definition), $context);
     }
 
     /**
      * A title or a label with its references replaced, as plain text, for a walker instance.
      *
-     * @param array<string, mixed>                $instance
-     * @param array<string, array<string, mixed>> $specs
-     * @param array<string, string>               $context
+     * @param array<string, mixed>  $instance
+     * @param array<string, string> $context
      */
-    public function label(string $text, array $instance, array $specs, array $context = []): string
+    public function label(string $text, array $instance, FormIndex $index, array $context = []): string
     {
-        return $this->text($text, $instance, $specs, $context, false);
+        return $this->text($text, $instance, $index, $context, false);
     }
 
     /**
-     * @param list<array<string, mixed>>          $instances
-     * @param array<string, array<string, mixed>> $specs
-     * @param array<string, string>               $context
+     * @param list<array<string, mixed>> $instances
+     * @param array<string, string>      $context
      *
      * @return list<array<string, mixed>>
      */
-    private function sections(array $instances, string $prefix, bool $numbering, int $level, array $specs, array $context): array
+    private function sections(array $instances, string $prefix, bool $numbering, int $level, FormIndex $index, array $context): array
     {
         $out     = [];
         $counter = 0;
@@ -101,10 +80,10 @@ final class FormResolver
                 'key'      => FormDefinition::str($section['key'] ?? ''),
                 'path'     => FormDefinition::str($instance['path'] ?? ''),
                 'number'   => $number,
-                'title'    => $this->text(FormDefinition::str($section['title'] ?? ''), $instance, $specs, $context, false),
+                'title'    => $this->text(FormDefinition::str($section['title'] ?? ''), $instance, $index, $context, false),
                 'level'    => $level,
-                'blocks'   => $this->blocks($instance, $specs, $context),
-                'children' => $this->sections(FormDefinition::listOf($instance['children'] ?? []), $number ?? '', $numbered, $level + 1, $specs, $context),
+                'blocks'   => $this->blocks($instance, $index, $context),
+                'children' => $this->sections(FormDefinition::listOf($instance['children'] ?? []), $number ?? '', $numbered, $level + 1, $index, $context),
             ];
         }
 
@@ -112,41 +91,39 @@ final class FormResolver
     }
 
     /**
-     * @param array<string, mixed>                $instance
-     * @param array<string, array<string, mixed>> $specs
-     * @param array<string, string>               $context
+     * @param array<string, mixed>  $instance
+     * @param array<string, string> $context
      *
      * @return list<array<string, mixed>>
      */
-    private function blocks(array $instance, array $specs, array $context): array
+    private function blocks(array $instance, FormIndex $index, array $context): array
     {
-        /** @var array<string, mixed> $scope */
-        $scope  = $instance['scope'];
-        $fields = is_array($scope['fields'] ?? null) ? $scope['fields'] : [];
-        $texts  = is_array($scope['texts'] ?? null) ? $scope['texts'] : [];
-        $tables = is_array($scope['tables'] ?? null) ? $scope['tables'] : [];
+        $scope  = FormDefinition::map($instance['scope'] ?? null) ?? [];
+        $chain  = FormDefinition::listOf($instance['chain'] ?? []);
+        $fields = FormDefinition::map($scope['fields'] ?? null) ?? [];
+        $texts  = FormDefinition::map($scope['texts'] ?? null) ?? [];
+        $tables = FormDefinition::map($scope['tables'] ?? null) ?? [];
 
         $out = [];
         foreach (FormDefinition::listOf($instance['blocks'] ?? []) as $entry) {
-            if ($entry['visible'] !== true || !is_array($entry['block'] ?? null)) {
+            $block = FormDefinition::map($entry['block'] ?? null);
+            if ($entry['visible'] !== true || $block === null) {
                 continue;
             }
-            /** @var array<string, mixed> $block */
-            $block = $entry['block'];
             $key   = FormDefinition::str($block['key'] ?? '');
-            $label = $this->text(FormDefinition::str($block['label'] ?? ''), $instance, $specs, $context, false);
+            $label = $this->text(FormDefinition::str($block['label'] ?? ''), $instance, $index, $context, false);
 
             switch ($block['type'] ?? '') {
                 case 'text':
                     $html = ($block['mode'] ?? 'fixed') === 'fixed'
                         ? FormDefinition::str($block['html'] ?? '')
-                        : FormDefinition::str(is_array($texts[$key] ?? null) ? ($texts[$key]['html'] ?? '') : '');
-                    $html  = $this->text($html, $instance, $specs, $context, true);
+                        : FormDefinition::str(FormDefinition::map($texts[$key] ?? null)['html'] ?? '');
+                    $html  = $this->text($html, $instance, $index, $context, true);
                     $out[] = ['kind' => 'text', 'label' => $label, 'html' => $html, 'empty' => trim(strip_tags($html)) === ''];
                     break;
 
                 case 'field':
-                    $value = $this->format($block, $fields[$key] ?? null);
+                    $value = $this->format($block, $fields[$key] ?? null, $chain, $index);
                     $item  = ['label' => $label, 'value' => $value, 'empty' => $value === ''];
                     $last  = count($out) - 1;
                     if ($last >= 0 && $out[$last]['kind'] === 'fields') {
@@ -160,7 +137,9 @@ final class FormResolver
                     break;
 
                 case 'table':
-                    $out[] = $this->table($block, $label, FormDefinition::listOf($tables[$key] ?? []));
+                    $out[] = ($block['mode'] ?? '') === 'matrix'
+                        ? $this->matrix($block, $label, FormDefinition::listOf($tables[$key] ?? []), $chain, $index)
+                        : $this->table($block, $label, FormDefinition::listOf($tables[$key] ?? []), $chain, $index);
                     break;
             }
         }
@@ -171,10 +150,11 @@ final class FormResolver
     /**
      * @param array<string, mixed>       $block
      * @param list<array<string, mixed>> $rows
+     * @param list<array<string, mixed>> $chain
      *
      * @return array<string, mixed>
      */
-    private function table(array $block, string $label, array $rows): array
+    private function table(array $block, string $label, array $rows, array $chain, FormIndex $index): array
     {
         $columns = FormDefinition::listOf($block['columns'] ?? []);
         $fixed   = ($block['mode'] ?? '') === 'fixed';
@@ -188,7 +168,7 @@ final class FormResolver
         foreach ($rows as $row) {
             $cells = [];
             foreach ($columns as $column) {
-                $cells[] = $this->format($column, $row[FormDefinition::str($column['key'] ?? '')] ?? null);
+                $cells[] = $this->format($column, $row[FormDefinition::str($column['key'] ?? '')] ?? null, $chain, $index);
             }
             $resolved[] = ['label' => $labels[FormDefinition::str($row['_key'] ?? '')] ?? '', 'cells' => $cells];
         }
@@ -200,6 +180,101 @@ final class FormResolver
             'fixed'     => $fixed,
             'columns'   => array_map(static fn (array $c): string => FormDefinition::str($c['label'] ?? ''), $columns),
             'rows'      => $resolved,
+            'totals'    => $this->totals($columns, $rows),
+        ];
+    }
+
+    /**
+     * The foot of a table: for each column that asks for it, the sum, average, minimum, maximum or count of its values. Null when no
+     * column does.
+     *
+     * @param list<array<string, mixed>> $columns
+     * @param list<array<string, mixed>> $rows
+     *
+     * @return list<string>|null
+     */
+    private function totals(array $columns, array $rows): ?array
+    {
+        if (array_filter($columns, static fn (array $c): bool => ($c['total'] ?? '') !== '') === []) {
+            return null;
+        }
+
+        $out = [];
+        foreach ($columns as $column) {
+            $kind = FormDefinition::str($column['total'] ?? '');
+            if ($kind === '') {
+                $out[] = '';
+                continue;
+            }
+            $values  = array_filter(array_map(static fn (array $r): mixed => $r[FormDefinition::str($column['key'] ?? '')] ?? null, $rows), static fn ($v): bool => $v !== null && $v !== '');
+            $numbers = array_values(array_filter($values, 'is_numeric'));
+            $result  = match ($kind) {
+                'count' => count($values),
+                'sum'   => $numbers === [] ? 0 : array_sum($numbers),
+                'avg'   => $numbers === [] ? null : array_sum($numbers) / count($numbers),
+                'min'   => $numbers === [] ? null : min($numbers),
+                default => $numbers === [] ? null : max($numbers),
+            };
+            $out[] = $result === null ? '' : ($kind === 'count' ? (string) $result : $this->number((float) $result, $column));
+        }
+
+        return $out;
+    }
+
+    /**
+     * A number the way a column shows it: its decimals when it is calculated (otherwise as many as it has, up to six) and its unit.
+     *
+     * @param array<string, mixed> $column
+     */
+    private function number(float $value, array $column): string
+    {
+        $text = ($column['fieldType'] ?? '') === 'calculated'
+            ? number_format($value, min(6, max(0, FormDefinition::int($column['decimals'] ?? 2))), ',', '')
+            : str_replace('.', ',', (string) round($value, 6));
+        $unit = FormDefinition::str($column['unit'] ?? '');
+
+        return $unit === '' ? $text : $text . ' ' . $unit;
+    }
+
+    /**
+     * A double-entry table: a row for each row of one table, a column for each row of another, one kind of cell.
+     *
+     * @param array<string, mixed>       $block
+     * @param list<array<string, mixed>> $rows
+     * @param list<array<string, mixed>> $chain
+     *
+     * @return array<string, mixed>
+     */
+    private function matrix(array $block, string $label, array $rows, array $chain, FormIndex $index): array
+    {
+        $cell      = FormDefinition::map($block['cell'] ?? null) ?? [];
+        $colSource = FormScopes::rows($chain, FormDefinition::str($block['colTable'] ?? ''));
+        $colLabel  = $index->column(FormDefinition::str($block['colTable'] ?? ''), FormDefinition::str($block['colLabel'] ?? '')) ?? [];
+        $rowLabel  = $index->column(FormDefinition::str($block['rowTable'] ?? ''), FormDefinition::str($block['rowLabel'] ?? '')) ?? [];
+
+        $resolved = [];
+        foreach ($rows as $row) {
+            $source = null;
+            foreach (FormScopes::rows($chain, FormDefinition::str($block['rowTable'] ?? '')) as $candidate) {
+                if (($candidate['_key'] ?? null) === ($row['_key'] ?? '')) {
+                    $source = $candidate;
+                }
+            }
+            $cells = [];
+            foreach ($colSource as $col) {
+                $cells[] = $this->format($cell, $row[FormDefinition::str($col['_key'] ?? '')] ?? null, $chain, $index);
+            }
+            $resolved[] = ['label' => $source === null ? '' : $this->format($rowLabel, $source[FormDefinition::str($block['rowLabel'] ?? '')] ?? null, $chain, $index), 'cells' => $cells];
+        }
+
+        return [
+            'kind'      => 'table',
+            'label'     => $label,
+            'rowHeader' => '',
+            'fixed'     => true,
+            'columns'   => array_map(fn (array $col): string => $this->format($colLabel, $col[FormDefinition::str($block['colLabel'] ?? '')] ?? null, $chain, $index), $colSource),
+            'rows'      => $resolved,
+            'totals'    => null,
         ];
     }
 
@@ -208,32 +283,31 @@ final class FormResolver
     /**
      * $text with its `{{ … }}` replaced; $html escapes the values (the text is already HTML).
      *
-     * @param array<string, mixed>                $instance
-     * @param array<string, array<string, mixed>> $specs
-     * @param array<string, string>               $context
+     * @param array<string, mixed>  $instance
+     * @param array<string, string> $context
      */
-    private function text(string $text, array $instance, array $specs, array $context, bool $html): string
+    private function text(string $text, array $instance, FormIndex $index, array $context, bool $html): string
     {
         if (!str_contains($text, '{{')) {
             return $text;
         }
 
-        return (string) preg_replace_callback('/\{\{\s*([^{}]*?)\s*\}\}/', function (array $m) use ($instance, $specs, $context, $html): string {
+        return (string) preg_replace_callback('/\{\{\s*([^{}]*?)\s*\}\}/', function (array $m) use ($instance, $index, $context, $html): string {
             $parts = explode('|', (string) $m[1]);
-            $value = $this->reference(trim((string) end($parts)), $instance, $specs, $context);
+            $value = $this->reference(trim((string) end($parts)), $instance, $index, $context);
 
             return $html ? htmlspecialchars($value, ENT_QUOTES) : $value;
         }, $text);
     }
 
     /**
-     * @param array<string, mixed>                $instance
-     * @param array<string, array<string, mixed>> $specs
-     * @param array<string, string>               $context
+     * @param array<string, mixed>  $instance
+     * @param array<string, string> $context
      */
-    private function reference(string $ref, array $instance, array $specs, array $context): string
+    private function reference(string $ref, array $instance, FormIndex $index, array $context): string
     {
-        $copy = is_array($instance['copy'] ?? null) ? $instance['copy'] : null;
+        $copy  = FormDefinition::map($instance['copy'] ?? null);
+        $chain = FormDefinition::listOf($instance['chain'] ?? []);
 
         if ($ref === 'copy.number') {
             return $copy === null ? '' : (string) FormDefinition::int($copy['index'] ?? 0);
@@ -245,14 +319,16 @@ final class FormResolver
             return $context[substr($ref, 4)] ?? '';
         }
         if (str_starts_with($ref, 'row:')) {
-            $origin = is_array($instance['origin'] ?? null) ? $instance['origin'] : null;
-            if ($origin === null || !is_array($origin['table'] ?? null) || !is_array($origin['row'] ?? null)) {
+            $origin = FormDefinition::map($instance['origin'] ?? null);
+            $table  = FormDefinition::map($origin['table'] ?? null);
+            $row    = FormDefinition::map($origin['row'] ?? null);
+            if ($table === null || $row === null) {
                 return '';
             }
             $column = substr($ref, 4);
-            foreach (FormDefinition::listOf($origin['table']['columns'] ?? []) as $spec) {
+            foreach (FormDefinition::listOf($table['columns'] ?? []) as $spec) {
                 if (($spec['key'] ?? null) === $column) {
-                    return $this->format($spec, $origin['row'][$column] ?? null);
+                    return $this->format($spec, $row[$column] ?? null, $chain, $index);
                 }
             }
 
@@ -260,13 +336,12 @@ final class FormResolver
         }
         if (str_starts_with($ref, 'f:')) {
             $key  = substr($ref, 2);
-            $spec = $specs[$key] ?? null;
-            if ($spec === null) {
-                return '';
-            }
-            foreach (FormDefinition::listOf($instance['chain'] ?? []) as $scope) {
-                if (is_array($scope['fields'] ?? null) && array_key_exists($key, $scope['fields'])) {
-                    return $this->format($spec, $scope['fields'][$key]);
+            $spec = $index->fields[$key] ?? null;
+            if ($spec !== null) {
+                foreach ($chain as $scope) {
+                    if (is_array($scope['fields'] ?? null) && array_key_exists($key, $scope['fields'])) {
+                        return $this->format($spec, $scope['fields'][$key], $chain, $index);
+                    }
                 }
             }
         }
@@ -275,11 +350,12 @@ final class FormResolver
     }
 
     /**
-     * A value as people read it; empty string when there is none.
+     * A value as people read it; empty string when there is none. `$chain` is where a relation looks up the rows it points at.
      *
-     * @param array<string, mixed> $spec a field block or a table column
+     * @param array<string, mixed>       $spec  a field block or a table column
+     * @param list<array<string, mixed>> $chain
      */
-    public function format(array $spec, mixed $value): string
+    public function format(array $spec, mixed $value, array $chain, FormIndex $index): string
     {
         if ($value === null || $value === '' || $value === []) {
             return '';
@@ -291,6 +367,32 @@ final class FormResolver
                 $unit = FormDefinition::str($spec['unit'] ?? '');
 
                 return $unit === '' ? $text : $text . ' ' . $unit;
+
+            case 'calculated':
+                if (is_bool($value)) {
+                    return $this->translator->trans($value ? 'view.yes' : 'view.no', [], 'forms');
+                }
+                if (!is_numeric($value)) {
+                    return is_scalar($value) ? (string) $value : '';
+                }
+                $text = number_format((float) $value, min(6, max(0, FormDefinition::int($spec['decimals'] ?? 2))), ',', '');
+                $unit = FormDefinition::str($spec['unit'] ?? '');
+
+                return $unit === '' ? $text : $text . ' ' . $unit;
+
+            case 'relation':
+                $table  = FormDefinition::str($spec['relTable'] ?? '');
+                $label  = FormDefinition::str($spec['relLabel'] ?? '');
+                $column = $index->column($table, $label) ?? [];
+                $keys   = is_array($value) ? $value : [$value];
+                $texts  = [];
+                foreach (FormScopes::rows($chain, $table) as $row) {
+                    if (in_array($row['_key'] ?? null, $keys, true)) {
+                        $texts[] = $this->format($column, $row[$label] ?? null, $chain, $index);
+                    }
+                }
+
+                return implode(', ', array_filter($texts, static fn (string $t): bool => $t !== ''));
 
             case 'date':
                 $date = is_string($value) ? \DateTimeImmutable::createFromFormat('!Y-m-d', $value) : false;

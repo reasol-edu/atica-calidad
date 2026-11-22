@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Service\Form;
 
+use App\Service\Form\FormCalculator;
 use App\Service\Form\FormDataNormalizer;
 use App\Service\Form\FormDataValidator;
 use App\Service\Form\FormDefinition;
 use App\Service\Form\FormDefinitionNormalizer;
+use App\Service\Form\FormEvaluator;
 use App\Service\Form\FormResolver;
 use App\Service\Form\FormWalker;
 use PHPUnit\Framework\TestCase;
@@ -33,7 +35,7 @@ final class FormRepetitionTest extends TestCase
     {
         $sanitizer         = new HtmlSanitizer((new HtmlSanitizerConfig())->allowElement('p')->allowElement('strong'));
         $this->definitions = new FormDefinitionNormalizer($sanitizer);
-        $this->data        = new FormDataNormalizer($sanitizer);
+        $this->data        = new FormDataNormalizer($sanitizer, new FormCalculator(new FormWalker(), new FormEvaluator()));
         $this->resolver    = new FormResolver(new class implements TranslatorInterface {
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
@@ -45,7 +47,7 @@ final class FormRepetitionTest extends TestCase
                 return 'es';
             }
         }, new FormWalker());
-        $this->validator   = new FormDataValidator(new FormWalker(), $this->resolver);
+        $this->validator   = new FormDataValidator(new FormWalker(), $this->resolver, new FormEvaluator());
     }
 
     /**

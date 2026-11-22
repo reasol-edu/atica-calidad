@@ -161,9 +161,10 @@ final class FormSubmissionService
     }
 
     /**
-     * What stops the draft from being delivered.
+     * What is wrong with the draft: the problems that stop it from being delivered (`severity` block) and the warnings of the
+     * model's rules that only advise (`severity` warning).
      *
-     * @return list<array{block: string, path: string, row: ?string, column: ?string, code: string, params: array<string, string>}>
+     * @return list<array{block: string, path: string, row: ?string, column: ?string, code: string, params: array<string, string>, severity: string}>
      */
     public function problems(FormSubmission $submission): array
     {
@@ -184,7 +185,7 @@ final class FormSubmissionService
         if (!$submission->hasDraft()) {
             throw new FormException('error.no_draft');
         }
-        $problems = $this->problems($submission);
+        $problems = $this->validator->blocking($this->problems($submission));
         if ($problems !== []) {
             throw new FormException('error.not_ready', $problems);
         }

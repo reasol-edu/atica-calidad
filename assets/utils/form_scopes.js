@@ -7,6 +7,8 @@
  * scope of its own, in `scope.copies[sectionKey]`.
  */
 
+import { parse, evaluate, round } from './form_expression.js';
+
 export const MAX_COPIES = 100;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -79,12 +81,49 @@ function prepare(blocks, scope) {
     }
 }
 
+/**
+ * What depends on other tables of the chain: a row for each row of the table a double-entry table takes its rows from, and the
+ * relation columns, which keep only rows that still exist (the twin of FormDataNormalizer::relatedData()).
+ */
+function related(blocks, scope, chain) {
+    for (const block of blocks) {
+        if (block.type !== 'table') {
+            continue;
+        }
+        if (block.mode === 'matrix') {
+            const byKey = new Map((scope.tables[block.key] || []).map((r) => [r._key, r]));
+            scope.tables[block.key] = (lookup(chain, 'tables', block.rowTable) || []).map((src) => {
+                const row = byKey.get(src._key) || {};
+                row._key = src._key;
+                return row;
+            });
+            continue;
+        }
+        for (const column of block.columns || []) {
+            if (column.fieldType !== 'relation') {
+                continue;
+            }
+            const valid = new Set((lookup(chain, 'tables', column.relTable) || []).map((r) => r._key));
+            for (const row of scope.tables[block.key] || []) {
+                const given = Array.isArray(row[column.key]) ? row[column.key] : [row[column.key]];
+                const kept = given.filter((v) => valid.has(v));
+                if (kept.length === 0) {
+                    delete row[column.key];
+                } else {
+                    row[column.key] = column.multiple ? kept : kept[0];
+                }
+            }
+        }
+    }
+}
+
 /** Brings the copies of every repeating section in line with what decides them (rows, a number, the user's own list). */
 export function sync(sections, scope, outer = []) {
     const { blocks, repeating } = collect(sections);
     prepare(blocks, scope);
     scope.copies = asMap(scope.copies);
     const chain = [scope, ...outer];
+    related(blocks, scope, chain);
 
     for (const section of repeating) {
         const raw = scope.copies[section.key];
@@ -230,6 +269,16 @@ export function format(spec, value, labels) {
             const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));
             return m ? m[3] + '/' + m[2] + '/' + m[1] : '';
         }
+        case 'calculated': {
+            if (typeof value === 'boolean') {
+                return value ? labels.yes : labels.no;
+            }
+            if (typeof value !== 'number') {
+                return String(value);
+            }
+            const text = value.toFixed(Math.min(6, Math.max(0, spec.decimals ?? 2))).replace('.', ',');
+            return spec.unit ? text + ' ' + spec.unit : text;
+        }
         case 'bool':
             return value === true ? labels.yes : labels.no;
         case 'choice':
@@ -320,4 +369,205 @@ export function progress(instances) {
     };
     visit(instances);
     return { done, total };
+}
+
+// ── Calculations (the twin of FormEvaluator / FormCalculator) ──────────────────────────────────────────────────────────
+
+const trees = new Map();
+
+function tree(source) {
+    if (!trees.has(source)) {
+        trees.set(source, parse(source).ast);
+    }
+    return trees.get(source);
+}
+
+function splitOnce(text, separator) {
+    const at = text.indexOf(separator);
+    return at < 0 ? [text, ''] : [text.slice(0, at), text.slice(at + 1)];
+}
+
+const columnOf = (rows, column) => rows.map((r) => (r[column] === undefined ? null : r[column]));
+
+function copiesOf(chain, section) {
+    for (const scope of chain) {
+        if (scope.copies && Array.isArray(scope.copies[section])) {
+            return scope.copies[section];
+        }
+    }
+    return [];
+}
+
+/** The cells of a double-entry table, or (`.rows`, `.cols`) the sum of each row or column. */
+function matrixValues(path, index, chain) {
+    const [key, what] = splitOnce(path, '.');
+    const table = index.tables.get(key);
+    if (!table) {
+        return [];
+    }
+    const columns = (lookup(chain, 'tables', table.colTable) || []).map((r) => r._key);
+    const cells = [];
+    const rowSums = [];
+    const colSums = new Map(columns.map((c) => [c, 0]));
+    for (const row of lookup(chain, 'tables', key) || []) {
+        let sum = 0;
+        for (const col of columns) {
+            const value = row[col] === undefined ? null : row[col];
+            cells.push(value);
+            if (typeof value === 'number' || (typeof value === 'string' && value !== '' && Number.isFinite(Number(value)))) {
+                sum += Number(value);
+                colSums.set(col, colSums.get(col) + Number(value));
+            }
+        }
+        rowSums.push(sum);
+    }
+    return what === 'rows' ? rowSums : what === 'cols' ? [...colSums.values()] : cells;
+}
+
+function refValue(ref, index, chain, row, origin) {
+    const [kind, rest] = splitOnce(ref, ':');
+    switch (kind) {
+        case 'f': {
+            const value = lookup(chain, 'fields', rest);
+            return value === undefined ? null : value;
+        }
+        case 't': {
+            const [table, column] = splitOnce(rest, '.');
+            return columnOf(lookup(chain, 'tables', table) || [], column);
+        }
+        case 'r': return row && row[rest] !== undefined ? row[rest] : null;
+        case 'o': return origin && origin.row[rest] !== undefined ? origin.row[rest] : null;
+        case 'c': {
+            const [section, tail] = splitOnce(rest, '.');
+            const out = [];
+            for (const copy of copiesOf(chain, section)) {
+                if (tail.startsWith('f:')) {
+                    const value = (copy.fields || {})[tail.slice(2)];
+                    out.push(value === undefined ? null : value);
+                } else if (tail.startsWith('t:')) {
+                    const [table, column] = splitOnce(tail.slice(2), '.');
+                    out.push(...columnOf((copy.tables || {})[table] || [], column));
+                }
+            }
+            return out;
+        }
+        case 'm': return matrixValues(rest, index, chain);
+        default: return null;
+    }
+}
+
+/** The fields and tables of a definition by key. */
+export function buildIndex(definition) {
+    const fields = new Map();
+    const tables = new Map();
+    const visit = (sections) => {
+        for (const s of sections || []) {
+            for (const b of s.blocks || []) {
+                (b.type === 'field' ? fields : b.type === 'table' ? tables : new Map()).set(b.key, b);
+            }
+            visit(s.children);
+        }
+    };
+    visit(definition.sections);
+    return { fields, tables };
+}
+
+function calcValue(formula, spec, index, chain, row, origin) {
+    const ast = tree(formula || '');
+    if (!ast) {
+        return null;
+    }
+    const result = evaluate(ast, (ref) => refValue(ref, index, chain, row, origin));
+    if (typeof result === 'number' && Number.isFinite(result)) {
+        return round(result, Math.min(6, Math.max(0, spec.decimals ?? 2)));
+    }
+    return typeof result === 'string' || typeof result === 'boolean' ? result : null;
+}
+
+function setCalc(map, key, value) {
+    if (value === null) {
+        return key in map ? delete map[key] : false;
+    }
+    if (map[key] !== value) {
+        map[key] = value;
+        return true;
+    }
+    return false;
+}
+
+/** Fills the calculated fields and columns in place, in a few passes (a formula can read another calculated value). */
+export function calculate(definition, data, index = buildIndex(definition)) {
+    const hasFormulas = [...index.fields.values()].some((f) => f.fieldType === 'calculated')
+        || [...index.tables.values()].some((t) => (t.columns || []).some((c) => c.fieldType === 'calculated'));
+    if (!hasFormulas) {
+        return;
+    }
+    for (let pass = 0; pass < 4; pass++) {
+        let changed = false;
+        const visit = (instances) => {
+            for (const inst of instances) {
+                if (inst.adder) {
+                    continue;
+                }
+                for (const { block } of inst.blocks) {
+                    if (block.type === 'field' && block.fieldType === 'calculated') {
+                        changed = setCalc(inst.scope.fields, block.key, calcValue(block.formula, block, index, inst.chain, null, inst.origin)) || changed;
+                    }
+                    if (block.type === 'table') {
+                        for (const column of block.columns || []) {
+                            if (column.fieldType === 'calculated') {
+                                for (const row of inst.scope.tables[block.key] || []) {
+                                    changed = setCalc(row, column.key, calcValue(column.formula, column, index, inst.chain, row, inst.origin)) || changed;
+                                }
+                            }
+                        }
+                    }
+                }
+                visit(inst.children);
+            }
+        };
+        visit(walk(definition, data));
+        if (!changed) {
+            break;
+        }
+    }
+}
+
+/** A number the way a column shows it (the twin of FormResolver::number()). */
+function numberText(value, column) {
+    const text = column.fieldType === 'calculated'
+        ? value.toFixed(Math.min(6, Math.max(0, column.decimals ?? 2))).replace('.', ',')
+        : String(round(value, 6)).replace('.', ',');
+    return column.unit ? text + ' ' + column.unit : text;
+}
+
+/** The foot of a table: for each column that asks for it, its sum, average, minimum, maximum or count; null when none does. */
+export function totals(columns, rows) {
+    if (!columns.some((c) => c.total)) {
+        return null;
+    }
+    return columns.map((column) => {
+        if (!column.total) {
+            return '';
+        }
+        const values = rows.map((r) => r[column.key]).filter((v) => v !== undefined && v !== null && v !== '');
+        const numbers = values.filter((v) => Number.isFinite(Number(v))).map(Number);
+        let result;
+        switch (column.total) {
+            case 'count': result = values.length; break;
+            case 'sum': result = numbers.reduce((a, b) => a + b, 0); break;
+            case 'avg': result = numbers.length ? numbers.reduce((a, b) => a + b, 0) / numbers.length : null; break;
+            case 'min': result = numbers.length ? Math.min(...numbers) : null; break;
+            default: result = numbers.length ? Math.max(...numbers) : null;
+        }
+        if (result === null) {
+            return '';
+        }
+        return column.total === 'count' ? String(result) : numberText(result, column);
+    });
+}
+
+/** The rows of a table, looked up from the innermost scope out. */
+export function rowsOf(chain, table) {
+    return lookup(chain, 'tables', table) || [];
 }

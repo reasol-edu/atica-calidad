@@ -44,6 +44,12 @@
                         {% else %}
                             <tr><td colspan="{{ b.columns|length + (b.fixed ? 1 : 0) }}" class="form-blank-row">&nbsp;</td></tr>
                         {% endfor %}
+                        {% if b.totals %}
+                            <tr class="form-total">
+                                {% if b.fixed %}<td class="form-rowlabel"><strong>{{ 'view.total'|trans({}, 'forms') }}</strong></td>{% endif %}
+                                {% for t in b.totals %}<td><strong>{{ t }}</strong></td>{% endfor %}
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             {% endif %}

@@ -15,28 +15,61 @@ final class FormDataValidator
     public function __construct(
         private readonly FormWalker $walker,
         private readonly FormResolver $resolver,
+        private readonly FormEvaluator $evaluator,
     ) {}
 
     /**
+     * What is wrong, blocking ones and warnings together (`severity`): what is missing or out of limits blocks; a consistency rule of
+     * the model blocks or only warns, as the model says (`code` `rule`, its text in `%message%`).
+     *
      * @param array<string, mixed> $definition
      * @param array<string, mixed> $data       normalized by FormDataNormalizer
      *
-     * @return list<array{block: string, path: string, row: ?string, column: ?string, code: string, params: array<string, string>}>
+     * @return list<array{block: string, path: string, row: ?string, column: ?string, code: string, params: array<string, string>, severity: string}>
      */
     public function problems(array $definition, array $data): array
     {
-        $problems = [];
-        $this->check($this->walker->walk($definition, $data), $this->resolver->fieldSpecs($definition), $problems);
+        $found = [];
+        $this->check($this->walker->walk($definition, $data), FormIndex::of($definition), $found);
+
+        $problems = array_map(static fn (array $p): array => $p + ['severity' => 'block'], $found);
+
+        $index = FormIndex::of($definition);
+        foreach (FormDefinition::listOf($definition['rules'] ?? []) as $rule) {
+            // A rule that cannot be decided (a missing term) is not a rule that is broken.
+            if ($this->evaluator->run(FormDefinition::str($rule['expr'] ?? ''), $index, [$data]) === false) {
+                $problems[] = [
+                    'block'    => '',
+                    'path'     => '',
+                    'row'      => null,
+                    'column'   => null,
+                    'code'     => 'rule',
+                    'params'   => ['%message%' => FormDefinition::str($rule['message'] ?? '')],
+                    'severity' => ($rule['severity'] ?? '') === 'block' ? 'block' : 'warning',
+                ];
+            }
+        }
 
         return $problems;
     }
 
     /**
+     * Only the problems that stop a delivery.
+     *
+     * @param list<array{block: string, path: string, row: ?string, column: ?string, code: string, params: array<string, string>, severity: string}> $problems
+     *
+     * @return list<array{block: string, path: string, row: ?string, column: ?string, code: string, params: array<string, string>, severity: string}>
+     */
+    public function blocking(array $problems): array
+    {
+        return array_values(array_filter($problems, static fn (array $p): bool => $p['severity'] === 'block'));
+    }
+
+    /**
      * @param list<array<string, mixed>>          $instances
-     * @param array<string, array<string, mixed>> $specs
      * @param list<array{block: string, path: string, row: ?string, column: ?string, code: string, params: array<string, string>}> $problems
      */
-    private function check(array $instances, array $specs, array &$problems): void
+    private function check(array $instances, FormIndex $index, array &$problems): void
     {
         foreach ($instances as $instance) {
             if ($instance['visible'] !== true) {
@@ -47,7 +80,7 @@ final class FormDataValidator
             $path   = FormDefinition::str($instance['path'] ?? '');
             $copy   = is_array($instance['copy'] ?? null) ? $instance['copy'] : null;
             // A problem inside a copy says which one: the title of the section as it reads there ("UD 1. Redes (40 h)").
-            $prefix = $copy === null ? '' : $this->resolver->label(FormDefinition::str($copy['title'] ?? ''), $instance, $specs) . ' · ';
+            $prefix = $copy === null ? '' : $this->resolver->label(FormDefinition::str($copy['title'] ?? ''), $instance, $index) . ' · ';
 
             $fields = is_array($scope['fields'] ?? null) ? $scope['fields'] : [];
             $texts  = is_array($scope['texts'] ?? null) ? $scope['texts'] : [];
@@ -60,7 +93,7 @@ final class FormDataValidator
                 /** @var array<string, mixed> $block */
                 $block = $entry['block'];
                 $key   = FormDefinition::str($block['key'] ?? '');
-                $label = $prefix . $this->resolver->label(FormDefinition::str($block['label'] ?? ''), $instance, $specs);
+                $label = $prefix . $this->resolver->label(FormDefinition::str($block['label'] ?? ''), $instance, $index);
 
                 switch ($block['type'] ?? '') {
                     case 'field':
@@ -80,7 +113,7 @@ final class FormDataValidator
                 }
             }
 
-            $this->check(FormDefinition::listOf($instance['children'] ?? []), $specs, $problems);
+            $this->check(FormDefinition::listOf($instance['children'] ?? []), $index, $problems);
         }
     }
 

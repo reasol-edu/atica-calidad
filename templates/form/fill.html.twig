@@ -34,6 +34,8 @@
             pending: 'fill.pending'|trans({}, 'forms'),
             starter_modified: 'fill.starter_modified'|trans({}, 'forms'),
             progress: 'fill.progress'|trans({}, 'forms'),
+            total: 'view.total'|trans({}, 'forms'),
+            matrix_empty: 'fill.matrix_empty'|trans({}, 'forms'),
             add_copy: 'fill.add_copy'|trans({}, 'forms'),
             remove_copy: 'fill.remove_copy'|trans({}, 'forms'),
             confirm_remove_copy: 'fill.confirm_remove_copy'|trans({}, 'forms'),
@@ -50,6 +52,12 @@
                     <p class="mt-1 text-sm font-medium text-amber-800">{{ 'fill.pending'|trans({}, 'forms') }}</p>
                     <ul class="mt-1 list-disc space-y-1 pl-5 text-sm text-amber-800" data-form-fill-target="problems">
                         {% for p in problems %}<li>{{ p.text }}</li>{% endfor %}
+                    </ul>
+                </div>
+                <div data-form-fill-target="warningsBox" class="{{ warnings is empty ? 'hidden' : '' }}">
+                    <p class="mt-3 text-sm font-medium text-gray-700">{{ 'fill.warnings_title'|trans({}, 'forms') }}</p>
+                    <ul class="mt-1 list-disc space-y-1 pl-5 text-sm text-gray-600" data-form-fill-target="warnings">
+                        {% for w in warnings %}<li>{{ w.text }}</li>{% endfor %}
                     </ul>
                 </div>
                 <div class="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

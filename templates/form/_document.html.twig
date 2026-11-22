@@ -43,6 +43,14 @@
                                     <tr><td colspan="{{ b.columns|length + (b.fixed ? 1 : 0) }}" class="px-3 py-3 text-gray-400">—</td></tr>
                                 {% endfor %}
                             </tbody>
+                            {% if b.totals %}
+                                <tfoot class="border-t border-gray-200 bg-gray-50 font-medium text-gray-900">
+                                    <tr>
+                                        {% if b.fixed %}<th scope="row" class="px-3 py-2 text-left">{{ 'view.total'|trans({}, 'forms') }}</th>{% endif %}
+                                        {% for t in b.totals %}<td class="px-3 py-2">{{ t }}</td>{% endfor %}
+                                    </tr>
+                                </tfoot>
+                            {% endif %}
                         </table>
                     </div>
                 {% endif %}

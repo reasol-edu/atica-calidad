@@ -27,11 +27,15 @@ final class FormDefinition
 {
     public const int VERSION = 1;
 
-    public const array FIELD_TYPES = ['short', 'long', 'number', 'date', 'time', 'bool', 'choice', 'multichoice'];
+    /** `calculated` (from a formula) and `relation` (picks rows of another table; table columns only) are not typed in as such. */
+    public const array FIELD_TYPES = ['short', 'long', 'number', 'date', 'time', 'bool', 'choice', 'multichoice', 'calculated', 'relation'];
 
     public const array TEXT_MODES = ['fixed', 'starter', 'fill'];
 
-    public const array TABLE_MODES = ['free', 'fixed'];
+    /** `matrix` is a double-entry table: its rows are those of one table and its columns those of another. */
+    public const array TABLE_MODES = ['free', 'fixed', 'matrix'];
+
+    public const array TOTALS = ['', 'sum', 'avg', 'min', 'max', 'count'];
 
     /** @return array<string, mixed> */
     public static function blank(): array
@@ -141,6 +145,24 @@ final class FormDefinition
                 /** @var array<string, mixed> $item */
                 $out[] = $item;
             }
+        }
+
+        return $out;
+    }
+
+    /**
+     * A map (string keys) out of whatever came in, or null when it is not an array.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function map(mixed $value): ?array
+    {
+        if (!is_array($value)) {
+            return null;
+        }
+        $out = [];
+        foreach ($value as $key => $item) {
+            $out[(string) $key] = $item;
         }
 
         return $out;

@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Attribute\CurrentCentre;
 use App\Entity\Activity;
 use App\Entity\EducationalCentre;
+use App\Entity\FormSubmission;
 use App\Entity\Teacher;
 use App\Model\ActivitySubmissionSlot;
 use App\Model\ActivityWindowBlock;
@@ -92,7 +93,8 @@ class FormFillController extends AbstractController
                     'context'    => $this->service->contextFor($activity, $slot, $submission->getCycleYear()),
                     'id'         => $id,
                 ],
-                'problems' => $window->blocked ? [] : $this->translateFill($this->service->problems($submission)),
+                'problems' => $window->blocked ? [] : $this->problemLists($submission)['problems'],
+                'warnings' => $window->blocked ? [] : $this->problemLists($submission)['warnings'],
             ];
         } elseif ($last !== null) {
             $definition = $last->getModelRevision()->getDefinition();
@@ -133,10 +135,7 @@ class FormFillController extends AbstractController
             return new JsonResponse(['error' => $e->getMessage(), 'message' => $this->translator->trans('fill.' . $e->getMessage(), [], 'forms'), 'version' => $submission->getDraftVersion()], Response::HTTP_CONFLICT);
         }
 
-        return new JsonResponse([
-            'version'  => $submission->getDraftVersion(),
-            'problems' => $this->translateFill($this->service->problems($submission)),
-        ]);
+        return new JsonResponse(['version' => $submission->getDraftVersion()] + $this->problemLists($submission));
     }
 
     #[Route('/actividades/{activityId}/formulario/{slotKey}/entregar', name: 'app_form_deliver', methods: ['POST'])]
@@ -270,18 +269,20 @@ class FormFillController extends AbstractController
     }
 
     /**
-     * @param list<array{block: string, path: string, row: ?string, column: ?string, code: string, params: array<string, string>}> $problems
+     * What is wrong with a draft, told in words and split into what stops the delivery and what only advises (a rule of the model
+     * that is marked as a warning).
      *
-     * @return list<array{block: string, path: string, row: ?string, column: ?string, text: string}>
+     * @return array{problems: list<array{block: string, path: string, text: string}>, warnings: list<array{block: string, path: string, text: string}>}
      */
-    private function translateFill(array $problems): array
+    private function problemLists(FormSubmission $submission): array
     {
-        return array_map(fn (array $p): array => [
-            'block'  => $p['block'],
-            'path'   => $p['path'],
-            'row'    => $p['row'],
-            'column' => $p['column'],
-            'text'   => $this->translator->trans('fill.problem.' . $p['code'], $p['params'], 'forms'),
-        ], $problems);
+        $lists = ['problems' => [], 'warnings' => []];
+        foreach ($this->service->problems($submission) as $p) {
+            // A rule carries its own text, written by whoever made the model.
+            $text   = $p['code'] === 'rule' ? $p['params']['%message%'] : $this->translator->trans('fill.problem.' . $p['code'], $p['params'], 'forms');
+            $lists[$p['severity'] === 'block' ? 'problems' : 'warnings'][] = ['block' => $p['block'], 'path' => $p['path'], 'text' => $text];
+        }
+
+        return $lists;
     }
 }

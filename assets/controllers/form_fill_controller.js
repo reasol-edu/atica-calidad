@@ -2,7 +2,7 @@ import { Controller } from '@hotwired/stimulus';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import { h } from '../utils/form_dom.js';
-import { asMap, sync, walk, numbers, references, fieldSpecs, progress, newKey, MAX_COPIES } from '../utils/form_scopes.js';
+import { asMap, sync, walk, numbers, references, fieldSpecs, progress, newKey, MAX_COPIES, calculate, buildIndex, totals, rowsOf, format } from '../utils/form_scopes.js';
 
 Quill.register(Quill.import('attributors/style/align'), true);
 
@@ -18,7 +18,7 @@ const BTN = 'rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font
  */
 /* stimulusFetch: 'lazy' */
 export default class extends Controller {
-    static targets = ['canvas', 'status', 'problems', 'problemsBox', 'deliver'];
+    static targets = ['canvas', 'status', 'problems', 'problemsBox', 'warnings', 'warningsBox', 'deliver'];
     static values = { config: Object, labels: Object };
 
     connect() {
@@ -28,7 +28,9 @@ export default class extends Controller {
         const data = this.configValue.data || {};
         // PHP writes an empty map as [] and an array loses its string keys in JSON.stringify: always plain objects here.
         this.state = { fields: asMap(data.fields), texts: asMap(data.texts), tables: asMap(data.tables), copies: asMap(data.copies) };
+        this.index = buildIndex(this.def);
         sync(this.def.sections || [], this.state);
+        calculate(this.def, this.state, this.index);
         this.specs = fieldSpecs(this.def);
         this.structural = this.structuralFields();
         this.version = this.configValue.version;
@@ -87,6 +89,7 @@ export default class extends Controller {
     // ── Saving ───────────────────────────────────────────────────────────────
 
     touch() {
+        this.recalc();
         this.updateLive();
         if (this.stale || this.readOnly) {
             return;
@@ -136,7 +139,7 @@ export default class extends Controller {
             }
             this.failed = false;
             this.version = body.version;
-            this.showProblems(body.problems || []);
+            this.showProblems(body.problems || [], body.warnings || []);
             this.setStatus(this.dirty ? this.l.saving : this.l.saved, this.dirty ? 'text-gray-500' : 'text-forest-700');
         } catch (e) {
             this.failed = true;
@@ -156,16 +159,25 @@ export default class extends Controller {
         }
     }
 
-    showProblems(problems) {
+    /** A list of what is wrong, each one a link to the place (a rule of the model has no place: plain text). */
+    problemItems(problems) {
+        return problems.map((p) => h('li', {}, [p.block === ''
+            ? h('span', { text: p.text })
+            : h('button', {
+                type: 'button', class: 'text-left underline decoration-dotted', text: p.text,
+                onclick: () => (document.getElementById('blk-' + p.path + '-' + p.block) || document.getElementById('blk-' + p.block))?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+            })]));
+    }
+
+    showProblems(problems, warnings = []) {
         if (!this.hasProblemsTarget) {
             return;
         }
-        this.problemsTarget.replaceChildren(...problems.map((p) => h('li', {}, [
-            h('button', {
-                type: 'button', class: 'text-left underline decoration-dotted', text: p.text,
-                onclick: () => (document.getElementById('blk-' + p.path + '-' + p.block) || document.getElementById('blk-' + p.block))?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
-            }),
-        ])));
+        this.problemsTarget.replaceChildren(...this.problemItems(problems));
+        if (this.hasWarningsTarget) {
+            this.warningsTarget.replaceChildren(...this.problemItems(warnings));
+            this.warningsBoxTarget.classList.toggle('hidden', warnings.length === 0);
+        }
         this.problemsBoxTarget.classList.toggle('hidden', problems.length === 0);
         if (this.hasDeliverTarget) {
             this.deliverTarget.disabled = problems.length > 0;
@@ -190,14 +202,33 @@ export default class extends Controller {
     /** What decides the copies or what is shown may have changed (a row added or removed, a number or a condition field): redraw. */
     refresh() {
         sync(this.def.sections || [], this.state);
+        calculate(this.def, this.state, this.index);
         this.render();
         this.touch();
+    }
+
+    /** What is calculated follows what is typed: recalculates and writes the new values into the cells that show them. */
+    recalc() {
+        calculate(this.def, this.state, this.index);
+        for (const entry of this.calcEls || []) {
+            if (entry.update) {
+                entry.update();
+                continue;
+            }
+            const text = entry.read();
+            if ('value' in entry.el) {
+                entry.el.value = text;
+            } else {
+                entry.el.textContent = text;
+            }
+        }
     }
 
     // ── Rendering ────────────────────────────────────────────────────────────
 
     render() {
         this.live = [];
+        this.calcEls = [];
         this.tree = walk(this.def, this.state);
         this.nums = numbers(this.tree);
         this.progressEl = h('div', { class: 'mb-5' });
@@ -304,7 +335,7 @@ export default class extends Controller {
         }
         if (block.type === 'field') {
             const id = 'f-' + inst.path + '-' + block.key;
-            const control = this.control(block, inst.scope.fields[block.key], (v) => this.setIn(inst.scope.fields, block.key, v), id);
+            const control = this.control(block, inst.scope.fields[block.key], (v) => this.setIn(inst.scope.fields, block.key, v), id, false, { chain: inst.chain, map: inst.scope.fields, key: block.key });
             if (this.structural.has(block.key)) {
                 control.addEventListener('change', () => this.refresh());
             }
@@ -318,10 +349,36 @@ export default class extends Controller {
     }
 
     /** The input of a field or a table column by type; $onChange receives the typed value (null when empty). */
-    control(spec, value, onChange, id, compact = false) {
+    control(spec, value, onChange, id, compact = false, ctx = null) {
         const disabled = this.readOnly;
         const base = { id, class: INPUT, disabled, 'aria-label': compact ? spec.label : null };
         switch (spec.fieldType) {
+            case 'calculated': {
+                // Never typed: it shows what the formula gives and follows the other values (recalc()).
+                const input = h('input', { ...base, type: 'text', readonly: true, tabindex: -1, class: INPUT + ' bg-gray-50 text-gray-700', value: format(spec, value, this.l) });
+                if (ctx) {
+                    this.calcEls.push({ el: input, read: () => format(spec, ctx.map[ctx.key], this.l) });
+                }
+                return input;
+            }
+            case 'relation': {
+                // The rows of another table of the document, shown by the column the model chose.
+                const labelSpec = (this.index.tables.get(spec.relTable)?.columns || []).find((c) => c.key === spec.relLabel) || {};
+                const rows = () => rowsOf(ctx ? ctx.chain : [], spec.relTable);
+                const labelOf = (r) => format(labelSpec, r[spec.relLabel], this.l) || '—';
+                const control = this.control({ ...spec, fieldType: spec.multiple ? 'multichoice' : 'choice', options: rows().map((r) => ({ key: r._key, label: labelOf(r) })) }, value, onChange, id, compact, ctx);
+                // The names of the rows follow what is typed in them, without redrawing (a redraw on blur would eat the next click).
+                this.calcEls.push({ update: () => {
+                    const items = control.tagName === 'SELECT' ? [...control.querySelectorAll('option')].slice(1) : [...control.querySelectorAll('label')];
+                    items.forEach((el, i) => {
+                        const row = rows()[i];
+                        if (row) {
+                            (el.tagName === 'OPTION' ? el : el.lastChild).textContent = labelOf(row);
+                        }
+                    });
+                } });
+                return control;
+            }
             case 'long':
                 return h('textarea', { ...base, rows: 4, maxlength: 20000, value: value ?? '', oninput: (e) => onChange(e.target.value) });
             case 'number': {
@@ -432,7 +489,46 @@ export default class extends Controller {
         ];
     }
 
+    /** A double-entry table: a row for each row of one table and a column for each row of another, one kind of cell. */
+    matrixEl(block, inst) {
+        const cell = block.cell || { fieldType: 'number' };
+        const colSource = rowsOf(inst.chain, block.colTable);
+        const rowSource = new Map(rowsOf(inst.chain, block.rowTable).map((r) => [r._key, r]));
+        const labelOf = (table, column, row) => format((this.index.tables.get(table)?.columns || []).find((c) => c.key === column) || {}, row && row[column], this.l);
+        const rows = inst.scope.tables[block.key] || [];
+
+        // The names of the rows and columns follow what is typed in the tables they come from.
+        const named = (props, read) => {
+            const th = h('th', props);
+            th.textContent = read();
+            this.calcEls.push({ el: th, read });
+
+            return th;
+        };
+        const head = h('tr', {}, [
+            h('th', { scope: 'col', class: 'px-2 py-2' }, [h('span', { class: 'sr-only', text: block.label || '' })]),
+            ...colSource.map((col) => named({ scope: 'col', class: 'px-2 py-2 text-left font-medium' }, () => labelOf(block.colTable, block.colLabel, col))),
+        ]);
+        const body = h('tbody', { class: 'divide-y divide-gray-100' }, rows.map((row) => h('tr', {}, [
+            named({ scope: 'row', class: 'whitespace-nowrap px-2 py-2 text-left align-top font-normal text-gray-700' }, () => labelOf(block.rowTable, block.rowLabel, rowSource.get(row._key))),
+            ...colSource.map((col) => h('td', { class: 'min-w-[6rem] px-2 py-1.5 align-top' }, [
+                this.control({ ...cell, label: labelOf(block.colTable, block.colLabel, col) }, row[col._key], (v) => this.setIn(row, col._key, v), null, true),
+            ])),
+        ])));
+
+        return [
+            ...(block.label ? [h('p', { class: 'mb-1 text-sm font-medium text-gray-700' }, [this.liveText('span', {}, block.label, inst)])] : []),
+            rows.length === 0 || colSource.length === 0
+                ? h('p', { class: 'rounded-xl border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-400', text: this.l.matrix_empty })
+                : h('div', { class: 'overflow-x-auto rounded-xl border border-gray-200' }, [h('table', { class: 'min-w-full text-sm' }, [h('thead', { class: 'bg-gray-50 text-gray-600' }, [head]), body])]),
+            ...(block.help ? [h('p', { class: 'mt-1 text-xs text-gray-500', text: block.help })] : []),
+        ];
+    }
+
     tableEl(block, inst) {
+        if (block.mode === 'matrix') {
+            return this.matrixEl(block, inst);
+        }
         const fixed = block.mode === 'fixed';
         const tables = inst.scope.tables;
         if (!Array.isArray(tables[block.key])) {
@@ -451,7 +547,7 @@ export default class extends Controller {
         const body = h('tbody', { class: 'divide-y divide-gray-100' }, rows.map((row, index) => h('tr', {}, [
             ...(fixed ? [h('th', { scope: 'row', class: 'px-2 py-2 text-left align-top font-normal text-gray-700', text: labels.get(row._key) ?? '' })] : []),
             ...block.columns.map((c) => h('td', { class: 'min-w-[9rem] px-2 py-1.5 align-top' }, [
-                this.control({ ...c, label: c.label + ' · ' + this.l.row + ' ' + (index + 1) }, row[c.key], (v) => this.setIn(row, c.key, v), null, true),
+                this.control({ ...c, label: c.label + ' · ' + this.l.row + ' ' + (index + 1) }, row[c.key], (v) => this.setIn(row, c.key, v), null, true, { chain: inst.chain, map: row, key: c.key }),
             ])),
             ...(fixed ? [] : [h('td', { class: 'px-2 py-1.5 align-top' }, [
                 h('button', {
@@ -461,10 +557,21 @@ export default class extends Controller {
             ])]),
         ])));
 
+        // The foot: the totals the columns ask for, recalculated as the rows change.
+        const foot = totals(block.columns, rows) === null ? null : h('tfoot', { class: 'border-t border-gray-200 bg-gray-50 font-medium text-gray-900' }, [h('tr', {}, [
+            ...(fixed ? [h('th', { scope: 'row', class: 'px-2 py-2 text-left', text: this.l.total })] : []),
+            ...block.columns.map((c, i) => {
+                const cell = h('td', { class: 'px-2 py-2', text: totals(block.columns, rows)[i] });
+                this.calcEls.push({ el: cell, read: () => (totals(block.columns, rows) || [])[i] || '' });
+                return cell;
+            }),
+            ...(fixed ? [] : [h('td')]),
+        ])]);
+
         return [
             ...(block.label ? [h('p', { class: 'mb-1 text-sm font-medium text-gray-700' }, [this.liveText('span', {}, block.label, inst)])] : []),
             h('div', { class: 'overflow-x-auto rounded-xl border border-gray-200' }, [
-                h('table', { class: 'min-w-full text-sm' }, [h('thead', { class: 'bg-gray-50 text-gray-600' }, [head]), body]),
+                h('table', { class: 'min-w-full text-sm' }, [h('thead', { class: 'bg-gray-50 text-gray-600' }, [head]), body, ...(foot ? [foot] : [])]),
             ]),
             ...(fixed ? [] : [h('button', {
                 type: 'button', class: BTN + ' mt-2', disabled: this.readOnly || rows.length >= max, text: '+ ' + this.l.add_row,

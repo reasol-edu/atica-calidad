@@ -28,6 +28,7 @@ final class FormDataNormalizer
     public function __construct(
         #[Autowire(service: 'html_sanitizer.sanitizer.app.rich_text')]
         private readonly HtmlSanitizerInterface $sanitizer,
+        private readonly FormCalculator $calculator,
     ) {}
 
     /**
@@ -48,7 +49,10 @@ final class FormDataNormalizer
      */
     public function normalize(array $definition, array $raw): array
     {
-        return $this->scope(FormDefinition::listOf($definition['sections'] ?? []), $raw, []);
+        $data = $this->scope(FormDefinition::listOf($definition['sections'] ?? []), $raw, []);
+
+        // The calculated values are the last thing: they read the data as it has just been cleaned.
+        return $this->calculator->apply($definition, $data);
     }
 
     /**
@@ -117,6 +121,7 @@ final class FormDataNormalizer
     {
         [$blocks, $repeating] = $this->collect($sections);
         $data                 = $this->blocksData($blocks, $raw);
+        $data                 = $this->relatedData($blocks, $data, $raw, $outer);
         $chain                = [$data, ...$outer];
 
         $rawCopies = is_array($raw['copies'] ?? null) ? $raw['copies'] : [];
@@ -127,6 +132,91 @@ final class FormDataNormalizer
         }
 
         return $data + ['copies' => $copies];
+    }
+
+    /**
+     * What depends on other tables of the scope chain, once the scope's own tables are there: the rows and cells of the
+     * double-entry tables, and the relation columns (which keep only rows that still exist).
+     *
+     * @param list<array<string, mixed>> $blocks
+     * @param array<string, mixed>       $data
+     * @param array<string, mixed>       $raw
+     * @param list<array<string, mixed>> $outer
+     *
+     * @return array<string, mixed>
+     */
+    private function relatedData(array $blocks, array $data, array $raw, array $outer): array
+    {
+        $chain     = [$data, ...$outer];
+        $rawTables = is_array($raw['tables'] ?? null) ? $raw['tables'] : [];
+        $tables    = is_array($data['tables'] ?? null) ? $data['tables'] : [];
+
+        foreach ($blocks as $block) {
+            if (($block['type'] ?? '') !== 'table') {
+                continue;
+            }
+            $key = FormDefinition::str($block['key'] ?? '');
+            if (($block['mode'] ?? '') === 'matrix') {
+                $tables[$key] = $this->matrixRows($block, is_array($rawTables[$key] ?? null) ? $rawTables[$key] : [], $chain);
+                continue;
+            }
+            $rows = FormDefinition::listOf($tables[$key] ?? []);
+            foreach (FormDefinition::listOf($block['columns'] ?? []) as $column) {
+                if (($column['fieldType'] ?? '') !== 'relation') {
+                    continue;
+                }
+                $columnKey = FormDefinition::str($column['key'] ?? '');
+                $valid     = array_map(static fn (array $r): mixed => $r['_key'] ?? null, FormScopes::rows($chain, FormDefinition::str($column['relTable'] ?? '')));
+                foreach ($rows as $i => $row) {
+                    $given = $row[$columnKey] ?? null;
+                    $kept  = array_values(array_filter(is_array($given) ? $given : [$given], static fn ($v): bool => in_array($v, $valid, true)));
+                    if ($kept === []) {
+                        unset($rows[$i][$columnKey]);
+                    } else {
+                        $rows[$i][$columnKey] = ($column['multiple'] ?? false) === true ? $kept : $kept[0];
+                    }
+                }
+            }
+            $tables[$key] = $rows;
+        }
+        $data['tables'] = $tables;
+
+        return $data;
+    }
+
+    /**
+     * One row for each row of the table the matrix takes its rows from, and in each the cells of the table it takes its columns
+     * from (keyed by that table's row keys).
+     *
+     * @param array<string, mixed>       $block
+     * @param array<int|string, mixed>   $given
+     * @param list<array<string, mixed>> $chain
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function matrixRows(array $block, array $given, array $chain): array
+    {
+        $byKey = [];
+        foreach (FormDefinition::listOf($given) as $row) {
+            $byKey[FormDefinition::str($row['_key'] ?? '')] = $row;
+        }
+        $cell    = FormDefinition::map($block['cell'] ?? null) ?? [];
+        $columns = array_map(static fn (array $r): string => FormDefinition::str($r['_key'] ?? ''), FormScopes::rows($chain, FormDefinition::str($block['colTable'] ?? '')));
+
+        $rows = [];
+        foreach (FormScopes::rows($chain, FormDefinition::str($block['rowTable'] ?? '')) as $source) {
+            $key  = FormDefinition::str($source['_key'] ?? '');
+            $row  = ['_key' => $key];
+            foreach ($columns as $col) {
+                $value = $this->coerce($cell, $byKey[$key][$col] ?? null);
+                if ($value !== null) {
+                    $row[$col] = $value;
+                }
+            }
+            $rows[] = $row;
+        }
+
+        return $rows;
     }
 
     /**
@@ -285,6 +375,9 @@ final class FormDataNormalizer
                     break;
 
                 case 'table':
+                    if (($block['mode'] ?? '') === 'matrix') {
+                        break; // rows and cells come from other tables: relatedData()
+                    }
                     $given = is_array($rawTables[$key] ?? null) ? $rawTables[$key] : null;
                     // A table never filled (a new document, a new copy) starts with its minimum rows.
                     $tables[$key] = $this->rows($block, $given);
@@ -342,6 +435,10 @@ final class FormDataNormalizer
     private function rowHasData(array $block, array $row): bool
     {
         foreach (FormDefinition::listOf($block['columns'] ?? []) as $column) {
+            // A calculated cell always has a value: it says nothing about whether somebody filled the row in.
+            if (($column['fieldType'] ?? '') === 'calculated') {
+                continue;
+            }
             $value = $row[FormDefinition::str($column['key'] ?? '')] ?? null;
             if ($value !== null && $value !== '' && $value !== []) {
                 return true;
@@ -455,6 +552,15 @@ final class FormDataNormalizer
 
             case 'bool':
                 return is_bool($value) ? $value : null;
+
+            case 'calculated':
+                return null; // never typed: FormCalculator
+
+            case 'relation':
+                // The keys of rows of another table; which ones exist is decided with the scope's tables (relatedData()).
+                $keys = array_values(array_filter(is_array($value) ? $value : [$value], static fn ($v): bool => is_string($v) && $v !== '' && strlen($v) <= 40));
+
+                return $keys === [] ? null : (($spec['multiple'] ?? false) === true ? $keys : $keys[0]);
 
             case 'choice':
                 $key = is_string($value) ? $value : '';

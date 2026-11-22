@@ -25,6 +25,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   campos, centro, curso, actividad, fecha) que se rellenan solas y siguen lo que se escribe; las secciones y bloques pueden mostrarse
   solo **si otro campo cumple una condición** (lo oculto no se pide, no se valida ni se imprime, y no se pierde lo escrito). El
   formulario muestra una barra de progreso de lo obligatorio y los avisos de «pendiente» indican en qué copia está cada dato.
+- **Modelos de documento: cálculos, reglas de coherencia, relaciones y tablas de doble entrada (fase 3).** Los modelos pueden tener
+  **campos y columnas calculados** con una fórmula (sumas, medias, porcentajes, condiciones…, escrita con ayuda para insertar datos y
+  funciones y con aviso inmediato si no se puede leer) que se recalculan al escribir, **totales al pie** de las columnas, **columnas que
+  eligen filas de otra tabla** y **tablas de doble entrada** (por ejemplo unidades × resultados de aprendizaje con el porcentaje de cada
+  celda). Las **reglas de coherencia** («las horas de las unidades suman las del módulo», «cada RA suma 100 %») avisan a quien rellena o le
+  impiden entregar, según las defina el modelo. La misma gramática se evalúa en el servidor y en el navegador, contrastadas con un mismo
+  conjunto de casos de prueba.
 
 ## [2.6.0] - 2026-11-21
 
