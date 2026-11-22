@@ -8,6 +8,7 @@ use App\Entity\DocumentReviewNotificationKind;
 use App\Entity\DocumentRevision;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
+use App\Service\Form\FormApprovalChain;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -23,10 +24,27 @@ final class DocumentRevisionReviewer
         private readonly EntityManagerInterface $em,
         private readonly ActivityLogger $activityLogger,
         private readonly DocumentReviewOutcomeNotifier $outcomeNotifier,
+        private readonly FormApprovalChain $chain,
     ) {}
 
+    /**
+     * A revision delivered through a model with an approval chain is approved step by step: this decides the current step (for
+     * whoever may) and only the last approval approves the revision.
+     */
     public function approve(DocumentRevision $revision, Teacher $reviewer, ?string $result, EducationalCentre $centre): void
     {
+        if ($this->chain->hasOpenChain($revision)
+            && $this->chain->decide($revision, $reviewer, true, $this->normalise($result)) === FormApprovalChain::NEXT
+        ) {
+            $this->activityLogger->record('form_submission.step_approved', [
+                'folder'   => $revision->getDocument()->getFolder()->getName(),
+                'document' => $revision->getDocument()->getName(),
+                'version'  => $revision->getVersion(),
+            ], $centre);
+
+            return;
+        }
+
         $document = $revision->getDocument();
         $revision->approve($reviewer, $this->normalise($result));
         $document->setActiveRevision($revision);
@@ -36,6 +54,10 @@ final class DocumentRevisionReviewer
 
     public function reject(DocumentRevision $revision, Teacher $reviewer, ?string $result, EducationalCentre $centre): void
     {
+        if ($this->chain->hasOpenChain($revision)) {
+            $this->chain->decide($revision, $reviewer, false, $this->normalise($result));
+        }
+
         $document = $revision->getDocument();
         $revision->reject($reviewer, $this->normalise($result));
         if ($document->getActiveRevision() === $revision) {

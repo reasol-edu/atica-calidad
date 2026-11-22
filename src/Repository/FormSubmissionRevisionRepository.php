@@ -26,6 +26,25 @@ class FormSubmissionRevisionRepository extends ServiceEntityRepository
         return $this->findOneBy(['revision' => $revision]);
     }
 
+    /**
+     * Every delivered revision of a submission, newest first.
+     *
+     * @return list<FormSubmissionRevision>
+     */
+    public function findBySubmission(FormSubmission $submission): array
+    {
+        /** @var list<FormSubmissionRevision> $all */
+        $all = $this->createQueryBuilder('s')
+            ->join('s.revision', 'r')->addSelect('r')
+            ->where('s.submission = :submission')
+            ->setParameter('submission', $submission->getId(), 'uuid')
+            ->orderBy('r.version', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        return $all;
+    }
+
     /** The data of a delivered revision by the id of its DocumentRevision, or null (also when the id is not a UUID). */
     public function findByRevisionId(string $revisionId): ?FormSubmissionRevision
     {

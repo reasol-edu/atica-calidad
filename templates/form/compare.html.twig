@@ -1,0 +1,43 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'review.compare_page'|trans({}, 'forms') }} · {{ title }} · {{ app_name }}{% endblock %}
+
+{# What changed between two revisions of a filled document, value by value. #}
+{% block content %}
+<div class="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-4">
+    <div>
+        <a href="{{ backUrl }}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-forest-600">
+            {{ ux_icon('heroicons:arrow-left', {class: 'h-4 w-4'}) }}{{ 'view.back'|trans({}, 'forms') }}
+        </a>
+        <h1 class="mt-1 break-words text-2xl font-bold text-gray-900">{{ title }}</h1>
+        <p class="text-sm text-gray-500">{{ 'review.compare_between'|trans({'%before%': before.version, '%after%': after.version}, 'forms') }}</p>
+    </div>
+
+    {% if changes is empty %}
+        <p class="rounded-2xl border border-gray-200 bg-white px-5 py-8 text-center text-sm text-gray-500">{{ 'review.compare_none'|trans({}, 'forms') }}</p>
+    {% else %}
+        <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-xs">
+            <table class="min-w-full text-sm">
+                <thead class="bg-gray-50 text-left text-gray-600">
+                    <tr>
+                        <th scope="col" class="px-3 py-2 font-medium">{{ 'review.compare_what'|trans({}, 'forms') }}</th>
+                        <th scope="col" class="px-3 py-2 font-medium">{{ 'review.compare_before'|trans({'%version%': before.version}, 'forms') }}</th>
+                        <th scope="col" class="px-3 py-2 font-medium">{{ 'review.compare_after'|trans({'%version%': after.version}, 'forms') }}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for c in changes %}
+                        <tr>
+                            <th scope="row" class="px-3 py-2 text-left align-top font-normal text-gray-700 break-words">{{ c.label }}
+                                <span class="ml-1 rounded-full px-2 py-0.5 text-xs font-medium {{ c.kind == 'added' ? 'bg-forest-50 text-forest-700' : (c.kind == 'removed' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-800') }}">{{ ('review.compare_' ~ c.kind)|trans({}, 'forms') }}</span>
+                            </th>
+                            <td class="px-3 py-2 align-top text-gray-500 break-words">{{ c.before ?? '—' }}</td>
+                            <td class="px-3 py-2 align-top text-gray-900 break-words">{{ c.after ?? '—' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

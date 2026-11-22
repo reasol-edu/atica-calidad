@@ -6,7 +6,9 @@ namespace App\Service\Form;
 
 use App\Entity\Activity;
 use App\Entity\DocumentRevision;
+use App\Entity\FormFieldChange;
 use App\Entity\FormModelRevision;
+use App\Repository\FormFieldChangeRepository;
 use App\Entity\FormSubmission;
 use App\Entity\FormSubmissionRevision;
 use App\Entity\Teacher;
@@ -41,6 +43,9 @@ final class FormSubmissionService
         private readonly ActivitySubmissionSlotBuilder $slots,
         private readonly ActivityLogger $logger,
         private readonly ClockInterface $clock,
+        private readonly FormApprovalChain $chain,
+        private readonly FormFlatData $flat,
+        private readonly FormFieldChangeRepository $changes,
     ) {}
 
     /**
@@ -142,22 +147,107 @@ final class FormSubmissionService
      *
      * @return array<string, mixed> the data as it was saved
      *
-     * @throws FormException `error.stale` | `error.no_draft`
+     * @throws FormException `error.stale` | `error.no_draft` | `error.locked`
      */
     public function save(FormSubmission $submission, array $raw, int $baseVersion, Teacher $by): array
     {
         if (!$submission->hasDraft()) {
             throw new FormException('error.no_draft');
         }
+        $this->acquireLock($submission, $by);
         if ($baseVersion !== $submission->getDraftVersion()) {
             throw new FormException('error.stale');
         }
 
-        $data = $this->normalizer->normalize($submission->getModelRevision()->getDefinition(), $raw);
+        $definition = $submission->getModelRevision()->getDefinition();
+        $data       = $this->normalizer->normalize($definition, $raw);
+        $this->recordChanges($submission, $definition, $submission->getDraftData() ?? [], $data, $by);
         $submission->saveDraft($data, $by);
         $this->em->flush();
 
         return $data;
+    }
+
+    // ── Edit lock: one person at a time ──────────────────────────────────────
+
+    /** Seconds the lock lasts without activity: saving and the page's heartbeat renew it. */
+    public const int LOCK_SECONDS = 300;
+
+    public function lockHolder(FormSubmission $submission): ?Teacher
+    {
+        return $submission->getLockHolder($this->clock->now());
+    }
+
+    /**
+     * Takes the edit lock of a draft, or renews it when it is already the teacher's. Nothing is flushed here when only renewing is
+     * not needed: callers flush.
+     *
+     * @throws FormException `error.locked` when somebody else holds it
+     */
+    public function acquireLock(FormSubmission $submission, Teacher $by): void
+    {
+        $holder = $this->lockHolder($submission);
+        if ($holder !== null && !$holder->getId()->equals($by->getId())) {
+            throw new FormException('error.locked');
+        }
+        $submission->lock($by, $this->clock->now()->modify('+' . self::LOCK_SECONDS . ' seconds'));
+    }
+
+    /** Takes the lock whoever holds it (the previous holder finds out the next time they save). */
+    public function takeOver(FormSubmission $submission, Teacher $by): void
+    {
+        $submission->lock($by, $this->clock->now()->modify('+' . self::LOCK_SECONDS . ' seconds'));
+        $this->em->flush();
+    }
+
+    // ── History of a value ───────────────────────────────────────────────────
+
+    /**
+     * Writes one change for every value that differs between what was saved and what is being saved. The same person changing the
+     * same value again within two minutes amends the last change, so typing a sentence is one entry, not one per keystroke.
+     *
+     * @param array<string, mixed> $definition
+     * @param array<string, mixed> $before
+     * @param array<string, mixed> $after
+     */
+    private function recordChanges(FormSubmission $submission, array $definition, array $before, array $after, Teacher $by): void
+    {
+        $old = $this->flat->flatten($definition, $before);
+        $new = $this->flat->flatten($definition, $after);
+
+        foreach ($new + $old as $id => $entry) {
+            $from = $old[$id]['value'] ?? null;
+            $to   = $new[$id]['value'] ?? null;
+            if ($from === $to) {
+                continue;
+            }
+            $last = $this->changes->findLastForValue($submission, $entry['block'], $entry['path'], $entry['row'], $entry['column']);
+            $json = $to === null ? null : json_encode($to, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            if ($last !== null && $last->getChangedBy()?->getId()->equals($by->getId()) === true && $last->getChangedAt() > $this->clock->now()->modify('-120 seconds')) {
+                $last->amend($json);
+                continue;
+            }
+            $this->em->persist(new FormFieldChange(
+                $submission,
+                $entry['block'],
+                $entry['path'],
+                $entry['row'],
+                $entry['column'],
+                $from === null ? null : json_encode($from, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                $json,
+                $by,
+            ));
+        }
+    }
+
+    /**
+     * The changes of one value, newest first.
+     *
+     * @return list<FormFieldChange>
+     */
+    public function historyOf(FormSubmission $submission, string $block, string $path, ?string $row, ?string $column): array
+    {
+        return $this->changes->findForValue($submission, $block, $path, $row, $column);
     }
 
     /**
@@ -185,6 +275,10 @@ final class FormSubmissionService
         if (!$submission->hasDraft()) {
             throw new FormException('error.no_draft');
         }
+        $holder = $this->lockHolder($submission);
+        if ($holder !== null && !$holder->getId()->equals($by->getId())) {
+            throw new FormException('error.locked');
+        }
         $problems = $this->validator->blocking($this->problems($submission));
         if ($problems !== []) {
             throw new FormException('error.not_ready', $problems);
@@ -203,25 +297,33 @@ final class FormSubmissionService
         $content = $this->pdf->buildForRevision($modelRevision, $data, $folder->getEducationalCentre(), $slot->displayName, false, $this->contextFor($activity, $slot, $submission->getCycleYear()));
         $file    = $this->documents->storeFile($content, 'application/pdf', $slot->displayName . '.pdf');
 
+        // A model with an approval chain: the revision waits for its steps whatever the folder asks.
+        $hasChain = FormApprovalChain::defines($definition);
+
         $document = $submission->getDocument();
         if ($document === null) {
             // Same identity rule as an uploaded file: whoever is assigned to an individual slot is its uploader.
-            $document = $this->documents->createFromStoredFile($folder, $slot->displayName, $slot->profile, $slot->listItem, $file, $slot->teacher ?? $by);
+            $document = $this->documents->createFromStoredFile($folder, $slot->displayName, $slot->profile, $slot->listItem, $file, $slot->teacher ?? $by, null, $hasChain);
             $submission->setDocument($document);
             $revision = $document->getRevisions()->first();
             if ($revision === false) {
                 throw new FormException('error.no_revision');
             }
         } else {
-            $revision = $this->documents->addRevision($document, $file, $by);
+            $revision = $this->documents->addRevision($document, $file, $by, null, $hasChain);
         }
 
-        $this->em->persist(new FormSubmissionRevision($submission, $revision, $modelRevision, $data));
-        $submission->closeDraft();
+        $filled = new FormSubmissionRevision($submission, $revision, $modelRevision, $data);
+        $this->em->persist($filled);
+        if ($hasChain) {
+            $this->chain->start($filled, $folder->getEducationalCentre());
+        }
+        $submission->closeDraft()->releaseLock();
         $this->em->flush();
 
         $this->logger->record('form_submission.deliver', ['activity' => $activity->getTitle(), 'document' => $document->getName(), 'version' => $revision->getVersion()], $folder->getEducationalCentre());
-        if ($revision->isPendingReview()) {
+        // With a chain the folder's reviewers are not the ones who decide: the people of the first step find it waiting for them.
+        if ($revision->isPendingReview() && !$hasChain) {
             $this->notifier->notifyReviewers($revision);
         }
 

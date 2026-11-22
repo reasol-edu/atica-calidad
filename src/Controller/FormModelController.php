@@ -7,9 +7,11 @@ namespace App\Controller;
 use App\Attribute\CurrentCentre;
 use App\Entity\EducationalCentre;
 use App\Entity\FormModel;
+use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Repository\FolderRepository;
 use App\Repository\FormModelRepository;
+use App\Repository\SpecificProfileRepository;
 use App\Security\Voter\QualityVoter;
 use App\Service\Form\FormDataNormalizer;
 use App\Service\Form\FormDefinition;
@@ -36,6 +38,7 @@ class FormModelController extends AbstractController
     public function __construct(
         private readonly FormModelRepository $models,
         private readonly FolderRepository $folders,
+        private readonly SpecificProfileRepository $profiles,
         private readonly FormModelService $service,
         private readonly FormDefinitionNormalizer $definitions,
         private readonly FormDataNormalizer $data,
@@ -92,13 +95,14 @@ class FormModelController extends AbstractController
             'centre'   => $centre,
             'model'    => $model,
             'document' => $model->getDocument(),
-            'problems' => $this->translateProblems($this->definitions->problems($this->definitions->normalize($model->getDraftDefinition()))),
+            'problems' => $this->translateProblems($this->service->problems($this->definitions->normalize($model->getDraftDefinition()), $centre)),
             'editor'   => [
                 'definition' => $model->getDraftDefinition(),
                 'version'    => $model->getDraftVersion(),
                 'code'       => $model->getCode(),
                 'saveUrl'    => $this->generateUrl('app_form_model_save', ['id' => $id]),
                 'csrf'       => $this->csrf->getToken('form_model_' . $id)->getValue(),
+                'profiles'   => array_map(static fn (SpecificProfile $p): array => ['id' => $p->getId()->toRfc4122(), 'name' => $p->getName()], $this->profiles->findByCentre($centre)),
             ],
         ]);
     }
@@ -132,7 +136,7 @@ class FormModelController extends AbstractController
         return new JsonResponse([
             'version'    => $model->getDraftVersion(),
             'definition' => $model->getDraftDefinition(),
-            'problems'   => $this->translateProblems($this->definitions->problems($model->getDraftDefinition())),
+            'problems'   => $this->translateProblems($this->service->problems($model->getDraftDefinition(), $centre)),
         ]);
     }
 

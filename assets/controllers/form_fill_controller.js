@@ -44,6 +44,10 @@ export default class extends Controller {
 
         this.onHide = () => { if (this.dirty && !this.stale) { this.save(true); } };
         window.addEventListener('pagehide', this.onHide);
+        // Keeps the edit lock while the page stays open (it lasts a few minutes without activity).
+        if (!this.readOnly && this.configValue.heartbeatUrl) {
+            this.beat = setInterval(() => this.heartbeat(), 60000);
+        }
         if (this.hasDeliverTarget) {
             this.onSubmit = async (event) => {
                 if (this.dirty || this.saving) {
@@ -61,7 +65,26 @@ export default class extends Controller {
         this.render();
     }
 
+    async heartbeat() {
+        if (this.stale || document.hidden) {
+            return;
+        }
+        try {
+            const response = await fetch(this.configValue.heartbeatUrl, { method: 'POST', headers: { 'X-CSRF-Token': this.configValue.csrf } });
+            if (response.status === 409) {
+                const body = await response.json().catch(() => ({}));
+                this.stale = true;
+                this.readOnly = true;
+                this.setStatus(body.message || this.l.stale, 'text-red-700');
+                this.render();
+            }
+        } catch (e) {
+            // Offline: the next beat or save tries again.
+        }
+    }
+
     disconnect() {
+        clearInterval(this.beat);
         clearTimeout(this.timer);
         window.removeEventListener('pagehide', this.onHide);
         if (this.hasDeliverTarget && this.onSubmit) {
@@ -130,8 +153,9 @@ export default class extends Controller {
             });
             const body = await response.json().catch(() => ({}));
             if (response.status === 409) {
+                // Another tab saved in between, or somebody took over the editing: either way, nothing more is saved from here.
                 this.stale = true;
-                this.setStatus(this.l.stale, 'text-red-700');
+                this.setStatus(body.message || this.l.stale, 'text-red-700');
                 return;
             }
             if (!response.ok) {
@@ -328,10 +352,63 @@ export default class extends Controller {
         ]);
     }
 
+    /**
+     * "Historial" under a field or a text: who changed it, when, from what, with a button to put an earlier value back. The panel
+     * loads when it is opened.
+     */
+    historyEl(block, inst) {
+        if (!this.configValue.historyUrl) {
+            return null;
+        }
+        const panel = h('div', { class: 'mt-1 hidden rounded-lg border border-gray-200 bg-gray-50 p-2 text-xs text-gray-700' });
+        const show = (value) => {
+            if (value === null || value === undefined) {
+                return '—';
+            }
+            const text = block.type === 'text' ? String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : format(block, value, this.l);
+            return text.length > 120 ? text.slice(0, 120) + '…' : (text || '—');
+        };
+        const restore = (value) => {
+            if (block.type === 'text') {
+                const html = value || '';
+                inst.scope.texts[block.key] = { html, modified: block.mode === 'starter' && html !== (block.html || '') };
+                if (html === '' && block.mode === 'fill') { delete inst.scope.texts[block.key]; }
+            } else {
+                this.setIn(inst.scope.fields, block.key, value);
+            }
+            this.refresh();
+        };
+        const load = async () => {
+            panel.textContent = this.l.history_loading;
+            try {
+                const response = await fetch(this.configValue.historyUrl + '?block=' + encodeURIComponent(block.key) + '&path=' + encodeURIComponent(inst.path));
+                const body = await response.json();
+                const list = body.changes || [];
+                panel.replaceChildren(...(list.length === 0
+                    ? [h('p', { text: this.l.history_empty })]
+                    : list.map((c) => h('div', { class: 'flex flex-wrap items-baseline gap-x-2 py-0.5' }, [
+                        h('span', { class: 'text-gray-500', text: new Date(c.at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) + ' · ' + (c.by || '') }),
+                        h('span', { class: 'min-w-0 break-words', text: '«' + show(c.old) + '» → «' + show(c.new) + '»' }),
+                        ...(this.readOnly ? [] : [h('button', { type: 'button', class: 'underline decoration-dotted hover:text-forest-700', text: this.l.history_restore, onclick: () => restore(c.old) })]),
+                    ]))));
+            } catch (e) {
+                panel.textContent = '—';
+            }
+        };
+        const button = h('button', {
+            type: 'button', class: 'mt-1 text-xs text-gray-400 underline decoration-dotted hover:text-forest-700', text: this.l.history,
+            onclick: () => { panel.classList.toggle('hidden'); if (!panel.classList.contains('hidden')) { load(); } },
+        });
+
+        return h('div', {}, [button, panel]);
+    }
+
     blockEl(block, inst) {
         const wrap = (content) => h('div', { id: 'blk-' + inst.path + '-' + block.key }, content);
         if (block.type === 'text') {
-            return wrap(this.textEl(block, inst));
+            const text = this.textEl(block, inst);
+
+            return wrap(block.mode === 'fixed' ? text : [...text, this.historyEl(block, inst)]);
         }
         if (block.type === 'field') {
             const id = 'f-' + inst.path + '-' + block.key;
@@ -343,6 +420,7 @@ export default class extends Controller {
                 this.labelEl(block, inst, id),
                 control,
                 ...(block.help ? [h('p', { class: 'mt-1 text-xs text-gray-500', text: block.help })] : []),
+                block.fieldType === 'calculated' ? null : this.historyEl(block, inst),
             ]);
         }
         return wrap(this.tableEl(block, inst));

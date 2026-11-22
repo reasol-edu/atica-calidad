@@ -24,6 +24,7 @@ final class FormDefinitionNormalizer
     public const int MAX_OPTIONS    = 100;
     public const int MAX_FIXED_ROWS = 200;
     public const int MAX_RULES      = 100;
+    public const int MAX_APPROVAL_STEPS = 10;
 
     private int $sections = 0;
     private int $blocks   = 0;
@@ -65,7 +66,17 @@ final class FormDefinitionNormalizer
             ];
         }
 
-        return ['version' => FormDefinition::VERSION, 'sections' => $sections, 'rules' => $rules];
+        // The approval chain: ordered steps, each decided by whoever holds a profile of the centre.
+        $approval = [];
+        foreach (array_slice(FormDefinition::listOf($raw['approval'] ?? []), 0, self::MAX_APPROVAL_STEPS) as $step) {
+            $approval[] = [
+                'key'     => $this->key($step['key'] ?? null),
+                'name'    => $this->text($step['name'] ?? '', 255),
+                'profile' => $this->reference($step['profile'] ?? null) ?? '',
+            ];
+        }
+
+        return ['version' => FormDefinition::VERSION, 'sections' => $sections, 'rules' => $rules, 'approval' => $approval];
     }
 
     /**
@@ -122,6 +133,15 @@ final class FormDefinitionNormalizer
             $problems[] = ['code' => 'empty', 'params' => []];
         }
         $this->checkCalculations($definition, $problems);
+        foreach (FormDefinition::listOf($definition['approval'] ?? []) as $step) {
+            if (FormDefinition::str($step['name'] ?? '') === '') {
+                $problems[] = ['code' => 'approval_step_without_name', 'params' => []];
+            }
+            // A chain imported from another centre arrives without profiles: it cannot be approved until each step has one.
+            if (FormDefinition::str($step['profile'] ?? '') === '') {
+                $problems[] = ['code' => 'approval_step_without_profile', 'params' => ['%name%' => FormDefinition::str($step['name'] ?? '')]];
+            }
+        }
 
         return $problems;
     }

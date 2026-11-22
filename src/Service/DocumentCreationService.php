@@ -101,6 +101,7 @@ final class DocumentCreationService
         DocumentFile $documentFile,
         Teacher $uploader,
         ?int $version = null,
+        bool $forceReview = false,
     ): Document {
         $version ??= $this->versioning->minimum($folder->getEducationalCentre());
 
@@ -109,7 +110,8 @@ final class DocumentCreationService
         $document->setPosition($this->documents->nextPositionInFolder($folder));
         $this->em->persist($document);
 
-        $pendingReview = $folder->requiresReview();
+        // $forceReview: a document with an approval chain of its own is pending whatever the folder asks.
+        $pendingReview = $forceReview || $folder->requiresReview();
         $revision      = new DocumentRevision($document, $version, $documentFile, $pendingReview, $uploader);
         $this->em->persist($revision);
         // DocumentRevision's constructor only sets its own $document reference (the owning
@@ -130,9 +132,9 @@ final class DocumentCreationService
      * A new revision of an existing document, with the next version number: pending when the folder requires review, active at
      * once otherwise (the same rule as an upload in the tree). Persists but never flushes, and does not notify the reviewers.
      */
-    public function addRevision(Document $document, DocumentFile $documentFile, Teacher $uploader, ?string $description = null): DocumentRevision
+    public function addRevision(Document $document, DocumentFile $documentFile, Teacher $uploader, ?string $description = null, bool $forceReview = false): DocumentRevision
     {
-        $pendingReview = $document->getFolder()->requiresReview();
+        $pendingReview = $forceReview || $document->getFolder()->requiresReview();
         $revision      = new DocumentRevision($document, $document->getNextVersion(), $documentFile, $pendingReview, $uploader);
         $revision->setDescription($description);
         $this->em->persist($revision);

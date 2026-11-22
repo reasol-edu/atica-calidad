@@ -1,63 +1,111 @@
-{# A resolved document (App\Service\Form\FormResolver) as the web shows it: the same as the PDF. #}
-{% macro section(s, blank) %}
-    <section id="s-{{ s.key }}" class="mt-6">
+{#
+   A resolved document (App\Service\Form\FormResolver) as the web shows it: the same as the PDF. `ctx`, when given (the review page),
+   adds the comments reviewers left on each part and the means to leave one: { comments: {"path|key": [...]}, canComment, token,
+   postUrl, revisionId }.
+#}
+{% macro comments(ctx, where, key) %}
+    {% if ctx is not null %}
+        {% set list = ctx.comments[where ~ '|' ~ key] ?? [] %}
+        {% if list is not empty or ctx.canComment %}
+            <div class="mt-1 space-y-1 border-l-2 border-amber-200 pl-3">
+                {% for c in list %}
+                    <div class="rounded-lg px-3 py-2 text-sm {{ c.resolved ? 'bg-gray-50 text-gray-500' : 'bg-amber-50 text-amber-900' }}">
+                        <p class="text-xs font-medium">{{ c.author }} · {{ c.at|date('d/m/Y H:i') }}{% if c.resolved %} · {{ 'review.resolved'|trans({}, 'forms') }}{% endif %}</p>
+                        <p class="whitespace-pre-line break-words">{{ c.body }}</p>
+                        {% if ctx.canComment %}
+                            <form method="post" action="{{ path('app_form_comment_resolve', {revisionId: ctx.revisionId, commentId: c.id}) }}" class="mt-1">
+                                <input type="hidden" name="_token" value="{{ ctx.token }}">
+                                <button type="submit" class="text-xs font-medium underline decoration-dotted">{{ (c.resolved ? 'review.reopen' : 'review.resolve')|trans({}, 'forms') }}</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                {% if ctx.canComment %}
+                    <details>
+                        <summary class="cursor-pointer text-xs text-gray-500 hover:text-forest-700">{{ 'review.comment_add'|trans({}, 'forms') }}</summary>
+                        <form method="post" action="{{ ctx.postUrl }}" class="mt-1 space-y-1">
+                            <input type="hidden" name="_token" value="{{ ctx.token }}">
+                            <input type="hidden" name="anchor" value="{{ key }}">
+                            <input type="hidden" name="path" value="{{ where }}">
+                            <textarea name="body" rows="2" maxlength="2000" required aria-label="{{ 'review.comment_add'|trans({}, 'forms') }}" class="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-forest-500 focus:ring-forest-500"></textarea>
+                            <button type="submit" class="rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-forest-700">{{ 'review.comment_send'|trans({}, 'forms') }}</button>
+                        </form>
+                    </details>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
+{% macro section(s, blank, ctx) %}
+    <section id="blk-{{ s.path }}-{{ s.key }}" class="mt-6">
         {% if s.title %}
             {% set tag = 'h' ~ min(s.level + 1, 5) %}
             <{{ tag }} class="{{ s.level == 1 ? 'text-lg border-b border-gray-200 pb-1' : 'text-base' }} font-semibold text-gray-900">
                 {% if s.number %}<span class="text-forest-700">{{ s.number }}.</span> {% endif %}{{ s.title }}
             </{{ tag }}>
         {% endif %}
+        {{ _self.comments(ctx, s.path, s.key) }}
         <div class="mt-2 space-y-3">
             {% for b in s.blocks %}
                 {% if b.kind == 'text' %}
-                    {% if b.label %}<p class="text-sm font-medium text-gray-600">{{ b.label }}</p>{% endif %}
-                    {% if b.empty %}
-                        {% if blank and b.label %}<div class="h-16 rounded-lg border border-dashed border-gray-300"></div>{% endif %}
-                    {% else %}
-                        <div class="prose prose-sm max-w-none text-gray-800">{{ b.html|sanitize_html('app.rich_text') }}</div>
-                    {% endif %}
+                    <div id="blk-{{ s.path }}-{{ b.key }}">
+                        {% if b.label %}<p class="text-sm font-medium text-gray-600">{{ b.label }}</p>{% endif %}
+                        {% if b.empty %}
+                            {% if blank and b.label %}<div class="h-16 rounded-lg border border-dashed border-gray-300"></div>{% endif %}
+                        {% else %}
+                            <div class="prose prose-sm max-w-none text-gray-800">{{ b.html|sanitize_html('app.rich_text') }}</div>
+                        {% endif %}
+                        {{ _self.comments(ctx, s.path, b.key) }}
+                    </div>
                 {% elseif b.kind == 'fields' %}
                     <dl class="grid grid-cols-1 overflow-hidden rounded-xl border border-gray-200 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
                         {% for item in b.items %}
                             <dt class="bg-gray-50 px-3 py-2 text-sm font-medium text-gray-600 sm:border-t sm:border-gray-200 {{ loop.first ? 'sm:border-t-0' : '' }}">{{ item.label }}</dt>
-                            <dd class="px-3 py-2 text-sm text-gray-900 break-words sm:border-t sm:border-gray-200 {{ loop.first ? 'sm:border-t-0' : '' }}">{{ item.empty ? '—' : item.value }}</dd>
+                            <dd id="blk-{{ s.path }}-{{ item.key }}" class="px-3 py-2 text-sm text-gray-900 break-words sm:border-t sm:border-gray-200 {{ loop.first ? 'sm:border-t-0' : '' }}">
+                                {{ item.empty ? '—' : item.value }}
+                                {{ _self.comments(ctx, s.path, item.key) }}
+                            </dd>
                         {% endfor %}
                     </dl>
                 {% elseif b.kind == 'table' %}
-                    {% if b.label %}<p class="text-sm font-medium text-gray-600">{{ b.label }}</p>{% endif %}
-                    <div class="overflow-x-auto rounded-xl border border-gray-200">
-                        <table class="min-w-full text-sm">
-                            <thead class="bg-gray-50 text-left text-gray-600">
-                                <tr>
-                                    {% if b.fixed %}<th scope="col" class="px-3 py-2 font-medium">{{ b.rowHeader }}</th>{% endif %}
-                                    {% for c in b.columns %}<th scope="col" class="px-3 py-2 font-medium">{{ c }}</th>{% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                {% for r in b.rows %}
+                    <div id="blk-{{ s.path }}-{{ b.key }}">
+                        {% if b.label %}<p class="text-sm font-medium text-gray-600">{{ b.label }}</p>{% endif %}
+                        <div class="overflow-x-auto rounded-xl border border-gray-200">
+                            <table class="min-w-full text-sm">
+                                <thead class="bg-gray-50 text-left text-gray-600">
                                     <tr>
-                                        {% if b.fixed %}<th scope="row" class="px-3 py-2 text-left font-normal text-gray-700">{{ r.label }}</th>{% endif %}
-                                        {% for cell in r.cells %}<td class="px-3 py-2 text-gray-900">{{ cell }}</td>{% endfor %}
+                                        {% if b.fixed %}<th scope="col" class="px-3 py-2 font-medium">{{ b.rowHeader }}</th>{% endif %}
+                                        {% for c in b.columns %}<th scope="col" class="px-3 py-2 font-medium">{{ c }}</th>{% endfor %}
                                     </tr>
-                                {% else %}
-                                    <tr><td colspan="{{ b.columns|length + (b.fixed ? 1 : 0) }}" class="px-3 py-3 text-gray-400">—</td></tr>
-                                {% endfor %}
-                            </tbody>
-                            {% if b.totals %}
-                                <tfoot class="border-t border-gray-200 bg-gray-50 font-medium text-gray-900">
-                                    <tr>
-                                        {% if b.fixed %}<th scope="row" class="px-3 py-2 text-left">{{ 'view.total'|trans({}, 'forms') }}</th>{% endif %}
-                                        {% for t in b.totals %}<td class="px-3 py-2">{{ t }}</td>{% endfor %}
-                                    </tr>
-                                </tfoot>
-                            {% endif %}
-                        </table>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    {% for r in b.rows %}
+                                        <tr>
+                                            {% if b.fixed %}<th scope="row" class="px-3 py-2 text-left font-normal text-gray-700">{{ r.label }}</th>{% endif %}
+                                            {% for cell in r.cells %}<td class="px-3 py-2 text-gray-900">{{ cell }}</td>{% endfor %}
+                                        </tr>
+                                    {% else %}
+                                        <tr><td colspan="{{ b.columns|length + (b.fixed ? 1 : 0) }}" class="px-3 py-3 text-gray-400">—</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                                {% if b.totals %}
+                                    <tfoot class="border-t border-gray-200 bg-gray-50 font-medium text-gray-900">
+                                        <tr>
+                                            {% if b.fixed %}<th scope="row" class="px-3 py-2 text-left">{{ 'view.total'|trans({}, 'forms') }}</th>{% endif %}
+                                            {% for t in b.totals %}<td class="px-3 py-2">{{ t }}</td>{% endfor %}
+                                        </tr>
+                                    </tfoot>
+                                {% endif %}
+                            </table>
+                        </div>
+                        {{ _self.comments(ctx, s.path, b.key) }}
                     </div>
                 {% endif %}
             {% endfor %}
         </div>
-        {% for child in s.children %}{{ _self.section(child, blank) }}{% endfor %}
+        {% for child in s.children %}{{ _self.section(child, blank, ctx) }}{% endfor %}
     </section>
 {% endmacro %}
 
-{% for s in sections %}{{ _self.section(s, blank|default(false)) }}{% endfor %}
+{% for s in sections %}{{ _self.section(s, blank|default(false), ctx|default(null)) }}{% endfor %}

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Service\Form;
 
 use App\Entity\Document;
+use App\Entity\EducationalCentre;
+use App\Repository\SpecificProfileRepository;
 use App\Entity\DocumentRevision;
 use App\Entity\Folder;
 use App\Entity\FormModel;
@@ -32,6 +34,7 @@ final class FormModelService
         private readonly FormPdfBuilder $pdf,
         private readonly DocumentReviewNotifier $notifier,
         private readonly ActivityLogger $logger,
+        private readonly SpecificProfileRepository $profiles,
     ) {}
 
     /** Persists and flushes the model and its document (which has no revision until the first one is sent to review). */
@@ -68,6 +71,27 @@ final class FormModelService
     }
 
     /**
+     * What stops a (normalized) definition from being sent to review: what the definition itself says is wrong, and the profiles of
+     * the approval chain that do not exist in this centre.
+     *
+     * @param array<string, mixed> $definition
+     *
+     * @return list<array{code: string, params: array<string, string>}>
+     */
+    public function problems(array $definition, EducationalCentre $centre): array
+    {
+        $problems = $this->definitions->problems($definition);
+        foreach (FormDefinition::listOf($definition['approval'] ?? []) as $step) {
+            $profile = FormDefinition::str($step['profile'] ?? '');
+            if ($profile !== '' && $this->profiles->findByIdAndCentre($profile, $centre) === null) {
+                $problems[] = ['code' => 'approval_profile_missing', 'params' => ['%name%' => FormDefinition::str($step['name'] ?? '')]];
+            }
+        }
+
+        return $problems;
+    }
+
+    /**
      * Freezes the draft as the next revision of the document and sends it to review.
      *
      * @throws FormException `error.model_problems` (with what to fix) when the draft cannot work yet
@@ -75,14 +99,14 @@ final class FormModelService
     public function sendToReview(FormModel $model, Teacher $by, ?string $description): DocumentRevision
     {
         $definition = $this->definitions->normalize($model->getDraftDefinition());
-        $problems   = $this->definitions->problems($definition);
+        $document   = $model->getDocument();
+        $folder     = $document->getFolder();
+        $centre     = $folder->getEducationalCentre();
+
+        $problems = $this->problems($definition, $centre);
         if ($problems !== []) {
             throw new FormException('error.model_problems', $problems);
         }
-
-        $document = $model->getDocument();
-        $folder   = $document->getFolder();
-        $centre   = $folder->getEducationalCentre();
 
         // The blank PDF is what the tree downloads, the search reads and the reviewers open.
         $version = $document->getNextVersion();

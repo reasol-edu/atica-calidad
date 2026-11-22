@@ -12,15 +12,14 @@ use App\Entity\Teacher;
 use App\Model\ActivitySubmissionSlot;
 use App\Model\ActivityWindowBlock;
 use App\Repository\ActivityRepository;
-use App\Repository\FormSubmissionRevisionRepository;
 use App\Security\Voter\EducationalCentreVoter;
-use App\Security\Voter\FolderVoter;
 use App\Service\ActivityWindowChecker;
 use App\Service\Form\FormDefinition;
 use App\Service\Form\FormException;
 use App\Service\Form\FormResolver;
 use App\Service\Form\FormSlotAccess;
 use App\Service\Form\FormSubmissionService;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -39,12 +38,12 @@ class FormFillController extends AbstractController
     public function __construct(
         private readonly ActivityRepository $activities,
         private readonly FormSubmissionService $service,
-        private readonly FormSubmissionRevisionRepository $revisions,
         private readonly FormSlotAccess $slotAccess,
         private readonly ActivityWindowChecker $windows,
         private readonly FormResolver $resolver,
         private readonly TranslatorInterface $translator,
         private readonly CsrfTokenManagerInterface $csrf,
+        private readonly EntityManagerInterface $em,
     ) {}
 
     #[Route('/actividades/{activityId}/formulario/{slotKey}', name: 'app_form_fill', methods: ['GET'])]
@@ -82,19 +81,33 @@ class FormFillController extends AbstractController
             $revision = $submission->getModelRevision();
             $id       = $submission->getId()->toRfc4122();
             $base     = ['activityId' => $activityId, 'slotKey' => $slotKey];
-            $view    += [
+
+            // One person at a time: whoever opens a free draft takes it (and keeps it with the heartbeat); somebody else sees it read-only.
+            $holder        = $this->service->lockHolder($submission);
+            $lockedByOther = $holder !== null && !$holder->getId()->equals($teacher->getId());
+            if (!$lockedByOther && !$window->blocked) {
+                $this->service->takeOver($submission, $teacher);
+            }
+            $readOnly = $window->blocked || $lockedByOther;
+
+            $view += [
                 'editor' => [
-                    'definition' => $revision->getDefinition(),
-                    'data'       => $submission->getDraftData(),
-                    'version'    => $submission->getDraftVersion(),
-                    'saveUrl'    => $this->generateUrl('app_form_save', $base),
-                    'csrf'       => $this->csrf->getToken($token)->getValue(),
-                    'readOnly'   => $window->blocked,
-                    'context'    => $this->service->contextFor($activity, $slot, $submission->getCycleYear()),
-                    'id'         => $id,
+                    'definition'   => $revision->getDefinition(),
+                    'data'         => $submission->getDraftData(),
+                    'version'      => $submission->getDraftVersion(),
+                    'saveUrl'      => $this->generateUrl('app_form_save', $base),
+                    'heartbeatUrl' => $this->generateUrl('app_form_heartbeat', $base),
+                    'historyUrl'   => $this->generateUrl('app_form_history', $base),
+                    'csrf'         => $this->csrf->getToken($token)->getValue(),
+                    'readOnly'     => $readOnly,
+                    'context'      => $this->service->contextFor($activity, $slot, $submission->getCycleYear()),
+                    'id'           => $id,
                 ],
-                'problems' => $window->blocked ? [] : $this->problemLists($submission)['problems'],
-                'warnings' => $window->blocked ? [] : $this->problemLists($submission)['warnings'],
+                'lockedBy'    => $lockedByOther ? $holder : null,
+                'lockedUntil' => $submission->getLockedUntil(),
+                'canEdit'     => !$readOnly,
+                'problems'    => $readOnly ? [] : $this->problemLists($submission)['problems'],
+                'warnings'    => $readOnly ? [] : $this->problemLists($submission)['warnings'],
             ];
         } elseif ($last !== null) {
             $definition = $last->getModelRevision()->getDefinition();
@@ -136,6 +149,63 @@ class FormFillController extends AbstractController
         }
 
         return new JsonResponse(['version' => $submission->getDraftVersion()] + $this->problemLists($submission));
+    }
+
+    /** Keeps the edit lock while the page is open and nobody is typing: 200 while it is the teacher's, 409 once somebody took it. */
+    #[Route('/actividades/{activityId}/formulario/{slotKey}/latido', name: 'app_form_heartbeat', methods: ['POST'])]
+    public function heartbeat(string $activityId, string $slotKey, Request $request, #[CurrentCentre] EducationalCentre $centre): JsonResponse
+    {
+        [$activity, $slot, $teacher] = $this->context($activityId, $slotKey, $centre, true);
+        $submission = $this->service->open($activity, $slot);
+        if (!$this->isCsrfTokenValid('form_fill_' . $submission->getId()->toRfc4122(), $request->headers->get('X-CSRF-Token', ''))) {
+            return new JsonResponse(['error' => 'csrf'], Response::HTTP_FORBIDDEN);
+        }
+        try {
+            $this->service->acquireLock($submission, $teacher);
+            $this->em->flush();
+        } catch (FormException $e) {
+            return new JsonResponse(['error' => $e->getMessage(), 'message' => $this->translator->trans('fill.' . $e->getMessage(), [], 'forms')], Response::HTTP_CONFLICT);
+        }
+
+        return new JsonResponse(['ok' => true]);
+    }
+
+    /** "Take control": the editor the page shows read-only because somebody else holds the lock. */
+    #[Route('/actividades/{activityId}/formulario/{slotKey}/tomar', name: 'app_form_take', methods: ['POST'])]
+    public function take(string $activityId, string $slotKey, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
+    {
+        [$activity, $slot, $teacher] = $this->context($activityId, $slotKey, $centre, true);
+        $submission = $this->service->open($activity, $slot);
+        $this->checkToken($request, $submission->getId()->toRfc4122(), 'take');
+        $this->service->takeOver($submission, $teacher);
+
+        return $this->redirectToRoute('app_form_fill', ['activityId' => $activityId, 'slotKey' => $slotKey]);
+    }
+
+    /**
+     * The history of one value: ?block=&path=&row=&col= → [{ at, by, old, new }], newest first. Values come as the JSON they were
+     * stored in. Only for whoever can fill the slot (the history of a draft is the authors' business).
+     */
+    #[Route('/actividades/{activityId}/formulario/{slotKey}/historial', name: 'app_form_history', methods: ['GET'])]
+    public function history(string $activityId, string $slotKey, Request $request, #[CurrentCentre] EducationalCentre $centre): JsonResponse
+    {
+        [$activity, $slot] = $this->context($activityId, $slotKey, $centre);
+        $submission = $this->service->open($activity, $slot);
+
+        $row    = $request->query->getString('row');
+        $column = $request->query->getString('col');
+        $changes = [];
+        foreach ($this->service->historyOf($submission, $request->query->getString('block'), $request->query->getString('path'), $row === '' ? null : $row, $column === '' ? null : $column) as $change) {
+            $author    = $change->getChangedBy();
+            $changes[] = [
+                'at'  => $change->getChangedAt()->format(\DATE_ATOM),
+                'by'  => $author === null ? '' : $author->getName()->getFirstName() . ' ' . $author->getName()->getLastName(),
+                'old' => $change->getOldValue() === null ? null : json_decode($change->getOldValue(), true),
+                'new' => $change->getNewValue() === null ? null : json_decode($change->getNewValue(), true),
+            ];
+        }
+
+        return new JsonResponse(['changes' => $changes]);
     }
 
     #[Route('/actividades/{activityId}/formulario/{slotKey}/entregar', name: 'app_form_deliver', methods: ['POST'])]
@@ -185,37 +255,6 @@ class FormFillController extends AbstractController
         $this->service->discardDraft($submission);
 
         return $this->redirectToRoute('app_form_fill', ['activityId' => $activityId, 'slotKey' => $slotKey]);
-    }
-
-    /** The web view of a delivered revision (what the PDF shows), for whoever can see its folder. */
-    #[Route('/formularios/revision/{revisionId}', name: 'app_form_revision_view', methods: ['GET'])]
-    public function view(string $revisionId, #[CurrentCentre] EducationalCentre $centre): Response
-    {
-        $filled = $this->revisions->findByRevisionId($revisionId);
-        if ($filled === null) {
-            throw $this->createNotFoundException();
-        }
-        $document = $filled->getRevision()->getDocument();
-        $folder   = $document->getFolder();
-        if ($folder->getEducationalCentre()->getId()->toRfc4122() !== $centre->getId()->toRfc4122()) {
-            throw $this->createNotFoundException();
-        }
-        $this->denyAccessUnlessGranted(FolderVoter::VIEW, $folder);
-
-        $activity = $folder->getActivity();
-        $submission = $filled->getSubmission();
-        $context    = $activity === null
-            ? []
-            : $this->service->contextFor($activity, $this->service->slotFor($activity, $submission->getSlotKey()), $submission->getCycleYear());
-
-        return $this->render('form/preview.html.twig', [
-            'centre'   => $centre,
-            'title'    => $document->getName(),
-            'code'     => $filled->getModelRevision()->getCode(),
-            'sections' => $this->resolver->resolve($filled->getModelRevision()->getDefinition(), $filled->getData(), $context),
-            'backUrl'  => $activity === null ? $this->generateUrl('app_document_tree') : $this->backUrl($activity),
-            'blank'    => false,
-        ]);
     }
 
     /**

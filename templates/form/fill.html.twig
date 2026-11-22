@@ -17,8 +17,24 @@
         <p class="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{{ (window.reason.value == 'before_start' ? 'fill.error.before_start' : 'fill.error.after_end')|trans({}, 'forms') }}</p>
     {% endif %}
 
+    {% if editor is defined and lockedBy is not null %}
+        {# Somebody else is editing this draft: one person at a time. #}
+        <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <span class="min-w-0 flex-1">{{ 'fill.locked_banner'|trans({'%name%': lockedBy.name.firstName ~ ' ' ~ lockedBy.name.lastName, '%time%': lockedUntil|date('H:i')}, 'forms') }}</span>
+            <form method="post" action="{{ path('app_form_take', {activityId: activity.id.toRfc4122, slotKey: slot.key}) }}" class="js-confirm-form"
+                  data-confirm="{{ 'fill.confirm_take'|trans({}, 'forms')|e('html_attr') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('form_take_' ~ submission.id.toRfc4122) }}">
+                <button type="submit" class="js-confirm-trigger rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-medium hover:bg-amber-100">{{ 'fill.take_over'|trans({}, 'forms') }}</button>
+            </form>
+        </div>
+    {% endif %}
+
     {% if editor is defined %}
         {% set labels = {
+            history: 'fill.history'|trans({}, 'forms'),
+            history_empty: 'fill.history_empty'|trans({}, 'forms'),
+            history_restore: 'fill.history_restore'|trans({}, 'forms'),
+            history_loading: 'fill.history_loading'|trans({}, 'forms'),
             saving: 'fill.saving'|trans({}, 'forms'),
             saved: 'fill.saved'|trans({}, 'forms'),
             offline: 'fill.offline'|trans({}, 'forms'),
@@ -85,6 +101,10 @@
             {% else %}<span class="rounded-full bg-forest-50 px-3 py-1 font-medium text-forest-700">{{ 'fill.status_approved'|trans({}, 'forms') }}</span>{% endif %}
             <span class="text-gray-500">{{ 'fill.version'|trans({'%version%': revision.version}, 'forms') }}</span>
             <span class="flex-1"></span>
+            <a href="{{ path('app_form_revision_view', {revisionId: revision.id.toRfc4122}) }}"
+               class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">
+                {{ ux_icon('heroicons:chat-bubble-left-right', {class: 'h-4 w-4'}) }}{{ 'review.open'|trans({}, 'forms') }}
+            </a>
             <a href="{{ path('app_folder_document_revision_download', {folderId: folderId, documentId: documentId, revisionId: revision.id.toRfc4122}) }}"
                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">
                 {{ ux_icon('heroicons:document-arrow-down', {class: 'h-4 w-4'}) }}PDF

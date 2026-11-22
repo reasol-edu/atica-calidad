@@ -32,6 +32,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   celda). Las **reglas de coherencia** («las horas de las unidades suman las del módulo», «cada RA suma 100 %») avisan a quien rellena o le
   impiden entregar, según las defina el modelo. La misma gramática se evalúa en el servidor y en el navegador, contrastadas con un mismo
   conjunto de casos de prueba.
+- **Modelos de documento: aprobación en varios pasos, comentarios, comparación, bloqueo e historial (fase 4).** El modelo puede definir una
+  **cadena de aprobación**: pasos ordenados, cada uno lo decide quien tenga su perfil; un rechazo (que exige explicar qué corregir) devuelve el
+  documento y la cadena vuelve a empezar desde el primer paso con la entrega siguiente. Ninguna pantalla de revisión puede aprobar saltándose
+  la cadena, y los pasos que le tocan a cada persona aparecen en su cola de revisión. Quien revisa puede **comentar partes concretas** del
+  documento, ver **qué ha cambiado respecto a una versión anterior** valor a valor, y quien rellena ve **el historial de cada campo** con la
+  posibilidad de restaurar un valor anterior. Mientras alguien edita un borrador, los demás lo ven en solo lectura (con aviso de quién lo tiene
+  y la opción de tomar el control). Migración nueva en las tres carpetas; probada en SQLite, PostgreSQL, MySQL y MariaDB.
 
 ## [2.6.0] - 2026-11-21
 

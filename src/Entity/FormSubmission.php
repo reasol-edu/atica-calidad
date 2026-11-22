@@ -56,6 +56,14 @@ class FormSubmission
     #[ORM\Column]
     private int $draftVersion = 1;
 
+    /** Who is editing the draft right now (one person at a time): the lock lasts until `lockedUntil` and is renewed by saving. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Teacher $lockedBy = null;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $lockedUntil = null;
+
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $updatedAt;
 
@@ -149,6 +157,33 @@ class FormSubmission
         $this->draftData = null;
         $this->updatedAt = now();
         ++$this->draftVersion;
+
+        return $this;
+    }
+
+    /** Who holds the edit lock, when it has not expired; null when the draft is free. */
+    public function getLockHolder(\DateTimeImmutable $now): ?Teacher
+    {
+        return $this->lockedBy !== null && $this->lockedUntil !== null && $this->lockedUntil > $now ? $this->lockedBy : null;
+    }
+
+    public function getLockedUntil(): ?\DateTimeImmutable
+    {
+        return $this->lockedUntil;
+    }
+
+    public function lock(Teacher $by, \DateTimeImmutable $until): static
+    {
+        $this->lockedBy    = $by;
+        $this->lockedUntil = $until;
+
+        return $this;
+    }
+
+    public function releaseLock(): static
+    {
+        $this->lockedBy    = null;
+        $this->lockedUntil = null;
 
         return $this;
     }

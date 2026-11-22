@@ -227,6 +227,7 @@ export default class extends Controller {
             ...(this.def.sections.length === 0 ? [h('p', { class: 'rounded-xl border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500', text: this.l.no_sections })] : []),
             h('button', { type: 'button', class: BTN + ' py-2', text: '+ ' + this.l.add_section, onclick: () => this.addSection(this.def.sections) }),
             this.rulesEl(),
+            this.approvalEl(),
         );
         this.outlineTarget.replaceChildren(...this.outlineItems(this.def.sections, numbers, 0));
         if (this.focusKey) {
@@ -237,6 +238,30 @@ export default class extends Controller {
             }
             this.focusKey = null;
         }
+    }
+
+    /** The approval chain of the documents filled with this model: ordered steps, each decided by whoever holds a profile of the centre. */
+    approvalEl() {
+        this.def.approval = Array.isArray(this.def.approval) ? this.def.approval : [];
+        const steps = this.def.approval;
+        const profiles = this.configValue.profiles || [];
+        const rows = steps.map((step, i) => h('div', { class: 'flex flex-wrap items-end gap-2 rounded-xl border border-gray-200 bg-white p-3' }, [
+            h('span', { class: 'w-6 pb-2 text-sm text-gray-400', text: (i + 1) + '.' }),
+            this.textInput(step, 'name', this.l.step_name, 'flex-1 basis-48', 255),
+            this.labelled(this.l.step_profile, this.select(step.profile || '', [['', this.l.no_profile], ...profiles.map((p) => [p.id, p.name])], (v) => { step.profile = v; this.touch(); }, this.l.step_profile), 'basis-48'),
+            h('div', { class: 'flex items-center gap-1 pb-0.5' }, [
+                h('button', { type: 'button', class: BTN, title: this.l.up, 'aria-label': this.l.up, text: '↑', disabled: i === 0, onclick: () => this.moveIn(steps, i, -1) }),
+                h('button', { type: 'button', class: BTN, title: this.l.down, 'aria-label': this.l.down, text: '↓', disabled: i === steps.length - 1, onclick: () => this.moveIn(steps, i, 1) }),
+                h('button', { type: 'button', class: BTN + ' text-red-700', title: this.l.remove, 'aria-label': this.l.remove, text: '✕', onclick: () => this.removeFrom(steps, i) }),
+            ]),
+        ]));
+
+        return h('section', { class: 'rounded-2xl border border-gray-200 bg-white p-3 shadow-xs sm:p-4' }, [
+            h('h2', { class: 'text-base font-semibold text-gray-900', text: this.l.approval }),
+            h('p', { class: 'mt-1 text-xs text-gray-500', text: this.l.approval_help }),
+            h('div', { class: 'mt-3 space-y-2' }, rows),
+            h('button', { type: 'button', class: BTN + ' mt-3', text: '+ ' + this.l.add_step, onclick: () => { const s = { key: uid(), name: '', profile: '' }; steps.push(s); this.changed(s.key); } }),
+        ]);
     }
 
     /** The consistency rules of the model: a condition that should hold, and what to say (and whether to stop the delivery) when not. */

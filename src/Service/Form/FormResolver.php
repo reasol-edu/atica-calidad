@@ -119,12 +119,12 @@ final class FormResolver
                         ? FormDefinition::str($block['html'] ?? '')
                         : FormDefinition::str(FormDefinition::map($texts[$key] ?? null)['html'] ?? '');
                     $html  = $this->text($html, $instance, $index, $context, true);
-                    $out[] = ['kind' => 'text', 'label' => $label, 'html' => $html, 'empty' => trim(strip_tags($html)) === ''];
+                    $out[] = ['kind' => 'text', 'key' => $key, 'label' => $label, 'html' => $html, 'empty' => trim(strip_tags($html)) === ''];
                     break;
 
                 case 'field':
                     $value = $this->format($block, $fields[$key] ?? null, $chain, $index);
-                    $item  = ['label' => $label, 'value' => $value, 'empty' => $value === ''];
+                    $item  = ['key' => $key, 'label' => $label, 'value' => $value, 'empty' => $value === ''];
                     $last  = count($out) - 1;
                     if ($last >= 0 && $out[$last]['kind'] === 'fields') {
                         /** @var list<array<string, mixed>> $items */
@@ -170,15 +170,17 @@ final class FormResolver
             foreach ($columns as $column) {
                 $cells[] = $this->format($column, $row[FormDefinition::str($column['key'] ?? '')] ?? null, $chain, $index);
             }
-            $resolved[] = ['label' => $labels[FormDefinition::str($row['_key'] ?? '')] ?? '', 'cells' => $cells];
+            $resolved[] = ['key' => FormDefinition::str($row['_key'] ?? ''), 'label' => $labels[FormDefinition::str($row['_key'] ?? '')] ?? '', 'cells' => $cells];
         }
 
         return [
-            'kind'      => 'table',
-            'label'     => $label,
-            'rowHeader' => FormDefinition::str($block['rowHeader'] ?? ''),
-            'fixed'     => $fixed,
-            'columns'   => array_map(static fn (array $c): string => FormDefinition::str($c['label'] ?? ''), $columns),
+            'kind'       => 'table',
+            'key'        => FormDefinition::str($block['key'] ?? ''),
+            'label'      => $label,
+            'rowHeader'  => FormDefinition::str($block['rowHeader'] ?? ''),
+            'fixed'      => $fixed,
+            'columnKeys' => array_map(static fn (array $c): string => FormDefinition::str($c['key'] ?? ''), $columns),
+            'columns'    => array_map(static fn (array $c): string => FormDefinition::str($c['label'] ?? ''), $columns),
             'rows'      => $resolved,
             'totals'    => $this->totals($columns, $rows),
         ];
@@ -264,15 +266,17 @@ final class FormResolver
             foreach ($colSource as $col) {
                 $cells[] = $this->format($cell, $row[FormDefinition::str($col['_key'] ?? '')] ?? null, $chain, $index);
             }
-            $resolved[] = ['label' => $source === null ? '' : $this->format($rowLabel, $source[FormDefinition::str($block['rowLabel'] ?? '')] ?? null, $chain, $index), 'cells' => $cells];
+            $resolved[] = ['key' => FormDefinition::str($row['_key'] ?? ''), 'label' => $source === null ? '' : $this->format($rowLabel, $source[FormDefinition::str($block['rowLabel'] ?? '')] ?? null, $chain, $index), 'cells' => $cells];
         }
 
         return [
-            'kind'      => 'table',
-            'label'     => $label,
-            'rowHeader' => '',
-            'fixed'     => true,
-            'columns'   => array_map(fn (array $col): string => $this->format($colLabel, $col[FormDefinition::str($block['colLabel'] ?? '')] ?? null, $chain, $index), $colSource),
+            'kind'       => 'table',
+            'key'        => FormDefinition::str($block['key'] ?? ''),
+            'label'      => $label,
+            'rowHeader'  => '',
+            'fixed'      => true,
+            'columnKeys' => array_map(static fn (array $col): string => FormDefinition::str($col['_key'] ?? ''), $colSource),
+            'columns'    => array_map(fn (array $col): string => $this->format($colLabel, $col[FormDefinition::str($block['colLabel'] ?? '')] ?? null, $chain, $index), $colSource),
             'rows'      => $resolved,
             'totals'    => null,
         ];

@@ -77,6 +77,29 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
   when a field loses focus swallows the click on the next button (the mousedown removes the element the mouseup lands on).
 - Not done: rules inside a copy (they see the whole document, aggregating with `[c:…]`), and calculated values deciding how many copies there are.
 
+## Approval chain, comments, comparison, edit lock and history (phase 4)
+
+- **Approval chain** (`definition.approval`: ordered `{name, profile}` steps, profile = a `SpecificProfile` id of the centre). Delivering with a
+  chain creates `FormApprovalStep`s (first `pending`, the rest `waiting`) and forces the revision to be pending whatever the folder asks.
+  `FormApprovalChain::decide()` decides the current step (whoever holds its profile, or manages the folder); the last approval approves the
+  revision, a rejection at any step rejects it and cancels the rest — the next delivery starts again from step 1. **`DocumentRevisionReviewer` is
+  the only entry point** (the tree, the review queue and the bulk review all end in it): it routes a chain revision to the chain, so no screen
+  can approve around it. A step without profile (or with a profile that does not exist in the centre) blocks sending the model to review
+  (`FormModelService::problems()`); a chain imported from another centre therefore arrives unassigned.
+- The page of a delivered document is `FormReviewController` (`/formularios/revision/{id}`): steps with who decided and their note, the decision
+  form (a rejection needs a reason), comments anchored to a section or block (`FormComment`, by key + copy path; whoever reviews or holds a step
+  or delivers the slot may comment, anyone who can see the folder reads), and links to compare with earlier revisions (`FormDiff`: value by value
+  by identity keys, so it lines up across revisions of the model). The review queue lists the steps waiting for each person.
+- **Edit lock: one person at a time per DRAFT, not per section** (deviation from the first spec, which wanted a lock per top-level section: the
+  save protocol sends the whole draft, and merging by section needs a protocol change that belongs with the offline mode of phase 7). Opening a
+  free draft takes the lock (5 minutes, renewed by saving and by a 60-second heartbeat); somebody else sees the form read-only with who has it
+  and a "take control" button; the previous holder gets a 409 on their next save/heartbeat and stops. Delivering also needs the lock.
+- **History** (`FormFieldChange`): every save writes one change per value that differs (identity: block, copy path, row, column; calculated
+  values are not anybody's change); the same person changing the same value within two minutes amends the last change, so typing a sentence is
+  one entry. Fields and texts show "Historial" with "Restaurar" (it puts the old value back as a normal edit). Ordering uses the UUID v7 id as a
+  tie-break: `changedAt` has one-second resolution.
+- Not done: e-mail to the people of the next step (they find the step in their review queue), and anchored comments by cell of a table.
+
 ## Front end
 
 The editor and the form are **Stimulus controllers that build the page from the JSON** (`form_model_editor_controller.js`,
@@ -107,6 +130,6 @@ and read the screenshots. Migrations: all four engines with Docker, as in `skill
 1. **Done** — models as documents (draft, revision, approval of one step), sections with numbering, fixed/starter/fill texts, typed
    fields, free and fixed tables, activity mode "fill", autosave, delivery with PDF, web view, correction as next revision.
 2. **Done** — repetition (by table rows, by number, by hand, nested), references, conditions, progress, per-field help (the sources "list of
-   the centre" and "another document" wait for phases 5–6). 3. **Done** — calculations, totals, consistency rules, relation columns, double-entry tables. 4. Multi-step approval chain, anchored comments, revision comparison, co-authors with section locks, field history.
+   the centre" and "another document" wait for phases 5–6). 3. **Done** — calculations, totals, consistency rules, relation columns, double-entry tables. 4. **Done** — multi-step approval chain, anchored comments, revision comparison, edit lock (per draft), field history.
    5. Impact on publishing, update wizard, pre-filling (last year, another document), drafts for everyone. 6. Computed indicators,
    `FormValue` index, explorer and CSV, centre catalogues. 7. ODT/DOCX import and export, JSON library, offline mode.
