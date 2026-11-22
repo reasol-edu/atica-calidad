@@ -10,7 +10,7 @@ use App\Repository\ListItemRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Replaces a centre's whole list-item tree (Responsabilidades › Listas) from a previously
+ * Replaces a centre's whole list-item tree (Responsabilidades › Catálogo del centro) from a previously
  * exported JSON payload (see ListItemJsonExporter). This is a full replace, not a merge: every
  * existing list item of the centre is deleted first — guarded up front by the same
  * "in use" check that already protects deleting a single item

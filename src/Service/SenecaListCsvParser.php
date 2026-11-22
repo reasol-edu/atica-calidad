@@ -9,7 +9,7 @@ use App\Model\SenecaListImportKind;
 
 /**
  * Turns a Séneca "Relación de unidades" (groups) or "Materias y grupos" (subjects) CSV export
- * into the list-item tree a Responsabilidades › Listas import wants to end up with, ready to
+ * into the list-item tree a Responsabilidades › Catálogo del centro import wants to end up with, ready to
  * diff against what already exists (see SenecaListImporter). Only the column(s) that name the
  * tree are read — group size, tutor, teacher, course label, etc. are exported by Séneca alongside
  * but play no part in the list itself.

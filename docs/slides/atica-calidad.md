@@ -114,16 +114,16 @@ perfiles o subperfiles concretos de Responsabilidades. El detalle de cada día m
 
 ---
 
-## Listas
+## Catálogo del centro
 
-Jerarquías propias de nombres, con la profundidad que se necesite:
+Las listas propias del centro, jerarquías de nombres, con la profundidad que se necesite:
 
 ```
 Grupo → 1º ESO A, 1º ESO B, 2º DAW...
 Enseñanza → Formación Profesional → DAW → 1º DAW, 2º DAW
 ```
 
-La pantalla de Listas muestra solo las **listas** del centro; cada una se gestiona en **su propia
+El Catálogo del centro muestra solo las **listas**; cada una se gestiona en **su propia
 pantalla**, y se pueden **mover elementos de una lista a otra** (con aviso si cambian los perfiles
 que les corresponden).
 

@@ -6,10 +6,11 @@ fijos del centro —**responsable de calidad** y **auditor/a interno/a**, descri
 necesitar responsabilidades propias: tutorías, jefaturas de familia profesional, coordinaciones...
 Eso es lo que gestiona la sección **Responsabilidades**, con tres herramientas:
 
-- **Listas** — jerarquías propias de nombres (grupos, departamentos...) que sirven de base para
-  construir esas responsabilidades sin repetir trabajo.
+- **Catálogo del centro** — las listas propias de nombres del centro (grupos, departamentos...), con
+  la jerarquía que necesites, que sirven de base para construir esas responsabilidades sin repetir
+  trabajo.
 - **Perfiles específicos** — las responsabilidades personalizadas en sí, opcionalmente construidas
-  sobre una lista.
+  sobre una lista del catálogo.
 - **Asignar perfiles** — una vista de trabajo transversal sobre las asignaciones ya hechas, por
   perfil o por docente (ver [Asignar perfiles](#asignar-perfiles) más abajo).
 
@@ -22,9 +23,11 @@ interno/a** y el resto del profesorado no la ven — a diferencia de los perfile
 [Permisos de un vistazo](11-permisos-de-un-vistazo.md)), esta sección sí requiere uno de esos
 papeles para acceder, no solo para ser gestionada.
 
-## Listas
+## Catálogo del centro {#catalogo-del-centro}
 
-Una lista es una jerarquía de nombres con la profundidad que necesites — no hay límite de niveles.
+El catálogo del centro reúne las **listas** del centro, y cada lista es una jerarquía de nombres con la
+profundidad que necesites — no hay límite de niveles. Al hablar de ellas en conjunto, la aplicación
+dice «el catálogo»: «selecciona un elemento del catálogo», «selecciona una lista del catálogo».
 Los ejemplos de este capítulo usan los datos de demostración (el centro «IES Ada Lovelace»), que
 traen cuatro listas. Tres son **planas** —sus elementos cuelgan directamente de la raíz—:
 
@@ -74,13 +77,13 @@ los perfiles fijos: no se repiten cada curso académico.
 
 ### Navegar y crear elementos
 
-**Responsabilidades → Listas** muestra solo las listas del centro (los elementos raíz), cada una
+**Responsabilidades → Catálogo del centro** muestra solo las listas del catálogo (los elementos raíz), cada una
 con su número de elementos. Un formulario en la parte superior crea una lista nueva, las flechas
 ↑/↓ cambian su orden y al pulsar una se abre **su propia pantalla**, donde se gestionan sus
 elementos sin que se mezclen con los de las demás listas. Los botones de exportar e importar
-siguen en la pantalla de listas.
+siguen en la pantalla del catálogo.
 
-![Pantalla de listas con las cuatro listas del centro de demostración (Departamento, Grupo, Materia y Enseñanza), cada una con su número de elementos, flechas para ordenarlas y el formulario para crear una nueva](img/responsabilidades-listas.png)
+![Pantalla del catálogo del centro con las cuatro listas del centro de demostración (Departamento, Grupo, Materia y Enseñanza), cada una con su número de elementos, flechas para ordenarlas y el formulario para crear una nueva](img/responsabilidades-listas.png)
 
 El número junto al nombre cuenta **todos** los elementos de la lista, de cualquier nivel (en
 «Enseñanza», los 16: tres ramas, dos ciclos y once cursos).
@@ -124,7 +127,7 @@ estado, asociaciones a perfiles) — arrastrar nunca abre el panel, solo reorden
 Arrastrar solo mueve dentro de la lista que estás gestionando. Para llevar elementos a **otra
 lista**, pulsa **Seleccionar varios**, marca los elementos (cada uno se lleva consigo todos sus
 hijos), elige el destino en el desplegable **Mover dentro de…** — que ofrece los elementos de todas
-las listas del centro — y pulsa **Mover**. Los elementos desaparecen de la pantalla actual y
+las listas del catálogo — y pulsa **Mover**. Los elementos desaparecen de la pantalla actual y
 aparecen en el destino. La opción **Nueva lista independiente** convierte los elementos marcados
 en listas propias.
 
@@ -218,7 +221,7 @@ deje de ofrecerse, desactívalo.
 
 ### Importar desde Séneca
 
-Dos botones en la parte superior de Listas — **Importar grupos desde Séneca** e **Importar
+Dos botones en la parte superior del Catálogo del centro — **Importar grupos desde Séneca** e **Importar
 materias desde Séneca** — construyen una lista automáticamente a partir de los ficheros CSV que
 exporta Séneca, en vez de crear cada elemento a mano:
 
@@ -290,9 +293,9 @@ nombre y se le asignan directamente uno o varios docentes, buscándolos por nomb
 de detalle. Es el caso adecuado para responsabilidades que no se repiten por grupo, departamento ni
 ningún otro criterio — por ejemplo, «Coordinador/a TIC».
 
-![Panel de «Coordinador/a TIC»: sin elemento de lista asociado («Sin asociar»), y dos docentes asignados, con un buscador para añadir más](img/responsabilidades-perfil-directo.png)
+![Panel de «Coordinador/a TIC»: sin elemento del catálogo asociado («Sin asociar»), y dos docentes asignados, con un buscador para añadir más](img/responsabilidades-perfil-directo.png)
 
-En el panel, **Elemento de lista asociado** dice «Sin asociar», y **Docentes asignados** lista a quien
+En el panel, **Elemento del catálogo asociado** dice «Sin asociar», y **Docentes asignados** lista a quien
 ya tiene el perfil (aquí, dos: «Fuentes Mora, Ricardo» y «Gil Santos, Adrián»), cada uno con una cruz
 para quitarlo. El campo de abajo busca docentes por nombre (a partir de dos letras) para añadir más.
 El perfil también se puede renombrar, desactivar o eliminar desde este panel. (Ricardo Fuentes ya no
@@ -301,8 +304,8 @@ está en el curso activo: en [Asignar perfiles](#asignar-perfiles) aparece resal
 ### Asociar un perfil a una lista: subperfiles
 
 Cuando la responsabilidad sí se repite una vez por cada elemento de una lista, en vez de crear un
-perfil por elemento a mano, asocias el perfil **a un elemento de una lista** (sección **Elemento de
-lista asociado** → **Elegir**, con el mismo navegador de migas de pan que en Listas; una vez
+perfil por elemento a mano, asocias el perfil **a un elemento del catálogo** (sección **Elemento del
+catálogo asociado** → **Elegir**, con el mismo navegador de migas de pan que en el Catálogo del centro; una vez
 elegido, el mismo sitio ofrece **Cambiar** y **Quitar asociación**). A partir de ahí, cada elemento
 **hoja** (sin hijos) descendiente de ese elemento se convierte automáticamente en un **subperfil**
 independiente, con sus propios docentes asignados — no hace falta crearlos ni mantenerlos a mano, se
@@ -324,7 +327,7 @@ datos de demostración:
 
 En la lista de **Subperfiles** del panel, la cifra de la derecha es el número de docentes de cada
 uno. Los dos que tienen **0** (en gris) son «2º DAW», que simplemente aún no tiene coordinador/a, y
-«Programa de Mejora (extinguido)», cuyo elemento de lista está inactivo.
+«Programa de Mejora (extinguido)», cuyo elemento del catálogo está inactivo.
 
 Nótese que el elemento asociado no tiene por qué ser una raíz: en el segundo ejemplo, el perfil se
 asocia a «Formación Profesional», un hijo de «Enseñanza», así que solo genera subperfiles a partir de
@@ -359,7 +362,7 @@ primero el perfil entero, y después una opción por cada elemento intermedio.
 ![Selector de perfiles de un evento del calendario, filtrado por «Nivel (todos)»: «Coordinador/a de Nivel (todos)», «… ESO (todos)», «… DAM (todos)», «… DAW (todos)», «… Bachillerato (todos)» y «… Formación Profesional (todos)»](img/responsabilidades-selector-todos.png)
 
 !!! warning "Cambiar o quitar la asociación borra las asignaciones existentes"
-    Si cambias el elemento de lista asociado a un perfil, o quitas la asociación (**Quitar
+    Si cambias el elemento del catálogo asociado a un perfil, o quitas la asociación (**Quitar
     asociación**), se eliminan **todas** las asignaciones de docentes de ese perfil — tanto las
     directas como las de todos sus subperfiles. Tiene sentido: las asignaciones existentes estaban
     ligadas a los subperfiles derivados de la asociación anterior, y ya no significan lo mismo con
@@ -368,7 +371,7 @@ primero el perfil entero, y después una opción por cada elemento intermedio.
 
 ### Perfiles activos e inactivos
 
-Igual que los elementos de lista, un perfil específico tiene un estado, **activo** o **inactivo**.
+Igual que los elementos del catálogo, un perfil específico tiene un estado, **activo** o **inactivo**.
 Un perfil inactivo (y, si está asociado a una lista, cada uno de sus subperfiles) deja de poder
 elegirse para asignaciones nuevas — tanto al asignar un docente directamente como al restringir un
 evento del calendario (ver [Asignar perfiles](#asignar-perfiles) y

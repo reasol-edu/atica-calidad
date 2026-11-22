@@ -12,7 +12,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Creates a new educational centre with its first academic year and its default
- * Responsabilidades › Listas roots.
+ * Responsabilidades › Catálogo del centro roots.
  *
  * Shared by app:setup, app:create-educational-centre and app:load-demo-data (CLI), and by
  * EducationalCentreController (web) — the single place a centre gets created, so every one of

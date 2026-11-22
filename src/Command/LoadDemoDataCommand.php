@@ -177,7 +177,7 @@ class LoadDemoDataCommand extends Command
         $io->section('Docentes');
         $this->createTeachers($centre, $academicYear, $io);
 
-        $io->section('Listas de responsabilidades');
+        $io->section('Catálogo del centro (listas de responsabilidades)');
         [$departamentoLeaves, $grupoLeaves, $materiaLeaves, $materiaDepartamento] = $this->createLists($centre, $io);
 
         $ensenanza = $this->createEnsenanzaList($centre, $io);

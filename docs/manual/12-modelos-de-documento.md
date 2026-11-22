@@ -55,19 +55,19 @@ Además:
 
 El botón **Vista previa** muestra el modelo en blanco, tal como se verá.
 
-### Opciones que salen de una lista del centro {#opciones-desde-listas}
+### Opciones que salen de una lista del catálogo {#opciones-desde-listas}
 
 Un campo de una o varias opciones (o una columna de tabla con ese tipo) puede tener sus opciones
-**escritas en el modelo** o **tomadas de una [lista de Responsabilidades](06-responsabilidades.md#listas)**
-(departamentos, grupos, materias…): en *Opciones* se elige **De una lista del centro** y la lista, que
+**escritas en el modelo** o **tomadas de una lista del [catálogo del centro](06-responsabilidades.md#catalogo-del-centro)**
+(departamentos, grupos, materias…): en *Opciones* se elige **De una lista del catálogo** y la lista, que
 puede ser una lista entera o una rama («Enseñanza › FP»). Las opciones son las **hojas** de esa lista,
 en su orden, y cada una se llama por su ruta bajo el elemento elegido («Ciencias › Física»); los
 elementos inactivos no se ofrecen.
 
-![Editor del campo «Departamento» de la «Memoria de departamento»: Opciones «De una lista del centro», lista «Departamento», y debajo cuántas opciones ofrece ahora (9: Matemáticas, Lengua Castellana y Literatura…)](img/modelos-editor-lista.png)
+![Editor del campo «Departamento» de la «Memoria de departamento»: Opciones «De una lista del catálogo», lista «Departamento», y debajo cuántas opciones ofrece ahora (9: Matemáticas, Lengua Castellana y Literatura…)](img/modelos-editor-lista.png)
 
 Las opciones **no se copian al modelo: se leen de la lista cada vez que alguien rellena**, igual que
-las actividades siguen a las listas. Un elemento nuevo aparece solo, uno renombrado cambia de nombre y
+las actividades siguen al catálogo. Un elemento nuevo aparece solo, uno renombrado cambia de nombre y
 uno desactivado deja de ofrecerse, sin tocar el modelo ni crear una revisión nueva. Qué ocurre con lo
 ya rellenado:
 

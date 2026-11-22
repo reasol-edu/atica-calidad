@@ -35,7 +35,7 @@ listas y perfiles. No se puede deshacer, así que conviene hacer antes una
 
 Al crear un centro (desde aquí o con `app:create-educational-centre`/`app:load-demo-data` por
 consola) se le crean automáticamente tres raíces vacías en [Responsabilidades →
-Listas](06-responsabilidades.md#listas): **Departamento**, **Grupo** y **Materia**, listas para
+Catálogo del centro](06-responsabilidades.md#catalogo-del-centro): **Departamento**, **Grupo** y **Materia**, listas para
 rellenar. Sus nombres salen de una única traducción (`responsibilities.lists.default_roots`, en
 `translations/admin.es.yaml`) separada por punto y coma, así que se pueden añadir, quitar o
 renombrar sin tocar código.

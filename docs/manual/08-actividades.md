@@ -197,8 +197,8 @@ aplicó el cambio.
 | Título / Descripción | Texto libre. |
 | Fecha de inicio / Fecha de fin | Solo **día y mes** (sin año): la actividad se repite automáticamente cada curso académico en esas fechas. Cada fecha se sitúa dentro del curso en vigor según el ajuste [Inicio del curso académico](10-administrar-la-plataforma.md#curso-academico) (15 de septiembre por defecto): una actividad de enero a febrero, consultada en octubre, se refiere a la del próximo enero, no a la del enero ya pasado. |
 | Carpeta | Opcional. Si se elige una, la actividad pasa a tener entregas (ver [Entregas y revisión](#entregas-y-revision)); si se deja vacía, se completa a mano. |
-| Lista para nombrar entregas | Opcional. Un elemento de [Listas](06-responsabilidades.md#listas) (p. ej. «Materia», o una rama concreta): **cada hoja que cuelga de él** —a cualquier profundidad— es una entrega esperada, con nombre igual a su **ruta bajo el elemento elegido** (p. ej. «Ciencias › Física»). Si la carpeta tiene un único perfil de subida, todas las hojas cuentan; si tiene varios, solo cuentan las hojas asociadas (en Listas, directamente o por heredarlo de su elemento padre) a alguno de ellos, que además determina a quién le corresponde. Una hoja con varias asociaciones, o asociada a un elemento intermedio de la lista de un perfil, se pide **una vez por cada subperfil** que abarca (p. ej. «FP» abarca «Informática» y «Sanidad»: cada jefatura entrega la suya), siempre que la carpeta acepte subidas de ese subperfil. |
-| Plazos por elemento | Aparece al elegir una lista: un plazo propio opcional para cada elemento hoja. |
+| Elemento del catálogo | Opcional. Un elemento del [Catálogo del centro](06-responsabilidades.md#catalogo-del-centro) (p. ej. «Materia», o una rama concreta): **cada hoja que cuelga de él** —a cualquier profundidad— es una entrega esperada, con nombre igual a su **ruta bajo el elemento elegido** (p. ej. «Ciencias › Física»). Si la carpeta tiene un único perfil de subida, todas las hojas cuentan; si tiene varios, solo cuentan las hojas asociadas (en Listas, directamente o por heredarlo de su elemento padre) a alguno de ellos, que además determina a quién le corresponde. Una hoja con varias asociaciones, o asociada a un elemento intermedio de la lista de un perfil, se pide **una vez por cada subperfil** que abarca (p. ej. «FP» abarca «Informática» y «Sanidad»: cada jefatura entrega la suya), siempre que la carpeta acepte subidas de ese subperfil. |
+| Plazos por elemento | Aparece al elegir un elemento del catálogo: un plazo propio opcional para cada elemento hoja. |
 | Documentos relacionados | Documentos del árbol documental enlazados como lectura de apoyo, independientes de la carpeta de entregas. |
 | Obligatoria / Opcional | Solo informativo: se muestra como etiqueta, no cambia ningún permiso. |
 | Ámbito de entrega | **Por perfil** (una entrega compartida por todo el que tenga el perfil/subperfil) o **Individual** (cada docente con ese perfil entrega la suya). |
@@ -237,7 +237,7 @@ el estado de las de otros perfiles, en modo lectura.
 ![Entregas de una actividad en las que «Tecnología» la entregan dos jefaturas de departamento, agrupadas y con el perfil de cada una](img/actividades-entregas-varios-perfiles.png)
 
 Si un elemento de la lista de la actividad lo entregan **varios perfiles** (p. ej. dos jefaturas de
-FP, o una materia impartida desde dos departamentos; ver [Listas](06-responsabilidades.md#listas)),
+FP, o una materia impartida desde dos departamentos; ver [Catálogo del centro](06-responsabilidades.md#catalogo-del-centro)),
 cada fila indica **a qué perfil corresponde**, en verde bajo el nombre del elemento. Las filas de un
 mismo elemento van **juntas, ordenadas alfabéticamente por perfil**, y se agrupan con una línea a la
 izquierda y un pequeño hueco que las separa de los demás elementos. Mientras ningún elemento tenga más

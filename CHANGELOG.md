@@ -99,6 +99,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   esquema que se está reconstruyendo.
 - El aviso de la pantalla de restauración sobre «si algo falla no se cambia nada» solo aparece en la restauración
   transaccional (copia de la misma versión), y el de la última restauración fallida ya no asegura que no se cambió ningún dato.
+- **«Listas» de Responsabilidades pasa a llamarse «Catálogo del centro».** Sigue incluyendo las listas de elementos (grupos,
+  departamentos, materias…), pero al nombrarlas en conjunto la interfaz y la documentación dicen «el catálogo»: «Elemento del
+  catálogo» (en las actividades y en los perfiles), «De una lista del catálogo» (en los modelos de documento), el menú, los títulos
+  y los avisos. Las direcciones y el resto de funciones no cambian.
 
 ## [2.5.1] - 2026-11-21
 

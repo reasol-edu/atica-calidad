@@ -89,7 +89,7 @@ final class EducationalCentreControllerTest extends ControllerTestCase
         self::assertSame(
             ['Departamento', 'Grupo', 'Materia'],
             array_map(static fn (ListItem $root): string => $root->getName(), $roots),
-            'creating a centre from the web form must also get the default Responsabilidades › Listas roots, same as the CLI',
+            'creating a centre from the web form must also get the default Responsabilidades › Catálogo del centro roots, same as the CLI',
         );
     }
 

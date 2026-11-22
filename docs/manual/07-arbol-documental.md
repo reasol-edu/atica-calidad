@@ -28,7 +28,7 @@ La sección tiene dos pestañas:
 ## Secciones (pestaña «Editar árbol»)
 
 Una sección es un nodo del árbol, con la profundidad que se necesite — igual que las
-[listas de Responsabilidades](06-responsabilidades.md#listas), pero pensada para organizar
+[listas de Responsabilidades](06-responsabilidades.md#catalogo-del-centro), pero pensada para organizar
 documentación en vez de nombres. Por ejemplo:
 
 ```

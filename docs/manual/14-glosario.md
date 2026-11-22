@@ -20,19 +20,24 @@ el que se muestra por defecto al profesorado.
 
 **Responsabilidades**
 : Sección del menú lateral, accesible a la persona responsable de calidad, al equipo directivo y a la
-administración, donde se gestionan las listas, los perfiles específicos y sus asignaciones.
+administración, donde se gestionan el catálogo del centro, los perfiles específicos y sus asignaciones.
+
+**Catálogo del centro**
+: El conjunto de las listas propias del centro (grupos, departamentos, materias…), gestionado desde
+**Responsabilidades → Catálogo del centro**. Cuando algo del programa pide «un elemento del catálogo» o «una
+lista del catálogo», se refiere a él — ver [Catálogo del centro](06-responsabilidades.md#catalogo-del-centro).
 
 **Lista**
 : Jerarquía propia de nombres, con la profundidad que se necesite (p. ej. «Grupo» → «1º ESO» → «1º
-ESO-A»), gestionada desde **Responsabilidades → Listas**. Sirve de base para construir perfiles
+ESO-A»), gestionada desde **Responsabilidades → Catálogo del centro**. Sirve de base para construir perfiles
 específicos sin repetir trabajo.
 
-**Lista como fuente de opciones**
+**Lista del catálogo como fuente de opciones**
 : Un campo de opciones de un [modelo de documento](12-modelos-de-documento.md#opciones-desde-listas) puede
-tomar sus opciones de una lista de Responsabilidades: se leen de la lista cada vez que se rellena (un
+tomar sus opciones de una lista del catálogo del centro: se leen de la lista cada vez que se rellena (un
 elemento nuevo aparece solo), y lo ya entregado conserva los nombres con que se entregó.
 
-**Elemento de lista**
+**Elemento del catálogo**
 : Cada nodo de una lista, a cualquier profundidad. Puede estar activo o inactivo, y puede asociarse
 a uno o varios perfiles o subperfiles; sin asociaciones propias, hereda las del elemento padre más
 cercano que las tenga.
@@ -47,7 +52,7 @@ sección o una carpeta del árbol documental (ver [Árbol documental](07-arbol-d
 
 **Subperfil**
 : Perfil «virtual» que aparece automáticamente cuando un perfil específico está asociado a un
-elemento de lista: hay uno por cada hoja descendiente de ese elemento, y cada uno tiene sus propios
+elemento del catálogo: hay uno por cada hoja descendiente de ese elemento, y cada uno tiene sus propios
 docentes asignados. No existe como entidad aparte; desaparece si cambia la asociación del perfil.
 
 **Asignar perfiles**

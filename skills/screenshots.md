@@ -35,7 +35,7 @@ The second centre is «CEIP Miguel Hernández» (`18700123`), empty, only so `mu
 
 ## Fixture catalogue (what each piece of the demo data is for)
 
-**Lists** (Responsabilidades › Listas, `06-responsabilidades.md`)
+**Lists** (Responsabilidades › Catálogo del centro, `06-responsabilidades.md`)
 
 | Fixture | Shows |
 |---|---|

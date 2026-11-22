@@ -161,7 +161,7 @@ responsabilidad.
 
 En la captura se ven los casos que conviene mirar en una auditoría: un subperfil **sin ningún
 docente** («—», como «Coordinador/a de Nivel 2º DAW»: es una responsabilidad sin cubrir), un
-subperfil **inactivo** (el de un elemento de lista retirado) y un perfil con **más de un docente**
+subperfil **inactivo** (el de un elemento del catálogo retirado) y un perfil con **más de un docente**
 («Coordinador/a TIC»).
 
 La tarjeta del informe tiene un enlace **Asignar perfiles** que lleva a

@@ -66,8 +66,8 @@ await shot('modelos-lista');
 // ── 2. The editor: a choice whose options come from a list of the centre ──────
 await page.locator('a:has-text("Editar")').first().click();
 await settle();
-await page.locator('select:has(option:text-is("De una lista del centro"))').first().scrollIntoViewIfNeeded();
-await shot('modelos-editor-lista', { clip: await clipAround(page.locator('select:has(option:text-is("De una lista del centro"))').first(), 40, 235, 800, 430) });
+await page.locator('select:has(option:text-is("De una lista del catálogo"))').first().scrollIntoViewIfNeeded();
+await shot('modelos-editor-lista', { clip: await clipAround(page.locator('select:has(option:text-is("De una lista del catálogo"))').first(), 40, 235, 800, 430) });
 
 // ── 3. Filling it in: the department is chosen among the list's items ─────────
 await page.goto(`${baseUrl}/actividades/${activityId}/formulario/${profileId}:::`);

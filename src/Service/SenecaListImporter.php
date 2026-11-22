@@ -13,7 +13,7 @@ use App\Repository\ListItemRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Rebuilds one Responsabilidades › Listas root — one that a Séneca "groups" or "subjects" CSV
+ * Rebuilds one Responsabilidades › Catálogo del centro root — one that a Séneca "groups" or "subjects" CSV
  * import is about to fill (see SenecaListCsvParser) — to match the CSV, without a full replace
  * like ListItemJsonImporter's: existing items matching the CSV by name (case-insensitively, at
  * each level) are kept and reordered to the CSV's order; items the CSV no longer mentions are

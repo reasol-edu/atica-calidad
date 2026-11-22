@@ -37,8 +37,8 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 </div>
 
 <div class="nota">
-  <p>Solo hace falta hacer esto una vez por responsabilidad: las listas y los perfiles específicos
-  son permanentes por centro, no se repiten cada curso académico. Detalle completo en el capítulo
+  <p>Solo hace falta hacer esto una vez por responsabilidad: el catálogo del centro y los perfiles
+  específicos son permanentes por centro, no se repiten cada curso académico. Detalle completo en el capítulo
   «Responsabilidades» del manual.</p>
 </div>
 
@@ -53,7 +53,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 <div class="step">
   <span class="num">1</span>
   <div class="text">
-    <p>Desde <strong>Responsabilidades › Listas</strong>, añade un elemento raíz (por ejemplo,
+    <p>Desde <strong>Responsabilidades › Catálogo del centro</strong>, añade un elemento raíz (por ejemplo,
     <strong>Grupo</strong>) con el formulario de la parte inferior de la lista.</p>
     <p>Toca la flecha del elemento para entrar en él y seguir añadiendo hijos dentro (por ejemplo,
     <strong>1º ESO</strong>, y dentro de él, <strong>1º ESO-A</strong> y <strong>1º ESO-B</strong>).
@@ -87,7 +87,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 <div class="step">
   <span class="num">2</span>
   <div class="text">
-    <p>En <strong>Elemento de lista asociado › Elegir</strong>, navega hasta el elemento que
+    <p>En <strong>Elemento del catálogo asociado › Elegir</strong>, navega hasta el elemento que
     corresponda (por ejemplo, <strong>Grupo</strong>) y selecciónalo.</p>
     <p>Cada hoja descendiente pasa a ser un <strong>subperfil</strong> automático: <em>Tutor/a 1º
     ESO-A</em>, <em>Tutor/a 1º ESO-B</em>...</p>

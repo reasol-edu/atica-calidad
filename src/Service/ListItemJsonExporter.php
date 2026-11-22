@@ -9,7 +9,7 @@ use App\Entity\ListItem;
 use App\Repository\ListItemRepository;
 
 /**
- * Serialises a centre's list-item tree (Responsabilidades › Listas) to a plain array, ready for
+ * Serialises a centre's list-item tree (Responsabilidades › Catálogo del centro) to a plain array, ready for
  * json_encode(): each node with its name, whether it is active and its children, nested.
  */
 class ListItemJsonExporter

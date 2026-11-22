@@ -100,7 +100,7 @@ Capítulos:
 | Calendario | Navegación, eventos de centro y días no lectivos |
 | Informes | Listado maestro de documentos, revisiones de documentos y estado de las actividades |
 | Administrar el centro educativo | Referencia de cada sección del hub de centro |
-| Responsabilidades | Listas jerárquicas, perfiles específicos con subperfiles e importación desde Séneca |
+| Responsabilidades | Catálogo del centro (listas jerárquicas), perfiles específicos con subperfiles e importación desde Séneca |
 | Árbol documental | Secciones, carpetas, documentos, revisiones y flujo de visto bueno |
 | Actividades | Plazos y tareas periódicas, entregas y completado |
 | Administrar la plataforma | Administración global, ajustes, correo, copias de seguridad |

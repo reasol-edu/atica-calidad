@@ -21,7 +21,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Imports the "Alumnado › Relación de unidades" (groups) and "Personal › Personal del centro ›
- * Materias y grupos" (subjects) Séneca CSV exports into a Responsabilidades › Listas root — see
+ * Materias y grupos" (subjects) Séneca CSV exports into a Responsabilidades › Catálogo del centro root — see
  * SenecaListCsvParser for the CSV shapes and SenecaListImporter for how the import is diffed
  * against, and merged into, what already exists. Unlike ListItemController's JSON
  * export/import (a full-tree backup/restore), this always previews the additions/removals it

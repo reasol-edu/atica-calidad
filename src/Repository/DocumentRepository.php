@@ -319,7 +319,7 @@ class DocumentRepository extends ServiceEntityRepository
 
     /**
      * Whether any document was ever tagged, at upload time, with this exact list item as its
-     * upload subprofile — used to decide whether a Responsabilidades › Listas item can be safely
+     * upload subprofile — used to decide whether a Responsabilidades › Catálogo del centro item can be safely
      * deleted (see SenecaListImporter) alongside SpecificProfileRepository::isListItemInUse() and
      * SpecificProfileAssignmentRepository::isListItemAssigned().
      */

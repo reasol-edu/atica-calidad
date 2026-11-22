@@ -37,7 +37,7 @@ final class HubStatsTest extends ControllerTestCase
         $html = (string) $this->client->getResponse()->getContent();
 
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
-        self::assertStringContainsString('Ninguna lista todavía.', $html);
+        self::assertStringContainsString('Ninguna lista en el catálogo todavía.', $html);
         self::assertStringContainsString('1 perfil.', $html);
     }
 
