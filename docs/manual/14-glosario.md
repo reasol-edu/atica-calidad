@@ -27,6 +27,11 @@ administración, donde se gestionan las listas, los perfiles específicos y sus 
 ESO-A»), gestionada desde **Responsabilidades → Listas**. Sirve de base para construir perfiles
 específicos sin repetir trabajo.
 
+**Lista como fuente de opciones**
+: Un campo de opciones de un [modelo de documento](12-modelos-de-documento.md#opciones-desde-listas) puede
+tomar sus opciones de una lista de Responsabilidades: se leen de la lista cada vez que se rellena (un
+elemento nuevo aparece solo), y lo ya entregado conserva los nombres con que se entregó.
+
 **Elemento de lista**
 : Cada nodo de una lista, a cualquier profundidad. Puede estar activo o inactivo, y puede asociarse
 a uno o varios perfiles o subperfiles; sin asociaciones propias, hereda las del elemento padre más

@@ -370,7 +370,7 @@ final class FormDefinitionNormalizer
     private function checkOptions(array $block, string $label, array &$problems): void
     {
         $type = FormDefinition::str($block['fieldType'] ?? '');
-        if (in_array($type, ['choice', 'multichoice'], true) && FormDefinition::listOf($block['options'] ?? []) === []) {
+        if (in_array($type, ['choice', 'multichoice'], true) && FormDefinition::listOf($block['options'] ?? []) === [] && FormDefinition::str($block['list'] ?? '') === '') {
             $problems[] = ['code' => 'choice_without_options', 'params' => ['%label%' => $label]];
         }
     }
@@ -626,10 +626,17 @@ final class FormDefinitionNormalizer
             $type = 'number';
         }
 
+        // The options are the ones typed in, or the leaves of an item of the centre's lists (then they are not stored: they are read
+        // from the list every time, see FormListOptions).
         $options = [];
+        $list    = '';
         if (in_array($type, ['choice', 'multichoice'], true)) {
-            foreach (array_slice(FormDefinition::listOf($raw['options'] ?? []), 0, self::MAX_OPTIONS) as $option) {
-                $options[] = ['key' => $this->key($option['key'] ?? null), 'label' => $this->text($option['label'] ?? '', 255)];
+            $item = is_string($raw['list'] ?? null) ? strtolower(trim($raw['list'])) : '';
+            $list = FormListOptions::isItemId($item) ? $item : '';
+            if ($list === '') {
+                foreach (array_slice(FormDefinition::listOf($raw['options'] ?? []), 0, self::MAX_OPTIONS) as $option) {
+                    $options[] = ['key' => $this->key($option['key'] ?? null), 'label' => $this->text($option['label'] ?? '', 255)];
+                }
             }
         }
 
@@ -641,6 +648,7 @@ final class FormDefinitionNormalizer
             'fieldType' => $type,
             'required'  => !$calculated && ($raw['required'] ?? false) === true,
             'options'   => $options,
+            'list'      => $list,
             'min'       => $type === 'number' ? $this->number($raw['min'] ?? null) : null,
             'max'       => $type === 'number' ? $this->number($raw['max'] ?? null) : null,
             'unit'      => in_array($type, ['number', 'calculated'], true) ? $this->text($raw['unit'] ?? '', 20) : '',

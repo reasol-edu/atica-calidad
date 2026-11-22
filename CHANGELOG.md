@@ -53,6 +53,15 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - **Explorador «Datos de modelos» en Informes (fase 6).** Los valores de las entregas aprobadas de una actividad rellenada en línea, fila a
   fila, para un curso: se pueden filtrar en pantalla y exportar a CSV o Excel. Y en el editor de modelos, un botón «Indicador con
   “campo”» por cada campo numérico, de sí/no, de opciones o calculado, que abre el formulario del indicador ya apuntando a ese campo.
+- **Modelos de documento: opciones que salen de las listas de Responsabilidades.** Un campo de opciones (o una columna de tabla) puede
+  tomar sus opciones de un elemento de lista —una lista entera o una rama—: son sus hojas activas, en su orden y nombradas por su ruta,
+  y se **leen de la lista cada vez que se rellena** (un elemento nuevo aparece solo, uno renombrado cambia de nombre), como hacen las
+  actividades. Un borrador conserva lo elegido aunque el elemento deje de ofrecerse (queda marcado y no se puede entregar hasta
+  cambiarlo), y un documento entregado **congela los nombres** con que se entregó, así que renombrar o borrar después no cambia lo
+  aprobado (PDF, revisión, comparación, explorador de datos y agrupación de indicadores). La biblioteca JSON exporta la lista por
+  nombre y ruta y la enlaza al importar con la del mismo nombre del centro destino (si no la hay, avisa y deja el campo sin lista).
+  Al borrar elementos en Responsabilidades, la confirmación avisa de en cuántos documentos entregados aparecen. Migración nueva
+  (columna de nombres congelados), probada en las cuatro bases.
 - **Indicadores que se recalculan al aprobarse una entrega (fase 6).** Antes solo con la tarea programada o al guardar el indicador.
 - **Modelos de documento: Word y OpenDocument, biblioteca JSON y duplicado (fase 7).** Un documento entregado se descarga también en
   `.docx` y `.odt`, igual que un modelo en blanco. Un modelo se exporta a JSON y se importa en otro centro (o en el mismo) como borrador

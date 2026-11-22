@@ -28,6 +28,7 @@ final class FormDataExplorer
         private readonly FormSubmissionRevisionRepository $revisions,
         private readonly FormValueRepository $values,
         private readonly ActivitySubmissionSlotBuilder $slots,
+        private readonly FormListOptions $lists,
     ) {}
 
     /** @return list<Activity> the activities of the centre that are filled in online */
@@ -75,8 +76,8 @@ final class FormDataExplorer
                 continue;
             }
             $revision = $latest[$revId];
-            $modelId  = $revision->getModelRevision()->getId()->toRfc4122();
-            $index    = $indexes[$modelId] ??= FormIndex::of($revision->getModelRevision()->getDefinition());
+            // Per delivered revision, not per model revision: what a list-fed field offered was frozen with each delivery.
+            $index    = $indexes[$revId] ??= FormIndex::of($this->lists->delivered($revision));
 
             [$label, $options] = $this->describe($index, $value->getFieldKey());
             $out[] = [

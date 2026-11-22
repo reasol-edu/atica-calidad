@@ -53,6 +53,35 @@ Además:
 
 El botón **Vista previa** muestra el modelo en blanco, tal como se verá.
 
+### Opciones que salen de una lista del centro {#opciones-desde-listas}
+
+Un campo de una o varias opciones (o una columna de tabla con ese tipo) puede tener sus opciones
+**escritas en el modelo** o **tomadas de una [lista de Responsabilidades](06-responsabilidades.md#listas)**
+(departamentos, grupos, materias…): en *Opciones* se elige **De una lista del centro** y la lista, que
+puede ser una lista entera o una rama («Enseñanza › FP»). Las opciones son las **hojas** de esa lista,
+en su orden, y cada una se llama por su ruta bajo el elemento elegido («Ciencias › Física»); los
+elementos inactivos no se ofrecen.
+
+Las opciones **no se copian al modelo: se leen de la lista cada vez que alguien rellena**, igual que
+las actividades siguen a las listas. Un elemento nuevo aparece solo, uno renombrado cambia de nombre y
+uno desactivado deja de ofrecerse, sin tocar el modelo ni crear una revisión nueva. Qué ocurre con lo
+ya rellenado:
+
+- **Un borrador conserva lo elegido** aunque el elemento ya no se ofrezca (se desactivó, se movió a
+  otra lista o se borró): sale marcado como «ya no disponible» o «elemento que ya no existe», y **no se
+  puede entregar** hasta elegir otra opción.
+- **Un documento entregado conserva los nombres con que se entregó.** Si después renombran o borran el
+  elemento, el documento, su PDF, la comparación de revisiones y el explorador de datos siguen diciendo
+  lo que decían cuando se aprobó. En los indicadores, agrupar por un campo así muestra esos nombres.
+- Un modelo cuya lista **no existe o no tiene ningún elemento activo** no se puede enviar a revisión.
+- Las **condiciones** («si el departamento es…») de otros bloques eligen entre los elementos de la
+  lista, y siguen funcionando aunque se renombre.
+
+Al **exportar** un modelo a JSON, la lista viaja por sus nombres (no por identificadores del centro); al
+**importarlo** en otro centro se enlaza con la lista que tenga **el mismo nombre y la misma ruta**. Si
+ese centro no la tiene, el campo queda sin opciones, se avisa de cuáles son y hay que elegir una lista
+(o escribir las opciones) antes de enviar el modelo a revisión.
+
 ## Aprobación de los documentos rellenados
 
 En el modelo puedes definir **pasos de aprobación**: cada documento entregado se aprueba en ese orden,

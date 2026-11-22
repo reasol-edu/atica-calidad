@@ -162,6 +162,17 @@ final class FormDataValidator
 
             return;
         }
+        // An item of a list that is not offered any more (deactivated, deleted): a draft keeps it, a delivery does not.
+        if (in_array($spec['fieldType'] ?? '', ['choice', 'multichoice'], true)) {
+            $chosen = is_array($value) ? $value : [$value];
+            foreach (FormDefinition::listOf($spec['options'] ?? []) as $option) {
+                if (($option['gone'] ?? false) === true && in_array($option['key'] ?? null, $chosen, true)) {
+                    $problems[] = ['block' => $block, 'path' => $path, 'row' => $row, 'column' => $column, 'code' => 'option_gone', 'params' => ['%label%' => $label, '%option%' => FormDefinition::str($option['label'] ?? '')]];
+                }
+            }
+
+            return;
+        }
         if (($spec['fieldType'] ?? '') !== 'number' || !is_numeric($value)) {
             return;
         }

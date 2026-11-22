@@ -42,6 +42,7 @@ class FormFillController extends AbstractController
         private readonly FormSlotAccess $slotAccess,
         private readonly ActivityWindowChecker $windows,
         private readonly FormResolver $resolver,
+        private readonly \App\Service\Form\FormListOptions $lists,
         private readonly TranslatorInterface $translator,
         private readonly CsrfTokenManagerInterface $csrf,
         private readonly EntityManagerInterface $em,
@@ -103,7 +104,7 @@ class FormFillController extends AbstractController
 
             $view += [
                 'editor' => [
-                    'definition'   => $revision->getDefinition(),
+                    'definition'   => $this->service->definitionOf($submission),
                     'data'         => $submission->getDraftData(),
                     'version'      => $submission->getDraftVersion(),
                     'saveUrl'      => $this->generateUrl('app_form_save', $base),
@@ -121,7 +122,7 @@ class FormFillController extends AbstractController
                 'warnings'    => $readOnly ? [] : $this->problemLists($submission)['warnings'],
             ];
         } elseif ($last !== null) {
-            $definition = $last->getModelRevision()->getDefinition();
+            $definition = $this->lists->delivered($last);
             $view      += [
                 'sections'      => $this->resolver->resolve($definition, $last->getData(), $this->service->contextFor($activity, $slot, $submission->getCycleYear())),
                 'lastRevision'  => $last->getRevision(),

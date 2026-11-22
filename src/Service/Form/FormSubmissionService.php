@@ -50,7 +50,21 @@ final class FormSubmissionService
         private readonly FormUpdateService $updates,
         private readonly FormValueIndexer $values,
         private readonly FormIndicatorCalculator $indicators,
+        private readonly FormListOptions $lists,
     ) {}
+
+    /**
+     * The definition a draft is filled with: the model revision's, with the options that come from the centre's lists as they are
+     * now (see FormListOptions).
+     *
+     * @param array<string, mixed>|null $data what is typed (the draft's own when omitted)
+     *
+     * @return array<string, mixed>
+     */
+    public function definitionOf(FormSubmission $submission, ?array $data = null): array
+    {
+        return $this->lists->live($submission->getModelRevision(), $data ?? $submission->getDraftData() ?? []);
+    }
 
     /**
      * What the `{{ctx:…}}` references of a document read: the centre, the academic year of the cycle, the activity, what the
@@ -187,7 +201,7 @@ final class FormSubmissionService
         }
 
         $revision = $last->getModelRevision();
-        $submission->startDraft($revision, $this->normalizer->normalize($revision->getDefinition(), $last->getData()));
+        $submission->startDraft($revision, $this->normalizer->normalize($this->lists->live($revision, $last->getData()), $last->getData()));
         $this->em->flush();
     }
 
@@ -224,7 +238,7 @@ final class FormSubmissionService
             throw new FormException('error.stale');
         }
 
-        $definition = $submission->getModelRevision()->getDefinition();
+        $definition = $this->definitionOf($submission, $raw);
         $data       = $this->normalizer->normalize($definition, $raw);
         $this->recordChanges($submission, $definition, $submission->getDraftData() ?? [], $data, $by);
         $submission->saveDraft($data, $by);
@@ -323,7 +337,7 @@ final class FormSubmissionService
      */
     public function problems(FormSubmission $submission): array
     {
-        $definition = $submission->getModelRevision()->getDefinition();
+        $definition = $this->definitionOf($submission);
         $data       = $this->normalizer->withoutEmptyRows($definition, $this->normalizer->normalize($definition, $submission->getDraftData() ?? []));
 
         return $this->validator->problems($definition, $data);
@@ -359,10 +373,10 @@ final class FormSubmissionService
             throw new FormException('error.no_folder');
         }
 
-        $definition = $modelRevision->getDefinition();
+        $definition = $this->definitionOf($submission);
         $data       = $this->normalizer->withoutEmptyRows($definition, $this->normalizer->normalize($definition, $submission->getDraftData() ?? []));
 
-        $content = $this->pdf->buildForRevision($modelRevision, $data, $folder->getEducationalCentre(), $slot->displayName, false, $this->contextFor($activity, $slot, $submission->getCycleYear()));
+        $content = $this->pdf->buildForRevision($modelRevision, $definition, $data,$folder->getEducationalCentre(), $slot->displayName, false, $this->contextFor($activity, $slot, $submission->getCycleYear()));
         $file    = $this->documents->storeFile($content, 'application/pdf', $slot->displayName . '.pdf');
 
         // A model with an approval chain: the revision waits for its steps whatever the folder asks.
@@ -381,7 +395,8 @@ final class FormSubmissionService
             $revision = $this->documents->addRevision($document, $file, $by, null, $hasChain);
         }
 
-        $filled = new FormSubmissionRevision($submission, $revision, $modelRevision, $data);
+        // The lists may change later: what was selected is frozen with the name it has now.
+        $filled = new FormSubmissionRevision($submission, $revision, $modelRevision, $data, $this->lists->snapshot($definition, $data));
         $this->em->persist($filled);
         $this->values->index($filled);
         if ($hasChain) {

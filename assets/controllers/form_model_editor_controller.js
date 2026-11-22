@@ -542,7 +542,7 @@ export default class extends Controller {
             if (cond.op === 'eq' || cond.op === 'neq') {
                 const spec = fields.find((f) => f.key === cond.field);
                 row.append(spec && (spec.fieldType === 'choice' || spec.fieldType === 'multichoice')
-                    ? this.labelled(this.l.cond_value, this.select(cond.value, [['', '—'], ...spec.options.map((o) => [o.key, o.label || '…'])], (v) => { cond.value = v; this.touch(); }, this.l.cond_value))
+                    ? this.labelled(this.l.cond_value, this.select(cond.value, [['', '—'], ...this.optionsOf(spec).map((o) => [o.key, o.label || '…'])], (v) => { cond.value = v; this.touch(); }, this.l.cond_value))
                     : this.textInput(cond, 'value', this.l.cond_value, 'w-48'));
             }
         }
@@ -743,8 +743,53 @@ export default class extends Controller {
             parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [num('min', this.l.min), num('max', this.l.max), this.textInput(spec, 'unit', this.l.unit, 'w-28', 20)]));
         }
         if (spec.fieldType === 'choice' || spec.fieldType === 'multichoice') {
-            parts.push(this.listEditor(spec.options, this.l.options, this.l.add_option, this.l.option));
+            parts.push(...this.optionsEditor(spec));
         }
+        return parts;
+    }
+
+    /** The lists of the centre a choice can take its options from: { id, label, options: [{ key, label }] }. */
+    centreLists() {
+        return this.configValue.lists || [];
+    }
+
+    /** The options a choice offers in the editor: its own, or the ones its list offers now. */
+    optionsOf(spec) {
+        if (spec.list) {
+            const list = this.centreLists().find((l) => l.id === spec.list);
+            return list ? list.options : [];
+        }
+        return spec.options || [];
+    }
+
+    /**
+     * Where a choice gets its options: typed here, or an item of the centre's lists (then they are read from the list every time,
+     * so a new item shows up and a renamed one is renamed in the models and the documents still being filled).
+     */
+    optionsEditor(spec) {
+        const lists = this.centreLists();
+        const fromList = !!spec.list;
+        const parts = [];
+        parts.push(this.labelled(this.l.options_source, this.select(fromList ? 'list' : 'own', [['own', this.l.options_own], ['list', this.l.options_list]], (v) => {
+            if (v === 'list') {
+                spec.list = (lists[0] || {}).id || '';
+                spec.options = [];
+            } else {
+                spec.list = '';
+            }
+            this.changed();
+        }, this.l.options_source)));
+        if (!fromList) {
+            parts.push(this.listEditor(spec.options, this.l.options, this.l.add_option, this.l.option));
+            return parts;
+        }
+        const current = lists.find((l) => l.id === spec.list);
+        parts.push(this.labelled(this.l.options_list_pick, this.select(spec.list, [...(current ? [] : [[spec.list, '—']]), ...lists.map((l) => [l.id, l.label])], (v) => { spec.list = v; this.changed(); }, this.l.options_list_pick)));
+        parts.push(h('p', {
+            class: 'text-xs ' + (current && current.options.length ? 'text-gray-500' : 'text-amber-700'),
+            'data-testid': 'list-options-hint',
+            text: current ? this.l.options_list_hint.replace('%count%', String(current.options.length)).replace('%sample%', current.options.slice(0, 3).map((o) => o.label).join(', ')) : this.l.options_list_missing,
+        }));
         return parts;
     }
 

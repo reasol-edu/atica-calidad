@@ -35,6 +35,7 @@ final class FormIndicatorCalculator
         private readonly MeasurementRepository $measurements,
         private readonly ActivityDeadlineChecker $deadlines,
         private readonly ActivitySubmissionSlotBuilder $slots,
+        private readonly FormListOptions $lists,
     ) {}
 
     /** Recalculates every period already started of every computed indicator; returns how many measurements were written. */
@@ -99,7 +100,34 @@ final class FormIndicatorCalculator
     }
 
     /**
-     * @return array{value: float, sample: int, expected: int, groups: list<array{key: string, label: string, value: float, count: int}>}|null
+     * What each option of a choice field is called, so a group made by it reads "Matemáticas", not an id: as the documents of the
+     * period were delivered (what a list-fed field offered was frozen with each one).
+     *
+     * @param array<string, FormSubmissionRevision> $latest
+     *
+     * @return array<string, string> label by option key
+     */
+    private function optionLabels(array $latest, string $field): array
+    {
+        $labels = [];
+        foreach ($latest as $filled) {
+            $index = FormIndex::of($this->lists->delivered($filled));
+            $spec  = $index->fields[$field] ?? null;
+            if ($spec === null) {
+                foreach (array_keys($index->tables) as $table) {
+                    $spec ??= $index->column($table, $field);
+                }
+            }
+            foreach (FormDefinition::listOf($spec['options'] ?? []) as $option) {
+                $labels[FormDefinition::str($option['key'] ?? '')] ??= FormDefinition::str($option['label'] ?? '');
+            }
+        }
+
+        return $labels;
+    }
+
+    /**
+     * @return array{value: float, sample: int, expected: int, groups:list<array{key: string, label: string, value: float, count: int}>}|null
      *                                                                                                                                        null while no delivery is approved yet
      */
     public function compute(IndicatorFormSource $source, MeasurementPeriod $period): ?array
@@ -175,12 +203,13 @@ final class FormIndicatorCalculator
 
         $groups = [];
         if ($source->getGroupBy() !== IndicatorFormSource::GROUP_NONE) {
+            $optionLabels = $groupField === null ? [] : $this->optionLabels($latest, $groupField);
             foreach ($numerator as $group => $list) {
                 $groupValue = $this->aggregate($source, $list, $denominator[$group] ?? []);
                 if ($groupValue === null) {
                     continue;
                 }
-                $groups[] = ['key' => (string) $group, 'label' => $source->getGroupBy() === IndicatorFormSource::GROUP_SLOT ? ($labels[$group] ?? $group) : ($group === '' ? '—' : $group), 'value' => $groupValue, 'count' => count($list)];
+                $groups[] = ['key' => (string) $group, 'label' => $source->getGroupBy() === IndicatorFormSource::GROUP_SLOT ? ($labels[$group] ?? $group) : ($group === '' ? '—' : ($optionLabels[$group] ?? $group)), 'value' => $groupValue, 'count' => count($list)];
             }
             usort($groups, static fn (array $a, array $b): int => $a['value'] <=> $b['value']);
         }

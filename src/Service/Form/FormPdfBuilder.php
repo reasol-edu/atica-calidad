@@ -51,11 +51,12 @@ final class FormPdfBuilder
     }
 
     /**
+     * @param array<string, mixed>  $definition the revision's definition with the options of its lists filled (FormListOptions)
      * @param array<string, mixed>  $data
      * @param array<string, string> $context
      */
-    public function buildForRevision(FormModelRevision $revision, array $data, EducationalCentre $centre, string $title, bool $blank = false, array $context = []): string
+    public function buildForRevision(FormModelRevision $revision, array $definition, array $data, EducationalCentre $centre, string $title, bool $blank = false, array $context = []): string
     {
-        return $this->build($revision->getDefinition(), $data, $centre, $title, $revision->getCode(), $revision->getRevision()->getVersion(), $blank, $context);
+        return $this->build($definition, $data, $centre, $title, $revision->getCode(), $revision->getRevision()->getVersion(), $blank, $context);
     }
 }

@@ -24,6 +24,7 @@ final class FormModelPorter
         private readonly FormOfficeWriter $writer,
         private readonly FormResolver $resolver,
         private readonly FormDataNormalizer $data,
+        private readonly FormListOptions $lists,
     ) {}
 
     /**
@@ -35,6 +36,8 @@ final class FormModelPorter
     {
         $definition = $this->definitions->normalize($model->getDraftDefinition());
         unset($definition['approval']);
+        // A list is an item of THIS centre's Responsabilidades: it travels as the names that lead to it.
+        $definition = $this->lists->toPaths($definition, $model->getDocument()->getFolder()->getEducationalCentre());
 
         return ['format' => self::FORMAT, 'version' => 1, 'name' => $model->getDocument()->getName(), 'code' => $model->getCode(), 'definition' => $definition];
     }
@@ -54,22 +57,26 @@ final class FormModelPorter
     }
 
     /**
-     * Creates a model in a folder from an exported one.
+     * Creates a model in a folder from an exported one. The fields that took their options from a list are linked to the list of the
+     * same name in this centre; the ones whose list is not here are left without one and reported, to be linked in the editor.
      *
      * @param array<mixed> $payload the decoded JSON
      *
+     * @return array{model: FormModel, unlinked: list<string>} the new model and the labels of the fields left without a list
+     *
      * @throws FormException `error.import_file` when it is not an exported model
      */
-    public function import(array $payload, Folder $folder, ?string $name, ?Teacher $by): FormModel
+    public function import(array $payload, Folder $folder, ?string $name, ?Teacher $by): array
     {
         $definition = FormDefinition::map($payload['definition'] ?? null);
         if (($payload['format'] ?? null) !== self::FORMAT || $definition === null) {
             throw new FormException('error.import_file');
         }
         unset($definition['approval']);
-        $title = $name !== null && trim($name) !== '' ? trim($name) : (\is_string($payload['name'] ?? null) ? $payload['name'] : 'Modelo');
+        [$definition, $unlinked] = $this->lists->fromPaths($definition, $folder->getEducationalCentre());
+        $title                   = $name !== null && trim($name) !== '' ? trim($name) : (\is_string($payload['name'] ?? null) ? $payload['name'] : 'Modelo');
 
-        return $this->create($folder, $title, \is_string($payload['code'] ?? null) ? $payload['code'] : null, $definition, $by);
+        return ['model' => $this->create($folder, $title, \is_string($payload['code'] ?? null) ? $payload['code'] : null, $definition, $by), 'unlinked' => $unlinked];
     }
 
     /** A copy of a model (its draft) in the same or another folder, as a new draft. */

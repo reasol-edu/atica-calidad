@@ -29,6 +29,7 @@ final class FormUpdateService
         private readonly FormSubmissionRepository $submissions,
         private readonly FormSubmissionRevisionRepository $submissionRevisions,
         private readonly FormDataNormalizer $normalizer,
+        private readonly FormListOptions $lists,
         private readonly FormFlatData $flat,
         private readonly ActivityDeadlineChecker $deadlines,
         private readonly ClockInterface $clock,
@@ -84,7 +85,7 @@ final class FormUpdateService
             return [];
         }
         [$oldDefinition, $oldData] = $this->sourceOf($submission);
-        $newDefinition             = $target->getDefinition();
+        $newDefinition             = $this->lists->live($target, $oldData);
         $newFlat                   = $this->flat->flatten($newDefinition, $this->normalizer->normalize($newDefinition, $oldData));
         $index                     = FormIndex::of($oldDefinition);
 
@@ -111,7 +112,7 @@ final class FormUpdateService
             return false;
         }
         [, $oldData] = $this->sourceOf($submission);
-        $submission->startDraft($target, $this->normalizer->normalize($target->getDefinition(), $oldData));
+        $submission->startDraft($target, $this->normalizer->normalize($this->lists->live($target, $oldData), $oldData));
         $this->em->flush();
 
         return true;

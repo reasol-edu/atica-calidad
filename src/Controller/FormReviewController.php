@@ -43,6 +43,7 @@ class FormReviewController extends AbstractController
         private readonly DocumentRevisionReviewer $reviewer,
         private readonly FormResolver $resolver,
         private readonly \App\Service\Form\FormOfficeWriter $office,
+        private readonly \App\Service\Form\FormListOptions $lists,
         private readonly \App\Service\Form\FormIndicatorCalculator $indicators,
         private readonly FormDiff $diff,
         private readonly FormSubmissionService $service,
@@ -98,7 +99,7 @@ class FormReviewController extends AbstractController
             'canDecide'  => $canDecide,
             'others'     => $others,
             'token'      => $token,
-            'sections'   => $this->resolver->resolve($filled->getModelRevision()->getDefinition(), $filled->getData(), $this->context($filled)),
+            'sections'   => $this->resolver->resolve($this->lists->delivered($filled), $filled->getData(), $this->context($filled)),
             'ctx'        => ['comments' => $grouped, 'canComment' => $this->canParticipate($teacher, $filled), 'token' => $token, 'postUrl' => $this->generateUrl('app_form_comment', ['revisionId' => $revisionId])],
             'backUrl'    => $activity === null ? $this->generateUrl('app_document_tree') : $this->generateUrl('app_activities', ['category' => $activity->getCategory()->getId()->toRfc4122(), 'activity' => $activity->getId()->toRfc4122()]),
             'documentId' => $revision->getDocument()->getId()->toRfc4122(),
@@ -116,7 +117,7 @@ class FormReviewController extends AbstractController
             $title,
             $filled->getModelRevision()->getCode(),
             $centre->getName() . ' · REV: ' . $filled->getModelRevision()->getRevision()->getVersion(),
-            $this->resolver->resolve($filled->getModelRevision()->getDefinition(), $filled->getData(), $this->context($filled)),
+            $this->resolver->resolve($this->lists->delivered($filled), $filled->getData(), $this->context($filled)),
         );
 
         $response = new Response($body);
@@ -221,9 +222,9 @@ class FormReviewController extends AbstractController
             'before'  => $before->getRevision(),
             'after'   => $after->getRevision(),
             'changes' => $this->diff->compare(
-                $before->getModelRevision()->getDefinition(),
+                $this->lists->delivered($before),
                 $before->getData(),
-                $after->getModelRevision()->getDefinition(),
+                $this->lists->delivered($after),
                 $after->getData(),
                 $this->context($after),
             ),

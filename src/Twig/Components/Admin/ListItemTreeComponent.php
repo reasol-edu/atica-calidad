@@ -140,7 +140,33 @@ class ListItemTreeComponent extends AbstractController
         private readonly SpecificProfileRepository $profiles,
         private readonly SpecificProfileAssignmentRepository $assignments,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
+        private readonly \App\Repository\FormValueRepository $formValues,
     ) {}
+
+    /**
+     * How many delivered documents (of the models filled in online) have an answer that is one of the items about to be deleted —
+     * what the confirmation tells before the branch goes. Zero (and no query) when nothing is being deleted.
+     */
+    public function getFormUsage(): int
+    {
+        if ($this->confirmingDelete) {
+            $selected = $this->getSelected();
+            $roots    = $selected === null ? [] : [$selected];
+        } elseif ($this->confirmingBulkDelete) {
+            $roots = $this->topLevelSelectedItems();
+        } else {
+            return 0;
+        }
+
+        $ids = [];
+        foreach ($roots as $root) {
+            foreach ($this->items->findSubtree($root) as $node) {
+                $ids[$node->getId()->toRfc4122()] = true;
+            }
+        }
+
+        return $ids === [] ? 0 : $this->formValues->countDocumentsUsingItems(array_keys($ids));
+    }
 
     public function mount(EducationalCentre $centre, ?ListItem $root = null): void
     {

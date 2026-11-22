@@ -47,6 +47,7 @@ class FormModelController extends AbstractController
         private readonly FormDefinitionNormalizer $definitions,
         private readonly FormDataNormalizer $data,
         private readonly FormResolver $resolver,
+        private readonly \App\Service\Form\FormListOptions $lists,
         private readonly TranslatorInterface $translator,
         private readonly CsrfTokenManagerInterface $csrf,
     ) {}
@@ -110,6 +111,8 @@ class FormModelController extends AbstractController
                 'saveUrl'    => $this->generateUrl('app_form_model_save', ['id' => $id]),
                 'csrf'       => $this->csrf->getToken('form_model_' . $id)->getValue(),
                 'profiles'   => array_map(static fn (SpecificProfile $p): array => ['id' => $p->getId()->toRfc4122(), 'name' => $p->getName()], $this->profiles->findByCentre($centre)),
+                // The lists of Responsabilidades a choice can take its options from, with what each offers now.
+                'lists'      => $this->lists->pickable($centre),
             ],
         ]);
     }

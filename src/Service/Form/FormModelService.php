@@ -36,6 +36,7 @@ final class FormModelService
         private readonly DocumentReviewNotifier $notifier,
         private readonly ActivityLogger $logger,
         private readonly SpecificProfileRepository $profiles,
+        private readonly FormListOptions $lists,
     ) {}
 
     /** Persists and flushes the model and its document (which has no revision until the first one is sent to review). */
@@ -87,6 +88,10 @@ final class FormModelService
             if ($profile !== '' && $this->profiles->findByIdAndCentre($profile, $centre) === null) {
                 $problems[] = ['code' => 'approval_profile_missing', 'params' => ['%name%' => FormDefinition::str($step['name'] ?? '')]];
             }
+        }
+
+        foreach ($this->lists->emptySources($definition, $centre) as $label) {
+            $problems[] = ['code' => 'choice_list_empty', 'params' => ['%label%' => $label]];
         }
 
         return $problems;

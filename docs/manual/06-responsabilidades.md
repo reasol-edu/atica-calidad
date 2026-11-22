@@ -209,6 +209,13 @@ está asociado a un perfil específico, o hay docentes asignados a través de é
 que sí se podrían—, y se explica por qué. En ese caso, lo adecuado es
 [desactivarlo](#elementos-activos-e-inactivos), no eliminarlo.
 
+Las listas también alimentan las opciones de los [modelos de documento](12-modelos-de-documento.md#opciones-desde-listas).
+Eso no impide eliminar, pero la confirmación **avisa cuando el elemento (o algún descendiente) aparece
+en documentos ya entregados**, con su recuento: esos documentos seguirán mostrando el nombre que tenía
+al entregarse, pero el elemento ya no se podrá elegir en ninguno. Los borradores que lo tuvieran
+elegido lo conservan, marcado, y no se podrán entregar hasta elegir otra opción. Si solo quieres que
+deje de ofrecerse, desactívalo.
+
 ### Importar desde Séneca
 
 Dos botones en la parte superior de Listas — **Importar grupos desde Séneca** e **Importar

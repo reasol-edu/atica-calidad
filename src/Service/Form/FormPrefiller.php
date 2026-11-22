@@ -21,6 +21,7 @@ final class FormPrefiller
         private readonly FormSubmissionRepository $submissions,
         private readonly FormSubmissionRevisionRepository $revisions,
         private readonly FormDataNormalizer $normalizer,
+        private readonly FormListOptions $lists,
     ) {}
 
     /**
@@ -69,11 +70,12 @@ final class FormPrefiller
         $sourceRevision = $from->getModelRevision();
         $targetDef      = $target->getDefinition();
 
-        if ($sourceRevision->getModel()->getId()->equals($target->getModel()->getId())) {
-            $data = $this->normalizer->normalize($targetDef, $from->getData());
-        } else {
-            $data = $this->normalizer->normalize($targetDef, ['fields' => $this->byName($sourceRevision->getDefinition(), $from->getData(), $targetDef)]);
-        }
+        // What is copied is normalized against the target with its lists read as they are now: an item that was deactivated since
+        // stays in sight (and blocks the delivery) instead of vanishing from the copy.
+        $raw  = $sourceRevision->getModel()->getId()->equals($target->getModel()->getId())
+            ? $from->getData()
+            : ['fields' => $this->byName($sourceRevision->getDefinition(), $from->getData(), $targetDef)];
+        $data = $this->normalizer->normalize($this->lists->live($target, $raw), $raw);
 
         return ['data' => $data, 'from' => ['kind' => $kind, 'label' => $label, 'revisionId' => $from->getRevision()->getId()->toRfc4122()]];
     }

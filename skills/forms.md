@@ -142,6 +142,34 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
   (`app_quality_measurement_make_manual`).
 - Not done: a single activity per indicator (the spec allows several) and the "approval date" period mode.
 
+## Options fed from the centre's lists (live)
+
+A choice field or table column can have `list: <ListItem uuid>` (and empty `options`) instead of typed options. **The options are never
+stored in the model**: `FormListOptions` expands them from the list every time, and EVERYTHING that reads `options` must read a definition
+that went through it (the resolver, `FormDataNormalizer::optionKeys`, the validator, the JS of the fill page and of the editor). It is the
+trap: a list-fed field normalized against the raw definition has no options, so every save would wipe the choice, silently.
+
+- **Draft side** (`live()` / `expand($definition, $centre, $data)`): options = active leaves under the item (the item itself when it has none),
+  key = the item's UUID, label = path below the chosen item joined by ` › ` (what activities do). A value in `$data` that is no longer
+  offered (deactivated, moved out, deleted) is added as an option with `gone: true`, so the normalizer keeps it; `FormDataValidator` reports
+  `option_gone` (blocking) for it. `FormSubmissionService::definitionOf($submission)` is the entry point for a draft; pass the data being
+  normalized (`$raw` on save), not the saved draft's. Only UUID-shaped values are kept as gone, max 100 per field (data comes from a browser).
+- **Delivered side** (`delivered($filledRevision)`): the options a delivery froze. `deliver()` stores `snapshot($definition, $data)` in
+  `FormSubmissionRevision::optionsSnapshot` (JSON, nullable: `{fieldKey: [{key,label}]}` of what was SELECTED). Resolver output of a
+  delivered revision (review page, DOCX/ODT, compare), the explorer and the indicator group labels (`optionLabels`) read it. Never render a
+  delivered revision from `getModelRevision()->getDefinition()` if the model may have list-fed fields.
+- A model whose list is missing or has no active item cannot be sent to review (`choice_list_empty`, `FormModelService::problems`).
+- **JSON library**: `toPaths()` replaces `list` by `listPath` (names from the list's root), `fromPaths()` resolves it in the destination
+  centre; unresolved ones are left without list (→ `choice_without_options`) and reported (`FormModelPorter::import` returns
+  `{model, unlinked}`). Duplicate keeps ids (same centre).
+- `ListItemRepository` caches the centre's tree for the whole request/process (`reset()` clears it): tests that change a list and read it
+  again in the same process must call `reset()` (see `FormListOptionsTest::change`).
+- Responsabilidades: the delete confirmations of `ListItemTreeComponent` show `FormValueRepository::countDocumentsUsingItems()` (delivered
+  documents with a value equal to / containing the item id). Not covered: deleting a whole list from the lists screen, the Séneca import
+  and "move to another list" do not warn (the first two remove items; a moved item stays in its list of origin's options only until the
+  next read, as it is no longer a leaf of it).
+- Not done: rows of a fixed table taken from a list (one row per item), a list-fed field in a double-entry table's cells.
+
 ## Files in and out, and offline (phase 7)
 
 - **JSON library** (`FormModelPorter`, `FormModelLibraryController`, routes under `/modelos`): `GET /modelos/{id}/exportar.json` →
