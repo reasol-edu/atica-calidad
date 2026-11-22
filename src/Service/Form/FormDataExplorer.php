@@ -8,7 +8,6 @@ use App\Entity\Activity;
 use App\Entity\EducationalCentre;
 use App\Entity\FormSubmissionRevision;
 use App\Repository\ActivityRepository;
-use App\Repository\FormSubmissionRepository;
 use App\Repository\FormSubmissionRevisionRepository;
 use App\Repository\FormValueRepository;
 use App\Service\ActivitySubmissionSlotBuilder;
@@ -24,7 +23,6 @@ final class FormDataExplorer
 
     public function __construct(
         private readonly ActivityRepository $activities,
-        private readonly FormSubmissionRepository $submissions,
         private readonly FormSubmissionRevisionRepository $revisions,
         private readonly FormValueRepository $values,
         private readonly ActivitySubmissionSlotBuilder $slots,
@@ -54,17 +52,9 @@ final class FormDataExplorer
         $latest = [];
         /** @var array<string, string> $slotOf */
         $slotOf = [];
-        foreach ($this->submissions->findByActivityCycle($activity, $cycle) as $submission) {
-            $best = null;
-            foreach ($this->revisions->findBySubmission($submission) as $candidate) {
-                if ($candidate->getRevision()->isApproved() && ($best === null || $candidate->getRevision()->getVersion() > $best->getRevision()->getVersion())) {
-                    $best = $candidate;
-                }
-            }
-            if ($best !== null) {
-                $latest[$best->getId()->toRfc4122()] = $best;
-                $slotOf[$best->getId()->toRfc4122()] = $submission->getSlotKey();
-            }
+        foreach ($this->revisions->findLatestApprovedByActivityCycle($activity, $cycle) as $best) {
+            $latest[$best->getId()->toRfc4122()] = $best;
+            $slotOf[$best->getId()->toRfc4122()] = $best->getSubmission()->getSlotKey();
         }
 
         /** @var array<string, FormIndex> $indexes by model revision id */
@@ -80,7 +70,14 @@ final class FormDataExplorer
             $index    = $indexes[$revId] ??= FormIndex::of($this->lists->delivered($revision));
 
             [$label, $options] = $this->describe($index, $value->getFieldKey());
-            $out[] = [
+            $shown = $this->display($value->getNum(), $value->getText(), $value->getFlag(), $options);
+            // A multiple choice is indexed with one row per option chosen: they read as one cell, as they were filled in.
+            $id = $revId . '|' . $value->getPath() . '|' . ($value->getRowKey() ?? '') . '|' . $value->getFieldKey();
+            if (isset($out[$id])) {
+                $out[$id]['value'] .= ', ' . $shown;
+                continue;
+            }
+            $out[$id] = [
                 'activity' => $activity->getTitle(),
                 'cycle'    => $cycle,
                 'slot'     => $labels[$slotOf[$revId]] ?? $slotOf[$revId],
@@ -88,9 +85,10 @@ final class FormDataExplorer
                 'copy'     => $value->getPath(),
                 'row'      => $value->getRowKey() ?? '',
                 'field'    => $label,
-                'value'    => $this->display($value->getNum(), $value->getText(), $value->getFlag(), $options),
+                'value'    => $shown,
             ];
         }
+        $out = array_values($out);
         usort($out, static fn (array $a, array $b): int => [$a['slot'], $a['copy'], $a['row'], $a['field']] <=> [$b['slot'], $b['copy'], $b['row'], $b['field']]);
 
         return $out;

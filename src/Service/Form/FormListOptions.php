@@ -91,18 +91,22 @@ final class FormListOptions
         }
 
         $cache = [];
+        // The centre's tree is read at most once for the whole definition, whatever the number of fields and of selected values.
+        $index = null;
 
-        return $this->mapSpecs($definition, function (array $spec) use ($centre, $data, &$cache): array {
+        return $this->mapSpecs($definition, function (array $spec) use ($centre, $data, &$cache, &$index): array {
             $list = FormDefinition::str($spec['list'] ?? '');
             if ($list === '') {
                 return $spec;
             }
-            $options = $cache[$list] ??= $this->optionsOf($list, $centre);
+            $index ??= $this->items->indexByCentre($centre);
+            $root    = self::isItemId($list) ? ($index[$list] ?? null) : null;
+            $options = $cache[$list] ??= ($root === null ? [] : $this->optionsOfItem($root));
             $known   = array_map(static fn (array $o): string => FormDefinition::str($o['key'] ?? ''), $options);
             // Only what looks like an item, and not without limit: the data of a draft comes from a browser.
             foreach (array_slice(self::selected($data, FormDefinition::str($spec['key'] ?? '')), 0, self::MAX_GONE) as $value) {
                 if (self::isItemId($value) && !in_array($value, $known, true)) {
-                    $options[] = $this->gone($value, $centre);
+                    $options[] = $this->gone($value, $index[$value] ?? null);
                     $known[]   = $value;
                 }
             }
@@ -123,9 +127,15 @@ final class FormListOptions
     public function emptySources(array $definition, EducationalCentre $centre): array
     {
         $empty = [];
+        $index = null;
         foreach (self::specs($definition) as $spec) {
             $list = FormDefinition::str($spec['list'] ?? '');
-            if ($list !== '' && $this->optionsOf($list, $centre) === []) {
+            if ($list === '') {
+                continue;
+            }
+            $index ??= $this->items->indexByCentre($centre);
+            $root = self::isItemId($list) ? ($index[$list] ?? null) : null;
+            if ($root === null || $this->optionsOfItem($root) === []) {
                 $empty[] = FormDefinition::str($spec['label'] ?? '');
             }
         }
@@ -147,12 +157,15 @@ final class FormListOptions
             return $definition;
         }
 
-        return $this->mapSpecs($definition, function (array $spec) use ($centre): array {
+        $index = null;
+
+        return $this->mapSpecs($definition, function (array $spec) use ($centre, &$index): array {
             $list = FormDefinition::str($spec['list'] ?? '');
             if ($list === '') {
                 return $spec;
             }
-            $item = self::isItemId($list) ? $this->items->findByIdAndCentre($list, $centre) : null;
+            $index ??= $this->items->indexByCentre($centre);
+            $item = self::isItemId($list) ? ($index[$list] ?? null) : null;
             unset($spec['list']);
             if ($item !== null) {
                 $names = [];
@@ -178,7 +191,8 @@ final class FormListOptions
     public function fromPaths(array $definition, EducationalCentre $centre): array
     {
         $unlinked = [];
-        $definition = $this->mapSpecs($definition, function (array $spec) use ($centre, &$unlinked): array {
+        $index    = null;
+        $definition = $this->mapSpecs($definition, function (array $spec) use ($centre, &$unlinked, &$index): array {
             $path = array_values(array_filter(array_map('strval', array_filter(is_array($spec['listPath'] ?? null) ? $spec['listPath'] : [], 'is_scalar')), static fn (string $n): bool => $n !== ''));
             unset($spec['listPath']);
             if (!in_array($spec['fieldType'] ?? '', ['choice', 'multichoice'], true)) {
@@ -191,7 +205,8 @@ final class FormListOptions
             if ($path === []) {
                 return $spec;
             }
-            $item = $this->resolvePath($path, $centre);
+            $index ??= $this->items->indexByCentre($centre);
+            $item  = $this->resolvePath($path, $index);
             if ($item === null) {
                 $unlinked[] = FormDefinition::str($spec['label'] ?? '');
 
@@ -206,24 +221,26 @@ final class FormListOptions
         return [$definition, $unlinked];
     }
 
-    /** @param list<string> $path names from the root of a list */
-    private function resolvePath(array $path, EducationalCentre $centre): ?ListItem
+    /**
+     * @param list<string>          $path  names from the root of a list
+     * @param array<string, ListItem> $index the centre's items by id
+     */
+    private function resolvePath(array $path, array $index): ?ListItem
     {
-        $siblings = $this->items->findRootsByCentre($centre);
-        $current  = null;
+        // Walked on the tree already in memory: roots are the items without parent, then each level by name.
+        $current = null;
         foreach ($path as $name) {
             $match = null;
-            foreach ($siblings as $sibling) {
-                if ($sibling->getName() === $name) {
-                    $match = $sibling;
+            foreach ($index as $item) {
+                if ($item->getName() === $name && ($item->getParent()?->getId()->toRfc4122()) === $current?->getId()->toRfc4122()) {
+                    $match = $item;
                     break;
                 }
             }
             if ($match === null) {
                 return null;
             }
-            $current  = $match;
-            $siblings = $this->items->findChildrenByParent($match);
+            $current = $match;
         }
 
         return $current;
@@ -293,11 +310,14 @@ final class FormListOptions
         if (!self::isItemId($itemId)) {
             return [];
         }
-        $root = $this->items->findByIdAndCentre($itemId, $centre);
-        if ($root === null) {
-            return [];
-        }
+        $root = $this->items->indexByCentre($centre)[$itemId] ?? null;
 
+        return $root === null ? [] : $this->optionsOfItem($root);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function optionsOfItem(ListItem $root): array
+    {
         $options = [];
         foreach ($this->items->findLeafDescendants($root) as $leaf) {
             $label = $this->pathBelow($leaf, $root);
@@ -317,7 +337,8 @@ final class FormListOptions
      */
     public function pickable(EducationalCentre $centre): array
     {
-        $all = $this->items->findAllByCentre($centre);
+        // The centre's tree is read once (the repository keeps it): the picker costs the same for one list or fifty.
+        $all = $this->items->indexByCentre($centre);
         $has = [];
         foreach ($all as $item) {
             $parent = $item->getParent();
@@ -327,8 +348,7 @@ final class FormListOptions
         }
 
         $out = [];
-        foreach ($all as $item) {
-            $id = $item->getId()->toRfc4122();
+        foreach ($all as $id => $item) {
             if (!isset($has[$id])) {
                 continue;
             }
@@ -336,7 +356,7 @@ final class FormListOptions
             for ($node = $item; $node !== null; $node = $node->getParent()) {
                 array_unshift($names, $node->getName());
             }
-            $out[] = ['id' => $id, 'label' => implode(self::SEPARATOR, $names), 'options' => $this->optionsOf($id, $centre)];
+            $out[] = ['id' => $id, 'label' => implode(self::SEPARATOR, $names), 'options' => $this->optionsOfItem($item)];
         }
         usort($out, static fn (array $a, array $b): int => strcasecmp($a['label'], $b['label']));
 
@@ -365,10 +385,8 @@ final class FormListOptions
     }
 
     /** @return array<string, mixed> the option of a selected item that is no longer offered */
-    private function gone(string $value, EducationalCentre $centre): array
+    private function gone(string $value, ?ListItem $item): array
     {
-        $item = self::isItemId($value) ? $this->items->findByIdAndCentre($value, $centre) : null;
-
         return [
             'key'   => $value,
             'label' => $item === null

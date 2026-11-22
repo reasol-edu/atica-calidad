@@ -4,40 +4,34 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Service\Form;
 
-use App\Entity\FormValue;
 use App\Service\Form\FormValueIndexer;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * How one value is kept in the index. A multiple choice is not here: it is one row per option chosen, so the indexer calls this once
+ * for each (see FormQueryCountTest for the whole thing).
+ */
 final class FormValueIndexerTest extends TestCase
 {
-    public function testAMultipleChoiceKeepsItsKeysJoinedByCommas(): void
+    public function testAKeyIsKeptAsText(): void
     {
-        [$num, $text, $flag] = FormValueIndexer::typed('multichoice', ['a', 'b', 'c']);
+        [$num, $text, $flag] = FormValueIndexer::typed('choice', '0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b');
         self::assertNull($num);
-        self::assertSame('a,b,c', $text);
+        self::assertSame('0192a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b', $text);
         self::assertNull($flag);
     }
 
-    public function testTooManyKeysAreCutBetweenKeysNeverInTheMiddleOfOne(): void
+    public function testNumbersAndYesNoAreKeptTyped(): void
     {
-        $keys = [];
-        for ($i = 0; $i < 40; ++$i) {
-            $keys[] = sprintf('%08x-0000-4000-8000-%012x', $i, $i);
-        }
-        [, $text] = FormValueIndexer::typed('multichoice', $keys);
-
-        self::assertNotNull($text);
-        self::assertLessThanOrEqual(FormValue::TEXT_LENGTH, mb_strlen($text));
-        // 27 keys of 36 characters and their 26 commas fit in 1000; the 28th would not.
-        self::assertSame(27, \count(explode(',', $text)));
-        foreach (explode(',', $text) as $key) {
-            self::assertSame(36, mb_strlen($key), 'only whole keys');
-        }
+        self::assertSame([5.0, null, null], FormValueIndexer::typed('number', '5'));
+        self::assertSame([1.0, null, true], FormValueIndexer::typed('bool', true));
+        self::assertSame([0.0, null, false], FormValueIndexer::typed('bool', false));
     }
 
     public function testEmptyValuesAreNotIndexed(): void
     {
         self::assertSame([null, null, null], FormValueIndexer::typed('multichoice', []));
         self::assertSame([null, null, null], FormValueIndexer::typed('short', ''));
+        self::assertSame([null, null, null], FormValueIndexer::typed('short', null));
     }
 }

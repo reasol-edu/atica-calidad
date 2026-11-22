@@ -58,6 +58,9 @@ class FormModelRepository extends ServiceEntityRepository
             ->join('m.document', 'd')->addSelect('d')
             ->join('d.folder', 'f')->addSelect('f')
             ->join('f.documentSection', 's')->addSelect('s')
+            // What the list shows of each model (in force, pending) comes with the same query, not one or two more per model.
+            ->leftJoin('d.revisions', 'rv')->addSelect('rv')
+            ->leftJoin('d.activeRevision', 'ar')->addSelect('ar')
             ->where('s.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->orderBy('d.name')

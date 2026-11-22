@@ -8,7 +8,6 @@ use App\Entity\FormSubmissionRevision;
 use App\Entity\IndicatorFormSource;
 use App\Entity\Measurement;
 use App\Entity\MeasurementPeriod;
-use App\Repository\FormSubmissionRepository;
 use App\Repository\FormSubmissionRevisionRepository;
 use App\Repository\FormValueRepository;
 use App\Repository\IndicatorFormSourceRepository;
@@ -29,7 +28,6 @@ final class FormIndicatorCalculator
         private readonly EntityManagerInterface $em,
         private readonly ClockInterface $clock,
         private readonly IndicatorFormSourceRepository $sources,
-        private readonly FormSubmissionRepository $submissions,
         private readonly FormSubmissionRevisionRepository $revisions,
         private readonly FormValueRepository $values,
         private readonly MeasurementRepository $measurements,
@@ -38,26 +36,92 @@ final class FormIndicatorCalculator
         private readonly FormListOptions $lists,
     ) {}
 
+    /**
+     * What one recalculation pass has already read, so many indicators and periods fed from the same activity and cycle cost the
+     * same queries as one: `slots` by activity id and `latest` by activity id and cycle. Null outside a pass (a single calculation
+     * always reads fresh).
+     *
+     * @var array{slots: array<string, array<string, string>>, latest: array<string, array{0: array<string, FormSubmissionRevision>, 1: array<string, string>}>}|null
+     */
+    private ?array $pass = null;
+
     /** Recalculates every period already started of every computed indicator; returns how many measurements were written. */
     public function recalculateAll(): int
     {
-        $written = 0;
-        foreach ($this->sources->findAll() as $source) {
-            $written += $this->recalculate($source);
-        }
+        return $this->inPass(function (): int {
+            $written = 0;
+            foreach ($this->sources->findAll() as $source) {
+                $written += $this->recalculate($source);
+            }
 
-        return $written;
+            return $written;
+        });
     }
 
     /** Recalculates the indicators fed from one activity (when one of its deliveries is approved); returns how many measurements were written. */
     public function recalculateForActivity(\App\Entity\Activity $activity): int
     {
-        $written = 0;
-        foreach ($this->sources->findByActivity($activity) as $source) {
-            $written += $this->recalculate($source);
+        return $this->inPass(function () use ($activity): int {
+            $written = 0;
+            foreach ($this->sources->findByActivity($activity) as $source) {
+                $written += $this->recalculate($source);
+            }
+
+            return $written;
+        });
+    }
+
+    /**
+     * @param \Closure(): int $work
+     */
+    private function inPass(\Closure $work): int
+    {
+        $outer      = $this->pass;
+        $this->pass = $outer ?? ['slots' => [], 'latest' => []];
+        try {
+            return $work();
+        } finally {
+            $this->pass = $outer;
+        }
+    }
+
+    /** @return array<string, string> the display name of each slot of an activity, by slot key */
+    private function slotLabels(\App\Entity\Activity $activity): array
+    {
+        $id = $activity->getId()->toRfc4122();
+        if (isset($this->pass['slots'][$id])) {
+            return $this->pass['slots'][$id];
+        }
+        $labels = [];
+        foreach ($this->slots->buildSlots($activity) as $slot) {
+            $labels[$slot->key()] = $slot->displayName;
+        }
+        if ($this->pass !== null) {
+            $this->pass['slots'][$id] = $labels;
         }
 
-        return $written;
+        return $labels;
+    }
+
+    /**
+     * @return array{0: array<string, FormSubmissionRevision>, 1: array<string, string>} the latest approved revisions by revision id, and the slot key of each
+     */
+    private function latestApproved(\App\Entity\Activity $activity, int $cycle): array
+    {
+        $id = $activity->getId()->toRfc4122() . '|' . $cycle;
+        if (isset($this->pass['latest'][$id])) {
+            return $this->pass['latest'][$id];
+        }
+        $latest = $slotOf = [];
+        foreach ($this->revisions->findLatestApprovedByActivityCycle($activity, $cycle) as $best) {
+            $latest[$best->getId()->toRfc4122()] = $best;
+            $slotOf[$best->getId()->toRfc4122()] = $best->getSubmission()->getSlotKey();
+        }
+        if ($this->pass !== null) {
+            $this->pass['latest'][$id] = [$latest, $slotOf];
+        }
+
+        return [$latest, $slotOf];
     }
 
     public function recalculate(IndicatorFormSource $source): int
@@ -135,27 +199,8 @@ final class FormIndicatorCalculator
         $activity = $source->getActivity();
         $cycle    = $this->deadlines->cycleKeyNear($activity, $period->getEndDate());
 
-        $labels = [];
-        foreach ($this->slots->buildSlots($activity) as $slot) {
-            $labels[$slot->key()] = $slot->displayName;
-        }
-
-        /** @var array<string, FormSubmissionRevision> $latest by revision id */
-        $latest = [];
-        /** @var array<string, string> $slotOf revision id → slot key */
-        $slotOf = [];
-        foreach ($this->submissions->findByActivityCycle($activity, $cycle) as $submission) {
-            $best = null;
-            foreach ($this->revisions->findBySubmission($submission) as $candidate) {
-                if ($candidate->getRevision()->isApproved() && ($best === null || $candidate->getRevision()->getVersion() > $best->getRevision()->getVersion())) {
-                    $best = $candidate;
-                }
-            }
-            if ($best !== null) {
-                $latest[$best->getId()->toRfc4122()] = $best;
-                $slotOf[$best->getId()->toRfc4122()] = $submission->getSlotKey();
-            }
-        }
+        $labels = $this->slotLabels($activity);
+        [$latest, $slotOf] = $this->latestApproved($activity, $cycle);
         if ($latest === []) {
             return null;
         }

@@ -123,6 +123,24 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
     }
 
     /**
+     * Every item of the centre by id, from the tree this repository already keeps (one query the first time, none after): what a
+     * caller that looks up many items by id uses instead of asking for each one.
+     *
+     * @return array<string, ListItem> by RFC4122 id
+     */
+    public function indexByCentre(EducationalCentre $centre): array
+    {
+        $index = [];
+        foreach ($this->groupChildrenByParent($centre) as $children) {
+            foreach ($children as $item) {
+                $index[$item->getId()->toRfc4122()] = $item;
+            }
+        }
+
+        return $index;
+    }
+
+    /**
      * Every leaf (childless) descendant of $root, in a stable pre-order walk
      * (siblings sorted by position). Single query for the whole centre, then
      * an in-memory tree walk — avoids recursive SQL, which isn't portable

@@ -26,12 +26,16 @@ final class FormValueIndexer
 
         $count = 0;
         foreach ($this->extract($revision->getModelRevision()->getDefinition(), $revision->getData()) as [$key, $path, $row, $type, $value]) {
-            [$num, $text, $flag] = self::typed($type, $value);
-            if ($num === null && $text === null && $flag === null) {
-                continue;
+            // A multiple choice is one row per option chosen (the key of the option in `text`), however many: no value is cut, and
+            // "who chose this item" is an exact match.
+            foreach (is_array($value) && $value !== [] ? array_values($value) : [$value] as $one) {
+                [$num, $text, $flag] = self::typed($type, $one);
+                if ($num === null && $text === null && $flag === null) {
+                    continue;
+                }
+                $this->em->persist(new FormValue($revision, $key, $path, $row, $num, $text, $flag));
+                ++$count;
             }
-            $this->em->persist(new FormValue($revision, $key, $path, $row, $num, $text, $flag));
-            ++$count;
         }
 
         return $count;
@@ -95,19 +99,6 @@ final class FormValueIndexer
         }
         if (is_int($value) || is_float($value) || ($type === 'number' && is_numeric($value))) {
             return [(float) $value, null, null];
-        }
-        if (is_array($value)) {
-            // The keys of a multiple choice, whole ones only: a cut in the middle of an id would match nothing (nor, worse, something else).
-            $joined = '';
-            foreach ($value as $one) {
-                $next = ($joined === '' ? '' : ',') . (is_scalar($one) ? (string) $one : '');
-                if (mb_strlen($joined . $next) > FormValue::TEXT_LENGTH) {
-                    break;
-                }
-                $joined .= $next;
-            }
-
-            return [null, $joined, null];
         }
 
         return [null, is_scalar($value) ? (string) $value : null, null];

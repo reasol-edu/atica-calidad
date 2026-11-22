@@ -34,6 +34,34 @@ class FormModelRevisionRepository extends ServiceEntityRepository
         return $active === null ? null : $this->findByRevision($active);
     }
 
+    /**
+     * The revision in force of every model of a centre, in ONE query (what `findInForce()` costs per model, several queries each, for a
+     * screen that walks all the activities).
+     *
+     * @return array<string, FormModelRevision> by the id of the model
+     */
+    public function findAllInForceByCentre(\App\Entity\EducationalCentre $centre): array
+    {
+        /** @var list<FormModelRevision> $found */
+        $found = $this->createQueryBuilder('r')
+            ->join('r.model', 'm')->addSelect('m')
+            ->join('m.document', 'd')
+            ->join('d.folder', 'f')
+            ->join('f.documentSection', 's')
+            ->where('s.educationalCentre = :centre')
+            ->andWhere('r.revision = d.activeRevision')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->getQuery()
+            ->getResult();
+
+        $byModel = [];
+        foreach ($found as $revision) {
+            $byModel[$revision->getModel()->getId()->toRfc4122()] = $revision;
+        }
+
+        return $byModel;
+    }
+
     public function findByIdAndModel(string $id, FormModel $model): ?FormModelRevision
     {
         if (!Uuid::isValid($id)) {

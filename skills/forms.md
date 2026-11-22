@@ -170,8 +170,14 @@ trap: a list-fed field normalized against the raw definition has no options, so 
   in delivered documents or change profiles; the Séneca import (`SenecaListImporter::formUsage()`, shown in the preview) treats an item
   that delivered documents use as IN USE, so it is deactivated, never deleted. A moved item stops being offered by the fields of the list
   it left, and drafts that had it keep it marked as gone.
-- `FormValue::text` holds the keys of a multiple choice joined by commas (VARCHAR 1000: 27 keys; whole keys only, the rest is cut). The
-  delete count and the explorer therefore miss the 28th selected item and beyond of one multiple choice.
+- A multiple choice is indexed as ONE `FormValue` ROW PER OPTION CHOSEN (`text` = the option's key), however many: nothing is cut, "which
+  documents chose this item" is an exact `IN` match (`countDocumentsUsingItems`, `findItemIdsInUse`), and the explorer joins the rows of a
+  field back into one cell. Rows indexed before this (one comma-joined row) are fixed by `bin/console app:forms:reindex`.
+- **Queries**: everything above reads the centre's list tree ONCE (`ListItemRepository::indexByCentre()` / the cached tree), never per field,
+  per value or per item; the explorer and the indicators read the latest approved revision of every slot in ONE query
+  (`FormSubmissionRevisionRepository::findLatestApprovedByActivityCycle`), and `FormIndicatorCalculator` keeps what a recalculation pass
+  has read (slots, latest revisions) for the next indicator of the same activity and cycle. `FormQueryCountTest` compares a small and a big
+  case for each and fails if the count grows: add a case there when adding a screen or a service that loops.
 - The condition (`count_if` / `percent_if`) of an indicator on a choice field is picked in a searchable Tom Select
   (`indicator_condition_controller.js`, fed by `FormSourceChoices` with the options as the lists are now); the stored value is the option's key.
 - Not done: rows of a fixed table taken from a list (one row per item), a list-fed field in a double-entry table's cells.

@@ -7,8 +7,6 @@ namespace App\Repository;
 use App\Entity\Activity;
 use App\Entity\FormValue;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\ORM\Query\Parameter;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -16,6 +14,9 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class FormValueRepository extends ServiceEntityRepository
 {
+    /** Ids per query: far below the parameter limit of any engine. */
+    private const int ID_CHUNK = 400;
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, FormValue::class);
@@ -23,34 +24,55 @@ class FormValueRepository extends ServiceEntityRepository
 
     /**
      * How many filled documents (a document is counted once however many times it was delivered) have a choice answered with any of
-     * these list items; a multiple choice keeps its items joined in one value, so a value that merely contains the id counts. Counted
-     * by chunks of ids: a document that has items of two chunks is counted twice, which only matters for a branch of hundreds of items.
+     * these list items. A multiple choice is indexed with one row per option, so this is an exact match. Counted by chunks of ids: a
+     * document that has items of two chunks is counted twice, which only matters for a branch of hundreds of items.
      *
      * @param list<string> $itemIds RFC4122 ids of list items
      */
     public function countDocumentsUsingItems(array $itemIds): int
     {
         $total = 0;
-        foreach (array_chunk($itemIds, 40) as $chunk) {
-            $conditions = [];
-            $parameters = [];
-            foreach ($chunk as $i => $id) {
-                $conditions[]          = 'v.text = :e' . $i . ' OR v.text LIKE :l' . $i;
-                $parameters['e' . $i]  = $id;
-                $parameters['l' . $i]  = '%' . $id . '%';
-            }
+        foreach (array_chunk($itemIds, self::ID_CHUNK) as $chunk) {
             // Documents, not revisions: one delivered three times counts once.
             $total += (int) $this->createQueryBuilder('v')
                 ->select('COUNT(DISTINCT s.id)')
                 ->join('v.submissionRevision', 'sr')
                 ->join('sr.submission', 's')
-                ->where(implode(' OR ', $conditions))
-                ->setParameters(new ArrayCollection(array_map(static fn (string $name, string $value): Parameter => new Parameter($name, $value), array_keys($parameters), $parameters)))
+                ->where('v.text IN (:ids)')
+                ->setParameter('ids', $chunk)
                 ->getQuery()
                 ->getSingleScalarResult();
         }
 
         return $total;
+    }
+
+    /**
+     * Which of these list items are chosen in some delivered document: one query for the lot (what an import that may remove hundreds of
+     * items asks, instead of asking once per item).
+     *
+     * @param list<string> $itemIds RFC4122 ids of list items
+     *
+     * @return array<string, true> the ids that are in use
+     */
+    public function findItemIdsInUse(array $itemIds): array
+    {
+        $used = [];
+        foreach (array_chunk($itemIds, self::ID_CHUNK) as $chunk) {
+            $found = $this->createQueryBuilder('v')
+                ->select('DISTINCT v.text')
+                ->where('v.text IN (:ids)')
+                ->setParameter('ids', $chunk)
+                ->getQuery()
+                ->getSingleColumnResult();
+            foreach ($found as $id) {
+                if (is_string($id)) {
+                    $used[$id] = true;
+                }
+            }
+        }
+
+        return $used;
     }
 
     /**

@@ -26,13 +26,14 @@ final class FormSourceChoices
     /** @return list<array{id: string, name: string, fields: list<array{key: string, label: string, type: string, options: list<array{key: string, label: string}>}>}> */
     public function forCentre(EducationalCentre $centre, ?FormModel $only = null): array
     {
-        $out = [];
+        $out    = [];
+        $forces = $this->modelRevisions->findAllInForceByCentre($centre);
         foreach ($this->activities->findAllByCentre($centre, true) as $activity) {
             $model = $activity->getFormModel();
             if (!$activity->isForm() || $model === null || ($only !== null && !$model->getId()->equals($only->getId()))) {
                 continue;
             }
-            $force = $this->modelRevisions->findInForce($model);
+            $force = $forces[$model->getId()->toRfc4122()] ?? null;
             if ($force === null) {
                 continue;
             }

@@ -64,6 +64,7 @@ final class SenecaListImporter
     public function plan(EducationalCentre $centre, string $rootName, array $desired): SenecaListImportPlan
     {
         $root = $this->findRootByName($centre, $rootName);
+        $this->loadFormUsage($root);
 
         $additions     = [];
         $deletions     = [];
@@ -98,6 +99,7 @@ final class SenecaListImporter
             $this->em->persist($root);
         }
 
+        $this->loadFormUsage($root);
         $counts = ['added' => 0, 'deleted' => 0, 'deactivated' => 0, 'reactivated' => 0];
         $this->applyChildren($root, $centre, $desired, $deleteUnused, $counts);
         $this->em->flush();
@@ -286,7 +288,21 @@ final class SenecaListImporter
             || $this->assignments->isListItemAssigned($item)
             || $this->documents->isListItemUsedByDocument($item)
             // Chosen in a delivered document of a model filled in online: it is deactivated, not deleted, so it keeps its name there.
-            || $this->formValues->countDocumentsUsingItems([$item->getId()->toRfc4122()]) > 0;
+            || isset($this->usedByForms[$item->getId()->toRfc4122()]);
+    }
+
+    /** @var array<string, true> the items of the list being imported that delivered documents have chosen (read once per plan or apply) */
+    private array $usedByForms = [];
+
+    /** One query for the whole list, instead of one per item the import may remove. */
+    private function loadFormUsage(?ListItem $root): void
+    {
+        $this->usedByForms = [];
+        if ($root === null || !$this->em->contains($root)) {
+            return;
+        }
+        $ids = array_values(array_map(static fn (ListItem $node): string => $node->getId()->toRfc4122(), $this->items->findSubtree($root)));
+        $this->usedByForms = $this->formValues->findItemIdsInUse($ids);
     }
 
     private function findRootByName(EducationalCentre $centre, string $name): ?ListItem

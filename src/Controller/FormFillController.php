@@ -101,6 +101,8 @@ class FormFillController extends AbstractController
                 $this->service->takeOver($submission, $teacher);
             }
             $readOnly = $window->blocked || $lockedByOther;
+            // Computed once: it normalizes and validates the whole draft.
+            $pending = $readOnly ? ['problems' => [], 'warnings' => []] : $this->problemLists($submission);
 
             $view += [
                 'editor' => [
@@ -118,8 +120,8 @@ class FormFillController extends AbstractController
                 'lockedBy'    => $lockedByOther ? $holder : null,
                 'lockedUntil' => $submission->getLockedUntil(),
                 'canEdit'     => !$readOnly,
-                'problems'    => $readOnly ? [] : $this->problemLists($submission)['problems'],
-                'warnings'    => $readOnly ? [] : $this->problemLists($submission)['warnings'],
+                'problems'    => $pending['problems'],
+                'warnings'    => $pending['warnings'],
             ];
         } elseif ($last !== null) {
             $definition = $this->lists->delivered($last);

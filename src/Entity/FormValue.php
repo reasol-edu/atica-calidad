@@ -43,7 +43,7 @@ class FormValue
 
     public const int TEXT_LENGTH = 1000;
 
-    /** The text, cut to TEXT_LENGTH characters (choices: the key(s) of the option, joined by commas: 27 of them fit). */
+    /** The text, cut to TEXT_LENGTH characters (choices: the key of the option; a multiple choice has one row per option chosen). */
     #[ORM\Column(length: self::TEXT_LENGTH, nullable: true)]
     private ?string $text;
 

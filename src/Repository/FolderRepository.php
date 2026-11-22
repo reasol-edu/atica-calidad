@@ -145,7 +145,7 @@ class FolderRepository extends ServiceEntityRepository
     public function findAllByCentre(EducationalCentre $centre): array
     {
         return $this->createQueryBuilder('f')
-            ->join('f.documentSection', 's')
+            ->join('f.documentSection', 's')->addSelect('s')
             ->where('s.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->orderBy('f.name')

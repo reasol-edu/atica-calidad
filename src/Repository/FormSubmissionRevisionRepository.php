@@ -64,6 +64,39 @@ class FormSubmissionRevisionRepository extends ServiceEntityRepository
         return $all;
     }
 
+    /**
+     * The latest APPROVED delivered revision of every submission of an activity's cycle, in ONE query (with the document revision, the
+     * submission and the model revision it was filled with already loaded): what the indicators and the data explorer read, however
+     * many slots the activity has.
+     *
+     * @return list<FormSubmissionRevision>
+     */
+    public function findLatestApprovedByActivityCycle(\App\Entity\Activity $activity, int $cycleYear): array
+    {
+        /** @var list<FormSubmissionRevision> $all */
+        $all = $this->createQueryBuilder('s')
+            ->join('s.revision', 'r')->addSelect('r')
+            ->join('s.submission', 'sub')->addSelect('sub')
+            ->join('s.modelRevision', 'm')->addSelect('m')
+            ->where('sub.activity = :activity')
+            ->andWhere('sub.cycleYear = :cycle')
+            ->andWhere('r.pendingReview = false')
+            ->andWhere('r.rejected = false')
+            ->setParameter('activity', $activity->getId(), 'uuid')
+            ->setParameter('cycle', $cycleYear)
+            ->orderBy('r.version', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        $latest = [];
+        foreach ($all as $filled) {
+            // Newest first: the first one seen of a submission is its latest.
+            $latest[$filled->getSubmission()->getId()->toRfc4122()] ??= $filled;
+        }
+
+        return array_values($latest);
+    }
+
     /** The data of a delivered revision by the id of its DocumentRevision, or null (also when the id is not a UUID). */
     public function findByRevisionId(string $revisionId): ?FormSubmissionRevision
     {

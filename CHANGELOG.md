@@ -63,7 +63,7 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   Al borrar o mover elementos en Responsabilidades, la confirmación avisa de en cuántos documentos entregados aparecen, y la
   vista previa de la importación de Séneca también; un elemento que figura en un documento entregado se desactiva en lugar de
   eliminarse. En el formulario de un indicador, la condición sobre un campo de opciones se elige de una lista con buscador (antes
-  había que teclear la clave interna). Las selecciones múltiples del índice de valores guardan hasta 27 opciones (columna ampliada).
+  había que teclear la clave interna). El índice de valores guarda una fila por cada opción elegida en una selección múltiple, sin límite (los datos ya indexados se corrigen con `app:forms:reindex`). Las lecturas de los modelos no repiten consultas por campo, entrega o elemento: el explorador y los indicadores leen la última revisión aprobada de todos los huecos con una sola consulta, las listas del centro se leen una vez por petición, la pantalla de modelos no consulta por modelo y la importación de Séneca no consulta los documentos por elemento.
   Migración nueva (columna de nombres congelados), probada en las cuatro bases. El manual gana las capturas del capítulo y el
   comando opcional `app:load-demo-form-models` las hace posibles.
 - **Indicadores que se recalculan al aprobarse una entrega (fase 6).** Antes solo con la tarea programada o al guardar el indicador.
