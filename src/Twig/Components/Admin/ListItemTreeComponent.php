@@ -9,8 +9,6 @@ use App\Entity\ListItem;
 use App\Entity\ListItemProfile;
 use App\Model\ProfileAssignmentRow;
 use App\Repository\ListItemRepository;
-use App\Repository\SpecificProfileAssignmentRepository;
-use App\Repository\SpecificProfileRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Service\ProfileAssignmentRowBuilder;
 use Doctrine\ORM\EntityManagerInterface;
@@ -137,11 +135,29 @@ class ListItemTreeComponent extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
         private readonly ListItemRepository $items,
-        private readonly SpecificProfileRepository $profiles,
-        private readonly SpecificProfileAssignmentRepository $assignments,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly \App\Repository\FormValueRepository $formValues,
+        private readonly \App\Service\ListItemUsage $usage,
     ) {}
+
+    /**
+     * Every item of the centre by id, in ONE fresh query (not the repository's per-request tree, which an action that has just removed
+     * or moved items leaves stale): what the loops over many checked ids use instead of a query per id.
+     *
+     * @return array<string, ListItem>
+     */
+    private function itemIndex(): array
+    {
+        $index = [];
+        foreach ($this->items->findAllByCentre($this->centre) as $item) {
+            $index[$item->getId()->toRfc4122()] = $item;
+        }
+
+        return $index;
+    }
+
+    /** @var array<string, true>|null the items a profile takes its list from, read once per request when first needed */
+    private ?array $profileListIds = null;
 
     /**
      * How many delivered documents (of the models filled in online) have an answer that is one of the items about to be deleted —
@@ -455,8 +471,9 @@ class ListItemTreeComponent extends AbstractController
 
         $subtree = $this->items->findSubtree($selected);
 
+        $blocking = $this->usage->blocking($this->centre);
         foreach ($subtree as $node) {
-            if ($this->profiles->isListItemInUse($node) || $this->assignments->isListItemAssigned($node)) {
+            if (isset($blocking[$node->getId()->toRfc4122()])) {
                 $this->errors = ['delete' => $this->t('responsibilities.lists.error.delete_in_use')];
 
                 return null;
@@ -569,8 +586,10 @@ class ListItemTreeComponent extends AbstractController
             return;
         }
 
+        // The centre's tree is read once for all the siblings (not one query per id).
+        $index = $this->itemIndex();
         foreach ($orderedIds as $position => $siblingId) {
-            $sibling = $siblingId === $id ? $target : $this->items->findByIdAndCentre((string) $siblingId, $this->centre);
+            $sibling = $siblingId === $id ? $target : ($index[(string) $siblingId] ?? null);
             $sibling?->setPosition($position);
         }
 
@@ -693,8 +712,9 @@ class ListItemTreeComponent extends AbstractController
         }
 
         $count = 0;
+        $index = $this->itemIndex();
         foreach ($this->bulkSelectedIds as $id) {
-            $item = $this->items->findByIdAndCentre((string) $id, $this->centre);
+            $item = $index[(string) $id] ?? null;
             if ($item === null) {
                 continue;
             }
@@ -720,8 +740,9 @@ class ListItemTreeComponent extends AbstractController
         }
 
         $count = 0;
+        $index = $this->itemIndex();
         foreach ($this->bulkSelectedIds as $id) {
-            $item = $this->items->findByIdAndCentre((string) $id, $this->centre);
+            $item = $index[(string) $id] ?? null;
             if ($item === null) {
                 continue;
             }
@@ -780,8 +801,9 @@ class ListItemTreeComponent extends AbstractController
             }
         }
 
+        $blocking = $this->usage->blocking($this->centre);
         foreach ($subtree as $node) {
-            if ($this->profiles->isListItemInUse($node) || $this->assignments->isListItemAssigned($node)) {
+            if (isset($blocking[$node->getId()->toRfc4122()])) {
                 $this->errors = ['bulkDelete' => $this->t('responsibilities.lists.bulk.error.delete_in_use')];
 
                 return;
@@ -813,8 +835,9 @@ class ListItemTreeComponent extends AbstractController
     private function topLevelSelectedItems(): array
     {
         $checked = [];
+        $index   = $this->itemIndex();
         foreach ($this->bulkSelectedIds as $id) {
-            $item = $this->items->findByIdAndCentre((string) $id, $this->centre);
+            $item = $index[(string) $id] ?? null;
             if ($item !== null) {
                 $checked[$item->getId()->toRfc4122()] = $item;
             }
@@ -1021,9 +1044,10 @@ class ListItemTreeComponent extends AbstractController
      */
     private function profileListAncestors(?ListItem $item): array
     {
+        $this->profileListIds ??= $this->usage->profileLists($this->centre);
         $ids = [];
         for ($node = $item; $node !== null; $node = $node->getParent()) {
-            if ($this->profiles->isListItemInUse($node)) {
+            if (isset($this->profileListIds[$node->getId()->toRfc4122()])) {
                 $ids[] = $node->getId()->toRfc4122();
             }
         }

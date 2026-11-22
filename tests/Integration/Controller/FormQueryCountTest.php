@@ -147,7 +147,6 @@ final class FormQueryCountTest extends ControllerTestCase
         [$root] = $this->list(3, 'Materias');
         $this->flush();
         $importer = self::getContainer()->get(SenecaListImporter::class);
-        $centre   = static fn () => null;
         $small    = $this->queriesOf(fn () => $importer->plan($this->em->getRepository(EducationalCentre::class)->find($this->centre->getId()), 'Materias', []));
 
         for ($i = 0; $i < 40; ++$i) {
@@ -156,14 +155,27 @@ final class FormQueryCountTest extends ControllerTestCase
         }
         $this->flush();
         $big = $this->queriesOf(fn () => $importer->plan($this->em->getRepository(EducationalCentre::class)->find($this->centre->getId()), 'Materias', []));
-        unset($centre);
 
-        // The checks that already existed (profiles, assignments, documents) are asked per item; what the models added is ONE query:
-        // the cost per extra item must not include a query for the delivered documents.
-        $perItem = ($big - $small) / 40;
-        self::assertLessThanOrEqual(4.0, $perItem, 'the models add no query per item (profiles, assignments and documents were already asked one by one)');
-        $withoutForms = $this->queriesOf(fn () => self::getContainer()->get(\App\Repository\FormValueRepository::class)->findItemIdsInUse([$root->getId()->toRfc4122()]));
-        self::assertSame(1, $withoutForms);
+        self::assertSame($small, $big, "removing 43 items costs what removing 3 does:\n" . implode("\n", array_map(static fn (string $q): string => substr($q, 0, 90), $this->lastQueries)));
+    }
+
+    public function testWhatBlocksADeletionIsReadOncePerKindForTheWholeCentre(): void
+    {
+        $this->list(3, 'Pequeña');
+        $this->flush();
+        $usage  = self::getContainer()->get(\App\Service\ListItemUsage::class);
+        $centre = fn (): EducationalCentre => $this->em->getRepository(EducationalCentre::class)->find($this->centre->getId());
+        $found  = $centre();
+        $few    = $this->queriesOf(static fn () => $usage->keptByImports($found));
+        self::assertSame(3, $few, 'profiles, assignments and documents: one query each');
+
+        for ($i = 0; $i < 30; ++$i) {
+            $this->list(5, 'Lista ' . $i);
+        }
+        $this->flush();
+        $found = $centre();
+        self::assertSame($few, $this->queriesOf(static fn () => $usage->keptByImports($found)));
+        self::assertSame(2, $this->queriesOf(static fn () => $usage->blocking($found)));
     }
 
     public function testTheModelsScreenCostsTheSameForOneModelAndForTen(): void

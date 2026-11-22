@@ -19,7 +19,7 @@ final class Version20261122130000 extends AbstractMigration
     {
         $this->abortIf(!$this->connection->getDatabasePlatform() instanceof PostgreSQLPlatform, 'Esta migración sólo puede ejecutarse en PostgreSQL.');
 
-        $this->addSql('CREATE TABLE form_value (id UUID NOT NULL, field_key VARCHAR(36) NOT NULL, path VARCHAR(255) NOT NULL, row_key VARCHAR(36) DEFAULT NULL, num DOUBLE PRECISION DEFAULT NULL, text VARCHAR(1000) DEFAULT NULL, flag BOOLEAN DEFAULT NULL, submission_revision_id UUID NOT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE TABLE form_value (id UUID NOT NULL, field_key VARCHAR(36) NOT NULL, path VARCHAR(255) NOT NULL, row_key VARCHAR(36) DEFAULT NULL, num DOUBLE PRECISION DEFAULT NULL, text VARCHAR(255) DEFAULT NULL, flag BOOLEAN DEFAULT NULL, submission_revision_id UUID NOT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE INDEX idx_form_value_field ON form_value (field_key, submission_revision_id)');
         $this->addSql('CREATE INDEX IDX_9E30FCF79A3E6395 ON form_value (submission_revision_id)');
         $this->addSql('CREATE TABLE indicator_form_source (id UUID NOT NULL, field_key VARCHAR(36) NOT NULL, aggregation VARCHAR(12) NOT NULL, condition_op VARCHAR(2) DEFAULT NULL, condition_value VARCHAR(100) DEFAULT NULL, denominator_key VARCHAR(36) DEFAULT NULL, group_by VARCHAR(60) DEFAULT \'\' NOT NULL, indicator_id UUID NOT NULL, activity_id UUID NOT NULL, PRIMARY KEY (id))');

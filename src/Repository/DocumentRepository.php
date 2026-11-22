@@ -617,4 +617,20 @@ class DocumentRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult());
     }
+
+    /**
+     * The ids of the list items some document of the centre was uploaded under, in ONE query (what `isListItemUsedByDocument()` asks per item).
+     *
+     * @return array<string, true> RFC4122 ids
+     */
+    public function findUploadListItemIds(\App\Entity\EducationalCentre $centre): array
+    {
+        return \App\Repository\IdSet::of($this->createQueryBuilder('d')
+            ->select('DISTINCT li.id')
+            ->join('d.uploadListItem', 'li')
+            ->where('li.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->getQuery()
+            ->getSingleColumnResult());
+    }
 }

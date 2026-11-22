@@ -41,9 +41,9 @@ class FormValue
     #[ORM\Column(nullable: true)]
     private ?float $num;
 
-    public const int TEXT_LENGTH = 1000;
+    public const int TEXT_LENGTH = 255;
 
-    /** The text, cut to TEXT_LENGTH characters (choices: the key of the option; a multiple choice has one row per option chosen). */
+    /** The text, cut to TEXT_LENGTH characters (choices: the key of the option, 36 characters; a multiple choice has one row per option chosen). */
     #[ORM\Column(length: self::TEXT_LENGTH, nullable: true)]
     private ?string $text;
 

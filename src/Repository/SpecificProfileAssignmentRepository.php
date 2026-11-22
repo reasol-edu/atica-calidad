@@ -428,4 +428,21 @@ class SpecificProfileAssignmentRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult() !== null;
     }
+
+    /**
+     * The ids of the list items some assignment of the centre references, in ONE query (what `isListItemAssigned()` asks per item).
+     *
+     * @return array<string, true> RFC4122 ids
+     */
+    public function findAssignedListItemIds(\App\Entity\EducationalCentre $centre): array
+    {
+        return \App\Repository\IdSet::of($this->createQueryBuilder('a')
+            ->select('DISTINCT li.id')
+            ->join('a.listItem', 'li')
+            ->join('a.specificProfile', 'sp')
+            ->where('sp.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->getQuery()
+            ->getSingleColumnResult());
+    }
 }

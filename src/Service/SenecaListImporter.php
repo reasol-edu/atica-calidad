@@ -9,10 +9,7 @@ use App\Entity\ListItem;
 use App\Model\SenecaImportNode;
 use App\Model\SenecaListImportPlan;
 use App\Model\SenecaListImportPlanItem;
-use App\Repository\DocumentRepository;
 use App\Repository\ListItemRepository;
-use App\Repository\SpecificProfileAssignmentRepository;
-use App\Repository\SpecificProfileRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -37,9 +34,7 @@ final class SenecaListImporter
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly ListItemRepository $items,
-        private readonly SpecificProfileRepository $profiles,
-        private readonly SpecificProfileAssignmentRepository $assignments,
-        private readonly DocumentRepository $documents,
+        private readonly ListItemUsage $usage,
         private readonly \App\Repository\FormValueRepository $formValues,
     ) {}
 
@@ -64,7 +59,7 @@ final class SenecaListImporter
     public function plan(EducationalCentre $centre, string $rootName, array $desired): SenecaListImportPlan
     {
         $root = $this->findRootByName($centre, $rootName);
-        $this->loadFormUsage($root);
+        $this->loadUsage($centre, $root);
 
         $additions     = [];
         $deletions     = [];
@@ -72,7 +67,7 @@ final class SenecaListImporter
         $reactivations = [];
 
         $this->diffChildren(
-            $root !== null ? $this->items->findChildrenByParent($root) : [],
+            $root !== null ? $this->children($root) : [],
             $desired,
             [],
             $additions,
@@ -99,7 +94,7 @@ final class SenecaListImporter
             $this->em->persist($root);
         }
 
-        $this->loadFormUsage($root);
+        $this->loadUsage($centre, $root);
         $counts = ['added' => 0, 'deleted' => 0, 'deactivated' => 0, 'reactivated' => 0];
         $this->applyChildren($root, $centre, $desired, $deleteUnused, $counts);
         $this->em->flush();
@@ -150,7 +145,7 @@ final class SenecaListImporter
 
             // A repository query, not $match->getChildren() — see planRemoval()'s comment on why.
             $this->diffChildren(
-                $this->items->findChildrenByParent($match),
+                $this->children($match),
                 $node->getChildren(),
                 $childPath,
                 $additions,
@@ -189,7 +184,7 @@ final class SenecaListImporter
         // A repository query, not $item->getChildren(): $item may be an identity-map hit whose
         // in-memory collection was never hydrated from the database (e.g. an entity built and
         // persisted, but never queried, earlier in the same request).
-        foreach ($this->items->findChildrenByParent($item) as $child) {
+        foreach ($this->children($item) as $child) {
             if (!$this->planRemoval($child, [...$path, $child->getName()], $deletions, $deactivations)) {
                 $childrenDeletable = false;
             }
@@ -217,7 +212,7 @@ final class SenecaListImporter
     private function applyChildren(ListItem $parent, EducationalCentre $centre, array $desired, bool $deleteUnused, array &$counts): void
     {
         $existingByName = [];
-        foreach ($this->items->findChildrenByParent($parent) as $child) {
+        foreach ($this->children($parent) as $child) {
             $existingByName[mb_strtolower($child->getName())] = $child;
         }
 
@@ -261,7 +256,7 @@ final class SenecaListImporter
         $childrenRemoved = true;
         // A repository query, not $item->getChildren() — see planRemoval()'s identical comment;
         // this also sidesteps needing to snapshot a live Collection before mutating it below.
-        foreach ($this->items->findChildrenByParent($item) as $child) {
+        foreach ($this->children($item) as $child) {
             if (!$this->applyRemoval($child, $deleteUnused, $counts)) {
                 $childrenRemoved = false;
             }
@@ -284,25 +279,36 @@ final class SenecaListImporter
 
     private function isInUse(ListItem $item): bool
     {
-        return $this->profiles->isListItemInUse($item)
-            || $this->assignments->isListItemAssigned($item)
-            || $this->documents->isListItemUsedByDocument($item)
-            // Chosen in a delivered document of a model filled in online: it is deactivated, not deleted, so it keeps its name there.
-            || isset($this->usedByForms[$item->getId()->toRfc4122()]);
+        // In use by a profile, an assignment or an uploaded document — or chosen in a delivered document of a model filled in online: it
+        // is deactivated, not deleted, so it keeps its name there. All read in bulk, once per plan or apply (see loadUsage()).
+        return isset($this->usedItems[$item->getId()->toRfc4122()]);
     }
 
-    /** @var array<string, true> the items of the list being imported that delivered documents have chosen (read once per plan or apply) */
-    private array $usedByForms = [];
+    /** @var array<string, true> the items of the centre that cannot be deleted (read once per plan or apply) */
+    private array $usedItems = [];
 
-    /** One query for the whole list, instead of one per item the import may remove. */
-    private function loadFormUsage(?ListItem $root): void
+    /** @var array<string, ListItem[]> the centre's tree by parent id (the roots under ''), read once per plan or apply */
+    private array $childMap = [];
+
+    /** @return ListItem[] the children of an item, from the tree already read (a node made by this import has none yet) */
+    private function children(ListItem $parent): array
     {
-        $this->usedByForms = [];
-        if ($root === null || !$this->em->contains($root)) {
-            return;
+        return $this->childMap[$parent->getId()->toRfc4122()] ?? [];
+    }
+
+    /**
+     * What a plan or an apply reads about the centre, ONCE: its tree and what is in use. Without this, every item of the list costs
+     * its own queries (its children, and a profile, an assignment, a document and a delivered form check).
+     */
+    private function loadUsage(EducationalCentre $centre, ?ListItem $root): void
+    {
+        $this->items->reset();
+        $this->childMap = $this->items->childrenMap($centre);
+        $this->usedItems = $this->usage->keptByImports($centre);
+        if ($root !== null && $this->em->contains($root)) {
+            $ids = array_values(array_map(static fn (ListItem $node): string => $node->getId()->toRfc4122(), $this->items->findSubtree($root)));
+            $this->usedItems += $this->formValues->findItemIdsInUse($ids);
         }
-        $ids = array_values(array_map(static fn (ListItem $node): string => $node->getId()->toRfc4122(), $this->items->findSubtree($root)));
-        $this->usedByForms = $this->formValues->findItemIdsInUse($ids);
     }
 
     private function findRootByName(EducationalCentre $centre, string $name): ?ListItem

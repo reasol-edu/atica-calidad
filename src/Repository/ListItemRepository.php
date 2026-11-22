@@ -59,6 +59,17 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
             ->getResult();
     }
 
+    /**
+     * The children of every item of the centre (the roots under the key ''), ordered by position: the whole tree in ONE query, for a
+     * caller that walks it and would otherwise ask `findChildrenByParent()` for each node.
+     *
+     * @return array<string, ListItem[]> by the RFC4122 id of the parent
+     */
+    public function childrenMap(EducationalCentre $centre): array
+    {
+        return $this->groupChildrenByParent($centre);
+    }
+
     /** @return ListItem[] */
     public function findChildrenByParent(ListItem $parent): array
     {

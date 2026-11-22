@@ -65,4 +65,20 @@ class SpecificProfileRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult() !== null;
     }
+
+    /**
+     * The ids of the list items a profile of the centre takes its list from, in ONE query (what `isListItemInUse()` asks per item).
+     *
+     * @return array<string, true> RFC4122 ids
+     */
+    public function findListItemIdsInUse(EducationalCentre $centre): array
+    {
+        return \App\Repository\IdSet::of($this->createQueryBuilder('sp')
+            ->select('DISTINCT li.id')
+            ->join('sp.listItem', 'li')
+            ->where('sp.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->getQuery()
+            ->getSingleColumnResult());
+    }
 }

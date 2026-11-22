@@ -7,8 +7,6 @@ namespace App\Service;
 use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
 use App\Repository\ListItemRepository;
-use App\Repository\SpecificProfileAssignmentRepository;
-use App\Repository\SpecificProfileRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -32,8 +30,7 @@ class ListItemJsonImporter
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly ListItemRepository $items,
-        private readonly SpecificProfileRepository $profiles,
-        private readonly SpecificProfileAssignmentRepository $assignments,
+        private readonly ListItemUsage $usage,
     ) {}
 
     /**
@@ -53,8 +50,9 @@ class ListItemJsonImporter
         $this->validateLevel($items);
 
         $existing = $this->items->findAllByCentre($centre);
+        $blocking = $this->usage->blocking($centre);
         foreach ($existing as $item) {
-            if ($this->profiles->isListItemInUse($item) || $this->assignments->isListItemAssigned($item)) {
+            if (isset($blocking[$item->getId()->toRfc4122()])) {
                 throw new \DomainException('in_use');
             }
         }
