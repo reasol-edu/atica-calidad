@@ -70,6 +70,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   modelo (por ejemplo, una fila por cada «reunión celebrada»): quien rellena no las añade ni las quita, salen numeradas y siguen al
   número. Si el número sube se añaden filas en blanco; si baja se quitan las últimas, y la pantalla pide confirmación cuando alguna de
   ellas tiene algo escrito. Se puede fijar un máximo (hasta 100). El editor avisa si el campo no existe o no es numérico.
+- **Modelos de documento: rellenado más cómodo.** Los desplegables del formulario y del editor del modelo se pueden **filtrar
+  escribiendo** y tienen el chevron separado del borde; las preguntas de varias opciones se eligen en un desplegable y se muestran
+  como **etiquetas**. Un número con mínimo o máximo usa los atributos `min` y `max` del campo y se marca en rojo al salirse. Los datos
+  obligatorios vacíos o inválidos se marcan **en rojo, con su mensaje, en el propio campo** (al salir de él, o todos a la vez al
+  pulsar un punto de «Pendiente antes de entregar»). Nuevo botón **Previsualizar**, que abre el borrador como quedará entregado.
 - **Indicadores que se recalculan al aprobarse una entrega (fase 6).** Antes solo con la tarea programada o al guardar el indicador.
 - **Modelos de documento: Word y OpenDocument, biblioteca JSON y duplicado (fase 7).** Un documento entregado se descarga también en
   `.docx` y `.odt`, igual que un modelo en blanco. Un modelo se exporta a JSON y se importa en otro centro (o en el mismo) como borrador

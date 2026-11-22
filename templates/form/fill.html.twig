@@ -87,6 +87,9 @@
             confirm_remove_copy: 'fill.confirm_remove_copy'|trans({}, 'forms'),
             confirm_remove_rows: 'fill.confirm_remove_rows'|trans({}, 'forms'),
             counted_empty: 'fill.counted_empty'|trans({}, 'forms'),
+            no_results: 'fill.no_results'|trans({}, 'forms'),
+            err_min: 'fill.error.number_min'|trans({}, 'forms'),
+            err_max: 'fill.error.number_max'|trans({}, 'forms'),
         } %}
         <div data-controller="form-fill"
              data-form-fill-config-value="{{ editor|json_encode|e('html_attr') }}"
@@ -109,6 +112,9 @@
                     </ul>
                 </div>
                 <div class="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    {# Opens in another tab; the controller saves what is typed first so the preview shows it. #}
+                    <a href="{{ path('app_form_preview', {activityId: activity.id.toRfc4122, slotKey: slot.key}) }}" target="_blank" rel="noopener" data-action="click->form-fill#preview"
+                       class="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto">{{ 'fill.preview'|trans({}, 'forms') }}</a>
                     {% if submission.document is not null or last is not null %}
                         <form method="post" action="{{ path('app_form_discard', {activityId: activity.id.toRfc4122, slotKey: slot.key}) }}" class="js-confirm-form"
                               data-confirm="{{ 'fill.confirm_discard'|trans({}, 'forms')|e('html_attr') }}">

@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import Quill from 'quill';
+import TomSelect from 'tom-select';
 import 'quill/dist/quill.snow.css';
 import { h, uid, sectionNumbers } from '../utils/form_dom.js';
 import { parse } from '../utils/form_expression.js';
@@ -12,7 +13,8 @@ const CELL_TYPES = ['number', 'short', 'long', 'date', 'time', 'bool'];
 const FUNCTION_SNIPPETS = ['sum(', 'avg(', 'min(', 'max(', 'count(', 'count_if(', 'pct_if(', 'if(', 'round(', 'abs(', 'empty('];
 const BTN = 'rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-forest-500';
 const INPUT = 'w-full min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-forest-500 focus:ring-forest-500';
-const SELECT = 'min-w-0 rounded-lg border border-gray-200 px-2 py-1.5 text-sm focus:border-forest-500 focus:ring-forest-500';
+// The room on the right (and the arrow moved in from the edge) keeps the arrow of a native drop-down off the border of the box.
+const SELECT = 'min-w-0 rounded-lg border border-gray-200 py-1.5 pl-2 pr-9 text-sm bg-position-[right_0.75rem_center] focus:border-forest-500 focus:ring-forest-500';
 
 /**
  * The editor of a document model. It works on the definition (a JSON tree of sections, see App\Service\Form\FormDefinition),
@@ -34,6 +36,8 @@ export default class extends Controller {
         this.saving = false;
         this.stale = false;
         this.timer = null;
+        this.pendingSelects = [];
+        this.tomSelects = [];
         this.focusKey = null;
 
         this.onCode = () => this.touch();
@@ -45,6 +49,7 @@ export default class extends Controller {
     }
 
     disconnect() {
+        this.destroySelects();
         clearTimeout(this.timer);
         this.codeTarget.removeEventListener('input', this.onCode);
         window.removeEventListener('pagehide', this.onHide);
@@ -221,6 +226,7 @@ export default class extends Controller {
     // ── Rendering ────────────────────────────────────────────────────────────
 
     render() {
+        this.destroySelects();
         const numbers = sectionNumbers(this.def.sections);
         this.canvasTarget.replaceChildren(
             ...this.def.sections.map((s) => this.sectionEl(s, numbers, 0)),
@@ -230,6 +236,7 @@ export default class extends Controller {
             this.approvalEl(),
         );
         this.outlineTarget.replaceChildren(...this.outlineItems(this.def.sections, numbers, 0));
+        this.enhanceSelects();
         if (this.focusKey) {
             const target = this.canvasTarget.querySelector('[data-focus="' + this.focusKey + '"]');
             if (target) {
@@ -380,8 +387,28 @@ export default class extends Controller {
     }
 
     select(value, options, onchange, ariaLabel) {
-        return h('select', { class: SELECT, 'aria-label': ariaLabel, onchange: (e) => onchange(e.target.value) },
+        // Every drop-down is a box you can type in to filter (see enhanceSelects(), once the page is drawn).
+        const select = h('select', { class: 'w-full min-w-[8rem]', 'aria-label': ariaLabel, onchange: (e) => onchange(e.target.value) },
             options.map(([v, t]) => h('option', { value: v, text: t, selected: v === value })));
+        this.pendingSelects.push(select);
+
+        return select;
+    }
+
+    /** Turns the drop-downs just drawn into boxes with a search (they are drawn on <body>: the cards of the page clip an open list). */
+    enhanceSelects() {
+        for (const el of this.pendingSelects) {
+            if (el.isConnected) {
+                this.tomSelects.push(new TomSelect(el, { create: false, maxOptions: null, dropdownParent: 'body' }));
+            }
+        }
+        this.pendingSelects = [];
+    }
+
+    destroySelects() {
+        this.tomSelects.forEach((ts) => ts.destroy());
+        this.tomSelects = [];
+        this.pendingSelects = [];
     }
 
     // ── Repetition, conditions and references ───────────────────────────────

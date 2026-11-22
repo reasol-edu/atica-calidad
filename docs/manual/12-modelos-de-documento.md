@@ -144,8 +144,14 @@ cuánto falta para poder entregarlo. Lo que debes saber:
 - **Borradores para todos**: la actividad puede crear el borrador de todas las personas o grupos al
   abrirse el plazo (*Crear el borrador de todos al abrirse el plazo*), de modo que cada cual lo
   encuentre ya empezado.
-- Lo que falta aparece bajo **Pendiente antes de entregar**, cada punto con un enlace al lugar. Al
-  **Entregar** se genera el PDF y la entrega entra en la revisión de la carpeta.
+- Los desplegables se pueden **filtrar escribiendo**, y una pregunta de varias opciones se elige en
+  un desplegable y se muestra con **etiquetas** que se quitan con la ×. Un número con mínimo o máximo
+  se marca en rojo en cuanto se sale de los límites.
+- Lo que falta aparece bajo **Pendiente antes de entregar**, cada punto con un enlace al lugar. Cada
+  dato obligatorio vacío o inválido se marca **en rojo, con su mensaje, en el propio campo**: al salir
+  de él, o todos a la vez al pulsar un punto de la lista. **Previsualizar** abre en otra pestaña el
+  borrador tal y como quedará entregado, sin entregar nada. Al **Entregar** se genera el PDF y la
+  entrega entra en la revisión de la carpeta.
 - Una entrega rechazada o a corregir se **corrige** con una versión siguiente; las anteriores se
   conservan.
 

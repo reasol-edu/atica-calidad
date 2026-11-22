@@ -114,7 +114,8 @@ class FormFillController extends AbstractController
                     'historyUrl'   => $this->generateUrl('app_form_history', $base),
                     'csrf'         => $this->csrf->getToken($token)->getValue(),
                     'readOnly'     => $readOnly,
-                    'context'      => $this->service->contextFor($activity, $slot, $submission->getCycleYear()),
+                    'problems'     => $pending['problems'],
+                    'context'      =>$this->service->contextFor($activity, $slot, $submission->getCycleYear()),
                     'id'           => $id,
                 ],
                 'lockedBy'    => $lockedByOther ? $holder : null,
@@ -163,6 +164,28 @@ class FormFillController extends AbstractController
         }
 
         return new JsonResponse(['version' => $submission->getDraftVersion()] + $this->problemLists($submission));
+    }
+
+    /** The draft as a document, the way it will read once delivered (nothing is delivered or saved by looking at it). */
+    #[Route('/actividades/{activityId}/formulario/{slotKey}/previsualizar', name: 'app_form_preview', methods: ['GET'])]
+    public function preview(string $activityId, string $slotKey, #[CurrentCentre] EducationalCentre $centre): Response
+    {
+        [$activity, $slot] = $this->context($activityId, $slotKey, $centre);
+        $submission = $this->service->open($activity, $slot);
+        if (!$submission->hasDraft()) {
+            return $this->redirectToRoute('app_form_fill', ['activityId' => $activityId, 'slotKey' => $slotKey]);
+        }
+        ['definition' => $definition, 'data' => $data] = $this->service->previewOf($submission);
+
+        return $this->render('form/preview.html.twig', [
+            'centre'   => $centre,
+            'title'    => $slot->displayName,
+            'code'     => $submission->getModelRevision()->getCode(),
+            'sections' => $this->resolver->resolve($definition, $data, $this->service->contextFor($activity, $slot, $submission->getCycleYear())),
+            'backUrl'  => $this->generateUrl('app_form_fill', ['activityId' => $activityId, 'slotKey' => $slotKey]),
+            'blank'    => false,
+            'badge'    => $this->translator->trans('view.draft_badge', [], 'forms'),
+        ]);
     }
 
     /** Keeps the edit lock while the page is open and nobody is typing: 200 while it is the teacher's, 409 once somebody took it. */
@@ -363,7 +386,10 @@ class FormFillController extends AbstractController
      * What is wrong with a draft, told in words and split into what stops the delivery and what only advises (a rule of the model
      * that is marked as a warning).
      *
-     * @return array{problems: list<array{block: string, path: string, text: string}>, warnings: list<array{block: string, path: string, text: string}>}
+     * Each one says where it is (the block, the copy, and the row and column of a table cell) so the screen can mark that field, and
+     * `short` is what to write under the field itself (the full `text` names the field, which is redundant there).
+     *
+     * @return array{problems: list<array{block: string, path: string, row: ?string, column: ?string, code: string, text: string, short: string}>, warnings: list<array{block: string, path: string, row: ?string, column: ?string, code: string, text: string, short: string}>}
      */
     private function problemLists(FormSubmission $submission): array
     {
@@ -371,7 +397,11 @@ class FormFillController extends AbstractController
         foreach ($this->service->problems($submission) as $p) {
             // A rule carries its own text, written by whoever made the model.
             $text   = $p['code'] === 'rule' ? $p['params']['%message%'] : $this->translator->trans('fill.problem.' . $p['code'], $p['params'], 'forms');
-            $lists[$p['severity'] === 'block' ? 'problems' : 'warnings'][] = ['block' => $p['block'], 'path' => $p['path'], 'text' => $text];
+            $short  = in_array($p['code'], ['required', 'number_min', 'number_max', 'option_gone'], true) ? $this->translator->trans('fill.error.' . $p['code'], $p['params'], 'forms') : $text;
+            $lists[$p['severity'] === 'block' ? 'problems' : 'warnings'][] = [
+                'block' => $p['block'], 'path' => $p['path'], 'row' => $p['row'] ?? null, 'column' => $p['column'] ?? null,
+                'code' => $p['code'], 'text' => $text, 'short' => $short,
+            ];
         }
 
         return $lists;

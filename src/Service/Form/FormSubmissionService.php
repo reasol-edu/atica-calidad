@@ -337,10 +337,22 @@ final class FormSubmissionService
      */
     public function problems(FormSubmission $submission): array
     {
-        $definition = $this->definitionOf($submission);
-        $data       = $this->normalizer->withoutEmptyRows($definition, $this->normalizer->normalize($definition, $submission->getDraftData() ?? []));
+        ['definition' => $definition, 'data' => $data] = $this->previewOf($submission);
 
         return $this->validator->problems($definition, $data);
+    }
+
+    /**
+     * The draft as it would read once delivered: the definition it is filled with and its data cleaned the way the delivery cleans it
+     * (the blank rows of free tables left out). What the preview shows and what is validated.
+     *
+     * @return array{definition: array<string, mixed>, data: array<string, mixed>}
+     */
+    public function previewOf(FormSubmission $submission): array
+    {
+        $definition = $this->definitionOf($submission);
+
+        return ['definition' => $definition, 'data' => $this->normalizer->withoutEmptyRows($definition, $this->normalizer->normalize($definition, $submission->getDraftData() ?? []))];
     }
 
     /**

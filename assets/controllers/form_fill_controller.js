@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import Quill from 'quill';
+import TomSelect from 'tom-select';
 import 'quill/dist/quill.snow.css';
 import { h } from '../utils/form_dom.js';
 import { asMap, sync, walk, numbers, references, fieldSpecs, progress, newKey, MAX_COPIES, calculate, buildIndex, totals, rowsOf, format, countedCount } from '../utils/form_scopes.js';
@@ -7,7 +8,11 @@ import { asMap, sync, walk, numbers, references, fieldSpecs, progress, newKey, M
 Quill.register(Quill.import('attributors/style/align'), true);
 
 const INPUT = 'w-full min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-forest-500 focus:ring-forest-500 disabled:bg-gray-50 disabled:text-gray-500';
-const BTN = 'rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-forest-500 disabled:opacity-50';
+// A native drop-down: the room on the right keeps the arrow off the edge of the box.
+const SELECT = INPUT + ' pr-9 bg-position-[right_0.75rem_center]';
+// What is shown wrong in a field (the look of a Tom Select box in error comes from `.has-error`, see app.css).
+const INVALID = ['border-red-400', 'bg-red-50', 'focus:border-red-500', 'focus:ring-red-500'];
+const BTN ='rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-forest-500 disabled:opacity-50';
 
 /**
  * Filling in a document online. It draws the form from the model's definition and the data typed so far (App\Service\Form),
@@ -42,6 +47,12 @@ export default class extends Controller {
         this.failed = false;
         this.timer = null;
         this.live = [];
+        // What the server says is wrong, and which empty required fields have been left (or asked for) and so are shown in red.
+        this.problemList = this.configValue.problems || [];
+        this.revealed = new Set();
+        this.showAll = false;
+        this.pendingSelects = [];
+        this.tomSelects = [];
 
         this.onHide = () => { if (this.dirty && !this.stale) { this.save(true); } };
         window.addEventListener('pagehide', this.onHide);
@@ -143,6 +154,7 @@ export default class extends Controller {
     }
 
     disconnect() {
+        this.destroySelects();
         clearInterval(this.beat);
         clearTimeout(this.timer);
         window.removeEventListener('pagehide', this.onHide);
@@ -151,6 +163,20 @@ export default class extends Controller {
         }
         if (this.hasDeliverTarget && this.onSubmit) {
             this.deliverTarget.form.removeEventListener('submit', this.onSubmit);
+        }
+    }
+
+    /** "Previsualizar": what is typed is saved first, so the other tab shows it (the tab is opened at once, or the browser would block it). */
+    async preview(event) {
+        if (!this.dirty && !this.saving) {
+            return;
+        }
+        event.preventDefault();
+        const url = event.currentTarget.href;
+        const tab = window.open('', '_blank');
+        await this.flush();
+        if (tab) {
+            tab.location.href = url;
         }
     }
 
@@ -258,11 +284,18 @@ export default class extends Controller {
             ? h('span', { text: p.text })
             : h('button', {
                 type: 'button', class: 'text-left underline decoration-dotted', text: p.text,
-                onclick: () => (document.getElementById('blk-' + p.path + '-' + p.block) || document.getElementById('blk-' + p.block))?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+                onclick: () => {
+                    // Asking where it is judges every field: what is missing turns red, not only the one clicked.
+                    this.showAll = true;
+                    this.markInvalid();
+                    (document.getElementById('blk-' + p.path + '-' + p.block) || document.getElementById('blk-' + p.block))?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                },
             })]));
     }
 
     showProblems(problems, warnings = []) {
+        this.problemList = problems;
+        this.markInvalid();
         if (!this.hasProblemsTarget) {
             return;
         }
@@ -341,13 +374,117 @@ export default class extends Controller {
     // ── Rendering ────────────────────────────────────────────────────────────
 
     render() {
+        this.destroySelects();
         this.live = [];
         this.calcEls = [];
         this.tree = walk(this.def, this.state);
         this.nums = numbers(this.tree);
         this.progressEl = h('div', { class: 'mb-5' });
         this.canvasTarget.replaceChildren(this.progressEl, ...this.tree.map((i) => this.instEl(i, 1)));
+        this.enhanceSelects();
+        this.markInvalid();
         this.updateProgress();
+    }
+
+    /** The drop-downs of the choices (not the ones that follow another table) become boxes you can type in to filter, with pills when several are chosen. */
+    enhanceSelects() {
+        for (const el of this.pendingSelects) {
+            if (!el.isConnected) {
+                continue;
+            }
+            const multiple = el.multiple;
+            const ts = new TomSelect(el, {
+                create: false,
+                maxOptions: null,
+                placeholder: this.l.choose,
+                // On <body>: the cards of the form clip an open list otherwise.
+                dropdownParent: 'body',
+                closeAfterSelect: !multiple,
+                hideSelected: multiple,
+                plugins: multiple ? ['remove_button'] : [],
+                render: { no_results: () => '<div class="no-results px-3 py-2 text-sm">' + this.l.no_results + '</div>' },
+            });
+            ts.on('blur', () => this.reveal(el.dataset.pk));
+            this.tomSelects.push(ts);
+        }
+        this.pendingSelects = [];
+    }
+
+    destroySelects() {
+        this.tomSelects.forEach((ts) => ts.destroy());
+        this.tomSelects = [];
+        this.pendingSelects = [];
+    }
+
+    // ── What is wrong, shown on the field ─────────────────────────────────────
+
+    /** A field the person has left is judged: its error (a required one included) is shown from then on. */
+    reveal(pk) {
+        if (pk && !this.revealed.has(pk)) {
+            this.revealed.add(pk);
+            this.markInvalid();
+        }
+    }
+
+    /** Tags a field with the place the server's problems name (copy, block, row, column), and judges it when the person leaves it. */
+    tag(control, pk) {
+        const el = control.matches('input, select, textarea') ? control : control.querySelector('input, select, textarea') || control;
+        el.dataset.pk = pk;
+        if (el.matches('input, textarea')) {
+            el.addEventListener('blur', () => this.reveal(pk));
+        }
+
+        return control;
+    }
+
+    /** Red box and a line of text under every field the server found wrong (a required one only once it has been left or asked for). */
+    markInvalid() {
+        this.canvasTarget.querySelectorAll('[data-field-error]').forEach((e) => e.remove());
+        this.canvasTarget.querySelectorAll('[data-pk]').forEach((el) => this.paint(el, null));
+        const shown = new Map();
+        for (const p of this.problemList) {
+            if (!p.block) {
+                continue;
+            }
+            const pk = [p.path, p.block, p.row ?? '', p.column ?? ''].join('|');
+            if ((p.code === 'required' || p.code === 'option_gone') && !this.showAll && !this.revealed.has(pk)) {
+                continue;
+            }
+            if (!shown.has(pk)) {
+                shown.set(pk, p.short || p.text);
+            }
+        }
+        for (const [pk, text] of shown) {
+            const el = this.canvasTarget.querySelector('[data-pk="' + CSS.escape(pk) + '"]');
+            if (el) {
+                this.paint(el, text);
+            }
+        }
+    }
+
+    /** The error of a number outside its limits, drawn as it is typed (the server confirms it on the next save). */
+    limitMark(el, message) {
+        const holder = el.parentElement?.matches('div.flex.items-center') ? el.parentElement : el;
+        if (holder.nextElementSibling?.hasAttribute('data-field-error')) {
+            holder.nextElementSibling.remove();
+        }
+        this.paint(el, message);
+    }
+
+    /** Draws (message given) or clears the error state of one field. */
+    paint(el, message) {
+        const ts = el.tomselect;
+        const box = ts ? ts.wrapper : el;
+        if (message === null) {
+            el.removeAttribute('aria-invalid');
+            ts ? ts.wrapper.classList.remove('has-error') : el.classList.remove(...INVALID);
+
+            return;
+        }
+        el.setAttribute('aria-invalid', 'true');
+        ts ? ts.wrapper.classList.add('has-error') : el.classList.add(...INVALID);
+        const holder = box.parentElement?.matches('div.flex.items-center') ? box.parentElement : box;
+        holder.after(h('p', { class: 'mt-1 text-xs font-medium text-red-700', role: 'alert', 'data-field-error': '', text: message }));
     }
 
     /** Titles and labels that contain references follow what is typed without redrawing the form (that would lose the focus). */
@@ -502,7 +639,10 @@ export default class extends Controller {
         }
         if (block.type === 'field') {
             const id = 'f-' + inst.path + '-' + block.key;
-            const control = this.control(block, inst.scope.fields[block.key], (v) => this.setIn(inst.scope.fields, block.key, v), id, false, { chain: inst.chain, map: inst.scope.fields, key: block.key });
+            const control = this.tag(
+                this.control(block, inst.scope.fields[block.key], (v) => this.setIn(inst.scope.fields, block.key, v), id, false, { chain: inst.chain, map: inst.scope.fields, key: block.key }),
+                [inst.path, block.key, '', ''].join('|'),
+            );
             if (this.structural.has(block.key)) {
                 // What this field held before the change: lowering a number that sets the rows of a table asks first, and puts it back on "no".
                 let previous = inst.scope.fields[block.key];
@@ -558,7 +698,19 @@ export default class extends Controller {
             case 'long':
                 return h('textarea', { ...base, rows: 4, maxlength: 20000, value: value ?? '', oninput: (e) => onChange(e.target.value) });
             case 'number': {
-                const input = h('input', { ...base, type: 'number', step: 'any', inputmode: 'decimal', value: value ?? '', oninput: (e) => onChange(e.target.value === '' ? null : Number(e.target.value)) });
+                const limit = (n) => (n === null || n === undefined || n === '' || !Number.isFinite(Number(n)) ? null : Number(n));
+                const [min, max] = [limit(spec.min), limit(spec.max)];
+                const input = h('input', {
+                    ...base, type: 'number', step: 'any', inputmode: 'decimal', value: value ?? '',
+                    min: min ?? null, max: max ?? null,
+                    oninput: (e) => {
+                        onChange(e.target.value === '' ? null : Number(e.target.value));
+                        // At once, without waiting for the save: a value outside the limits turns the box red as it is typed.
+                        const n = e.target.value === '' ? null : Number(e.target.value);
+                        const wrong = n !== null && ((min !== null && n < min) || (max !== null && n > max));
+                        this.limitMark(e.target, wrong ? (min !== null && n < min ? this.l.err_min.replace('%min%', String(min)) : this.l.err_max.replace('%max%', String(max))) : null);
+                    },
+                });
                 return spec.unit ? h('div', { class: 'flex items-center gap-2' }, [input, h('span', { class: 'shrink-0 text-sm text-gray-500', text: spec.unit })]) : input;
             }
             case 'date':
@@ -566,18 +718,37 @@ export default class extends Controller {
             case 'time':
                 return h('input', { ...base, type: 'time', value: value ?? '', oninput: (e) => onChange(e.target.value || null) });
             case 'bool':
-                return h('select', { ...base, onchange: (e) => onChange(e.target.value === '' ? null : e.target.value === '1') }, [
+                return h('select', { ...base, class: SELECT, onchange: (e) => onChange(e.target.value === '' ? null : e.target.value === '1') }, [
                     h('option', { value: '', text: this.l.choose, selected: value === undefined || value === null }),
                     h('option', { value: '1', text: this.l.yes, selected: value === true }),
                     h('option', { value: '0', text: this.l.no, selected: value === false }),
                 ]);
-            case 'choice':
-                return h('select', { ...base, onchange: (e) => onChange(e.target.value || null) }, [
+            case 'choice': {
+                // A relation is a choice among rows that are renamed as they are typed: it stays a plain drop-down. The rest are searchable.
+                const searchable = !spec.relTable;
+                const select = h('select', { ...base, class: searchable ? 'w-full' : SELECT, onchange: (e) => onChange(e.target.value || null) }, [
                     h('option', { value: '', text: this.l.choose, selected: !value }),
                     ...(spec.options || []).map((o) => h('option', { value: o.key, text: o.label, selected: value === o.key })),
                 ]);
+                if (searchable) {
+                    this.pendingSelects.push(select);
+                }
+
+                return select;
+            }
             case 'multichoice': {
                 const current = Array.isArray(value) ? [...value] : [];
+                // Many options: a box that opens a list to pick from and shows what is chosen as pills (a relation keeps its checkboxes).
+                if (!spec.relTable) {
+                    const select = h('select', {
+                        ...base, class: 'w-full', multiple: true,
+                        onchange: (e) => { const chosen = [...e.target.selectedOptions].map((o) => o.value); onChange(chosen.length ? chosen : null); },
+                    }, (spec.options || []).map((o) => h('option', { value: o.key, text: o.label, selected: current.includes(o.key) })));
+                    this.pendingSelects.push(select);
+
+                    return select;
+                }
+
                 return h('div', { id, class: 'flex flex-col gap-1' }, (spec.options || []).map((o) => h('label', { class: 'inline-flex items-center gap-2 text-sm text-gray-800' }, [
                     h('input', {
                         type: 'checkbox', checked: current.includes(o.key), disabled,
@@ -725,7 +896,10 @@ export default class extends Controller {
         const body = h('tbody', { class: 'divide-y divide-gray-100' }, rows.map((row, index) => h('tr', {}, [
             ...(fixed ? [h('th', { scope: 'row', class: 'px-2 py-2 text-left align-top font-normal text-gray-700', text: counted ? String(index + 1) : labels.get(row._key) ?? '' })] : []),
             ...block.columns.map((c) => h('td', { class: 'min-w-[9rem] px-2 py-1.5 align-top' }, [
-                this.control({ ...c, label: c.label + ' · ' + this.l.row + ' ' + (index + 1) }, row[c.key], (v) => this.setIn(row, c.key, v), null, true, { chain: inst.chain, map: row, key: c.key }),
+                this.tag(
+                    this.control({ ...c, label: c.label + ' · ' + this.l.row + ' ' + (index + 1) }, row[c.key], (v) => this.setIn(row, c.key, v), null, true, { chain: inst.chain, map: row, key: c.key }),
+                    [inst.path, block.key, row._key, c.key].join('|'),
+                ),
             ])),
             ...(fixed ? [] : [h('td', { class: 'px-2 py-1.5 align-top' }, [
                 h('button', {

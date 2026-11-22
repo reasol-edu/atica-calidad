@@ -9,7 +9,8 @@
         <a href="{{ backUrl }}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-forest-600">
             {{ ux_icon('heroicons:arrow-left', {class: 'h-4 w-4'}) }}{{ 'view.back'|trans({}, 'forms') }}
         </a>
-        {% if blank %}<span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">{{ 'view.preview_badge'|trans({}, 'forms') }}</span>{% endif %}
+        {% if badge is defined %}<span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">{{ badge }}</span>
+        {% elseif blank %}<span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">{{ 'view.preview_badge'|trans({}, 'forms') }}</span>{% endif %}
     </div>
     <article class="rounded-2xl border border-gray-200 bg-white px-5 py-6 shadow-xs sm:px-8">
         <header class="border-b-2 border-forest-600 pb-3">

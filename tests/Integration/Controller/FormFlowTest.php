@@ -241,6 +241,18 @@ final class FormFlowTest extends ControllerTestCase
         self::assertSame(200, $response->getStatusCode());
         $body = json_decode((string) $response->getContent(), true);
         self::assertNotEmpty($body['problems']);
+        // Each problem says where it is and what to write under the field, so the screen can mark that field.
+        self::assertArrayHasKey('row', $body['problems'][0]);
+        self::assertArrayHasKey('column', $body['problems'][0]);
+        self::assertSame('required', $body['problems'][0]['code']);
+        self::assertSame('Este dato es obligatorio.', $body['problems'][0]['short']);
+        self::assertNotSame($body['problems'][0]['text'], $body['problems'][0]['short'], 'the short text does not repeat the name of the field');
+
+        // The preview shows what is typed, as it would read delivered, and delivers nothing.
+        $this->client->request('GET', $this->fillUrl('/previsualizar'));
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('40', (string) $this->client->getResponse()->getContent());
+        self::assertSame([], self::getContainer()->get(DocumentRepository::class)->findByFolder($this->em->getRepository(Folder::class)->find($this->activityFolder->getId())));
 
         $this->client->request('POST', $this->fillUrl('/entregar'), ['_token' => $this->csrfToken('form_deliver_' . $sid)]);
         $this->em->clear();
