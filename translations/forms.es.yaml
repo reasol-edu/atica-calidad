@@ -295,3 +295,7 @@ fill.prefill_again: 'Volver a copiar'
 fill.start_scratch: 'Empezar desde cero'
 fill.confirm_prefill: 'Se volverá a copiar el original y se perderá lo que hayas escrito después. ¿Continuar?'
 fill.confirm_scratch: 'Se borrará lo prerrellenado y lo que hayas escrito. ¿Empezar desde cero?'
+
+editor.indicator_title: 'Indicadores con los datos de este modelo'
+editor.indicator_help: 'Crea un indicador que se calcula solo a partir de lo que se entregue con este modelo en las actividades que lo usan. Puedes ajustar la agregación en el formulario del indicador.'
+editor.indicator_create: 'Indicador con «%field%»'

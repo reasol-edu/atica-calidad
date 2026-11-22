@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Service\Form;
 
 use App\Entity\EducationalCentre;
+use App\Entity\FormModel;
 use App\Repository\ActivityRepository;
 use App\Repository\FormModelRevisionRepository;
 
 /**
  * The fields an indicator can be fed from: those of the models of the centre's activities filled in online (the revision in force),
- * by activity — numbers, yes/no, choices and calculated values, in fields and in table columns.
+ * by activity (only those of one model, if given) — numbers, yes/no, choices and calculated values, in fields and in table columns.
  */
 final class FormSourceChoices
 {
@@ -22,12 +23,12 @@ final class FormSourceChoices
     ) {}
 
     /** @return list<array{id: string, name: string, fields: list<array{key: string, label: string, type: string}>}> */
-    public function forCentre(EducationalCentre $centre): array
+    public function forCentre(EducationalCentre $centre, ?FormModel $only = null): array
     {
         $out = [];
         foreach ($this->activities->findAllByCentre($centre, true) as $activity) {
             $model = $activity->getFormModel();
-            if (!$activity->isForm() || $model === null) {
+            if (!$activity->isForm() || $model === null || ($only !== null && !$model->getId()->equals($only->getId()))) {
                 continue;
             }
             $force = $this->modelRevisions->findInForce($model);

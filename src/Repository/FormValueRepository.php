@@ -20,6 +20,29 @@ class FormValueRepository extends ServiceEntityRepository
     }
 
     /**
+     * Every value of every delivered revision of an activity's cycle (the caller keeps the revisions it wants), in the order of the
+     * revision, copy and row they belong to.
+     *
+     * @return list<FormValue>
+     */
+    public function findByActivityCycle(Activity $activity, int $cycleYear): array
+    {
+        /** @var list<FormValue> $found */
+        $found = $this->createQueryBuilder('v')
+            ->join('v.submissionRevision', 'sr')->addSelect('sr')
+            ->join('sr.submission', 's')
+            ->where('s.activity = :activity')
+            ->andWhere('s.cycleYear = :cycle')
+            ->setParameter('activity', $activity->getId(), 'uuid')
+            ->setParameter('cycle', $cycleYear)
+            ->orderBy('v.path')->addOrderBy('v.rowKey')
+            ->getQuery()
+            ->getResult();
+
+        return $found;
+    }
+
+    /**
      * The values of some fields in every delivered revision of an activity's cycle, without loading the documents (the caller keeps
      * the revisions it wants).
      *

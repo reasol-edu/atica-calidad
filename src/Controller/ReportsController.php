@@ -26,6 +26,7 @@ use App\Service\ActivityDeadlineChecker;
 use App\Service\ActivityStatusReportBuilder;
 use App\Service\DocumentMasterListBuilder;
 use App\Service\DocumentReviewSchedule;
+use App\Service\Form\FormDataExplorer;
 use App\Service\IndicatorBoardBuilder;
 use App\Service\PdfRenderer;
 use App\Service\ProfileAssignmentRowBuilder;
@@ -35,6 +36,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -71,6 +73,7 @@ class ReportsController extends AbstractController
         private readonly IndicatorBoardBuilder $indicatorBoard,
         private readonly PdfRenderer $pdf,
         private readonly XlsxExporter $xlsx,
+        private readonly FormDataExplorer $formData,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
     ) {}
@@ -438,6 +441,81 @@ class ReportsController extends AbstractController
         }
 
         return $this->xlsx->createResponse($this->filename('indicators', 'xlsx'), $headers, $rows);
+    }
+
+    /**
+     * The data explorer: the values of the documents filled in online for an activity and a cycle, as flat rows to look at and
+     * export (CSV, Excel). Only approved deliveries count, as in the indicators.
+     */
+    #[Route('/datos-de-modelos', name: 'app_reports_form_data')]
+    public function formData(string $centreId, Request $request): Response
+    {
+        $centre = $this->requireCentre($centreId);
+        [$activity, $cycle, $activities, $available] = $this->formDataChoice($centre, $request);
+
+        return $this->render('reports/form_data.html.twig', [
+            'centre'     => $centre,
+            'activities' => $activities,
+            'activity'   => $activity,
+            'cycle'      => $cycle,
+            'available'  => $available,
+            'labels'     => array_combine($available, array_map(ActivityDeadlineChecker::academicYearLabel(...), $available)),
+            'columns'    => FormDataExplorer::COLUMNS,
+            'rows'       => $activity === null ? [] : $this->formData->rows($activity, $cycle),
+        ]);
+    }
+
+    #[Route('/datos-de-modelos.{_format}', name: 'app_reports_form_data_export', requirements: ['_format' => 'csv|xlsx'])]
+    public function formDataExport(string $centreId, string $_format, Request $request): Response
+    {
+        $centre = $this->requireCentre($centreId);
+        [$activity, $cycle] = $this->formDataChoice($centre, $request);
+        if ($activity === null) {
+            throw $this->createNotFoundException();
+        }
+
+        $headers = array_map(fn (string $c): string => $this->t('form_data.col.' . $c), FormDataExplorer::COLUMNS);
+        $rows    = array_map(static fn (array $r): array => array_values($r), $this->formData->rows($activity, $cycle));
+
+        if ($_format === 'xlsx') {
+            return $this->xlsx->createResponse($this->filename('form_data', 'xlsx'), $headers, $rows);
+        }
+
+        $response = new StreamedResponse(static function () use ($headers, $rows): void {
+            $out = fopen('php://output', 'wb');
+            if ($out === false) {
+                return;
+            }
+            fwrite($out, "\xEF\xBB\xBF"); // so Excel opens the accents right
+            fputcsv($out, $headers, ';', escape: '');
+            foreach ($rows as $row) {
+                // A text starting with = + - @ would be read as a formula by a spreadsheet.
+                fputcsv($out, array_map(static fn (mixed $v): string => preg_match('/^[=+\-@]/', (string) $v) === 1 && !is_numeric($v) ? "'" . $v : (string) $v, $row), ';', escape: '');
+            }
+            fclose($out);
+        });
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $this->filename('form_data', 'csv') . '"');
+
+        return $response;
+    }
+
+    /** @return array{0: ?\App\Entity\Activity, 1: int, 2: list<\App\Entity\Activity>, 3: list<int>} the activity asked for (the first by default), the cycle, the choices */
+    private function formDataChoice(EducationalCentre $centre, Request $request): array
+    {
+        $activities = $this->formData->activities($centre);
+        $available  = $this->compliance->availableCycles($centre);
+        $askedId    = $request->query->getString('actividad');
+        $activity   = $activities[0] ?? null;
+        foreach ($activities as $candidate) {
+            if ($candidate->getId()->toRfc4122() === $askedId) {
+                $activity = $candidate;
+            }
+        }
+        $asked = $request->query->getInt('curso');
+        $cycle = \in_array($asked, $available, true) ? $asked : $this->compliance->currentCycle($centre);
+
+        return [$activity, $cycle, $activities, $available];
     }
 
     /** "8. Operación › 8.1 Planificación" for the document's section and its ancestors. */

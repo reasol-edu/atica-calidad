@@ -43,6 +43,7 @@ class FormModelController extends AbstractController
         private readonly SpecificProfileRepository $profiles,
         private readonly FormModelService $service,
         private readonly FormUpdateService $updates,
+        private readonly \App\Service\Form\FormSourceChoices $sourceChoices,
         private readonly FormDefinitionNormalizer $definitions,
         private readonly FormDataNormalizer $data,
         private readonly FormResolver $resolver,
@@ -99,6 +100,7 @@ class FormModelController extends AbstractController
             'model'    => $model,
             'document' => $model->getDocument(),
             'impact'   => $this->updates->impact($model),
+            'indicatorSources' => $this->sourceChoices->forCentre($centre, $model),
             'hasRevisions' => $model->getDocument()->getRevisions()->count() > 0,
             'problems' => $this->translateProblems($this->service->problems($this->definitions->normalize($model->getDraftDefinition()), $centre)),
             'editor'   => [

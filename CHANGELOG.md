@@ -50,6 +50,9 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   campos), con **desglose** por perfil/elemento/profesor o por una opción, y la medición dice con cuántas entregas se ha calculado. Un grupo
   por debajo del umbral permite **abrir un hallazgo propio** aunque el global cumpla. Índice de valores `FormValue` (`app:forms:reindex`) y
   cálculo periódico (`app:forms:calculate-indicators`). Migración nueva probada en las cuatro bases.
+- **Explorador «Datos de modelos» en Informes (fase 6).** Los valores de las entregas aprobadas de una actividad rellenada en línea, fila a
+  fila, para un curso: se pueden filtrar en pantalla y exportar a CSV o Excel. Y en el editor de modelos, un botón «Indicador con
+  “campo”» por cada campo numérico, de sí/no, de opciones o calculado, que abre el formulario del indicador ya apuntando a ese campo.
 
 ## [2.6.0] - 2026-11-21
 

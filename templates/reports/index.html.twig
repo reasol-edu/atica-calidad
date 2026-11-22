@@ -112,6 +112,22 @@
             'read_acknowledgements.description'|trans({}, 'reports'),
             'read_acknowledgements.summary'|trans({'%count%': readAckCount}, 'reports'),
         ) }}
+
+        {# The data explorer has its own screen and exports (CSV, Excel), not the PDF + Excel pair of the other cards. #}
+        <div class="flex flex-col rounded-2xl border border-gray-200 bg-white shadow-xs" data-testid="form-data-card">
+            <div class="flex-1 px-6 py-5 space-y-2">
+                <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900">
+                    {{ ux_icon('heroicons:table-cells', {class: 'h-5 w-5 text-forest-600'}) }}
+                    {{ 'form_data.title'|trans({}, 'reports') }}
+                </h2>
+                <p class="text-sm text-gray-600">{{ 'form_data.description'|trans({}, 'reports') }}</p>
+                <a href="{{ path('app_reports_form_data', {centreId: centre.id.toRfc4122}) }}"
+                   class="inline-flex items-center gap-1.5 pt-1 text-sm font-medium text-forest-700 hover:text-forest-900 hover:underline max-sm:py-2">
+                    {{ ux_icon('heroicons:eye', {class: 'h-4 w-4'}) }}
+                    {{ 'view_on_screen'|trans({}, 'reports') }}
+                </a>
+            </div>
+        </div>
     </div>
 
 </div>

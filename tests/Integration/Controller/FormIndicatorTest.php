@@ -222,6 +222,46 @@ final class FormIndicatorTest extends ControllerTestCase
         self::assertSame(100.0, $this->em->getRepository(\App\Entity\Measurement::class)->findAll()[0]->getValue());
     }
 
+    public function testTheExplorerListsApprovedValuesAndExportsThem(): void
+    {
+        $this->deliver('1º A', 5, 'a;b');
+        $cycle = self::getContainer()->get(ActivityDeadlineChecker::class)->currentCycleKey($this->em->getRepository(Activity::class)->find($this->activity->getId()));
+        $base  = '/centro/' . $this->centre->getId()->toRfc4122() . '/informes/datos-de-modelos';
+        $query = '?actividad=' . $this->activity->getId()->toRfc4122() . '&curso=' . $cycle;
+
+        $this->loginAs($this->admin, $this->centre);
+        $this->client->request('GET', $base . $query);
+        self::assertResponseIsSuccessful();
+        $body = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('data-testid="form-data-table"', $body);
+        self::assertStringContainsString('Horas', $body);
+        self::assertStringContainsString('Observaciones', $body);
+
+        $this->client->request('GET', $base . '.csv' . $query);
+        self::assertResponseIsSuccessful();
+        $csv = $this->client->getInternalResponse()->getContent();
+        self::assertStringContainsString('Campo;Valor', $csv);
+        self::assertStringContainsString('Horas;5', $csv);
+
+        $this->client->request('GET', $base . '.xlsx' . $query);
+        self::assertResponseIsSuccessful();
+
+        // Whoever cannot see the reports cannot see the data either.
+        $this->loginAs($this->author, $this->centre);
+        $this->client->request('GET', $base . $query);
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testTheModelEditorOffersToCreateAnIndicatorFromAField(): void
+    {
+        $this->loginAs($this->admin, $this->centre);
+        $this->client->request('GET', '/modelos/' . $this->model->getId()->toRfc4122());
+        self::assertResponseIsSuccessful();
+        $body = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('data-testid="indicator-sources"', $body);
+        self::assertStringContainsString('Indicador con «Horas»', $body);
+    }
+
     public function testTheIndicatorFormOffersFieldsAndAGroupBelowTheThresholdOpensItsOwnFinding(): void
     {
         $this->deliver('1º A', 5);

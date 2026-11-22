@@ -1,0 +1,94 @@
+{% extends 'layouts/app.html.twig' %}
+
+{% block title %}{{ 'form_data.title'|trans({}, 'reports') }} · {{ centre.name }} · {{ app_name }}{% endblock %}
+
+{#
+   The data explorer (ReportsController::formData): the values of the approved deliveries of an activity filled in online, for a
+   cycle, as flat rows; filtered on the page by text, exported whole to CSV or Excel.
+#}
+{% set limit = 500 %}
+
+{% block content %}
+<div class="px-6 py-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <div class="mb-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                {% include 'components/_breadcrumb_home.html.twig' %}
+                <a href="{{ path('app_reports_index', {centreId: centre.id.toRfc4122}) }}" class="transition-colors hover:text-forest-600">{{ 'reports'|trans({}, 'navigation') }}</a>
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4'}) }}
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ 'form_data.title'|trans({}, 'reports') }}</h1>
+            <p class="mt-1 max-w-3xl text-sm text-gray-500">{{ 'form_data.description'|trans({}, 'reports') }}</p>
+        </div>
+        {% if activity is not null %}
+            {% set export = {centreId: centre.id.toRfc4122, actividad: activity.id.toRfc4122, curso: cycle} %}
+            <div class="flex items-center gap-2">
+                <a href="{{ path('app_reports_form_data_export', export|merge({_format: 'csv'})) }}" data-testid="export-csv"
+                   class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-forest-700">
+                    {{ ux_icon('heroicons:document-text', {class: 'h-4 w-4'}) }}{{ 'form_data.export_csv'|trans({}, 'reports') }}
+                </a>
+                <a href="{{ path('app_reports_form_data_export', export|merge({_format: 'xlsx'})) }}" data-testid="export-xlsx"
+                   class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50">
+                    {{ ux_icon('heroicons:table-cells', {class: 'h-4 w-4'}) }}{{ 'download_xlsx'|trans({}, 'reports') }}
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if activity is null %}
+        <p class="rounded-2xl border border-gray-200 bg-white px-6 py-10 text-center text-sm text-gray-500">{{ 'form_data.no_activities'|trans({}, 'reports') }}</p>
+    {% else %}
+        <form method="get" class="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
+            <div>
+                <label for="fd-activity" class="mb-1 block text-xs font-medium text-gray-500">{{ 'form_data.activity'|trans({}, 'reports') }}</label>
+                <select id="fd-activity" name="actividad" onchange="this.form.submit()"
+                        class="rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                    {% for a in activities %}<option value="{{ a.id.toRfc4122 }}" {{ a.id == activity.id ? 'selected' : '' }}>{{ a.title }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="fd-cycle" class="mb-1 block text-xs font-medium text-gray-500">{{ 'form_data.year'|trans({}, 'reports') }}</label>
+                <select id="fd-cycle" name="curso" onchange="this.form.submit()"
+                        class="rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                    {% for y in available %}<option value="{{ y }}" {{ y == cycle ? 'selected' : '' }}>{{ labels[y] }}</option>{% endfor %}
+                </select>
+            </div>
+            <noscript><button type="submit" class="rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white">{{ 'form_data.apply'|trans({}, 'reports') }}</button></noscript>
+        </form>
+
+        {% if rows is empty %}
+            <p class="rounded-2xl border border-gray-200 bg-white px-6 py-10 text-center text-sm text-gray-500" data-testid="form-data-empty">{{ 'form_data.none'|trans({}, 'reports') }}</p>
+        {% else %}
+            <p class="text-sm text-gray-600" data-testid="form-data-count">{{ 'form_data.summary'|trans({'%count%': rows|length}, 'reports') }}{% if rows|length > limit %}. {{ 'form_data.truncated'|trans({'%shown%': limit}, 'reports') }}{% endif %}</p>
+            <div data-controller="table-filter">
+                <label for="fd-filter" class="sr-only">{{ 'form_data.filter'|trans({}, 'reports') }}</label>
+                <input id="fd-filter" type="search" placeholder="{{ 'form_data.filter'|trans({}, 'reports') }}" data-table-filter-target="input" data-action="input->table-filter#filter"
+                       class="mb-3 w-full max-w-sm rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-forest-500 focus:outline-none focus:ring-3 focus:ring-forest-500/20">
+                <div class="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-xs">
+                    <table class="w-full min-w-[760px] text-sm" data-testid="form-data-table">
+                        <thead class="border-b border-gray-200 bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+                            <tr>
+                                {% for c in columns|filter(c => c not in ['activity', 'cycle']) %}
+                                    <th scope="col" class="px-4 py-2.5 font-semibold">{{ ('form_data.col.' ~ c)|trans({}, 'reports') }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for row in rows|slice(0, limit) %}
+                                <tr data-table-filter-target="row">
+                                    <td class="px-4 py-2">{{ row.slot }}</td>
+                                    <td class="px-4 py-2 tabular-nums">{{ row.version }}</td>
+                                    <td class="px-4 py-2 text-xs text-gray-500">{{ row.copy }}</td>
+                                    <td class="px-4 py-2 text-xs text-gray-500">{{ row.row }}</td>
+                                    <td class="px-4 py-2 font-medium text-gray-900">{{ row.field }}</td>
+                                    <td class="px-4 py-2">{{ row.value }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

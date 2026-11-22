@@ -130,9 +130,13 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
   measurements typed by hand or already reviewed (frozen). Run `app:forms:calculate-indicators` from cron (daily); saving the indicator form
   recalculates at once. A group below the alert threshold shows "Abrir hallazgo de este grupo" (`IndicatorService::openGroupFinding`), which
   does not change the global measurement.
-- Not done yet: explorer + CSV/XLSX in Informes, "Crear indicador con este campo" in the model editor, centre catalogues (+JSON), a single
-  activity per indicator (the spec allows several), the "approval date" period mode, recalculation on approval (only cron / saving the form),
-  "pass this period to manual" (`Measurement::makeManual()` exists but has no screen).
+- **Explorer** (Informes › «Datos de modelos», `ReportsController::formData`/`formDataExport`, `FormDataExplorer`): flat rows (one per value) of the
+  latest APPROVED revision of each slot for an activity and cycle; on-screen text filter (`table_filter` Stimulus controller, first 500 rows) and
+  full export to CSV (`;`, BOM, formula-injection guard) and XLSX. Same permission as the other reports (`EducationalCentreVoter::REPORTS`).
+- **"Indicador con este campo"** in the model editor: links to `/mejora/indicadores/nuevo?fuente=ACTIVITY|FIELD&agg=` for each number/yes-no/
+  choice/calculated field of the activities that use the model (`FormSourceChoices::forCentre($centre, $model)`).
+- Not done yet: centre catalogues (+JSON), a single activity per indicator (the spec allows several), the "approval date" period mode,
+  recalculation on approval (only cron / saving the form), "pass this period to manual" (`Measurement::makeManual()` exists but has no screen).
 
 ## Front end
 
