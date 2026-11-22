@@ -50,7 +50,7 @@ final class FormSourceChoices
                 foreach (FormDefinition::listOf($table['columns'] ?? []) as $column) {
                     $type = FormDefinition::str($column['fieldType']);
                     if (in_array($type, self::TYPES, true)) {
-                        $fields[] = ['key' => FormDefinition::str($column['key'] ?? ''), 'label' => FormDefinition::str($table['title'] ?? '') . ' › ' . FormDefinition::str($column['label'] ?? ''), 'type' => $type, 'options' => self::optionsOf($column)];
+                        $fields[] = ['key' => FormDefinition::str($column['key'] ?? ''), 'label' => FormDefinition::str($table['label'] ?? '') . ' › ' . FormDefinition::str($column['label'] ?? ''), 'type' => $type, 'options' => self::optionsOf($column)];
                     }
                 }
             }

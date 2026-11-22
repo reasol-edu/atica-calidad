@@ -44,6 +44,7 @@ class FormModelController extends AbstractController
         private readonly FormModelService $service,
         private readonly FormUpdateService $updates,
         private readonly \App\Service\Form\FormSourceChoices $sourceChoices,
+        private readonly \App\Repository\IndicatorFormSourceRepository $indicatorSources,
         private readonly FormDefinitionNormalizer $definitions,
         private readonly FormDataNormalizer $data,
         private readonly FormResolver $resolver,
@@ -94,14 +95,36 @@ class FormModelController extends AbstractController
     #[Route('/{id}', name: 'app_form_model_edit', methods: ['GET'])]
     public function edit(string $id, #[CurrentCentre] EducationalCentre $centre): Response
     {
-        $model = $this->requireModel($id, $centre);
+        $model   = $this->requireModel($id, $centre);
+        $sources = $this->sourceChoices->forCentre($centre, $model);
+
+        // The indicators already fed from the documents of this model (any activity that uses it), with the field each one reads.
+        $labels = [];
+        foreach ($sources as $source) {
+            foreach ($source['fields'] as $field) {
+                $labels[$source['id'] . '|' . $field['key']] = $field['label'];
+            }
+        }
+        $indicators = [];
+        foreach ($this->indicatorSources->findByModel($model) as $feed) {
+            $indicator    = $feed->getIndicator();
+            $indicators[] = [
+                'id'          => $indicator->getId()->toRfc4122(),
+                'name'        => $indicator->getName(),
+                'active'      => $indicator->isActive(),
+                'activity'    => $feed->getActivity()->getTitle(),
+                'field'       => $labels[$feed->getActivity()->getId()->toRfc4122() . '|' . $feed->getFieldKey()] ?? null,
+                'aggregation' => $feed->getAggregation(),
+            ];
+        }
 
         return $this->render('form/model_editor.html.twig', [
             'centre'   => $centre,
             'model'    => $model,
             'document' => $model->getDocument(),
             'impact'   => $this->updates->impact($model),
-            'indicatorSources' => $this->sourceChoices->forCentre($centre, $model),
+            'indicatorSources' => $sources,
+            'modelIndicators'  => $indicators,
             'hasRevisions' => $model->getDocument()->getRevisions()->count() > 0,
             'editor'   => [
                 'problems'   => $this->translateProblems($this->service->problems($this->definitions->normalize($model->getDraftDefinition()), $centre)),

@@ -79,7 +79,9 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   *Pasos de aprobación* e *Indicadores*, cada una con un punto ámbar si difiere de la última revisión enviada y un número rojo con sus
   problemas. Una barra fija arriba muestra el estado de guardado, qué falta por enviar y el botón (**Enviar a revisión**, o **Guardar
   como nueva revisión** si la carpeta no exige revisión), que se desactiva sin cambios; abre un panel con los problemas (con enlace a su
-  pestaña), el impacto, la política de actualización y la descripción. La pestaña activa queda en la dirección (`#rules`). Sin migración.
+  pestaña), el impacto, la política de actualización y la descripción. La pestaña activa queda en la dirección (`#rules`). La pestaña
+  *Indicadores* lista los indicadores ya asociados al modelo (de cualquier actividad que lo use), con el campo y la agregación, y cada uno
+  lleva a su ficha. Los botones «Indicador con una columna de tabla» mostraban el nombre de la tabla vacío. Sin migración.
 - **Modelos de documento: el campo «Texto largo» admite formato enriquecido** (negrita, cursiva, subrayado, títulos, listas, citas,
   alineación y enlaces), con la misma barra que los textos a rellenar. Se guarda como HTML limpio; lo escrito antes como texto plano se
   sigue viendo (como párrafos). En comparaciones, Word/OpenDocument, el índice de valores y el explorador cuenta como el texto que dice;

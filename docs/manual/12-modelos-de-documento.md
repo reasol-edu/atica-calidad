@@ -215,7 +215,8 @@ En **Modelos de documento**:
 
 Un [indicador](09-mejora-continua.md#indicadores) puede alimentarse de un campo de las entregas
 **aprobadas** de una actividad (solo cuenta la última versión aprobada de cada entrega). En el
-editor del modelo, **Indicadores con los datos de este modelo** ofrece un botón por campo numérico, de
+editor del modelo, la pestaña **Indicadores** lista los **indicadores ya asociados al modelo**, cada
+uno con un enlace a su ficha, y **Indicadores con los datos de este modelo** ofrece un botón por campo numérico, de
 sí/no, de opciones o calculado; también se elige en el formulario del indicador, sección *Calculado
 desde documentos*.
 

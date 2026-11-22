@@ -246,6 +246,23 @@ final class FormFlowTest extends ControllerTestCase
         self::assertTrue($body['changes']['approval']);
     }
 
+    public function testTheIndicatorsTabListsTheIndicatorsFedFromThisModelWithALinkToEach(): void
+    {
+        $model     = $this->modelInForce();
+        $indicator = new \App\Entity\Indicator($this->centre, 'Horas de la actividad', new \DateTimeImmutable());
+        $other     = new \App\Entity\Indicator($this->centre, 'Indicador de otro modelo', new \DateTimeImmutable());
+        $this->persist($indicator, $other, new \App\Entity\IndicatorFormSource($indicator, $this->activity, $this->keys['hours']));
+
+        $this->loginAs($this->admin, $this->centre);
+        $this->client->request('GET', '/modelos/' . $model->getId()->toRfc4122());
+        $body = (string) $this->client->getResponse()->getContent();
+
+        self::assertStringContainsString('data-testid="model-indicators"', $body);
+        self::assertStringContainsString('Horas de la actividad', $body);
+        self::assertStringContainsString('href="/mejora/indicadores/' . $indicator->getId()->toRfc4122() . '"', $body, 'each one leads to the indicator');
+        self::assertStringContainsString('Suma: Horas', $body, 'with the field it reads');        self::assertStringNotContainsString('Indicador de otro modelo', $body, 'only those of this model');
+    }
+
     public function testATeacherWithoutQualityPermissionCannotTouchModels(): void
     {
         $model = $this->modelInForce();
