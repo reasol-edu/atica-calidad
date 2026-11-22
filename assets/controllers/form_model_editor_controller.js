@@ -24,7 +24,7 @@ const SELECT = 'min-w-0 rounded-lg border border-gray-200 py-1.5 pl-2 text-sm fo
  */
 /* stimulusFetch: 'lazy' */
 export default class extends Controller {
-    static targets = ['canvas', 'outline', 'status', 'problems', 'code', 'send'];
+    static targets = ['canvas', 'outline', 'status', 'problems', 'code', 'send', 'bar', 'summary', 'panel', 'openSend', 'tabs', 'rules', 'approval'];
     static values = { config: Object, labels: Object };
 
     connect() {
@@ -49,7 +49,107 @@ export default class extends Controller {
         this.onHide = () => { if (this.dirty && !this.stale) { this.save(true); } };
         window.addEventListener('pagehide', this.onHide);
 
+        // The tabs: the panels are in the page, the tab that shows is the one the address names (#rules, #approval, #indicators).
+        this.panels = [...this.element.querySelectorAll('[data-panel]')].map((el) => el.dataset.panel);
+        const wanted = location.hash.replace('#', '');
+        this.tab = this.panels.includes(wanted) ? wanted : 'content';
+        this.problems = this.configValue.problems || [];
+        this.changes = this.configValue.changes || { content: false, rules: false, approval: false, base: null, any: true };
+
         this.render();
+        this.showTab(this.tab);
+        this.applyState(this.problems, this.changes);
+    }
+
+    // ── Tabs, bar and the panel that sends ──────────────────────────────────
+
+    /** Shows one tab (a panel of the page) and keeps it in the address, so a reload or a shared link comes back to it. */
+    showTab(name) {
+        this.tab = name;
+        this.element.querySelectorAll('[data-panel]').forEach((el) => { el.hidden = el.dataset.panel !== name; });
+        try { history.replaceState(null, '', name === 'content' ? location.pathname + location.search : '#' + name); } catch (e) { /* no address to update */ }
+        this.paintTabs();
+    }
+
+    /** The tabs, each with its state: a red number when it has problems that stop the sending, an amber dot when it differs from the last revision sent. */
+    paintTabs() {
+        const had = this.tabsTarget.contains(document.activeElement) ? document.activeElement.dataset.tab : null;
+        const names = { content: this.l.tab_content, rules: this.l.tab_rules, approval: this.l.tab_approval, indicators: this.l.tab_indicators };
+        const tabs = this.panels.map((name, i) => {
+            const count = this.problems.filter((p) => p.part === name).length;
+            const changed = this.changes[name] === true;
+            const active = name === this.tab;
+            const state = [];
+            if (count > 0) {
+                state.push(h('span', { class: 'rounded-full bg-red-100 px-1.5 text-xs font-semibold text-red-700', 'aria-hidden': 'true', text: String(count) }));
+                state.push(h('span', { class: 'sr-only', text: this.l.tab_problems.replace('%count%', String(count)) }));
+            } else if (changed) {
+                state.push(h('span', { class: 'h-2 w-2 rounded-full bg-amber-500', 'aria-hidden': 'true', title: this.l.tab_changed }));
+                state.push(h('span', { class: 'sr-only', text: this.l.tab_changed }));
+            }
+
+            return h('button', {
+                type: 'button', role: 'tab', id: 'editor-tab-' + name, 'data-tab': name, 'aria-selected': active ? 'true' : 'false', 'aria-controls': 'editor-panel-' + name, tabindex: active ? '0' : '-1',
+                class: 'inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-500 '
+                    + (active ? 'border-forest-600 text-forest-700' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'),
+                onclick: () => this.showTab(name),
+                onkeydown: (e) => {
+                    const move = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+                    if (move !== undefined) {
+                        e.preventDefault();
+                        const next = this.panels[(i + move + this.panels.length) % this.panels.length];
+                        this.showTab(next);
+                        this.tabsTarget.querySelector('[data-tab="' + next + '"]')?.focus();
+                    }
+                },
+            }, [names[name] || name, ...state]);
+        });
+        this.tabsTarget.replaceChildren(...tabs);
+        this.element.querySelectorAll('[data-panel]').forEach((el) => { el.id = 'editor-panel-' + el.dataset.panel; el.setAttribute('aria-labelledby', 'editor-tab-' + el.dataset.panel); });
+        if (had) {
+            this.tabsTarget.querySelector('[data-tab="' + had + '"]')?.focus();
+        }
+    }
+
+    /** What the server says after each save: the problems (with the tab they belong to) and what differs from the last revision sent. */
+    applyState(problems, changes) {
+        this.problems = problems;
+        this.changes = changes;
+        const parts = { content: this.l.tab_content, rules: this.l.tab_rules, approval: this.l.tab_approval };
+        const changedNames = Object.keys(parts).filter((p) => changes[p]).map((p) => parts[p].toLowerCase());
+        let summary;
+        if (changes.base === null) {
+            summary = this.l.bar_no_revision;
+        } else if (changes.any) {
+            summary = this.l.bar_changed.replace('%parts%', changedNames.join(', '));
+        } else {
+            summary = this.l.bar_unchanged.replace('%version%', String(changes.base));
+        }
+        this.summaryTarget.replaceChildren(summary, ...(problems.length ? [' ', h('button', {
+            type: 'button', class: 'font-medium text-red-700 underline decoration-dotted', text: this.l.bar_problems.replace('%count%', String(problems.length)),
+            onclick: () => this.togglePanel(true),
+        })] : []));
+
+        // Nothing to send: the button says so; with problems the panel opens to show them, but the sending waits.
+        this.openSendTarget.disabled = !changes.any;
+        this.openSendTarget.title = changes.any ? '' : this.l.send_unchanged;
+        this.sendTarget.disabled = !changes.any || problems.length > 0;
+        this.sendTarget.title = problems.length > 0 ? this.l.send_blocked : (changes.any ? '' : this.l.send_unchanged);
+        this.problemsTarget.replaceChildren(...problems.map((p) => h('li', { class: 'flex items-start gap-2' }, [
+            h('span', { class: 'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-600', 'aria-hidden': 'true' }),
+            h('span', { class: 'min-w-0 flex-1', text: p.text }),
+            h('button', { type: 'button', class: 'shrink-0 text-xs font-medium text-forest-700 underline decoration-dotted', text: this.l.problem_go, onclick: () => { this.togglePanel(false); this.showTab(p.part); } }),
+        ])));
+        if (this.hasTabsTarget) {
+            this.paintTabs();
+        }
+    }
+
+    /** Opens or closes the panel under the bar (the way to send the draft); `open` forces one or the other. */
+    togglePanel(open) {
+        const show = typeof open === 'boolean' ? open : this.panelTarget.hidden;
+        this.panelTarget.hidden = !show;
+        this.openSendTarget.setAttribute('aria-expanded', show ? 'true' : 'false');
     }
 
     disconnect() {
@@ -95,7 +195,7 @@ export default class extends Controller {
                 throw new Error('save');
             }
             this.version = body.version;
-            this.showProblems(body.problems || []);
+            this.applyState(body.problems || [], body.changes || this.changes);
             if (this.dirty) {
                 this.setStatus(this.l.saving, 'text-gray-500');
             } else {
@@ -113,12 +213,7 @@ export default class extends Controller {
 
     setStatus(text, tone) {
         this.statusTarget.textContent = text;
-        this.statusTarget.className = 'mt-3 text-sm ' + tone;
-    }
-
-    showProblems(problems) {
-        this.problemsTarget.replaceChildren(...problems.map((p) => h('li', { text: p })));
-        this.sendTarget.disabled = false;
+        this.statusTarget.className = 'text-sm ' + tone;
     }
 
     // ── Structure operations ────────────────────────────────────────────────
@@ -242,9 +337,9 @@ export default class extends Controller {
             ...this.def.sections.map((s) => this.sectionEl(s, numbers, 0)),
             ...(this.def.sections.length === 0 ? [h('p', { class: 'rounded-xl border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500', text: this.l.no_sections })] : []),
             h('button', { type: 'button', class: BTN + ' py-2', text: '+ ' + this.l.add_section, onclick: () => this.addSection(this.def.sections) }),
-            this.rulesEl(),
-            this.approvalEl(),
         );
+        this.rulesTarget.replaceChildren(this.rulesEl());
+        this.approvalTarget.replaceChildren(this.approvalEl());
         this.outlineTarget.replaceChildren(...(this.def.sections.length === 0
             ? [h('div', { class: 'flex flex-col items-center gap-1.5 px-2 py-6 text-center text-gray-400' }, [
                 h('span', { class: 'text-2xl leading-none', 'aria-hidden': 'true', text: '☰' }),
@@ -254,7 +349,7 @@ export default class extends Controller {
             : this.outlineItems(this.def.sections, numbers, 0)));
         this.enhanceSelects();
         if (this.focusKey) {
-            const target = this.canvasTarget.querySelector('[data-focus="' + this.focusKey + '"]');
+            const target = this.element.querySelector('[data-focus="' + this.focusKey + '"]');
             if (target) {
                 target.focus();
                 target.scrollIntoView({ block: 'nearest' });

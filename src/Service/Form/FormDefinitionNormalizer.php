@@ -165,22 +165,24 @@ final class FormDefinitionNormalizer
         $graph  = [];
         $labels = [];
 
-        $checkFormula = function (string $formula, string $label, string $node, ?string $table) use ($index, $sections, &$problems, &$graph): void {
+        // `$part` says which part of the model a problem belongs to when it is not the content (`rules`): the editor shows it in that tab.
+        $checkFormula = function (string $formula, string $label, string $node, ?string $table, string $part = '') use ($index, $sections, &$problems, &$graph): void {
+            $where = $part === '' ? [] : ['%part%' => $part];
             if (trim($formula) === '') {
-                $problems[] = ['code' => 'formula_missing', 'params' => ['%label%' => $label]];
+                $problems[] = ['code' => 'formula_missing', 'params' => ['%label%' => $label] + $where];
 
                 return;
             }
             $parsed = FormExpression::parse($formula);
             if ($parsed['ast'] === null) {
-                $problems[] = ['code' => 'formula_invalid', 'params' => ['%label%' => $label]];
+                $problems[] = ['code' => 'formula_invalid', 'params' => ['%label%' => $label] + $where];
 
                 return;
             }
             foreach (FormExpression::references($parsed['ast']) as $ref) {
                 $target = $this->referenceTarget($ref, $index, $sections, $table);
                 if ($target === false) {
-                    $problems[] = ['code' => 'formula_ref_missing', 'params' => ['%label%' => $label, '%ref%' => $ref]];
+                    $problems[] = ['code' => 'formula_ref_missing', 'params' => ['%label%' => $label, '%ref%' => $ref] + $where];
                 } elseif ($target !== null && $node !== '') {
                     $graph[$node][] = $target;
                 }
@@ -224,9 +226,9 @@ final class FormDefinitionNormalizer
         foreach (FormDefinition::listOf($definition['rules'] ?? []) as $rule) {
             $message = FormDefinition::str($rule['message'] ?? '');
             if ($message === '') {
-                $problems[] = ['code' => 'rule_without_message', 'params' => []];
+                $problems[] = ['code' => 'rule_without_message', 'params' => ['%part%' => 'rules']];
             }
-            $checkFormula(FormDefinition::str($rule['expr'] ?? ''), $message === '' ? '…' : $message, '', null);
+            $checkFormula(FormDefinition::str($rule['expr'] ?? ''), $message === '' ? '…' : $message, '', null, 'rules');
         }
 
         // A calculated value that depends on itself, however far.

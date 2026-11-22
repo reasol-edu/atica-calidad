@@ -37,7 +37,38 @@ final class FormModelService
         private readonly ActivityLogger $logger,
         private readonly SpecificProfileRepository $profiles,
         private readonly FormListOptions $lists,
+        private readonly \App\Repository\FormModelRevisionRepository $modelRevisions,
     ) {}
+
+    /**
+     * What of the draft is still to send: the parts (`content`, `rules`, `approval`) that differ from the last revision sent, and the
+     * version of that revision (null when none was sent yet: then every part with something in it is to send).
+     *
+     * @return array{content: bool, rules: bool, approval: bool, base: ?int, any: bool}
+     */
+    public function changes(FormModel $model): array
+    {
+        $draft = $this->definitions->normalize($model->getDraftDefinition());
+        $last  = $this->modelRevisions->findLatest($model);
+        if ($last === null) {
+            $parts = [
+                'content'  => FormDefinition::listOf($draft['sections'] ?? []) !== [] || trim((string) $model->getCode()) !== '',
+                'rules'    => FormDefinition::listOf($draft['rules'] ?? []) !== [],
+                'approval' => FormDefinition::listOf($draft['approval'] ?? []) !== [],
+            ];
+
+            return $parts + ['base' => null, 'any' => true];
+        }
+
+        $sent  = $this->definitions->normalize($last->getDefinition());
+        $parts = [
+            'content'  => $draft['sections'] !== $sent['sections'] || trim((string) $model->getCode()) !== trim((string) $last->getCode()),
+            'rules'    => $draft['rules'] !== $sent['rules'],
+            'approval' => $draft['approval'] !== $sent['approval'],
+        ];
+
+        return $parts + ['base' => $last->getRevision()->getVersion(), 'any' => in_array(true, $parts, true)];
+    }
 
     /** Persists and flushes the model and its document (which has no revision until the first one is sent to review). */
     public function create(Folder $folder, string $name, ?string $code): FormModel

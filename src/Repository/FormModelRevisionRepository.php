@@ -26,6 +26,22 @@ class FormModelRevisionRepository extends ServiceEntityRepository
         return $this->findOneBy(['revision' => $revision]);
     }
 
+    /** The last revision sent of a model (pending review or not): what the draft is compared with to know what is still to send. */
+    public function findLatest(FormModel $model): ?FormModelRevision
+    {
+        /** @var FormModelRevision|null $found */
+        $found = $this->createQueryBuilder('r')
+            ->join('r.revision', 'dr')
+            ->where('r.model = :model')
+            ->setParameter('model', $model->getId(), 'uuid')
+            ->orderBy('dr.version', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $found;
+    }
+
     /** The revision in force of a model: the one its document has approved and active. Null while none was approved. */
     public function findInForce(FormModel $model): ?FormModelRevision
     {

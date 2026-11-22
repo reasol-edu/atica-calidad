@@ -206,6 +206,46 @@ final class FormFlowTest extends ControllerTestCase
         self::assertTrue($this->client->getResponse()->isRedirect(), 'the activity cannot be filled while no revision is approved');
     }
 
+    public function testTheEditorKnowsWhatIsStillToSendAndWhichTabAProblemBelongsTo(): void
+    {
+        $service = self::getContainer()->get(FormModelService::class);
+        $model   = $service->create($this->modelFolder, 'Ficha', null);
+
+        // Nothing sent yet: everything with something in it is still to send.
+        $service->saveDraft($model, $this->definition(), $model->getDraftVersion(), $this->admin);
+        $changes = $service->changes($model);
+        self::assertNull($changes['base']);
+        self::assertTrue($changes['any']);
+        self::assertTrue($changes['content']);
+        self::assertFalse($changes['rules']);
+
+        $service->sendToReview($model, $this->admin, 'Primera');
+        $changes = $service->changes($model);
+        self::assertSame(1, $changes['base']);
+        self::assertSame(['content' => false, 'rules' => false, 'approval' => false, 'base' => 1, 'any' => false], $changes, 'the draft is what was sent');
+
+        // A rule changes only the rules; a step only the approval; the content stays as it was sent.
+        $draft = $model->getDraftDefinition();
+        $draft['rules'] = [['key' => 'a0000000-0000-4000-8000-000000000001', 'expr' => '1 = 1', 'message' => '', 'severity' => 'warning']];
+        $service->saveDraft($model, $draft, $model->getDraftVersion(), $this->admin);
+        $changes = $service->changes($model);
+        self::assertSame([false, true, false, true], [$changes['content'], $changes['rules'], $changes['approval'], $changes['any']]);
+
+        // The problems say where they are: a rule without message is in the rules, a step without a name in the approval.
+        $draft = $model->getDraftDefinition();
+        $draft['approval'] = [['key' => 'b0000000-0000-4000-8000-000000000001', 'name' => '', 'profile' => '']];
+        $service->saveDraft($model, $draft, $model->getDraftVersion(), $this->admin);
+
+        $this->loginAs($this->admin, $this->centre);
+        $id       = $model->getId()->toRfc4122();
+        $response = $this->postJson("/modelos/{$id}/borrador", 'form_model_' . $id, ['version' => $model->getDraftVersion(), 'definition' => $model->getDraftDefinition()]);
+        $body     = json_decode((string) $response->getContent(), true);
+        $parts    = array_values(array_unique(array_column($body['problems'], 'part')));
+        sort($parts);
+        self::assertSame(['approval', 'rules'], $parts);
+        self::assertTrue($body['changes']['approval']);
+    }
+
     public function testATeacherWithoutQualityPermissionCannotTouchModels(): void
     {
         $model = $this->modelInForce();

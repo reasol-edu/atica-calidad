@@ -29,6 +29,12 @@ En **Modelos de documento** escribe el nombre, el código que irá en la cabecer
 ejemplo `MD850703`) y la carpeta, y pulsa **Crear y editar**. El editor guarda el borrador solo mientras
 escribes; si otra persona o pestaña guarda a la vez, te avisa en vez de pisar sus cambios.
 
+El editor se organiza en **pestañas**: *Contenido* (con el índice a la izquierda), *Reglas de coherencia*,
+*Pasos de aprobación* e *Indicadores* (esta última solo si el modelo tiene campos que ofrecer). Cada pestaña
+muestra su estado: un **punto ámbar** si esa parte difiere de la última revisión enviada y un **número
+rojo** con los problemas que impiden enviarla. Encima de las pestañas, una **barra fija** dice si hay
+cambios sin enviar y tiene el botón de envío.
+
 ![Pantalla «Modelos de documento»: formularios para crear e importar un modelo y, debajo, la «Memoria de departamento» (MD-07) en vigor, con sus botones Editar, Exportar y Duplicar](img/modelos-lista.png)
 
 Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) con estos bloques:
@@ -127,8 +133,10 @@ versión anterior, dato por dato.
 
 ## Publicar una revisión nueva
 
-**Enviar a revisión** congela el borrador como la revisión siguiente del modelo; cuando se aprueba,
-es la que usan las actividades. Si ya hay documentos rellenados con revisiones anteriores, el editor
+**Enviar a revisión** (en la barra fija del editor; si la carpeta no exige revisión, el botón dice
+**Guardar como nueva revisión**) congela el borrador como la revisión siguiente del modelo; cuando se
+aprueba, es la que usan las actividades. El botón se desactiva mientras no haya cambios respecto a la última
+revisión enviada, y el panel que abre lista los problemas pendientes, con un enlace a su pestaña. Si ya hay documentos rellenados con revisiones anteriores, el editor
 dice cuántos borradores y entregas se verían afectados y deja elegir:
 
 - **Actualizar es opcional**: cada cual decide si pasa su documento a la revisión nueva.

@@ -103,8 +103,10 @@ class FormModelController extends AbstractController
             'impact'   => $this->updates->impact($model),
             'indicatorSources' => $this->sourceChoices->forCentre($centre, $model),
             'hasRevisions' => $model->getDocument()->getRevisions()->count() > 0,
-            'problems' => $this->translateProblems($this->service->problems($this->definitions->normalize($model->getDraftDefinition()), $centre)),
             'editor'   => [
+                'problems'   => $this->translateProblems($this->service->problems($this->definitions->normalize($model->getDraftDefinition()), $centre)),
+                'changes'    => $this->service->changes($model),
+                'requiresReview' => $model->getDocument()->getFolder()->requiresReview(),
                 'definition' => $model->getDraftDefinition(),
                 'version'    => $model->getDraftVersion(),
                 'code'       => $model->getCode(),
@@ -147,6 +149,7 @@ class FormModelController extends AbstractController
             'version'    => $model->getDraftVersion(),
             'definition' => $model->getDraftDefinition(),
             'problems'   => $this->translateProblems($this->service->problems($model->getDraftDefinition(), $centre)),
+            'changes'    => $this->service->changes($model),
         ]);
     }
 
@@ -220,10 +223,13 @@ class FormModelController extends AbstractController
     /**
      * @param list<array{code: string, params: array<string, string>}> $problems
      *
-     * @return list<string>
+     * @return list<array{text: string, part: string}> the text and the tab of the editor it belongs to (content, rules or approval)
      */
     private function translateProblems(array $problems): array
     {
-        return array_map(fn (array $p): string => $this->translator->trans('model.problem.' . $p['code'], $p['params'], 'forms'), $problems);
+        return array_map(fn (array $p): array => [
+            'text' => $this->translator->trans('model.problem.' . $p['code'], $p['params'], 'forms'),
+            'part' => $p['params']['%part%'] ?? (str_starts_with($p['code'], 'approval_') ? 'approval' : 'content'),
+        ], $problems);
     }
 }

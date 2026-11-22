@@ -60,6 +60,19 @@
     offline: 'editor.offline'|trans({}, 'forms'),
     stale: 'editor.stale'|trans({}, 'forms'),
     outline: 'editor.outline'|trans({}, 'forms'),
+    tab_content: 'editor.tab_content'|trans({}, 'forms'),
+    tab_rules: 'editor.tab_rules'|trans({}, 'forms'),
+    tab_approval: 'editor.tab_approval'|trans({}, 'forms'),
+    tab_indicators: 'editor.tab_indicators'|trans({}, 'forms'),
+    tab_changed: 'editor.tab_changed'|trans({}, 'forms'),
+    tab_problems: 'editor.tab_problems'|trans({}, 'forms'),
+    bar_no_revision: 'editor.bar_no_revision'|trans({}, 'forms'),
+    bar_unchanged: 'editor.bar_unchanged'|trans({}, 'forms'),
+    bar_changed: 'editor.bar_changed'|trans({}, 'forms'),
+    bar_problems: 'editor.bar_problems'|trans({}, 'forms'),
+    send_unchanged: 'editor.send_unchanged'|trans({}, 'forms'),
+    send_blocked: 'editor.send_blocked'|trans({}, 'forms'),
+    problem_go: 'editor.problem_go'|trans({}, 'forms'),
     outline_empty: 'editor.outline_empty'|trans({}, 'forms'),
     outline_empty_help: 'editor.outline_empty_help'|trans({}, 'forms'),
     no_sections: 'editor.no_sections'|trans({}, 'forms'),
@@ -175,18 +188,77 @@
         </div>
     </div>
 
-    <p class="mt-3 text-sm" role="status" aria-live="polite" data-form-model-editor-target="status"></p>
+    {% set send_label = (document.folder.requiresReview ? 'editor.send' : 'editor.save_revision')|trans({}, 'forms') %}
 
-    <div class="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <nav aria-label="{{ 'editor.outline'|trans({}, 'forms') }}" class="hidden lg:block">
-            <div class="sticky top-4 max-h-[80vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-3 shadow-xs" data-form-model-editor-target="outline"></div>
-        </nav>
-        <div class="min-w-0 space-y-4" data-form-model-editor-target="canvas"></div>
+    {# The bar stays in view while editing: how the draft is saved, what is still to send, and the way to send it (the panel opens under it). #}
+    <div class="sticky top-0 z-30 -mx-4 mt-3 border-b border-gray-200 bg-white/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6" data-form-model-editor-target="bar">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <p class="text-sm" role="status" aria-live="polite" data-form-model-editor-target="status"></p>
+            <p class="min-w-0 flex-1 text-sm text-gray-600" data-form-model-editor-target="summary"></p>
+            <button type="button" data-form-model-editor-target="openSend" data-action="form-model-editor#togglePanel" aria-expanded="false" aria-controls="send-panel"
+                    class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-3.5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 disabled:cursor-not-allowed disabled:bg-gray-300">
+                {{ ux_icon('heroicons:paper-airplane', {class: 'h-4 w-4'}) }}{{ send_label }}
+            </button>
+        </div>
+
+        <section id="send-panel" hidden data-form-model-editor-target="panel" class="mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-4 shadow-lg sm:p-5">
+            <h2 class="text-base font-semibold text-gray-900">{{ send_label }}</h2>
+            <p class="mt-1 text-sm text-gray-500">{{ (document.folder.requiresReview ? 'editor.send_review' : 'editor.send_direct')|trans({}, 'forms') }}</p>
+            <ul class="mt-3 space-y-1 text-sm text-amber-800" data-form-model-editor-target="problems"></ul>
+            {% if impact.drafts + impact.delivered > 0 %}
+                <p class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="send-impact">{{ 'editor.impact'|trans({'%drafts%': impact.drafts, '%delivered%': impact.delivered}, 'forms') }}</p>
+            {% endif %}
+            <form method="post" action="{{ path('app_form_model_send', {id: model.id.toRfc4122}) }}" class="mt-3 flex flex-wrap items-end gap-3">
+                <input type="hidden" name="_token" value="{{ csrf_token('form_model_send_' ~ model.id.toRfc4122) }}">
+                {% if impact.drafts + impact.delivered > 0 or hasRevisions %}
+                    <fieldset class="w-full">
+                        <legend class="block text-sm font-medium text-gray-700">{{ 'editor.policy'|trans({}, 'forms') }}</legend>
+                        <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <twig:Form:RadioCard
+                                name="policy"
+                                value="optional"
+                                label="{{ 'editor.policy_optional'|trans({}, 'forms') }}"
+                                help="{{ 'editor.policy_optional_help'|trans({}, 'forms') }}"
+                                :checked="true"
+                            />
+                            <twig:Form:RadioCard
+                                name="policy"
+                                value="mandatory"
+                                label="{{ 'editor.policy_mandatory'|trans({}, 'forms') }}"
+                                help="{{ 'editor.policy_mandatory_help'|trans({}, 'forms') }}"
+                            />
+                        </div>
+                        <label class="mt-2 inline-flex items-center gap-2 text-sm text-gray-700">{{ 'editor.policy_deadline'|trans({}, 'forms') }}
+                            <input type="date" name="deadline" class="rounded-lg border border-gray-200 px-2 py-1 text-sm focus:border-forest-500 focus:ring-forest-500">
+                        </label>
+                    </fieldset>
+                {% endif %}
+                <div class="min-w-0 flex-1">
+                    <label for="send-description" class="block text-sm font-medium text-gray-700">{{ 'editor.send_description'|trans({}, 'forms') }}</label>
+                    <input id="send-description" name="description" maxlength="2000" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-forest-500 focus:ring-forest-500">
+                </div>
+                <button type="submit" data-form-model-editor-target="send" class="w-full rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 disabled:cursor-not-allowed disabled:bg-gray-300 sm:w-auto">{{ send_label }}</button>
+            </form>
+        </section>
     </div>
+
+    {# The tabs are drawn by the controller (they carry the state of each part); the panels are here. #}
+    <div class="mt-4 flex gap-1 overflow-x-auto border-b border-gray-200" role="tablist" data-form-model-editor-target="tabs"></div>
+
+    <div class="mt-4" role="tabpanel" data-panel="content">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+            <nav aria-label="{{ 'editor.outline'|trans({}, 'forms') }}" class="hidden lg:block">
+                <div class="sticky top-20 max-h-[75vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-3 shadow-xs" data-form-model-editor-target="outline"></div>
+            </nav>
+            <div class="min-w-0 space-y-4" data-form-model-editor-target="canvas"></div>
+        </div>
+    </div>
+    <div class="mt-4" role="tabpanel" data-panel="rules" hidden data-form-model-editor-target="rules"></div>
+    <div class="mt-4" role="tabpanel" data-panel="approval" hidden data-form-model-editor-target="approval"></div>
 
     {% set sources_with_fields = indicatorSources|filter(s => s.fields is not empty) %}
     {% if sources_with_fields is not empty %}
-        <section class="mt-8 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs sm:p-5" data-testid="indicator-sources">
+        <section class="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs sm:p-5" role="tabpanel" data-panel="indicators" hidden data-testid="indicator-sources">
             <h2 class="text-base font-semibold text-gray-900">{{ 'editor.indicator_title'|trans({}, 'forms') }}</h2>
             <p class="mt-1 text-sm text-gray-500">{{ 'editor.indicator_help'|trans({}, 'forms') }}</p>
             {% for source in sources_with_fields %}
@@ -205,46 +277,5 @@
         </section>
     {% endif %}
 
-    <section class="mt-8 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs sm:p-5">
-        <h2 class="text-base font-semibold text-gray-900">{{ 'editor.send_title'|trans({}, 'forms') }}</h2>
-        <p class="mt-1 text-sm text-gray-500">{{ (document.folder.requiresReview ? 'editor.send_review' : 'editor.send_direct')|trans({}, 'forms') }}</p>
-        <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-amber-800" data-form-model-editor-target="problems">
-            {% for p in problems %}<li>{{ p }}</li>{% endfor %}
-        </ul>
-        {% if impact.drafts + impact.delivered > 0 %}
-            <p class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="send-impact">{{ 'editor.impact'|trans({'%drafts%': impact.drafts, '%delivered%': impact.delivered}, 'forms') }}</p>
-        {% endif %}
-        <form method="post" action="{{ path('app_form_model_send', {id: model.id.toRfc4122}) }}" class="mt-3 flex flex-wrap items-end gap-3">
-            <input type="hidden" name="_token" value="{{ csrf_token('form_model_send_' ~ model.id.toRfc4122) }}">
-            {% if impact.drafts + impact.delivered > 0 or hasRevisions %}
-                <fieldset class="w-full">
-                    <legend class="block text-sm font-medium text-gray-700">{{ 'editor.policy'|trans({}, 'forms') }}</legend>
-                    <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        <twig:Form:RadioCard
-                            name="policy"
-                            value="optional"
-                            label="{{ 'editor.policy_optional'|trans({}, 'forms') }}"
-                            help="{{ 'editor.policy_optional_help'|trans({}, 'forms') }}"
-                            :checked="true"
-                        />
-                        <twig:Form:RadioCard
-                            name="policy"
-                            value="mandatory"
-                            label="{{ 'editor.policy_mandatory'|trans({}, 'forms') }}"
-                            help="{{ 'editor.policy_mandatory_help'|trans({}, 'forms') }}"
-                        />
-                    </div>
-                    <label class="mt-2 inline-flex items-center gap-2 text-sm text-gray-700">{{ 'editor.policy_deadline'|trans({}, 'forms') }}
-                        <input type="date" name="deadline" class="rounded-lg border border-gray-200 px-2 py-1 text-sm focus:border-forest-500 focus:ring-forest-500">
-                    </label>
-                </fieldset>
-            {% endif %}
-            <div class="min-w-0 flex-1">
-                <label for="send-description" class="block text-sm font-medium text-gray-700">{{ 'editor.send_description'|trans({}, 'forms') }}</label>
-                <input id="send-description" name="description" maxlength="2000" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-forest-500 focus:ring-forest-500">
-            </div>
-            <button type="submit" data-form-model-editor-target="send" class="w-full rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 sm:w-auto">{{ 'editor.send'|trans({}, 'forms') }}</button>
-        </form>
-    </section>
 </div>
 {% endblock %}
