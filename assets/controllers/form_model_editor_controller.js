@@ -409,7 +409,7 @@ export default class extends Controller {
     enhanceSelects() {
         for (const el of this.pendingSelects) {
             if (el.isConnected) {
-                this.tomSelects.push(new TomSelect(el, { create: false, maxOptions: null, dropdownParent: 'body' }));
+                this.tomSelects.push(new TomSelect(el, { create: false, maxOptions: null, allowEmptyOption: true, dropdownParent: 'body' }));
             }
         }
         this.pendingSelects = [];

@@ -397,6 +397,8 @@ export default class extends Controller {
             const ts = new TomSelect(el, {
                 create: false,
                 maxOptions: null,
+                // The empty option ("— elige —") is kept, so a choice can be taken back.
+                allowEmptyOption: !multiple,
                 placeholder: this.l.choose,
                 // On <body>: the cards of the form clip an open list otherwise.
                 dropdownParent: 'body',
