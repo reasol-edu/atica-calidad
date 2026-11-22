@@ -769,14 +769,14 @@ export default class extends Controller {
     optionsEditor(spec) {
         const lists = this.centreLists();
         const fromList = !!spec.list;
+        // Nothing to choose from when the centre has no list (and this field is not pointing at one that is gone).
+        if (lists.length === 0 && !fromList) {
+            return [this.listEditor(spec.options, this.l.options, this.l.add_option, this.l.option)];
+        }
         const parts = [];
+        // Switching does not clear what was typed, so a slip can be undone on the spot; once saved with a list, the server keeps none.
         parts.push(this.labelled(this.l.options_source, this.select(fromList ? 'list' : 'own', [['own', this.l.options_own], ['list', this.l.options_list]], (v) => {
-            if (v === 'list') {
-                spec.list = (lists[0] || {}).id || '';
-                spec.options = [];
-            } else {
-                spec.list = '';
-            }
+            spec.list = v === 'list' ? ((lists[0] || {}).id || '') : '';
             this.changed();
         }, this.l.options_source)));
         if (!fromList) {

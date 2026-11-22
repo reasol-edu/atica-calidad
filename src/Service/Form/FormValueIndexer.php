@@ -84,8 +84,8 @@ final class FormValueIndexer
         }
     }
 
-    /** @return array{0: ?float, 1: ?string, 2: ?bool} */
-    private static function typed(string $type, mixed $value): array
+    /** @return array{0: ?float, 1: ?string, 2: ?bool} number, text and yes/no of a value as the index keeps them */
+    public static function typed(string $type, mixed $value): array
     {
         if ($value === null || $value === '' || $value === []) {
             return [null, null, null];
@@ -97,7 +97,17 @@ final class FormValueIndexer
             return [(float) $value, null, null];
         }
         if (is_array($value)) {
-            return [null, implode(',', array_map(static fn (mixed $v): string => is_scalar($v) ? (string) $v : '', $value)), null];
+            // The keys of a multiple choice, whole ones only: a cut in the middle of an id would match nothing (nor, worse, something else).
+            $joined = '';
+            foreach ($value as $one) {
+                $next = ($joined === '' ? '' : ',') . (is_scalar($one) ? (string) $one : '');
+                if (mb_strlen($joined . $next) > FormValue::TEXT_LENGTH) {
+                    break;
+                }
+                $joined .= $next;
+            }
+
+            return [null, $joined, null];
         }
 
         return [null, is_scalar($value) ? (string) $value : null, null];

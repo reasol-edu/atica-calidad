@@ -22,9 +22,9 @@ class FormValueRepository extends ServiceEntityRepository
     }
 
     /**
-     * How many delivered documents have a choice answered with any of these list items (a multiple choice keeps its items joined in
-     * one value, so a value that merely contains the id counts). Counted by chunks of ids: a document that has items of two chunks
-     * is counted twice, which only matters for a branch of hundreds of items.
+     * How many filled documents (a document is counted once however many times it was delivered) have a choice answered with any of
+     * these list items; a multiple choice keeps its items joined in one value, so a value that merely contains the id counts. Counted
+     * by chunks of ids: a document that has items of two chunks is counted twice, which only matters for a branch of hundreds of items.
      *
      * @param list<string> $itemIds RFC4122 ids of list items
      */
@@ -39,8 +39,11 @@ class FormValueRepository extends ServiceEntityRepository
                 $parameters['e' . $i]  = $id;
                 $parameters['l' . $i]  = '%' . $id . '%';
             }
+            // Documents, not revisions: one delivered three times counts once.
             $total += (int) $this->createQueryBuilder('v')
-                ->select('COUNT(DISTINCT v.submissionRevision)')
+                ->select('COUNT(DISTINCT s.id)')
+                ->join('v.submissionRevision', 'sr')
+                ->join('sr.submission', 's')
                 ->where(implode(' OR ', $conditions))
                 ->setParameters(new ArrayCollection(array_map(static fn (string $name, string $value): Parameter => new Parameter($name, $value), array_keys($parameters), $parameters)))
                 ->getQuery()

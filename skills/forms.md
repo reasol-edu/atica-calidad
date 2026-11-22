@@ -165,9 +165,13 @@ trap: a list-fed field normalized against the raw definition has no options, so 
 - `ListItemRepository` caches the centre's tree for the whole request/process (`reset()` clears it): tests that change a list and read it
   again in the same process must call `reset()` (see `FormListOptionsTest::change`).
 - Responsabilidades: the delete confirmations of `ListItemTreeComponent` show `FormValueRepository::countDocumentsUsingItems()` (delivered
-  documents with a value equal to / containing the item id). Not covered: deleting a whole list from the lists screen, the Séneca import
-  and "move to another list" do not warn (the first two remove items; a moved item stays in its list of origin's options only until the
-  next read, as it is no longer a leaf of it).
+  documents (not revisions) with a value equal to / containing the item id), for a single item, a whole list (it is the same component:
+  "Editar la lista" → delete) and the bulk delete. Not covered: the Séneca import (its removals) and "move to another list" do not
+  warn; a moved item stops being offered by the fields of the list it left, and drafts that had it keep it marked as gone.
+- `FormValue::text` holds the keys of a multiple choice joined by commas (VARCHAR 1000: 27 keys; whole keys only, the rest is cut). The
+  delete count and the explorer therefore miss the 28th selected item and beyond of one multiple choice.
+- A condition (`count_if` / `percent_if`) on a choice field of an indicator is typed as the option's key: the indicator form has no picker
+  for it (true for typed options as well as for lists).
 - Not done: rows of a fixed table taken from a list (one row per item), a list-fed field in a double-entry table's cells.
 
 ## Files in and out, and offline (phase 7)

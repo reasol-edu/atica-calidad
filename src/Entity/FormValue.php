@@ -41,8 +41,10 @@ class FormValue
     #[ORM\Column(nullable: true)]
     private ?float $num;
 
-    /** The text, cut to 255 characters (choices: the key(s) of the option). */
-    #[ORM\Column(length: 255, nullable: true)]
+    public const int TEXT_LENGTH = 1000;
+
+    /** The text, cut to TEXT_LENGTH characters (choices: the key(s) of the option, joined by commas: 27 of them fit). */
+    #[ORM\Column(length: self::TEXT_LENGTH, nullable: true)]
     private ?string $text;
 
     #[ORM\Column(type: Types::BOOLEAN, nullable: true)]
@@ -55,7 +57,7 @@ class FormValue
         $this->path               = mb_substr($path, 0, 255);
         $this->rowKey             = $rowKey;
         $this->num                = $num;
-        $this->text               = $text === null ? null : mb_substr($text, 0, 255);
+        $this->text               = $text === null ? null : mb_substr($text, 0, self::TEXT_LENGTH);
         $this->flag               = $flag;
     }
 
