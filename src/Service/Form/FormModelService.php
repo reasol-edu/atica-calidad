@@ -11,6 +11,7 @@ use App\Entity\DocumentRevision;
 use App\Entity\Folder;
 use App\Entity\FormModel;
 use App\Entity\FormModelRevision;
+use App\Entity\FormUpdatePolicy;
 use App\Entity\Teacher;
 use App\Repository\DocumentRepository;
 use App\Service\ActivityLogger;
@@ -96,7 +97,7 @@ final class FormModelService
      *
      * @throws FormException `error.model_problems` (with what to fix) when the draft cannot work yet
      */
-    public function sendToReview(FormModel $model, Teacher $by, ?string $description): DocumentRevision
+    public function sendToReview(FormModel $model, Teacher $by, ?string $description, FormUpdatePolicy $policy = FormUpdatePolicy::Optional, ?\DateTimeImmutable $deadline = null): DocumentRevision
     {
         $definition = $this->definitions->normalize($model->getDraftDefinition());
         $document   = $model->getDocument();
@@ -114,7 +115,7 @@ final class FormModelService
         $file    = $this->creation->storeFile($content, 'application/pdf', $document->getName() . '.pdf');
 
         $revision = $this->creation->addRevision($document, $file, $by, $description);
-        $this->em->persist(new FormModelRevision($model, $revision, $definition));
+        $this->em->persist(new FormModelRevision($model, $revision, $definition, $policy, $deadline));
         $model->saveDraft($definition, $by);
         $this->em->flush();
 

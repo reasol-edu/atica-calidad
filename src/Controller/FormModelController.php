@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Attribute\CurrentCentre;
 use App\Entity\EducationalCentre;
 use App\Entity\FormModel;
+use App\Entity\FormUpdatePolicy;
 use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
 use App\Repository\FolderRepository;
@@ -19,6 +20,7 @@ use App\Service\Form\FormDefinitionNormalizer;
 use App\Service\Form\FormException;
 use App\Service\Form\FormModelService;
 use App\Service\Form\FormResolver;
+use App\Service\Form\FormUpdateService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -40,6 +42,7 @@ class FormModelController extends AbstractController
         private readonly FolderRepository $folders,
         private readonly SpecificProfileRepository $profiles,
         private readonly FormModelService $service,
+        private readonly FormUpdateService $updates,
         private readonly FormDefinitionNormalizer $definitions,
         private readonly FormDataNormalizer $data,
         private readonly FormResolver $resolver,
@@ -95,6 +98,8 @@ class FormModelController extends AbstractController
             'centre'   => $centre,
             'model'    => $model,
             'document' => $model->getDocument(),
+            'impact'   => $this->updates->impact($model),
+            'hasRevisions' => $model->getDocument()->getRevisions()->count() > 0,
             'problems' => $this->translateProblems($this->service->problems($this->definitions->normalize($model->getDraftDefinition()), $centre)),
             'editor'   => [
                 'definition' => $model->getDraftDefinition(),
@@ -166,7 +171,15 @@ class FormModelController extends AbstractController
 
         try {
             $description = trim($request->request->getString('description'));
-            $revision    = $this->service->sendToReview($model, $this->teacher(), $description === '' ? null : mb_substr($description, 0, 2000));
+            $mandatory   = $request->request->getString('policy') === FormUpdatePolicy::Mandatory->value;
+            $deadline    = \DateTimeImmutable::createFromFormat('!Y-m-d', $request->request->getString('deadline'));
+            $revision    = $this->service->sendToReview(
+                $model,
+                $this->teacher(),
+                $description === '' ? null : mb_substr($description, 0, 2000),
+                $mandatory ? FormUpdatePolicy::Mandatory : FormUpdatePolicy::Optional,
+                $deadline === false ? null : $deadline,
+            );
         } catch (FormException $e) {
             $this->addFlash('error', $this->translator->trans('model.' . $e->getMessage(), [], 'forms'));
 

@@ -39,6 +39,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   documento, ver **qué ha cambiado respecto a una versión anterior** valor a valor, y quien rellena ve **el historial de cada campo** con la
   posibilidad de restaurar un valor anterior. Mientras alguien edita un borrador, los demás lo ven en solo lectura (con aviso de quién lo tiene
   y la opción de tomar el control). Migración nueva en las tres carpetas; probada en SQLite, PostgreSQL, MySQL y MariaDB.
+- **Modelos de documento: actualización a la revisión vigente, prerrelleno y borradores para todos (fase 5).** Al enviar una revisión del
+  modelo se ve cuántos documentos de este curso afecta y se elige si actualizar es **opcional u obligatorio** (con fecha). Quien rellena ve un
+  aviso, con la lista de lo que **no tendrá hueco** en la versión nueva, y la actualización conserva el resto; un documento obligatorio no se
+  puede entregar en la versión antigua pasada la fecha. Los borradores nuevos se **prerrellenan** con lo entregado el curso anterior o con
+  otra actividad (por el nombre interno de los campos), con «Volver a copiar» y «Empezar desde cero». La actividad puede pedir **el borrador
+  de todos** al abrirse el plazo (`app:create-form-drafts`, para ejecutar a diario). Migración nueva probada en las cuatro bases.
 
 ## [2.6.0] - 2026-11-21
 

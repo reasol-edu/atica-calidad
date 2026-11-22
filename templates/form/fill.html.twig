@@ -29,6 +29,35 @@
         </div>
     {% endif %}
 
+    {% if update is defined and update is not null and canEdit %}
+        {# A newer revision of the model is in force: update (it keeps what still fits) or keep working on the old one, unless it is mandatory. #}
+        <div class="mb-4 rounded-xl border px-4 py-3 text-sm {{ update.required ? 'border-red-200 bg-red-50 text-red-800' : 'border-sky-200 bg-sky-50 text-sky-900' }}" data-testid="update-banner">
+            <p class="font-medium">{{ (update.required ? 'fill.update_required' : (update.mandatory ? 'fill.update_mandatory' : 'fill.update_available'))|trans({'%version%': update.version, '%date%': update.deadline ? update.deadline|date('d/m/Y') : ''}, 'forms') }}</p>
+            {% if update.lost is not empty %}
+                <p class="mt-1">{{ 'fill.update_lost'|trans({}, 'forms') }} {{ update.lost|join(', ') }}.</p>
+            {% endif %}
+            <form method="post" action="{{ path('app_form_update', {activityId: activity.id.toRfc4122, slotKey: slot.key}) }}" class="mt-2 js-confirm-form"
+                  {% if update.lost is not empty %}data-confirm="{{ 'fill.confirm_update'|trans({'%fields%': update.lost|join(', ')}, 'forms')|e('html_attr') }}"{% endif %}>
+                <input type="hidden" name="_token" value="{{ csrf_token('form_update_' ~ submission.id.toRfc4122) }}">
+                <button type="submit" class="{{ update.lost is not empty ? 'js-confirm-trigger ' : '' }}rounded-lg bg-forest-600 px-3 py-1.5 font-semibold text-white hover:bg-forest-700">{{ 'fill.update'|trans({}, 'forms') }}</button>
+            </form>
+        </div>
+    {% endif %}
+
+    {% if editor is defined and prefill is defined and prefill is not null and canEdit %}
+        <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-xs" data-testid="prefill-banner">
+            <span class="min-w-0 flex-1">{{ ('fill.prefilled_' ~ prefill.kind)|trans({'%label%': prefill.label}, 'forms') }}</span>
+            <form method="post" action="{{ path('app_form_prefill', {activityId: activity.id.toRfc4122, slotKey: slot.key}) }}" class="js-confirm-form" data-confirm="{{ 'fill.confirm_prefill'|trans({}, 'forms')|e('html_attr') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('form_prefill_' ~ submission.id.toRfc4122) }}">
+                <button type="submit" class="js-confirm-trigger rounded-lg border border-gray-200 px-3 py-1.5 font-medium hover:bg-gray-50">{{ 'fill.prefill_again'|trans({}, 'forms') }}</button>
+            </form>
+            <form method="post" action="{{ path('app_form_scratch', {activityId: activity.id.toRfc4122, slotKey: slot.key}) }}" class="js-confirm-form" data-confirm="{{ 'fill.confirm_scratch'|trans({}, 'forms')|e('html_attr') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('form_scratch_' ~ submission.id.toRfc4122) }}">
+                <button type="submit" class="js-confirm-trigger rounded-lg border border-gray-200 px-3 py-1.5 font-medium hover:bg-gray-50">{{ 'fill.start_scratch'|trans({}, 'forms') }}</button>
+            </form>
+        </div>
+    {% endif %}
+
     {% if editor is defined %}
         {% set labels = {
             history: 'fill.history'|trans({}, 'forms'),

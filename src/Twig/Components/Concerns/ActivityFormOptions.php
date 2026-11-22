@@ -168,6 +168,14 @@ trait ActivityFormOptions
     #[LiveProp(writable: true)]
     public string $formModelId = '';
 
+    /** Everybody's draft is created when the period opens (only with a document model). */
+    #[LiveProp(writable: true)]
+    public bool $formDraftsForAll = false;
+
+    /** The other form activity whose delivered documents pre-fill this one ('' = only last year's own). */
+    #[LiveProp(writable: true)]
+    public string $formPrefillSourceId = '';
+
     /** Hidden from everyone but whoever can edit activities, and counted nowhere — see Activity::isHidden(). */
     #[LiveProp(writable: true)]
     public bool $formHidden = false;
@@ -433,6 +441,19 @@ trait ActivityFormOptions
         $choices = [];
         foreach ($this->formModels->findByCentre($this->centre) as $model) {
             $choices[] = ['id' => $model->getId()->toRfc4122(), 'name' => $model->getDocument()->getName()];
+        }
+
+        return $choices;
+    }
+
+    /** @return list<array{id: string, name: string}> the other activities of the centre filled in online, to pre-fill from */
+    public function getFormPrefillChoices(): array
+    {
+        $choices = [];
+        foreach ($this->activities->findAllByCentre($this->centre, true) as $other) {
+            if ($other->isForm() && $other->getId()->toRfc4122() !== $this->formActivityId) {
+                $choices[] = ['id' => $other->getId()->toRfc4122(), 'name' => $other->getTitle()];
+            }
         }
 
         return $choices;

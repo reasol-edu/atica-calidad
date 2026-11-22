@@ -92,3 +92,5 @@ index_documents.progress: '%count% ficheros leídos…'
 index_documents.done: '{0}No había ficheros pendientes de leer.|{1}Se ha leído 1 fichero.|]1,Inf[Se han leído %count% ficheros.'
 
 field.required: 'Este campo es obligatorio.'
+create_form_drafts.description: 'Crea el borrador de cada entrega de las actividades que se rellenan en línea y piden el borrador de todos, cuando ya se ha abierto su plazo'
+create_form_drafts.done: 'Borradores creados: %count%.'

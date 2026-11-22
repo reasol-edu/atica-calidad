@@ -55,6 +55,8 @@ trait ActivityFormActions
         $this->formEndDateGraceDays  = '0';
         $this->formScope       = 'by_profile';
         $this->formModelId     = '';
+        $this->formDraftsForAll = false;
+        $this->formPrefillSourceId = '';
         $this->formHidden      = false;
         $this->formGeneral     = true;
         $this->formProfileKeys = [];
@@ -110,6 +112,8 @@ trait ActivityFormActions
         $this->formEndDateGraceDays  = (string) $activity->getEndDateGraceDays();
         $this->formScope        = $activity->getSubmissionScope()->value;
         $this->formModelId      = $activity->getFormModel()?->getId()->toRfc4122() ?? '';
+        $this->formDraftsForAll = $activity->isFormDraftsForAll();
+        $this->formPrefillSourceId = $activity->getFormPrefillSource()?->getId()->toRfc4122() ?? '';
         $this->formHidden       = $activity->isHidden();
         $this->formGeneral      = $activity->isGeneral();
         $this->formProfileKeys  = array_map(
@@ -367,6 +371,9 @@ trait ActivityFormActions
         $activity->setFolder($folder);
         // A model only makes sense where there is a folder to keep what is delivered; an id from another centre never matches.
         $activity->setFormModel($folder !== null && $this->formModelId !== '' ? $this->formModels->findByIdAndCentre($this->formModelId, $this->centre) : null);
+        $activity->setFormDraftsForAll($activity->isForm() && $this->formDraftsForAll);
+        $source = $activity->isForm() && $this->formPrefillSourceId !== '' ? $this->activities->findById($this->formPrefillSourceId) : null;
+        $activity->setFormPrefillSource($source !== null && $source->getCategory()->getEducationalCentre()->getId()->equals($this->centre->getId()) ? $source : null);
         // Safe unconditionally: the guard above already ensures $folder isn't null whenever
         // $this->formAutoComplete is true, and setAutoComplete(false) never throws either way.
         $activity->setAutoComplete($this->formAutoComplete);

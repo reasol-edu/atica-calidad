@@ -8,6 +8,7 @@ use App\Attribute\CurrentCentre;
 use App\Entity\Activity;
 use App\Entity\EducationalCentre;
 use App\Entity\FormSubmission;
+use App\Entity\FormUpdatePolicy;
 use App\Entity\Teacher;
 use App\Model\ActivitySubmissionSlot;
 use App\Model\ActivityWindowBlock;
@@ -76,6 +77,16 @@ class FormFillController extends AbstractController
             'token'      => $token,
             'last'       => $last,
         ];
+
+        $force          = $this->service->updates()->pendingUpdate($submission);
+        $view['update'] = $force === null ? null : [
+            'version'   => $force->getRevision()->getVersion(),
+            'mandatory' => $force->getUpdatePolicy() === FormUpdatePolicy::Mandatory,
+            'required'  => $this->service->updates()->isUpdateRequired($submission),
+            'deadline'  => $force->getUpdateDeadline(),
+            'lost'      => $this->service->updates()->lostOnUpdate($submission),
+        ];
+        $view['prefill'] = $submission->hasDraft() ? $submission->getPrefilledFrom() : null;
 
         if ($submission->hasDraft()) {
             $revision = $submission->getModelRevision();
@@ -242,6 +253,44 @@ class FormFillController extends AbstractController
         $submission = $this->service->open($activity, $slot);
         $this->checkToken($request, $submission->getId()->toRfc4122(), 'correct');
         $this->service->startCorrection($submission);
+
+        return $this->redirectToRoute('app_form_fill', ['activityId' => $activityId, 'slotKey' => $slotKey]);
+    }
+
+    /** Puts the draft (or, with none, a new draft of the delivered document) on the revision of the model in force. */
+    #[Route('/actividades/{activityId}/formulario/{slotKey}/actualizar', name: 'app_form_update', methods: ['POST'])]
+    public function update(string $activityId, string $slotKey, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
+    {
+        [$activity, $slot] = $this->context($activityId, $slotKey, $centre, true);
+        $submission = $this->service->open($activity, $slot);
+        $this->checkToken($request, $submission->getId()->toRfc4122(), 'update');
+        if ($this->service->updates()->update($submission)) {
+            $this->addFlash('success', $this->translator->trans('fill.flash.updated', [], 'forms'));
+        }
+
+        return $this->redirectToRoute('app_form_fill', ['activityId' => $activityId, 'slotKey' => $slotKey]);
+    }
+
+    /** Copies again what the draft is pre-filled from, replacing what was typed. */
+    #[Route('/actividades/{activityId}/formulario/{slotKey}/reprerrellenar', name: 'app_form_prefill', methods: ['POST'])]
+    public function prefill(string $activityId, string $slotKey, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
+    {
+        [$activity, $slot] = $this->context($activityId, $slotKey, $centre, true);
+        $submission = $this->service->open($activity, $slot);
+        $this->checkToken($request, $submission->getId()->toRfc4122(), 'prefill');
+        $this->service->prefillAgain($submission);
+
+        return $this->redirectToRoute('app_form_fill', ['activityId' => $activityId, 'slotKey' => $slotKey]);
+    }
+
+    /** Throws what was pre-filled away and starts a blank draft. */
+    #[Route('/actividades/{activityId}/formulario/{slotKey}/desde-cero', name: 'app_form_scratch', methods: ['POST'])]
+    public function scratch(string $activityId, string $slotKey, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
+    {
+        [$activity, $slot] = $this->context($activityId, $slotKey, $centre, true);
+        $submission = $this->service->open($activity, $slot);
+        $this->checkToken($request, $submission->getId()->toRfc4122(), 'scratch');
+        $this->service->startFromScratch($submission);
 
         return $this->redirectToRoute('app_form_fill', ['activityId' => $activityId, 'slotKey' => $slotKey]);
     }

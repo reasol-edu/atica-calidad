@@ -55,4 +55,35 @@ final class FormScopes
 
         return [];
     }
+
+    /**
+     * The data with the scope at an address ([sectionKey, copyKey] pairs from the root, as FormWalker gives them) replaced by what
+     * $change makes of it.
+     *
+     * @param array<string, mixed>                                 $data
+     * @param list<array{0: string, 1: string}>                    $address
+     * @param callable(array<string, mixed>): array<string, mixed> $change
+     *
+     * @return array<string, mixed>
+     */
+    public static function update(array $data, array $address, callable $change): array
+    {
+        if ($address === []) {
+            return $change($data);
+        }
+        [$section, $copy] = $address[0];
+
+        $all    = is_array($data['copies'] ?? null) ? $data['copies'] : [];
+        $copies = FormDefinition::listOf($all[$section] ?? []);
+        foreach ($copies as $i => $candidate) {
+            if (($candidate['_key'] ?? null) === $copy) {
+                $copies[$i] = self::update($candidate, array_slice($address, 1), $change);
+                break;
+            }
+        }
+        $all[$section]  = $copies;
+        $data['copies'] = $all;
+
+        return $data;
+    }
 }

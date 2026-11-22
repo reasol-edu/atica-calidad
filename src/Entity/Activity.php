@@ -160,6 +160,15 @@ class Activity implements Trashable
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?FormModel $formModel = null;
 
+    /** For an activity filled in online: create everybody's draft, pre-filled, when its period opens. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $formDraftsForAll = false;
+
+    /** Another form activity whose delivered document pre-fills this one (by the internal name of the fields they share). */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Activity $formPrefillSource = null;
+
     #[ORM\Column]
     private int $position = 0;
 
@@ -610,6 +619,30 @@ class Activity implements Trashable
     public function isForm(): bool
     {
         return $this->submissionMode === ActivitySubmissionMode::Form && $this->formModel !== null;
+    }
+
+    public function isFormDraftsForAll(): bool
+    {
+        return $this->formDraftsForAll;
+    }
+
+    public function setFormDraftsForAll(bool $formDraftsForAll): static
+    {
+        $this->formDraftsForAll = $formDraftsForAll;
+
+        return $this;
+    }
+
+    public function getFormPrefillSource(): ?Activity
+    {
+        return $this->formPrefillSource;
+    }
+
+    public function setFormPrefillSource(?Activity $source): static
+    {
+        $this->formPrefillSource = $source === null || $source === $this ? null : $source;
+
+        return $this;
     }
 
     public function getFormModel(): ?FormModel

@@ -39,13 +39,33 @@ class FormModelRevision
     #[ORM\Column(length: 40, nullable: true)]
     private ?string $code;
 
+    /** What this revision asks of the documents filled with an earlier one (chosen by whoever sends it to review). */
+    #[ORM\Column(length: 10, enumType: FormUpdatePolicy::class, options: ['default' => 'optional'])]
+    private FormUpdatePolicy $updatePolicy = FormUpdatePolicy::Optional;
+
+    /** When a mandatory update is due; null for none. */
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $updateDeadline = null;
+
     /** @param array<string, mixed> $definition */
-    public function __construct(FormModel $model, DocumentRevision $revision, array $definition)
+    public function __construct(FormModel $model, DocumentRevision $revision, array $definition, FormUpdatePolicy $policy = FormUpdatePolicy::Optional, ?\DateTimeImmutable $deadline = null)
     {
-        $this->model      = $model;
-        $this->revision   = $revision;
-        $this->definition = $definition;
-        $this->code       = $model->getCode();
+        $this->model          = $model;
+        $this->revision       = $revision;
+        $this->definition     = $definition;
+        $this->code           = $model->getCode();
+        $this->updatePolicy   = $policy;
+        $this->updateDeadline = $policy === FormUpdatePolicy::Mandatory ? $deadline : null;
+    }
+
+    public function getUpdatePolicy(): FormUpdatePolicy
+    {
+        return $this->updatePolicy;
+    }
+
+    public function getUpdateDeadline(): ?\DateTimeImmutable
+    {
+        return $this->updateDeadline;
     }
 
     public function getId(): Uuid

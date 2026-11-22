@@ -46,6 +46,8 @@ final class FormSubmissionService
         private readonly FormApprovalChain $chain,
         private readonly FormFlatData $flat,
         private readonly FormFieldChangeRepository $changes,
+        private readonly FormPrefiller $prefiller,
+        private readonly FormUpdateService $updates,
     ) {}
 
     /**
@@ -96,11 +98,72 @@ final class FormSubmissionService
             throw new FormException('error.no_model_in_force');
         }
 
-        $submission = new FormSubmission($activity, $slot->key(), $cycle, $force, $this->normalizer->initial($force->getDefinition()));
+        $prefill    = $this->prefiller->build($activity, $slot->key(), $cycle, $force);
+        $submission = new FormSubmission($activity, $slot->key(), $cycle, $force, $prefill['data'] ?? $this->normalizer->initial($force->getDefinition()));
+        $submission->setPrefilledFrom($prefill['from'] ?? null);
         $this->em->persist($submission);
         $this->em->flush();
 
         return $submission;
+    }
+
+    /**
+     * Creates the draft of every slot of an activity that has none yet (pre-filled as any new draft is), so everybody finds theirs
+     * waiting when the period opens.
+     *
+     * @return int how many drafts were created
+     */
+    public function createMissingDrafts(Activity $activity): int
+    {
+        $created = 0;
+        foreach ($this->slots->buildSlots($activity) as $slot) {
+            if ($this->submissions->findBySlot($activity, $slot->key(), $this->slots->cycleKeyFor($activity, $slot)) !== null) {
+                continue;
+            }
+            try {
+                $this->open($activity, $slot);
+                ++$created;
+            } catch (FormException) {
+                return $created; // no revision in force yet: nothing to create for any slot
+            }
+        }
+
+        return $created;
+    }
+
+    /** Throws the typed data of a never-delivered draft away and starts blank, even if it was pre-filled. */
+    public function startFromScratch(FormSubmission $submission): void
+    {
+        if (!$submission->hasDraft()) {
+            return;
+        }
+        $revision = $submission->getModelRevision();
+        $submission->startDraft($revision, $this->normalizer->initial($revision->getDefinition()));
+        $submission->setPrefilledFrom(null);
+        $this->em->flush();
+    }
+
+    /** Copies again what the draft was pre-filled from (or what it would be pre-filled from today), replacing what is typed. */
+    public function prefillAgain(FormSubmission $submission): bool
+    {
+        if (!$submission->hasDraft()) {
+            return false;
+        }
+        $revision = $submission->getModelRevision();
+        $prefill  = $this->prefiller->build($submission->getActivity(), $submission->getSlotKey(), $submission->getCycleYear(), $revision);
+        if ($prefill === null) {
+            return false;
+        }
+        $submission->startDraft($revision, $prefill['data']);
+        $submission->setPrefilledFrom($prefill['from']);
+        $this->em->flush();
+
+        return true;
+    }
+
+    public function updates(): FormUpdateService
+    {
+        return $this->updates;
     }
 
     public function latestDelivered(FormSubmission $submission): ?FormSubmissionRevision
@@ -279,12 +342,15 @@ final class FormSubmissionService
         if ($holder !== null && !$holder->getId()->equals($by->getId())) {
             throw new FormException('error.locked');
         }
+        if ($this->updates->isUpdateRequired($submission)) {
+            throw new FormException('error.update_required');
+        }
         $problems = $this->validator->blocking($this->problems($submission));
         if ($problems !== []) {
             throw new FormException('error.not_ready', $problems);
         }
 
-        $activity      = $submission->getActivity();
+        $activity     = $submission->getActivity();
         $folder        = $activity->getFolder();
         $modelRevision = $submission->getModelRevision();
         if ($folder === null) {

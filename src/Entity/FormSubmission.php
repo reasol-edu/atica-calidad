@@ -56,6 +56,15 @@ class FormSubmission
     #[ORM\Column]
     private int $draftVersion = 1;
 
+    /**
+     * Where the draft was pre-filled from, if it was: { kind: previous|document, label, revisionId } — what the copy was taken from, so
+     * the page can say so and notice when the origin has since changed.
+     *
+     * @var array<string, mixed>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $prefilledFrom = null;
+
     /** Who is editing the draft right now (one person at a time): the lock lasts until `lockedUntil` and is renewed by saving. */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
@@ -157,6 +166,20 @@ class FormSubmission
         $this->draftData = null;
         $this->updatedAt = now();
         ++$this->draftVersion;
+
+        return $this;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function getPrefilledFrom(): ?array
+    {
+        return $this->prefilledFrom;
+    }
+
+    /** @param array<string, mixed>|null $prefilledFrom */
+    public function setPrefilledFrom(?array $prefilledFrom): static
+    {
+        $this->prefilledFrom = $prefilledFrom;
 
         return $this;
     }

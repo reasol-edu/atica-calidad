@@ -100,6 +100,24 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
   tie-break: `changedAt` has one-second resolution.
 - Not done: e-mail to the people of the next step (they find the step in their review queue), and anchored comments by cell of a table.
 
+## Updating, pre-filling and drafts for everybody (phase 5)
+
+- **Policy of a revision**: whoever sends a model revision to review picks `FormUpdatePolicy` (optional | mandatory + optional date) — stored on
+  `FormModelRevision`. The editor shows beforehand how many drafts / delivered documents of the CURRENT academic year are on earlier revisions
+  (`FormUpdateService::impact`).
+- **Update** (`FormUpdateService`): a submission is "behind" when the model's revision in force has a higher version than the one it is on
+  (the draft's, else the last delivered's). `update()` moves a draft in place, or starts a draft from a delivered document, normalizing the data
+  against the new definition: values travel by the identity KEY, so what the new revision still has is kept; `lostOnUpdate()` lists (labels)
+  what has no place any more and the page asks for confirmation. A mandatory revision whose date has come makes `deliver()` fail with
+  `error.update_required`; before the date it is only a warning.
+- **Pre-filling** (`FormPrefiller`): a new draft starts from `Activity::formPrefillSource` (latest delivered of the SAME slot key there) or,
+  failing that, from the same slot's latest earlier cycle. Same model → by key; different models → by the field's internal `name` and the
+  same `fieldType` only (a number never goes into a text field). `FormSubmission::prefilledFrom` remembers the origin; the page offers "Volver
+  a copiar" and "Empezar desde cero". Not done: choosing an arbitrary document as source per draft (the source is set on the activity), and the
+  "origin changed" warning for pre-fills.
+- **Drafts for everybody**: `Activity::formDraftsForAll` + `bin/console app:create-form-drafts` (run daily from cron; idempotent) creates the
+  missing draft of every slot once the period has started. Nothing creates them lazily: without the cron they appear when each person opens.
+
 ## Front end
 
 The editor and the form are **Stimulus controllers that build the page from the JSON** (`form_model_editor_controller.js`,
@@ -131,5 +149,5 @@ and read the screenshots. Migrations: all four engines with Docker, as in `skill
    fields, free and fixed tables, activity mode "fill", autosave, delivery with PDF, web view, correction as next revision.
 2. **Done** — repetition (by table rows, by number, by hand, nested), references, conditions, progress, per-field help (the sources "list of
    the centre" and "another document" wait for phases 5–6). 3. **Done** — calculations, totals, consistency rules, relation columns, double-entry tables. 4. **Done** — multi-step approval chain, anchored comments, revision comparison, edit lock (per draft), field history.
-   5. Impact on publishing, update wizard, pre-filling (last year, another document), drafts for everyone. 6. Computed indicators,
+   5. **Done** — impact on publishing, update to the revision in force, pre-filling, drafts for everyone. 6. Computed indicators,
    `FormValue` index, explorer and CSV, centre catalogues. 7. ODT/DOCX import and export, JSON library, offline mode.
