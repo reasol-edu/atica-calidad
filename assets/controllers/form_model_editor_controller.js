@@ -4,6 +4,7 @@ import TomSelect from 'tom-select';
 import 'quill/dist/quill.snow.css';
 import { h, uid, sectionNumbers } from '../utils/form_dom.js';
 import { parse } from '../utils/form_expression.js';
+import { confirmDialog } from '../utils/confirm_dialog.js';
 
 // Same as the rich text editor of the rest of the application: align is written inline, which the sanitizer lets through.
 Quill.register(Quill.import('attributors/style/align'), true);
@@ -183,8 +184,8 @@ export default class extends Controller {
         this.changed(key);
     }
 
-    removeSection(key) {
-        if (!window.confirm(this.l.confirm_remove)) {
+    async removeSection(key) {
+        if (!await confirmDialog(this.l.confirm_remove)) {
             return;
         }
         const at = this.locate(key);
@@ -218,11 +219,17 @@ export default class extends Controller {
         this.changed(list[to].key);
     }
 
-    removeFrom(list, index) {
-        if (!window.confirm(this.l.confirm_remove)) {
+    async removeFrom(list, index) {
+        // The list can change while the question is open: the element is the one to remove, wherever it is by then.
+        const item = list[index];
+        if (!await confirmDialog(this.l.confirm_remove)) {
             return;
         }
-        list.splice(index, 1);
+        const at = list.indexOf(item);
+        if (at < 0) {
+            return;
+        }
+        list.splice(at, 1);
         this.changed();
     }
 

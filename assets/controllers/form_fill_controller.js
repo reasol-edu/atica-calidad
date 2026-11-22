@@ -3,6 +3,7 @@ import Quill from 'quill';
 import TomSelect from 'tom-select';
 import 'quill/dist/quill.snow.css';
 import { h } from '../utils/form_dom.js';
+import { confirmDialog } from '../utils/confirm_dialog.js';
 import { asMap, sync, walk, numbers, references, fieldSpecs, progress, newKey, MAX_COPIES, calculate, buildIndex, totals, rowsOf, format, countedCount } from '../utils/form_scopes.js';
 
 Quill.register(Quill.import('attributors/style/align'), true);
@@ -563,8 +564,8 @@ export default class extends Controller {
         ]);
     }
 
-    removeCopy(inst) {
-        if (!window.confirm(this.l.confirm_remove_copy)) {
+    async removeCopy(inst) {
+        if (!await confirmDialog(this.l.confirm_remove_copy)) {
             return;
         }
         const list = inst.chain[1].copies[inst.section.key];
@@ -646,8 +647,9 @@ export default class extends Controller {
             if (this.structural.has(block.key)) {
                 // What this field held before the change: lowering a number that sets the rows of a table asks first, and puts it back on "no".
                 let previous = inst.scope.fields[block.key];
-                control.addEventListener('change', () => {
-                    if (this.rowsLost(block.key) > 0 && !window.confirm(this.l.confirm_remove_rows.replace('%count%', String(this.rowsLost(block.key))))) {
+                control.addEventListener('change', async () => {
+                    const lost = this.rowsLost(block.key);
+                    if (lost > 0 && !await confirmDialog(this.l.confirm_remove_rows.replace('%count%', String(lost)))) {
                         this.setIn(inst.scope.fields, block.key, previous);
                     }
                     previous = inst.scope.fields[block.key];
