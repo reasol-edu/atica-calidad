@@ -308,6 +308,13 @@ export function format(spec, value, labels) {
             const keys = Array.isArray(value) ? value : [value];
             return (spec.options || []).filter((o) => keys.includes(o.key)).map((o) => o.label).join(', ');
         }
+        case 'long':
+            // Rich text reads as the text it says (a title that refers to it, the history of a value).
+            return String(value)
+                .replace(/<\/(p|li|h[1-6]|div|blockquote)>|<br\s*\/?>/gi, ' ')
+                .replace(/<[^>]*>/g, '')
+                .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&')
+                .replace(/\s+/g, ' ').trim();
         default:
             return String(value);
     }

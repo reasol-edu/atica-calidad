@@ -34,7 +34,8 @@ escribes; si otra persona o pestaña guarda a la vez, te avisa en vez de pisar s
 Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) con estos bloques:
 
 - **Texto**: fijo (no se toca), de partida (se adapta) o a rellenar, con formato.
-- **Campo**: texto corto o largo, número (con mínimo, máximo y unidad), fecha, hora, sí/no, una o
+- **Campo**: texto corto, texto largo (con **formato enriquecido**: negrita, cursiva, listas,
+  enlaces…; en las celdas de una tabla sigue siendo texto plano), número (con mínimo, máximo y unidad), fecha, hora, sí/no, una o
   varias opciones, o un valor **calculado** a partir de los demás.
 - **Total al pie de una columna** numérica o calculada (cuenta, suma, media, mínimo o máximo): el
   valor se ve al final de la columna. Si le pones un **nombre**, además es un campo del documento

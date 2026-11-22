@@ -63,6 +63,9 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
   (`FormExpression`) and JavaScript (`assets/utils/form_expression.js`), against one shared set of cases,
   `tests/Fixtures/form-expressions.json`: add a case there when you change either, and run both (`php bin/phpunit tests/Unit/Service/Form`
   and `node --test tests/js/form-expression.test.mjs tests/js/form-scopes.test.mjs` — pass the files, not the directory).
+- **«Texto largo» fields are rich text** (blocks only; table cells stay plain): `FormDataNormalizer::richText()` stores sanitized HTML
+  (plain text from before becomes paragraphs, see `FormRichText`); `FormResolver::format()` returns it as plain text (`value`: diff, Word,
+  index, explorer) and the field item also carries `html` for `_document.html.twig`. The fill form mounts a Quill per field (`richEl()`).
 - **Calculated fields and columns** (`fieldType: calculated`, `formula`, `decimals`, `unit`): never typed (the normalizer drops what the
   browser sends), filled by `FormCalculator` after the data is cleaned, in up to four passes so a formula can read another calculated
   value; a cycle is a model problem. The result is stored with the data, so it is frozen with each delivered revision. A column can show a

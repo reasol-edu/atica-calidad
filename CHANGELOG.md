@@ -75,6 +75,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   como **etiquetas**. Un número con mínimo o máximo usa los atributos `min` y `max` del campo y se marca en rojo al salirse. Los datos
   obligatorios vacíos o inválidos se marcan **en rojo, con su mensaje, en el propio campo** (al salir de él, o todos a la vez al
   pulsar un punto de «Pendiente antes de entregar»). Nuevo botón **Previsualizar**, que abre el borrador como quedará entregado.
+- **Modelos de documento: el campo «Texto largo» admite formato enriquecido** (negrita, cursiva, subrayado, títulos, listas, citas,
+  alineación y enlaces), con la misma barra que los textos a rellenar. Se guarda como HTML limpio; lo escrito antes como texto plano se
+  sigue viendo (como párrafos). En comparaciones, Word/OpenDocument, el índice de valores y el explorador cuenta como el texto que dice;
+  las celdas de tabla siguen siendo texto plano. Sin migración.
 - **Modelos de documento: total al pie de una columna con nombre.** El total al pie de una columna (cuenta, suma, media, mínimo, máximo)
   admite un nombre opcional; con él, el valor se sigue viendo solo al pie de la tabla, pero además es un campo del documento
   (fórmulas, indicadores, reglas, explorador de datos). Nueva opción **Personalizado** con fórmula propia sobre toda la tabla. «Cuenta»

@@ -101,6 +101,11 @@ final class FormValueIndexer
             return [(float) $value, null, null];
         }
 
+        if ($type === 'long' && is_string($value)) {
+            // Rich text is indexed (and explored) as the text it says.
+            return [null, FormRichText::plain($value), null];
+        }
+
         return [null, is_scalar($value) ? (string) $value : null, null];
     }
 }

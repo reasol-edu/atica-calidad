@@ -431,7 +431,8 @@ export default class extends Controller {
 
     /** Tags a field with the place the server's problems name (copy, block, row, column), and judges it when the person leaves it. */
     tag(control, pk) {
-        const el = control.matches('input, select, textarea') ? control : control.querySelector('input, select, textarea') || control;
+        // The editor of a rich text has selects of its own in its toolbar: the box itself is what is tagged and painted.
+        const el = control.matches('input, select, textarea') || control.hasAttribute('data-rich') ? control : control.querySelector('input, select, textarea') || control;
         el.dataset.pk = pk;
         if (el.matches('input, textarea')) {
             el.addEventListener('blur', () => this.reveal(pk));
@@ -700,6 +701,10 @@ export default class extends Controller {
                 return control;
             }
             case 'long':
+                // A «texto largo» field has rich text; the cells of a table keep a plain box.
+                if (spec.type === 'field' && !compact) {
+                    return this.richEl(value, onChange, id);
+                }
                 return h('textarea', { ...base, rows: 4, maxlength: 20000, value: value ?? '', oninput: (e) => onChange(e.target.value) });
             case 'number': {
                 const limit = (n) => (n === null || n === undefined || n === '' || !Number.isFinite(Number(n)) ? null : Number(n));
@@ -769,6 +774,50 @@ export default class extends Controller {
             default:
                 return h('input', { ...base, type: 'text', maxlength: 255, value: value ?? '', oninput: (e) => onChange(e.target.value) });
         }
+    }
+
+    /**
+     * The box of a «texto largo»: an editor with the toolbar of the document's texts. What was saved as plain text (before the field was
+     * rich) shows as paragraphs. The value is the HTML, or null when nothing is written. Read only, it is just the text.
+     */
+    richEl(value, onChange, id) {
+        const asHtml = (v) => {
+            const text = typeof v === 'string' ? v.trim() : '';
+            if (text === '' || /<[a-z][\s\S]*>/i.test(text)) {
+                return text;
+            }
+            const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            return text.split(/\n{2,}/).map((p) => '<p>' + p.trim().split('\n').map(escape).join('<br>') + '</p>').join('');
+        };
+        if (this.readOnly) {
+            const box = h('div', { id, class: 'prose prose-sm max-w-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2' });
+            box.innerHTML = asHtml(value);
+            return box;
+        }
+        const wrapper = h('div', { id, class: 'rounded-lg', 'data-rich': '' });
+        const el = h('div');
+        wrapper.append(el);
+        const quill = new Quill(el, {
+            theme: 'snow',
+            formats: ['header', 'bold', 'italic', 'underline', 'blockquote', 'list', 'link', 'align'],
+            modules: { toolbar: [[{ header: [2, false] }], ['bold', 'italic', 'underline'], ['blockquote'], [{ list: 'ordered' }, { list: 'bullet' }], [{ align: [] }], ['link'], ['clean']] },
+        });
+        const html = asHtml(value);
+        if (html) {
+            quill.clipboard.dangerouslyPasteHTML(html);
+        }
+        quill.on('text-change', (delta, old, source) => {
+            if (source !== 'user') {
+                return;
+            }
+            const now = quill.root.innerHTML;
+            onChange(quill.getText().trim() === '' ? null : now);
+        });
+        // Leaving the editor is when a required one that stays empty turns red (see tag()).
+        quill.root.addEventListener('blur', () => { if (wrapper.dataset.pk) { this.reveal(wrapper.dataset.pk); } });
+
+        return wrapper;
     }
 
     textEl(block, inst) {

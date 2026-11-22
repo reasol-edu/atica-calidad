@@ -312,6 +312,40 @@ final class FormCalculationTest extends TestCase
         self::assertSame('', $def['sections'][0]['blocks'][0]['columns'][0]['totalName']);
     }
 
+    public function testALongTextFieldIsRichTextAndAPlainOneIsReadAsParagraphs(): void
+    {
+        $field = 'c0000000-0000-4000-8000-000000000001';
+        $table = 'c0000000-0000-4000-8000-000000000002';
+        $col   = 'c0000000-0000-4000-8000-000000000003';
+        $def   = $this->definitions->normalize(['sections' => [['title' => 'Datos', 'blocks' => [
+            ['key' => $field, 'type' => 'field', 'fieldType' => 'long', 'label' => 'Valoración'],
+            ['key' => $table, 'type' => 'table', 'label' => 'T', 'mode' => 'free', 'columns' => [['key' => $col, 'label' => 'Nota', 'fieldType' => 'long']]],
+        ]]]]);
+        $row = ['_key' => 'd0000000-0000-4000-8000-000000000001', $col => "una\nlínea"];
+
+        $data = $this->data->normalize($def, ['fields' => [$field => '<p>Hola</p><script>x()</script><p>mundo</p>'], 'tables' => [$table => [$row]]]);
+        self::assertSame('<p>Hola</p><p>mundo</p>', $data['fields'][$field], 'the HTML is cleaned');
+        self::assertSame("una\nlínea", $data['tables'][$table][0][$col], 'a cell of a table stays plain text');
+
+        $data = $this->data->normalize($def, ['fields' => [$field => "Primero\n\nOtro párrafo & más"]]);
+        self::assertSame('<p>Primero</p><p>Otro párrafo &amp; más</p>', $data['fields'][$field], 'plain text becomes paragraphs');
+        self::assertSame('<p>Primero<br>segunda línea</p><p>Otro</p>', \App\Service\Form\FormRichText::html("Primero\nsegunda línea\n\nOtro"), 'a line break inside a paragraph is kept');
+        self::assertSame("Primero\nsegunda", \App\Service\Form\FormRichText::plain('<p>Primero<br>segunda</p>'));
+
+        $data = $this->data->normalize($def, ['fields' => [$field => '<p><br></p>']]);
+        self::assertArrayNotHasKey($field, $data['fields'], 'an empty editor is no value');
+
+        $data = $this->data->normalize($def, ['fields' => [$field => '<p>Hola</p><p>mundo</p>']]);
+        $view = $this->resolver->resolve($def, $data);
+        $item = $view[0]['blocks'][0]['items'][0];
+        self::assertSame("Hola\nmundo", $item['value'], 'the value reads as plain text');
+        self::assertSame('<p>Hola</p><p>mundo</p>', $item['html'], 'the document shows the HTML');
+
+        // What was stored as plain text before the field was rich still shows, as paragraphs.
+        $view = $this->resolver->resolve($def, ['fields' => [$field => "Antiguo\n\nTexto"]]);
+        self::assertSame('<p>Antiguo</p><p>Texto</p>', $view[0]['blocks'][0]['items'][0]['html']);
+    }
+
     public function testACustomFootTotalIsAFormulaShownAtTheFootEvenWithoutAName(): void
     {
         $table  = 'c0000000-0000-4000-8000-000000000001';

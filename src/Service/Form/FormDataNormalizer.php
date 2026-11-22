@@ -538,6 +538,18 @@ final class FormDataNormalizer
         return $cells;
     }
 
+    /** The HTML of a rich text value, cleaned; a plain text (from before the field was rich) becomes paragraphs. Null when nothing is left. */
+    private function richText(mixed $value): ?string
+    {
+        $text = is_scalar($value) ? trim((string) $value) : '';
+        if ($text === '') {
+            return null;
+        }
+        $html = $this->sanitizer->sanitize(mb_substr(FormRichText::html($text), 0, FormRichText::MAX));
+
+        return trim(strip_tags($html)) === '' ? null : $html;
+    }
+
     /**
      * A value as the type of its field says, or null when it is empty or does not fit.
      *
@@ -548,6 +560,11 @@ final class FormDataNormalizer
     public function coerce(array $spec, mixed $value): string|int|float|bool|array|null
     {
         $type = FormDefinition::str($spec['fieldType'] ?? 'short');
+
+        // A «texto largo» field has rich text (the cells of a table keep plain text).
+        if ($type === 'long' && ($spec['type'] ?? '') === 'field') {
+            return $this->richText($value);
+        }
 
         switch ($type) {
             case 'short':

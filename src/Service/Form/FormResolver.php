@@ -125,6 +125,10 @@ final class FormResolver
                 case 'field':
                     $value = $this->format($block, $fields[$key] ?? null, $chain, $index);
                     $item  = ['key' => $key, 'label' => $label, 'value' => $value, 'empty' => $value === ''];
+                    // A «texto largo» is rich text: the document shows its HTML (the value stays the plain text).
+                    if ($value !== '' && ($block['fieldType'] ?? '') === 'long' && is_string($fields[$key] ?? null)) {
+                        $item['html'] = FormRichText::html($fields[$key]);
+                    }
                     $last  = count($out) - 1;
                     if ($last >= 0 && $out[$last]['kind'] === 'fields') {
                         /** @var list<array<string, mixed>> $items */
@@ -408,6 +412,10 @@ final class FormResolver
                 }
 
                 return implode(', ', array_filter($texts, static fn (string $t): bool => $t !== ''));
+
+            case 'long':
+                // Rich text reads as plain text here (a comparison, a Word file, a reference in a title); the document shows the HTML.
+                return is_string($value) ? FormRichText::plain($value) : '';
 
             case 'date':
                 $date = is_string($value) ? \DateTimeImmutable::createFromFormat('!Y-m-d', $value) : false;

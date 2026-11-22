@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 globalThis.window = globalThis;
-const { sync, calculate, totals, walk, numbers, countedCount } = await import('../../assets/utils/form_scopes.js');
+const { sync, calculate, totals, walk, numbers, countedCount, format } = await import('../../assets/utils/form_scopes.js');
 
 const k = (n) => `${n}0000000-0000-4000-8000-000000000000`;
 
@@ -108,6 +108,11 @@ test('a counted table has as many rows as its number field says and keeps the fi
     sync(def.sections, state);
     assert.equal(state.tables[k('t')].length, 0, 'no number, no rows');
     assert.equal(countedCount(def.sections[0].blocks[1], [state]), 0);
+});
+
+test('a rich text reads as the text it says', () => {
+    assert.equal(format({ fieldType: 'long' }, '<p>Hola <strong>mundo</strong></p><ul><li>uno</li><li>a &amp; b</li></ul>', {}), 'Hola mundo uno a & b');
+    assert.equal(format({ fieldType: 'long' }, 'texto\nplano', {}), 'texto plano');
 });
 
 test('the field of a named foot total is calculated but not shown as a block', () => {

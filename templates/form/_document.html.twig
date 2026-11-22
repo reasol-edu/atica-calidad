@@ -63,7 +63,11 @@
                         {% for item in b.items %}
                             <dt class="bg-gray-50 px-3 py-2 text-sm font-medium text-gray-600 sm:border-t sm:border-gray-200 {{ loop.first ? 'sm:border-t-0' : '' }}">{{ item.label }}</dt>
                             <dd id="blk-{{ s.path }}-{{ item.key }}" class="px-3 py-2 text-sm text-gray-900 break-words sm:border-t sm:border-gray-200 {{ loop.first ? 'sm:border-t-0' : '' }}">
-                                {{ item.empty ? '—' : item.value }}
+                                {% if item.html is defined %}
+                                    <div class="prose prose-sm max-w-none text-gray-900">{{ item.html|sanitize_html('app.rich_text') }}</div>
+                                {% else %}
+                                    {{ item.empty ? '—' : item.value }}
+                                {% endif %}
                                 {{ _self.comments(ctx, s.path, item.key) }}
                             </dd>
                         {% endfor %}
