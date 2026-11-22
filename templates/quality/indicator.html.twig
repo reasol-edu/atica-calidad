@@ -176,6 +176,35 @@
                             </p>
                         {% endif %}
 
+                        {# A value calculated from documents: with how many deliveries made it, and its breakdown by group #}
+                        {% if m and m.computed %}
+                            <div class="space-y-2" data-testid="computed-value">
+                                <p class="text-xs text-gray-600">{{ 'indicator.computed'|trans({'%sample%': m.sampleCount, '%expected%': m.expectedCount}, 'quality') }}</p>
+                                {% if m.breakdown is not empty %}
+                                    <table class="w-full text-sm">
+                                        <caption class="sr-only">{{ 'indicator.breakdown'|trans({}, 'quality') }}</caption>
+                                        <tbody class="divide-y divide-gray-100">
+                                            {% for g in m.breakdown|sort((a, b) => a.value <=> b.value) %}
+                                                {% set below = m.statusOfValue(g.value).value == 'off_target' %}
+                                                <tr class="{{ below ? 'text-red-700' : 'text-gray-700' }}">
+                                                    <td class="py-1.5 pr-3">{{ g.groupLabel }}{% if below %} <span class="text-xs font-medium">· {{ 'indicator.breakdown_below'|trans({}, 'quality') }}</span>{% endif %}</td>
+                                                    <td class="py-1.5 pr-3 tabular-nums">{{ indicator.format(g.value) }}</td>
+                                                    <td class="py-1.5 text-right">
+                                                        {% if below and canManage and writable %}
+                                                            <form method="post" action="{{ path('app_quality_measurement_group_finding', {id: m.id.toRfc4122, groupKey: g.groupKey}) }}">
+                                                                <input type="hidden" name="_token" value="{{ csrf_token('quality_review_' ~ m.id.toRfc4122) }}">
+                                                                <button type="submit" class="{{ secondary }}">{{ 'indicator.group_finding'|trans({}, 'quality') }}</button>
+                                                            </form>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
                         {# What was done about a value off target #}
                         {% if m and status and status.value == 'off_target' %}
                             {% set done = followUps[m.id.toRfc4122] ?? [] %}

@@ -94,3 +94,7 @@ index_documents.done: '{0}No había ficheros pendientes de leer.|{1}Se ha leído
 field.required: 'Este campo es obligatorio.'
 create_form_drafts.description: 'Crea el borrador de cada entrega de las actividades que se rellenan en línea y piden el borrador de todos, cuando ya se ha abierto su plazo'
 create_form_drafts.done: 'Borradores creados: %count%.'
+calculate_form_indicators.description: 'Calcula las mediciones de los indicadores que se alimentan de documentos entregados en línea'
+calculate_form_indicators.done: 'Mediciones calculadas: %count%.'
+reindex_form_values.description: 'Reconstruye el índice de valores de los documentos entregados en línea (lo que leen los indicadores y el explorador)'
+reindex_form_values.done: 'Revisiones reindexadas: %revisions% (%values% valores).'

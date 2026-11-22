@@ -257,6 +257,32 @@ final class IndicatorService
         return $finding;
     }
 
+    /**
+     * Opens a finding for one group of a computed measurement that is below the alert threshold, even when the global value is fine.
+     * Only the indicator, the period, the group and its value go in; the measurement itself is left as it is.
+     */
+    public function openGroupFinding(Measurement $measurement, \App\Entity\MeasurementBreakdown $group, Teacher $actor): Finding
+    {
+        $indicator = $measurement->getIndicator();
+        $target    = $indicator->targetFor($measurement->getPeriod()->getCalendar()->getAcademicYear());
+        $finding   = $this->findings->report(
+            $indicator->getEducationalCentre(),
+            $actor,
+            $this->translator->trans('indicator.group_finding_description', [
+                '%group%'     => $group->getGroupLabel(),
+                '%indicator%' => $indicator->getName(),
+                '%period%'    => $measurement->getPeriod()->getName(),
+                '%value%'     => $indicator->format($group->getValue()),
+                '%target%'    => $indicator->format($target?->getTarget()),
+            ], 'quality'),
+            $indicator->getSection(),
+        );
+        $finding->setOrigin(FindingOrigin::Indicator)->setMeasurement($measurement);
+        $this->em->flush();
+
+        return $finding;
+    }
+
     private static function nullIfBlank(?string $text): ?string
     {
         return $text === null || trim($text) === '' ? null : trim($text);

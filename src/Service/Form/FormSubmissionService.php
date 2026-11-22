@@ -48,6 +48,7 @@ final class FormSubmissionService
         private readonly FormFieldChangeRepository $changes,
         private readonly FormPrefiller $prefiller,
         private readonly FormUpdateService $updates,
+        private readonly FormValueIndexer $values,
     ) {}
 
     /**
@@ -381,6 +382,7 @@ final class FormSubmissionService
 
         $filled = new FormSubmissionRevision($submission, $revision, $modelRevision, $data);
         $this->em->persist($filled);
+        $this->values->index($filled);
         if ($hasChain) {
             $this->chain->start($filled, $folder->getEducationalCentre());
         }

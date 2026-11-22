@@ -45,6 +45,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   puede entregar en la versión antigua pasada la fecha. Los borradores nuevos se **prerrellenan** con lo entregado el curso anterior o con
   otra actividad (por el nombre interno de los campos), con «Volver a copiar» y «Empezar desde cero». La actividad puede pedir **el borrador
   de todos** al abrirse el plazo (`app:create-form-drafts`, para ejecutar a diario). Migración nueva probada en las cuatro bases.
+- **Indicadores calculados desde documentos (fase 6, parcial).** Un indicador puede alimentarse de un campo de las entregas aprobadas de una
+  actividad que se rellena en línea (suma, media, mínimo, máximo, recuento, recuento o porcentaje que cumple una condición, o cociente entre dos
+  campos), con **desglose** por perfil/elemento/profesor o por una opción, y la medición dice con cuántas entregas se ha calculado. Un grupo
+  por debajo del umbral permite **abrir un hallazgo propio** aunque el global cumpla. Índice de valores `FormValue` (`app:forms:reindex`) y
+  cálculo periódico (`app:forms:calculate-indicators`). Migración nueva probada en las cuatro bases.
 
 ## [2.6.0] - 2026-11-21
 

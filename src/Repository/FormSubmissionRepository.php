@@ -43,6 +43,15 @@ class FormSubmissionRepository extends ServiceEntityRepository
         return $found;
     }
 
+    /** @return list<FormSubmission> every submission of an activity in one academic-year cycle */
+    public function findByActivityCycle(Activity $activity, int $cycleYear): array
+    {
+        /** @var list<FormSubmission> $found */
+        $found = $this->findBy(['activity' => $activity, 'cycleYear' => $cycleYear]);
+
+        return $found;
+    }
+
     public function findBySlot(Activity $activity, string $slotKey, int $cycleYear): ?FormSubmission
     {
         return $this->findOneBy(['activity' => $activity, 'slotKey' => $slotKey, 'cycleYear' => $cycleYear]);

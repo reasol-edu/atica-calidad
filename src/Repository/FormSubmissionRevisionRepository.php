@@ -21,6 +21,25 @@ class FormSubmissionRevisionRepository extends ServiceEntityRepository
         parent::__construct($registry, FormSubmissionRevision::class);
     }
 
+    /** @return list<string> the ids of every delivered revision (to walk them one at a time) */
+    public function findAllIds(): array
+    {
+        /** @var list<string> $ids */
+        $ids = array_map(static fn (mixed $id): string => $id instanceof Uuid ? $id->toRfc4122() : '', $this->createQueryBuilder('s')->select('s.id')->getQuery()->getSingleColumnResult());
+
+        return $ids;
+    }
+
+    public function findOneById(string $id): ?FormSubmissionRevision
+    {
+        if (!Uuid::isValid($id)) {
+            return null;
+        }
+        $result = $this->createQueryBuilder('s')->where('s.id = :id')->setParameter('id', Uuid::fromString($id), 'uuid')->getQuery()->getOneOrNullResult();
+
+        return $result instanceof FormSubmissionRevision ? $result : null;
+    }
+
     public function findByRevision(DocumentRevision $revision): ?FormSubmissionRevision
     {
         return $this->findOneBy(['revision' => $revision]);

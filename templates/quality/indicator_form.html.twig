@@ -134,6 +134,52 @@
             </div>
         </fieldset>
 
+        {# ── Computed from documents ─────────────────────────────────────────────── #}
+        {% if sourceChoices is not empty %}
+        <fieldset class="space-y-4 border-t border-gray-100 pt-5" data-testid="source-fieldset">
+            <legend class="text-sm font-semibold uppercase tracking-wide text-forest-700">{{ 'indicator.source.title'|trans({}, 'quality') }}</legend>
+            <p class="text-xs text-gray-500">{{ 'indicator.source.help'|trans({}, 'quality') }}</p>
+            <div class="space-y-1.5">
+                <label for="ind-source-field" class="{{ label }}">{{ 'indicator.source.field'|trans({}, 'quality') }}</label>
+                <select id="ind-source-field" name="source_field" class="{{ field }} border-gray-200">
+                    <option value="">{{ 'indicator.source.none'|trans({}, 'quality') }}</option>
+                    {% for a in sourceChoices %}<optgroup label="{{ a.name }}">{% for f in a.fields %}<option value="{{ a.id }}|{{ f.key }}" {{ source.field == a.id ~ '|' ~ f.key ? 'selected' : '' }}>{{ f.label }}</option>{% endfor %}</optgroup>{% endfor %}
+                </select>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="space-y-1.5">
+                    <label for="ind-source-agg" class="{{ label }}">{{ 'indicator.source.agg'|trans({}, 'quality') }}</label>
+                    <select id="ind-source-agg" name="source_agg" class="{{ field }} border-gray-200">
+                        {% for a in ['sum', 'avg', 'min', 'max', 'count', 'count_if', 'percent_if'] %}<option value="{{ a }}" {{ source.agg == a ? 'selected' : '' }}>{{ ('indicator.source.agg_' ~ a)|trans({}, 'quality') }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="space-y-1.5">
+                    <label for="ind-source-group" class="{{ label }}">{{ 'indicator.source.group'|trans({}, 'quality') }}</label>
+                    <select id="ind-source-group" name="source_group" class="{{ field }} border-gray-200">
+                        <option value="">{{ 'indicator.source.group_none'|trans({}, 'quality') }}</option>
+                        <option value="slot" {{ source.group == 'slot' ? 'selected' : '' }}>{{ 'indicator.source.group_slot'|trans({}, 'quality') }}</option>
+                        {% for a in sourceChoices %}{% for f in a.fields %}{% if f.type == 'choice' %}<option value="field:{{ f.key }}" {{ source.group == 'field:' ~ f.key ? 'selected' : '' }}>{{ a.name }} › {{ f.label }}</option>{% endif %}{% endfor %}{% endfor %}
+                    </select>
+                </div>
+                <div class="space-y-1.5">
+                    <label for="ind-source-op" class="{{ label }}">{{ 'indicator.source.condition'|trans({}, 'quality') }}</label>
+                    <div class="flex gap-2">
+                        <select id="ind-source-op" name="source_op" class="{{ field }} border-gray-200 w-24">
+                            {% for o, sym in {eq: '=', ne: '≠', gt: '>', ge: '≥', lt: '<', le: '≤'} %}<option value="{{ o }}" {{ source.op == o ? 'selected' : '' }}>{{ sym }}</option>{% endfor %}
+                        </select>
+                        <input name="source_value" value="{{ source.value }}" class="{{ field }} border-gray-200" aria-label="{{ 'indicator.source.condition'|trans({}, 'quality') }}">
+                    </div>
+                </div>
+                <div class="space-y-1.5">
+                    <label for="ind-source-den" class="{{ label }}">{{ 'indicator.source.den'|trans({}, 'quality') }} {{ optional }}</label>
+                    <select id="ind-source-den" name="source_den" class="{{ field }} border-gray-200">
+                        <option value="">—</option>
+                        {% for a in sourceChoices %}<optgroup label="{{ a.name }}">{% for f in a.fields %}<option value="{{ a.id }}|{{ f.key }}" {{ source.den == a.id ~ '|' ~ f.key ? 'selected' : '' }}>{{ f.label }}</option>{% endfor %}</optgroup>{% endfor %}
+                    </select>
+                </div>
+            </div>
+        </fieldset>
+        {% endif %}
         <div class="flex flex-wrap items-center justify-end gap-3">
             <a href="{{ indicator ? path('app_quality_indicator', {id: indicator.id.toRfc4122}) : path('app_quality_indicators') }}" class="text-sm font-medium text-gray-500 hover:text-gray-700">{{ 'cancel'|trans({}, 'quality') }}</a>
             <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 transition-colors">

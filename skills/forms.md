@@ -118,6 +118,22 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
 - **Drafts for everybody**: `Activity::formDraftsForAll` + `bin/console app:create-form-drafts` (run daily from cron; idempotent) creates the
   missing draft of every slot once the period has started. Nothing creates them lazily: without the cron they appear when each person opens.
 
+## Data, computed indicators and group findings (phase 6, partial)
+
+- **`FormValue`** is the derived index of scalar values (field/column key, copy path, row key, num/text/flag) of each delivered revision, written
+  by `FormValueIndexer` in `deliver()` and rebuilt with `bin/console app:forms:reindex`. It is never the source of truth; indicators and the
+  explorer read it, never whole documents. Query by activity+cycle (`FormValueRepository::findByActivityCycleAndFields`): do NOT pass arrays of
+  UUID entities/objects to IN() — binary UUID columns do not match on SQLite/MySQL.
+- **Computed indicators**: `IndicatorFormSource` (1:1 with `Indicator`: activity, field, aggregation sum|avg|min|max|count|count_if|percent_if,
+  condition, optional denominator = ratio ×100, group by none|slot|field:KEY). `FormIndicatorCalculator` counts only the latest APPROVED
+  revision of each slot, writes `Measurement` with `computed`, `sampleCount`, `expectedCount` and `MeasurementBreakdown` rows, and skips
+  measurements typed by hand or already reviewed (frozen). Run `app:forms:calculate-indicators` from cron (daily); saving the indicator form
+  recalculates at once. A group below the alert threshold shows "Abrir hallazgo de este grupo" (`IndicatorService::openGroupFinding`), which
+  does not change the global measurement.
+- Not done yet: explorer + CSV/XLSX in Informes, "Crear indicador con este campo" in the model editor, centre catalogues (+JSON), a single
+  activity per indicator (the spec allows several), the "approval date" period mode, recalculation on approval (only cron / saving the form),
+  "pass this period to manual" (`Measurement::makeManual()` exists but has no screen).
+
 ## Front end
 
 The editor and the form are **Stimulus controllers that build the page from the JSON** (`form_model_editor_controller.js`,

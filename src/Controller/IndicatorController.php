@@ -56,6 +56,10 @@ class IndicatorController extends AbstractController
         private readonly SectionChoiceBuilder $sectionChoices,
         private readonly TenantContext $tenantContext,
         private readonly TranslatorInterface $translator,
+        private readonly \App\Service\Form\FormSourceChoices $sourceChoices,
+        private readonly \App\Service\Form\FormIndicatorCalculator $formCalculator,
+        private readonly \App\Repository\IndicatorFormSourceRepository $formSources,
+        private readonly \App\Repository\ActivityRepository $activities,
     ) {}
 
     #[Route('', name: 'app_quality_indicators')]
@@ -106,13 +110,14 @@ class IndicatorController extends AbstractController
             [$values, $errors, $data] = $this->readIndicatorForm($request, $centre, $year, null);
             if ($data !== null) {
                 $indicator = $this->service->saveIndicator($centre, null, $year, $data);
+                $this->saveSource($request, $indicator, $centre);
                 $this->addFlash('success', $this->t('indicator.flash.added'));
 
                 return $this->redirectToRoute('app_quality_indicator', ['id' => $indicator->getId()->toRfc4122()]);
             }
         }
 
-        return $this->renderIndicatorForm($centre, $year, null, $values, $errors);
+        return $this->renderIndicatorForm($centre, $year, null, $values, $errors, $request);
     }
 
     #[Route('/{id}', name: 'app_quality_indicator', requirements: ['id' => Requirement::UUID])]
@@ -178,13 +183,14 @@ class IndicatorController extends AbstractController
             [$values, $errors, $data] = $this->readIndicatorForm($request, $centre, $year, $indicator);
             if ($data !== null) {
                 $this->service->saveIndicator($centre, $indicator, $year, $data);
+                $this->saveSource($request, $indicator, $centre);
                 $this->addFlash('success', $this->t('indicator.flash.saved'));
 
                 return $this->redirectToRoute('app_quality_indicator', ['id' => $id]);
             }
         }
 
-        return $this->renderIndicatorForm($centre, $year, $indicator, $values, $errors);
+        return $this->renderIndicatorForm($centre, $year, $indicator, $values, $errors, $request);
     }
 
     /** Records (or corrects) the value of one of the indicator's periods of the active year. */
@@ -241,6 +247,23 @@ class IndicatorController extends AbstractController
         $this->addFlash('success', $this->t('indicator.flash.finding'));
 
         return $this->redirectToRoute('app_quality_finding', ['id' => $finding->getId()->toRfc4122()]);
+    }
+
+    /** Opens a finding for one group of a computed value that is below the alert threshold. */
+    #[Route('/mediciones/{id}/grupo/{groupKey}/hallazgo', name: 'app_quality_measurement_group_finding', requirements: ['id' => Requirement::UUID, 'groupKey' => '.+'], methods: ['POST'])]
+    public function openGroupFinding(string $id, string $groupKey, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
+    {
+        $measurement = $this->requireMeasurementToReview($id, $centre, $request);
+        foreach ($measurement->getBreakdown() as $group) {
+            if ($group->getGroupKey() === $groupKey && $measurement->statusOfValue($group->getValue()) === IndicatorStatus::OffTarget) {
+                $finding = $this->service->openGroupFinding($measurement, $group, $this->teacher());
+                $this->addFlash('success', $this->t('indicator.flash.group_finding'));
+
+                return $this->redirectToRoute('app_quality_finding', ['id' => $finding->getId()->toRfc4122()]);
+            }
+        }
+
+        throw $this->createNotFoundException();
     }
 
     // ── Measurement calendars ────────────────────────────────────────────────
@@ -426,12 +449,62 @@ class IndicatorController extends AbstractController
     }
 
     /**
+     * What the computed-source part of the form shows: what was just sent, or the indicator's source, or the one a model's field proposes
+     * (?fuente=activity|field, from "Create indicator with this field").
+     *
+     * @return array<string, string>
+     */
+    private function sourceValues(Request $request, ?Indicator $indicator): array
+    {
+        if ($request->isMethod('POST')) {
+            $out = [];
+            foreach (['field', 'agg', 'op', 'value', 'den', 'group'] as $k) {
+                $out[$k] = trim($request->request->getString('source_' . $k));
+            }
+
+            return $out;
+        }
+        $source = $indicator === null ? null : $this->formSources->findByIndicator($indicator);
+        if ($source !== null) {
+            return ['field' => $source->getActivity()->getId()->toRfc4122() . '|' . $source->getFieldKey(), 'agg' => $source->getAggregation(), 'op' => $source->getConditionOp() ?? 'eq', 'value' => $source->getConditionValue() ?? '', 'den' => $source->getDenominatorKey() === null ? '' : $source->getActivity()->getId()->toRfc4122() . '|' . $source->getDenominatorKey(), 'group' => $source->getGroupBy()];
+        }
+
+        return ['field' => $request->query->getString('fuente'), 'agg' => $request->query->getString('agg', 'sum'), 'op' => 'eq', 'value' => '', 'den' => '', 'group' => ''];
+    }
+
+    /** Stores (or removes) the computed source of the indicator from what the form sent, and calculates it. */
+    private function saveSource(Request $request, Indicator $indicator, EducationalCentre $centre): void
+    {
+        $v        = $this->sourceValues($request, $indicator);
+        [$activityId, $fieldKey] = array_pad(explode('|', $v['field'], 2), 2, '');
+        $activity = $activityId === '' ? null : $this->activities->findById($activityId);
+        if ($activity !== null && $activity->getCategory()->getEducationalCentre()->getId()->toRfc4122() !== $centre->getId()->toRfc4122()) {
+            $activity = null;
+        }
+        // The field must be one of that activity's model: nothing else is accepted from the browser.
+        $allowed = [];
+        foreach ($this->sourceChoices->forCentre($centre) as $choice) {
+            if ($activity !== null && $choice['id'] === $activity->getId()->toRfc4122()) {
+                $allowed = array_column($choice['fields'], 'key');
+            }
+        }
+        if (!in_array($fieldKey, $allowed, true)) {
+            $activity = null;
+        }
+        $den   = array_pad(explode('|', $v['den'], 2), 2, '')[1];
+        $den   = in_array($den, $allowed, true) ? $den : '';
+        $group = $v['group'] === 'slot' || (str_starts_with($v['group'], 'field:') && in_array(substr($v['group'], 6), $allowed, true)) ? $v['group'] : '';
+        $this->formCalculator->configure($indicator, $activity, $fieldKey, $v['agg'], $v['op'], $v['value'], $den === '' ? null : $den, $group);
+    }
+    /**
      * @param array<string, string> $values
      * @param array<string, string> $errors
      */
-    private function renderIndicatorForm(EducationalCentre $centre, AcademicYear $year, ?Indicator $indicator, array $values, array $errors): Response
+    private function renderIndicatorForm(EducationalCentre $centre, AcademicYear $year, ?Indicator $indicator, array $values, array $errors, Request $request): Response
     {
         return $this->render('quality/indicator_form.html.twig', [
+            'sourceChoices' => $this->sourceChoices->forCentre($centre),
+            'source'        => $this->sourceValues($request, $indicator),
             'centre'    => $centre,
             'year'      => $year,
             'indicator' => $indicator,
