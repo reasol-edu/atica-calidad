@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Service\Form;
 
 use App\Service\Form\Layout\DataTable;
+use App\Service\Form\Layout\Figure;
 use App\Service\Form\Layout\Heading;
+use App\Service\Form\Layout\Image;
 use App\Service\Form\Layout\LayoutHtml;
 use App\Service\Form\Layout\Paragraph;
 use App\Service\Form\Layout\Run;
@@ -22,18 +24,24 @@ final class FormOfficeWriter
 {
     public const array FORMATS = ['docx', 'odt'];
 
+    /** @var array<string, array{name: string, mime: string, content: string}> the files of the fields «Adjuntos» of the document being built */
+    private array $files = [];
+
     public function __construct(private readonly LayoutHtml $html) {}
 
     /**
-     * @param list<array<string, mixed>> $sections the output of FormResolver::resolve()
-     * @param ?string                    $heading  a title for the top of the body, when the document has a name of its own (the header
-     *                                             already says the model's)
+     * @param list<array<string, mixed>>                                  $sections the output of FormResolver::resolve()
+     * @param ?string                                                     $heading  a title for the top of the body, when the document has a
+     *                                                                              name of its own (the header already says the model's)
+     * @param array<string, array{name: string, mime: string, content: string}> $files the files of the fields «Adjuntos», by id: the
+     *                                                                              PNG and JPEG pictures among them are drawn under their field
      *
      * @return string the file's content
      */
-    public function build(string $format, string $title, array $sections, DocumentLayout $layout, ?string $heading = null): string
+    public function build(string $format, string $title, array $sections, DocumentLayout $layout, ?string $heading = null, array $files = []): string
     {
-        $body = $heading !== null && $heading !== '' ? [new Heading(0, $heading)] : [];
+        $this->files = $files;
+        $body        = $heading !== null && $heading !== '' ? [new Heading(0, $heading)] : [];
         array_push($body, ...$this->collect($sections));
 
         $document = $format === 'odt' ? new OdtDocument() : new DocxDocument();
@@ -53,7 +61,7 @@ final class FormOfficeWriter
     /**
      * @param list<array<string, mixed>> $sections
      *
-     * @return list<Heading|Paragraph|DataTable>
+     * @return list<Heading|Paragraph|DataTable|Figure>
      */
     private function collect(array $sections): array
     {
@@ -74,6 +82,8 @@ final class FormOfficeWriter
                         0,
                         true,
                     );
+                    // The pictures attached to these fields, under the table, each with its caption.
+                    array_push($items, ...$this->figures(FormDefinition::listOf($b['items'] ?? [])));
                 } elseif ($kind === 'table') {
                     array_push($items, ...$this->table($b));
                 }
@@ -139,6 +149,30 @@ final class FormOfficeWriter
         $label = FormDefinition::str($b['label'] ?? '');
 
         return $label === '' ? [] : [new Paragraph([new Run(Run::TEXT, $label)], 'left', Paragraph::LABEL)];
+    }
+
+    /**
+     * The attached pictures of some fields that the formats can draw (PNG, JPEG) and whose content was given.
+     *
+     * @param list<array<string, mixed>> $fieldItems
+     *
+     * @return list<Figure>
+     */
+    private function figures(array $fieldItems): array
+    {
+        $out = [];
+        foreach ($fieldItems as $item) {
+            foreach (FormDefinition::listOf($item['attachments'] ?? []) as $annex) {
+                $file  = $this->files[FormDefinition::str($annex['id'] ?? '')] ?? null;
+                $image = $file === null ? null : Image::fromBytes($file['content']);
+                if ($image !== null) {
+                    $n     = FormDefinition::int($annex['n'] ?? 0);
+                    $out[] = new Figure($image, sprintf('Anexo %d: %s', $n, FormDefinition::str($annex['name'] ?? '')), 'anexo-' . $n);
+                }
+            }
+        }
+
+        return $out;
     }
 
     /**

@@ -65,7 +65,9 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
     cada PDF adjunto se añaden al final;
   - **Documento con anexos (ZIP)**, en la página del documento entregado, descarga el PDF y una
     carpeta `anexos/` con los archivos numerados igual que en el documento;
-  - en Word y LibreOffice aparece la referencia («Anexo 1: acta.pdf (230 KB)»), sin los archivos.
+  - en Word y LibreOffice aparece la referencia de cada anexo («Anexo 1: acta.pdf (230 KB)») y las
+    imágenes (PNG y JPEG) se ven debajo del campo, con su pie; los demás archivos no caben en esos
+    formatos y quedan solo como referencia.
 
   Los anexos se congelan con cada entrega: corregir el documento crea otra versión y la anterior
   conserva los suyos. Un archivo que solo está en el borrador lo ve solo quien rellena; uno entregado,

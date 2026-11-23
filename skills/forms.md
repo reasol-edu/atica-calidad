@@ -119,7 +119,9 @@ because a script cannot read them: add a new icon in both places; the Spanish la
   data URIs, embeds the originals (`PdfRenderer` `embeddedFiles` → mPDF `SetAssociatedFiles`, up to `EMBED_MAX_BYTES` 40 MB), and
   with `printPages` appends the pages of PDFs FPDI can read (`PdfRenderer::pageCount()` decides first; free FPDI cannot read some
   compressed PDFs: those are only listed). ZIP of a delivered revision: `GET /formularios/revision/{id}/con-anexos.zip`. Office
-  exports print the references only. The fill form uploads one file per request and then saves the field like any other value.
+  exports (`FormOfficeWriter::build(…, $files)`, the controller passes `FormAttachmentService::contents()`) print the references and
+  draw the PNG/JPEG pictures under their field as `Layout\Figure` blocks (≤ 9 × 7 cm, never enlarged; ODT `Pictures/anexo-N.*` +
+  manifest, DOCX `word/media/anexo-N.*` + a `rIdFigN` relationship of document.xml.rels). GIF/WebP and the rest stay references. The fill form uploads one file per request and then saves the field like any other value.
 - **Rating scale** (`fieldType: scale`, `points` 3–10 default 5, `lowLabel`/`highLabel` ≤ 60 chars): the value is an int 1..points
   (`FormDataNormalizer::coerce` drops 0, beyond the top, 3.5, texts); a number everywhere a number is (`FormDefinition::NUMERIC_TYPES`:
   totals at the foot, the row summary, `[f:]`/`[r:]`/`[t:]` refs, indicators — the editor's indicator link proposes `avg` —,

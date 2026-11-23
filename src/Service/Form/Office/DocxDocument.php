@@ -6,6 +6,7 @@ namespace App\Service\Form\Office;
 
 use App\Service\Form\Layout\Cell;
 use App\Service\Form\Layout\DataTable;
+use App\Service\Form\Layout\Figure;
 use App\Service\Form\Layout\Heading;
 use App\Service\Form\Layout\Image;
 use App\Service\Form\Layout\Paragraph;
@@ -30,8 +31,11 @@ final class DocxDocument
 
     private int $drawings = 0;
 
+    /** @var array<string, Figure> the pictures of the body, by the id of their relationship in document.xml.rels */
+    private array $figures = [];
+
     /**
-     * @param list<Heading|Paragraph|DataTable> $body
+     * @param list<Heading|Paragraph|DataTable|Figure> $body
      * @param list<Paragraph|Table>             $header
      * @param list<Paragraph|Table>             $firstHeader the header of the first page, or none when it is the same
      * @param list<Paragraph|Table>             $footer
@@ -45,6 +49,7 @@ final class DocxDocument
             $content .= match (true) {
                 $block instanceof Heading   => '<w:p><w:pPr><w:pStyle w:val="' . ($block->level === 0 ? 'Title' : 'Heading' . $block->level) . '"/></w:pPr><w:r><w:t xml:space="preserve">' . self::x($block->text) . '</w:t></w:r></w:p>',
                 $block instanceof DataTable => $this->dataTable($block, $page),
+                $block instanceof Figure    => $this->figure($block, $page),
                 default                     => $this->paragraph($block, $block->style === Paragraph::LABEL ? 'Label' : null),
             };
         }
@@ -71,6 +76,12 @@ final class DocxDocument
         $over = '';
         $rels = '<Relationship Id="rId1" Type="' . $rel . 'styles" Target="styles.xml"/>';
         $files = [];
+        // The pictures of the body: relationships of the document itself, files in word/media/.
+        foreach ($this->figures as $id => $figure) {
+            $target = 'media/' . $figure->name . '.' . $figure->image->extension();
+            $rels  .= '<Relationship Id="' . $id . '" Type="' . $rel . 'image" Target="' . $target . '"/>';
+            $files['word/' . $target] = $figure->image->content;
+        }
         $ids   = ['header1' => 'rId2', 'footer1' => 'rId3', 'header2' => 'rId4', 'footer2' => 'rId5'];
         foreach ($parts as $name => [$xml, $used]) {
             $kind  = str_starts_with($name, 'header') ? 'header' : 'footer';
@@ -260,6 +271,27 @@ final class DocxDocument
         }
 
         return '<w:p>' . ($pr !== '' ? '<w:pPr>' . $pr . '</w:pPr>' : '') . $xml . '</w:p>';
+    }
+
+    /** An attached picture in the body: a paragraph of its own with the picture, and its caption under it. */
+    private function figure(Figure $f, Page $page): string
+    {
+        $rid                 = 'rIdFig' . (\count($this->figures) + 1);
+        $this->figures[$rid] = $f;
+        [$w, $h] = $f->sizeCm($page->contentCm());
+        $cx = (int) round($w * 360000);
+        $cy = (int) round($h * 360000);
+        $id = ++$this->drawings;
+        $name = self::x($f->name . '.' . $f->image->extension());
+
+        return '<w:p><w:pPr><w:keepNext/><w:spacing w:before="60" w:after="0"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' . $cx . '" cy="' . $cy . '"/><wp:docPr id="' . $id . '" name="' . $name . '" descr="' . self::x($f->caption) . '"/>'
+            . '<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>'
+            . '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+            . '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="' . $id . '" name="' . $name . '"/><pic:cNvPicPr/></pic:nvPicPr>'
+            . '<pic:blipFill><a:blip r:embed="' . $rid . '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+            . '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' . $cx . '" cy="' . $cy . '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>'
+            . '</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>'
+            . '<w:p><w:pPr><w:spacing w:before="40" w:after="160"/></w:pPr><w:r><w:rPr><w:color w:val="' . Theme::MUTED . '"/><w:sz w:val="16"/></w:rPr><w:t xml:space="preserve">' . self::x($f->caption) . '</w:t></w:r></w:p>';
     }
 
     /** A logo drawn in the line (its file and relationship are made for the part being built). */

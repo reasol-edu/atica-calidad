@@ -216,6 +216,24 @@ final class FormAttachmentTest extends ControllerTestCase
         sort($names);
         self::assertSame(['Jefatura.pdf', 'anexos/01-foto.png', 'anexos/02-acta.pdf'], $names, 'the document is named after its slot');
 
+        // Word and LibreOffice: the picture is drawn under its field (the PDF is only referred to), well-formed and linked.
+        foreach (['docx' => ['word/document.xml', 'word/media/anexo-1.png', 'word/_rels/document.xml.rels'], 'odt' => ['content.xml', 'Pictures/anexo-1.png', 'META-INF/manifest.xml']] as $format => [$main, $picture, $links]) {
+            $this->client->request('GET', '/formularios/revision/' . $revisionId . '/exportar.' . $format);
+            self::assertSame(200, $this->client->getResponse()->getStatusCode());
+            $path = $this->tmp . '/out.' . $format;
+            file_put_contents($path, (string) $this->client->getResponse()->getContent());
+            $office = new \ZipArchive();
+            self::assertTrue($office->open($path));
+            self::assertNotFalse($office->getFromName($picture), $format . ': the picture is in the package');
+            self::assertFalse($office->getFromName(str_replace('anexo-1.png', 'anexo-2.pdf', $picture)), $format . ': a PDF is not drawn');
+            $xml = (string) $office->getFromName($main);
+            self::assertTrue((new \DOMDocument())->loadXML($xml), $format . ': well-formed');
+            self::assertStringContainsString('Anexo 1: foto.png', $xml);
+            self::assertStringContainsString($format === 'docx' ? 'r:embed="rIdFig1"' : 'xlink:href="Pictures/anexo-1.png"', $xml);
+            self::assertStringContainsString($format === 'docx' ? 'Target="media/anexo-1.png"' : 'manifest:full-path="Pictures/anexo-1.png"', (string) $office->getFromName($links));
+            $office->close();
+        }
+
         // A file only in the new draft (never delivered) is the slot's alone; what was delivered, whoever sees the folder sees, like
         // the document's PDF.
         $this->client->request('POST', $this->fillUrl('/corregir'), ['_token' => $this->csrfToken('form_correct_' . $sid)]);

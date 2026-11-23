@@ -53,6 +53,7 @@ class FormReviewController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly CsrfTokenManagerInterface $csrf,
         private readonly TranslatorInterface $translator,
+        private readonly \App\Service\Form\FormAttachmentService $attachments,
     ) {}
 
     #[Route('/formularios/revision/{revisionId}', name: 'app_form_revision_view', methods: ['GET'])]
@@ -124,12 +125,15 @@ class FormReviewController extends AbstractController
             $centre,
             $this->layouts->values($centre, $modelTitle, $modelRev->getCode(), $modelRev->getRevision()->getVersion(), $modelRev->getRevision()->getRevisedAt()),
         );
-        $body = $this->office->build(
+        $definition = $this->lists->delivered($filled);
+        $body       = $this->office->build(
             $_format,
             $title,
-            $this->resolver->resolve($this->lists->delivered($filled), $filled->getData(), $this->context($filled)),
+            $this->resolver->resolve($definition, $filled->getData(), $this->context($filled)),
             $layout,
             $title !== $modelTitle ? $title : null,
+            // The attached pictures are drawn under their field (the other files are listed: the formats have no place for them).
+            $this->attachments->contents($filled->getSubmission(), $definition, $filled->getData()),
         );
 
         $response = new Response($body);

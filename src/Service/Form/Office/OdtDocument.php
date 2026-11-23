@@ -6,6 +6,7 @@ namespace App\Service\Form\Office;
 
 use App\Service\Form\Layout\Cell;
 use App\Service\Form\Layout\DataTable;
+use App\Service\Form\Layout\Figure;
 use App\Service\Form\Layout\Heading;
 use App\Service\Form\Layout\Image;
 use App\Service\Form\Layout\Paragraph;
@@ -35,7 +36,7 @@ final class OdtDocument
     private int $counter = 0;
 
     /**
-     * @param list<Heading|Paragraph|DataTable> $body
+     * @param list<Heading|Paragraph|DataTable|Figure> $body
      * @param list<Paragraph|Table>             $header
      * @param list<Paragraph|Table>             $firstHeader the header of the first page, or none when it is the same
      * @param list<Paragraph|Table>             $footer
@@ -49,6 +50,7 @@ final class OdtDocument
             $content .= match (true) {
                 $block instanceof Heading   => $this->heading($block),
                 $block instanceof DataTable => $this->dataTable($block, $page),
+                $block instanceof Figure    => $this->figure($block, $page),
                 default                     => $this->paragraph($block, false, $block->style === Paragraph::LABEL ? 'Label' : 'Standard'),
             };
         }
@@ -268,6 +270,20 @@ final class OdtDocument
         }
 
         return '<text:p text:style-name="' . $style . '">' . $xml . '</text:p>';
+    }
+
+    /** An attached picture in the body: a paragraph of its own with the picture, and its caption under it. */
+    private function figure(Figure $f, Page $page): string
+    {
+        $name = 'Pictures/' . $f->name . '.' . $f->image->extension();
+        $this->pictures[$name] = $f->image;
+        [$w, $h] = $f->sizeCm($page->contentCm());
+        $this->contentStyles['FigureFrame'] ??= '<style:style style:name="FigureFrame" style:family="graphic"><style:graphic-properties style:wrap="none" style:vertical-pos="top" style:vertical-rel="baseline" fo:margin-left="0cm" fo:margin-right="0cm" fo:margin-top="0cm" fo:margin-bottom="0cm" fo:padding="0cm" fo:border="0.5pt solid #' . Theme::RULE . '"/></style:style>';
+        $this->contentStyles['FigureCaption'] ??= '<style:style style:name="FigureCaption" style:family="paragraph" style:parent-style-name="Standard"><style:paragraph-properties fo:margin-top="0.1cm" fo:margin-bottom="0.3cm"/><style:text-properties fo:color="#' . Theme::MUTED . '" fo:font-size="8pt"/></style:style>';
+
+        return '<text:p text:style-name="Standard"><draw:frame draw:style-name="FigureFrame" draw:name="' . self::x($f->name) . '" text:anchor-type="as-char" svg:width="' . $w . 'cm" svg:height="' . $h . 'cm">'
+            . '<draw:image xlink:href="' . $name . '" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/></draw:frame></text:p>'
+            . '<text:p text:style-name="FigureCaption">' . self::xt($f->caption) . '</text:p>';
     }
 
     /** A logo as a picture drawn in the line (the file goes in the package's Pictures/ folder, once however many times it is used). */
