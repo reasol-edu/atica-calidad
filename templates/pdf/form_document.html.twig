@@ -22,7 +22,7 @@
                     {% for item in b.items %}
                         <tr>
                             <td class="form-field-label">{{ item.label }}</td>
-                            <td class="form-field-value">{{ item.value }}</td>
+                            <td class="form-field-value">{% if blank and item.scale is defined %}<span class="form-scale">{{ item.scale }}</span>{% else %}{{ item.value }}{% endif %}</td>
                         </tr>
                     {% endfor %}
                 </table>
@@ -81,6 +81,7 @@
     .form-rowlabel { background: #fbf9f3; }
     .form-blank { border: 1px solid #e3d8c1; height: 60px; margin: 2px 0 8px; }
     .form-blank-row { height: 20px; }
+    .form-scale { color: #5e5044; }
 </style>
 
 {% if showTitle|default(true) %}

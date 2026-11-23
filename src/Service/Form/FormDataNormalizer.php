@@ -597,6 +597,18 @@ final class FormDataNormalizer
             case 'bool':
                 return is_bool($value) ? $value : null;
 
+            case 'scale':
+                // A whole number from 1 to the scale's points; anything else (0, 3.5, beyond the top, a text) is no answer.
+                $points = FormDefinition::int($spec['points'] ?? FormDefinition::SCALE_DEFAULT_POINTS) ?: FormDefinition::SCALE_DEFAULT_POINTS;
+                if (is_string($value) && preg_match('/^\s*\d+\s*$/', $value) === 1) {
+                    $value = (int) $value;
+                }
+                if (is_float($value) && floor($value) === $value) {
+                    $value = (int) $value;
+                }
+
+                return is_int($value) && $value >= 1 && $value <= $points ? $value : null;
+
             case 'calculated':
                 return null; // never typed: FormCalculator
 

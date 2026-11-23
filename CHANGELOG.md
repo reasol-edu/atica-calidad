@@ -9,6 +9,7 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Added
 
+- Modelos de documento: nuevo tipo de campo **escala de valoración** (de 1 a N puntos, con palabras opcionales para los extremos), en campos y columnas de tabla. Se contesta pulsando un número, cuenta como número en fórmulas, totales e indicadores (que proponen la media) y en el modelo en blanco se imprimen los puntos para marcarlos a mano.
 - Modelos de documento: asistente «Resumen de la fila» en las columnas calculadas de una tabla, que suma, promedia, cuenta o da el mínimo o el máximo de las columnas que se marquen de la misma fila sin escribir la fórmula.
 
 ### Security

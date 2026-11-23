@@ -5,7 +5,9 @@ import { h, uid, sectionNumbers } from '../utils/form_dom.js';
 import { parse, ROW_SUMMARY, rowSummary, readRowSummary } from '../utils/form_expression.js';
 import { confirmDialog } from '../utils/confirm_dialog.js';
 
-const FIELD_TYPES = ['short', 'long', 'number', 'date', 'time', 'bool', 'choice', 'multichoice', 'calculated', 'relation'];
+const FIELD_TYPES = ['short', 'long', 'number', 'scale', 'date', 'time', 'bool', 'choice', 'multichoice', 'calculated', 'relation'];
+// The types whose value is a number: totals at the foot, the summary of a row (the same as FormDefinition::NUMERIC_TYPES).
+const NUMERIC_TYPES = ['number', 'calculated', 'scale'];
 const CELL_TYPES = ['number', 'short', 'long', 'date', 'time', 'bool'];
 const FUNCTION_SNIPPETS = ['sum(', 'avg(', 'min(', 'max(', 'count(', 'count_if(', 'pct_if(', 'if(', 'round(', 'abs(', 'empty('];
 const BTN = 'rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-forest-500';
@@ -756,9 +758,12 @@ export default class extends Controller {
             row.append(this.labelled(this.l.cond_field, this.select(cond.field, [['', '—'], ...fields.map((f) => [f.key, f.label || '…'])], (v) => { cond.field = v; cond.value = ''; this.changed(); }, this.l.cond_field)));
             if (cond.op === 'eq' || cond.op === 'neq') {
                 const spec = fields.find((f) => f.key === cond.field);
+                const points = spec && spec.fieldType === 'scale' ? Array.from({ length: spec.points || 5 }, (_, i) => [String(i + 1), String(i + 1)]) : null;
                 row.append(spec && (spec.fieldType === 'choice' || spec.fieldType === 'multichoice')
                     ? this.labelled(this.l.cond_value, this.select(cond.value, [['', '—'], ...this.optionsOf(spec).map((o) => [o.key, o.label || '…'])], (v) => { cond.value = v; this.touch(); }, this.l.cond_value))
-                    : this.textInput(cond, 'value', this.l.cond_value, 'w-48'));
+                    : points
+                        ? this.labelled(this.l.cond_value, this.select(String(cond.value ?? ''), [['', '—'], ...points], (v) => { cond.value = v; this.touch(); }, this.l.cond_value))
+                        : this.textInput(cond, 'value', this.l.cond_value, 'w-48'));
             }
         }
 
@@ -917,7 +922,7 @@ export default class extends Controller {
      * column is ticked.
      */
     rowSummaryAssistant(column, table, current, set) {
-        const numeric = (c) => c.fieldType === 'number' || c.fieldType === 'calculated';
+        const numeric = (c) => NUMERIC_TYPES.includes(c.fieldType);
         const read = readRowSummary(current());
         const state = { fn: read ? read.fn : 'sum', keys: read ? read.keys : [] };
         const apply = () => { if (state.keys.length > 0) { set(rowSummary(state.fn, state.keys)); } };
@@ -994,7 +999,7 @@ export default class extends Controller {
                 h('div', { class: 'pb-1.5' }, [this.checkbox(spec, 'multiple', this.l.rel_multiple)]),
             ]));
         }
-        if (context.table && (spec.fieldType === 'number' || spec.fieldType === 'calculated')) {
+        if (context.table && NUMERIC_TYPES.includes(spec.fieldType)) {
             const totalsList = [['', this.l.total_none], ['sum', this.l.total_sum], ['avg', this.l.total_avg], ['min', this.l.total_min], ['max', this.l.total_max], ['count', this.l.total_count], ['custom', this.l.total_custom]];
             // With a name, the total is also a field of the document (it is still shown only at the foot of the column).
             const named = (e) => {
@@ -1018,6 +1023,17 @@ export default class extends Controller {
                 oninput: (e) => { spec[prop] = e.target.value === '' ? null : Number(e.target.value); this.touch(); },
             }), 'w-28');
             parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [num('min', this.l.min), num('max', this.l.max), this.textInput(spec, 'unit', this.l.unit, 'w-28', 20)]));
+        }
+        if (spec.fieldType === 'scale') {
+            // A rating from 1 to N, with optional words for both ends («Nada» … «Mucho»).
+            if (!spec.points) { spec.points = 5; }
+            const points = [];
+            for (let n = 3; n <= 10; n += 1) { points.push([String(n), String(n)]); }
+            parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
+                this.labelled(this.l.scale_points, this.select(String(spec.points), points, (v) => { spec.points = Number(v); this.changed(); }, this.l.scale_points), 'w-32'),
+                this.textInput(spec, 'lowLabel', this.l.scale_low, 'flex-1 basis-40', 60),
+                this.textInput(spec, 'highLabel', this.l.scale_high, 'flex-1 basis-40', 60),
+            ]));
         }
         if (spec.fieldType === 'choice' || spec.fieldType === 'multichoice') {
             parts.push(...this.optionsEditor(spec));

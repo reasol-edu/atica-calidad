@@ -65,6 +65,8 @@
                             <dd id="blk-{{ s.path }}-{{ item.key }}" class="px-3 py-2 text-sm text-gray-900 break-words sm:border-t sm:border-gray-200 {{ loop.first ? 'sm:border-t-0' : '' }}">
                                 {% if item.html is defined %}
                                     <div class="prose prose-sm max-w-none text-gray-900">{{ item.html|sanitize_html('app.rich_text') }}</div>
+                                {% elseif blank and item.scale is defined %}
+                                    <span class="text-gray-500">{{ item.scale }}</span>
                                 {% else %}
                                     {{ item.empty ? '—' : item.value }}
                                 {% endif %}

@@ -70,7 +70,8 @@ final class FormOfficeWriter
                     array_push($items, ...$this->text($b));
                 } elseif ($kind === 'fields') {
                     $items[] = new DataTable(
-                        array_map(static fn (array $i): array => [FormDefinition::str($i['label'] ?? ''), FormDefinition::str($i['value'] ?? '')], FormDefinition::listOf($b['items'] ?? [])),
+                        // A rating without an answer prints its points (the model exported blank, to fill in by hand).
+                        array_map(static fn (array $i): array => [FormDefinition::str($i['label'] ?? ''), FormDefinition::str($i['value'] ?? '') !== '' ? FormDefinition::str($i['value'] ?? '') : FormDefinition::str($i['scale'] ?? '')], FormDefinition::listOf($b['items'] ?? [])),
                         0,
                         true,
                     );

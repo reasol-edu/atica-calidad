@@ -129,6 +129,10 @@ final class FormResolver
                     if ($value !== '' && ($block['fieldType'] ?? '') === 'long' && is_string($fields[$key] ?? null)) {
                         $item['html'] = FormRichText::html($fields[$key]);
                     }
+                    // A rating without an answer prints its points, to tick on paper (the blank model, an unanswered one).
+                    if ($value === '' && ($block['fieldType'] ?? '') === 'scale') {
+                        $item['scale'] = self::scalePoints($block);
+                    }
                     $last  = count($out) - 1;
                     if ($last >= 0 && $out[$last]['kind'] === 'fields') {
                         /** @var list<array<string, mixed>> $items */
@@ -369,6 +373,19 @@ final class FormResolver
     }
 
     /**
+     * The points of a rating scale to tick on paper: «Nada ○ 1  ○ 2  ○ 3  ○ 4  ○ 5 Mucho».
+     *
+     * @param array<string, mixed> $spec
+     */
+    public static function scalePoints(array $spec): string
+    {
+        $points = FormDefinition::int($spec['points'] ?? FormDefinition::SCALE_DEFAULT_POINTS) ?: FormDefinition::SCALE_DEFAULT_POINTS;
+        $marks  = implode('   ', array_map(static fn (int $n): string => '○ ' . $n, range(1, $points)));
+
+        return trim(FormDefinition::str($spec['lowLabel'] ?? '') . '  ' . $marks . '  ' . FormDefinition::str($spec['highLabel'] ?? ''));
+    }
+
+    /**
      * A value as people read it; empty string when there is none. `$chain` is where a relation looks up the rows it points at.
      *
      * @param array<string, mixed>       $spec  a field block or a table column
@@ -424,6 +441,20 @@ final class FormResolver
 
             case 'bool':
                 return $this->translator->trans($value === true ? 'view.yes' : 'view.no', [], 'forms');
+
+            case 'scale':
+                if (!is_int($value)) {
+                    return is_scalar($value) ? (string) $value : '';
+                }
+                $points = FormDefinition::int($spec['points'] ?? FormDefinition::SCALE_DEFAULT_POINTS) ?: FormDefinition::SCALE_DEFAULT_POINTS;
+                // The word of an end, when the answer is that end: «1 / 5 (Nada)».
+                $end = match ($value) {
+                    1       => FormDefinition::str($spec['lowLabel'] ?? ''),
+                    $points => FormDefinition::str($spec['highLabel'] ?? ''),
+                    default => '',
+                };
+
+                return $value . ' / ' . $points . ($end !== '' ? ' (' . $end . ')' : '');
 
             case 'choice':
             case 'multichoice':

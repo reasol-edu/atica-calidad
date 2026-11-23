@@ -733,6 +733,49 @@ export default class extends Controller {
                 return h('input', { ...base, type: 'date', value: value ?? '', oninput: (e) => onChange(e.target.value || null) });
             case 'time':
                 return h('input', { ...base, type: 'time', value: value ?? '', oninput: (e) => onChange(e.target.value || null) });
+            case 'scale': {
+                // A rating from 1 to N. In a table cell, a drop-down (a row of buttons does not fit); elsewhere, the points as
+                // radio buttons in a row, with the words of the ends, and a way to take an optional answer back.
+                const points = spec.points || 5;
+                const end = (n) => (n === 1 ? spec.lowLabel : n === points ? spec.highLabel : '') || '';
+                if (compact) {
+                    return h('select', { ...base, class: SELECT, onchange: (e) => onChange(e.target.value === '' ? null : Number(e.target.value)) }, [
+                        h('option', { value: '', text: this.l.choose, selected: value === undefined || value === null }),
+                        ...Array.from({ length: points }, (_, i) => i + 1).map((n) => h('option', { value: String(n), text: end(n) ? n + ' · ' + end(n) : String(n), selected: value === n })),
+                    ]);
+                }
+                const name = (id || 'scale') + '-' + Math.random().toString(36).slice(2, 8);
+                const radios = [];
+                const clear = h('button', {
+                    type: 'button', disabled, hidden: value === undefined || value === null || spec.required,
+                    class: 'text-xs text-gray-500 underline decoration-dotted hover:text-gray-700',
+                    text: this.l.clear_answer,
+                    onclick: () => { radios.forEach((r) => { r.checked = false; }); clear.hidden = true; onChange(null); },
+                });
+                const pill = (n) => {
+                    const radio = h('input', {
+                        type: 'radio', name, value: String(n), checked: value === n, disabled, class: 'peer sr-only',
+                        onchange: () => { clear.hidden = !!spec.required; onChange(n); },
+                    });
+                    radios.push(radio);
+                    return h('label', { class: 'cursor-pointer' }, [
+                        radio,
+                        h('span', {
+                            class: 'flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 px-2 text-sm text-gray-700 hover:bg-gray-50 peer-checked:border-forest-600 peer-checked:bg-forest-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-forest-500 peer-disabled:cursor-default',
+                            text: String(n),
+                        }),
+                    ]);
+                };
+                return h('fieldset', { id, class: 'min-w-0' }, [
+                    h('legend', { class: 'sr-only', text: spec.label || '' }),
+                    h('div', { class: 'flex flex-wrap items-center gap-1.5' }, [
+                        spec.lowLabel ? h('span', { class: 'mr-1 text-xs text-gray-500', text: spec.lowLabel }) : null,
+                        ...Array.from({ length: points }, (_, i) => pill(i + 1)),
+                        spec.highLabel ? h('span', { class: 'ml-1 text-xs text-gray-500', text: spec.highLabel }) : null,
+                        h('span', { class: 'ml-2' }, [clear]),
+                    ]),
+                ]);
+            }
             case 'bool':
                 return h('select', { ...base, class: SELECT, onchange: (e) => onChange(e.target.value === '' ? null : e.target.value === '1') }, [
                     h('option', { value: '', text: this.l.choose, selected: value === undefined || value === null }),

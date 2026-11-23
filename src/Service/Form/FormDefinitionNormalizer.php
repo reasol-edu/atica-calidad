@@ -698,8 +698,8 @@ final class FormDefinitionNormalizer
     {
         $type = FormDefinition::str($raw['fieldType'] ?? '');
         $type = in_array($type, FormDefinition::FIELD_TYPES, true) ? $type : 'short';
-        // The cells of a double-entry table are typed in: no formulas or relations there.
-        if ($cell && in_array($type, ['calculated', 'relation', 'choice', 'multichoice'], true)) {
+        // The cells of a double-entry table are typed in: no formulas or relations there (nor ratings: a grid of numbers).
+        if ($cell && in_array($type, ['calculated', 'relation', 'choice', 'multichoice', 'scale'], true)) {
             $type = 'number';
         }
 
@@ -718,7 +718,9 @@ final class FormDefinitionNormalizer
         }
 
         $calculated = $type === 'calculated';
+        $scale      = $type === 'scale';
         $total      = FormDefinition::str($raw['total'] ?? '');
+        $points     = FormDefinition::int($raw['points'] ?? FormDefinition::SCALE_DEFAULT_POINTS) ?: FormDefinition::SCALE_DEFAULT_POINTS;
 
         return [
             'label'     => $this->text($raw['label'] ?? '', 255),
@@ -734,7 +736,10 @@ final class FormDefinitionNormalizer
             'relTable'  => $type === 'relation' ? ($this->reference($raw['relTable'] ?? null) ?? '') : '',
             'relLabel'  => $type === 'relation' ? ($this->reference($raw['relLabel'] ?? null) ?? '') : '',
             'multiple'  => $type === 'relation' && ($raw['multiple'] ?? false) === true,
-            'total'     => in_array($total, FormDefinition::TOTALS, true) && in_array($type, ['number', 'calculated'], true) ? $total : '',
+            'total'     => in_array($total, FormDefinition::TOTALS, true) && in_array($type, FormDefinition::NUMERIC_TYPES, true) ? $total : '',
+            'points'    => $scale ? min(FormDefinition::SCALE_MAX_POINTS, max(FormDefinition::SCALE_MIN_POINTS, $points)) : 0,
+            'lowLabel'  => $scale ? $this->text($raw['lowLabel'] ?? '', 60) : '',
+            'highLabel' => $scale ? $this->text($raw['highLabel'] ?? '', 60) : '',
         ];
     }
 

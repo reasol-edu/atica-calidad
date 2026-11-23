@@ -32,6 +32,10 @@
     type_short: 'editor.type_short'|trans({}, 'forms'),
     type_long: 'editor.type_long'|trans({}, 'forms'),
     type_number: 'editor.type_number'|trans({}, 'forms'),
+    type_scale: 'editor.type_scale'|trans({}, 'forms'),
+    scale_points: 'editor.scale_points'|trans({}, 'forms'),
+    scale_low: 'editor.scale_low'|trans({}, 'forms'),
+    scale_high: 'editor.scale_high'|trans({}, 'forms'),
     type_date: 'editor.type_date'|trans({}, 'forms'),
     type_time: 'editor.type_time'|trans({}, 'forms'),
     type_bool: 'editor.type_bool'|trans({}, 'forms'),
@@ -301,7 +305,7 @@
                 <ul class="mt-1 flex flex-wrap gap-2">
                     {% for field in source.fields %}
                         <li>
-                            <a href="{{ path('app_quality_indicator_new', {fuente: source.id ~ '|' ~ field.key, agg: field.type == 'number' or field.type == 'calculated' ? 'sum' : 'percent_if'}) }}"
+                            <a href="{{ path('app_quality_indicator_new', {fuente: source.id ~ '|' ~ field.key, agg: field.type == 'scale' ? 'avg' : (field.type == 'number' or field.type == 'calculated' ? 'sum' : 'percent_if')}) }}"
                                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 max-sm:py-2">
                                 {{ ux_icon('heroicons:chart-bar', {class: 'h-4 w-4'}) }}{{ 'editor.indicator_create'|trans({'%field%': field.label}, 'forms') }}
                             </a>

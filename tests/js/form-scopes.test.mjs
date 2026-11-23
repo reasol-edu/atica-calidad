@@ -115,6 +115,28 @@ test('a rich text reads as the text it says', () => {
     assert.equal(format({ fieldType: 'long' }, 'texto\nplano', {}), 'texto plano');
 });
 
+test('a rating reads as points out of the top, with the word of an end (the same as FormResolver::format())', () => {
+    const spec = { fieldType: 'scale', points: 5, lowLabel: 'Nada', highLabel: 'Mucho' };
+    assert.equal(format(spec, 4, {}), '4 / 5');
+    assert.equal(format(spec, 1, {}), '1 / 5 (Nada)');
+    assert.equal(format(spec, 5, {}), '5 / 5 (Mucho)');
+    assert.equal(format({ fieldType: 'scale', points: 4 }, 4, {}), '4 / 4');
+    assert.equal(format(spec, null, {}), '');
+});
+
+test('a scale column is a number for calculations and totals', () => {
+    const def = { version: 1, sections: [{ key: k('s'), title: 'Todo', numbered: true, children: [], blocks: [
+        { key: k('t'), type: 'table', mode: 'free', label: 'T', columns: [
+            { key: k('a'), label: 'Valoración', fieldType: 'scale', points: 4, total: 'avg' },
+            { key: k('b'), label: 'Doble', fieldType: 'calculated', formula: `[r:${k('a')}] * 2`, decimals: 0 },
+        ] },
+    ] }] };
+    const state = { fields: {}, texts: {}, tables: { [k('t')]: [{ _key: 'r1', [k('a')]: 3 }, { _key: 'r2', [k('a')]: 4 }] }, copies: {} };
+    calculate(def, state);
+    assert.deepEqual(state.tables[k('t')].map((r) => r[k('b')]), [6, 8]);
+    assert.deepEqual(totals(def.sections[0].blocks[0].columns, state.tables[k('t')]), ['3,5', '']);
+});
+
 test('the field of a named foot total is calculated but not shown as a block', () => {
     const def = { version: 1, sections: [{ key: k('s'), title: 'Todo', numbered: true, children: [], blocks: [
         { key: k('t'), type: 'table', mode: 'free', label: 'T', columns: [{ key: k('c'), label: 'N', fieldType: 'number', total: 'sum', totalName: 'Suma', totalKey: k('f') }] },

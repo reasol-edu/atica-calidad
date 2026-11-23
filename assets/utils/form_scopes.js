@@ -303,6 +303,15 @@ export function format(spec, value, labels) {
         }
         case 'bool':
             return value === true ? labels.yes : labels.no;
+        case 'scale': {
+            // «4 / 5», and the word of an end when the answer is that end (the same as FormResolver::format()).
+            if (typeof value !== 'number') {
+                return String(value);
+            }
+            const points = spec.points || 5;
+            const end = value === 1 ? (spec.lowLabel || '') : value === points ? (spec.highLabel || '') : '';
+            return value + ' / ' + points + (end ? ' (' + end + ')' : '');
+        }
         case 'choice':
         case 'multichoice': {
             const keys = Array.isArray(value) ? value : [value];

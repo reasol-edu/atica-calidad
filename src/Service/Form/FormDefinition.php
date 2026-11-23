@@ -27,8 +27,19 @@ final class FormDefinition
 {
     public const int VERSION = 1;
 
-    /** `calculated` (from a formula) and `relation` (picks rows of another table; table columns only) are not typed in as such. */
-    public const array FIELD_TYPES = ['short', 'long', 'number', 'date', 'time', 'bool', 'choice', 'multichoice', 'calculated', 'relation'];
+    /**
+     * `calculated` (from a formula) and `relation` (picks rows of another table; table columns only) are not typed in as such. `scale` is
+     * a rating from 1 to `points` (a whole number), with optional words for both ends (`lowLabel`, `highLabel`): a survey answer.
+     */
+    public const array FIELD_TYPES = ['short', 'long', 'number', 'date', 'time', 'bool', 'choice', 'multichoice', 'calculated', 'relation', 'scale'];
+
+    /** The points a rating scale may have (and the ones it gets when the model says none). */
+    public const int SCALE_MIN_POINTS     = 3;
+    public const int SCALE_MAX_POINTS     = 10;
+    public const int SCALE_DEFAULT_POINTS = 5;
+
+    /** The types whose value is a number (formulas, totals at the foot, the summary of a row, indicators that average). */
+    public const array NUMERIC_TYPES = ['number', 'calculated', 'scale'];
 
     public const array TEXT_MODES = ['fixed', 'starter', 'fill'];
 

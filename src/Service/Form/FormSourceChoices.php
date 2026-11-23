@@ -15,7 +15,7 @@ use App\Repository\FormModelRevisionRepository;
  */
 final class FormSourceChoices
 {
-    private const array TYPES = ['number', 'bool', 'choice', 'calculated'];
+    private const array TYPES = ['number', 'bool', 'choice', 'calculated', 'scale'];
 
     public function __construct(
         private readonly ActivityRepository $activities,

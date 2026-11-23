@@ -51,7 +51,13 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
 - **Texto**: fijo (no se toca), de partida (se adapta) o a rellenar, con formato.
 - **Campo**: texto corto, texto largo (con **formato enriquecido**: negrita, cursiva, listas,
   enlaces…; en las celdas de una tabla sigue siendo texto plano), número (con mínimo, máximo y unidad), fecha, hora, sí/no, una o
-  varias opciones, o un valor **calculado** a partir de los demás.
+  varias opciones, **escala de valoración** o un valor **calculado** a partir de los demás.
+- **Escala de valoración**: una respuesta de 1 a N puntos (de 3 a 10; 5 si no se dice otra cosa), con
+  una palabra opcional para cada extremo («Nada» … «Mucho»). Se contesta pulsando el número (en una
+  tabla, en un desplegable) y se lee como «4 / 5». Cuenta como un número: sirve en fórmulas, en el
+  total al pie (la **media** de una columna de valoraciones) y en los indicadores, que proponen la
+  media. En el modelo en blanco se imprimen los puntos para marcarlos a mano. Una tabla de filas
+  fijas con una columna de escala es una encuesta: una fila por pregunta.
 - **Resumen de la fila**: en una columna calculada de una tabla, el recuadro «Resumen de la fila»
   calcula la suma, la media, el mínimo, el máximo o cuántas tienen algo de las columnas que marques
   **de la misma fila** (por ejemplo, «Total» = «Horas teoría» + «Horas práctica»), sin escribir la
