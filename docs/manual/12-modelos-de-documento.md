@@ -25,8 +25,9 @@ define los modelos en **Gestión → Modelos de documento**; el resto del profes
 
 ## Crear y editar un modelo
 
-En **Modelos de documento** escribe el nombre, el código que irá en la cabecera del PDF (por
-ejemplo `MD850703`) y la carpeta, y pulsa **Crear y editar**. El editor guarda el borrador solo mientras
+En **Modelos de documento** pulsa **Nuevo modelo**; en la ventana que se abre escribe el nombre, el código
+que irá en la cabecera del PDF (por ejemplo `MD850703`) y la carpeta (el desplegable permite buscarla
+escribiendo), y pulsa **Crear y editar**. El editor guarda el borrador solo mientras
 escribes; si otra persona o pestaña guarda a la vez, te avisa en vez de pisar sus cambios.
 
 El editor se organiza en **pestañas**: *Contenido* (con el índice a la izquierda), *Reglas de coherencia*,
@@ -35,7 +36,15 @@ muestra su estado: un **punto ámbar** si esa parte difiere de la última revisi
 rojo** con los problemas que impiden enviarla. Encima de las pestañas, una **barra fija** dice si hay
 cambios sin enviar y tiene el botón de envío.
 
-![Pantalla «Modelos de documento»: formularios para crear e importar un modelo y, debajo, la «Memoria de departamento» (MD-07) en vigor, con sus botones Editar, Exportar y Duplicar](img/modelos-lista.png)
+![Pantalla «Modelos de documento»: botones Nuevo modelo e Importar, y debajo la «Memoria de departamento» (MD-07) en vigor, con sus botones Editar, Exportar y Duplicar](img/modelos-lista.png)
+
+La lista de modelos tiene un **buscador** (nombre, código o carpeta) y filtros por **estado** (en vigor, sin
+revisión aprobada, pendiente de aprobar o con cambios en el borrador sin enviar) y por **sección** del árbol
+documental. Se puede **ordenar** por nombre, código, última modificación o estado, y **agrupar** por sección
+o por estado (cada grupo se pliega pulsando su título). El botón ámbar **Necesitan atención** filtra los
+modelos con una revisión pendiente de aprobar o con cambios sin enviar. Con muchos modelos, la lista
+muestra 50 cada vez y ofrece **Mostrar más**. Exportar y Duplicar están en el menú **⋯** de cada fila; el
+orden y la agrupación elegidos se recuerdan en el navegador.
 
 Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) con estos bloques:
 
@@ -202,7 +211,7 @@ saber que:
 
 En **Modelos de documento**:
 
-- **Exportar → JSON (otro centro)** descarga el modelo; **Importar un modelo** lo crea en otro centro
+- **Exportar → JSON (otro centro)** descarga el modelo; **Importar** (arriba a la derecha; el archivo se suelta en la zona de arrastre) lo crea en otro centro
   (o en el mismo) como un **borrador nuevo**, que hay que revisar y enviar a revisión como cualquier
   otro. Los pasos de aprobación no viajan, porque nombran perfiles de un centro concreto.
 - **Duplicar** crea una copia del borrador, «Copia de …», para partir de un modelo parecido.

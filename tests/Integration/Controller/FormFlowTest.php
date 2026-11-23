@@ -148,6 +148,16 @@ final class FormFlowTest extends ControllerTestCase
         $id = $models[0]->getId()->toRfc4122();
         self::assertSame('MD850201', $models[0]->getCode());
 
+        // The list: the row carries what the browser filters, sorts and groups with; a model never sent needs attention.
+        $this->client->request('GET', '/modelos');
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        $html = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('data-controller="model-list"', $html);
+        self::assertStringContainsString('data-name="Programación"', $html);
+        self::assertStringContainsString('data-code="MD850201"', $html);
+        self::assertStringContainsString('data-states="unapproved draft attention"', $html);
+        self::assertStringContainsString('data-primary="draft"', $html);
+
         $this->client->request('GET', "/modelos/{$id}");
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
         self::assertStringContainsString('form-model-editor', (string) $this->client->getResponse()->getContent());

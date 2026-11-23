@@ -106,6 +106,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - **Modelos de documento: carpeta y archivo al crear o importar.** La carpeta del árbol documental se elige con un desplegable con
   búsqueda (como en el formulario de actividad) y el archivo a importar se suelta en una zona de arrastre, como en el resto de la
   aplicación.
+- **Modelos de documento: lista preparada para muchos modelos.** «Nuevo modelo» e «Importar» pasan a ventanas que se abren desde la
+  cabecera. La lista tiene buscador, filtros por estado y sección, orden (nombre, código, última modificación, estado), agrupación
+  plegable por sección o estado, un acceso a los que «necesitan atención» (revisión pendiente o borrador con cambios sin enviar),
+  filas compactas con Exportar y Duplicar en un menú «⋯» y «Mostrar más» a partir de 50. El orden y la agrupación se recuerdan.
 - **Manual:** capítulo nuevo «Modelos de documento», «Datos de modelos» en Informes, indicadores calculados en Mejora continua y entradas
   en el glosario y en los permisos.
 

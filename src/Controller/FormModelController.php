@@ -64,9 +64,39 @@ class FormModelController extends AbstractController
         }
         usort($folders, static fn (array $a, array $b): int => strnatcasecmp($a['label'], $b['label']));
 
+        // What the list needs of each model (the client filters, sorts and groups with it): where it lives, its status flags and when
+        // it last changed (the draft or the latest revision, whichever is newer).
+        $rows = [];
+        foreach ($this->models->findByCentre($centre) as $model) {
+            $document = $model->getDocument();
+            $pending  = $document->getPendingRevision();
+            $updated  = $model->getDraftUpdatedAt();
+            $latest   = null;
+            foreach ($document->getRevisions() as $revision) {
+                if ($latest === null || $revision->getRevisedAt() > $latest) {
+                    $latest = $revision->getRevisedAt();
+                }
+            }
+            if ($latest !== null && $latest > $updated) {
+                $updated = $latest;
+            }
+            // A draft with changes not yet sent: it is newer than the latest revision (or there is no revision at all).
+            $draftAhead = $latest === null || $model->getDraftUpdatedAt() > $latest;
+
+            $rows[] = [
+                'model'      => $model,
+                'section'    => $document->getFolder()->getDocumentSection()->getName(),
+                'active'     => $document->getActiveRevision(),
+                'pending'    => $pending,
+                'draftAhead' => $draftAhead,
+                'attention'  => $pending !== null || $draftAhead,
+                'updated'    => $updated,
+            ];
+        }
+
         return $this->render('form/models.html.twig', [
             'centre'  => $centre,
-            'models'  => $this->models->findByCentre($centre),
+            'rows'    => $rows,
             'folders' => $folders,
         ]);
     }
