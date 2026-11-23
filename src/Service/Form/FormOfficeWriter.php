@@ -40,9 +40,9 @@ final class FormOfficeWriter
 
         return $document->render(
             $body,
-            $this->html->parseForDocument($layout->headerHtml, $layout->images),
-            $this->html->parseForDocument($layout->firstHeaderHtml, $layout->images),
-            $this->html->parseForDocument($layout->footerHtml, $layout->images),
+            $this->html->parse($layout->headerHtml),
+            $this->html->parse($layout->firstHeaderHtml),
+            $this->html->parse($layout->footerHtml),
             new Page($layout->isLandscape(), $layout->margins),
             $layout->factor(),
             $title,

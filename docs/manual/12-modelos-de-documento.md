@@ -223,10 +223,8 @@ campo» del editor, o escribiéndolos entre llaves:
 
 Los logotipos se suben en **Ajustes → Documentos: logotipos, encabezado, pie y márgenes**, como imágenes PNG
 o JPEG de hasta 2 MB: la plataforma puede poner los suyos y cada centro sustituirlos por los propios. Se
-dibujan con una altura de hasta 1,6 cm (y 5 cm de ancho), sin deformarse, y se reducen si la celda de la tabla es
-más estrecha. Si no hay imagen, el campo no pone nada; y si una columna de la tabla solo contenía ese logotipo, la
-columna desaparece y el resto del encabezado ocupa su sitio (así, un centro sin logotipo de la administración
-educativa no ve una casilla vacía a la derecha).
+dibujan con una altura de hasta 1,6 cm (y 5 cm de ancho), sin deformarse. Si no hay imagen, el campo no
+pone nada.
 
 El encabezado y el pie **predeterminados** son una tabla como la de los documentos del centro: el logotipo del
 centro a la izquierda y el de la administración educativa a la derecha (ocupando las tres filas), y entre ellos el
