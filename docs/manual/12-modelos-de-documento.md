@@ -252,9 +252,10 @@ se verá el que haya entonces en los ajustes. El botón **Vista previa en PDF** 
 documento tal como saldrá, con su encabezado, pie, márgenes, orientación y tamaño, y con una marca de agua
 «BORRADOR», porque es la vista de un borrador.
 
-Una limitación: el PDF en blanco que se guarda al enviar una revisión a aprobación se genera en ese momento, así que
-`{fecha_aprobacion}` sale vacío en él (todavía no hay fecha). Los documentos rellenados y las
-exportaciones a Word y LibreOffice sí llevan la fecha de aprobación real.
+El PDF en blanco que se guarda al enviar una revisión a aprobación se genera en ese momento, así que mientras la
+revisión está pendiente `{fecha_aprobacion}` sale vacío en él (todavía no hay fecha). Cuando se aprueba, el PDF se
+genera de nuevo y ya lleva la fecha de aprobación. Los documentos rellenados y las exportaciones a Word y LibreOffice
+llevan siempre la fecha de aprobación real.
 
 ## Sacar los documentos de la aplicación
 

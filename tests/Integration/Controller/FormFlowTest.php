@@ -250,6 +250,28 @@ final class FormFlowTest extends ControllerTestCase
         self::assertTrue($this->client->getResponse()->isRedirect(), 'the activity cannot be filled while no revision is approved');
     }
 
+    public function testApprovingAModelRevisionMakesItsBlankPdfAgain(): void
+    {
+        $reviewers = (new SpecificProfile())->setEducationalCentre($this->centre)->setName('Revisión');
+        $this->modelFolder->addReviewProfile($reviewers);
+        $this->persist($reviewers);
+
+        $service = self::getContainer()->get(FormModelService::class);
+        $model   = $service->create($this->modelFolder, 'Ficha', null);
+        // A header that shows the approval date (the default one does not, and then the PDF would be the same).
+        $definition           = $this->definition();
+        $definition['layout'] = ['header' => '<p>Aprobado el {fecha_aprobacion}</p>'];
+        $service->saveDraft($model, $definition, $model->getDraftVersion(), $this->admin);
+        $revision = $service->sendToReview($model, $this->admin, 'Primera');
+        $pending  = $revision->getFile()->getId()->toRfc4122();
+
+        self::getContainer()->get(\App\Service\DocumentRevisionReviewer::class)->approve($revision, $this->admin, null, $this->centre);
+
+        self::assertFalse($revision->isPendingReview());
+        self::assertNotSame($pending, $revision->getFile()->getId()->toRfc4122(),'the PDF was made again with the approval date');
+        self::assertStringStartsWith('%PDF', $revision->getFile()->getContent());
+    }
+
     public function testTheEditorKnowsWhatIsStillToSendAndWhichTabAProblemBelongsTo(): void
     {
         $service = self::getContainer()->get(FormModelService::class);

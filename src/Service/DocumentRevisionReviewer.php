@@ -9,6 +9,7 @@ use App\Entity\DocumentRevision;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Service\Form\FormApprovalChain;
+use App\Service\Form\FormModelService;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -25,6 +26,7 @@ final class DocumentRevisionReviewer
         private readonly ActivityLogger $activityLogger,
         private readonly DocumentReviewOutcomeNotifier $outcomeNotifier,
         private readonly FormApprovalChain $chain,
+        private readonly FormModelService $models,
     ) {}
 
     /**
@@ -48,6 +50,7 @@ final class DocumentRevisionReviewer
         $document = $revision->getDocument();
         $revision->approve($reviewer, $this->normalise($result));
         $document->setActiveRevision($revision);
+        $this->models->refreshBlankPdf($revision);
 
         $this->finish($revision, 'document.revision_approve', DocumentReviewNotificationKind::Approved, $centre);
     }

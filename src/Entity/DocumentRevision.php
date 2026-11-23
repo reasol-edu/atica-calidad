@@ -202,4 +202,12 @@ class DocumentRevision
     {
         return $this->file;
     }
+
+    /** Swaps the file of this revision (a model's blank PDF is made again when the revision is approved, to show its approval date). */
+    public function replaceFile(DocumentFile $file): static
+    {
+        $this->file = $file;
+
+        return $this;
+    }
 }

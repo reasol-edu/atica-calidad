@@ -164,4 +164,23 @@ final class FormModelService
 
         return $revision;
     }
+
+    /**
+     * Makes the blank PDF of an approved model revision again: while it was pending the PDF went out without an approval date
+     * ({fecha_aprobacion}), and now it has one. Does nothing for a revision that is not of a model (a filled form, a plain upload).
+     * The caller flushes.
+     */
+    public function refreshBlankPdf(DocumentRevision $revision): void
+    {
+        $modelRevision = $this->modelRevisions->findByRevision($revision);
+        if ($modelRevision === null || !$revision->isApproved()) {
+            return;
+        }
+
+        $document = $revision->getDocument();
+        $centre   = $document->getFolder()->getEducationalCentre();
+        $content  = $this->pdf->buildForRevision($modelRevision, $modelRevision->getDefinition(), $this->data->sample($modelRevision->getDefinition()), $centre, $document->getName(), true, ['centre' => $centre->getName(), 'activity' => $document->getName()]);
+
+        $revision->replaceFile($this->creation->storeFile($content, 'application/pdf', $document->getName() . '.pdf'));
+    }
 }
