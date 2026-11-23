@@ -272,8 +272,12 @@ trap: a list-fed field normalized against the raw definition has no options, so 
   deletes the cached pages on `/logout` (they hold centre data). `form_fill_controller.js` keeps what is typed in `localStorage`
   (`atica-form:<saveUrl>`, with the draft version it started from) until a save succeeds; on opening, a local copy is restored and saved
   only if its version equals the server's (otherwise someone else saved in between and the server wins). Saving, delivering and every other
-  action still need the connection. Verified only by reading and the integration tests (no browser run: service workers need HTTPS or
-  `localhost`).
+  action still need the connection. **Verified in Chromium (Playwright, 2026-11-24) against `127.0.0.1`** (a secure context for service
+  workers): the worker controls the page after the first load and caches the page and ~95 assets; offline, a reload opens the form from
+  the copy, typing shows «Sin conexión…» and keeps a copy in `localStorage`; back online the page saves on its own and drops the copy; a
+  copy typed offline in a page closed before reconnecting is saved when the form is opened again; `/logout` deletes the pages cache
+  (the assets one stays: it holds no data). Offline, the header's Live Components fail their polling with an uncaught `Failed to
+  fetch` in the console: harmless, not the form's. Attachments need the connection (the control says so).
 
 ## Page layout: header, footer, orientation, font scale
 
