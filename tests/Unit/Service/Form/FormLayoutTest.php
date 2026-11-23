@@ -57,6 +57,36 @@ final class FormLayoutTest extends TestCase
         self::assertSame([Run::LOGO2, Run::TEXT, Run::PAGE], array_map(static fn (Run $r): string => $r->kind, $blocks[0]->cells[1]->paragraphs[0]->runs));
     }
 
+    public function testTheColumnOfALogoTheCentreHasNotGotIsTakenOutAndTheRestShareTheWidth(): void
+    {
+        $html  = new LayoutHtml();
+        $png   = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAHgAAAA8CAIAAAAiz+n/AAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAoklEQVR4nO3QQRHAIADAMMDXvujAv4qpWHksUdDr3OcZfG/dDvgLoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHXjNUAVulkrf3AAAAAElFTkSuQmCC', true);
+        $logo  = \App\Service\Form\Layout\Image::fromBytes($png);
+        $markup = FormLayout::defaultHeader();
+
+        // Both logos: the five columns stay.
+        $both = $html->parseForDocument($markup, ['logo' => $logo, 'logo2' => $logo]);
+        self::assertSame(5, $both[0]->columns());
+
+        // Without the second: four columns, the text takes its width, and the other logo keeps its cell.
+        $one = $html->parseForDocument($markup, ['logo' => $logo]);
+        self::assertSame(4, $one[0]->columns());
+        self::assertEqualsWithDelta(1.0, array_sum($one[0]->widths), 0.0001);
+        self::assertCount(6, $one[0]->cells);
+        self::assertSame(3, $one[0]->cells[1]->colspan);
+        self::assertSame(1, $one[0]->cells[1]->col);
+
+        // Without any: three columns and no logo cells at all.
+        $none = $html->parseForDocument($markup, []);
+        self::assertSame(3, $none[0]->columns());
+        self::assertCount(5, $none[0]->cells);
+        self::assertSame(0, $none[0]->cells[0]->col);
+
+        // A logo next to other text in its cell is not a column of its own: it stays.
+        $mixed = $html->parseForDocument('<table><tbody><tr><td>{logo} Hola</td><td>x</td></tr></tbody></table>', []);
+        self::assertSame(2, $mixed[0]->columns());
+    }
+
     public function testALogoIsDrawnWithinTheLimitsKeepingItsProportions(): void
     {
         $png   = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAHgAAAA8CAIAAAAiz+n/AAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAoklEQVR4nO3QQRHAIADAMMDXvujAv4qpWHksUdDr3OcZfG/dDvgLoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHXjNUAVulkrf3AAAAAElFTkSuQmCC', true);

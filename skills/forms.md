@@ -266,7 +266,9 @@ trap: a list-fed field normalized against the raw definition has no options, so 
   ≤ 4000 px a side, stores them in `SettingFile` and serves them `nosniff` + a sandbox CSP. The upload form reuses `Form:PdfDropzone`
   (`accept`, `hint`, `thumbs` props; `file_drop_controller.js` fills the `<img data-role="thumb">`). `Layout\Image` fits a logo in
   1.6 × 5 cm; `{logo}`/`{logo2}` are `Run`s of their own (PDF: data-URI `<img>`; ODT: `draw:frame` + `Pictures/`; DOCX: `wp:inline` + a
-  relationship per part). Every output has to get the images through `DocumentLayout::$images`.
+  relationship per part). Every output has to get the images through `DocumentLayout::$images`. A logo is fitted to its cell (`Image::sizeCm($roomCm)`: the share of
+  the width less the padding), and `LayoutHtml::parseForDocument()` — the way every output must read a header or footer — drops the columns
+  that only hold a logo that is missing (`withoutMissingLogos`), renormalising the widths. The editor's preview shows a dashed placeholder instead.
 - **`{fecha_aprobacion}`** comes from `DocumentRevision::getApprovedAt()` (new column `approved_at`, set in `approve()`; null in the column
   = the revision's own date, so both dates match when no review was needed). The blank model PDF is made at *send* time, before any
   approval: with a review pending it is empty there (`FormLayoutResolver::values(..., pendingApproval: true)`).

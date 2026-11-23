@@ -44,14 +44,14 @@ final class FormPdfBuilder
         $orientation = $layout->isLandscape() ? 'L' : 'P';
         // The width of the text: the logos are fitted to the cells of the tables, which share it.
         $contentCm   = (($layout->isLandscape() ? 297 : 210) - $m['left'] - $m['right']) / 10;
-        $headerHtml  = $this->html->toPdfHtml($this->html->parse($layout->headerHtml), 9, $layout->images, $contentCm);
-        $footer      = $this->html->toPdfHtml($this->html->parse($layout->footerHtml), 8, $layout->images, $contentCm);
+        $headerHtml  = $this->html->toPdfHtml($this->html->parseForDocument($layout->headerHtml, $layout->images), 9, $layout->images, $contentCm);
+        $footer      = $this->html->toPdfHtml($this->html->parseForDocument($layout->footerHtml, $layout->images), 8, $layout->images, $contentCm);
         $headerMm    = $this->pdf->heightMm($headerHtml, $orientation, $m['left'], $m['right']);
         $footerMm    = $this->pdf->heightMm($footer, $orientation, $m['left'], $m['right']);
         $firstHtml   = null;
         $firstExtra  = 0.0;
         if ($layout->hasFirstHeader()) {
-            $firstHtml  = $this->html->toPdfHtml($this->html->parse($layout->firstHeaderHtml), 9, $layout->images, $contentCm);
+            $firstHtml  = $this->html->toPdfHtml($this->html->parseForDocument($layout->firstHeaderHtml, $layout->images), 9, $layout->images, $contentCm);
             $firstExtra = max(0.0, $this->pdf->heightMm($firstHtml, $orientation, $m['left'], $m['right']) - $headerMm);
         }
         $header  = new PdfHeader($headerHtml, $m['top'] + $headerMm + 4, false, $firstHtml, $firstExtra);

@@ -119,6 +119,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - **El encabezado predeterminado lleva los logotipos**, como los documentos ODT del centro: el del centro a la izquierda y el de la
   administración educativa a la derecha, con las mismas proporciones de columnas (migración que actualiza el valor predeterminado; lo
   que un centro o la plataforma ya hubieran escrito no cambia).
+- **Sin logotipo, sin columna vacía.** Si una columna de la tabla del encabezado o del pie solo contiene un `{logo}` o `{logo2}` que el
+  centro no ha subido, esa columna se quita al generar el documento (PDF, Word y LibreOffice) y el resto reparte el ancho.
 - **Encabezado y pie: fecha de aprobación, primera página, márgenes y vista previa.** Campo `{fecha_aprobacion}` (las revisiones
   guardan ahora cuándo se aprobaron; si no necesitan revisión es la misma fecha que `{fecha_revision}`); encabezado distinto en la
   primera página (en PDF, Word y LibreOffice); márgenes de página en los ajustes y por modelo; y vista previa con datos de ejemplo
