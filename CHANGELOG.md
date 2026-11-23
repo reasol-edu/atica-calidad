@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-11-23
+
 ### Added
 - **Modelos de documento rellenables (fase 1).** Quien gestiona la calidad puede definir un *modelo* (Gestión › Modelos de
   documento): un documento del árbol cuyo contenido es una estructura de secciones numeradas jerárquicamente, con texto fijo,
