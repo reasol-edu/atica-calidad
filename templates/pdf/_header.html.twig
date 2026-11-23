@@ -1,12 +1,11 @@
+{# A header given as HTML (PdfHeader: already escaped or sanitized, with its fields filled in); else the title and the centre's name. #}
+{% if header is defined and header is not null %}
+    {{ header.html|raw }}
+{% else %}
 <table width="100%" style="border-collapse:collapse;border-bottom:2px solid #46603d;padding-bottom:4px;font-family:sourcesanspro,sans-serif;">
     <tr>
-        {# headerLeft / headerRight arrive already sanitized (app.rich_text) and with placeholders substituted by PdfHeaderBuilder #}
-        {% if headerLeft is defined and headerLeft is not null %}
-            <td style="text-align:left;vertical-align:bottom;font-size:10pt;color:#2e2822;">{{ headerLeft|raw }}</td>
-            <td style="text-align:right;vertical-align:bottom;font-size:9pt;color:#46603d;">{{ headerRight|raw }}</td>
-        {% else %}
-            <td style="text-align:left;font-size:10pt;font-weight:bold;color:#2e2822;">{{ pdfTitle }}</td>
-            <td style="text-align:right;font-size:9pt;font-weight:bold;color:#46603d;">{{ centre.name }}</td>
-        {% endif %}
+        <td style="text-align:left;font-size:10pt;font-weight:bold;color:#2e2822;">{{ pdfTitle }}</td>
+        <td style="text-align:right;font-size:9pt;font-weight:bold;color:#46603d;">{{ centre.name }}</td>
     </tr>
 </table>
+{% endif %}

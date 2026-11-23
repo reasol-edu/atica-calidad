@@ -1,6 +1,6 @@
 {# Table of markers available in the rich-text fields for report customization.
-   Used from the help popover (ⓘ icon) in SettingsComponent, and must reflect the markers
-   resolved by App\Service\PdfHeaderBuilder. #}
+   Used from the help popover (ⓘ icon) in SettingsComponent. (Inherited from an earlier application: no
+   rich-text setting uses it now; the header and footer of the documents have their own editor.) #}
 {% set placeholderRows = [
     {marker: '{title}', description: 'settings.placeholder_help.marker.title', scope: 'settings.placeholder_help.scope.all'},
     {marker: '{report_nr}', description: 'settings.placeholder_help.marker.report_nr', scope: 'settings.placeholder_help.scope.reports_only'},

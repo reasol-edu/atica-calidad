@@ -43,6 +43,7 @@ class FormReviewController extends AbstractController
         private readonly DocumentRevisionReviewer $reviewer,
         private readonly FormResolver $resolver,
         private readonly \App\Service\Form\FormOfficeWriter $office,
+        private readonly \App\Service\Form\FormLayoutResolver $layouts,
         private readonly \App\Service\Form\FormListOptions $lists,
         private readonly \App\Service\Form\FormIndicatorCalculator $indicators,
         private readonly FormDiff $diff,
@@ -110,14 +111,22 @@ class FormReviewController extends AbstractController
     #[Route('/formularios/revision/{revisionId}/exportar.{_format}', name: 'app_form_revision_export', requirements: ['_format' => 'docx|odt'], methods: ['GET'])]
     public function export(string $revisionId, string $_format, #[CurrentCentre] EducationalCentre $centre): Response
     {
-        $filled = $this->requireRevision($revisionId, $centre);
-        $title  = $filled->getRevision()->getDocument()->getName();
-        $body   = $this->office->build(
+        $filled     = $this->requireRevision($revisionId, $centre);
+        $title      = $filled->getRevision()->getDocument()->getName();
+        $modelRev   = $filled->getModelRevision();
+        $modelTitle = $modelRev->getModel()->getDocument()->getName();
+        // The layout is the one the revision of the model was sent with; the header says the model's title, the body this document's.
+        $layout = $this->layouts->resolve(
+            $modelRev->getDefinition(),
+            $centre,
+            $this->layouts->values($centre, $modelTitle, $modelRev->getCode(), $modelRev->getRevision()->getVersion(), $modelRev->getRevision()->getRevisedAt()),
+        );
+        $body = $this->office->build(
             $_format,
             $title,
-            $filled->getModelRevision()->getCode(),
-            $centre->getName() . ' · REV: ' . $filled->getModelRevision()->getRevision()->getVersion(),
             $this->resolver->resolve($this->lists->delivered($filled), $filled->getData(), $this->context($filled)),
+            $layout,
+            $title !== $modelTitle ? $title : null,
         );
 
         $response = new Response($body);

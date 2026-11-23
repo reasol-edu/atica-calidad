@@ -119,7 +119,7 @@ final class PdfRendererTest extends RepositoryTestCase
             ['centre' => $centre],
             'Informe',
             'informe.pdf',
-            header: new PdfHeader('<p>Izquierda</p>', '<p>Derecha</p>', 30),
+            header: PdfHeader::twoColumns('<p>Izquierda</p>', '<p>Derecha</p>', 30),
         );
 
         self::assertSame('application/pdf', $response->headers->get('Content-Type'));

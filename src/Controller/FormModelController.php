@@ -49,6 +49,8 @@ class FormModelController extends AbstractController
         private readonly FormDataNormalizer $data,
         private readonly FormResolver $resolver,
         private readonly \App\Service\Form\FormListOptions $lists,
+        private readonly \App\Service\Form\FormLayoutResolver $layouts,
+        private readonly \App\Service\Form\FormPdfBuilder $pdf,
         private readonly TranslatorInterface $translator,
         private readonly CsrfTokenManagerInterface $csrf,
     ) {}
@@ -156,6 +158,9 @@ class FormModelController extends AbstractController
             'indicatorSources' => $sources,
             'modelIndicators'  => $indicators,
             'hasRevisions' => $model->getDocument()->getRevisions()->count() > 0,
+            // The header, footer, orientation and font scale of the model, and the header and footer it would have without its own.
+            'layout'    => $this->definitions->normalize($model->getDraftDefinition())['layout'],
+            'inherited' => $this->layouts->inherited($centre),
             'editor'   => [
                 'problems'   => $this->translateProblems($this->service->problems($this->definitions->normalize($model->getDraftDefinition()), $centre)),
                 'changes'    => $this->service->changes($model),
@@ -220,6 +225,31 @@ class FormModelController extends AbstractController
             'backUrl'  => $this->generateUrl('app_form_model_edit', ['id' => $id]),
             'blank'    => true,
         ]);
+    }
+
+    /** The draft of a model as the PDF it will give (blank, with its header and footer, orientation and font scale), to look at before sending it. */
+    #[Route('/{id}/vista.pdf', name: 'app_form_model_preview_pdf', methods: ['GET'])]
+    public function previewPdf(string $id, #[CurrentCentre] EducationalCentre $centre): Response
+    {
+        $model      = $this->requireModel($id, $centre);
+        $document   = $model->getDocument();
+        $definition = $this->definitions->normalize($model->getDraftDefinition());
+        $content    = $this->pdf->build(
+            $definition,
+            $this->data->sample($definition),
+            $centre,
+            $document->getName(),
+            $model->getCode(),
+            $document->getNextVersion(),
+            true,
+            ['centre' => $centre->getName(), 'activity' => $document->getName(), 'slot' => '', 'year' => '', 'date' => ''],
+        );
+
+        $response = new Response($content);
+        $response->headers->set('Content-Type', 'application/pdf');
+        $response->headers->set('Content-Disposition', 'inline; filename="vista-previa.pdf"');
+
+        return $response;
     }
 
     #[Route('/{id}/enviar', name: 'app_form_model_send', methods: ['POST'])]

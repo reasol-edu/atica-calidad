@@ -24,7 +24,7 @@ const SELECT = 'min-w-0 rounded-lg border border-gray-200 py-1.5 pl-2 text-sm fo
  */
 /* stimulusFetch: 'lazy' */
 export default class extends Controller {
-    static targets = ['canvas', 'outline', 'status', 'problems', 'code', 'send', 'bar', 'summary', 'panel', 'openSend', 'tabs', 'rules', 'approval'];
+    static targets = ['canvas', 'outline', 'status', 'problems', 'code', 'send', 'bar', 'summary', 'panel', 'openSend', 'tabs', 'rules', 'approval', 'scale', 'scaleOutput'];
     static values = { config: Object, labels: Object };
 
     connect() {
@@ -35,6 +35,8 @@ export default class extends Controller {
         // The fields made from the named totals of the columns are not edited as blocks: the server makes them from the columns.
         const dropFoot = (sections) => sections.forEach((s) => { s.blocks = (s.blocks || []).filter((b) => !b.foot); dropFoot(s.children || []); });
         dropFoot(this.def.sections);
+        // The page layout (header, footer, orientation, font scale) edited in the "Ajustes" tab; a header or footer null is the centre's.
+        this.def.layout = Object.assign({ header: null, footer: null, orientation: 'portrait', fontScale: 100 }, this.def.layout || {});
         this.version = this.configValue.version;
         this.dirty = false;
         this.saving = false;
@@ -54,7 +56,7 @@ export default class extends Controller {
         const wanted = location.hash.replace('#', '');
         this.tab = this.panels.includes(wanted) ? wanted : 'content';
         this.problems = this.configValue.problems || [];
-        this.changes = this.configValue.changes || { content: false, rules: false, approval: false, base: null, any: true };
+        this.changes = this.configValue.changes || { content: false, rules: false, approval: false, layout: false, base: null, any: true };
 
         this.render();
         this.showTab(this.tab);
@@ -74,7 +76,7 @@ export default class extends Controller {
     /** The tabs, each with its state: a red number when it has problems that stop the sending, an amber dot when it differs from the last revision sent. */
     paintTabs() {
         const had = this.tabsTarget.contains(document.activeElement) ? document.activeElement.dataset.tab : null;
-        const names = { content: this.l.tab_content, rules: this.l.tab_rules, approval: this.l.tab_approval, indicators: this.l.tab_indicators };
+        const names = { content: this.l.tab_content, rules: this.l.tab_rules, approval: this.l.tab_approval, indicators: this.l.tab_indicators, layout: this.l.tab_layout };
         const tabs = this.panels.map((name, i) => {
             const count = this.problems.filter((p) => p.part === name).length;
             const changed = this.changes[name] === true;
@@ -115,7 +117,7 @@ export default class extends Controller {
     applyState(problems, changes) {
         this.problems = problems;
         this.changes = changes;
-        const parts = { content: this.l.tab_content, rules: this.l.tab_rules, approval: this.l.tab_approval };
+        const parts = { content: this.l.tab_content, rules: this.l.tab_rules, approval: this.l.tab_approval, layout: this.l.tab_layout };
         const changedNames = Object.keys(parts).filter((p) => changes[p]).map((p) => parts[p].toLowerCase());
         let summary;
         if (changes.base === null) {
@@ -143,6 +145,46 @@ export default class extends Controller {
         if (this.hasTabsTarget) {
             this.paintTabs();
         }
+    }
+
+    // ── The "Ajustes" tab: header, footer, orientation and font scale ──────────
+
+    /** The checkbox "customize": with it the model has its own header (or footer), without it it follows the centre's. */
+    layoutMode(event) {
+        const part = event.target.dataset.part;
+        const box = this.element.querySelector('[data-layout-part="' + part + '"]');
+        const custom = event.target.checked;
+        box.querySelector('[data-layout-inherited]').classList.toggle('hidden', custom);
+        box.querySelector('[data-layout-custom]').classList.toggle('hidden', !custom);
+        if (custom) {
+            // Starts from what the model had (or from the inherited one), kept as it is until it is edited.
+            const input = box.querySelector('[data-doc-layout-editor-target="input"]');
+            this.def.layout[part] = input.value || null;
+        } else {
+            this.def.layout[part] = null;
+        }
+        this.touch();
+    }
+
+    layoutEdited(event) {
+        this.def.layout[event.target.dataset.part] = event.target.value || null;
+        this.touch();
+    }
+
+    layoutOrientation(event) {
+        this.def.layout.orientation = event.target.value;
+        this.touch();
+    }
+
+    layoutScale() {
+        this.def.layout.fontScale = Number(this.scaleTarget.value);
+        this.scaleOutputTarget.textContent = this.def.layout.fontScale + ' %';
+        this.touch();
+    }
+
+    layoutScaleReset() {
+        this.scaleTarget.value = '100';
+        this.layoutScale();
     }
 
     /** Opens or closes the panel under the bar (the way to send the draft); `open` forces one or the other. */

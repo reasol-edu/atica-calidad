@@ -35,6 +35,8 @@ final class FormDefinitionNormalizer
     public function __construct(
         #[Autowire(service: 'html_sanitizer.sanitizer.app.rich_text')]
         private readonly HtmlSanitizerInterface $sanitizer,
+        #[Autowire(service: 'html_sanitizer.sanitizer.app.doc_layout')]
+        private readonly ?HtmlSanitizerInterface $layoutSanitizer = null,
     ) {}
 
     /**
@@ -76,7 +78,14 @@ final class FormDefinitionNormalizer
             ];
         }
 
-        return ['version' => FormDefinition::VERSION, 'sections' => $sections, 'rules' => $rules, 'approval' => $approval];
+        return [
+            'version'  => FormDefinition::VERSION,
+            'sections' => $sections,
+            'rules'    => $rules,
+            'approval' => $approval,
+            // Header, footer, orientation and font scale of the documents (an old revision without it gets the defaults).
+            'layout'   => FormLayout::clean($raw['layout'] ?? null, $this->layoutSanitizer),
+        ];
     }
 
     /**

@@ -52,7 +52,7 @@ class FormModelLibraryController extends AbstractController
             return $response;
         }
 
-        $response = new Response($this->porter->exportOffice($model, $_format, $centre->getName()));
+        $response = new Response($this->porter->exportOffice($model, $_format, $centre));
         $response->headers->set('Content-Type', $_format === 'odt' ? 'application/vnd.oasis.opendocument.text' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
         $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '.' . $_format . '"');
 

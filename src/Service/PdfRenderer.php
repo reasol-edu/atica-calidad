@@ -58,12 +58,12 @@ class PdfRenderer
         ?string $reportType = null,
         bool $showHeader = true,
         bool $showFooter = true,
+        ?string $footerHtml = null,
     ): Response {
         $context += [
             'pdfTitle'       => $title,
             'pdfGeneratedAt' => $this->clock->now(),
-            'headerLeft'     => $header?->leftHtml,
-            'headerRight'    => $header?->rightHtml,
+            'header'         => $header,
         ];
 
         $mpdf = new Mpdf($this->fontConfig() + [
@@ -75,6 +75,9 @@ class PdfRenderer
             'margin_bottom' => $showFooter ? 18 : 10,
             'margin_header' => 8,
             'margin_footer' => 8,
+            // A header or footer of the model can be as tall as its table: the margin grows with it instead of covering the content.
+            'setAutoTopMargin'    => $showHeader && $header?->stretch === true ? 'stretch' : false,
+            'setAutoBottomMargin' => $footerHtml !== null ? 'stretch' : false,
             'tempDir'       => sys_get_temp_dir(),
         ]);
 
@@ -100,7 +103,7 @@ class PdfRenderer
                 $mpdf->SetHTMLHeader($this->twig->render('pdf/_header.html.twig', $context));
             }
             if ($showFooter) {
-                $mpdf->SetHTMLFooter($this->twig->render('pdf/_footer.html.twig', $context));
+                $mpdf->SetHTMLFooter($footerHtml ?? $this->twig->render('pdf/_footer.html.twig', $context));
             }
             $mpdf->WriteHTML($this->twig->render($template, $context));
 

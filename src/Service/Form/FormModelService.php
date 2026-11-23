@@ -41,10 +41,10 @@ final class FormModelService
     ) {}
 
     /**
-     * What of the draft is still to send: the parts (`content`, `rules`, `approval`) that differ from the last revision sent, and the
-     * version of that revision (null when none was sent yet: then every part with something in it is to send).
+     * What of the draft is still to send: the parts (`content`, `rules`, `approval`, `layout`) that differ from the last revision sent,
+     * and the version of that revision (null when none was sent yet: then every part with something in it is to send).
      *
-     * @return array{content: bool, rules: bool, approval: bool, base: ?int, any: bool}
+     * @return array{content: bool, rules: bool, approval: bool, layout: bool, base: ?int, any: bool}
      */
     public function changes(FormModel $model): array
     {
@@ -55,6 +55,7 @@ final class FormModelService
                 'content'  => FormDefinition::listOf($draft['sections'] ?? []) !== [] || trim((string) $model->getCode()) !== '',
                 'rules'    => FormDefinition::listOf($draft['rules'] ?? []) !== [],
                 'approval' => FormDefinition::listOf($draft['approval'] ?? []) !== [],
+                'layout'   => ($draft['layout'] ?? null) !== FormLayout::defaults(),
             ];
 
             return $parts + ['base' => null, 'any' => true];
@@ -65,6 +66,7 @@ final class FormModelService
             'content'  => $draft['sections'] !== $sent['sections'] || trim((string) $model->getCode()) !== trim((string) $last->getCode()),
             'rules'    => $draft['rules'] !== $sent['rules'],
             'approval' => $draft['approval'] !== $sent['approval'],
+            'layout'   => $draft['layout'] !== $sent['layout'],
         ];
 
         return $parts + ['base' => $last->getRevision()->getVersion(), 'any' => in_array(true, $parts, true)];

@@ -140,8 +140,10 @@ final class FormLibraryTest extends ControllerTestCase
         $zip = new \ZipArchive();
         self::assertTrue($zip->open($path));
         $xml = (string) $zip->getFromName($entry);
+        // The title of the model is in the running header (the page's), not in the body.
+        $header = (string) $zip->getFromName($format === 'odt' ? 'styles.xml' : 'word/header1.xml');
         $zip->close();
-        self::assertStringContainsString('Ficha de visita', $xml);
+        self::assertStringContainsString('Ficha de visita', $header);
         self::assertStringContainsString('Alumnado', $xml);
         self::assertNotFalse(simplexml_load_string($xml), 'well-formed XML');
 

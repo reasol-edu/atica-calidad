@@ -53,3 +53,31 @@ framework:
                         - a
                 with_attribute_sanitizers:
                     - App\HtmlSanitizer\RichTextAlignAttributeSanitizer
+
+            # The running header and footer of the documents (settings and model layout): tables with merged cells and some inline
+            # formatting, written by the Tiptap editor. `style` goes through DocLayoutStyleAttributeSanitizer, which keeps only a
+            # short list of harmless declarations.
+            app.doc_layout:
+                allow_safe_elements: false
+                max_input_length: 100000
+                allow_elements:
+                    table: [style]
+                    colgroup: []
+                    col: [style]
+                    thead: []
+                    tbody: []
+                    tfoot: []
+                    tr: []
+                    td: [style, colspan, rowspan, data-colwidth]
+                    th: [style, colspan, rowspan, data-colwidth]
+                    p: [style]
+                    br: []
+                    strong: []
+                    b: []
+                    em: []
+                    i: []
+                    u: []
+                    s: []
+                    span: [style]
+                with_attribute_sanitizers:
+                    - App\HtmlSanitizer\DocLayoutStyleAttributeSanitizer

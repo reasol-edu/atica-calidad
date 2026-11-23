@@ -106,6 +106,16 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - **Modelos de documento: carpeta y archivo al crear o importar.** La carpeta del árbol documental se elige con un desplegable con
   búsqueda (como en el formulario de actividad) y el archivo a importar se suelta en una zona de arrastre, como en el resto de la
   aplicación.
+- **Encabezado y pie de los documentos.** Nuevo ajuste global y de centro («Encabezado y pie de los documentos») con un editor de
+  texto enriquecido con tablas (celdas combinadas, líneas, fondos) y los campos `{centro}`, `{localidad}`, `{pagina}`, `{paginas}`,
+  `{codigo}`, `{titulo}`, `{revision}` y `{fecha_revision}`; por defecto, una tabla como la de los documentos ODT del centro, sin logos.
+  Cada modelo tiene una pestaña **Ajustes** para personalizarlos, elegir la orientación (vertical o apaisado) y el tamaño del contenido
+  (deslizador del 50 % al 150 %); todo ello va dentro de la revisión del modelo. El encabezado y el pie salen en el PDF y en el
+  encabezado y pie de página de los ficheros Word y LibreOffice. Nuevo botón «Vista previa en PDF» en el editor. El editor usa Tiptap
+  (nueva dependencia JS, instalada en local con importmap).
+- **Exportación a Word y LibreOffice con estilo.** Los `.docx` y `.odt` salen con el aspecto de la aplicación (títulos y reglas en verde,
+  tablas con cabecera de color, filas alternas y fila de totales, listas de campos con la etiqueta resaltada, negrita, cursiva y listas del
+  texto enriquecido), con repetición de la cabecera de las tablas en cada página.
 - **Modelos de documento: lista preparada para muchos modelos.** «Nuevo modelo» e «Importar» pasan a ventanas que se abren desde la
   cabecera. La lista tiene buscador, filtros por estado y sección, orden (nombre, código, última modificación, estado), agrupación
   plegable por sección o estado, un acceso a los que «necesitan atención» (revisión pendiente o borrador con cambios sin enviar),

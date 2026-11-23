@@ -195,6 +195,40 @@ final class FormFlowTest extends ControllerTestCase
         self::assertStringStartsWith('%PDF', $rev->getFile()->getContent());
     }
 
+    public function testTheLayoutOfAModelTravelsWithItsDraftAndTheEditorOffersItsTabAndAPdfPreview(): void
+    {
+        $this->loginAs($this->admin, $this->centre);
+        $service = self::getContainer()->get(FormModelService::class);
+        $model   = $service->create($this->modelFolder, 'Ficha con formato', 'MD1');
+        $id      = $model->getId()->toRfc4122();
+
+        $this->client->request('GET', "/modelos/{$id}");
+        $html = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('data-panel="layout"', $html);
+        self::assertStringContainsString('data-testid="preview-pdf"', $html);
+        self::assertStringContainsString('type="range" min="50" max="150"', $html);
+
+        $layout = ['header' => '<table><tbody><tr><td colspan="2" style="background-color: #eef2ea; position: fixed">{centro}<script>x</script></td></tr></tbody></table>', 'footer' => null, 'orientation' => 'landscape', 'fontScale' => 130];
+        $response = $this->postJson("/modelos/{$id}/borrador", 'form_model_' . $id, ['version' => $model->getDraftVersion(), 'definition' => ['version' => 1, 'sections' => [], 'layout' => $layout]]);
+        self::assertSame(200, $response->getStatusCode());
+        self::assertTrue(json_decode((string) $response->getContent(), true)['changes']['layout'], 'a layout that is not the default is a change still to send');
+
+        $this->em->clear();
+        $saved = self::getContainer()->get(FormModelRepository::class)->findByIdAndCentre($id, $this->centre)->getDraftDefinition()['layout'];
+        self::assertSame('landscape', $saved['orientation']);
+        self::assertSame(130, $saved['fontScale']);
+        self::assertNull($saved['footer']);
+        self::assertStringContainsString('colspan="2"', $saved['header']);
+        self::assertStringContainsString('{centro}', $saved['header']);
+        self::assertStringNotContainsString('script', $saved['header']);
+        self::assertStringNotContainsString('position', $saved['header']);
+
+        $this->client->request('GET', "/modelos/{$id}/vista.pdf");
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertSame('application/pdf', $this->client->getResponse()->headers->get('Content-Type'));
+        self::assertStringStartsWith('%PDF', (string) $this->client->getResponse()->getContent());
+    }
+
     public function testAModelInAFolderThatAsksForReviewWaitsForApproval(): void
     {
         $reviewers = (new SpecificProfile())->setEducationalCentre($this->centre)->setName('Revisión');
@@ -232,7 +266,7 @@ final class FormFlowTest extends ControllerTestCase
         $service->sendToReview($model, $this->admin, 'Primera');
         $changes = $service->changes($model);
         self::assertSame(1, $changes['base']);
-        self::assertSame(['content' => false, 'rules' => false, 'approval' => false, 'base' => 1, 'any' => false], $changes, 'the draft is what was sent');
+        self::assertSame(['content' => false, 'rules' => false, 'approval' => false, 'layout' => false, 'base' => 1, 'any' => false], $changes, 'the draft is what was sent');
 
         // A rule changes only the rules; a step only the approval; the content stays as it was sent.
         $draft = $model->getDraftDefinition();

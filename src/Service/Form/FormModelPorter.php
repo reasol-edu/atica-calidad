@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Form;
 
+use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Entity\FormModel;
 use App\Entity\Teacher;
@@ -25,6 +26,7 @@ final class FormModelPorter
         private readonly FormResolver $resolver,
         private readonly FormDataNormalizer $data,
         private readonly FormListOptions $lists,
+        private readonly FormLayoutResolver $layouts,
     ) {}
 
     /**
@@ -43,16 +45,17 @@ final class FormModelPorter
     }
 
     /** The draft of a model as a DOCX or ODT, blank (what it will look like to fill in). */
-    public function exportOffice(FormModel $model, string $format, string $centreName): string
+    public function exportOffice(FormModel $model, string $format, EducationalCentre $centre): string
     {
         $definition = $this->definitions->normalize($model->getDraftDefinition());
+        $document   = $model->getDocument();
+        $layout     = $this->layouts->resolve($definition, $centre, $this->layouts->values($centre, $document->getName(), $model->getCode(), $document->getNextVersion(), new \DateTimeImmutable()));
 
         return $this->writer->build(
             $format,
-            $model->getDocument()->getName(),
-            $model->getCode(),
-            $centreName,
-            $this->resolver->resolve($definition, $this->data->sample($definition), ['centre' => $centreName, 'activity' => $model->getDocument()->getName()]),
+            $document->getName(),
+            $this->resolver->resolve($definition, $this->data->sample($definition), ['centre' => $centre->getName(), 'activity' => $document->getName()]),
+            $layout,
         );
     }
 

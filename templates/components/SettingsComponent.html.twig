@@ -53,7 +53,8 @@
             {# The richtext and pdf settings stack vertically: they need the full width #}
             {% set isRichText = def.type.value == 'richtext' %}
             {% set isPdf      = def.type.value == 'pdf' %}
-            <li class="flex flex-col gap-3 px-6 py-4 {{ (isRichText or isPdf) ? '' : 'sm:flex-row sm:items-center sm:gap-6' }}
+            {% set isLayout   = def.type.value == 'layout' %}
+            <li class="flex flex-col gap-3 px-6 py-4 {{ (isRichText or isPdf or isLayout) ? '' : 'sm:flex-row sm:items-center sm:gap-6' }}
                         {{ parentLock is not null ? 'opacity-60' : '' }}">
 
                 {# ── Label + description ── #}
@@ -115,7 +116,7 @@
                 </div>
 
                 {# ── Control ── #}
-                <div class="flex gap-3 {{ (isRichText or isPdf) ? 'w-full items-start' : 'items-center max-w-full sm:shrink-0' }}"
+                <div class="flex gap-3 {{ (isRichText or isPdf or isLayout) ? 'w-full items-start' : 'items-center max-w-full sm:shrink-0' }}"
                      {% if not hasSingleField %}role="group" aria-labelledby="setting-label-{{ keySlug }}"{% endif %}>
 
                     {% if def.type.value == 'boolean' %}
@@ -230,6 +231,21 @@
                                 {% endfor %}
                             </select>
                         </div>
+
+                    {% elseif def.type.value == 'layout' %}
+                        {# The running header or footer of the documents: a table editor (Tiptap) kept out of the LiveComponent's morphing. #}
+                        {% if parentLock is not null %}
+                            <div class="w-full overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500">
+                                {{ effective|sanitize_html('app.doc_layout') }}
+                            </div>
+                        {% else %}
+                            {{ include('components/_doc_layout_editor.html.twig', {
+                                id: 'setting-layout-' ~ keySlug,
+                                value: displayValue ?? effective ?? '',
+                                default: def.defaultValue,
+                                input: 'data-controller="setting-save" data-action="change->setting-save#save" data-setting-key="' ~ key|e('html_attr') ~ '"',
+                            }) }}
+                        {% endif %}
 
                     {% elseif def.type.value == 'richtext' %}
                         {% if parentLock is not null %}

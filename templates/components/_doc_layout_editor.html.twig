@@ -1,0 +1,23 @@
+{# The editor of a running header or footer (Tiptap, see doc_layout_editor_controller.js). Parameters:
+   id        — the id of the wrapper (stable: the settings screen re-renders and the editor must not be rebuilt)
+   value     — the current HTML
+   default   — HTML "restore" goes back to (optional)
+   input     — extra attributes for the hidden textarea that holds the HTML, already escaped (e.g. the setting-save controller or a model-editor action)
+   Wrap it in data-live-ignore where a LiveComponent re-renders. #}
+{% set tokens = {} %}
+{% for key in ['centro', 'localidad', 'pagina', 'paginas', 'codigo', 'titulo', 'revision', 'fecha_revision'] %}
+    {% set tokens = tokens|merge({(key): ('layout.token.' ~ key)|trans({}, 'forms')}) %}
+{% endfor %}
+{% set labels = {} %}
+{% for key in ['editor', 'bold', 'italic', 'underline', 'left', 'center', 'right', 'color', 'size', 'sizeAuto', 'field', 'fieldPlaceholder', 'insertTable', 'addRow', 'addCol', 'delRow', 'delCol', 'merge', 'split', 'bordersToggle', 'delTable', 'cellBackground', 'noBackground', 'restore'] %}
+    {% set labels = labels|merge({(key): ('layout.editor.' ~ key)|trans({}, 'forms')}) %}
+{% endfor %}
+<div id="{{ id }}" class="w-full min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white" data-live-ignore
+     data-controller="doc-layout-editor"
+     data-doc-layout-editor-labels-value="{{ labels|json_encode|e('html_attr') }}"
+     data-doc-layout-editor-tokens-value="{{ tokens|json_encode|e('html_attr') }}"
+     {% if default is defined and default %}data-doc-layout-editor-default-html-value="{{ default|e('html_attr') }}"{% endif %}>
+    <div data-doc-layout-editor-target="editor"></div>
+    <p class="border-t border-gray-100 bg-gray-50 px-3 py-1.5 text-xs text-gray-500">{{ 'layout.editor.hint'|trans({}, 'forms') }}</p>
+    <textarea class="hidden" data-doc-layout-editor-target="input" {{ input|default('')|raw }}>{{ value }}</textarea>
+</div>

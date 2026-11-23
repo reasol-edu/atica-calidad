@@ -128,7 +128,7 @@ class ActivityLogController extends AbstractController
             ],
             $title,
             $filename,
-            header: new PdfHeader(htmlspecialchars($title), '', 22),
+            header: PdfHeader::twoColumns(htmlspecialchars($title), ''),
             orientation: 'L',
         );
     }

@@ -53,6 +53,19 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
 - Not done yet in this phase: the "list of the centre" and "another document" sources of repetition (need the catalogues of phase 6 and the
   pre-fill of phase 5) and a minimum of manual copies as a delivery problem (it only applies when the document is created).
 
+### Pending (parked 2026-11-22): a table fed from another document
+
+Use case: a «revisión de programación didáctica» model that reads the rows of the «temporalización» table of the programación didáctica
+model its activity is associated with. **Not supported**: the pre-fill between different models copies only fields by internal name
+(`FormPrefiller::byName()`), never tables, and only once at draft creation; relations, repetition and totals live inside one document.
+Workaround today: one model with both parts, two activities, the second pre-filled from the first (same model: whole data, tables included).
+
+Sketch to take up again: a table block "from another document" (source model + table; rows come from the last delivered document of the
+activity's «documento de origen», like `formPrefillSource`), rows read-only and identified by the source row key (like fixed/counted rows),
+read-only source columns plus the model's own, repetition of sections by those rows, totals and formulas as in any table, a snapshot frozen
+at delivery and a warning when the origin changes afterwards. Open decision: freeze the copy when the draft is created, or refresh it while
+it is a draft. Needs: definition + normalizer, server and client resolution (`FormScopes` / `form_scopes.js`), validation, revision diff, tests.
+
 ## Calculations, rules, relations and double-entry tables (phase 3)
 
 - **Expression language** (`FormExpression`, closed grammar, no `eval`): numbers, texts, `+ - * /`, comparisons, `&& || !`, and
@@ -217,6 +230,31 @@ trap: a list-fed field normalized against the raw definition has no options, so 
   only if its version equals the server's (otherwise someone else saved in between and the server wins). Saving, delivering and every other
   action still need the connection. Verified only by reading and the integration tests (no browser run: service workers need HTTPS or
   `localhost`).
+
+## Page layout: header, footer, orientation, font scale
+
+- **Where it lives.** `definition.layout = {header, footer, orientation, fontScale}` (`FormLayout`), normalised by `FormDefinitionNormalizer`
+  (so it travels with every revision, the JSON export/import and duplicates, and an old revision without it gets the defaults). `header`/
+  `footer` `null` = the centre's → the platform's → the built-in tables (settings `forms.document_header|footer`, type `layout`, seeded by
+  migration `Version20261123100000` in the three engines; `FormLayoutResolver::inherited()`). `FormModelService::changes()` has a `layout`
+  part (the editor's "Ajustes" tab dot). `fontScale` is clamped to 50–150 and the orientation whitelisted server-side.
+- **HTML and tokens.** Header and footer are HTML from Tiptap (`doc_layout_editor_controller.js`, shared by the settings screen and the
+  tab through `components/_doc_layout_editor.html.twig`), sanitized with `app.doc_layout` (tables, colspan/rowspan, a whitelist of CSS
+  declarations in `DocLayoutStyleAttributeSanitizer`). The fields are plain-text tokens `{centro}`… (no custom node: the sanitizer stays
+  trivial); `FormLayout::fill()` escapes and substitutes all but the page ones, which each output turns into its own field.
+- **One reader for three outputs.** `Layout\LayoutHtml::parse()` turns the HTML into `Paragraph`/`Table` (a grid: `Table::placement()`
+  resolves merged cells once) and writes the PDF HTML; `Office\OdtDocument` / `Office\DocxDocument` draw the same objects (ODT:
+  `covered-table-cell`, `number-*-spanned`, master-page header/footer; DOCX: `gridSpan`, `vMerge restart/continue`, `header1.xml`/
+  `footer1.xml`, `fldSimple PAGE/NUMPAGES`). Body styling lives in `Office\Theme` (colours of the app, Calibri, sizes × font scale).
+- **mPDF quirks.** The text alignment of a table cell comes from the **cell**, not from the `<p>` in it (`LayoutHtml` copies the first
+  paragraph's alignment onto the `<td>`); a `<col>` takes its width from the `width="%"` **attribute**, not from `style`; the header and
+  footer are outside the document's stylesheet (inline styles only); `setAutoTopMargin='stretch'` (`PdfHeader::$stretch`) makes room for a
+  tall header, and a custom footer goes in `PdfRenderer`'s `$footerHtml`.
+- **Delivered PDFs are frozen files**; DOCX/ODT are generated on request, so a model with no header of its own shows the centre's *current*
+  one there. The body repeats the title only when the document has a name of its own (`showTitle`/`$heading`): the header carries the model's.
+- **Not verified in Word/LibreOffice here** (no office suite on the dev machine): the XML is checked for well-formedness and structure in
+  `FormOfficeLayoutTest`, and `pandoc` reads both files; open a sample in both before a release. `LAYOUT_PDF_OUT=<dir>` makes
+  `FormLayoutPdfTest`/`FormOfficeLayoutTest` write their files there.
 
 ## Front end
 

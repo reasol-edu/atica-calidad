@@ -201,11 +201,49 @@ saber que:
   cierra siempre la sesión.
 - El modo sin conexión solo funciona en conexiones seguras (`https`).
 
+## Encabezado, pie de página y formato {#encabezado-y-pie}
+
+Cada página de un documento (PDF, Word y LibreOffice) lleva un **encabezado** arriba y un **pie** abajo. Son
+texto enriquecido con **tablas** (celdas combinadas, líneas, colores de fondo), y pueden incluir estos
+**campos**, que la aplicación rellena al generar cada documento. Se insertan con el desplegable «Insertar
+campo» del editor, o escribiéndolos entre llaves:
+
+| Campo | Qué pone |
+|---|---|
+| `{centro}` | El nombre del centro |
+| `{localidad}` | La localidad del centro |
+| `{pagina}` y `{paginas}` | El número de la página y el total de páginas |
+| `{codigo}` | El código del documento (el del modelo, por ejemplo `MD850211`) |
+| `{titulo}` | El título del modelo |
+| `{revision}` | El número de la revisión del modelo |
+| `{fecha_revision}` | La fecha de esa revisión (en un borrador, la de hoy) |
+
+El encabezado y el pie **predeterminados** son una tabla como la de los documentos del centro, sin logos:
+arriba el nombre y la localidad, debajo el título, y en la última fila el código, la revisión y «Página x de y»;
+al pie, el código y la fecha. Se cambian en **Ajustes → Encabezado y pie de los documentos**: la plataforma
+tiene los suyos y cada centro puede poner los propios.
+
+Cada modelo puede además personalizarlos en su pestaña **Ajustes**, donde también se elige:
+
+- **Orientación de la página**: vertical o apaisado.
+- **Tamaño del contenido**: un deslizador del 50 % al 150 % (el 100 % es el tamaño normal) para reducir o
+  ampliar el texto del documento; el encabezado y el pie no cambian de tamaño.
+
+Todo esto forma parte de la **revisión** del modelo, igual que el contenido: la pestaña muestra un punto
+ámbar mientras difiera de la última revisión enviada, y los documentos ya entregados conservan el aspecto
+con el que se entregaron. Si el modelo no personaliza el encabezado o el pie, usa el del centro: en los PDF
+ya entregados no cambia nada, pero en las exportaciones a Word y LibreOffice, que se generan al pedirlas,
+se verá el que haya entonces en los ajustes. El botón **Vista previa en PDF** del editor enseña el
+documento tal como saldrá, con su encabezado, pie, orientación y tamaño.
+
 ## Sacar los documentos de la aplicación
 
 - **PDF**: el de cada entrega, desde el árbol documental o desde la página del documento rellenado.
 - **Word (.docx) y LibreOffice (.odt)**: en la página de un documento entregado (botones **DOCX** y
-  **ODT**), y también el modelo en blanco, desde **Modelos de documento → Exportar**.
+  **ODT**), y también el modelo en blanco, desde **Modelos de documento → Exportar**. Salen con el estilo de
+  la aplicación (títulos en verde, tablas con cabecera de color y filas alternas, listas de campos con la
+  etiqueta resaltada), el encabezado y el pie en el de página de Word o LibreOffice (se repiten en cada hoja, con
+  el número de página real), y la orientación y el tamaño del modelo.
 
 ## Compartir y reutilizar modelos
 
