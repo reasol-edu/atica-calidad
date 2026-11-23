@@ -101,6 +101,8 @@ final class FormLayoutPdfTest extends RepositoryTestCase
         $pdf        = $this->builder->build($definition, [], $this->centre, 'Memoria', 'MD1', 1, true, [], null, null, null, false, true);
 
         self::assertStringStartsWith('%PDF', $pdf);
+        // The logo is really in the file (once in the first page's header, once in the normal one: the same picture).
+        self::assertGreaterThanOrEqual(1, substr_count($pdf, '/Subtype /Image'), 'the PDF has the logo as an image');
         if (\is_string($dir = getenv('LAYOUT_PDF_OUT')) && $dir !== '') {
             file_put_contents($dir . '/first-logo-draft.pdf', $pdf);
             // The default header (with both logos) as the setting gives it.
