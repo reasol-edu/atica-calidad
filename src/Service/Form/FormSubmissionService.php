@@ -51,6 +51,7 @@ final class FormSubmissionService
         private readonly FormValueIndexer $values,
         private readonly FormIndicatorCalculator $indicators,
         private readonly FormListOptions $lists,
+        private readonly FormAttachmentService $attachments,
     ) {}
 
     /**
@@ -239,7 +240,7 @@ final class FormSubmissionService
         }
 
         $definition = $this->definitionOf($submission, $raw);
-        $data       = $this->normalizer->normalize($definition, $raw);
+        $data       = $this->attachments->restrict($submission, $definition, $this->normalizer->normalize($definition, $raw));
         $this->recordChanges($submission, $definition, $submission->getDraftData() ?? [], $data, $by);
         $submission->saveDraft($data, $by);
         $this->em->flush();
@@ -387,8 +388,10 @@ final class FormSubmissionService
 
         $definition = $this->definitionOf($submission);
         $data       = $this->normalizer->withoutEmptyRows($definition, $this->normalizer->normalize($definition, $submission->getDraftData() ?? []));
+        // (A pre-filled or updated draft may still point at another document's files until it is saved: never deliver those.)
+        $data       = $this->attachments->restrict($submission, $definition, $data);
 
-        $content = $this->pdf->buildForRevision($modelRevision, $definition, $data,$folder->getEducationalCentre(), $slot->displayName, false, $this->contextFor($activity, $slot, $submission->getCycleYear()));
+        $content = $this->pdf->buildForRevision($modelRevision, $definition, $data, $folder->getEducationalCentre(), $slot->displayName, false, $this->contextFor($activity, $slot, $submission->getCycleYear()), $this->attachments->contents($submission, $definition, $data));
         $file    = $this->documents->storeFile($content, 'application/pdf', $slot->displayName . '.pdf');
 
         // A model with an approval chain: the revision waits for its steps whatever the folder asks.

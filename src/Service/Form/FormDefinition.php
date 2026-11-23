@@ -30,8 +30,34 @@ final class FormDefinition
     /**
      * `calculated` (from a formula) and `relation` (picks rows of another table; table columns only) are not typed in as such. `scale` is
      * a rating from 1 to `points` (a whole number), with optional words for both ends (`lowLabel`, `highLabel`): a survey answer.
+     * `attachment` holds files (up to `maxFiles`; `printPages` puts the pages of attached PDFs at the end of the delivered PDF): blocks
+     * only, never a table cell. Its value is a list of `{id, name, size, mime}` of FormAttachment rows of the same submission.
      */
-    public const array FIELD_TYPES = ['short', 'long', 'number', 'date', 'time', 'bool', 'choice', 'multichoice', 'calculated', 'relation', 'scale'];
+    public const array FIELD_TYPES = ['short', 'long', 'number', 'date', 'time', 'bool', 'choice', 'multichoice', 'calculated', 'relation', 'scale', 'attachment'];
+
+    /** How many files a field «Adjuntos» may hold, at most and when the model says nothing. */
+    public const int ATTACHMENT_MAX_FILES     = 10;
+    public const int ATTACHMENT_DEFAULT_FILES = 5;
+
+    /** The largest file that can be attached (the platform's upload limits may be lower). */
+    public const int ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+
+    /**
+     * What can be attached, recognised by content (never by the name): PDF, pictures, office documents and plain text. A picture
+     * is shown in the document; the rest are listed and downloaded.
+     */
+    public const array ATTACHMENT_TYPES = [
+        'application/pdf',
+        'image/png', 'image/jpeg', 'image/gif', 'image/webp',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.oasis.opendocument.text',
+        'application/vnd.oasis.opendocument.spreadsheet',
+        'application/vnd.oasis.opendocument.presentation',
+        'application/msword', 'application/vnd.ms-excel', 'application/vnd.ms-powerpoint',
+        'text/plain', 'text/csv',
+    ];
 
     /** The points a rating scale may have (and the ones it gets when the model says none). */
     public const int SCALE_MIN_POINTS     = 3;

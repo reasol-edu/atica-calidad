@@ -51,7 +51,25 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
 - **Texto**: fijo (no se toca), de partida (se adapta) o a rellenar, con formato.
 - **Campo**: texto corto, texto largo (con **formato enriquecido**: negrita, cursiva, listas,
   enlaces…; en las celdas de una tabla sigue siendo texto plano), número (con mínimo, máximo y unidad), fecha, hora, sí/no, una o
-  varias opciones, **escala de valoración** o un valor **calculado** a partir de los demás.
+  varias opciones, **escala de valoración**, **adjuntos** o un valor **calculado** a partir de los demás.
+- **Adjuntos**: archivos que acompañan al documento como evidencia (un acta, una foto, una hoja de
+  cálculo). El modelo dice cuántos admite el campo (de 1 a 10; 5 si no se dice otra cosa). Se aceptan
+  PDF, imágenes, documentos de oficina y texto, de hasta 10 MB cada uno (menos si el servidor limita
+  las subidas); el tipo se comprueba por el contenido, no por el nombre. Solo en campos, no en las
+  celdas de una tabla. Al rellenar, se eligen o se arrastran sobre el recuadro, y se suben al momento
+  (hace falta conexión). En el documento cada archivo es un **«Anexo N»** numerado:
+  - en la vista web se descarga pulsando su nombre, y las imágenes se ven en su sitio;
+  - en el **PDF entregado**, las imágenes se dibujan en su sitio, al final hay una lista de anexos y
+    los archivos originales **van dentro del PDF** (se abren desde el panel de archivos adjuntos del
+    lector de PDF); si el campo lo pide («Incluir las páginas de los PDF adjuntos»), las páginas de
+    cada PDF adjunto se añaden al final;
+  - **Documento con anexos (ZIP)**, en la página del documento entregado, descarga el PDF y una
+    carpeta `anexos/` con los archivos numerados igual que en el documento;
+  - en Word y LibreOffice aparece la referencia («Anexo 1: acta.pdf (230 KB)»), sin los archivos.
+
+  Los anexos se congelan con cada entrega: corregir el documento crea otra versión y la anterior
+  conserva los suyos. Un archivo que solo está en el borrador lo ve solo quien rellena; uno entregado,
+  quien puede ver la carpeta del documento.
 - **Escala de valoración**: una respuesta de 1 a N puntos (de 3 a 10; 5 si no se dice otra cosa), con
   una palabra opcional para cada extremo («Nada» … «Mucho»). Se contesta pulsando el número (en una
   tabla, en un desplegable) y se lee como «4 / 5». Cuenta como un número: sirve en fórmulas, en el

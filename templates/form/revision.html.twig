@@ -35,6 +35,12 @@
                 {{ ux_icon('heroicons:document-arrow-down', {class: 'h-4 w-4'}) }}{{ f|upper }}
             </a>
         {% endfor %}
+        {% if annexes|default(0) > 0 %}
+            <a href="{{ path('app_form_revision_zip', {revisionId: revision.id.toRfc4122}) }}" data-testid="export-zip"
+               class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 font-medium text-gray-700 hover:bg-gray-50">
+                {{ ux_icon('heroicons:archive-box-arrow-down', {class: 'h-4 w-4'}) }}{{ 'view.attachments_zip'|trans({}, 'forms') }}
+            </a>
+        {% endif %}
     </div>
 
     {% if steps is not empty %}

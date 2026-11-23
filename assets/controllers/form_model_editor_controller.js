@@ -5,7 +5,7 @@ import { h, uid, sectionNumbers } from '../utils/form_dom.js';
 import { parse, ROW_SUMMARY, rowSummary, readRowSummary } from '../utils/form_expression.js';
 import { confirmDialog } from '../utils/confirm_dialog.js';
 
-const FIELD_TYPES = ['short', 'long', 'number', 'scale', 'date', 'time', 'bool', 'choice', 'multichoice', 'calculated', 'relation'];
+const FIELD_TYPES = ['short', 'long', 'number', 'scale', 'date', 'time', 'bool', 'choice', 'multichoice', 'attachment', 'calculated', 'relation'];
 // The types whose value is a number: totals at the foot, the summary of a row (the same as FormDefinition::NUMERIC_TYPES).
 const NUMERIC_TYPES = ['number', 'calculated', 'scale'];
 const CELL_TYPES = ['number', 'short', 'long', 'date', 'time', 'bool'];
@@ -825,7 +825,8 @@ export default class extends Controller {
 
     /** A relation only makes sense in a table column; the cells of a double-entry table are plain values. */
     fieldTypeOptions(context) {
-        const allowed = context.cell ? CELL_TYPES : FIELD_TYPES.filter((t) => t !== 'relation' || context.table);
+        // A relation is a column's; files are attached to a field of their own, never to a cell.
+        const allowed = context.cell ? CELL_TYPES : FIELD_TYPES.filter((t) => (t !== 'relation' || context.table) && (t !== 'attachment' || !context.table));
         return allowed.map((t) => [t, this.l['type_' + t]]);
     }
 
@@ -1034,6 +1035,17 @@ export default class extends Controller {
                 this.textInput(spec, 'lowLabel', this.l.scale_low, 'flex-1 basis-40', 60),
                 this.textInput(spec, 'highLabel', this.l.scale_high, 'flex-1 basis-40', 60),
             ]));
+        }
+        if (spec.fieldType === 'attachment') {
+            // How many files, and whether the pages of the attached PDFs go at the end of the delivered PDF.
+            if (!spec.maxFiles) { spec.maxFiles = 5; }
+            const counts = [];
+            for (let n = 1; n <= 10; n += 1) { counts.push([String(n), String(n)]); }
+            parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
+                this.labelled(this.l.attachment_max, this.select(String(spec.maxFiles), counts, (v) => { spec.maxFiles = Number(v); this.touch(); }, this.l.attachment_max), 'w-32'),
+                h('div', { class: 'pb-1.5' }, [this.checkbox(spec, 'printPages', this.l.attachment_pages)]),
+            ]));
+            parts.push(h('p', { class: 'text-xs text-gray-500', text: this.l.attachment_help }));
         }
         if (spec.fieldType === 'choice' || spec.fieldType === 'multichoice') {
             parts.push(...this.optionsEditor(spec));

@@ -89,7 +89,10 @@ class FormReviewController extends AbstractController
             }
         }
 
+        $sections = $this->resolver->resolve($this->lists->delivered($filled), $filled->getData(), $this->context($filled));
+
         return $this->render('form/revision.html.twig', [
+            'annexes'    => count(\App\Service\Form\FormAttachments::fromResolved($sections)),
             'centre'     => $centre,
             'title'      => $revision->getDocument()->getName(),
             'code'       => $filled->getModelRevision()->getCode(),
@@ -100,7 +103,7 @@ class FormReviewController extends AbstractController
             'canDecide'  => $canDecide,
             'others'     => $others,
             'token'      => $token,
-            'sections'   => $this->resolver->resolve($this->lists->delivered($filled), $filled->getData(), $this->context($filled)),
+            'sections'   => $sections,
             'ctx'        => ['comments' => $grouped, 'canComment' => $this->canParticipate($teacher, $filled), 'token' => $token, 'postUrl' => $this->generateUrl('app_form_comment', ['revisionId' => $revisionId])],
             'backUrl'    => $activity === null ? $this->generateUrl('app_document_tree') : $this->generateUrl('app_activities', ['category' => $activity->getCategory()->getId()->toRfc4122(), 'activity' => $activity->getId()->toRfc4122()]),
             'documentId' => $revision->getDocument()->getId()->toRfc4122(),

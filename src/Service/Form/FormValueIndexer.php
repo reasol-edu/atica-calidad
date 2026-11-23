@@ -97,6 +97,12 @@ final class FormValueIndexer
         if ($type === 'bool') {
             return [$value ? 1.0 : 0.0, null, (bool) $value];
         }
+        if ($type === 'attachment') {
+            // One file of a field «Adjuntos» (the indexer passes them one by one): its name.
+            $name = is_array($value) ? FormDefinition::str($value['name'] ?? '') : '';
+
+            return $name === '' ? [null, null, null] : [null, $name, null];
+        }
         if (is_int($value) || is_float($value) || ($type === 'number' && is_numeric($value))) {
             return [(float) $value, null, null];
         }

@@ -63,7 +63,23 @@
                         {% for item in b.items %}
                             <dt class="bg-gray-50 px-3 py-2 text-sm font-medium text-gray-600 sm:border-t sm:border-gray-200 {{ loop.first ? 'sm:border-t-0' : '' }}">{{ item.label }}</dt>
                             <dd id="blk-{{ s.path }}-{{ item.key }}" class="px-3 py-2 text-sm text-gray-900 break-words sm:border-t sm:border-gray-200 {{ loop.first ? 'sm:border-t-0' : '' }}">
-                                {% if item.html is defined %}
+                                {% if item.attachments is defined %}
+                                    {# A field «Adjuntos»: the files by their number of annex, each to download; pictures shown. #}
+                                    {% for a in item.attachments %}
+                                        <div class="flex flex-wrap items-center gap-x-2 py-0.5">
+                                            <span class="text-gray-500">{{ 'view.annex'|trans({'%n%': a.n}, 'forms') }}:</span>
+                                            <a href="{{ path('app_form_attachment', {id: a.id}) }}" class="font-medium text-forest-700 underline decoration-dotted hover:text-forest-800">{{ a.name }}</a>
+                                            <span class="text-xs text-gray-500">{{ a.sizeText }}</span>
+                                        </div>
+                                        {% if a.image %}
+                                            <a href="{{ path('app_form_attachment', {id: a.id, ver: 1}) }}" target="_blank" rel="noopener" class="mb-1 inline-block">
+                                                <img src="{{ path('app_form_attachment', {id: a.id, ver: 1}) }}" alt="{{ a.name }}" loading="lazy" class="max-h-40 max-w-full rounded-lg border border-gray-200">
+                                            </a>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-gray-500">{{ blank ? 'view.attachments_blank'|trans({}, 'forms') : '—' }}</span>
+                                    {% endfor %}
+                                {% elseif item.html is defined %}
                                     <div class="prose prose-sm max-w-none text-gray-900">{{ item.html|sanitize_html('app.rich_text') }}</div>
                                 {% elseif blank and item.scale is defined %}
                                     <span class="text-gray-500">{{ item.scale }}</span>

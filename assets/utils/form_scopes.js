@@ -303,6 +303,9 @@ export function format(spec, value, labels) {
         }
         case 'bool':
             return value === true ? labels.yes : labels.no;
+        case 'attachment':
+            // The names of the files (the same as FormResolver::format()).
+            return (Array.isArray(value) ? value : []).map((f) => (f && f.name) || '').filter((n) => n !== '').join(', ');
         case 'scale': {
             // «4 / 5», and the word of an end when the answer is that end (the same as FormResolver::format()).
             if (typeof value !== 'number') {

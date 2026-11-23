@@ -46,7 +46,42 @@ class FormFillController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly CsrfTokenManagerInterface $csrf,
         private readonly EntityManagerInterface $em,
+        private readonly \App\Service\Form\FormAttachmentService $attachments,
+        private readonly \App\Service\UploadLimits $uploadLimits,
     ) {}
+
+    /**
+     * Uploads one file for a field «Adjuntos» of the draft: multipart `file` + `field` (the field's key). Answers the value to add to
+     * the field ({id, name, size, mime, url}); the page adds it and saves, as with any other value.
+     */
+    #[Route('/actividades/{activityId}/formulario/{slotKey}/adjuntos', name: 'app_form_attach', methods: ['POST'])]
+    public function attach(string $activityId, string $slotKey, Request $request, #[CurrentCentre] EducationalCentre $centre): JsonResponse
+    {
+        [$activity, $slot, $teacher] = $this->context($activityId, $slotKey, $centre, true);
+        $submission = $this->service->open($activity, $slot);
+        if (!$this->isCsrfTokenValid('form_fill_' . $submission->getId()->toRfc4122(), $request->headers->get('X-CSRF-Token', ''))) {
+            return new JsonResponse(['error' => 'csrf'], Response::HTTP_FORBIDDEN);
+        }
+        if ($this->windows->for($activity, $teacher, $slot->nameListItem)->blocked) {
+            return new JsonResponse(['error' => 'window'], Response::HTTP_FORBIDDEN);
+        }
+        $file = $request->files->get('file');
+        if ($this->uploadLimits->isRequestTooLarge($request) || !$file instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+            $max = \App\Service\Form\FormAttachments::size(min(FormDefinition::ATTACHMENT_MAX_BYTES, $this->uploadLimits->maxFileBytes()));
+
+            return new JsonResponse(['error' => 'upload', 'message' => $this->translator->trans('fill.attachment.too_large', ['%max%' => $max], 'forms')], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        try {
+            $attachment = $this->attachments->attach($submission, $this->service->definitionOf($submission), $request->request->getString('field'), $file, $teacher);
+        } catch (FormException $e) {
+            $params = FormDefinition::map(($e->problems[0] ?? [])['params'] ?? null) ?? [];
+
+            return new JsonResponse(['error' => $e->getMessage(), 'message' => $this->translator->trans('fill.' . $e->getMessage(), $params, 'forms')], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return new JsonResponse($attachment->toValue() + ['url' => $this->generateUrl('app_form_attachment', ['id' => $attachment->getId()->toRfc4122()])]);
+    }
 
     #[Route('/actividades/{activityId}/formulario/{slotKey}', name: 'app_form_fill', methods: ['GET'])]
     public function fill(string $activityId, string $slotKey, #[CurrentCentre] EducationalCentre $centre): Response
@@ -112,6 +147,10 @@ class FormFillController extends AbstractController
                     'saveUrl'      => $this->generateUrl('app_form_save', $base),
                     'heartbeatUrl' => $this->generateUrl('app_form_heartbeat', $base),
                     'historyUrl'   => $this->generateUrl('app_form_history', $base),
+                    // The files of the fields «Adjuntos»: where to upload one, and where each is downloaded (__ID__ is its id).
+                    'attachUrl'    => $this->generateUrl('app_form_attach', $base),
+                    'fileUrl'      => $this->generateUrl('app_form_attachment', ['id' => '__ID__']),
+                    'fileMaxBytes' => min(FormDefinition::ATTACHMENT_MAX_BYTES, $this->uploadLimits->maxFileBytes()),
                     'csrf'         => $this->csrf->getToken($token)->getValue(),
                     'readOnly'     => $readOnly,
                     'problems'     => $pending['problems'],

@@ -64,6 +64,8 @@ class PdfRenderer
      * @param bool                 $draftWatermark Shows a diagonal "BORRADOR" watermark on every page.
      * @param 'P'|'L'              $orientation    'P' (portrait, default) or 'L' (landscape).
      * @param ReportType|null      $reportType     Together with $centre, resolves and stamps the configured PDF template as the background of every page (see PdfTemplateResolver).
+     * @param list<array{name: string, mime: string, content: string, description: string}> $embeddedFiles files carried inside the PDF
+     * @param list<array{title: string, content: string}>                                   $appendedPdfs  PDFs whose pages go after the document
      */
     public function render(
         string $template,
@@ -80,6 +82,8 @@ class PdfRenderer
         bool $showFooter = true,
         ?string $footerHtml = null,
         ?PdfMargins $margins = null,
+        array $embeddedFiles = [],
+        array $appendedPdfs = [],
     ): Response {
         $context += [
             'pdfTitle'       => $title,
@@ -140,6 +144,17 @@ class PdfRenderer
                 $mpdf->SetHTMLFooter($footerHtml ?? $this->twig->render('pdf/_footer.html.twig', $context));
             }
             $mpdf->WriteHTML($body);
+            $this->appendPdfs($mpdf, $appendedPdfs);
+            if ($embeddedFiles !== []) {
+                // Files carried inside the PDF (the panel of attachments of a PDF reader): the PDF is complete on its own.
+                $mpdf->SetAssociatedFiles(array_map(static fn (array $f): array => [
+                    'name'           => $f['name'],
+                    'mime'           => $f['mime'],
+                    'content'        => $f['content'],
+                    'description'    => $f['description'],
+                    'AFRelationship' => 'Supplement',
+                ], $embeddedFiles));
+            }
 
             $content = $mpdf->Output('', Destination::STRING_RETURN);
         } finally {
@@ -160,6 +175,56 @@ class PdfRenderer
         ));
 
         return $response;
+    }
+
+    /**
+     * How many pages a PDF has, when the library can read it (0 when it cannot: some compressed or damaged PDFs). What tells whether its
+     * pages can be appended to a document (appendPdfs()).
+     */
+    public function pageCount(string $content): int
+    {
+        try {
+            $reader = new \setasign\Fpdi\PdfReader\PdfReader(new \setasign\Fpdi\PdfParser\PdfParser(\setasign\Fpdi\PdfParser\StreamReader::createByString($content)));
+
+            return $reader->getPageCount();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    /**
+     * The pages of other PDFs after the document, each at its own size, without the document's header and footer (they have theirs).
+     * One that cannot be read is skipped: pageCount() says beforehand which.
+     *
+     * @param list<array{title: string, content: string}> $pdfs
+     */
+    private function appendPdfs(Mpdf $mpdf, array $pdfs): void
+    {
+        foreach ($pdfs as $pdf) {
+            try {
+                $count = $mpdf->setSourceFile(\setasign\Fpdi\PdfParser\StreamReader::createByString($pdf['content']));
+                for ($page = 1; $page <= $count; ++$page) {
+                    $template = $mpdf->importPage($page);
+                    $size     = $mpdf->getTemplateSize($template);
+                    if (!is_array($size) || !is_numeric($size['width'] ?? null) || !is_numeric($size['height'] ?? null)) {
+                        continue;
+                    }
+                    $size = ['width' => (float) $size['width'], 'height' => (float) $size['height']];
+                    $mpdf->AddPageByArray([
+                        'orientation' => $size['width'] > $size['height'] ? 'L' : 'P',
+                        'sheet-size'  => [$size['width'], $size['height']],
+                        'mgl' => 0, 'mgr' => 0, 'mgt' => 0, 'mgb' => 0, 'mgh' => 0, 'mgf' => 0,
+                        'ohvalue' => -1, 'ehvalue' => -1, 'ofvalue' => -1, 'efvalue' => -1,
+                    ]);
+                    if ($page === 1) {
+                        $mpdf->Bookmark($pdf['title']);
+                    }
+                    $mpdf->useTemplate($template, 0, 0, $size['width'], $size['height']);
+                }
+            } catch (\Throwable) {
+                continue;
+            }
+        }
     }
 
     /**

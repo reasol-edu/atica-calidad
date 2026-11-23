@@ -733,6 +733,8 @@ export default class extends Controller {
                 return h('input', { ...base, type: 'date', value: value ?? '', oninput: (e) => onChange(e.target.value || null) });
             case 'time':
                 return h('input', { ...base, type: 'time', value: value ?? '', oninput: (e) => onChange(e.target.value || null) });
+            case 'attachment':
+                return this.attachmentEl(spec, value, onChange, id);
             case 'scale': {
                 // A rating from 1 to N. In a table cell, a drop-down (a row of buttons does not fit); elsewhere, the points as
                 // radio buttons in a row, with the words of the ends, and a way to take an optional answer back.
@@ -824,6 +826,86 @@ export default class extends Controller {
             default:
                 return h('input', { ...base, type: 'text', maxlength: 255, value: value ?? '', oninput: (e) => onChange(e.target.value) });
         }
+    }
+
+    /**
+     * A field «Adjuntos»: the files it has (to download, or to take out) and a box to add more, by picking them or dropping them on it.
+     * Each file is uploaded on its own (it is stored at once, see FormAttachmentService) and then added to the value, which is saved
+     * as any other. Needs the connection: there is no offline copy of a file.
+     */
+    attachmentEl(spec, value, onChange, id) {
+        const config = this.configValue;
+        const max = spec.maxFiles || 5;
+        let files = Array.isArray(value) ? [...value] : [];
+        const urlOf = (file) => (config.fileUrl || '').replace('__ID__', encodeURIComponent(file.id));
+        const size = (bytes) => (bytes < 1024 ? bytes + ' B' : bytes < 1048576 ? Math.max(1, Math.round(bytes / 1024)) + ' KB' : (Math.round(bytes / 104857.6) / 10).toString().replace('.', ',') + ' MB');
+        const list = h('ul', { class: 'space-y-1' });
+        const status = h('p', { class: 'text-xs text-gray-500', 'aria-live': 'polite' });
+        const input = h('input', { type: 'file', multiple: true, class: 'sr-only', id: id ? id + '-files' : null, disabled: this.readOnly });
+        const box = h('label', {
+            for: input.id || null,
+            class: 'flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-center text-sm text-gray-600 hover:bg-gray-50 focus-within:ring-2 focus-within:ring-forest-500',
+        }, [
+            input,
+            h('span', { class: 'font-medium text-forest-700', text: this.l.attachment_add }),
+            h('span', { class: 'text-xs text-gray-500', text: this.l.attachment_drop }),
+            h('span', { class: 'text-xs text-gray-400', text: this.l.attachment_hint.replace('%max%', size(config.fileMaxBytes || 10485760)) }),
+        ]);
+
+        const draw = () => {
+            list.replaceChildren(...files.map((file) => h('li', { class: 'flex items-center gap-2 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm' }, [
+                h('a', { href: urlOf(file), class: 'min-w-0 flex-1 truncate font-medium text-forest-700 underline decoration-dotted', text: file.name }),
+                h('span', { class: 'shrink-0 text-xs text-gray-500', text: size(file.size || 0) }),
+                this.readOnly ? null : h('button', {
+                    type: 'button', class: 'shrink-0 rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-red-700',
+                    'aria-label': this.l.attachment_remove.replace('%name%', file.name), text: '✕',
+                    onclick: () => { files = files.filter((f) => f.id !== file.id); draw(); onChange(files.length ? [...files] : null); },
+                }),
+            ])));
+            box.hidden = this.readOnly || files.length >= max;
+            if (!this.readOnly && files.length >= max) {
+                status.textContent = this.l.attachment_full.replace('%max%', String(max));
+            }
+        };
+
+        const upload = async (picked) => {
+            if (!navigator.onLine) {
+                status.textContent = this.l.attachment_offline;
+                return;
+            }
+            for (const file of picked) {
+                if (files.length >= max) {
+                    status.textContent = this.l.attachment_full.replace('%max%', String(max));
+                    break;
+                }
+                status.textContent = this.l.attachment_uploading.replace('%name%', file.name);
+                const body = new FormData();
+                body.append('field', spec.key);
+                body.append('file', file);
+                try {
+                    const response = await fetch(config.attachUrl, { method: 'POST', headers: { 'X-CSRF-Token': config.csrf }, body });
+                    const answer = await response.json().catch(() => ({}));
+                    if (!response.ok || !answer.id) {
+                        status.textContent = answer.message || this.l.attachment_error;
+                        continue;
+                    }
+                    files.push({ id: answer.id, name: answer.name, size: answer.size, mime: answer.mime });
+                    status.textContent = '';
+                    draw();
+                    onChange([...files]);
+                } catch (e) {
+                    status.textContent = this.l.attachment_offline;
+                }
+            }
+        };
+
+        input.addEventListener('change', () => { upload([...input.files]); input.value = ''; });
+        box.addEventListener('dragover', (e) => { e.preventDefault(); box.classList.add('bg-forest-50'); });
+        box.addEventListener('dragleave', () => box.classList.remove('bg-forest-50'));
+        box.addEventListener('drop', (e) => { e.preventDefault(); box.classList.remove('bg-forest-50'); upload([...(e.dataTransfer?.files || [])]); });
+        draw();
+
+        return h('div', { id, class: 'space-y-2' }, [list, box, status]);
     }
 
     /**

@@ -39,8 +39,14 @@ final class FormResolver
      */
     public function resolve(array $definition, array $data, array $context = []): array
     {
+        // The attachments are numbered across the whole document («Anexo 1», «Anexo 2»…), in the order it shows them.
+        $this->annex = 0;
+
         return $this->sections($this->walker->walk($definition, $data), '', true, 1, FormIndex::of($definition), $context);
     }
+
+    /** The number of the last «Anexo» given while resolving a document. */
+    private int $annex = 0;
 
     /**
      * A title or a label with its references replaced, as plain text, for a walker instance.
@@ -132,6 +138,23 @@ final class FormResolver
                     // A rating without an answer prints its points, to tick on paper (the blank model, an unanswered one).
                     if ($value === '' && ($block['fieldType'] ?? '') === 'scale') {
                         $item['scale'] = self::scalePoints($block);
+                    }
+                    // The files of a field «Adjuntos», each with its number of annex in the document.
+                    if (($block['fieldType'] ?? '') === 'attachment') {
+                        $item['attachments'] = [];
+                        foreach (FormDefinition::listOf($fields[$key] ?? []) as $file) {
+                            $mime                  = FormDefinition::str($file['mime'] ?? '');
+                            $item['attachments'][] = [
+                                'n'          => ++$this->annex,
+                                'id'         => FormDefinition::str($file['id'] ?? ''),
+                                'name'       => FormDefinition::str($file['name'] ?? ''),
+                                'size'       => FormDefinition::int($file['size'] ?? 0),
+                                'sizeText'   => FormAttachments::size(FormDefinition::int($file['size'] ?? 0)),
+                                'mime'       => $mime,
+                                'image'      => FormAttachments::isImage($mime),
+                                'printPages' => ($block['printPages'] ?? false) === true && $mime === 'application/pdf',
+                            ];
+                        }
                     }
                     $last  = count($out) - 1;
                     if ($last >= 0 && $out[$last]['kind'] === 'fields') {
@@ -441,6 +464,10 @@ final class FormResolver
 
             case 'bool':
                 return $this->translator->trans($value === true ? 'view.yes' : 'view.no', [], 'forms');
+
+            case 'attachment':
+                // The names of the files (a comparison, the explorer, a reference); the document lists them as annexes.
+                return implode(', ', array_filter(array_map(static fn (array $f): string => FormDefinition::str($f['name'] ?? ''), FormDefinition::listOf($value))));
 
             case 'scale':
                 if (!is_int($value)) {

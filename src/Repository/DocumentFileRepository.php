@@ -27,7 +27,7 @@ class DocumentFileRepository extends ServiceEntityRepository
     }
 
     /**
-     * Deletes every file no revision nor quality attachment points to any more — left behind when
+     * Deletes every file no revision nor quality or form attachment points to any more — left behind when
      * a whole folder goes (its documents, trashed ones included, go with it at database level,
      * without passing through DocumentFileGarbageCollector). In one statement, without loading any
      * content.
@@ -38,10 +38,11 @@ class DocumentFileRepository extends ServiceEntityRepository
     {
         return $this->getEntityManager()
             ->createQuery(\sprintf(
-                'DELETE FROM %s f WHERE NOT EXISTS (SELECT 1 FROM %s r WHERE r.file = f) AND NOT EXISTS (SELECT 1 FROM %s q WHERE q.file = f)',
+                'DELETE FROM %s f WHERE NOT EXISTS (SELECT 1 FROM %s r WHERE r.file = f) AND NOT EXISTS (SELECT 1 FROM %s q WHERE q.file = f) AND NOT EXISTS (SELECT 1 FROM %s a WHERE a.file = f)',
                 DocumentFile::class,
                 DocumentRevision::class,
                 QualityAttachment::class,
+                \App\Entity\FormAttachment::class,
             ))
             ->execute();
     }

@@ -555,7 +555,8 @@ final class FormDataNormalizer
      *
      * @param array<string, mixed> $spec a field block or a table column
      *
-     * @return string|int|float|bool|list<string>|null
+     * @return string|int|float|bool|list<string>|list<array{id: string, name: string, size: int, mime: string}>|null the lists are the
+     *         keys of a multiple choice or a relation, and the files of a field «Adjuntos»
      */
     public function coerce(array $spec, mixed $value): string|int|float|bool|array|null
     {
@@ -608,6 +609,21 @@ final class FormDataNormalizer
                 }
 
                 return is_int($value) && $value >= 1 && $value <= $points ? $value : null;
+
+            case 'attachment':
+                // The files of the field: only the shape is checked here (the service keeps only the submission's own attachments, and
+                // rewrites name, size and type from them: FormAttachments::restrict()).
+                $files = [];
+                foreach (is_array($value) ? $value : [] as $file) {
+                    $id = is_array($file) && is_string($file['id'] ?? null) ? strtolower($file['id']) : '';
+                    if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $id) !== 1 || isset($files[$id])) {
+                        continue;
+                    }
+                    $files[$id] = ['id' => $id, 'name' => mb_substr(trim(strip_tags(FormDefinition::str($file['name'] ?? ''))), 0, 255), 'size' => max(0, FormDefinition::int($file['size'] ?? 0)), 'mime' => mb_substr(FormDefinition::str($file['mime'] ?? ''), 0, 100)];
+                }
+                // Only the platform's cap here: the field's own (maxFiles) is applied once the files that are not this document's are
+                // out (FormAttachmentService::restrict()), or a forged one would push a real one off the list.
+                return $files === [] ? null : array_slice(array_values($files), 0, FormDefinition::ATTACHMENT_MAX_FILES);
 
             case 'calculated':
                 return null; // never typed: FormCalculator

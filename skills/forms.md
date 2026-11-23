@@ -104,6 +104,22 @@ because a script cannot read them: add a new icon in both places; the Spanish la
   a calculated field (`fn([t:TABLE.COL])`, `foot: true`) that `FormDefinitionNormalizer::footFields()` writes right after the table every
   time (stored `foot` blocks are dropped and remade; the editor hides them). `FormWalker` / `walk()` mark it not visible, so nothing
   renders or validates it, but calculation, indicators, rules and the explorer see it as a field.
+- **Attachments** (`fieldType: attachment`, `maxFiles` 1–10 default 5, `printPages`; fields only — a column or matrix cell is coerced
+  to `short`). Files are `FormAttachment` rows of the SUBMISSION (not of a revision; never deleted while it exists), content in the
+  deduplicated `DocumentFile` store (so `DocumentFileGarbageCollector` and `DocumentFileRepository::deleteOrphans()` count them; add any
+  new owner of files there too). The value is a list of `{id, name, size, mime}`: the normalizer checks the shape and caps at 10;
+  `FormAttachmentService::restrict()` (save AND deliver) keeps only the submission's own attachments, rewrites name/size/mime from
+  the rows and applies the field's `maxFiles` (after dropping strangers, or a forged id pushes a real file off). `FormAttachments`
+  walks the values through copies of repeating sections (`map()`, `ids()`) and lists a resolved document's annexes (`fromResolved()`).
+  Upload: `POST …/formulario/{slot}/adjuntos` (multipart `file` + `field`, CSRF header `form_fill_<sid>`), type by CONTENT
+  (`FormDefinition::ATTACHMENT_TYPES`; office files read as ZIP are accepted by extension only if they start with `PK`), size ≤
+  min(10 MB, `UploadLimits::maxFileBytes()`). Download `GET /formularios/adjunto/{id}` (`FormAttachmentController`): whoever can fill
+  the slot, or whoever sees the folder IF the file is in a delivered revision's data (a draft-only file stays private).
+  The resolver numbers them «Anexo N» across the document (`$annex`, reset in `resolve()`); `FormPdfBuilder` draws pictures ≤ 5 MB as
+  data URIs, embeds the originals (`PdfRenderer` `embeddedFiles` → mPDF `SetAssociatedFiles`, up to `EMBED_MAX_BYTES` 40 MB), and
+  with `printPages` appends the pages of PDFs FPDI can read (`PdfRenderer::pageCount()` decides first; free FPDI cannot read some
+  compressed PDFs: those are only listed). ZIP of a delivered revision: `GET /formularios/revision/{id}/con-anexos.zip`. Office
+  exports print the references only. The fill form uploads one file per request and then saves the field like any other value.
 - **Rating scale** (`fieldType: scale`, `points` 3–10 default 5, `lowLabel`/`highLabel` ≤ 60 chars): the value is an int 1..points
   (`FormDataNormalizer::coerce` drops 0, beyond the top, 3.5, texts); a number everywhere a number is (`FormDefinition::NUMERIC_TYPES`:
   totals at the foot, the row summary, `[f:]`/`[r:]`/`[t:]` refs, indicators — the editor's indicator link proposes `avg` —,

@@ -70,8 +70,7 @@ final class FormOfficeWriter
                     array_push($items, ...$this->text($b));
                 } elseif ($kind === 'fields') {
                     $items[] = new DataTable(
-                        // A rating without an answer prints its points (the model exported blank, to fill in by hand).
-                        array_map(static fn (array $i): array => [FormDefinition::str($i['label'] ?? ''), FormDefinition::str($i['value'] ?? '') !== '' ? FormDefinition::str($i['value'] ?? '') : FormDefinition::str($i['scale'] ?? '')], FormDefinition::listOf($b['items'] ?? [])),
+                        array_map(static fn (array $i): array => [FormDefinition::str($i['label'] ?? ''), self::itemText($i)], FormDefinition::listOf($b['items'] ?? [])),
                         0,
                         true,
                     );
@@ -140,6 +139,24 @@ final class FormOfficeWriter
         $label = FormDefinition::str($b['label'] ?? '');
 
         return $label === '' ? [] : [new Paragraph([new Run(Run::TEXT, $label)], 'left', Paragraph::LABEL)];
+    }
+
+    /**
+     * What a field says in the office file: its value; the files of a field «Adjuntos» as their annexes («Anexo 1: acta.pdf (230 KB)»);
+     * a rating without an answer, its points (the model exported blank, to fill in by hand).
+     *
+     * @param array<string, mixed> $item
+     */
+    private static function itemText(array $item): string
+    {
+        if (is_array($item['attachments'] ?? null)) {
+            $files = array_map(static fn (array $a): string => sprintf('Anexo %d: %s (%s)', FormDefinition::int($a['n'] ?? 0), FormDefinition::str($a['name'] ?? ''), FormDefinition::str($a['sizeText'] ?? '')), FormDefinition::listOf($item['attachments']));
+
+            return implode('; ', $files);
+        }
+        $value = FormDefinition::str($item['value'] ?? '');
+
+        return $value !== '' ? $value : FormDefinition::str($item['scale'] ?? '');
     }
 
     /** @return list<string> the paragraphs of a piece of rich text, lists as "• item" lines */

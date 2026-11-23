@@ -629,7 +629,7 @@ final class FormDefinitionNormalizer
 
         $columns = [];
         foreach (array_slice(FormDefinition::listOf($raw['columns'] ?? []), 0, self::MAX_COLUMNS) as $column) {
-            $props    = $this->fieldProperties($column);
+            $props    = $this->fieldProperties($column, column: true);
             $key      = $this->key($column['key'] ?? null);
             // A foot total with a name is also a field of the document (see footFields()); its key is kept so that what reads it still finds it.
             $footName = $props['total'] === '' ? '' : $this->text($column['totalName'] ?? '', 255);
@@ -694,10 +694,14 @@ final class FormDefinitionNormalizer
      *
      * @return array<string, mixed>
      */
-    private function fieldProperties(array $raw, bool $cell = false): array
+    private function fieldProperties(array $raw, bool $cell = false, bool $column = false): array
     {
         $type = FormDefinition::str($raw['fieldType'] ?? '');
         $type = in_array($type, FormDefinition::FIELD_TYPES, true) ? $type : 'short';
+        // Files are attached to a field of their own, never to a cell of a table.
+        if (($cell || $column) && $type === 'attachment') {
+            $type = 'short';
+        }
         // The cells of a double-entry table are typed in: no formulas or relations there (nor ratings: a grid of numbers).
         if ($cell && in_array($type, ['calculated', 'relation', 'choice', 'multichoice', 'scale'], true)) {
             $type = 'number';
@@ -740,6 +744,8 @@ final class FormDefinitionNormalizer
             'points'    => $scale ? min(FormDefinition::SCALE_MAX_POINTS, max(FormDefinition::SCALE_MIN_POINTS, $points)) : 0,
             'lowLabel'  => $scale ? $this->text($raw['lowLabel'] ?? '', 60) : '',
             'highLabel' => $scale ? $this->text($raw['highLabel'] ?? '', 60) : '',
+            'maxFiles'  => $type === 'attachment' ? min(FormDefinition::ATTACHMENT_MAX_FILES, max(1, FormDefinition::int($raw['maxFiles'] ?? FormDefinition::ATTACHMENT_DEFAULT_FILES) ?: FormDefinition::ATTACHMENT_DEFAULT_FILES)) : 0,
+            'printPages' => $type === 'attachment' && ($raw['printPages'] ?? false) === true,
         ];
     }
 

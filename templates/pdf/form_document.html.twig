@@ -4,7 +4,17 @@
    A document model (blank) or a filled document as a PDF: the sections already numbered, the values already formatted
    (App\Service\Form\FormResolver). Tables and rules are plain (mPDF), no flex/grid.
 #}
-{% macro section(s, blank) %}
+{# A field «Adjuntos»: each file by its number of annex, a picture drawn where it is. #}
+{% macro attachments(item, images) %}
+    {% for a in item.attachments %}
+        <div class="form-annex">{{ 'view.annex'|trans({'%n%': a.n}, 'forms') }}: {{ a.name }} <span class="form-annex-size">({{ a.sizeText }})</span></div>
+        {% if images[a.id] is defined %}<div class="form-annex-image"><img src="{{ images[a.id] }}" alt=""></div>{% endif %}
+    {% else %}
+        —
+    {% endfor %}
+{% endmacro %}
+
+{% macro section(s, blank, images) %}
     <div class="form-section">
         {% if s.title %}
             <h{{ min(s.level + 1, 5) }} class="form-title">{% if s.number %}{{ s.number }}. {% endif %}{{ s.title }}</h{{ min(s.level + 1, 5) }}>
@@ -22,7 +32,7 @@
                     {% for item in b.items %}
                         <tr>
                             <td class="form-field-label">{{ item.label }}</td>
-                            <td class="form-field-value">{% if blank and item.scale is defined %}<span class="form-scale">{{ item.scale }}</span>{% else %}{{ item.value }}{% endif %}</td>
+                            <td class="form-field-value">{% if item.attachments is defined %}{{ _self.attachments(item, images) }}{% elseif blank and item.scale is defined %}<span class="form-scale">{{ item.scale }}</span>{% else %}{{ item.value }}{% endif %}</td>
                         </tr>
                     {% endfor %}
                 </table>
@@ -54,7 +64,7 @@
                 </table>
             {% endif %}
         {% endfor %}
-        {% for child in s.children %}{{ _self.section(child, blank) }}{% endfor %}
+        {% for child in s.children %}{{ _self.section(child, blank, images) }}{% endfor %}
     </div>
 {% endmacro %}
 
@@ -82,6 +92,13 @@
     .form-blank { border: 1px solid #e3d8c1; height: 60px; margin: 2px 0 8px; }
     .form-blank-row { height: 20px; }
     .form-scale { color: #5e5044; }
+    .form-annex { margin: 1px 0; }
+    .form-annex-size { color: #8a7f72; }
+    .form-annex-image { margin: 3px 0 6px; }
+    .form-annex-image img { max-width: 9cm; max-height: 7cm; }
+    .form-annexes { margin-top: 14px; }
+    .form-annexes td { border-bottom: 1px solid #e3d8c1; padding: 3px 6px; vertical-align: top; }
+    .form-annexes-note { color: #8a7f72; font-size: {{ (8 * k)|round(2) }}pt; margin-top: 4px; }
 </style>
 
 {% if showTitle|default(true) %}
@@ -91,5 +108,19 @@
 </div>
 {% endif %}
 
-{% for s in sections %}{{ _self.section(s, blank) }}{% endfor %}
+{% for s in sections %}{{ _self.section(s, blank, annexImages|default({})) }}{% endfor %}
+
+{# The list of every annex, at the end: where each one is (inside this PDF, its pages at the end). #}
+{% if annexes|default([]) is not empty %}
+    <h2 class="form-title form-annexes">{{ 'view.annexes'|trans({}, 'forms') }}</h2>
+    <table class="form-annexes" width="100%">
+        {% for a in annexes %}
+            <tr>
+                <td width="16%"><strong>{{ 'view.annex'|trans({'%n%': a.n}, 'forms') }}</strong></td>
+                <td>{{ a.name }} <span class="form-annex-size">({{ a.sizeText }})</span>{% if annexPages[a.id] is defined %} — {{ 'view.annex_pages'|trans({'%count%': annexPages[a.id]}, 'forms') }}{% endif %}</td>
+            </tr>
+        {% endfor %}
+    </table>
+    {% if embedded|default(false) %}<p class="form-annexes-note">{{ 'view.annexes_embedded'|trans({}, 'forms') }}</p>{% endif %}
+{% endif %}
 {% endblock %}
