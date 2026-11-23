@@ -149,7 +149,7 @@ final class FormModelService
 
         // The blank PDF is what the tree downloads, the search reads and the reviewers open.
         $version = $document->getNextVersion();
-        $content = $this->pdf->build($definition, $this->data->sample($definition), $centre, $document->getName(), $model->getCode(), $version, true, ['centre' => $centre->getName(), 'activity' => $document->getName()]);
+        $content = $this->pdf->build($definition, $this->data->sample($definition), $centre, $document->getName(), $model->getCode(), $version, true, ['centre' => $centre->getName(), 'activity' => $document->getName()], null, null, null, $folder->requiresReview());
         $file    = $this->creation->storeFile($content, 'application/pdf', $document->getName() . '.pdf');
 
         $revision = $this->creation->addRevision($document, $file, $by, $description);

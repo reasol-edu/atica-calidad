@@ -113,6 +113,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   (deslizador del 50 % al 150 %); todo ello va dentro de la revisión del modelo. El encabezado y el pie salen en el PDF y en el
   encabezado y pie de página de los ficheros Word y LibreOffice. Nuevo botón «Vista previa en PDF» en el editor. El editor usa Tiptap
   (nueva dependencia JS, instalada en local con importmap).
+- **Logotipos del centro y de la administración educativa.** Nuevo tipo de ajuste «imagen» (PNG o JPEG hasta 2 MB, comprobado por su
+  contenido; sin SVG) con zona de arrastre y vista previa de la imagen elegida, y dos ajustes globales y de centro: «Logotipo del
+  centro» (`{logo}`) y «Logotipo de la administración educativa» (`{logo2}`), que se pueden poner en cualquier encabezado o pie.
+- **Encabezado y pie: fecha de aprobación, primera página, márgenes y vista previa.** Campo `{fecha_aprobacion}` (las revisiones
+  guardan ahora cuándo se aprobaron; si no necesitan revisión es la misma fecha que `{fecha_revision}`); encabezado distinto en la
+  primera página (en PDF, Word y LibreOffice); márgenes de página en los ajustes y por modelo; y vista previa con datos de ejemplo
+  bajo cada editor. El PDF de vista previa de un borrador lleva la marca de agua «BORRADOR». El contenido empieza ahora debajo del
+  encabezado y acaba encima del pie, midiendo su altura real.
 - **Exportación a Word y LibreOffice con estilo.** Los `.docx` y `.odt` salen con el aspecto de la aplicación (títulos y reglas en verde,
   tablas con cabecera de color, filas alternas y fila de totales, listas de campos con la etiqueta resaltada, negrita, cursiva y listas del
   texto enriquecido), con repetición de la cabecera de las tablas en cada página.

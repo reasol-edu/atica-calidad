@@ -71,6 +71,12 @@ final class SettingsManager
         return $rows;
     }
 
+    /** Whether a level above (the platform's, for a centre) has the setting locked, so it cannot be changed at this one. */
+    public function isLockedByParent(string $scope, string $key, ?EducationalCentre $centre): bool
+    {
+        return isset($this->loadParentLockMap($scope, $centre)[$key]);
+    }
+
     /**
      * Saves or resets a setting value for the given scope.
      * An empty string or '__default__' removes the stored value.

@@ -66,6 +66,16 @@ read-only source columns plus the model's own, repetition of sections by those r
 at delivery and a warning when the origin changes afterwards. Open decision: freeze the copy when the draft is created, or refresh it while
 it is a draft. Needs: definition + normalizer, server and client resolution (`FormScopes` / `form_scopes.js`), validation, revision diff, tests.
 
+### Pending (noted 2026-11-23): move the whole platform from Quill to Tiptap
+
+Today Quill (`rich_editor_controller.js`, the `RichEditor` component, the text blocks of the model editor and the fill form, the
+management review, the rich-text settings) and Tiptap (`doc_layout_editor_controller.js`, the header/footer editor, because Quill cannot
+do tables with merged cells) live side by side. Each page only loads the controller it uses, so it costs nothing at runtime, but the
+platform has two editors. To do **later, in one go** (not piecemeal): one Tiptap editor behind the same `rich-editor` Stimulus API;
+keep the stored HTML (`app.rich_text` allow-list: p, br, strong, b, em, i, u, ol, ul, li, h2, blockquote, a, `text-align`); re-check
+`RichTextAlignAttributeSanitizer`, the lists/links/alignment round-trip, the offline fill form (`form_fill_controller.js` mounts Quill on
+click), the tests and the manual screenshots; then drop `quill` from the importmap. Do not start it without being asked.
+
 ## Calculations, rules, relations and double-entry tables (phase 3)
 
 - **Expression language** (`FormExpression`, closed grammar, no `eval`): numbers, texts, `+ - * /`, comparisons, `&& || !`, and
@@ -245,11 +255,30 @@ trap: a list-fed field normalized against the raw definition has no options, so 
 - **One reader for three outputs.** `Layout\LayoutHtml::parse()` turns the HTML into `Paragraph`/`Table` (a grid: `Table::placement()`
   resolves merged cells once) and writes the PDF HTML; `Office\OdtDocument` / `Office\DocxDocument` draw the same objects (ODT:
   `covered-table-cell`, `number-*-spanned`, master-page header/footer; DOCX: `gridSpan`, `vMerge restart/continue`, `header1.xml`/
-  `footer1.xml`, `fldSimple PAGE/NUMPAGES`). Body styling lives in `Office\Theme` (colours of the app, Calibri, sizes × font scale).
+  `footer1.xml`, `fldSimple PAGE/NUMPAGES`). Body styling lives in `Office\Theme` (colours of the app, Arial — a sans-serif every system has, declared `swiss` in the ODT so a missing font still falls back to a sans — and sizes × font scale).
 - **mPDF quirks.** The text alignment of a table cell comes from the **cell**, not from the `<p>` in it (`LayoutHtml` copies the first
   paragraph's alignment onto the `<td>`); a `<col>` takes its width from the `width="%"` **attribute**, not from `style`; the header and
   footer are outside the document's stylesheet (inline styles only); `setAutoTopMargin='stretch'` (`PdfHeader::$stretch`) makes room for a
   tall header, and a custom footer goes in `PdfRenderer`'s `$footerHtml`.
+- **Logos** are settings of type `image` (`SettingType::Image`, keys `centre.logo` → `{logo}`, `centre.education_authority_logo` →
+  `{logo2}`; global and centre, locks work as for any setting). `SettingImageController` (routes `/ajustes/imagenes/{global|centre}/{key}/…`
+  and `/logotipo/{1|2}` for the one a centre ends up with) accepts only PNG/JPEG recognised by content (`getimagesizefromstring`), ≤ 2 MB,
+  ≤ 4000 px a side, stores them in `SettingFile` and serves them `nosniff` + a sandbox CSP. The upload form reuses `Form:PdfDropzone`
+  (`accept`, `hint`, `thumbs` props; `file_drop_controller.js` fills the `<img data-role="thumb">`). `Layout\Image` fits a logo in
+  1.6 × 5 cm; `{logo}`/`{logo2}` are `Run`s of their own (PDF: data-URI `<img>`; ODT: `draw:frame` + `Pictures/`; DOCX: `wp:inline` + a
+  relationship per part). Every output has to get the images through `DocumentLayout::$images`.
+- **`{fecha_aprobacion}`** comes from `DocumentRevision::getApprovedAt()` (new column `approved_at`, set in `approve()`; null in the column
+  = the revision's own date, so both dates match when no review was needed). The blank model PDF is made at *send* time, before any
+  approval: with a review pending it is empty there (`FormLayoutResolver::values(..., pendingApproval: true)`).
+- **Margins** (`layout.margins` or the settings `forms.margin_top|bottom|left|right`, mm; top/bottom are the distance from the paper's edge
+  to the header/footer). The PDF does not use mPDF's auto-stretch: `PdfRenderer::heightMm()` measures the header, footer and first-page
+  header and `FormPdfBuilder` sets the real margins. **First-page header**: `layout.firstHeader` (null = the normal one). mPDF: both are
+  `<htmlpageheader>`s inside the template's `<body>` (before `<html>` they are ignored) switched with `<sethtmlpageheader show-this-page>`;
+  `@page :first {header}` and `@page {margin-top}` did not work, so a taller first header pushes the body down with a spacer
+  (`PdfHeader::$firstExtraMm`). ODT: a `First_20_Page` master page (`style:next-style-name="Standard"`) that a 1 pt first paragraph
+  (`FirstPageStart`) opens; DOCX: `titlePg` + `header2.xml`/`footer2.xml`.
+- **Draft watermark**: the PDF preview of a draft (`/modelos/{id}/vista.pdf`) passes `draft: true` → `PdfRenderer`'s `draftWatermark`
+  (translation `pdf.watermark.draft`). The office exports have none.
 - **Delivered PDFs are frozen files**; DOCX/ODT are generated on request, so a model with no header of its own shows the centre's *current*
   one there. The body repeats the title only when the document has a name of its own (`showTitle`/`$heading`): the header carries the model's.
 - **Not verified in Word/LibreOffice here** (no office suite on the dev machine): the XML is checked for well-formedness and structure in

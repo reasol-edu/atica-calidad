@@ -1269,5 +1269,6 @@ rejection_reason.flash.reset: 'Se usan de nuevo los motivos de rechazo estándar
 activity.field.form_drafts_for_all: 'Crear el borrador de todos al abrirse el plazo'
 activity.field.form_drafts_for_all_help: 'Cada persona o grupo encontrará su documento ya empezado, prerrellenado con lo del curso anterior si lo hay.'
 activity.field.form_prefill_source: 'Prerrellenar con lo entregado en'
+pdf.watermark.draft: 'Borrador'
 activity.field.form_prefill_source_none: 'Solo lo del curso anterior'
 activity.field.form_prefill_source_help: 'Los campos con el mismo nombre interno se copian de la otra actividad.'

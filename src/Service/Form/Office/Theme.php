@@ -16,13 +16,14 @@ final class Theme
     public const string ZEBRA      = 'fbf9f3';
     public const string LINE       = '555555';
 
-    public const string FONT = 'Calibri';
+    /** A sans-serif every system has (Windows, macOS, and Linux through its metric-compatible Liberation Sans). */
+    public const string FONT = 'Arial';
 
     /** The size of the text of the body at 100 %. */
-    public const float BODY = 10.5;
+    public const float BODY = 10.0;
 
     /** @var array<int, float> the size of the title (0) and of each level of heading at 100 % */
-    public const array HEADINGS = [0 => 22.0, 1 => 16.0, 2 => 13.5, 3 => 12.0, 4 => 11.0, 5 => 10.5];
+    public const array HEADINGS = [0 => 21.0, 1 => 15.0, 2 => 13.0, 3 => 11.5, 4 => 10.5, 5 => 10.0];
 
     /** The size of the running header and footer (they do not follow the font scale). */
     public const float RUNNING = 9.0;

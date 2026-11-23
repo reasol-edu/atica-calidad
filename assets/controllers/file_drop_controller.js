@@ -214,6 +214,16 @@ export default class extends Controller {
             nameSpan.textContent = file.name;
         }
 
+        // A picked image is shown as a thumbnail (the template has an <img data-role="thumb"> where it wants one).
+        const thumb = fragment.querySelector('[data-role="thumb"]');
+        if (thumb && file.type.startsWith('image/')) {
+            const url = URL.createObjectURL(file);
+            thumb.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
+            thumb.src = url;
+            thumb.classList.remove('hidden');
+            fragment.querySelector('svg')?.classList.add('hidden');
+        }
+
         const versionInput = fragment.querySelector('[data-role="version-input"]');
         if (versionInput) {
             versionInput.name = `items[${index}][version]`;

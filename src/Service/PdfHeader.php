@@ -6,14 +6,19 @@ namespace App\Service;
 
 /**
  * The running header of a PDF: one block of HTML (usually a table) drawn at the top of every page, and the top margin that leaves room
- * for it. With `$stretch` the margin grows to the height the header really has (mPDF measures it), for a header that can be tall.
+ * for it. With `$stretch` the margin grows to the height the header really has (mPDF measures it).
+ *
+ * A different header for the first page is `$firstHtml`; it can be taller than the normal one, so `$firstExtraMm` says how much taller:
+ * the body of the first page is pushed down that much (mPDF fixes the margin of every page alike).
  */
 final readonly class PdfHeader
 {
     public function __construct(
         public string $html,
-        public int $marginTopMm = 22,
+        public float $marginTopMm = 22,
         public bool $stretch = false,
+        public ?string $firstHtml = null,
+        public float $firstExtraMm = 0.0,
     ) {}
 
     /** The usual header of the reports: a text on the left and another on the right (both already escaped HTML), under a green rule. */

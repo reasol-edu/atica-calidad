@@ -82,6 +82,30 @@ final class FormLayoutPdfTest extends RepositoryTestCase
         self::assertGreaterThan($h, $w);
     }
 
+    public function testALogoAFirstPageHeaderMarginsAndTheDraftWatermarkBuild(): void
+    {
+        $png  = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAHgAAAA8CAIAAAAiz+n/AAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAoklEQVR4nO3QQRHAIADAMMDXvujAv4qpWHksUdDr3OcZfG/dDvgLoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHXjNUAVulkrf3AAAAAElFTkSuQmCC', true);
+        $file = new \App\Entity\SettingFile(hash('sha256', $png), $png, 'image/png', strlen($png));
+        $this->persist($file);
+        $def = $this->em->getRepository(\App\Entity\SettingDefinition::class)->findOneBy(['key' => 'centre.logo'])
+            ?? (new \App\Entity\SettingDefinition())->setKey('centre.logo')->setType(\App\Entity\SettingType::Image)->setDefaultValue('')->setCentreScope(true)->setGlobalScope(true);
+        $this->persist($def, (new \App\Entity\CentreSettingValue())->setDefinition($def)->setCentre($this->centre)->setValue('logo.png')->setFile($file));
+        self::getContainer()->get(\App\Service\AppSettings::class)->invalidate();
+
+        $layout = [
+            'header'      => '<table><tbody><tr><td>{logo}</td><td>{centro}</td></tr></tbody></table>',
+            'firstHeader' => '<table><tbody><tr><td rowspan="2">{logo}</td><td>{centro}</td></tr><tr><td>{titulo}</td></tr></tbody></table>',
+            'margins'     => ['top' => 12, 'right' => 20, 'bottom' => 12, 'left' => 20],
+        ];
+        $definition = $this->definition($layout);
+        $pdf        = $this->builder->build($definition, [], $this->centre, 'Memoria', 'MD1', 1, true, [], null, null, null, false, true);
+
+        self::assertStringStartsWith('%PDF', $pdf);
+        if (\is_string($dir = getenv('LAYOUT_PDF_OUT')) && $dir !== '') {
+            file_put_contents($dir . '/first-logo-draft.pdf', $pdf);
+        }
+    }
+
     public function testACustomHeaderAndFooterAndFontScaleBuild(): void
     {
         $header = '<table><tbody><tr><td colspan="2" style="border: 1px solid #000000">{centro}</td></tr><tr><td>{codigo}</td><td>Página {pagina} de {paginas}</td></tr></tbody></table>';

@@ -232,6 +232,7 @@ class SettingDefinition
             SettingType::String,
             SettingType::RichText,
             SettingType::Layout,
+            SettingType::Image,
             SettingType::Pdf     => $this->isStringValueValid($value),
             SettingType::Choice  => in_array($value, $this->getChoicesArray(), true),
             SettingType::DayMonth => DayMonth::tryParse($value) !== null,
@@ -286,6 +287,7 @@ class SettingDefinition
             SettingType::Choice,
             SettingType::RichText,
             SettingType::Layout,
+            SettingType::Image,
             SettingType::Pdf,
             SettingType::DayMonth => $this->defaultValue,
         };

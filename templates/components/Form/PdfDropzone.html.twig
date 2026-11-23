@@ -1,5 +1,5 @@
 {# `accept` and `hint` default to the PDF template case; other forms with a single file reuse it with their own. #}
-{% props id, name, accept = 'application/pdf', hint = null, required = false, withSubmit = true %}
+{% props id, name, accept = 'application/pdf', hint = null, required = false, withSubmit = true, thumbs = false %}
 {% set hintText = hint ?? 'settings.pdf_template.dropzone_hint'|trans({}, 'settings') %}
 {% set limits = upload_limits() %}
 <div data-controller="file-drop"
@@ -24,6 +24,10 @@
 
     <template data-file-drop-target="itemTemplate">
         <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+            {% if thumbs %}
+                {# The picked image, shown before it is sent (the controller fills it in from the file chosen). #}
+                <img data-role="thumb" alt="" class="hidden h-12 max-w-32 shrink-0 rounded border border-gray-200 bg-white object-contain p-0.5">
+            {% endif %}
             {{ ux_icon('heroicons:document', {class: 'h-4 w-4 text-gray-400 shrink-0'}) }}
             <span class="text-sm text-gray-700 flex-1 truncate" data-role="name"></span>
             <span class="text-xs text-gray-400 shrink-0" data-role="size"></span>

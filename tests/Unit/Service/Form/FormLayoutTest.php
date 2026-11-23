@@ -27,7 +27,45 @@ final class FormLayoutTest extends TestCase
     public function testAnOldDefinitionGetsTheDefaults(): void
     {
         self::assertSame(FormLayout::defaults(), FormLayout::clean(null, $this->sanitizer));
-        self::assertSame(['header' => null, 'footer' => null, 'orientation' => 'portrait', 'fontScale' => 100], FormLayout::clean([], null));
+        self::assertSame(['header' => null, 'footer' => null, 'firstHeader' => null, 'orientation' => 'portrait', 'fontScale' => 100, 'margins' => null], FormLayout::clean([], null));
+    }
+
+    public function testMarginsAreAllFourOrNoneAndStayBetweenTheLimits(): void
+    {
+        self::assertSame(['top' => 12, 'right' => 40, 'bottom' => 5, 'left' => 15], FormLayout::margins(['top' => 12, 'right' => 99, 'bottom' => 1, 'left' => '15']));
+        self::assertNull(FormLayout::margins(['top' => 12, 'right' => 15, 'bottom' => 10]), 'one is missing: the model has none of its own');
+        self::assertNull(FormLayout::margins(['top' => 'x', 'right' => 1, 'bottom' => 1, 'left' => 1]));
+        self::assertNull(FormLayout::margins('big'));
+    }
+
+    public function testAFirstPageHeaderIsKeptOnlyWhenItHasSomething(): void
+    {
+        self::assertNull(FormLayout::clean(['firstHeader' => '<p></p>'], $this->sanitizer)['firstHeader']);
+        self::assertSame('<p>Portada</p>', FormLayout::clean(['firstHeader' => '<p>Portada</p>'], $this->sanitizer)['firstHeader']);
+    }
+
+    public function testTheLogosAreLeftForTheFormatToDrawAsImages(): void
+    {
+        self::assertSame('<p>{logo} {logo2} IES</p>', FormLayout::fill('<p>{logo} {logo2} {centro}</p>', ['centro' => 'IES', 'logo' => 'x']));
+    }
+
+    public function testLogosAndPageFieldsAreRunsOfTheirOwnInTheGrid(): void
+    {
+        $blocks = (new LayoutHtml())->parse('<table><tbody><tr><td>{logo}</td><td>{logo2} {pagina}</td></tr></tbody></table>');
+        self::assertInstanceOf(Table::class, $blocks[0]);
+        self::assertSame(Run::LOGO, $blocks[0]->cells[0]->paragraphs[0]->runs[0]->kind);
+        self::assertSame([Run::LOGO2, Run::TEXT, Run::PAGE], array_map(static fn (Run $r): string => $r->kind, $blocks[0]->cells[1]->paragraphs[0]->runs));
+    }
+
+    public function testALogoIsDrawnWithinTheLimitsKeepingItsProportions(): void
+    {
+        $png   = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAHgAAAA8CAIAAAAiz+n/AAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAoklEQVR4nO3QQRHAIADAMMDXvujAv4qpWHksUdDr3OcZfG/dDvgLoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHXjNUAVulkrf3AAAAAElFTkSuQmCC', true);
+        $image = \App\Service\Form\Layout\Image::fromBytes((string) $png);
+        self::assertNotNull($image);
+        [$w, $h] = $image->sizeCm();
+        self::assertLessThanOrEqual(\App\Service\Form\Layout\Image::MAX_WIDTH_CM, $w);
+        self::assertEqualsWithDelta(2.0, $w / $h, 0.01, 'a 2×1 image stays 2:1');
+        self::assertNull(\App\Service\Form\Layout\Image::fromBytes('<svg xmlns="http://www.w3.org/2000/svg"/>'), 'no SVG');
     }
 
     public function testTheOrientationIsOneOfTheTwoAndTheScaleStaysBetween50And150(): void

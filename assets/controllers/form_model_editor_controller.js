@@ -36,7 +36,7 @@ export default class extends Controller {
         const dropFoot = (sections) => sections.forEach((s) => { s.blocks = (s.blocks || []).filter((b) => !b.foot); dropFoot(s.children || []); });
         dropFoot(this.def.sections);
         // The page layout (header, footer, orientation, font scale) edited in the "Ajustes" tab; a header or footer null is the centre's.
-        this.def.layout = Object.assign({ header: null, footer: null, orientation: 'portrait', fontScale: 100 }, this.def.layout || {});
+        this.def.layout = Object.assign({ header: null, footer: null, firstHeader: null, orientation: 'portrait', fontScale: 100, margins: null }, this.def.layout || {});
         this.version = this.configValue.version;
         this.dirty = false;
         this.saving = false;
@@ -154,7 +154,7 @@ export default class extends Controller {
         const part = event.target.dataset.part;
         const box = this.element.querySelector('[data-layout-part="' + part + '"]');
         const custom = event.target.checked;
-        box.querySelector('[data-layout-inherited]').classList.toggle('hidden', custom);
+        box.querySelector('[data-layout-inherited]')?.classList.toggle('hidden', custom);
         box.querySelector('[data-layout-custom]').classList.toggle('hidden', !custom);
         if (custom) {
             // Starts from what the model had (or from the inherited one), kept as it is until it is edited.
@@ -169,6 +169,31 @@ export default class extends Controller {
     layoutEdited(event) {
         this.def.layout[event.target.dataset.part] = event.target.value || null;
         this.touch();
+    }
+
+    /** The checkbox of the margins: with it the model has margins of its own (the four boxes), without it the centre's. */
+    layoutMarginsMode(event) {
+        const boxes = [...this.element.querySelectorAll('[data-layout-margins] input[data-side]')];
+        boxes.forEach((input) => {
+            input.disabled = !event.target.checked;
+            if (!event.target.checked) {
+                input.value = input.dataset.inherited;
+            }
+        });
+        this.def.layout.margins = event.target.checked ? this.marginsFromBoxes(boxes) : null;
+        this.touch();
+    }
+
+    layoutMargins() {
+        this.def.layout.margins = this.marginsFromBoxes([...this.element.querySelectorAll('[data-layout-margins] input[data-side]')]);
+        this.touch();
+    }
+
+    marginsFromBoxes(boxes) {
+        const margins = {};
+        boxes.forEach((input) => { margins[input.dataset.side] = Math.max(5, Math.min(40, Number(input.value) || 5)); });
+
+        return margins;
     }
 
     layoutOrientation(event) {

@@ -53,7 +53,7 @@
             {# The richtext and pdf settings stack vertically: they need the full width #}
             {% set isRichText = def.type.value == 'richtext' %}
             {% set isPdf      = def.type.value == 'pdf' %}
-            {% set isLayout   = def.type.value == 'layout' %}
+            {% set isLayout   = def.type.value in ['layout', 'image'] %}
             <li class="flex flex-col gap-3 px-6 py-4 {{ (isRichText or isPdf or isLayout) ? '' : 'sm:flex-row sm:items-center sm:gap-6' }}
                         {{ parentLock is not null ? 'opacity-60' : '' }}">
 
@@ -264,6 +264,32 @@
                                           data-setting-key="{{ key }}">{{ displayValue ?? '' }}</textarea>
                             </div>
                         {% endif %}
+
+                    {% elseif def.type.value == 'image' %}
+                        {# An image (a logo): the one stored at this level with its preview, or the dropzone. Plain forms, like the PDF
+                           templates, so the LiveComponent's morphing must leave them alone. #}
+                        <div class="w-full" data-live-ignore>
+                            {% if parentLock is not null %}
+                                <p class="text-sm text-gray-500">{{ 'settings.image.locked'|trans({}, 'settings') }}</p>
+                            {% elseif row.storedFile is not null %}
+                                <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                                    <img src="{{ path('app_settings_image_view', {scope: scope, key: key}) }}?v={{ row.storedFile.hash|slice(0, 8) }}" alt="{{ stored }}"
+                                         class="h-14 max-w-40 shrink-0 rounded border border-gray-200 bg-white object-contain p-1">
+                                    <span class="min-w-0 flex-1 truncate text-gray-700">{{ stored }}</span>
+                                    <span class="shrink-0 text-xs text-gray-400">{{ (row.storedFile.size / 1024)|round }} KB</span>
+                                    <form method="post" action="{{ path('app_settings_image_delete', {scope: scope, key: key}) }}" class="shrink-0">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('settings_image_delete_' ~ key) }}">
+                                        <button type="submit" class="text-xs font-medium text-red-600 hover:text-red-700">{{ 'settings.image.delete'|trans({}, 'settings') }}</button>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <form method="post" action="{{ path('app_settings_image_upload', {scope: scope, key: key}) }}" enctype="multipart/form-data">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('settings_image_' ~ key) }}">
+                                    <twig:Form:PdfDropzone id="setting-image-{{ keySlug }}" name="file" accept="image/png,image/jpeg"
+                                        :hint="'settings.image.dropzone_hint'|trans({}, 'settings')" :thumbs="true" />
+                                </form>
+                            {% endif %}
+                        </div>
 
                     {% elseif def.type.value == 'pdf' %}
                         {# data-live-ignore: these are regular forms (multipart upload, not supported by

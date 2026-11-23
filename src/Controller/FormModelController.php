@@ -243,6 +243,11 @@ class FormModelController extends AbstractController
             $document->getNextVersion(),
             true,
             ['centre' => $centre->getName(), 'activity' => $document->getName(), 'slot' => '', 'year' => '', 'date' => ''],
+            null,
+            null,
+            null,
+            false,
+            true, // a draft: the "BORRADOR" watermark
         );
 
         $response = new Response($content);

@@ -14,6 +14,9 @@ final readonly class Run
     public const string BREAK = 'break';
     public const string PAGE  = 'page';
     public const string PAGES = 'pages';
+    /** The centre's logo ({logo}) and its education authority's ({logo2}): images, drawn where they are. */
+    public const string LOGO  = 'logo';
+    public const string LOGO2 = 'logo2';
 
     public function __construct(
         public string $kind,
@@ -30,5 +33,10 @@ final readonly class Run
     public function isField(): bool
     {
         return $this->kind === self::PAGE || $this->kind === self::PAGES;
+    }
+
+    public function isImage(): bool
+    {
+        return $this->kind === self::LOGO || $this->kind === self::LOGO2;
     }
 }

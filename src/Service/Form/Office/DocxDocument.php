@@ -7,6 +7,7 @@ namespace App\Service\Form\Office;
 use App\Service\Form\Layout\Cell;
 use App\Service\Form\Layout\DataTable;
 use App\Service\Form\Layout\Heading;
+use App\Service\Form\Layout\Image;
 use App\Service\Form\Layout\Paragraph;
 use App\Service\Form\Layout\Run;
 use App\Service\Form\Layout\Table;
@@ -17,18 +18,29 @@ use App\Service\Form\Layout\Table;
  */
 final class DocxDocument
 {
-    private const string NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+    private const string NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
 
     private const string XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+
+    /** @var array<string, Image> the logos of the document, by token */
+    private array $images = [];
+
+    /** @var array<string, Image> the logos the part being made uses (they become its relationships and media files) */
+    private array $used = [];
+
+    private int $drawings = 0;
 
     /**
      * @param list<Heading|Paragraph|DataTable> $body
      * @param list<Paragraph|Table>             $header
+     * @param list<Paragraph|Table>             $firstHeader the header of the first page, or none when it is the same
      * @param list<Paragraph|Table>             $footer
+     * @param array<string, Image>              $images      the logos, by token
      */
-    public function render(array $body, array $header, array $footer, Page $page, float $scale, string $title): string
+    public function render(array $body, array $header, array $firstHeader, array $footer, Page $page, float $scale, string $title, array $images = []): string
     {
-        $content = '';
+        $this->images = $images;
+        $content      = '';
         foreach ($body as $block) {
             $content .= match (true) {
                 $block instanceof Heading   => '<w:p><w:pPr><w:pStyle w:val="' . ($block->level === 0 ? 'Title' : 'Heading' . $block->level) . '"/></w:pPr><w:r><w:t xml:space="preserve">' . self::x($block->text) . '</w:t></w:r></w:p>',
@@ -37,27 +49,70 @@ final class DocxDocument
             };
         }
 
+        // The header and footer parts (and, with a header of its own for the first page, its pair): each with the pictures it uses.
+        $first = $firstHeader !== [];
+        $parts = ['header1' => $this->part($header, $page), 'footer1' => $this->part($footer, $page)];
+        if ($first) {
+            $parts['header2'] = $this->part($firstHeader, $page);
+            $parts['footer2'] = $this->part($footer, $page);
+        }
+
         $width  = Page::twips($page->widthCm());
         $height = Page::twips($page->heightCm());
-        $sect   = '<w:sectPr><w:headerReference w:type="default" r:id="rId2"/><w:footerReference w:type="default" r:id="rId3"/>'
+        $sect   = '<w:sectPr><w:headerReference w:type="default" r:id="rId2"/>' . ($first ? '<w:headerReference w:type="first" r:id="rId4"/>' : '')
+            . '<w:footerReference w:type="default" r:id="rId3"/>' . ($first ? '<w:footerReference w:type="first" r:id="rId5"/>' : '')
             . '<w:pgSz w:w="' . ($page->landscape ? $height : $width) . '" w:h="' . ($page->landscape ? $width : $height) . '"' . ($page->landscape ? ' w:orient="landscape"' : '') . '/>'
-            . '<w:pgMar w:top="' . Page::twips(Page::MARGIN_TOP) . '" w:right="' . Page::twips(Page::MARGIN_X) . '" w:bottom="' . Page::twips(Page::MARGIN_BOTTOM) . '" w:left="' . Page::twips(Page::MARGIN_X) . '" w:header="454" w:footer="454" w:gutter="0"/></w:sectPr>';
+            // The body starts below the header and ends above the footer, whatever they measure (Word moves it down when they are taller).
+            . '<w:pgMar w:top="' . Page::twips($page->topCm()) . '" w:right="' . Page::twips($page->rightCm()) . '" w:bottom="' . Page::twips($page->bottomCm()) . '" w:left="' . Page::twips($page->leftCm()) . '" w:header="' . Page::twips($page->topCm()) . '" w:footer="' . Page::twips($page->bottomCm()) . '" w:gutter="0"/>'
+            . ($first ? '<w:titlePg/>' : '') . '</w:sectPr>';
 
-        $ct = 'application/vnd.openxmlformats-officedocument.wordprocessingml.';
+        $ct   = 'application/vnd.openxmlformats-officedocument.wordprocessingml.';
+        $rel  = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/';
+        $over = '';
+        $rels = '<Relationship Id="rId1" Type="' . $rel . 'styles" Target="styles.xml"/>';
+        $files = [];
+        $ids   = ['header1' => 'rId2', 'footer1' => 'rId3', 'header2' => 'rId4', 'footer2' => 'rId5'];
+        foreach ($parts as $name => [$xml, $used]) {
+            $kind  = str_starts_with($name, 'header') ? 'header' : 'footer';
+            $root  = $kind === 'header' ? 'w:hdr' : 'w:ftr';
+            $over .= '<Override PartName="/word/' . $name . '.xml" ContentType="' . $ct . $kind . '+xml"/>';
+            $rels .= '<Relationship Id="' . $ids[$name] . '" Type="' . $rel . $kind . '" Target="' . $name . '.xml"/>';
+            $files['word/' . $name . '.xml'] = self::XML . '<' . $root . ' ' . self::NS . '>' . $xml . '</' . $root . '>';
+            if ($used !== []) {
+                $partRels = '';
+                foreach ($used as $token => $image) {
+                    $partRels .= '<Relationship Id="rIdImg' . $token . '" Type="' . $rel . 'image" Target="media/' . $token . '.' . $image->extension() . '"/>';
+                    $files['word/media/' . $token . '.' . $image->extension()] = $image->content;
+                }
+                $files['word/_rels/' . $name . '.xml.rels'] = self::XML . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' . $partRels . '</Relationships>';
+            }
+        }
 
         return $this->zip([
-            '[Content_Types].xml'          => self::XML . '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'
-                . '<Override PartName="/word/document.xml" ContentType="' . $ct . 'document.main+xml"/><Override PartName="/word/styles.xml" ContentType="' . $ct . 'styles+xml"/>'
-                . '<Override PartName="/word/header1.xml" ContentType="' . $ct . 'header+xml"/><Override PartName="/word/footer1.xml" ContentType="' . $ct . 'footer+xml"/>'
+            '[Content_Types].xml'          => self::XML . '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpg" ContentType="image/jpeg"/>'
+                . '<Override PartName="/word/document.xml" ContentType="' . $ct . 'document.main+xml"/><Override PartName="/word/styles.xml" ContentType="' . $ct . 'styles+xml"/>' . $over
                 . '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>',
-            '_rels/.rels'                  => self::XML . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>',
-            'word/_rels/document.xml.rels' => self::XML . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>',
+            '_rels/.rels'                  => self::XML . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="' . $rel . 'officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>',
+            'word/_rels/document.xml.rels' => self::XML . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' . $rels . '</Relationships>',
             'word/document.xml'            => self::XML . '<w:document ' . self::NS . '><w:body>' . $content . $sect . '</w:body></w:document>',
-            'word/header1.xml'             => self::XML . '<w:hdr ' . self::NS . '>' . $this->running($header, $page) . '</w:hdr>',
-            'word/footer1.xml'             => self::XML . '<w:ftr ' . self::NS . '>' . $this->running($footer, $page) . '</w:ftr>',
             'word/styles.xml'              => $this->styles($scale),
             'docProps/core.xml'            => self::XML . '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>' . self::x($title) . '</dc:title></cp:coreProperties>',
-        ]);
+        ] + $files);
+    }
+
+    /**
+     * The content of a header or footer part and the logos it draws.
+     *
+     * @param list<Paragraph|Table> $blocks
+     *
+     * @return array{0: string, 1: array<string, Image>}
+     */
+    private function part(array $blocks, Page $page): array
+    {
+        $this->used = [];
+        $xml        = $this->running($blocks, $page);
+
+        return [$xml, $this->used];
     }
 
     private function styles(float $scale): string
@@ -206,8 +261,33 @@ final class DocxDocument
         return '<w:p>' . ($pr !== '' ? '<w:pPr>' . $pr . '</w:pPr>' : '') . $xml . '</w:p>';
     }
 
+    /** A logo drawn in the line (its file and relationship are made for the part being built). */
+    private function picture(Run $run): string
+    {
+        $image = $this->images[$run->kind] ?? null;
+        if ($image === null) {
+            return '';
+        }
+        $this->used[$run->kind] = $image;
+        [$w, $h] = $image->sizeCm();
+        $cx = (int) round($w * 360000);
+        $cy = (int) round($h * 360000);
+        $id = ++$this->drawings;
+
+        return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' . $cx . '" cy="' . $cy . '"/><wp:docPr id="' . $id . '" name="Logo ' . $id . '"/>'
+            . '<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>'
+            . '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+            . '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="' . $id . '" name="' . $run->kind . '.' . $image->extension() . '"/><pic:cNvPicPr/></pic:nvPicPr>'
+            . '<pic:blipFill><a:blip r:embed="rIdImg' . $run->kind . '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+            . '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' . $cx . '" cy="' . $cy . '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>'
+            . '</a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
+    }
+
     private function run(Run $run): string
     {
+        if ($run->isImage()) {
+            return $this->picture($run);
+        }
         $pr = ($run->bold ? '<w:b/>' : '') . ($run->italic ? '<w:i/>' : '') . ($run->color !== null ? '<w:color w:val="' . $run->color . '"/>' : '')
             . ($run->size !== null ? '<w:sz w:val="' . (int) round($run->size * 2) . '"/>' : '') . ($run->underline ? '<w:u w:val="single"/>' : '');
         $rpr = $pr !== '' ? '<w:rPr>' . $pr . '</w:rPr>' : '';

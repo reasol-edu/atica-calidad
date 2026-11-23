@@ -12,6 +12,7 @@ enum SettingType: string
     case Choice   = 'choice';
     case RichText = 'richtext';
     case Layout   = 'layout';
+    case Image    = 'image';
     case Pdf      = 'pdf';
     case DayMonth = 'day_month';
 }

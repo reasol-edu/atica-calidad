@@ -35,6 +35,26 @@ class PdfRenderer
     ) {}
 
     /**
+     * How tall a block of HTML is when it is drawn, in millimetres: for the margin that leaves room for a header or footer whose height
+     * is not known beforehand (a table the person drew).
+     *
+     * @param 'P'|'L' $orientation
+     */
+    public function heightMm(string $html, string $orientation, float $marginLeft, float $marginRight): float
+    {
+        $mpdf = new Mpdf($this->fontConfig() + [
+            'format' => 'A4', 'orientation' => $orientation, 'margin_left' => $marginLeft, 'margin_right' => $marginRight,
+            'margin_top' => 0, 'margin_bottom' => 0, 'tempDir' => sys_get_temp_dir(),
+        ]);
+        $mpdf->AddPage();
+        $mpdf->WriteHTML($html);
+
+        $y = $mpdf->y;
+
+        return \is_float($y) || \is_int($y) ? (float) $y : 0.0;
+    }
+
+    /**
      * Renders a Twig template to a PDF response via mPDF, with a shared running
      * header/footer (pdf/_header.html.twig, pdf/_footer.html.twig) — unless $showHeader/
      * $showFooter say to skip one, freeing up its margin for content instead.
@@ -59,6 +79,7 @@ class PdfRenderer
         bool $showHeader = true,
         bool $showFooter = true,
         ?string $footerHtml = null,
+        ?PdfMargins $margins = null,
     ): Response {
         $context += [
             'pdfTitle'       => $title,
@@ -69,15 +90,14 @@ class PdfRenderer
         $mpdf = new Mpdf($this->fontConfig() + [
             'format'        => 'A4',
             'orientation'   => $orientation,
-            'margin_left'   => 15,
-            'margin_right'  => 15,
+            'margin_left'   => $margins->left ?? 15,
+            'margin_right'  => $margins->right ?? 15,
             'margin_top'    => $showHeader ? ($header->marginTopMm ?? 22) : 12,
-            'margin_bottom' => $showFooter ? 18 : 10,
-            'margin_header' => 8,
-            'margin_footer' => 8,
-            // A header or footer of the model can be as tall as its table: the margin grows with it instead of covering the content.
-            'setAutoTopMargin'    => $showHeader && $header?->stretch === true ? 'stretch' : false,
-            'setAutoBottomMargin' => $footerHtml !== null ? 'stretch' : false,
+            'margin_bottom' => $margins->bottom ?? ($showFooter ? 18 : 10),
+            'margin_header' => $margins->header ?? 8,
+            'margin_footer' => $margins->footer ?? 8,
+            // A header as tall as its table: the margin grows with it instead of covering the content.
+            'setAutoTopMargin' => $showHeader && $header?->stretch === true ? 'stretch' : false,
             'tempDir'       => sys_get_temp_dir(),
         ]);
 
@@ -99,13 +119,27 @@ class PdfRenderer
                 $mpdf->showWatermarkText = true;
             }
 
-            if ($showHeader) {
+            $body = $this->twig->render($template, $context);
+            if ($showHeader && $header?->firstHtml !== null) {
+                // The first page has a header of its own: both are named, shown on their pages, and the body is pushed down by what the
+                // first one is taller than the normal one.
+                $pages = '<htmlpageheader name="firstPage">' . $header->firstHtml . '</htmlpageheader>'
+                    . '<htmlpageheader name="otherPages">' . $this->twig->render('pdf/_header.html.twig', $context) . '</htmlpageheader>'
+                    . '<sethtmlpageheader name="firstPage" value="on" show-this-page="1" /><sethtmlpageheader name="otherPages" value="on" />'
+                    . ($header->firstExtraMm > 0 ? '<div style="height: ' . round($header->firstExtraMm, 2) . 'mm;"></div>' : '');
+                // Inside the <body> of the template when it is a whole document (before its <html> the library ignores them).
+                $count = 0;
+                $body  = preg_replace('/(<body[^>]*>)/i', '$1' . str_replace('$', '\\$', $pages), $body, 1, $count) ?? $body;
+                if ($count === 0) {
+                    $body = $pages . $body;
+                }
+            } elseif ($showHeader) {
                 $mpdf->SetHTMLHeader($this->twig->render('pdf/_header.html.twig', $context));
             }
             if ($showFooter) {
                 $mpdf->SetHTMLFooter($footerHtml ?? $this->twig->render('pdf/_footer.html.twig', $context));
             }
-            $mpdf->WriteHTML($this->twig->render($template, $context));
+            $mpdf->WriteHTML($body);
 
             $content = $mpdf->Output('', Destination::STRING_RETURN);
         } finally {

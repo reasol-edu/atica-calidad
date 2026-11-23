@@ -3,21 +3,28 @@
    value     — the current HTML
    default   — HTML "restore" goes back to (optional)
    input     — extra attributes for the hidden textarea that holds the HTML, already escaped (e.g. the setting-save controller or a model-editor action)
+   code, title — the code and title the preview shows (the model's; optional)
    Wrap it in data-live-ignore where a LiveComponent re-renders. #}
 {% set tokens = {} %}
-{% for key in ['centro', 'localidad', 'pagina', 'paginas', 'codigo', 'titulo', 'revision', 'fecha_revision'] %}
+{% for key in ['centro', 'localidad', 'logo', 'logo2', 'pagina', 'paginas', 'codigo', 'titulo', 'revision', 'fecha_revision', 'fecha_aprobacion'] %}
     {% set tokens = tokens|merge({(key): ('layout.token.' ~ key)|trans({}, 'forms')}) %}
 {% endfor %}
 {% set labels = {} %}
-{% for key in ['editor', 'bold', 'italic', 'underline', 'left', 'center', 'right', 'color', 'size', 'sizeAuto', 'field', 'fieldPlaceholder', 'insertTable', 'addRow', 'addCol', 'delRow', 'delCol', 'merge', 'split', 'bordersToggle', 'delTable', 'cellBackground', 'noBackground', 'restore'] %}
+{% for key in ['editor', 'bold', 'italic', 'underline', 'left', 'center', 'right', 'color', 'size', 'sizeAuto', 'field', 'fieldPlaceholder', 'insertTable', 'addRow', 'addCol', 'delRow', 'delCol', 'merge', 'split', 'bordersToggle', 'delTable', 'cellBackground', 'noBackground', 'restore', 'logoMissing'] %}
     {% set labels = labels|merge({(key): ('layout.editor.' ~ key)|trans({}, 'forms')}) %}
 {% endfor %}
 <div id="{{ id }}" class="w-full min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white" data-live-ignore
      data-controller="doc-layout-editor"
      data-doc-layout-editor-labels-value="{{ labels|json_encode|e('html_attr') }}"
      data-doc-layout-editor-tokens-value="{{ tokens|json_encode|e('html_attr') }}"
+     data-doc-layout-editor-sample-value="{{ doc_layout_sample(code ?? null, title ?? null)|json_encode|e('html_attr') }}"
      {% if default is defined and default %}data-doc-layout-editor-default-html-value="{{ default|e('html_attr') }}"{% endif %}>
     <div data-doc-layout-editor-target="editor"></div>
     <p class="border-t border-gray-100 bg-gray-50 px-3 py-1.5 text-xs text-gray-500">{{ 'layout.editor.hint'|trans({}, 'forms') }}</p>
+    <div class="border-t border-gray-100 bg-gray-50/60 px-3 py-2">
+        <p class="mb-1.5 text-xs font-medium text-gray-600">{{ 'layout.editor.preview'|trans({}, 'forms') }}</p>
+        {# The page as it will be drawn, with sample data (the centre's own name, town and logos): paper-white, whatever the theme. #}
+        <div class="overflow-x-auto rounded border border-gray-200 bg-white p-3 text-xs text-gray-900 doc-layout-prose" data-doc-layout-editor-target="preview" aria-live="polite"></div>
+    </div>
     <textarea class="hidden" data-doc-layout-editor-target="input" {{ input|default('')|raw }}>{{ value }}</textarea>
 </div>

@@ -55,6 +55,9 @@ class DocumentRevision
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $approvedAt = null;
+
     #[ORM\Column]
     private bool $rejected = false;
 
@@ -160,8 +163,22 @@ class DocumentRevision
         $this->rejected      = false;
         $this->reviewedBy    = $reviewer;
         $this->reviewResult  = $reviewResult;
+        $this->approvedAt    = now();
 
         return $this;
+    }
+
+    /**
+     * When this revision was approved: the moment of the approval when it was reviewed, the revision's own date when it needed no review
+     * (so both dates are the same); null while it is pending or if it was rejected.
+     */
+    public function getApprovedAt(): ?\DateTimeImmutable
+    {
+        if ($this->pendingReview || $this->rejected) {
+            return null;
+        }
+
+        return $this->approvedAt ?? $this->revisedAt;
     }
 
     /** Rejects this revision: it can never become the document's active revision. */

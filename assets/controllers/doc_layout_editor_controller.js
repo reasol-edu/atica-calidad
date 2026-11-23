@@ -72,8 +72,8 @@ const SELECT = 'h-8 rounded-lg border border-gray-200 bg-white px-2 text-xs text
  * Values: `labels` (texts of the buttons, translated), `tokens` ({key: label}), `defaultHtml` (what "restore" goes back to).
  */
 export default class extends Controller {
-    static targets = ['editor', 'input'];
-    static values = { labels: Object, tokens: Object, defaultHtml: String };
+    static targets = ['editor', 'input', 'preview'];
+    static values = { labels: Object, tokens: Object, defaultHtml: String, sample: Object };
 
     connect() {
         const L = this.labelsValue;
@@ -99,13 +99,42 @@ export default class extends Controller {
             ],
             content: this.inputTarget.value || '',
             editorProps: { attributes: { class: 'doc-layout-prose min-h-24 px-3 py-2 text-sm focus:outline-none', 'aria-label': L.editor || '' } },
-            onUpdate: () => this.queueSave(),
+            onUpdate: () => {
+                this.queueSave();
+                this.renderPreview();
+            },
             onBlur: () => this.save(),
             onTransaction: () => this.refresh(),
         });
 
         this.build(L);
         this.refresh();
+        this.renderPreview();
+    }
+
+    // The header as the page will draw it, with sample data: the fields are filled in and the logos are the centre's (a placeholder
+    // when it has none). What is drawn is the editor's own HTML (the schema only lets through what the document allows).
+    renderPreview() {
+        if (!this.hasPreviewTarget) {
+            return;
+        }
+        const sample = this.sampleValue;
+        const escape = (text) => text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        this.previewTarget.innerHTML = this.editor.getHTML().replace(/\{([a-z0-9_]+)\}/g, (match, key) => {
+            if (key === 'logo' || key === 'logo2') {
+                return sample[key]
+                    ? `<img data-logo src="${escape(sample[key])}" alt="" style="height:1.6cm;max-width:5cm;display:inline-block;vertical-align:middle">`
+                    : `<span data-logo-missing class="doc-logo-missing">${escape(this.labelsValue.logoMissing || 'Logo')}</span>`;
+            }
+
+            return key in sample ? escape(String(sample[key])) : match;
+        });
+        this.previewTarget.querySelectorAll('img[data-logo]').forEach((img) => img.addEventListener('error', () => {
+            const placeholder = document.createElement('span');
+            placeholder.className = 'doc-logo-missing';
+            placeholder.textContent = this.labelsValue.logoMissing || 'Logo';
+            img.replaceWith(placeholder);
+        }, { once: true }));
     }
 
     disconnect() {
@@ -272,5 +301,6 @@ export default class extends Controller {
     setHtml(html) {
         this.editor.commands.setContent(html || '', { emitUpdate: false });
         this.inputTarget.value = html || '';
+        this.renderPreview();
     }
 }

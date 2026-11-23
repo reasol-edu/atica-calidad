@@ -28,8 +28,8 @@ final class Version20261123100000 extends AbstractMigration
         $this->abortIf(!$this->connection->getDatabasePlatform() instanceof SqlitePlatform, 'Esta migración sólo puede ejecutarse en SQLite.');
 
         $this->addSql("INSERT INTO setting_definition (id, key, type, default_value, global_scope, centre_scope, teacher_scope, min_value, max_value, category, category_order, position) VALUES
-            ('00000000-0000-4000-8000-0000000000d1', 'forms.document_header', 'layout', ?, 1, 1, 0, NULL, NULL, 'settings.category.document_layout', 9, 10),
-            ('00000000-0000-4000-8000-0000000000d2', 'forms.document_footer', 'layout', ?, 1, 1, 0, NULL, NULL, 'settings.category.document_layout', 9, 20)
+            (X'00000000000040008000000000000d01', 'forms.document_header', 'layout', ?, 1, 1, 0, NULL, NULL, 'settings.category.document_layout', 9, 10),
+            (X'00000000000040008000000000000d02', 'forms.document_footer', 'layout', ?, 1, 1, 0, NULL, NULL, 'settings.category.document_layout', 9, 20)
         ", [self::HEADER, self::FOOTER]);
     }
 

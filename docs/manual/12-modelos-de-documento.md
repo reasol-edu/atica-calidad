@@ -212,19 +212,33 @@ campo» del editor, o escribiéndolos entre llaves:
 |---|---|
 | `{centro}` | El nombre del centro |
 | `{localidad}` | La localidad del centro |
+| `{logo}` | El logotipo del centro (una imagen) |
+| `{logo2}` | El logotipo de la administración educativa de la que depende el centro (por ejemplo, la Junta de Andalucía) |
 | `{pagina}` y `{paginas}` | El número de la página y el total de páginas |
 | `{codigo}` | El código del documento (el del modelo, por ejemplo `MD850211`) |
 | `{titulo}` | El título del modelo |
 | `{revision}` | El número de la revisión del modelo |
-| `{fecha_revision}` | La fecha de esa revisión (en un borrador, la de hoy) |
+| `{fecha_revision}` | La fecha en que se hizo esa revisión (en un borrador, la de hoy) |
+| `{fecha_aprobacion}` | La fecha en que se aprobó. Si el modelo no necesita revisión, es la misma que `{fecha_revision}` |
+
+Los logotipos se suben en **Ajustes → Documentos: logotipos, encabezado, pie y márgenes**, como imágenes PNG
+o JPEG de hasta 2 MB: la plataforma puede poner los suyos y cada centro sustituirlos por los propios. Se
+dibujan con una altura de hasta 1,6 cm (y 5 cm de ancho), sin deformarse. Si no hay imagen, el campo no
+pone nada.
 
 El encabezado y el pie **predeterminados** son una tabla como la de los documentos del centro, sin logos:
 arriba el nombre y la localidad, debajo el título, y en la última fila el código, la revisión y «Página x de y»;
-al pie, el código y la fecha. Se cambian en **Ajustes → Encabezado y pie de los documentos**: la plataforma
-tiene los suyos y cada centro puede poner los propios.
+al pie, el código y la fecha. Se cambian en esos mismos ajustes: la plataforma
+tiene los suyos y cada centro puede poner los propios. Debajo de cada editor hay una **vista previa con datos de
+ejemplo** (el nombre, la localidad y los logotipos del centro), que se actualiza mientras se escribe.
 
 Cada modelo puede además personalizarlos en su pestaña **Ajustes**, donde también se elige:
 
+- **Encabezado de la primera página**: por defecto es el mismo que el de las demás; si se activa «Distinto en la
+  primera página», se edita aparte (por ejemplo, para poner ahí los logotipos).
+- **Márgenes**: superior (hasta el encabezado), derecho, inferior (hasta el pie) e izquierdo, en milímetros.
+  El centro y la plataforma tienen los suyos en los ajustes; el contenido empieza siempre debajo del
+  encabezado y termina encima del pie, sea cual sea su altura.
 - **Orientación de la página**: vertical o apaisado.
 - **Tamaño del contenido**: un deslizador del 50 % al 150 % (el 100 % es el tamaño normal) para reducir o
   ampliar el texto del documento; el encabezado y el pie no cambian de tamaño.
@@ -234,7 +248,12 @@ Todo esto forma parte de la **revisión** del modelo, igual que el contenido: la
 con el que se entregaron. Si el modelo no personaliza el encabezado o el pie, usa el del centro: en los PDF
 ya entregados no cambia nada, pero en las exportaciones a Word y LibreOffice, que se generan al pedirlas,
 se verá el que haya entonces en los ajustes. El botón **Vista previa en PDF** del editor enseña el
-documento tal como saldrá, con su encabezado, pie, orientación y tamaño.
+documento tal como saldrá, con su encabezado, pie, márgenes, orientación y tamaño, y con una marca de agua
+«BORRADOR», porque es la vista de un borrador.
+
+Una limitación: el PDF en blanco que se guarda al enviar una revisión a aprobación se genera en ese momento, así que
+`{fecha_aprobacion}` sale vacío en él (todavía no hay fecha). Los documentos rellenados y las
+exportaciones a Word y LibreOffice sí llevan la fecha de aprobación real.
 
 ## Sacar los documentos de la aplicación
 

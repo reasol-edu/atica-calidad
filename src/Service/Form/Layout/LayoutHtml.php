@@ -234,9 +234,10 @@ final class LayoutHtml
             return [];
         }
         $runs = [];
-        foreach (preg_split('/(\{pagina\}|\{paginas\})/', $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY) ?: [] as $piece) {
-            if ($piece === '{pagina}' || $piece === '{paginas}') {
-                $runs[] = new Run($piece === '{pagina}' ? Run::PAGE : Run::PAGES, '', $state['bold'] ?? false, $state['italic'] ?? false, $state['underline'] ?? false, $state['color'] ?? null, $state['size'] ?? null);
+        $fields = ['{pagina}' => Run::PAGE, '{paginas}' => Run::PAGES, '{logo}' => Run::LOGO, '{logo2}' => Run::LOGO2];
+        foreach (preg_split('/(\{pagina\}|\{paginas\}|\{logo\}|\{logo2\})/', $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY) ?: [] as $piece) {
+            if (isset($fields[$piece])) {
+                $runs[] = new Run($fields[$piece], '', $state['bold'] ?? false, $state['italic'] ?? false, $state['underline'] ?? false, $state['color'] ?? null, $state['size'] ?? null);
             } else {
                 $runs[] = new Run(Run::TEXT, $piece, $state['bold'] ?? false, $state['italic'] ?? false, $state['underline'] ?? false, $state['color'] ?? null, $state['size'] ?? null);
             }
@@ -323,18 +324,20 @@ final class LayoutHtml
      * document's stylesheet), and the page fields as its `{PAGENO}` and `{nbpg}`.
      *
      * @param list<Paragraph|Table> $blocks
+     * @param array<string, Image>  $images the logos by token, drawn where `{logo}` and `{logo2}` are
      */
-    public function toPdfHtml(array $blocks, float $baseSize): string
+    public function toPdfHtml(array $blocks, float $baseSize, array $images = []): string
     {
         $out = '<div style="font-family: sourcesanspro, sans-serif; font-size: ' . $this->n($baseSize) . 'pt; color: #2e2822;">';
         foreach ($blocks as $block) {
-            $out .= $block instanceof Table ? $this->pdfTable($block) : $this->pdfParagraph($block);
+            $out .= $block instanceof Table ? $this->pdfTable($block, $images) : $this->pdfParagraph($block, $images);
         }
 
         return $out . '</div>';
     }
 
-    private function pdfTable(Table $table): string
+    /** @param array<string, Image> $images */
+    private function pdfTable(Table $table, array $images): string
     {
         $rows = array_fill(0, $table->rows, '');
         foreach ($table->cells as $cell) {
@@ -348,7 +351,7 @@ final class LayoutHtml
             $style[] = 'text-align: ' . ($cell->paragraphs[0]->align ?? 'left');
             $content = '';
             foreach ($cell->paragraphs as $p) {
-                $content .= $this->pdfParagraph($p);
+                $content .= $this->pdfParagraph($p, $images);
             }
             $rows[$cell->row] .= '<td' . ($cell->colspan > 1 ? ' colspan="' . $cell->colspan . '"' : '') . ($cell->rowspan > 1 ? ' rowspan="' . $cell->rowspan . '"' : '')
                 . ' style="' . implode('; ', $style) . '">' . $content . '</td>';
@@ -367,20 +370,31 @@ final class LayoutHtml
         return '<table style="width: 100%; border-collapse: collapse; table-layout: fixed;">' . $cols . $body . '</table>';
     }
 
-    private function pdfParagraph(Paragraph $p): string
+    /** @param array<string, Image> $images */
+    private function pdfParagraph(Paragraph $p, array $images): string
     {
         $html = '';
         foreach ($p->runs as $run) {
-            $html .= $this->pdfRun($run);
+            $html .= $this->pdfRun($run, $images);
         }
 
         return '<p style="margin: 0; text-align: ' . $p->align . ';">' . ($html === '' ? '&nbsp;' : $html) . '</p>';
     }
 
-    private function pdfRun(Run $run): string
+    /** @param array<string, Image> $images */
+    private function pdfRun(Run $run, array $images): string
     {
         if ($run->kind === Run::BREAK) {
             return '<br>';
+        }
+        if ($run->isImage()) {
+            $image = $images[$run->kind] ?? null;
+            if ($image === null) {
+                return '';
+            }
+            [$w, $h] = $image->sizeCm();
+
+            return '<img src="data:' . $image->mime . ';base64,' . base64_encode($image->content) . '" style="width: ' . $this->n($w * 10) . 'mm; height: ' . $this->n($h * 10) . 'mm;">';
         }
         $text = match ($run->kind) {
             Run::PAGE  => '{PAGENO}',

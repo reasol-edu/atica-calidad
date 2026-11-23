@@ -8,10 +8,12 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerInterface;
 
 /**
  * The page layout of a model's documents: the running header and footer (rich text with tables, where `{tokens}` stand for the centre's
- * name, the page number, the code…), the orientation and the font scale. It is a part of the model's definition (`layout`), so it is
- * versioned with each revision; a header or footer left `null` is the one the centre (or the platform) has in its settings.
+ * name, the page number, the code…), an optional header for the first page, the orientation, the font scale and the margins. It is a
+ * part of the model's definition (`layout`), so it is versioned with each revision; a header, footer or margins left `null` are the
+ * ones the centre (or the platform) has in its settings, and a first-page header left `null` is the normal header.
  *
- * @phpstan-type Layout array{header: ?string, footer: ?string, orientation: string, fontScale: int}
+ * @phpstan-type Margins array{top: int, right: int, bottom: int, left: int}
+ * @phpstan-type Layout array{header: ?string, footer: ?string, firstHeader: ?string, orientation: string, fontScale: int, margins: ?Margins}
  */
 final class FormLayout
 {
@@ -24,13 +26,19 @@ final class FormLayout
     public const int SCALE_MAX     = 150;
     public const int SCALE_DEFAULT = 100;
 
+    /** The margins, in millimetres. */
+    public const int MARGIN_MIN = 5;
+    public const int MARGIN_MAX = 40;
+
     /**
-     * The fields the header and footer can show, as they are written in the text. The two page numbers are filled in by whoever draws
-     * the page (the PDF library, the word processor); the rest are known when the file is made.
+     * The fields the header and footer can show, as they are written in the text. The page numbers and the logos are drawn by whoever
+     * makes the file (the PDF library, the word processor); the rest are known when the file is made.
      */
-    public const array TOKENS = ['centro', 'localidad', 'pagina', 'paginas', 'codigo', 'titulo', 'revision', 'fecha_revision'];
+    public const array TOKENS = ['centro', 'localidad', 'logo', 'logo2', 'pagina', 'paginas', 'codigo', 'titulo', 'revision', 'fecha_revision', 'fecha_aprobacion'];
 
     public const array PAGE_TOKENS = ['pagina', 'paginas'];
+
+    public const array IMAGE_TOKENS = ['logo', 'logo2'];
 
     /** The border of a cell: what the editor gives a new one and what the default tables use. */
     private const string CELL = 'border: 1px solid #555555; padding: 4px';
@@ -38,7 +46,7 @@ final class FormLayout
     /** @return Layout */
     public static function defaults(): array
     {
-        return ['header' => null, 'footer' => null, 'orientation' => self::PORTRAIT, 'fontScale' => self::SCALE_DEFAULT];
+        return ['header' => null, 'footer' => null, 'firstHeader' => null, 'orientation' => self::PORTRAIT, 'fontScale' => self::SCALE_DEFAULT, 'margins' => null];
     }
 
     /**
@@ -74,15 +82,44 @@ final class FormLayout
         $raw = \is_array($raw) ? $raw : [];
 
         $orientation = \is_string($raw['orientation'] ?? null) && \in_array($raw['orientation'], self::ORIENTATIONS, true) ? $raw['orientation'] : self::PORTRAIT;
-        $scale       = \is_int($raw['fontScale'] ?? null) || \is_float($raw['fontScale'] ?? null) || (\is_string($raw['fontScale'] ?? null) && is_numeric($raw['fontScale']))
-            ? (int) round((float) $raw['fontScale']) : self::SCALE_DEFAULT;
+        $scale       = self::number($raw['fontScale'] ?? null) ?? self::SCALE_DEFAULT;
 
         return [
             'header'      => self::html($raw['header'] ?? null, $sanitizer),
             'footer'      => self::html($raw['footer'] ?? null, $sanitizer),
+            'firstHeader' => self::html($raw['firstHeader'] ?? null, $sanitizer),
             'orientation' => $orientation,
             'fontScale'   => max(self::SCALE_MIN, min(self::SCALE_MAX, $scale)),
+            'margins'     => self::margins($raw['margins'] ?? null),
         ];
+    }
+
+    /**
+     * The margins of the model, or null (the centre's): the four of them, each between the limits; one that is missing or not a number
+     * makes the model not have margins of its own at all.
+     *
+     * @return ?Margins
+     */
+    public static function margins(mixed $raw): ?array
+    {
+        if (!\is_array($raw)) {
+            return null;
+        }
+        $margins = [];
+        foreach (['top', 'right', 'bottom', 'left'] as $side) {
+            $value = self::number($raw[$side] ?? null);
+            if ($value === null) {
+                return null;
+            }
+            $margins[$side] = max(self::MARGIN_MIN, min(self::MARGIN_MAX, $value));
+        }
+
+        return $margins;
+    }
+
+    private static function number(mixed $value): ?int
+    {
+        return \is_int($value) || \is_float($value) || (\is_string($value) && is_numeric($value)) ? (int) round((float) $value) : null;
     }
 
     /** The sanitized HTML of a header or footer, or null when it is not set (or has nothing but empty paragraphs). */
@@ -103,26 +140,23 @@ final class FormLayout
     }
 
     /**
-     * Fills the tokens of a header or footer in. The values are plain text (escaped here); a token without a value, and the two page
-     * numbers when `$pages` is null, are left as they are for the caller to turn into the fields of its format.
+     * Fills the tokens of a header or footer in. The values are plain text (escaped here); a token without a value, the two page
+     * numbers when `$pages` is null, and the logos (which are images) are left as they are for the caller to turn into the fields
+     * of its format.
      *
      * @param array<string, string>  $values token (without braces) => text
      * @param ?array{0: string, 1: string} $pages what `{pagina}` and `{paginas}` become (already valid in the output format), or null to keep them
      */
     public static function fill(string $html, array $values, ?array $pages = null): string
     {
-        if ($pages !== null) {
-            $values_html = ['pagina' => $pages[0], 'paginas' => $pages[1]];
-        } else {
-            $values_html = [];
-        }
+        $pageValues = $pages !== null ? ['pagina' => $pages[0], 'paginas' => $pages[1]] : [];
 
-        return (string) preg_replace_callback('/\{([a-z_]+)\}/', static function (array $m) use ($values, $values_html): string {
+        return (string) preg_replace_callback('/\{([a-z0-9_]+)\}/', static function (array $m) use ($values, $pageValues): string {
             $name = $m[1];
-            if (isset($values_html[$name])) {
-                return $values_html[$name];
+            if (isset($pageValues[$name])) {
+                return $pageValues[$name];
             }
-            if (\in_array($name, self::PAGE_TOKENS, true) || !isset($values[$name])) {
+            if (\in_array($name, self::PAGE_TOKENS, true) || \in_array($name, self::IMAGE_TOKENS, true) || !isset($values[$name])) {
                 return $m[0];
             }
 

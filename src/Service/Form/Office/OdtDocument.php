@@ -7,6 +7,7 @@ namespace App\Service\Form\Office;
 use App\Service\Form\Layout\Cell;
 use App\Service\Form\Layout\DataTable;
 use App\Service\Form\Layout\Heading;
+use App\Service\Form\Layout\Image;
 use App\Service\Form\Layout\Paragraph;
 use App\Service\Form\Layout\Run;
 use App\Service\Form\Layout\Table;
@@ -17,7 +18,13 @@ use App\Service\Form\Layout\Table;
  */
 final class OdtDocument
 {
-    private const string NS = 'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0"';
+    private const string NS = 'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0"';
+
+    /** @var array<string, Image> the logos used, by the file name they get in the package (Pictures/…) */
+    private array $pictures = [];
+
+    /** @var array<string, Image> the logos of the document, by token */
+    private array $images = [];
 
     /** @var array<string, string> the automatic styles of the body (content.xml) by name */
     private array $contentStyles = [];
@@ -30,11 +37,14 @@ final class OdtDocument
     /**
      * @param list<Heading|Paragraph|DataTable> $body
      * @param list<Paragraph|Table>             $header
+     * @param list<Paragraph|Table>             $firstHeader the header of the first page, or none when it is the same
      * @param list<Paragraph|Table>             $footer
+     * @param array<string, Image>              $images      the logos, by token
      */
-    public function render(array $body, array $header, array $footer, Page $page, float $scale, string $title): string
+    public function render(array $body, array $header, array $firstHeader, array $footer, Page $page, float $scale, string $title, array $images = []): string
     {
-        $content = '';
+        $this->images = $images;
+        $content      = $firstHeader !== [] ? '<text:p text:style-name="FirstPageStart"/>' : '';
         foreach ($body as $block) {
             $content .= match (true) {
                 $block instanceof Heading   => $this->heading($block),
@@ -44,6 +54,12 @@ final class OdtDocument
         }
         $headerXml = $this->running($header, $page);
         $footerXml = $this->running($footer, $page);
+        // The first page's header is another master page that the body starts on and that is followed by the normal one.
+        $masters = '<style:master-page style:name="Standard" style:page-layout-name="pm1"><style:header>' . $headerXml . '</style:header><style:footer>' . $footerXml . '</style:footer></style:master-page>';
+        if ($firstHeader !== []) {
+            $masters .= '<style:master-page style:name="First_20_Page" style:display-name="First Page" style:page-layout-name="pm1" style:next-style-name="Standard"><style:header>'
+                . $this->running($firstHeader, $page) . '</style:header><style:footer>' . $this->running($footer, $page) . '</style:footer></style:master-page>';
+        }
 
         $automatic = '<office:automatic-styles>' . implode('', $this->contentStyles)
             . '<style:style style:name="TableCellHead" style:family="table-cell"><style:table-cell-properties fo:padding="0.14cm" fo:border="0.5pt solid #' . Theme::GREEN . '" fo:background-color="#' . Theme::GREEN . '" style:vertical-align="middle"/></style:style>'
@@ -53,35 +69,41 @@ final class OdtDocument
             . '<style:style style:name="TableCellTotal" style:family="table-cell"><style:table-cell-properties fo:padding="0.14cm" fo:border-left="0.5pt solid #' . Theme::RULE . '" fo:border-right="0.5pt solid #' . Theme::RULE . '" fo:border-bottom="0.5pt solid #' . Theme::RULE . '" fo:border-top="1.5pt solid #' . Theme::GREEN . '" fo:background-color="#' . Theme::GREEN_SOFT . '" style:vertical-align="middle"/></style:style>'
             . '</office:automatic-styles>';
 
+        $manifest = '';
+        $files    = [];
+        foreach ($this->pictures as $name => $image) {
+            $manifest      .= '<manifest:file-entry manifest:full-path="' . $name . '" manifest:media-type="' . $image->mime . '"/>';
+            $files[$name]   = $image->content;
+        }
+
+        // The `mimetype` goes first (ODF requires it), the pictures after the rest.
         return $this->zip([
             'mimetype'              => 'application/vnd.oasis.opendocument.text',
-            'META-INF/manifest.xml' => '<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2"><manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="meta.xml" manifest:media-type="text/xml"/></manifest:manifest>',
+            'META-INF/manifest.xml' => '<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2"><manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="meta.xml" manifest:media-type="text/xml"/>' . $manifest . '</manifest:manifest>',
             'content.xml'           => '<?xml version="1.0" encoding="UTF-8"?><office:document-content ' . self::NS . ' office:version="1.2">' . $this->fonts() . $automatic . '<office:body><office:text>' . $content . '</office:text></office:body></office:document-content>',
             'styles.xml'            => '<?xml version="1.0" encoding="UTF-8"?><office:document-styles ' . self::NS . ' office:version="1.2">' . $this->fonts()
-                . '<office:styles>' . $this->namedStyles($scale) . '</office:styles>'
+                . '<office:styles>' . $this->namedStyles($scale, $firstHeader !== []) . '</office:styles>'
                 . '<office:automatic-styles>' . $this->pageLayout($page) . implode('', $this->pageStyles) . '</office:automatic-styles>'
-                . '<office:master-styles><style:master-page style:name="Standard" style:page-layout-name="pm1">'
-                . '<style:header>' . $headerXml . '</style:header><style:footer>' . $footerXml . '</style:footer>'
-                . '</style:master-page></office:master-styles></office:document-styles>',
+                . '<office:master-styles>' . $masters . '</office:master-styles></office:document-styles>',
             'meta.xml'              => '<?xml version="1.0" encoding="UTF-8"?><office:document-meta ' . self::NS . ' office:version="1.2"><office:meta><dc:title>' . self::x($title) . '</dc:title></office:meta></office:document-meta>',
-        ]);
+        ] + $files);
     }
 
     private function fonts(): string
     {
-        return '<office:font-face-decls><style:font-face style:name="' . Theme::FONT . '" svg:font-family="' . Theme::FONT . '" style:font-family-generic="swiss"/></office:font-face-decls>';
+        return '<office:font-face-decls><style:font-face style:name="' . Theme::FONT . '" svg:font-family="' . Theme::FONT . '" style:font-family-generic="swiss" style:font-pitch="variable"/></office:font-face-decls>';
     }
 
     private function pageLayout(Page $page): string
     {
         return '<style:page-layout style:name="pm1"><style:page-layout-properties fo:page-width="' . $page->widthCm() . 'cm" fo:page-height="' . $page->heightCm() . 'cm" style:print-orientation="' . ($page->landscape ? 'landscape' : 'portrait') . '"'
-            . ' fo:margin-top="1cm" fo:margin-bottom="1cm" fo:margin-left="' . Page::MARGIN_X . 'cm" fo:margin-right="' . Page::MARGIN_X . 'cm"/>'
+            . ' fo:margin-top="' . $page->topCm() . 'cm" fo:margin-bottom="' . $page->bottomCm() . 'cm" fo:margin-left="' . $page->leftCm() . 'cm" fo:margin-right="' . $page->rightCm() . 'cm"/>'
             . '<style:header-style><style:header-footer-properties fo:min-height="0cm" fo:margin-bottom="0.5cm"/></style:header-style>'
             . '<style:footer-style><style:header-footer-properties fo:min-height="0cm" fo:margin-top="0.4cm"/></style:footer-style></style:page-layout>';
     }
 
     /** The styles the paragraphs refer to by name: the text of the body, the headings and the paragraphs of the tables. */
-    private function namedStyles(float $scale): string
+    private function namedStyles(float $scale, bool $withFirstPage): string
     {
         $size = static fn (float $pt): string => Theme::size($pt, $scale) . 'pt';
         $out  = '<style:default-style style:family="paragraph"><style:paragraph-properties fo:orphans="2" fo:widows="2"/>'
@@ -100,6 +122,10 @@ final class OdtDocument
         $out .= '<style:style style:name="TableLabel" style:family="paragraph" style:parent-style-name="CellText"><style:text-properties fo:font-weight="bold" fo:color="#' . Theme::MUTED . '"/></style:style>';
         $out .= '<style:style style:name="TableTotal" style:family="paragraph" style:parent-style-name="CellText"><style:text-properties fo:font-weight="bold"/></style:style>';
         $out .= '<style:style style:name="Running" style:family="paragraph"><style:paragraph-properties fo:margin="0cm"/><style:text-properties fo:font-size="' . Theme::RUNNING . 'pt" fo:color="#' . Theme::INK . '"/></style:style>';
+        if ($withFirstPage) {
+            // A paragraph as small as can be that opens the document on the master page of the first page.
+            $out .= '<style:style style:name="FirstPageStart" style:family="paragraph" style:master-page-name="First_20_Page"><style:paragraph-properties fo:margin="0cm" fo:line-height="1pt"/><style:text-properties fo:font-size="1pt"/></style:style>';
+        }
         $out .= '<style:style style:name="Header" style:family="paragraph" style:parent-style-name="Running" style:class="extra"/>';
         $out .= '<style:style style:name="Footer" style:family="paragraph" style:parent-style-name="Running" style:class="extra"/>';
 
@@ -243,8 +269,27 @@ final class OdtDocument
         return '<text:p text:style-name="' . $style . '">' . $xml . '</text:p>';
     }
 
+    /** A logo as a picture drawn in the line (the file goes in the package's Pictures/ folder, once however many times it is used). */
+    private function picture(Run $run): string
+    {
+        $image = $this->images[$run->kind] ?? null;
+        if ($image === null) {
+            return '';
+        }
+        $name = 'Pictures/' . $run->kind . '.' . $image->extension();
+        $this->pictures[$name] = $image;
+        [$w, $h] = $image->sizeCm();
+        $this->pageStyles['LogoFrame'] ??= '<style:style style:name="LogoFrame" style:family="graphic"><style:graphic-properties style:wrap="none" style:vertical-pos="middle" style:vertical-rel="text" style:horizontal-pos="from-left" style:horizontal-rel="paragraph" fo:margin-left="0cm" fo:margin-right="0.1cm" fo:margin-top="0cm" fo:margin-bottom="0cm" fo:padding="0cm" fo:border="none"/></style:style>';
+
+        return '<draw:frame draw:style-name="LogoFrame" draw:name="Logo' . (++$this->counter) . '" text:anchor-type="as-char" svg:width="' . $w . 'cm" svg:height="' . $h . 'cm">'
+            . '<draw:image xlink:href="' . $name . '" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/></draw:frame>';
+    }
+
     private function run(Run $run, bool $page): string
     {
+        if ($run->isImage()) {
+            return $this->picture($run);
+        }
         $inner = match ($run->kind) {
             Run::BREAK => '<text:line-break/>',
             Run::PAGE  => '<text:page-number text:select-page="current">1</text:page-number>',

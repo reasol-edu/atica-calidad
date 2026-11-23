@@ -8,6 +8,7 @@ use App\Entity\EducationalCentre;
 use App\Entity\FormModelRevision;
 use App\Service\Form\Layout\LayoutHtml;
 use App\Service\PdfHeader;
+use App\Service\PdfMargins;
 use App\Service\PdfRenderer;
 
 /**
@@ -33,12 +34,26 @@ final class FormPdfBuilder
      *
      * @return string the PDF content
      */
-    public function build(array $definition, array $data, EducationalCentre $centre, string $title, ?string $code, int $modelVersion, bool $blank = false, array $context = [], ?string $modelTitle = null, ?\DateTimeImmutable $revisedAt = null): string
+    public function build(array $definition, array $data, EducationalCentre $centre, string $title, ?string $code, int $modelVersion, bool $blank = false, array $context = [], ?string $modelTitle = null, ?\DateTimeImmutable $revisedAt = null, ?\DateTimeImmutable $approvedAt = null, bool $pendingApproval = false, bool $draft = false): string
     {
-        $layout = $this->layouts->resolve($definition, $centre, $this->layouts->values($centre, $modelTitle ?? $title, $code, $modelVersion, $revisedAt ?? new \DateTimeImmutable()));
+        $layout = $this->layouts->resolve($definition, $centre, $this->layouts->values($centre, $modelTitle ?? $title, $code, $modelVersion, $revisedAt ?? new \DateTimeImmutable(), $approvedAt, $pendingApproval));
 
-        $header = new PdfHeader($this->html->toPdfHtml($this->html->parse($layout->headerHtml), 9), 22, true);
-        $footer = $this->html->toPdfHtml($this->html->parse($layout->footerHtml), 8);
+        // The header, the footer and the first page's header are as tall as the tables drawn in them: they are measured, and the body
+        // starts below the header and stops above the footer, with the margins of the layout from the edge of the paper.
+        $m           = $layout->margins;
+        $orientation = $layout->isLandscape() ? 'L' : 'P';
+        $headerHtml  = $this->html->toPdfHtml($this->html->parse($layout->headerHtml), 9, $layout->images);
+        $footer      = $this->html->toPdfHtml($this->html->parse($layout->footerHtml), 8, $layout->images);
+        $headerMm    = $this->pdf->heightMm($headerHtml, $orientation, $m['left'], $m['right']);
+        $footerMm    = $this->pdf->heightMm($footer, $orientation, $m['left'], $m['right']);
+        $firstHtml   = null;
+        $firstExtra  = 0.0;
+        if ($layout->hasFirstHeader()) {
+            $firstHtml  = $this->html->toPdfHtml($this->html->parse($layout->firstHeaderHtml), 9, $layout->images);
+            $firstExtra = max(0.0, $this->pdf->heightMm($firstHtml, $orientation, $m['left'], $m['right']) - $headerMm);
+        }
+        $header  = new PdfHeader($headerHtml, $m['top'] + $headerMm + 4, false, $firstHtml, $firstExtra);
+        $margins = new PdfMargins($m['left'], $m['right'], $m['bottom'] + $footerMm + 3, $m['top'], $m['bottom']);
 
         $response = $this->pdf->render(
             'pdf/form_document.html.twig',
@@ -55,9 +70,11 @@ final class FormPdfBuilder
             $title,
             // Only the content is used: the response's own Content-Disposition cannot carry a title with accents.
             'document.pdf',
+            draftWatermark: $draft,
             header: $header,
-            orientation: $layout->isLandscape() ? 'L' : 'P',
+            orientation: $orientation,
             footerHtml: $footer,
+            margins: $margins,
         );
 
         return (string) $response->getContent();
@@ -83,6 +100,7 @@ final class FormPdfBuilder
             $context,
             $revision->getModel()->getDocument()->getName(),
             $document->getRevisedAt(),
+            $document->getApprovedAt(),
         );
     }
 }
