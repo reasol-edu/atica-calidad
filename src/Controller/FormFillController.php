@@ -150,6 +150,9 @@ class FormFillController extends AbstractController
             return new JsonResponse(['error' => 'window'], Response::HTTP_FORBIDDEN);
         }
 
+        if (strlen($request->getContent()) > FormDefinition::MAX_REQUEST_BYTES) {
+            return new JsonResponse(['error' => 'too_large', 'message' => $this->translator->trans('fill.error.too_large', [], 'forms')], Response::HTTP_REQUEST_ENTITY_TOO_LARGE);
+        }
         $payload = json_decode($request->getContent(), true);
         if (!is_array($payload) || !is_array($payload['data'] ?? null)) {
             return new JsonResponse(['error' => 'bad_request'], Response::HTTP_BAD_REQUEST);

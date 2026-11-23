@@ -162,6 +162,10 @@ final class FormFlowTest extends ControllerTestCase
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
         self::assertStringContainsString('form-model-editor', (string) $this->client->getResponse()->getContent());
 
+        // Too big a draft is refused before it is read.
+        $response = $this->postJson("/modelos/{$id}/borrador", 'form_model_' . $id, ['version' => 1, 'code' => str_repeat('x', FormDefinition::MAX_REQUEST_BYTES), 'definition' => []]);
+        self::assertSame(413, $response->getStatusCode());
+
         // Saving is blocked for a stale tab, and the draft with problems is saved all the same.
         $response = $this->postJson("/modelos/{$id}/borrador", 'form_model_' . $id, ['version' => 1, 'code' => 'MD1', 'definition' => $this->definition()]);
         self::assertSame(200, $response->getStatusCode());
@@ -384,6 +388,13 @@ final class FormFlowTest extends ControllerTestCase
         // A stale tab is refused.
         $response = $this->postJson($this->fillUrl('/guardar'), 'form_fill_' . $sid, ['version' => 1, 'data' => []]);
         self::assertSame(409, $response->getStatusCode());
+
+        // A request bigger than any real document is refused before it is read, and nothing changes.
+        $before   = $body['version'];
+        $response = $this->postJson($this->fillUrl('/guardar'), 'form_fill_' . $sid, ['version' => $before, 'data' => ['fields' => [$this->keys['title'] => str_repeat('x', FormDefinition::MAX_REQUEST_BYTES)]]]);
+        self::assertSame(413, $response->getStatusCode());
+        self::assertSame('too_large', json_decode((string) $response->getContent(), true)['error']);
+        self::assertSame($before, $this->em->getRepository(\App\Entity\FormSubmission::class)->find($sid)?->getDraftVersion());
 
         // The complete data, delivered.
         $version = $body['version'];

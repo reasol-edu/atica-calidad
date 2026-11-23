@@ -254,6 +254,12 @@ export default class extends Controller {
                 this.setStatus(this.l.stale, 'text-red-700');
                 return;
             }
+            if (response.status === 413) {
+                // Too big to save: no automatic retry (it would fail the same way); the next change tries again.
+                this.dirty = true;
+                this.setStatus(body.message || this.l.offline, 'text-red-700');
+                return;
+            }
             if (!response.ok) {
                 throw new Error('save');
             }

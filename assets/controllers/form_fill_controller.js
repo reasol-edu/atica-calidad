@@ -246,6 +246,15 @@ export default class extends Controller {
                 this.setStatus(body.message || this.l.stale, 'text-red-700');
                 return;
             }
+            if (response.status === 413) {
+                // Too big to save: retrying would fail the same way. What was typed stays in this browser (keepLocal) and the next
+                // change tries again (smaller, if the person removed what made it grow).
+                this.failed = true;
+                this.dirty = true;
+                this.keepLocal();
+                this.setStatus(body.message || this.l.offline, 'text-red-700');
+                return;
+            }
             if (!response.ok) {
                 throw new Error('save');
             }

@@ -38,6 +38,12 @@ final class FormDefinition
      */
     public const array TABLE_MODES = ['free', 'fixed', 'matrix', 'counted'];
 
+    /**
+     * The largest autosave the server reads (bytes of JSON), for a model's draft and for a document's. Far above any real document (1000
+     * rows of a table are some hundreds of KB), it stops a runaway or hostile request before it is decoded, normalized and diffed.
+     */
+    public const int MAX_REQUEST_BYTES = 4 * 1024 * 1024;
+
     /** The most rows a counted table gets, whatever the number says (and the cap used when the model sets none). */
     public const int MAX_COUNTED_ROWS = 100;
 

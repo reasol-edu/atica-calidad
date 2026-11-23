@@ -304,7 +304,9 @@ trap: a list-fed field normalized against the raw definition has no options, so 
 The editor and the form are **Stimulus controllers that build the page from the JSON** (`form_model_editor_controller.js`,
 `form_fill_controller.js`, helpers in `assets/utils/form_dom.js`), not Live Components: they hold a lot of client state (nesting,
 tables, offline later) and a Live round trip per keystroke would not do. They save the whole draft, debounced, with the version they
-started from (`draftVersion`); a 409 means another tab saved in between. Texts use the rich editor, mounted on click (a page of editors is slow).
+started from (`draftVersion`); a 409 means another tab saved in between. A body over `FormDefinition::MAX_REQUEST_BYTES` (4 MB) is
+refused with 413 before it is decoded (both endpoints); the page shows the message and does not retry on its own (the fill form keeps
+the local copy). Texts use the rich editor, mounted on click (a page of editors is slow).
 
 ## Traps already hit
 
