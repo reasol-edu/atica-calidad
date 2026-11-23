@@ -104,6 +104,10 @@ because a script cannot read them: add a new icon in both places; the Spanish la
   a calculated field (`fn([t:TABLE.COL])`, `foot: true`) that `FormDefinitionNormalizer::footFields()` writes right after the table every
   time (stored `foot` blocks are dropped and remade; the editor hides them). `FormWalker` / `walk()` mark it not visible, so nothing
   renders or validates it, but calculation, indicators, rules and the explorer see it as a field.
+- **«Resumen de la fila»** (editor only, no grammar change): a calculated table column gets a box that writes `fn([r:A];[r:B])` from a
+  function (`ROW_SUMMARY`: sum avg min max count) and ticked columns (`rowSummary()` / `readRowSummary()` in `form_expression.js`,
+  tested in `form-expression.test.mjs`). It recognises only formulas of exactly that shape; anything else is left alone until a box is
+  ticked. Counting offers any column, the rest only number/calculated ones.
 - **Consistency rules** (`definition.rules`: `{expr, message, severity: warning|block}`): evaluated against the whole document by
   `FormDataValidator`; a broken rule blocks the delivery or only warns, as the model says; a rule that cannot be decided is not broken.
   The save response carries `problems` (blocking) and `warnings`.

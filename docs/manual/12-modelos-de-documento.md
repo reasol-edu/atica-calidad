@@ -52,6 +52,10 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
 - **Campo**: texto corto, texto largo (con **formato enriquecido**: negrita, cursiva, listas,
   enlaces…; en las celdas de una tabla sigue siendo texto plano), número (con mínimo, máximo y unidad), fecha, hora, sí/no, una o
   varias opciones, o un valor **calculado** a partir de los demás.
+- **Resumen de la fila**: en una columna calculada de una tabla, el recuadro «Resumen de la fila»
+  calcula la suma, la media, el mínimo, el máximo o cuántas tienen algo de las columnas que marques
+  **de la misma fila** (por ejemplo, «Total» = «Horas teoría» + «Horas práctica»), sin escribir la
+  fórmula. Escribe una fórmula normal, que puedes seguir retocando a mano.
 - **Total al pie de una columna** numérica o calculada (cuenta, suma, media, mínimo o máximo): el
   valor se ve al final de la columna. Si le pones un **nombre**, además es un campo del documento
   (no se muestra aparte: está solo al pie de la tabla) y sirve en fórmulas, indicadores, reglas y

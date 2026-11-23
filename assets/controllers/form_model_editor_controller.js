@@ -2,7 +2,7 @@ import { Controller } from '@hotwired/stimulus';
 import TomSelect from 'tom-select';
 import { mountRichText } from '../utils/rich_text_editor.js';
 import { h, uid, sectionNumbers } from '../utils/form_dom.js';
-import { parse } from '../utils/form_expression.js';
+import { parse, ROW_SUMMARY, rowSummary, readRowSummary } from '../utils/form_expression.js';
 import { confirmDialog } from '../utils/confirm_dialog.js';
 
 const FIELD_TYPES = ['short', 'long', 'number', 'date', 'time', 'bool', 'choice', 'multichoice', 'calculated', 'relation'];
@@ -886,6 +886,12 @@ export default class extends Controller {
             onchange: (e) => { const v = e.target.value; e.target.value = ''; if (v) { insert(wrap(v)); } },
         }, [h('option', { value: '', text: label }), ...list.map(([v, t]) => h('option', { value: v, text: t }))]);
         echo();
+        const set = (formula) => {
+            input.value = formula;
+            owner[prop] = formula;
+            echo();
+            this.touch();
+        };
 
         return h('div', { class: 'space-y-1' }, [
             this.labelled(labelText, input),
@@ -894,6 +900,59 @@ export default class extends Controller {
                 pick(FUNCTION_SNIPPETS.map((f) => [f, f + ')']), 'ƒ ' + this.l.formula_insert_function, (v) => v),
             ]),
             preview,
+            ...(table && prop === 'formula' ? [this.rowSummaryAssistant(owner, table, () => owner[prop] || '', set)] : []),
+        ]);
+    }
+
+    /**
+     * «Resumen de la fila»: a calculated column that sums (averages, counts…) other columns of the same row, picked with checkboxes instead of
+     * writing `sum([r:…];[r:…])`. It writes an ordinary formula, still editable by hand; a formula it did not write is left alone until a
+     * column is ticked.
+     */
+    rowSummaryAssistant(column, table, current, set) {
+        const numeric = (c) => c.fieldType === 'number' || c.fieldType === 'calculated';
+        const read = readRowSummary(current());
+        const state = { fn: read ? read.fn : 'sum', keys: read ? read.keys : [] };
+        const apply = () => { if (state.keys.length > 0) { set(rowSummary(state.fn, state.keys)); } };
+        const names = { sum: this.l.total_sum, avg: this.l.total_avg, min: this.l.total_min, max: this.l.total_max, count: this.l.row_summary_count };
+        const fnSelect = this.select(state.fn, ROW_SUMMARY.map((f) => [f, names[f]]), (v) => { state.fn = v; draw(); apply(); }, this.l.row_summary_fn);
+        const list = h('div');
+        const body = h('div', { class: 'mt-2 space-y-2' }, [
+            h('p', { class: 'text-xs text-gray-500', text: this.l.row_summary_help }),
+            this.labelled(this.l.row_summary_fn, fnSelect, 'w-48'),
+            list,
+        ]);
+        const draw = () => {
+            // Counting takes any column; the other calculations only the numeric ones.
+            const columns = (table.columns || []).filter((c) => c.key !== column.key && (state.fn === 'count' || numeric(c)));
+            state.keys = state.keys.filter((k) => columns.some((c) => c.key === k));
+            list.replaceChildren(
+                columns.length === 0
+                    ? h('p', { class: 'text-xs text-gray-500', text: this.l.row_summary_none })
+                    : h('fieldset', { class: 'space-y-1' }, [
+                        h('legend', { class: 'mb-1 text-xs font-medium text-gray-700', text: this.l.row_summary_columns }),
+                        ...columns.map((c) => h('label', { class: 'flex items-center gap-2 text-sm text-gray-700' }, [
+                            h('input', {
+                                type: 'checkbox', class: 'rounded border-gray-300 text-forest-600 focus:ring-forest-500', checked: state.keys.includes(c.key),
+                                onchange: (e) => {
+                                    // Kept in the order of the table, whatever order they are ticked in.
+                                    const chosen = new Set(state.keys);
+                                    if (e.target.checked) { chosen.add(c.key); } else { chosen.delete(c.key); }
+                                    state.keys = (table.columns || []).map((x) => x.key).filter((k) => chosen.has(k));
+                                    apply();
+                                },
+                            }),
+                            h('span', { text: c.label || '…' }),
+                        ])),
+                    ]),
+                ...(readRowSummary(current()) === null && current() !== '' ? [h('p', { class: 'text-xs text-amber-700', text: this.l.row_summary_custom })] : []),
+            );
+        };
+        draw();
+
+        return h('details', { class: 'rounded-lg border border-gray-200 bg-gray-50 px-3 py-2', open: read !== null || current() === '' }, [
+            h('summary', { class: 'cursor-pointer text-sm font-medium text-gray-700', text: this.l.row_summary }),
+            body,
         ]);
     }
 

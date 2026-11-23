@@ -7,6 +7,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- Modelos de documento: asistente «Resumen de la fila» en las columnas calculadas de una tabla, que suma, promedia, cuenta o da el mínimo o el máximo de las columnas que se marquen de la misma fila sin escribir la fórmula.
+
 ### Changed
 
 - Todos los editores de texto enriquecido (ajustes, descripción de carpeta, revisión por la dirección, textos y campos de texto largo de los modelos) pasan de Quill a Tiptap, con un único editor compartido: mismos formatos (título, negrita, cursiva, subrayado, cita, listas, alineación y enlaces, ahora con un campo de dirección propio). El texto ya guardado se conserva; las listas con viñetas escritas con Quill se convierten en listas reales al editarlas. Quill y sus dependencias salen del importmap.

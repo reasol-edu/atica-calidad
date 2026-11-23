@@ -230,3 +230,33 @@ export function evaluate(ast, resolve) {
     };
     return ev(ast);
 }
+
+/** The functions the «summary of the row» assistant of the editor offers: one result out of several cells of the same row. */
+export const ROW_SUMMARY = ['sum', 'avg', 'min', 'max', 'count'];
+
+/** The formula of a summary of the row: `sum([r:a];[r:b])`. Empty when no column is chosen. */
+export function rowSummary(fn, keys) {
+    if (!ROW_SUMMARY.includes(fn) || keys.length === 0) {
+        return '';
+    }
+
+    return `${fn}(${keys.map((k) => `[r:${k}]`).join(';')})`;
+}
+
+/**
+ * What summary of the row a formula is, when it is exactly one the assistant writes ({fn, keys}); null for any other formula, which the
+ * assistant then leaves alone.
+ */
+export function readRowSummary(formula) {
+    const match = /^\s*([a-z_]+)\s*\(((?:\s*\[r:[^\]\s;]+\]\s*;?)+)\)\s*$/.exec(formula || '');
+    if (!match || !ROW_SUMMARY.includes(match[1])) {
+        return null;
+    }
+    const keys = [...match[2].matchAll(/\[r:([^\]\s;]+)\]/g)].map((m) => m[1]);
+    // `;` only between references: «sum([r:a];;[r:b])» or a trailing one is not the assistant's.
+    if (match[2].replace(/\s/g, '') !== keys.map((k) => `[r:${k}]`).join(';')) {
+        return null;
+    }
+
+    return { fn: match[1], keys };
+}
