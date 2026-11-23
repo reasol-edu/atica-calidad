@@ -179,6 +179,14 @@ final class FormLayoutTest extends TestCase
 
         self::assertStringContainsString('{PAGENO} de {nbpg}', $out);
         self::assertStringContainsString('<col width="50%">', $out);
+        // Every cell says how wide it is (mPDF takes the widths from the cells when there are merged ones): a logo's column keeps its width
+        // with or without the logo.
+        self::assertStringContainsString('width: 50%', $out);
+
+        $header = $html->toPdfHtml($html->parse(FormLayout::defaultHeader()), 9, []);
+        self::assertStringContainsString('width: 21.88%', $header, 'the logo of the centre: 373 of 1705, as in the ODT');
+        self::assertStringContainsString('width: 20.41%', $header, 'the logo of the education authority');
+        self::assertStringContainsString('width: 57.71%', $header, 'the text: three columns');
         self::assertStringContainsString('text-align: right', $out);
     }
 }

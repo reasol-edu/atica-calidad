@@ -257,7 +257,8 @@ trap: a list-fed field normalized against the raw definition has no options, so 
   `covered-table-cell`, `number-*-spanned`, master-page header/footer; DOCX: `gridSpan`, `vMerge restart/continue`, `header1.xml`/
   `footer1.xml`, `fldSimple PAGE/NUMPAGES`). Body styling lives in `Office\Theme` (colours of the app, Arial — a sans-serif every system has, declared `swiss` in the ODT so a missing font still falls back to a sans — and sizes × font scale).
 - **mPDF quirks.** The text alignment of a table cell comes from the **cell**, not from the `<p>` in it (`LayoutHtml` copies the first
-  paragraph's alignment onto the `<td>`); a `<col>` takes its width from the `width="%"` **attribute**, not from `style`; the header and
+  paragraph's alignment onto the `<td>`); a `<col>` takes its width from the `width="%"` **attribute**, not from `style`, and with merged cells it is not enough either — every `<td>` also
+  gets `width: X%` (the share of the columns it covers) or mPDF sizes the columns by their content and a column of an empty logo collapses; the header and
   footer are outside the document's stylesheet (inline styles only); `setAutoTopMargin='stretch'` (`PdfHeader::$stretch`) makes room for a
   tall header, and a custom footer goes in `PdfRenderer`'s `$footerHtml`.
 - **Logos** are settings of type `image` (`SettingType::Image`, keys `centre.logo` → `{logo}`, `centre.education_authority_logo` →

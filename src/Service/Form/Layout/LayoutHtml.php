@@ -347,6 +347,9 @@ final class LayoutHtml
                 $style[] = 'background-color: #' . $cell->background;
             }
             $style[] = 'vertical-align: ' . ($cell->valign ?? 'middle');
+            // The width of the columns it covers: mPDF sizes a table by what is in it unless every cell says how wide it is (a `<col>`
+            // alone is not enough once there are merged cells), so the logos' columns keep their width whether they hold a logo or not.
+            $style[] = 'width: ' . $this->n(array_sum(\array_slice($table->widths, $cell->col, $cell->colspan)) * 100) . '%';
             // mPDF aligns the text of a cell by the cell, not by the paragraphs in it: the first paragraph's alignment is the cell's.
             $style[] = 'text-align: ' . ($cell->paragraphs[0]->align ?? 'left');
             $content = '';
