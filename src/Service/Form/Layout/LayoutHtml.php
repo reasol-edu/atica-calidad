@@ -326,18 +326,18 @@ final class LayoutHtml
      * @param list<Paragraph|Table> $blocks
      * @param array<string, Image>  $images the logos by token, drawn where `{logo}` and `{logo2}` are
      */
-    public function toPdfHtml(array $blocks, float $baseSize, array $images = []): string
+    public function toPdfHtml(array $blocks, float $baseSize, array $images = [], float $contentCm = 17.0): string
     {
         $out = '<div style="font-family: sourcesanspro, sans-serif; font-size: ' . $this->n($baseSize) . 'pt; color: #2e2822;">';
         foreach ($blocks as $block) {
-            $out .= $block instanceof Table ? $this->pdfTable($block, $images) : $this->pdfParagraph($block, $images);
+            $out .= $block instanceof Table ? $this->pdfTable($block, $images, $contentCm) : $this->pdfParagraph($block, $images, $contentCm);
         }
 
         return $out . '</div>';
     }
 
     /** @param array<string, Image> $images */
-    private function pdfTable(Table $table, array $images): string
+    private function pdfTable(Table $table, array $images, float $contentCm): string
     {
         $rows = array_fill(0, $table->rows, '');
         foreach ($table->cells as $cell) {
@@ -351,7 +351,9 @@ final class LayoutHtml
             $style[] = 'text-align: ' . ($cell->paragraphs[0]->align ?? 'left');
             $content = '';
             foreach ($cell->paragraphs as $p) {
-                $content .= $this->pdfParagraph($p, $images);
+                // What the cell has for a logo: its share of the width, less its padding (5 px on each side).
+                $room     = array_sum(\array_slice($table->widths, $cell->col, $cell->colspan)) * $contentCm - 0.4;
+                $content .= $this->pdfParagraph($p, $images, $room);
             }
             $rows[$cell->row] .= '<td' . ($cell->colspan > 1 ? ' colspan="' . $cell->colspan . '"' : '') . ($cell->rowspan > 1 ? ' rowspan="' . $cell->rowspan . '"' : '')
                 . ' style="' . implode('; ', $style) . '">' . $content . '</td>';
@@ -371,18 +373,18 @@ final class LayoutHtml
     }
 
     /** @param array<string, Image> $images */
-    private function pdfParagraph(Paragraph $p, array $images): string
+    private function pdfParagraph(Paragraph $p, array $images, float $roomCm): string
     {
         $html = '';
         foreach ($p->runs as $run) {
-            $html .= $this->pdfRun($run, $images);
+            $html .= $this->pdfRun($run, $images, $roomCm);
         }
 
         return '<p style="margin: 0; text-align: ' . $p->align . ';">' . ($html === '' ? '&nbsp;' : $html) . '</p>';
     }
 
     /** @param array<string, Image> $images */
-    private function pdfRun(Run $run, array $images): string
+    private function pdfRun(Run $run, array $images, float $roomCm): string
     {
         if ($run->kind === Run::BREAK) {
             return '<br>';
@@ -392,7 +394,7 @@ final class LayoutHtml
             if ($image === null) {
                 return '';
             }
-            [$w, $h] = $image->sizeCm();
+            [$w, $h] = $image->sizeCm($roomCm);
 
             return '<img src="data:' . $image->mime . ';base64,' . base64_encode($image->content) . '" style="width: ' . $this->n($w * 10) . 'mm; height: ' . $this->n($h * 10) . 'mm;">';
         }

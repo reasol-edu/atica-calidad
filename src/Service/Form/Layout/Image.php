@@ -39,13 +39,17 @@ final readonly class Image
     }
 
     /**
-     * The size it is drawn at, keeping its proportions and fitting the limits.
+     * The size it is drawn at, keeping its proportions and fitting the limits — and the space it has: a logo in a narrow cell shrinks to
+     * the width of the cell instead of overflowing it.
+     *
+     * @param ?float $availableCm the width of the cell (or of the page) it goes in, when it is known
      *
      * @return array{0: float, 1: float} width and height in centimetres
      */
-    public function sizeCm(): array
+    public function sizeCm(?float $availableCm = null): array
     {
-        $scale = min(self::MAX_HEIGHT_CM / $this->height, self::MAX_WIDTH_CM / $this->width);
+        $maxWidth = $availableCm === null ? self::MAX_WIDTH_CM : max(0.3, min(self::MAX_WIDTH_CM, $availableCm));
+        $scale    = min(self::MAX_HEIGHT_CM / $this->height, $maxWidth / $this->width);
 
         return [round($this->width * $scale, 3), round($this->height * $scale, 3)];
     }

@@ -66,6 +66,13 @@ final class FormLayoutTest extends TestCase
         self::assertLessThanOrEqual(\App\Service\Form\Layout\Image::MAX_WIDTH_CM, $w);
         self::assertEqualsWithDelta(2.0, $w / $h, 0.01, 'a 2×1 image stays 2:1');
         self::assertNull(\App\Service\Form\Layout\Image::fromBytes('<svg xmlns="http://www.w3.org/2000/svg"/>'), 'no SVG');
+
+        // In a narrow cell it shrinks to the cell (keeping the proportions) instead of overflowing it.
+        [$w, $h] = $image->sizeCm(1.2);
+        self::assertEqualsWithDelta(1.2, $w, 0.001);
+        self::assertEqualsWithDelta(0.6, $h, 0.001);
+        [$w] = $image->sizeCm(10.0);
+        self::assertLessThanOrEqual(\App\Service\Form\Layout\Image::MAX_WIDTH_CM, $w, 'a wide cell does not make it bigger than the limits');
     }
 
     public function testTheOrientationIsOneOfTheTwoAndTheScaleStaysBetween50And150(): void
@@ -103,21 +110,36 @@ final class FormLayoutTest extends TestCase
         }
     }
 
+    public function testTheDefaultHeaderIsTheOneTheMigrationSeeds(): void
+    {
+        // (The migration has one file per engine, each with the same class name: the SQLite one is enough.)
+        require_once __DIR__ . '/../../../../migrations/sqlite/Version20261123160000.php';
+        $seeded = (new \ReflectionClassConstant(\DoctrineMigrations\Version20261123160000::class, 'NEW'))->getValue();
+
+        self::assertSame($seeded, FormLayout::defaultHeader(), 'the setting\'s default and the built-in one are the same');
+    }
+
     public function testMergedCellsAreReadIntoAGridAndTheDefaultHeaderIsThreeRows(): void
     {
         $blocks = (new LayoutHtml())->parse(FormLayout::defaultHeader());
         self::assertCount(1, $blocks);
         $table = $blocks[0];
         self::assertInstanceOf(Table::class, $table);
+        // Like the centre's ODT documents: a logo on each side, three rows tall, and the text between them.
         self::assertSame(3, $table->rows);
-        self::assertSame(3, $table->columns());
-        self::assertCount(5, $table->cells);
-        self::assertSame(3, $table->cells[0]->colspan);
-        self::assertTrue($table->cells[0]->border);
-        self::assertSame('eef2ea', $table->cells[0]->background);
+        self::assertSame(5, $table->columns());
+        self::assertCount(7, $table->cells);
+        self::assertSame([3, 1, 0], [$table->cells[0]->rowspan, $table->cells[0]->colspan, $table->cells[0]->col]);
+        self::assertSame(Run::LOGO, $table->cells[0]->paragraphs[0]->runs[0]->kind);
+        self::assertSame(3, $table->cells[1]->colspan);
+        self::assertTrue($table->cells[1]->border);
+        self::assertSame('eef2ea', $table->cells[1]->background);
+        self::assertSame([3, 4], [$table->cells[2]->rowspan, $table->cells[2]->col]);
+        self::assertSame(Run::LOGO2, $table->cells[2]->paragraphs[0]->runs[0]->kind);
+        self::assertEqualsWithDelta(373 / 1705, $table->widths[0], 0.001, 'the widths of the ODT');
         // The page fields are runs of their own.
         $kinds = [];
-        foreach ($table->cells[4]->paragraphs as $p) {
+        foreach ($table->cells[6]->paragraphs as $p) {
             foreach ($p->runs as $run) {
                 $kinds[] = $run->kind;
             }

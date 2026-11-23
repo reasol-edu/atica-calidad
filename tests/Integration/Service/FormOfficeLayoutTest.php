@@ -105,6 +105,21 @@ final class FormOfficeLayoutTest extends RepositoryTestCase
         self::assertStringContainsString('Extension="png"', $docx['[Content_Types].xml']);
     }
 
+    public function testALogoShrinksToTheCellItIsIn(): void
+    {
+        $this->giveTheCentreLogos();
+        // A cell of 5 % of the page: 0.85 cm less its padding.
+        $header = '<table><tbody><tr><td data-colwidth="5">{logo}</td><td data-colwidth="95">x</td></tr></tbody></table>';
+
+        $odt = $this->parts($this->file('odt', ['header' => $header]));
+        self::assertSame(1, preg_match('/<draw:frame [^>]*svg:width="([0-9.]+)cm"/', $odt['styles.xml'], $m));
+        self::assertLessThan(0.8, (float) $m[1], 'it fits the cell in the ODT');
+
+        $docx = $this->parts($this->file('docx', ['header' => $header]));
+        self::assertSame(1, preg_match('/<wp:extent cx="(\d+)"/', $docx['word/header1.xml'], $m));
+        self::assertLessThan(0.8 * 360000, (int) $m[1], 'and in the DOCX');
+    }
+
     public function testAHeaderOfTheFirstPageIsAnotherMasterPageInOdtAndAnotherHeaderPartInDocx(): void
     {
         $layout = ['firstHeader' => '<p>Portada de {centro}</p>'];

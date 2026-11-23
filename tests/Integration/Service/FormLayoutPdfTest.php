@@ -103,6 +103,8 @@ final class FormLayoutPdfTest extends RepositoryTestCase
         self::assertStringStartsWith('%PDF', $pdf);
         if (\is_string($dir = getenv('LAYOUT_PDF_OUT')) && $dir !== '') {
             file_put_contents($dir . '/first-logo-draft.pdf', $pdf);
+            // The default header (with both logos) as the setting gives it.
+            file_put_contents($dir . '/default-logos.pdf', $this->builder->build($this->definition(), [], $this->centre, 'Memoria de departamento', 'MD850211', 2, true, [], null, new \DateTimeImmutable('2026-11-20')));
         }
     }
 

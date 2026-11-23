@@ -198,7 +198,7 @@ final class OdtDocument
     {
         $xml = '';
         foreach ($blocks as $block) {
-            $xml .= $block instanceof Table ? $this->layoutTable($block, $page) : $this->paragraph($block, true, 'Running');
+            $xml .= $block instanceof Table ? $this->layoutTable($block, $page) : $this->paragraph($block, true, 'Running', $page->contentCm());
         }
 
         return $xml === '' ? '<text:p text:style-name="Running"/>' : $xml;
@@ -224,7 +224,8 @@ final class OdtDocument
                 } elseif (!$at['origin']) {
                     $xml .= '<table:covered-table-cell/>';
                 } else {
-                    $xml .= $this->layoutCell($at['cell']);
+                    // What the cell has for a logo: its share of the width, less its padding (0.1 cm on each side).
+                    $xml .= $this->layoutCell($at['cell'], array_sum(\array_slice($table->widths, $at['cell']->col, $at['cell']->colspan)) * $page->contentCm() - 0.2);
                 }
             }
             $xml .= '</table:table-row>';
@@ -233,7 +234,7 @@ final class OdtDocument
         return $xml . '</table:table>';
     }
 
-    private function layoutCell(Cell $cell): string
+    private function layoutCell(Cell $cell, float $roomCm): string
     {
         $key  = 'HC' . md5(serialize([$cell->background, $cell->border, $cell->valign]));
         $this->pageStyles[$key] ??= '<style:style style:name="' . $key . '" style:family="table-cell"><style:table-cell-properties fo:padding="0.1cm" fo:border="' . ($cell->border ? '0.5pt solid #' . Theme::LINE : 'none') . '"'
@@ -241,7 +242,7 @@ final class OdtDocument
 
         $inner = '';
         foreach ($cell->paragraphs as $p) {
-            $inner .= $this->paragraph($p, true, 'Running');
+            $inner .= $this->paragraph($p, true, 'Running', $roomCm);
         }
 
         return '<table:table-cell table:style-name="' . $key . '"'
@@ -249,7 +250,7 @@ final class OdtDocument
             . ' office:value-type="string">' . $inner . '</table:table-cell>';
     }
 
-    private function paragraph(Paragraph $p, bool $page, string $base): string
+    private function paragraph(Paragraph $p, bool $page, string $base, float $roomCm = 17.0): string
     {
         $style = $base;
         if ($p->align !== 'left') {
@@ -263,14 +264,14 @@ final class OdtDocument
         }
         $xml = '';
         foreach ($p->runs as $run) {
-            $xml .= $this->run($run, $page);
+            $xml .= $this->run($run, $page, $roomCm);
         }
 
         return '<text:p text:style-name="' . $style . '">' . $xml . '</text:p>';
     }
 
     /** A logo as a picture drawn in the line (the file goes in the package's Pictures/ folder, once however many times it is used). */
-    private function picture(Run $run): string
+    private function picture(Run $run, float $roomCm): string
     {
         $image = $this->images[$run->kind] ?? null;
         if ($image === null) {
@@ -278,17 +279,17 @@ final class OdtDocument
         }
         $name = 'Pictures/' . $run->kind . '.' . $image->extension();
         $this->pictures[$name] = $image;
-        [$w, $h] = $image->sizeCm();
+        [$w, $h] = $image->sizeCm($roomCm);
         $this->pageStyles['LogoFrame'] ??= '<style:style style:name="LogoFrame" style:family="graphic"><style:graphic-properties style:wrap="none" style:vertical-pos="middle" style:vertical-rel="text" style:horizontal-pos="from-left" style:horizontal-rel="paragraph" fo:margin-left="0cm" fo:margin-right="0.1cm" fo:margin-top="0cm" fo:margin-bottom="0cm" fo:padding="0cm" fo:border="none"/></style:style>';
 
         return '<draw:frame draw:style-name="LogoFrame" draw:name="Logo' . (++$this->counter) . '" text:anchor-type="as-char" svg:width="' . $w . 'cm" svg:height="' . $h . 'cm">'
             . '<draw:image xlink:href="' . $name . '" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/></draw:frame>';
     }
 
-    private function run(Run $run, bool $page): string
+    private function run(Run $run, bool $page, float $roomCm): string
     {
         if ($run->isImage()) {
-            return $this->picture($run);
+            return $this->picture($run, $roomCm);
         }
         $inner = match ($run->kind) {
             Run::BREAK => '<text:line-break/>',

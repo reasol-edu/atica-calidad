@@ -191,7 +191,7 @@ final class DocxDocument
     {
         $xml = '';
         foreach ($blocks as $block) {
-            $xml .= $block instanceof Table ? $this->layoutTable($block, $page) : $this->paragraph($block, 'Running');
+            $xml .= $block instanceof Table ? $this->layoutTable($block, $page) : $this->paragraph($block, 'Running', $page->contentCm());
         }
 
         // A header or footer must end with a paragraph (a table cannot be the last thing).
@@ -237,7 +237,8 @@ final class DocxDocument
         $inner  = '';
         if ($merge !== 'continue') {
             foreach ($cell->paragraphs as $p) {
-                $inner .= $this->paragraph($p, 'Running');
+                // What the cell has for a logo: its width less the margins of the cells of the table (85 twips on each side).
+                $inner .= $this->paragraph($p, 'Running', ($width - 170) / 567);
             }
         }
 
@@ -250,26 +251,26 @@ final class DocxDocument
 
     // ── Paragraphs ─────────────────────────────────────────────────────────────
 
-    private function paragraph(Paragraph $p, ?string $style): string
+    private function paragraph(Paragraph $p, ?string $style, float $roomCm = 17.0): string
     {
         $pr = ($style !== null ? '<w:pStyle w:val="' . $style . '"/>' : '') . ($p->align !== 'left' ? '<w:jc w:val="' . ($p->align === 'justify' ? 'both' : $p->align) . '"/>' : '');
         $xml = '';
         foreach ($p->runs as $run) {
-            $xml .= $this->run($run);
+            $xml .= $this->run($run, $roomCm);
         }
 
         return '<w:p>' . ($pr !== '' ? '<w:pPr>' . $pr . '</w:pPr>' : '') . $xml . '</w:p>';
     }
 
     /** A logo drawn in the line (its file and relationship are made for the part being built). */
-    private function picture(Run $run): string
+    private function picture(Run $run, float $roomCm): string
     {
         $image = $this->images[$run->kind] ?? null;
         if ($image === null) {
             return '';
         }
         $this->used[$run->kind] = $image;
-        [$w, $h] = $image->sizeCm();
+        [$w, $h] = $image->sizeCm($roomCm);
         $cx = (int) round($w * 360000);
         $cy = (int) round($h * 360000);
         $id = ++$this->drawings;
@@ -283,10 +284,10 @@ final class DocxDocument
             . '</a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
     }
 
-    private function run(Run $run): string
+    private function run(Run $run, float $roomCm): string
     {
         if ($run->isImage()) {
-            return $this->picture($run);
+            return $this->picture($run, $roomCm);
         }
         $pr = ($run->bold ? '<w:b/>' : '') . ($run->italic ? '<w:i/>' : '') . ($run->color !== null ? '<w:color w:val="' . $run->color . '"/>' : '')
             . ($run->size !== null ? '<w:sz w:val="' . (int) round($run->size * 2) . '"/>' : '') . ($run->underline ? '<w:u w:val="single"/>' : '');

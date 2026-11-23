@@ -116,6 +116,9 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - **Logotipos del centro y de la administración educativa.** Nuevo tipo de ajuste «imagen» (PNG o JPEG hasta 2 MB, comprobado por su
   contenido; sin SVG) con zona de arrastre y vista previa de la imagen elegida, y dos ajustes globales y de centro: «Logotipo del
   centro» (`{logo}`) y «Logotipo de la administración educativa» (`{logo2}`), que se pueden poner en cualquier encabezado o pie.
+- **El encabezado predeterminado lleva los logotipos**, como los documentos ODT del centro: el del centro a la izquierda y el de la
+  administración educativa a la derecha, con las mismas proporciones de columnas (migración que actualiza el valor predeterminado; lo
+  que un centro o la plataforma ya hubieran escrito no cambia).
 - **Encabezado y pie: fecha de aprobación, primera página, márgenes y vista previa.** Campo `{fecha_aprobacion}` (las revisiones
   guardan ahora cuándo se aprobaron; si no necesitan revisión es la misma fecha que `{fecha_revision}`); encabezado distinto en la
   primera página (en PDF, Word y LibreOffice); márgenes de página en los ajustes y por modelo; y vista previa con datos de ejemplo

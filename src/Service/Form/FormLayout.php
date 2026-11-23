@@ -55,10 +55,15 @@ final class FormLayout
      */
     public static function defaultHeader(): string
     {
-        $cell = static fn (string $content, string $extra = ''): string => '<td style="' . self::CELL . '; text-align: center' . $extra . '"><p style="text-align: center">' . $content . '</p></td>';
+        $cell = static fn (string $content): string => '<td style="' . self::CELL . '; text-align: center"><p style="text-align: center">' . $content . '</p></td>';
+        $logo = static fn (string $token, string $width): string => '<td rowspan="3" data-colwidth="' . $width . '" style="' . self::CELL . '; text-align: center; vertical-align: middle"><p style="text-align: center">' . $token . '</p></td>';
 
+        // Five columns like the centre's ODT documents: the logo of the centre, the text (three columns wide, in three rows) and the logo of
+        // the education authority, each logo as tall as the three rows.
         return '<table style="width: 100%; border-collapse: collapse"><tbody>'
-            . '<tr><td colspan="3" style="' . self::CELL . '; text-align: center; background-color: #eef2ea"><p style="text-align: center"><strong>{centro} - {localidad}</strong></p></td></tr>'
+            . '<tr>' . $logo('{logo}', '373')
+            . '<td colspan="3" data-colwidth="480,232,272" style="' . self::CELL . '; text-align: center; vertical-align: middle; background-color: #eef2ea"><p style="text-align: center"><strong>{centro} - {localidad}</strong></p></td>'
+            . $logo('{logo2}', '348') . '</tr>'
             . '<tr><td colspan="3" style="' . self::CELL . '; text-align: center"><p style="text-align: center"><strong>{titulo}</strong></p></td></tr>'
             . '<tr>' . $cell('{codigo}') . $cell('REV: {revision}') . $cell('Página {pagina} de {paginas}') . '</tr>'
             . '</tbody></table>';

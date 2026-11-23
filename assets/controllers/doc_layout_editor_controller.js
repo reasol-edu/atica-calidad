@@ -123,7 +123,7 @@ export default class extends Controller {
         this.previewTarget.innerHTML = this.editor.getHTML().replace(/\{([a-z0-9_]+)\}/g, (match, key) => {
             if (key === 'logo' || key === 'logo2') {
                 return sample[key]
-                    ? `<img data-logo src="${escape(sample[key])}" alt="" style="height:1.6cm;max-width:5cm;display:inline-block;vertical-align:middle">`
+                    ? `<img data-logo src="${escape(sample[key])}" alt="" style="height:1.6cm;width:auto;max-width:100%;object-fit:contain;display:inline-block;vertical-align:middle">`
                     : `<span data-logo-missing class="doc-logo-missing">${escape(this.labelsValue.logoMissing || 'Logo')}</span>`;
             }
 

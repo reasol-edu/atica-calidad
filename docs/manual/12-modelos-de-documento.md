@@ -226,9 +226,10 @@ o JPEG de hasta 2 MB: la plataforma puede poner los suyos y cada centro sustitui
 dibujan con una altura de hasta 1,6 cm (y 5 cm de ancho), sin deformarse. Si no hay imagen, el campo no
 pone nada.
 
-El encabezado y el pie **predeterminados** son una tabla como la de los documentos del centro, sin logos:
-arriba el nombre y la localidad, debajo el título, y en la última fila el código, la revisión y «Página x de y»;
-al pie, el código y la fecha. Se cambian en esos mismos ajustes: la plataforma
+El encabezado y el pie **predeterminados** son una tabla como la de los documentos del centro: el logotipo del
+centro a la izquierda y el de la administración educativa a la derecha (ocupando las tres filas), y entre ellos el
+nombre y la localidad, el título, y en la última fila el código, la revisión y «Página x de y»; al pie, el código y
+la fecha. Se cambian en esos mismos ajustes: la plataforma
 tiene los suyos y cada centro puede poner los propios. Debajo de cada editor hay una **vista previa con datos de
 ejemplo** (el nombre, la localidad y los logotipos del centro), que se actualiza mientras se escribe.
 
