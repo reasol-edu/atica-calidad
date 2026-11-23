@@ -1042,7 +1042,7 @@ export default class extends Controller {
             const counts = [];
             for (let n = 1; n <= 10; n += 1) { counts.push([String(n), String(n)]); }
             parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
-                this.labelled(this.l.attachment_max, this.select(String(spec.maxFiles), counts, (v) => { spec.maxFiles = Number(v); this.touch(); }, this.l.attachment_max), 'w-32'),
+                this.labelled(this.l.attachment_max, this.select(String(spec.maxFiles), counts, (v) => { spec.maxFiles = Number(v); this.touch(); }, this.l.attachment_max), 'w-44'),
                 h('div', { class: 'pb-1.5' }, [this.checkbox(spec, 'printPages', this.l.attachment_pages)]),
             ]));
             parts.push(h('p', { class: 'text-xs text-gray-500', text: this.l.attachment_help }));

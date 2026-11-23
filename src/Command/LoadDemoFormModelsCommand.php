@@ -119,6 +119,14 @@ final class LoadDemoFormModelsCommand extends Command
                     ]],
                 ],
             ],
+            // A rating and the evidence attached (the manual's images of both kinds of field: chapter 12).
+            [
+                'key' => FormDefinition::newKey(), 'title' => 'Satisfacción y evidencias', 'numbered' => true, 'help' => '', 'children' => [],
+                'blocks' => [
+                    ['key' => FormDefinition::newKey(), 'type' => 'field', 'name' => 'satisfaccion', 'fieldType' => 'scale', 'label' => 'Satisfacción con el curso', 'required' => false, 'points' => 5, 'lowLabel' => 'Nada', 'highLabel' => 'Mucho', 'help' => ''],
+                    ['key' => FormDefinition::newKey(), 'type' => 'field', 'name' => 'evidencias', 'fieldType' => 'attachment', 'label' => 'Evidencias', 'required' => false, 'maxFiles' => 5, 'printPages' => false, 'help' => 'Actas de las reuniones, fotos de las actividades…'],
+                ],
+            ],
         ]];
     }
 }

@@ -70,6 +70,8 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
   Los anexos se congelan con cada entrega: corregir el documento crea otra versión y la anterior
   conserva los suyos. Un archivo que solo está en el borrador lo ve solo quien rellena; uno entregado,
   quien puede ver la carpeta del documento.
+
+  ![Editor del campo «Evidencias», de tipo «Adjuntos (archivos)»: «Archivos como máximo» 5, la casilla «Incluir las páginas de los PDF adjuntos al final del PDF entregado» y la explicación de los tipos y tamaños admitidos](img/modelos-editor-adjuntos.png)
 - **Escala de valoración**: una respuesta de 1 a N puntos (de 3 a 10; 5 si no se dice otra cosa), con
   una palabra opcional para cada extremo («Nada» … «Mucho»). Se contesta pulsando el número (en una
   tabla, en un desplegable) y se lee como «4 / 5». Cuenta como un número: sirve en fórmulas, en el
@@ -209,10 +211,21 @@ cuánto falta para poder entregarlo. Lo que debes saber:
 
 ![Formulario «Memoria de departamento» a medio rellenar: el departamento «Matemáticas» elegido entre los de la lista, 11 reuniones, una valoración escrita en el editor de texto con su barra de formato y, en la tabla de coordinación, una fila con dos departamentos elegidos en un selector con buscador](img/modelos-rellenar.png)
 
-Entregado y aprobado, el documento se ve así, con los departamentos por su nombre y los botones para
-bajarlo en PDF, Word u OpenDocument:
+Más abajo, en la sección 3, la **escala de valoración** se contesta pulsando un número, y los
+**adjuntos** se eligen o se arrastran sobre el recuadro; cada archivo subido aparece en la lista, con
+su tamaño y una ✕ para quitarlo:
 
-![Documento entregado «Memoria de departamento», aprobado: Departamento Matemáticas, 11 reuniones, la valoración y la fila de coordinación con «Matemáticas, Física y Química»](img/modelos-entregado.png)
+![Sección «3. Satisfacción y evidencias» del formulario: «Satisfacción con el curso» de «Nada» a «Mucho» con el 4 marcado y el enlace «Borrar la respuesta»; «Evidencias» con pizarra-reunion.png (20 KB) y acta-coordinacion.pdf (30 KB) ya adjuntos, y debajo el recuadro «Adjuntar archivos — o arrástralos aquí»](img/modelos-escala-adjuntos.png)
+
+Entregado y aprobado, el documento se ve así, con los departamentos por su nombre y los botones para
+bajarlo en PDF, Word u OpenDocument y, como tiene archivos adjuntos, **Documento con anexos (ZIP)**:
+
+![Documento entregado «Memoria de departamento», aprobado, con los botones PDF, DOCX, ODT y «Documento con anexos (ZIP)»: Departamento Matemáticas, 11 reuniones, la valoración y la fila de coordinación con «Lengua Castellana y Literatura, Inglés»](img/modelos-entregado.png)
+
+En la sección 3 se lee la satisfacción como «4 / 5» y cada archivo adjunto es un **anexo** numerado,
+que se descarga pulsando su nombre; las imágenes se ven en su sitio:
+
+![Sección «3. Satisfacción y evidencias» del documento entregado: «4 / 5» y, en «Evidencias», «Anexo 1: pizarra-reunion.png» con la foto de la pizarra y «Anexo 2: acta-coordinacion.pdf»](img/modelos-anexos.png)
 
 ### Sin conexión
 
@@ -336,7 +349,7 @@ desde documentos*.
 actividad y un curso (entrega, versión, copia, fila, campo y valor), con un filtro de texto en
 pantalla y **exportación completa a CSV y Excel**. Lo ve quien puede ver los demás informes.
 
-![Datos de modelos: cinco valores de la «Memoria final de departamento» del curso 2026-2027 (departamento Matemáticas, 11 reuniones, la valoración y las dos columnas de la fila de coordinación), con el filtro y los botones CSV y Excel](img/modelos-explorador.png)
+![Datos de modelos: siete valores de la «Memoria final de departamento» del curso 2026-2027 (departamento Matemáticas, 11 reuniones, la valoración, las dos columnas de la fila de coordinación, los nombres de los archivos de «Evidencias» y la satisfacción, 4), con el filtro y los botones CSV y Excel](img/modelos-explorador.png)
 
 ## Permisos, de un vistazo
 

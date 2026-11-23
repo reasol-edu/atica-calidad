@@ -11,6 +11,8 @@ import { mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const baseUrl = process.env.SHOTS_BASE_URL ?? 'http://127.0.0.1:8744';
+// The files it attaches (scripts/fixtures/): a photo of the board and the act of the meeting.
+const fixtures = new URL('./fixtures/', import.meta.url).pathname;
 const outDir  = process.env.SHOTS_OUT_DIR ?? 'docs/manual/img';
 const dbPath  = process.env.SHOTS_DB ?? 'var/capturas.db';
 
@@ -69,6 +71,11 @@ await settle();
 await page.locator('select:has(option:text-is("De una lista del catálogo"))').first().scrollIntoViewIfNeeded();
 await shot('modelos-editor-lista', { clip: await clipAround(page.locator('select:has(option:text-is("De una lista del catálogo"))').first(), 40, 235, 800, 430) });
 
+// The field «Evidencias»: how many files, and whether the pages of the attached PDFs go into the delivered PDF.
+const filesBox = page.locator('text=Archivos como máximo').first();
+await filesBox.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+await shot('modelos-editor-adjuntos', { clip: await clipAround(filesBox, 30, 140, 800, 255) });
+
 // ── 3. Filling it in: the department is chosen among the list's items ─────────
 await page.goto(`${baseUrl}/actividades/${activityId}/formulario/${profileId}:::`);
 await settle();
@@ -94,12 +101,27 @@ await page.locator('.ts-dropdown .option:has-text("Inglés")').first().click();
 await page.keyboard.press('Escape');
 await shot('modelos-rellenar');
 
+// Section 3: the rating, and two files attached (a photo of the board and the act of the meeting).
+const rating = canvas.locator('fieldset:has(legend:text("Satisfacción con el curso"))');
+await rating.locator('label:has-text("4")').first().click();
+await page.waitForTimeout(800);
+await canvas.locator('input[type="file"]').first().setInputFiles([`${fixtures}pizarra-reunion.png`, `${fixtures}acta-coordinacion.pdf`]);
+await page.waitForFunction(() => document.querySelectorAll('a[href*="/formularios/adjunto/"]').length >= 2, null, { timeout: 15000 });
+await page.waitForTimeout(1500);   // the field is saved after the uploads
+await page.locator('h2:has-text("Satisfacción y evidencias"), h3:has-text("Satisfacción y evidencias")').first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
+await page.evaluate(() => window.scrollBy(0, -70));   // below the sticky header
+await shot('modelos-escala-adjuntos');
+
 // ── 4. Delivering it: the reviewer's view keeps reading as it was delivered ───
 await page.locator('form[action$="/entregar"] button[type="submit"]').click();
 await settle();
 const revisionId = id('select hex(revision_id) from form_submission_revision limit 1');
 await page.goto(`${baseUrl}/formularios/revision/${revisionId}`);
 await shot('modelos-entregado');
+
+// The same document further down: the annexes, the picture shown where its field is.
+await page.locator('text=Anexo 1').first().evaluate((el) => el.scrollIntoView({ block: 'center' }));
+await shot('modelos-anexos');
 
 // ── 5. The data explorer: the department as a name, filterable ───────────────
 await page.goto(`${baseUrl}/centro/${centreId}/informes/datos-de-modelos`);
