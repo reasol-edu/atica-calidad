@@ -59,11 +59,12 @@ final class FormLayout
         $logo = static fn (string $token, string $width): string => '<td rowspan="3" data-colwidth="' . $width . '" style="' . self::CELL . '; text-align: center; vertical-align: middle"><p style="text-align: center">' . $token . '</p></td>';
 
         // Five columns like the centre's ODT documents: the logo of the centre, the text (three columns wide, in three rows) and the logo of
-        // the education authority, each logo as tall as the three rows.
+        // the education authority, each logo as tall as the three rows. Both logo columns are as wide as each other (the ODT's own are
+        // 373 and 348 apart): 360 + 984 + 360.
         return '<table style="width: 100%; border-collapse: collapse"><tbody>'
-            . '<tr>' . $logo('{logo}', '373')
+            . '<tr>' . $logo('{logo}', '360')
             . '<td colspan="3" data-colwidth="480,232,272" style="' . self::CELL . '; text-align: center; vertical-align: middle; background-color: #eef2ea"><p style="text-align: center"><strong>{centro} - {localidad}</strong></p></td>'
-            . $logo('{logo2}', '348') . '</tr>'
+            . $logo('{logo2}', '360') . '</tr>'
             . '<tr><td colspan="3" style="' . self::CELL . '; text-align: center"><p style="text-align: center"><strong>{titulo}</strong></p></td></tr>'
             . '<tr>' . $cell('{codigo}') . $cell('REV: {revision}') . $cell('Página {pagina} de {paginas}') . '</tr>'
             . '</tbody></table>';

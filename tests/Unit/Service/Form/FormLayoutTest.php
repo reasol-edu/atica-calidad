@@ -136,7 +136,8 @@ final class FormLayoutTest extends TestCase
         self::assertSame('eef2ea', $table->cells[1]->background);
         self::assertSame([3, 4], [$table->cells[2]->rowspan, $table->cells[2]->col]);
         self::assertSame(Run::LOGO2, $table->cells[2]->paragraphs[0]->runs[0]->kind);
-        self::assertEqualsWithDelta(373 / 1705, $table->widths[0], 0.001, 'the widths of the ODT');
+        self::assertEqualsWithDelta(360 / 1704, $table->widths[0], 0.001);
+        self::assertEqualsWithDelta($table->widths[0], $table->widths[4], 0.0001, 'both logo columns are as wide as each other');
         // The page fields are runs of their own.
         $kinds = [];
         foreach ($table->cells[6]->paragraphs as $p) {
@@ -184,9 +185,8 @@ final class FormLayoutTest extends TestCase
         self::assertStringContainsString('width: 50%', $out);
 
         $header = $html->toPdfHtml($html->parse(FormLayout::defaultHeader()), 9, []);
-        self::assertStringContainsString('width: 21.88%', $header, 'the logo of the centre: 373 of 1705, as in the ODT');
-        self::assertStringContainsString('width: 20.41%', $header, 'the logo of the education authority');
-        self::assertStringContainsString('width: 57.71%', $header, 'the text: three columns');
+        self::assertSame(2, substr_count($header, 'width: 21.13%'), 'each logo: 360 of 1704, the same');
+        self::assertStringContainsString('width: 57.75%', $header, 'the text: three columns');
         self::assertStringContainsString('text-align: right', $out);
     }
 }
