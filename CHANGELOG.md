@@ -103,6 +103,9 @@ a [Semantic Versioning](https://semver.org/lang/es/).
   *service worker* guarda la página y sus ficheros), lo que se escribe se conserva en el navegador y se guarda solo al volver la conexión; si
   alguien guardó el borrador mientras tanto, vale lo del servidor. Al cerrar sesión se borran las páginas guardadas. Entregar sigue
   necesitando conexión.
+- **Modelos de documento: carpeta y archivo al crear o importar.** La carpeta del árbol documental se elige con un desplegable con
+  búsqueda (como en el formulario de actividad) y el archivo a importar se suelta en una zona de arrastre, como en el resto de la
+  aplicación.
 - **Manual:** capítulo nuevo «Modelos de documento», «Datos de modelos» en Informes, indicadores calculados en Mejora continua y entradas
   en el glosario y en los permisos.
 
