@@ -48,7 +48,7 @@ class ManagementReview
 
     /**
      * The six texts below (attendees, contextChanges, satisfaction, suppliers, resources,
-     * conclusions) hold HTML from the Quill rich-text editor, same as Folder::$description and a
+     * conclusions) hold HTML from the Tiptap rich-text editor, same as Folder::$description and a
      * richtext-typed setting value; stored raw, sanitize with sanitize_html('app.rich_text') at
      * every render site, never on write.
      */

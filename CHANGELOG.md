@@ -7,6 +7,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- Todos los editores de texto enriquecido (ajustes, descripción de carpeta, revisión por la dirección, textos y campos de texto largo de los modelos) pasan de Quill a Tiptap, con un único editor compartido: mismos formatos (título, negrita, cursiva, subrayado, cita, listas, alineación y enlaces, ahora con un campo de dirección propio). El texto ya guardado se conserva; las listas con viñetas escritas con Quill se convierten en listas reales al editarlas. Quill y sus dependencias salen del importmap.
+- Al aprobar la revisión de un modelo de documento se genera de nuevo su PDF en blanco, de modo que `{fecha_aprobacion}` ya lleva la fecha de aprobación (mientras estaba pendiente salía vacía).
+
 ## [2.7.0] - 2026-11-23
 
 ### Added

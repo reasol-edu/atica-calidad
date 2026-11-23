@@ -179,7 +179,7 @@ cuánto falta para poder entregarlo. Lo que debes saber:
 - Una entrega rechazada o a corregir se **corrige** con una versión siguiente; las anteriores se
   conservan.
 
-![Formulario «Memoria de departamento» a medio rellenar: el departamento «Matemáticas» elegido entre los de la lista, 11 reuniones, una valoración y, en la tabla de coordinación, una fila con dos departamentos marcados](img/modelos-rellenar.png)
+![Formulario «Memoria de departamento» a medio rellenar: el departamento «Matemáticas» elegido entre los de la lista, 11 reuniones, una valoración escrita en el editor de texto con su barra de formato y, en la tabla de coordinación, una fila con dos departamentos elegidos en un selector con buscador](img/modelos-rellenar.png)
 
 Entregado y aprobado, el documento se ve así, con los departamentos por su nombre y los botones para
 bajarlo en PDF, Word u OpenDocument:

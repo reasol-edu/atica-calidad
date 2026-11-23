@@ -1,12 +1,9 @@
 import { Controller } from '@hotwired/stimulus';
-import Quill from 'quill';
 import TomSelect from 'tom-select';
-import 'quill/dist/quill.snow.css';
+import { mountRichText } from '../utils/rich_text_editor.js';
 import { h } from '../utils/form_dom.js';
 import { confirmDialog } from '../utils/confirm_dialog.js';
 import { asMap, sync, walk, numbers, references, fieldSpecs, progress, newKey, MAX_COPIES, calculate, buildIndex, totals, rowsOf, format, countedCount } from '../utils/form_scopes.js';
-
-Quill.register(Quill.import('attributors/style/align'), true);
 
 const INPUT = 'w-full min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-forest-500 focus:ring-forest-500 disabled:bg-gray-50 disabled:text-gray-500';
 // A native drop-down (its chevron and the room under it come from the global rule for `select` in app.css).
@@ -798,24 +795,12 @@ export default class extends Controller {
         const wrapper = h('div', { id, class: 'rounded-lg', 'data-rich': '' });
         const el = h('div');
         wrapper.append(el);
-        const quill = new Quill(el, {
-            theme: 'snow',
-            formats: ['header', 'bold', 'italic', 'underline', 'blockquote', 'list', 'link', 'align'],
-            modules: { toolbar: [[{ header: [2, false] }], ['bold', 'italic', 'underline'], ['blockquote'], [{ list: 'ordered' }, { list: 'bullet' }], [{ align: [] }], ['link'], ['clean']] },
+        mountRichText(el, {
+            html: asHtml(value),
+            onChange: (now) => onChange(now === '' ? null : now),
+            // Leaving the editor is when a required one that stays empty turns red (see tag()).
+            onBlur: () => { if (wrapper.dataset.pk) { this.reveal(wrapper.dataset.pk); } },
         });
-        const html = asHtml(value);
-        if (html) {
-            quill.clipboard.dangerouslyPasteHTML(html);
-        }
-        quill.on('text-change', (delta, old, source) => {
-            if (source !== 'user') {
-                return;
-            }
-            const now = quill.root.innerHTML;
-            onChange(quill.getText().trim() === '' ? null : now);
-        });
-        // Leaving the editor is when a required one that stays empty turns red (see tag()).
-        quill.root.addEventListener('blur', () => { if (wrapper.dataset.pk) { this.reveal(wrapper.dataset.pk); } });
 
         return wrapper;
     }
@@ -850,30 +835,21 @@ export default class extends Controller {
         const mount = () => {
             const el = h('div');
             holder.replaceChildren(el);
-            const quill = new Quill(el, {
-                theme: 'snow',
-                formats: ['header', 'bold', 'italic', 'underline', 'blockquote', 'list', 'link', 'align'],
-                modules: { toolbar: [[{ header: [2, false] }], ['bold', 'italic', 'underline'], ['blockquote'], [{ list: 'ordered' }, { list: 'bullet' }], [{ align: [] }], ['link'], ['clean']] },
+            const rich = mountRichText(el, {
+                html: entry.html,
+                onChange: (html) => {
+                    entry.html = html;
+                    entry.modified = block.mode === 'starter' && entry.html !== (block.html || '');
+                    refreshBadge();
+                    if (entry.html === '' && block.mode === 'fill') {
+                        delete texts[block.key];
+                    } else {
+                        texts[block.key] = entry;
+                    }
+                    this.touch();
+                },
             });
-            if (entry.html) {
-                quill.clipboard.dangerouslyPasteHTML(entry.html);
-            }
-            quill.on('text-change', (delta, old, source) => {
-                if (source !== 'user') {
-                    return;
-                }
-                const html = quill.root.innerHTML;
-                entry.html = html === '<p><br></p>' ? '' : html;
-                entry.modified = block.mode === 'starter' && entry.html !== (block.html || '');
-                refreshBadge();
-                if (entry.html === '' && block.mode === 'fill') {
-                    delete texts[block.key];
-                } else {
-                    texts[block.key] = entry;
-                }
-                this.touch();
-            });
-            quill.focus();
+            rich.focus();
         };
         preview();
         refreshBadge();

@@ -1,67 +1,38 @@
 import { Controller } from '@hotwired/stimulus';
-import Quill from 'quill';
-import 'quill/dist/quill.snow.css';
+import { mountRichText } from '../utils/rich_text_editor.js';
 
-// Quill's align format is class-based by default ("ql-align-center"…), which the app.rich_text
-// sanitizer (config/packages/html_sanitizer.yaml) never lets through — class is always dropped.
-// Registering the style-based attributor here makes Quill write "text-align: center" inline
-// instead, which the sanitizer explicitly allows (RichTextAlignAttributeSanitizer) on the block
-// elements this editor can produce.
-Quill.register(Quill.import('attributors/style/align'), true);
-
+/**
+ * A rich text field: the Tiptap editor (assets/utils/rich_text_editor.js) over a hidden textarea that keeps the HTML, so the form (or a
+ * settings row with setting-save) sends it like any other input.
+ *
+ * Targets: `editor` (where it is drawn), `input` (the hidden textarea). Values: `placeholder`.
+ */
 /* stimulusFetch: 'lazy' */
 export default class extends Controller {
     static targets = ['editor', 'input'];
     static values  = { placeholder: String };
 
     connect() {
-        this.quill = new Quill(this.editorTarget, {
-            theme: 'snow',
-            placeholder: this.placeholderValue,
-            formats: ['header', 'bold', 'italic', 'underline', 'blockquote', 'list', 'link', 'align'],
-            modules: {
-                toolbar: [
-                    [{ header: [2, false] }],
-                    ['bold', 'italic', 'underline'],
-                    ['blockquote'],
-                    [{ list: 'ordered' }, { list: 'bullet' }],
-                    [{ align: [] }],
-                    ['link'],
-                    ['clean'],
-                ],
-            },
-        });
-
-        const stored = this.inputTarget.value.trim();
-        if (stored) {
-            this.quill.clipboard.dangerouslyPasteHTML(stored);
-        }
-
         this.lastDispatched = this.inputTarget.value;
 
-        this.quill.on('text-change', (delta, oldDelta, source) => {
-            const html = this.quill.root.innerHTML;
-            this.inputTarget.value = html === '<p><br></p>' ? '' : html;
-            // Quill's initial normalization (source 'api') does not count as an
-            // edit: only user changes should trigger 'change'.
-            if (source !== 'user') {
-                this.lastDispatched = this.inputTarget.value;
-            }
-        });
-
-        // On blur, the hidden textarea behaves like a native input: it emits
-        // 'change' if the user modified the content.
-        this.quill.on('selection-change', (range) => {
-            if (range === null && this.inputTarget.value !== this.lastDispatched) {
-                this.lastDispatched = this.inputTarget.value;
-                this.inputTarget.dispatchEvent(new Event('change', { bubbles: true }));
-            }
+        this.rich = mountRichText(this.editorTarget, {
+            html: this.inputTarget.value.trim(),
+            placeholder: this.placeholderValue,
+            onChange: (html) => {
+                this.inputTarget.value = html;
+            },
+            // On blur, the hidden textarea behaves like a native input: it emits 'change' if the content was modified.
+            onBlur: () => {
+                if (this.inputTarget.value !== this.lastDispatched) {
+                    this.lastDispatched = this.inputTarget.value;
+                    this.inputTarget.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            },
         });
     }
 
     disconnect() {
-        if (this.quill) {
-            this.quill = null;
-        }
+        this.rich?.destroy();
+        this.rich = null;
     }
 }

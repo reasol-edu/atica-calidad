@@ -253,7 +253,7 @@
                                 {{ effective|sanitize_html('app.rich_text') }}
                             </div>
                         {% else %}
-                            {# data-live-ignore: Quill generates its own DOM (toolbar)
+                            {# data-live-ignore: Tiptap generates its own DOM (toolbar)
                                and LiveComponent's morphing would wreck it on every re-render #}
                             <div id="setting-richtext-{{ keySlug }}" class="w-full min-w-0" data-live-ignore data-controller="rich-editor">
                                 <div data-rich-editor-target="editor" class="bg-white text-sm"></div>

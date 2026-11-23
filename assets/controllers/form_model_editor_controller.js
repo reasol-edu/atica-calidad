@@ -1,13 +1,9 @@
 import { Controller } from '@hotwired/stimulus';
-import Quill from 'quill';
 import TomSelect from 'tom-select';
-import 'quill/dist/quill.snow.css';
+import { mountRichText } from '../utils/rich_text_editor.js';
 import { h, uid, sectionNumbers } from '../utils/form_dom.js';
 import { parse } from '../utils/form_expression.js';
 import { confirmDialog } from '../utils/confirm_dialog.js';
-
-// Same as the rich text editor of the rest of the application: align is written inline, which the sanitizer lets through.
-Quill.register(Quill.import('attributors/style/align'), true);
 
 const FIELD_TYPES = ['short', 'long', 'number', 'date', 'time', 'bool', 'choice', 'multichoice', 'calculated', 'relation'];
 const CELL_TYPES = ['number', 'short', 'long', 'date', 'time', 'bool'];
@@ -801,26 +797,15 @@ export default class extends Controller {
         const mount = () => {
             const el = h('div');
             holder.replaceChildren(el);
-            const quill = new Quill(el, {
-                theme: 'snow',
-                formats: ['header', 'bold', 'italic', 'underline', 'blockquote', 'list', 'link', 'align'],
-                modules: { toolbar: [[{ header: [2, false] }], ['bold', 'italic', 'underline'], ['blockquote'], [{ list: 'ordered' }, { list: 'bullet' }], [{ align: [] }], ['link'], ['clean']] },
-            });
-            if (block.html) {
-                quill.clipboard.dangerouslyPasteHTML(block.html);
-            }
-            quill.on('text-change', (delta, old, source) => {
-                if (source === 'user') {
-                    const html = quill.root.innerHTML;
-                    block.html = html === '<p><br></p>' ? '' : html;
+            const rich = mountRichText(el, {
+                html: block.html,
+                onChange: (html) => {
+                    block.html = html;
                     this.touch();
-                }
+                },
             });
-            holder.append(this.refPicker(section, (token) => {
-                const range = quill.getSelection(true);
-                quill.insertText(range ? range.index : quill.getLength() - 1, token, 'user');
-            }));
-            quill.focus();
+            holder.append(this.refPicker(section, (token) => rich.insertText(token)));
+            rich.focus();
         };
         preview();
         return holder;

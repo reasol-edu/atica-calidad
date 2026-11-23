@@ -61,7 +61,7 @@ class Folder
 
     /**
      * Optional HTML description shown to anyone browsing the folder. Stored raw (edited via the
-     * Quill rich-text editor, same as a richtext-typed setting value); sanitize with
+     * Tiptap rich-text editor, same as a richtext-typed setting value); sanitize with
      * sanitize_html('app.rich_text') at every render site, never on write — this mirrors the
      * existing settings-value and PdfHeaderBuilder convention in this codebase.
      */

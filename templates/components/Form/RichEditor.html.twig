@@ -7,7 +7,7 @@
         <p class="text-xs text-gray-400 mb-2">{{ help }}</p>
     {% endif %}
     {# data-live-ignore: harmless outside a LiveComponent; inside one it stops the morphing
-       LiveComponent does on every re-render from destroying Quill's own DOM (toolbar) —
+       LiveComponent does on every re-render from destroying Tiptap's own DOM (toolbar) —
        see SettingsComponent's richtext row for the same rationale. #}
     <div data-controller="rich-editor" data-live-ignore
          {% if error %}aria-invalid="true" tabindex="-1"{% endif %}

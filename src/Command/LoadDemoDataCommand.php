@@ -1279,7 +1279,7 @@ class LoadDemoDataCommand extends Command
         }
         $quality   = $this->teachers['calidad'];
         $direccion = $this->teachers['direccion'];
-        // Rich text (Quill), like a teacher would actually leave it: paragraphs, a list, a bit of emphasis.
+        // Rich text (Tiptap), like a teacher would actually leave it: paragraphs, a list, a bit of emphasis.
         $attendees = '<ul><li>Javier Morales Peña (director)</li><li>Laura Jiménez Soto (responsable de calidad)</li><li>Jefatura de estudios</li><li>Secretaría</li></ul>';
 
         $held = new \DateTimeImmutable($first . '-06-30');

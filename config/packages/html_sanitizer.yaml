@@ -16,6 +16,7 @@ framework:
                     ul: '*'
                     li: '*'
                     h2: '*'
+                    h3: '*'
                     blockquote: '*'
                     a:
                         - href
@@ -26,8 +27,8 @@ framework:
                     - http
                     - https
                     - mailto
-                # `style` is allowed only on the block elements the Quill editor's align toolbar
-                # button can write it on, and only ever reaches the page through
+                # `style` is allowed only on the block elements the Tiptap editor's align
+                # buttons can write it on, and only ever reaches the page through
                 # RichTextAlignAttributeSanitizer (with_attribute_sanitizers below), which keeps
                 # nothing but a safe "text-align: …" out of it — the sanitizer itself has no
                 # CSS-property-level filtering of its own, so a bare `allow_attributes: style`
@@ -36,6 +37,7 @@ framework:
                     style:
                         - p
                         - h2
+                        - h3
                         - blockquote
                         - li
                 drop_attributes:

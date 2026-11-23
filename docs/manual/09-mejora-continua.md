@@ -500,8 +500,9 @@ se calculan de nuevo cada vez que se abre la página.
 **Anotar** abre los apartados que la aplicación no puede saber: **asistentes**, **cambios en el
 contexto** del centro, **satisfacción y opiniones** (encuestas, sugerencias), **proveedores y
 servicios externos**, **recursos** y las **conclusiones** sobre si el sistema es adecuado y eficaz,
-cada uno con **texto con formato** (negrita, listas, enlaces...), igual que la descripción de una
-carpeta del árbol documental. En la página, cada apartado sin anotar tiene su enlace **Anotar**.
+cada uno con **texto con formato** (dos niveles de título, negrita, cursiva, subrayado, citas, listas,
+alineación y enlaces), con la barra de formato sobre el texto, igual que la descripción de una carpeta
+del árbol documental. En la página, cada apartado sin anotar tiene su enlace **Anotar**.
 
 ### Las decisiones
 

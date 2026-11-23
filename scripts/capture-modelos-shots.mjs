@@ -73,14 +73,25 @@ await shot('modelos-editor-lista', { clip: await clipAround(page.locator('select
 await page.goto(`${baseUrl}/actividades/${activityId}/formulario/${profileId}:::`);
 await settle();
 const canvas = page.locator('[data-form-fill-target="canvas"]');
-await canvas.locator('select').first().selectOption({ label: 'Matemáticas' });
-await canvas.locator('input').first().fill('11');
-await canvas.locator('textarea').first().fill('Curso con buena coordinación entre cursos; se acordó unificar los criterios de evaluación.');
+// The department is picked in a searchable select (its list is in the page's body).
+await canvas.locator('.ts-wrapper .ts-control').first().click();
+await page.locator('.ts-dropdown .option:has-text("Matemáticas")').first().click();
+await page.waitForTimeout(800); // the autosave answers after each edit: typing on top of it loses the previous one
+// (The first input is not the number: the department select has its own search input.)
+await canvas.locator('input:not(.ts-control > input)').first().fill('11');
+await page.keyboard.press('Tab');
+await page.waitForTimeout(800);
+await canvas.locator('.rich-content').first().fill('Curso con buena coordinación entre cursos; se acordó unificar los criterios de evaluación.');
+await page.waitForTimeout(800);
 await canvas.locator('button:has-text("Añadir fila")').click();
 await settle();
 await canvas.locator('table input, [data-row] input').first().fill('Criterios de evaluación comunes');
-await canvas.locator('table input[type="checkbox"], [data-row] input[type="checkbox"]').nth(0).check();
-await canvas.locator('table input[type="checkbox"], [data-row] input[type="checkbox"]').nth(3).check();
+await page.waitForTimeout(800);
+// The departments of the row are picked in a searchable multiple select (its list is in the page's body).
+await canvas.locator('table .ts-wrapper .ts-control').first().click();
+await page.locator('.ts-dropdown .option:has-text("Lengua Castellana")').first().click();
+await page.locator('.ts-dropdown .option:has-text("Inglés")').first().click();
+await page.keyboard.press('Escape');
 await shot('modelos-rellenar');
 
 // ── 4. Delivering it: the reviewer's view keeps reading as it was delivered ───

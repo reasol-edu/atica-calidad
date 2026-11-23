@@ -66,15 +66,22 @@ read-only source columns plus the model's own, repetition of sections by those r
 at delivery and a warning when the origin changes afterwards. Open decision: freeze the copy when the draft is created, or refresh it while
 it is a draft. Needs: definition + normalizer, server and client resolution (`FormScopes` / `form_scopes.js`), validation, revision diff, tests.
 
-### Pending (noted 2026-11-23): move the whole platform from Quill to Tiptap
+### Rich text: one Tiptap editor everywhere (migrated from Quill, 2026-11-23)
 
-Today Quill (`rich_editor_controller.js`, the `RichEditor` component, the text blocks of the model editor and the fill form, the
-management review, the rich-text settings) and Tiptap (`doc_layout_editor_controller.js`, the header/footer editor, because Quill cannot
-do tables with merged cells) live side by side. Each page only loads the controller it uses, so it costs nothing at runtime, but the
-platform has two editors. To do **later, in one go** (not piecemeal): one Tiptap editor behind the same `rich-editor` Stimulus API;
-keep the stored HTML (`app.rich_text` allow-list: p, br, strong, b, em, i, u, ol, ul, li, h2, blockquote, a, `text-align`); re-check
-`RichTextAlignAttributeSanitizer`, the lists/links/alignment round-trip, the offline fill form (`form_fill_controller.js` mounts Quill on
-click), the tests and the manual screenshots; then drop `quill` from the importmap. Do not start it without being asked.
+Every rich-text editor is `assets/utils/rich_text_editor.js` (`mountRichText(el, {html, placeholder, onChange, onBlur})`, returns
+`{editor, focus, insertText, html, destroy}`): the `rich-editor` Stimulus controller (settings, folder description, management review,
+`Form:RichEditor`), the text blocks of the model editor and the fill form (mounted on click) and the «texto largo» fields. The header
+and footer editor (`doc_layout_editor_controller.js`) is a separate Tiptap setup because it needs tables. The look is `.rich-*` in
+`app.css` (the toolbar buttons are Heroicons, except the two heading levels, which are the text «T1» and «T2»; imported in `assets/icons/heroicons` and repeated as path data in the module's `ICONS`
+because a script cannot read them: add a new icon in both places; the Spanish labels are in `LABELS`, overridable with `labels`).
+- The stored HTML is the `app.rich_text` allow-list (p, br, strong, b, em, i, u, ol, ul, li, h2, h3, blockquote, a, `text-align`).
+  Two heading levels: h2 («Título (nivel 1)») and h3 («Título (nivel 2)»).
+  Tiptap writes `<li><p>…</p></li>` (the plain-text reader `FormOfficeWriter::paragraphs()` copes) and links with `rel` only.
+- **Legacy**: Quill 2 stored bullet lists as `<ol><li data-list="bullet">` with a `.ql-ui` span; `legacyHtml()` turns them into real
+  `<ul>`/`<ol>` when an editor loads old content. Pages that only *render* old HTML (not edit it) still show it as the sanitizer leaves it.
+- An empty editor gives `''` (never `<p></p>`). `onChange` only fires for edits of the person, not for the initial load.
+- Headless tests cannot type ASCII into it with Chrome's `type` tool (only non-ASCII reaches ProseMirror): drive it with
+  `document.execCommand('insertText', false, …)` after focusing `.rich-content`.
 
 ## Calculations, rules, relations and double-entry tables (phase 3)
 
@@ -88,7 +95,7 @@ click), the tests and the manual screenshots; then drop `quill` from the importm
   and `node --test tests/js/form-expression.test.mjs tests/js/form-scopes.test.mjs` — pass the files, not the directory).
 - **«Texto largo» fields are rich text** (blocks only; table cells stay plain): `FormDataNormalizer::richText()` stores sanitized HTML
   (plain text from before becomes paragraphs, see `FormRichText`); `FormResolver::format()` returns it as plain text (`value`: diff, Word,
-  index, explorer) and the field item also carries `html` for `_document.html.twig`. The fill form mounts a Quill per field (`richEl()`).
+  index, explorer) and the field item also carries `html` for `_document.html.twig`. The fill form mounts a rich editor per field (`richEl()`).
 - **Calculated fields and columns** (`fieldType: calculated`, `formula`, `decimals`, `unit`): never typed (the normalizer drops what the
   browser sends), filled by `FormCalculator` after the data is cleaned, in up to four passes so a formula can read another calculated
   value; a cycle is a model problem. The result is stored with the data, so it is frozen with each delivered revision. A column can show a
@@ -270,7 +277,9 @@ trap: a list-fed field normalized against the raw definition has no options, so 
   relationship per part). Every output has to get the images through `DocumentLayout::$images`.
 - **`{fecha_aprobacion}`** comes from `DocumentRevision::getApprovedAt()` (new column `approved_at`, set in `approve()`; null in the column
   = the revision's own date, so both dates match when no review was needed). The blank model PDF is made at *send* time, before any
-  approval: with a review pending it is empty there (`FormLayoutResolver::values(..., pendingApproval: true)`).
+  approval: with a review pending it is empty there (`FormLayoutResolver::values(..., pendingApproval: true)`). On approval
+  `DocumentRevisionReviewer::approve()` calls `FormModelService::refreshBlankPdf()`, which makes it again and swaps the revision's file
+  (no change if the header does not use the token: the file is deduplicated by hash). With an approval chain, only the last step does it.
 - **Margins** (`layout.margins` or the settings `forms.margin_top|bottom|left|right`, mm; top/bottom are the distance from the paper's edge
   to the header/footer). The PDF does not use mPDF's auto-stretch: `PdfRenderer::heightMm()` measures the header, footer and first-page
   header and `FormPdfBuilder` sets the real margins. **First-page header**: `layout.firstHeader` (null = the normal one). mPDF: both are
@@ -291,7 +300,7 @@ trap: a list-fed field normalized against the raw definition has no options, so 
 The editor and the form are **Stimulus controllers that build the page from the JSON** (`form_model_editor_controller.js`,
 `form_fill_controller.js`, helpers in `assets/utils/form_dom.js`), not Live Components: they hold a lot of client state (nesting,
 tables, offline later) and a Live round trip per keystroke would not do. They save the whole draft, debounced, with the version they
-started from (`draftVersion`); a 409 means another tab saved in between. Texts use Quill, mounted on click (a page of editors is slow).
+started from (`draftVersion`); a 409 means another tab saved in between. Texts use the rich editor, mounted on click (a page of editors is slow).
 
 ## Traps already hit
 

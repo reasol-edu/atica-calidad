@@ -9,8 +9,8 @@ use Symfony\Component\HtmlSanitizer\Visitor\AttributeSanitizer\AttributeSanitize
 
 /**
  * Lets the "app.rich_text" sanitizer (config/packages/html_sanitizer.yaml) keep a paragraph's
- * alignment — the one thing the Quill editor's align toolbar button writes as inline style
- * (rich_editor_controller.js, Quill 2's default "style" align attributor) — without opening up
+ * alignment — the one thing the Tiptap editor's align buttons write as inline style
+ * (assets/utils/rich_text_editor.js, the TextAlign extension) — without opening up
  * the `style` attribute in general, which Symfony's sanitizer only allows or drops wholesale, with
  * no CSS-property-level filtering of its own: any other declaration slipped into the same
  * attribute (background/url() tracking pixels, position tricks, …) is discarded here rather than
@@ -21,7 +21,7 @@ final class RichTextAlignAttributeSanitizer implements AttributeSanitizerInterfa
     /** @return list<string> */
     public function getSupportedElements(): array
     {
-        return ['p', 'h2', 'blockquote', 'li'];
+        return ['p', 'h2', 'h3', 'blockquote', 'li'];
     }
 
     /** @return list<string> */

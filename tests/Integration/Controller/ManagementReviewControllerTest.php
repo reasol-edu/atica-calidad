@@ -163,7 +163,7 @@ final class ManagementReviewControllerTest extends ControllerTestCase
     }
 
     /**
-     * The six texts are HTML from the Quill rich-text editor (see Form:RichEditor), like
+     * The six texts are HTML from the Tiptap rich-text editor (see Form:RichEditor), like
      * Folder::$description: stored raw, sanitized with app.rich_text on every render — the
      * review page and the PDF alike — never on write.
      */
