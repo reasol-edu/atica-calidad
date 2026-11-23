@@ -257,7 +257,8 @@ export default class extends Controller {
             if (response.status === 413) {
                 // Too big to save: no automatic retry (it would fail the same way); the next change tries again.
                 this.dirty = true;
-                this.setStatus(body.message || this.l.offline, 'text-red-700');
+                // (A proxy in front may answer the 413 itself, in HTML: then there is no message in the body.)
+                this.setStatus(body.message || this.l.too_large, 'text-red-700');
                 return;
             }
             if (!response.ok) {

@@ -252,7 +252,8 @@ export default class extends Controller {
                 this.failed = true;
                 this.dirty = true;
                 this.keepLocal();
-                this.setStatus(body.message || this.l.offline, 'text-red-700');
+                // (A proxy in front may answer the 413 itself, in HTML: then there is no message in the body.)
+                this.setStatus(body.message || this.l.too_large, 'text-red-700');
                 return;
             }
             if (!response.ok) {
