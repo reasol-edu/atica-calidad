@@ -50,6 +50,21 @@ export default class extends Controller {
             return;
         }
         this.opener = event.currentTarget;
+        // A dialog shared by every row ("move"): the button says which model, where to send it and its token.
+        if (event.params.action) {
+            const form = dialog.querySelector('form');
+            form.action = event.params.action;
+            form.querySelector('input[name=_token]').value = event.params.token;
+            dialog.querySelectorAll('[data-model-name]').forEach((el) => { el.textContent = event.params.model; });
+            const select = form.querySelector('select[name=folder]');
+            if (select) {
+                if (select.tomselect) { select.tomselect.clear(true); } else { select.value = ''; }
+                // The folder it is in now cannot be chosen: moving there would do nothing.
+                [...select.options].forEach((o) => { o.disabled = o.value !== '' && o.value === event.params.folder; });
+                select.tomselect?.sync();
+            }
+            this.menuTargets.forEach((menu) => { menu.open = false; });
+        }
         dialog.classList.remove('hidden');
         dialog.classList.add('flex');
         const first = dialog.querySelector('input:not([type=hidden]):not([type=file]), select, button');

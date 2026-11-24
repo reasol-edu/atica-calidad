@@ -133,9 +133,14 @@ because a script cannot read them: add a new icon in both places; the Spanish la
   them) with the number under each and the words of the ends at the sides, in a fieldset; «Borrar la respuesta» for an optional one; a
   drop-down in a table cell.
 - **«Resumen de la fila»** (editor only, no grammar change): a calculated table column gets a box that writes `fn([r:A];[r:B])` from a
-  function (`ROW_SUMMARY`: sum avg min max count) and ticked columns (`rowSummary()` / `readRowSummary()` in `form_expression.js`,
+  function (`ROW_SUMMARY`: sum avg min max count pct) and ticked columns (`rowSummary()` / `readRowSummary()` in `form_expression.js`,
   tested in `form-expression.test.mjs`). It recognises only formulas of exactly that shape; anything else is left alone until a box is
-  ticked. Counting offers any column, the rest only number/calculated ones.
+  ticked. Counting offers any column, the rest only number/calculated ones. `pct` is not a function of the language: it writes
+  `[r:A] / [r:B] * 100` from two drop-downs (A, B; order matters) and relies on division by 0 or by an empty cell giving null in both
+  engines (cases in `form-expressions.json`).
+- **Moving**: a block goes to another section with the editor's «Mover a otra sección…» (`moveBlockTo()`: same key, end of the target;
+  the draft's checks flag references that are out of scope from there). A whole model goes to another folder of the centre with
+  `POST /modelos/{id}/mover` (`FormModelLibraryController::move`, logged as `document.move`): the folder only decides the review.
 - **Consistency rules** (`definition.rules`: `{expr, message, severity: warning|block}`): evaluated against the whole document by
   `FormDataValidator`; a broken rule blocks the delivery or only warns, as the model says; a rule that cannot be decided is not broken.
   The save response carries `problems` (blocking) and `warnings`.

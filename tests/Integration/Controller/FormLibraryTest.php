@@ -126,6 +126,35 @@ final class FormLibraryTest extends ControllerTestCase
         self::assertContains('Copia de Ficha de visita', $names);
     }
 
+    public function testMovingTakesTheModelToAnotherFolderOfTheCentreOnly(): void
+    {
+        $section = $this->em->getRepository(DocumentSection::class)->find($this->folder->getDocumentSection()->getId());
+        $target  = (new Folder())->setDocumentSection($section)->setName('Memorias');
+        $other   = (new EducationalCentre())->setCode('87654321')->setName('Otro')->setCity('Ciudad');
+        $foreign = (new Folder())->setDocumentSection((new DocumentSection())->setEducationalCentre($other)->setName('Ajena'))->setName('Ajena');
+        $this->persist($target, $other, $foreign->getDocumentSection(), $foreign);
+        $id = $this->model->getId()->toRfc4122();
+
+        $this->client->request('GET', '/modelos');
+        self::assertSelectorExists('[data-testid="move"]');
+        $token = $this->csrfToken('form_model_move_' . $id);
+
+        // Another centre's folder, or a bad token: it stays where it is.
+        $this->client->request('POST', "/modelos/{$id}/mover", ['_token' => $token, 'folder' => $foreign->getId()->toRfc4122()]);
+        self::assertResponseRedirects('/modelos');
+        $this->client->request('POST', "/modelos/{$id}/mover", ['_token' => 'malo', 'folder' => $target->getId()->toRfc4122()]);
+        self::assertResponseStatusCodeSame(403);
+        $this->em->clear();
+        self::assertSame('Modelos', $this->em->getRepository(FormModel::class)->find($this->model->getId())->getDocument()->getFolder()->getName());
+
+        $this->client->request('POST', "/modelos/{$id}/mover", ['_token' => $token, 'folder' => $target->getId()->toRfc4122()]);
+        self::assertResponseRedirects('/modelos');
+        $this->em->clear();
+        self::assertSame('Memorias', $this->em->getRepository(FormModel::class)->find($this->model->getId())->getDocument()->getFolder()->getName());
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('body', '«Ficha de visita» está ahora en Sección › Memorias.');
+    }
+
     #[DataProvider('formats')]
     public function testOfficeExportIsAValidFileThatImportsBackAsAnOutline(string $format, string $entry): void
     {

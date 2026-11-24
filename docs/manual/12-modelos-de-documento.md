@@ -43,8 +43,12 @@ revisión aprobada, pendiente de aprobar o con cambios en el borrador sin enviar
 documental. Se puede **ordenar** por nombre, código, última modificación o estado, y **agrupar** por sección
 o por estado (cada grupo se pliega pulsando su título). El botón ámbar **Necesitan atención** filtra los
 modelos con una revisión pendiente de aprobar o con cambios sin enviar. Con muchos modelos, la lista
-muestra 50 cada vez y ofrece **Mostrar más**. Exportar y Duplicar están en el menú **⋯** de cada fila; el
-orden y la agrupación elegidos se recuerdan en el navegador.
+muestra 50 cada vez y ofrece **Mostrar más**. Exportar, Duplicar y **Mover a otra carpeta** están en
+el menú **⋯** de cada fila; el orden y la agrupación elegidos se recuerdan en el navegador.
+
+**Mover a otra carpeta** lleva el modelo, con todas sus revisiones y su historial, a cualquier carpeta
+del centro (también de otra sección). Desde ese momento sus revisiones las aprueba quien revise la
+carpeta de destino; las actividades que lo usan siguen usándolo y lo ya entregado no cambia.
 
 Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) con estos bloques:
 
@@ -83,7 +87,9 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
 - **Resumen de la fila**: en una columna calculada de una tabla, el recuadro «Resumen de la fila»
   calcula la suma, la media, el mínimo, el máximo o cuántas tienen algo de las columnas que marques
   **de la misma fila** (por ejemplo, «Total» = «Horas teoría» + «Horas práctica»), sin escribir la
-  fórmula. Escribe una fórmula normal, que puedes seguir retocando a mano.
+  fórmula. Con **Calcular %** se eligen dos columnas, A (la parte) y B (el total), y calcula
+  A / B × 100 (por ejemplo, «% de aprobados» = «Aprobados» / «Matriculados» × 100); si B es 0 o
+  está vacía, la celda queda vacía. Escribe una fórmula normal, que puedes seguir retocando a mano.
 - **Total al pie de una columna** numérica o calculada (cuenta, suma, media, mínimo o máximo): el
   valor se ve al final de la columna. Si le pones un **nombre**, además es un campo del documento
   (no se muestra aparte: está solo al pie de la tabla) y sirve en fórmulas, indicadores, reglas y
@@ -136,6 +142,11 @@ Además:
   que escribas).
 - **Columnas de relación**: una columna cuyas opciones son las filas de otra tabla.
 - **Ayuda** en cada campo, que se ve al rellenar pero no se imprime.
+- **Mover un bloque a otra sección**: además de subirlo y bajarlo con las flechas, cada bloque tiene el
+  desplegable **Mover a otra sección…**, que lo lleva al final de la sección elegida (a cualquier
+  nivel). Las fórmulas, condiciones y referencias que lo usan lo siguen encontrando; si desde su nuevo
+  sitio ya no pueden (por ejemplo, al sacar un campo de una sección repetida), el editor lo señala entre
+  los problemas por resolver.
 
 El botón **Vista previa** muestra el modelo en blanco, tal como se verá.
 
@@ -148,7 +159,7 @@ puede ser una lista entera o una rama («Enseñanza › FP»). Las opciones son 
 en su orden, y cada una se llama por su ruta bajo el elemento elegido («Ciencias › Física»); los
 elementos inactivos no se ofrecen.
 
-![Editor del campo «Departamento» de la «Memoria de departamento»: Opciones «De una lista del catálogo», lista «Departamento», y debajo cuántas opciones ofrece ahora (9: Matemáticas, Lengua Castellana y Literatura…)](img/modelos-editor-lista.png)
+![Editor del campo «Departamento» de la «Memoria de departamento», con el desplegable «Mover a otra sección…» y las flechas en su cabecera: Opciones «De una lista del catálogo», lista «Departamento», y debajo cuántas opciones ofrece ahora (9: Matemáticas, Lengua Castellana y Literatura…)](img/modelos-editor-lista.png)
 
 Las opciones **no se copian al modelo: se leen de la lista cada vez que alguien rellena**, igual que
 las actividades siguen al catálogo. Un elemento nuevo aparece solo, uno renombrado cambia de nombre y

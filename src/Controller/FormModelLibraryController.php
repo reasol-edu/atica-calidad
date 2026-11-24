@@ -7,12 +7,15 @@ namespace App\Controller;
 use App\Attribute\CurrentCentre;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
+use App\Repository\DocumentRepository;
 use App\Repository\FolderRepository;
 use App\Repository\FormModelRepository;
 use App\Security\Voter\QualityVoter;
+use App\Service\ActivityLogger;
 use App\Service\Form\FormException;
 use App\Service\Form\FormModelPorter;
 use App\Service\Form\FormOfficeWriter;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -22,8 +25,8 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Models in and out as files: export (JSON for another centre, DOCX/ODT to work on elsewhere), import (JSON, DOCX, ODT) and copy
- * within the centre. Always for those who manage quality; what comes in is a new draft (see FormModelPorter).
+ * Models in and out as files: export (JSON for another centre, DOCX/ODT to work on elsewhere), import (JSON, DOCX, ODT), copy
+ * within the centre and moving to another folder. Always for those who manage quality; what comes in is a new draft (see FormModelPorter).
  */
 #[Route('/modelos')]
 class FormModelLibraryController extends AbstractController
@@ -35,6 +38,9 @@ class FormModelLibraryController extends AbstractController
         private readonly FolderRepository $folders,
         private readonly FormModelPorter $porter,
         private readonly TranslatorInterface $translator,
+        private readonly DocumentRepository $documents,
+        private readonly EntityManagerInterface $em,
+        private readonly ActivityLogger $activityLogger,
     ) {}
 
     #[Route('/{id}/exportar.{_format}', name: 'app_form_model_export', requirements: ['_format' => 'json|docx|odt'], methods: ['GET'])]
@@ -76,6 +82,46 @@ class FormModelLibraryController extends AbstractController
         );
 
         return $this->redirectToRoute('app_form_model_edit', ['id' => $copy->getId()->toRfc4122()]);
+    }
+
+    /**
+     * Moves the model (its document, with every revision) to another folder of the centre. Like moving a document in the tree: the
+     * revisions keep their history, and from now on the folder it lands in decides the review. Activities keep using it (they point
+     * at the model, not at the folder).
+     */
+    #[Route('/{id}/mover', name: 'app_form_model_move', methods: ['POST'])]
+    public function move(string $id, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
+    {
+        $this->denyAccessUnlessGranted(QualityVoter::MANAGE, $centre);
+        if (!$this->isCsrfTokenValid('form_model_move_' . $id, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        $model    = $this->models->findByIdAndCentre($id, $centre) ?? throw $this->createNotFoundException();
+        $document = $model->getDocument();
+        $from     = $document->getFolder();
+        $to       = $this->folders->findById($request->request->getString('folder'));
+        if ($to === null || $to->getEducationalCentre()->getId()->toRfc4122() !== $centre->getId()->toRfc4122()) {
+            $this->addFlash('error', $this->translator->trans('models.error.move', [], 'forms'));
+
+            return $this->redirectToRoute('app_form_models');
+        }
+
+        if ($to !== $from) {
+            $document->setFolder($to);
+            $document->setPosition($this->documents->nextPosition($to));
+            $this->em->flush();
+            $this->activityLogger->record('document.move', [
+                'document' => $document->getName(),
+                'from'     => $from->getDocumentSection()->getName() . ' › ' . $from->getName(),
+                'to'       => $to->getDocumentSection()->getName() . ' › ' . $to->getName(),
+            ], $centre);
+        }
+        $this->addFlash('success', $this->translator->trans('models.moved', [
+            '%name%'   => $document->getName(),
+            '%folder%' => $to->getDocumentSection()->getName() . ' › ' . $to->getName(),
+        ], 'forms'));
+
+        return $this->redirectToRoute('app_form_models');
     }
 
     /** Creates a model from an uploaded JSON (exported by this application), DOCX or ODT, in the folder chosen. */

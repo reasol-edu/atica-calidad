@@ -7,6 +7,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- Modelos de documento: **Mover a otra carpeta** en el menú ⋯ de cada modelo, a cualquier carpeta del centro, con todas sus revisiones; desde entonces lo revisa quien revise la carpeta de destino y las actividades lo siguen usando.
+- Editor de modelos: cada bloque se puede llevar a otra sección con el desplegable «Mover a otra sección…».
+- Editor de modelos: el «Resumen de la fila» ofrece **Calcular %**, que con dos columnas A y B calcula A / B × 100 (vacío si B es 0 o está vacía).
+
 ## [2.8.0] - 2026-11-24
 
 ### Added

@@ -231,13 +231,20 @@ export function evaluate(ast, resolve) {
     return ev(ast);
 }
 
-/** The functions the «summary of the row» assistant of the editor offers: one result out of several cells of the same row. */
-export const ROW_SUMMARY = ['sum', 'avg', 'min', 'max', 'count'];
+/**
+ * The functions the «summary of the row» assistant of the editor offers: one result out of several cells of the same row. `pct` is
+ * not a function of the language: it is the percentage of one column over another, `[r:a] / [r:b] * 100` (empty when B is 0 or empty,
+ * as any division by zero).
+ */
+export const ROW_SUMMARY = ['sum', 'avg', 'min', 'max', 'count', 'pct'];
 
-/** The formula of a summary of the row: `sum([r:a];[r:b])`. Empty when no column is chosen. */
+/** The formula of a summary of the row: `sum([r:a];[r:b])`, `[r:a] / [r:b] * 100`. Empty when the columns it needs are not chosen. */
 export function rowSummary(fn, keys) {
     if (!ROW_SUMMARY.includes(fn) || keys.length === 0) {
         return '';
+    }
+    if (fn === 'pct') {
+        return keys.length === 2 && keys[0] && keys[1] ? `[r:${keys[0]}] / [r:${keys[1]}] * 100` : '';
     }
 
     return `${fn}(${keys.map((k) => `[r:${k}]`).join(';')})`;
@@ -248,6 +255,10 @@ export function rowSummary(fn, keys) {
  * assistant then leaves alone.
  */
 export function readRowSummary(formula) {
+    const pct = /^\s*\[r:([^\]\s;]+)\]\s*\/\s*\[r:([^\]\s;]+)\]\s*\*\s*100\s*$/.exec(formula || '');
+    if (pct) {
+        return { fn: 'pct', keys: [pct[1], pct[2]] };
+    }
     const match = /^\s*([a-z_]+)\s*\(((?:\s*\[r:[^\]\s;]+\]\s*;?)+)\)\s*$/.exec(formula || '');
     if (!match || !ROW_SUMMARY.includes(match[1])) {
         return null;

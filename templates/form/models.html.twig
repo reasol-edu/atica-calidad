@@ -101,6 +101,34 @@
         </div>
     </div>
 
+    {# Shared by every row: the row's «Mover a otra carpeta» fills in which model (action, token and name) when it opens it. #}
+    <div class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4 py-6" data-model-list-target="dialog" data-name="move" data-action="mousedown->model-list#backdrop keydown->model-list#keydown">
+        <div role="dialog" aria-modal="true" aria-labelledby="dlg-move-title" class="max-h-full w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-xl">
+            <div class="flex items-start justify-between gap-3">
+                <h2 id="dlg-move-title" class="text-base font-semibold text-gray-900">{{ 'models.move_title'|trans({}, 'forms') }}</h2>
+                <button type="button" data-action="model-list#close" aria-label="{{ 'models.close'|trans({}, 'forms') }}" class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">{{ ux_icon('heroicons:x-mark', {class: 'h-5 w-5'}) }}</button>
+            </div>
+            <p class="mt-1 text-sm text-gray-700">«<span data-model-name></span>»</p>
+            <p class="mt-1 text-sm text-gray-500">{{ 'models.move_help'|trans({}, 'forms') }}</p>
+            <form method="post" action="" class="mt-3 space-y-3" data-testid="move-form">
+                <input type="hidden" name="_token" value="">
+                <div>
+                    <label for="move-folder" class="block text-sm font-medium text-gray-700">{{ 'models.move_folder'|trans({}, 'forms') }}</label>
+                    <select id="move-folder" name="folder" required data-controller="tom-select"
+                            data-tom-select-placeholder-value="{{ 'models.folder_placeholder'|trans({}, 'forms') }}"
+                            data-tom-select-no-results-value="{{ 'tom_select.no_results'|trans({}, 'admin') }}"
+                            class="mt-1 w-full text-sm ts-local">
+                        <option value=""></option>
+                        {% for f in folders %}<option value="{{ f.id }}">{{ f.label }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="w-full rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 sm:w-auto">{{ 'models.move'|trans({}, 'forms') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {% if rows is empty %}
         <section class="rounded-2xl border border-gray-200 bg-white shadow-xs">
             <p class="px-5 py-8 text-center text-sm text-gray-500">{{ 'models.empty'|trans({}, 'forms') }}</p>
@@ -207,6 +235,14 @@
                                             {{ ux_icon('heroicons:document-duplicate', {class: 'h-4 w-4'}) }}{{ 'models.duplicate'|trans({}, 'forms') }}
                                         </button>
                                     </form>
+                                    <button type="button" data-action="model-list#open" data-model-list-name-param="move"
+                                            data-model-list-action-param="{{ path('app_form_model_move', {id: m.id.toRfc4122}) }}"
+                                            data-model-list-token-param="{{ csrf_token('form_model_move_' ~ m.id.toRfc4122) }}"
+                                            data-model-list-model-param="{{ doc.name }}"
+                                            data-model-list-folder-param="{{ doc.folder.id.toRfc4122 }}"
+                                            class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-gray-700 hover:bg-gray-50" data-testid="move">
+                                        {{ ux_icon('heroicons:arrows-right-left', {class: 'h-4 w-4'}) }}{{ 'models.move_open'|trans({}, 'forms') }}
+                                    </button>
                                 </div>
                             </details>
                         </div>

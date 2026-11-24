@@ -35,7 +35,18 @@ test('the summary of the row is written and read back by the assistant, and eval
 
     assert.equal(rowSummary('sum', []), '');
     assert.equal(rowSummary('if', ['a']), '');
-    for (const other of ['sum([r:a]) / 2', 'sum([f:a];[r:b])', 'if([r:a];1;2)', 'sum([r:a];;[r:b])', 'sum([r:a];)', '', 'sum()']) {
+    // The percentage of A over B: empty when B is 0 or empty.
+    const pct = rowSummary('pct', ['a', 'c']);
+    assert.equal(pct, '[r:a] / [r:c] * 100');
+    assert.deepEqual(readRowSummary(pct), { fn: 'pct', keys: ['a', 'c'] });
+    assert.deepEqual(readRowSummary(' [r:x]/[r:y]*100 '), { fn: 'pct', keys: ['x', 'y'] });
+    assert.equal(evaluate(parse(pct).ast, (r) => refs[r] ?? null), 40);
+    assert.equal(evaluate(parse(pct).ast, (r) => ({ 'r:a': 3, 'r:c': 0 })[r] ?? null), null, 'B is 0');
+    assert.equal(evaluate(parse(pct).ast, (r) => ({ 'r:a': 3 })[r] ?? null), null, 'B is empty');
+    assert.equal(rowSummary('pct', ['a']), '');
+    assert.equal(rowSummary('pct', ['a', '']), '');
+
+    for (const other of ['[r:a] / [r:b] * 10', '[r:a] / [f:b] * 100', 'sum([r:a]) / 2', 'sum([f:a];[r:b])', 'if([r:a];1;2)', 'sum([r:a];;[r:b])', 'sum([r:a];)', '', 'sum()']) {
         assert.equal(readRowSummary(other), null, other);
     }
 });

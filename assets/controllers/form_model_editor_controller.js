@@ -533,16 +533,53 @@ export default class extends Controller {
         ]);
     }
 
+    /**
+     * Takes a block to the end of another section (any, at any depth). Its key goes with it, so what refers to it still does; whether
+     * it still can from there (in or out of a repeated section) the checks of the draft say, as for any other edit.
+     */
+    moveBlockTo(section, block, targetKey) {
+        const target = this.locate(targetKey);
+        const from = section.blocks.indexOf(block);
+        if (!target || from < 0 || targetKey === section.key) {
+            return;
+        }
+        section.blocks.splice(from, 1);
+        target.list[target.index].blocks.push(block);
+        this.changed();
+        // To where it went, so that it is seen landing.
+        requestAnimationFrame(() => document.getElementById('blk-' + block.key)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    }
+
+    /** Every section but `except`, in reading order, as [key, "2.1. Title"]. */
+    sectionChoices(except) {
+        const numbers = sectionNumbers(this.def.sections);
+        const out = [];
+        const visit = (list, depth) => list.forEach((s) => {
+            if (s.key !== except) {
+                out.push([s.key, ' '.repeat(depth) + (numbers.get(s.key) ? numbers.get(s.key) + '. ' : '') + (s.title || this.l.section)]);
+            }
+            visit(s.children, depth + 1);
+        });
+        visit(this.def.sections, 0);
+
+        return out;
+    }
+
     blockEl(section, block, index) {
         const kinds = { text: this.l.add_text, field: this.l.add_field, table: this.l.add_table };
-        const controls = h('div', { class: 'flex items-center gap-1', role: 'group', 'aria-label': this.l.block_actions }, [
+        const others = this.sectionChoices(section.key);
+        const moveTo = others.length === 0 ? null : h('div', { class: 'w-56' }, [
+            this.select('', [['', this.l.move_to], ...others], (v) => { if (v) { this.moveBlockTo(section, block, v); } }, this.l.move_to),
+        ]);
+        const controls = h('div', { class: 'flex flex-wrap items-center justify-end gap-1', role: 'group', 'aria-label': this.l.block_actions }, [
+            moveTo,
             h('button', { type: 'button', class: BTN, title: this.l.up, 'aria-label': this.l.up, text: '↑', disabled: index === 0, onclick: () => this.moveIn(section.blocks, index, -1) }),
             h('button', { type: 'button', class: BTN, title: this.l.down, 'aria-label': this.l.down, text: '↓', disabled: index === section.blocks.length - 1, onclick: () => this.moveIn(section.blocks, index, 1) }),
             h('button', { type: 'button', class: BTN + ' text-red-700', title: this.l.remove, 'aria-label': this.l.remove, text: '✕', onclick: () => this.removeFrom(section.blocks, index) }),
         ]);
         const body = block.type === 'text' ? this.textBody(block, section) : block.type === 'field' ? this.fieldBody(block) : this.tableBody(block);
 
-        return h('div', { class: 'rounded-xl border border-gray-200 bg-white p-3' }, [
+        return h('div', { id: 'blk-' + block.key, class: 'scroll-mt-20 rounded-xl border border-gray-200 bg-white p-3' }, [
             h('div', { class: 'mb-2 flex items-center justify-between gap-2' }, [
                 h('span', { class: 'rounded-full bg-forest-50 px-2.5 py-0.5 text-xs font-medium text-forest-700', text: kinds[block.type] }),
                 controls,
@@ -944,9 +981,15 @@ export default class extends Controller {
         const numeric = (c) => NUMERIC_TYPES.includes(c.fieldType);
         const read = readRowSummary(current());
         const state = { fn: read ? read.fn : 'sum', keys: read ? read.keys : [] };
-        const apply = () => { if (state.keys.length > 0) { set(rowSummary(state.fn, state.keys)); } };
-        const names = { sum: this.l.total_sum, avg: this.l.total_avg, min: this.l.total_min, max: this.l.total_max, count: this.l.row_summary_count };
-        const fnSelect = this.select(state.fn, ROW_SUMMARY.map((f) => [f, names[f]]), (v) => { state.fn = v; draw(); apply(); }, this.l.row_summary_fn);
+        const apply = () => { const formula = rowSummary(state.fn, state.keys); if (formula !== '') { set(formula); } };
+        const names = { sum: this.l.total_sum, avg: this.l.total_avg, min: this.l.total_min, max: this.l.total_max, count: this.l.row_summary_count, pct: this.l.row_summary_pct };
+        const fnSelect = this.select(state.fn, ROW_SUMMARY.map((f) => [f, names[f]]), (v) => {
+            // Into the percentage: the first two ticked are A and B; out of it, A and B stay ticked.
+            state.keys = v === 'pct' ? state.keys.slice(0, 2) : state.keys.filter((k) => k);
+            state.fn = v;
+            draw();
+            apply();
+        }, this.l.row_summary_fn);
         const list = h('div');
         const body = h('div', { class: 'mt-2 space-y-2' }, [
             h('p', { class: 'text-xs text-gray-500', text: this.l.row_summary_help }),
@@ -956,10 +999,20 @@ export default class extends Controller {
         const draw = () => {
             // Counting takes any column; the other calculations only the numeric ones.
             const columns = (table.columns || []).filter((c) => c.key !== column.key && (state.fn === 'count' || numeric(c)));
-            state.keys = state.keys.filter((k) => columns.some((c) => c.key === k));
+            const known = (k) => columns.some((c) => c.key === k);
+            // The percentage keeps its two places (A, B), even while one is not chosen yet.
+            state.keys = state.fn === 'pct' ? [0, 1].map((i) => (known(state.keys[i]) ? state.keys[i] : '')) : state.keys.filter(known);
+            const pick = (i, label) => this.labelled(label, this.select(state.keys[i], [['', this.l.row_summary_pick], ...columns.map((c) => [c.key, c.label || '…'])], (v) => {
+                state.keys[i] = v;
+                apply();
+            }, label), 'min-w-48');
             list.replaceChildren(
                 columns.length === 0
                     ? h('p', { class: 'text-xs text-gray-500', text: this.l.row_summary_none })
+                    : state.fn === 'pct' ? h('div', { class: 'space-y-1' }, [
+                        h('div', { class: 'flex flex-wrap items-end gap-3' }, [pick(0, this.l.row_summary_pct_a), pick(1, this.l.row_summary_pct_b)]),
+                        h('p', { class: 'text-xs text-gray-500', text: this.l.row_summary_pct_help }),
+                    ])
                     : h('fieldset', { class: 'space-y-1' }, [
                         h('legend', { class: 'mb-1 text-xs font-medium text-gray-700', text: this.l.row_summary_columns }),
                         ...columns.map((c) => h('label', { class: 'flex items-center gap-2 text-sm text-gray-700' }, [
@@ -978,6 +1031,8 @@ export default class extends Controller {
                     ]),
                 ...(readRowSummary(current()) === null && current() !== '' ? [h('p', { class: 'text-xs text-amber-700', text: this.l.row_summary_custom })] : []),
             );
+            // Drawn again after the page (another calculation chosen): its drop-downs get their search box now.
+            if (list.isConnected) { this.enhanceSelects(); }
         };
         draw();
 
