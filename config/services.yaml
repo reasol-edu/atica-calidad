@@ -15,6 +15,9 @@ parameters:
     # siguen guardándose en UTC; ver App\Doctrine\Type\UtcDateTimeImmutableType. Se cambia con APP_TIMEZONE.
     env(APP_TIMEZONE):          "Europe/Madrid"
     app.timezone:               "%env(APP_TIMEZONE)%"
+    # Comprobación de contraseñas filtradas (llama a un servicio de terceros: opt-in, desactivada por defecto). Con valor por defecto
+    # aquí, un despliegue cuyo script no conoce la variable (el binario nativo escribe su propio .env) arranca igual.
+    env(APP_PASSWORD_BREACH_CHECK): "false"
     # Carpeta de las copias de seguridad guardadas en el servidor (la que usa también «app:backup»). Tiene que sobrevivir a las
     # actualizaciones: en Docker, var/ es un volumen; en el binario nativo, dist/start.* la apunta a data/backups.
     env(APP_BACKUP_DIR):        "%kernel.project_dir%/var/backups"

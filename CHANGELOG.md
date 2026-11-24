@@ -7,6 +7,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Instalación nativa en Ubuntu Server (y cualquier despliegue que no cargue el `.env` del repositorio): una instalación nueva fallaba al entrar, en el cambio de contraseña obligatorio del primer acceso, con «Environment variable not found: APP_PASSWORD_BREACH_CHECK». La variable tiene ahora un valor por defecto (`false`, la comprobación de contraseñas filtradas sigue siendo opcional) y un test comprueba que toda variable que el código exige tenga un valor por defecto o la escriba el instalador.
+
 ## [2.10.1] - 2026-11-24
 
 ### Fixed
