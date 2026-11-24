@@ -78,6 +78,8 @@ search.activities_heading: 'Actividades'
 search.submissions_heading: 'Entregas'
 search.other_profiles_hint: 'No es de tus perfiles'
 
+activity.expand: 'Ver detalles'
+activity.expand_submissions: 'Ver detalles y entregas'
 activity.required: 'Obligatoria'
 activity.optional: 'Opcional'
 activity.auto_complete: 'Se completa al entregar'

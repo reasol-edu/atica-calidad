@@ -90,16 +90,20 @@
                     </ul>
                 {% endif %}
 
-                {% if reviewItems is not empty %}
-                    <p class="bg-gray-50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                        {{ 'bell.section.reviews'|trans({}, 'notifications') }}
-                    </p>
-                    <ul class="divide-y divide-gray-100">
-                        {% for item in reviewItems %}
-                            {% include 'components/_pending_review_group.html.twig' with {group: item.entity, compact: true} %}
-                        {% endfor %}
-                    </ul>
-                {% endif %}
+                {# What waits for review, by what it is: activity deliveries, new revisions of models, other documents. #}
+                {% for kind, heading in {submission: 'bell.section.reviews', model: 'bell.section.reviews_models', document: 'bell.section.reviews_documents'} %}
+                    {% set kindItems = reviewItems|filter(item => item.entity.kind == kind) %}
+                    {% if kindItems is not empty %}
+                        <p class="bg-gray-50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400" data-testid="bell-reviews-{{ kind }}">
+                            {{ heading|trans({}, 'notifications') }}
+                        </p>
+                        <ul class="divide-y divide-gray-100">
+                            {% for item in kindItems %}
+                                {% include 'components/_pending_review_group.html.twig' with {group: item.entity, compact: true} %}
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endfor %}
             </div>
             <a href="{{ path('app_activities', {tab: 'mine'}) }}"
                class="block border-t border-gray-100 px-4 py-2.5 text-center text-xs font-medium text-forest-700 hover:bg-gray-50">

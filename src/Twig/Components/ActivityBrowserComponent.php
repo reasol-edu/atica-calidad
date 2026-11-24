@@ -157,6 +157,8 @@ class ActivityBrowserComponent extends AbstractController
             $activity = $this->findActivity($initialActivityId);
             if ($activity !== null) {
                 $this->currentCategoryId = $activity->getCategory()->getId()->toRfc4122();
+                // A link to the activity (dashboard, bell, calendar, search): it comes unfolded and scrolled to.
+                $this->landOnActivity($activity->getId()->toRfc4122());
             }
         } elseif ($initialCategoryId !== '') {
             $category = $this->categories->findByIdAndCentre($initialCategoryId, $centre);
@@ -174,6 +176,9 @@ class ActivityBrowserComponent extends AbstractController
                 // submission list — collapsed by default for someone with submissions of their own
                 // — so the highlighted one (and the rest waiting for review) is right there.
                 $this->expandedAllSubmissions[] = $activity->getId()->toRfc4122();
+                if (!in_array($activity->getId()->toRfc4122(), $this->expandedActivities, true)) {
+                    $this->expandedActivities[] = $activity->getId()->toRfc4122();
+                }
                 if ($this->currentCategoryId === '') {
                     $this->currentCategoryId = $activity->getCategory()->getId()->toRfc4122();
                 }

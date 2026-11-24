@@ -8,3 +8,5 @@ bell.empty: 'No tienes nada pendiente.'
 
 bell.section.activities: 'Actividades pendientes de completar'
 bell.section.reviews: 'Entregas pendientes de revisar'
+bell.section.reviews_models: 'Modelos pendientes de revisar'
+bell.section.reviews_documents: 'Documentos pendientes de revisar'

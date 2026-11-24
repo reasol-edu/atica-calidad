@@ -11,11 +11,14 @@ import { Controller } from '@hotwired/stimulus';
 // With data-scroll-into-view-focus-value="true" the element also takes keyboard focus (it must be
 // focusable, tabindex="0"): the empty submission row an activity link lands on, so Enter opens the
 // file chooser right away — a browser won't open it on its own, it needs a user gesture.
+//
+// data-scroll-into-view-block-value="start" puts its top at the top instead of centring it: an activity card a search landed on,
+// which can be taller than the screen.
 export default class extends Controller {
-    static values = { focus: Boolean };
+    static values = { focus: Boolean, block: { type: String, default: 'center' } };
 
     connect() {
-        this.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        this.element.scrollIntoView({ behavior: 'smooth', block: this.blockValue });
         if (this.focusValue) {
             this.element.focus({ preventScroll: true });
         }

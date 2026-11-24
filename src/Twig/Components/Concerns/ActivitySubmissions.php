@@ -24,6 +24,19 @@ use Symfony\UX\LiveComponent\Attribute\LiveProp;
 trait ActivitySubmissions
 {
     // ── Per-activity display toggles ─────────────────────────────────────────
+    /**
+     * Activity ids whose card is unfolded. The cards of a category come folded (title, deadline, status, progress): an activity with
+     * many deliveries made the page endless. A search result, a link to an activity or to one of its deliveries unfolds it.
+     *
+     * @var string[]
+     */
+    #[LiveProp(writable: true)]
+    public array $expandedActivities = [];
+
+    /** The activity a search or a link landed on: its card scrolls into view (unless a delivery row of it does). */
+    #[LiveProp]
+    public string $landedActivityId = '';
+
     /** @var string[] activity ids whose "todas las entregas" section is expanded. */
     #[LiveProp(writable: true)]
     public array $expandedAllSubmissions = [];
@@ -132,6 +145,24 @@ trait ActivitySubmissions
             $this->getAllSlots($activity),
             static fn (ActivitySubmissionSlot $s): bool => !in_array($s->key(), $mineKeys, true),
         ));
+    }
+
+    #[LiveAction]
+    public function toggleActivity(#[LiveArg] string $activityId): void
+    {
+        $this->landedActivityId = '';
+        if (in_array($activityId, $this->expandedActivities, true)) {
+            $this->expandedActivities = array_values(array_diff($this->expandedActivities, [$activityId]));
+        } else {
+            $this->expandedActivities[] = $activityId;
+        }
+    }
+
+    /** Unfolds $activityId alone and marks it as the one landed on (scrolled to). */
+    private function landOnActivity(string $activityId): void
+    {
+        $this->expandedActivities = [$activityId];
+        $this->landedActivityId   = $activityId;
     }
 
     #[LiveAction]

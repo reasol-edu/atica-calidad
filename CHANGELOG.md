@@ -11,7 +11,14 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 - Editor de modelos: quien puede revisar la carpeta del modelo tiene en el panel de envío el botón **Aprobar nueva revisión**, que crea la revisión ya aprobada y en vigor (sin avisar a los revisores de una revisión pendiente que ya no lo está).
 
+### Changed
+
+- Actividades › Ver: las tarjetas de una categoría salen plegadas (título, plazo, estado y avance) y se despliegan pulsando su título o «Ver detalles y entregas»; una búsqueda o un enlace a una actividad o a una entrega la despliega y se desplaza hasta ella. Una actividad con muchas entregas ya no alarga la página sin fin.
+- Campana: las revisiones pendientes se separan en entregas de actividades, modelos de documento y otros documentos, y la de un modelo dice «Modelo de documento».
+
 ### Fixed
+
+- Campana: la revisión pendiente de un modelo de documento (o de cualquier documento suelto) salía bajo «Entregas pendientes de revisar», como si fuera la entrega de una actividad.
 
 - Formulario de relleno: los textos fijos de un modelo (y la vista previa de los textos de partida) muestran sus referencias resueltas —el centro, el elemento de la copia, el valor de un campo, que se actualiza mientras se escribe— en lugar del código `{{…|…}}`, igual que en el documento entregado y en el PDF.
 

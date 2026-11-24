@@ -114,6 +114,13 @@ cualquiera de ellas. Por defecto se ven todas las categorías y actividades del 
 **Solo mis perfiles** las restringe a las que le corresponden al docente por sus propios perfiles,
 tanto en el índice como en las tarjetas.
 
+Las tarjetas de una categoría salen **plegadas**: título, plazo, estado y avance. Se despliegan
+pulsando su título o **Ver detalles y entregas**, y entonces muestran la descripción, los documentos
+relacionados, las entregas y el resto de acciones. Al buscar una actividad o una entrega, o al llegar
+por un enlace (la campana, el Inicio, un correo, el calendario), la actividad buscada sale desplegada
+y la página se desplaza hasta ella; las demás siguen plegadas. Al cambiar de categoría, todo vuelve a
+plegarse.
+
 Quien **gestiona o revisa la carpeta** de una actividad ve además, en su tarjeta, el **avance
 global** de las entregas de este curso: una barra y una línea como «14/20 entregadas · 3 en
 revisión · 1 rechazada», contando todas las entregas esperadas, no solo las propias. El detalle por
@@ -405,7 +412,9 @@ cabecera, avisa solo de lo que el docente puede hacer ahora mismo —actividades
 rechazadas, fuera de plazo o vencidas— y de sus revisiones pendientes personales (nunca de «Todas
 las revisiones pendientes», que solo se muestra en el panel principal). Lo que está en revisión, lo
 que aún no se ha abierto y lo cerrado no aparece. Las revisiones pendientes se agrupan por
-actividad, igual que en el panel principal. El recordatorio diario por correo sigue el mismo
+actividad, igual que en el panel principal, y se separan según lo que sean: **entregas** de
+actividades, **modelos** de documento (una revisión nueva de un modelo, que no es una entrega) y
+otros **documentos** del árbol. El recordatorio diario por correo sigue el mismo
 criterio: incluye las vencidas o fuera de plazo y las pendientes o rechazadas que vencen pronto. La frecuencia de los
 avisos por correo —al instante o en un resumen diario— se configura en
 **Ajustes → Avisos por correo**, a nivel global, de centro o personal — ver

@@ -139,7 +139,9 @@ final class NotificationBellComponentTest extends ControllerTestCase
         $html = (string) $component->render()->crawler()->html();
         self::assertStringContainsString('Acta de la reunión', $html);
         self::assertStringContainsString('Subido por', $html);
-        self::assertStringContainsString('Entregas pendientes de revisar', $html);
+        // A document of a folder that backs no activity is not a delivery.
+        self::assertStringContainsString('Documentos pendientes de revisar', $html);
+        self::assertStringNotContainsString('Entregas pendientes de revisar', $html);
 
         // Deep-links straight to the section/folder/document, not just the tree's landing page
         // (rendered HTML entity-encodes the query string's '&' as '&amp;').
@@ -179,7 +181,36 @@ final class NotificationBellComponentTest extends ControllerTestCase
 
         $html = (string) $component->render()->crawler()->html();
         self::assertStringContainsString('Actividades pendientes de completar', $html);
-        self::assertStringContainsString('Entregas pendientes de revisar', $html);
+        self::assertStringContainsString('Documentos pendientes de revisar', $html);
+    }
+
+    /** A new revision of a document model waiting for review is said to be a model, not a delivery (nor any document). */
+    public function testAModelRevisionPendingReviewIsListedAsAModel(): void
+    {
+        $centre  = $this->centre();
+        $manager = $this->teacher('gestor');
+        $centre->addQualityManager($manager);
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Revisor')->setPosition(0);
+        $section = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección')->setPosition(0);
+        $folder  = (new Folder())->setDocumentSection($section)->setName('Modelos')->setPosition(0);
+        $folder->addReviewProfile($profile, null);
+        $this->persist($centre, $manager, $profile, new SpecificProfileAssignment($profile, null, $manager), $section, $folder);
+
+        /** @var \App\Service\Form\FormModelService $models */
+        $models = self::getContainer()->get(\App\Service\Form\FormModelService::class);
+        $model  = $models->create($folder, 'Memoria de departamento', null);
+        $models->saveDraft($model, ['version' => 1, 'sections' => [['key' => \App\Service\Form\FormDefinition::newKey(), 'title' => 'Datos', 'numbered' => true, 'help' => '', 'children' => [], 'blocks' => [
+            ['key' => \App\Service\Form\FormDefinition::newKey(), 'type' => 'field', 'name' => 'grupo', 'fieldType' => 'short', 'label' => 'Grupo'],
+        ]]]], $model->getDraftVersion(), $manager);
+        self::assertTrue($models->sendToReview($model, $manager, null)->isPendingReview());
+
+        $this->loginAs($manager, $centre);
+        $html = (string) $this->createLiveComponent('NotificationBellComponent', [], $this->client)->render()->crawler()->html();
+
+        self::assertStringContainsString('Modelos pendientes de revisar', $html);
+        self::assertStringContainsString('Modelo de documento · Modelos', $html);
+        self::assertStringNotContainsString('Entregas pendientes de revisar', $html);
+        self::assertStringNotContainsString('Documentos pendientes de revisar', $html);
     }
 
     /**

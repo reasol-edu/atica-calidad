@@ -14,11 +14,21 @@ use App\Entity\DocumentRevision;
  */
 final readonly class PendingReviewGroup
 {
-    /** @param non-empty-list<DocumentRevision> $revisions oldest pending first */
+    /**
+     * @param non-empty-list<DocumentRevision> $revisions oldest pending first
+     * @param bool                             $model     a revision of a document model (Gestión › Modelos de documento), not a delivery
+     */
     public function __construct(
         public ?Activity $activity,
         public array $revisions,
+        public bool $model = false,
     ) {}
+
+    /** What is waiting: «submission» (an activity's deliveries), «model» (a new revision of a model) or «document» (any other). */
+    public function kind(): string
+    {
+        return $this->activity !== null ? 'submission' : ($this->model ? 'model' : 'document');
+    }
 
     /** The oldest pending one — the one a link to the group lands on. */
     public function first(): DocumentRevision

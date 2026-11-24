@@ -3,20 +3,32 @@
 {% set folder = activity.folder %}
 {% set has_submissions = activity.requiresSubmissions %}
 {% set editing = activityFormOpen and formActivityId == aid %}
+{# Folded by default (title, deadline, status, progress): unfolded with its title, or by a search / a link that landed on it. #}
+{% set expanded = editing or aid in expandedActivities %}
+{# Scrolled to when a search or a link landed on it — unless it is a delivery row of it that was looked for (that row scrolls itself). #}
+{% set landed = landedActivityId == aid and highlightedDocumentId == '' and highlightedSlotKey == '' %}
 {% set card_classes = editing ? 'border-gray-200 bg-white' : activity_status.card_bg(this.getActivityStatus(activity)) %}
 {# Una actividad oculta (solo la ve quien puede editar actividades) se distingue a simple vista: borde discontinuo y fondo rayado gris, sea cual sea su estado. #}
 {% if activity.hidden and not editing %}
     {% set card_classes = 'activity-hidden-card border-dashed border-gray-400' %}
 {% endif %}
 
-<div class="overflow-hidden rounded-2xl border shadow-xs {{ card_classes }}">
+<div id="activity-{{ aid }}" class="scroll-mt-20 overflow-hidden rounded-2xl border shadow-xs {{ card_classes }}" data-testid="activity-card"
+     {{ (landed ? 'data-controller="scroll-into-view" data-scroll-into-view-block-value="start"' : '')|raw }}>
     <div class="px-4 py-4 sm:px-6 space-y-3">
         {% if editing %}
             {% include 'components/_activity_form.html.twig' %}
         {% else %}
             <div class="flex flex-wrap items-start justify-between gap-2">
                 <div class="min-w-0 flex-1 space-y-1">
-                    <h3 class="text-base font-semibold text-gray-900">{{ activity.title }}</h3>
+                    <h3 class="text-base font-semibold text-gray-900">
+                        <button type="button" data-action="live#action" data-live-action-param="toggleActivity" data-live-activity-id-param="{{ aid }}"
+                                aria-expanded="{{ expanded ? 'true' : 'false' }}" aria-controls="activity-body-{{ aid }}" data-testid="activity-toggle"
+                                class="-ml-1 inline-flex items-start gap-1 rounded-md px-1 text-left hover:text-forest-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-500">
+                            {{ ux_icon('heroicons:chevron-right', {class: 'mt-0.5 h-5 w-5 shrink-0 text-gray-400 transition-transform' ~ (expanded ? ' rotate-90' : '')}) }}
+                            <span>{{ activity.title }}</span>
+                        </button>
+                    </h3>
                     <p class="text-xs text-gray-500">
                         {% set deadline_summary = this.getDeadlineSummary(activity) %}
                         {% if deadline_summary.coversAll %}
@@ -65,6 +77,7 @@
                             </p>
                         </div>
                     {% endif %}
+                    {% if expanded %}
                     {% if this.canRemindPending(activity) and not activity_window.notStarted %}
                         <form method="post" action="{{ path('app_activity_remind_pending', {activityId: aid}) }}"
                               class="js-confirm-form"
@@ -143,6 +156,14 @@
                             </span>
                         {% endif %}
                     </div>
+                    {% else %}
+                        <button type="button" data-action="live#action" data-live-action-param="toggleActivity" data-live-activity-id-param="{{ aid }}"
+                                aria-expanded="false" aria-controls="activity-body-{{ aid }}"
+                                class="inline-flex items-center gap-1 pt-0.5 text-xs font-medium text-forest-700 hover:text-forest-800 hover:underline">
+                            {{ ux_icon('heroicons:chevron-down', {class: 'h-3.5 w-3.5'}) }}
+                            {{ (has_submissions ? 'activity.expand_submissions' : 'activity.expand')|trans({}, 'activity_content') }}
+                        </button>
+                    {% endif %}
                 </div>
 
                 {% if can_edit %}
@@ -191,6 +212,8 @@
                 {% endif %}
             </div>
 
+            {% if expanded %}
+            <div id="activity-body-{{ aid }}" class="space-y-3">
             {% if can_edit and aid in historyShown %}
                 {% include 'components/_activity_history.html.twig' with {activity: activity} %}
             {% endif %}
@@ -251,6 +274,8 @@
                         {% endif %}
                     </div>
                 {% endif %}
+            {% endif %}
+            </div>
             {% endif %}
         {% endif %}
     </div>

@@ -324,7 +324,8 @@ trait ActivityRevisions
     private function findActivity(string $id): ?Activity
     {
         $activity = $this->activities->findById($id);
-        if ($activity === null || $activity->getCategory()->getEducationalCentre() !== $this->centre) {
+        // By id: the centre of the component and the activity's may be two instances of the same row.
+        if ($activity === null || !$activity->getCategory()->getEducationalCentre()->getId()->equals($this->centre->getId())) {
             return null;
         }
 

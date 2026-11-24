@@ -94,6 +94,7 @@ final class SendDocumentReviewDigestHandlerTest extends RepositoryTestCase
                 self::getContainer()->get(DocumentRevisionRepository::class),
                 self::getContainer()->get(DocumentTreeAccessChecker::class),
                 self::getContainer()->get(FolderRepository::class),
+                self::getContainer()->get(\App\Repository\FormModelRepository::class),
             ),
             self::getContainer()->get(DocumentReviewNotifier::class),
             self::getContainer()->get(DocumentReviewOutcomeNotifier::class),

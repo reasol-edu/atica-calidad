@@ -1328,6 +1328,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
         $html = (string) $component->render()->crawler()->html();
 
@@ -1372,6 +1373,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
         $html = (string) $component->render()->crawler()->html();
 
@@ -1380,6 +1382,74 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         // param on its own rather than the literal query string.
         self::assertStringContainsString('/arbol-documental?section=' . $folder->getDocumentSection()->getId()->toRfc4122(), $html);
         self::assertStringContainsString('folder=' . $folder->getId()->toRfc4122(), $html);
+    }
+
+    /**
+     * The activities of a category come folded (title, deadline, status): the body — folder link, deliveries — only when unfolded,
+     * by hand or by a search or a link that lands on one, which also scrolls to it. Another category folds them again.
+     */
+    public function testActivitiesComeFoldedAndASearchUnfoldsAndScrollsToTheOneFound(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $admin    = $this->admin();
+        $activity = $this->activity($category)->setFolder($folder);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $admin, $activity);
+        $id = $activity->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $crawler = $component->render()->crawler();
+        self::assertSame('false', $crawler->filter('[data-testid="activity-toggle"]')->attr('aria-expanded'));
+        self::assertStringNotContainsString('Ir a la carpeta', $crawler->html(), 'folded: no body');
+        self::assertStringContainsString('Ver detalles y entregas', $crawler->html());
+        self::assertCount(0, $crawler->filter('[data-testid="activity-card"][data-controller="scroll-into-view"]'));
+
+        $component->call('toggleActivity', ['activityId' => $id]);
+        $crawler = $component->render()->crawler();
+        self::assertSame('true', $crawler->filter('[data-testid="activity-toggle"]')->attr('aria-expanded'));
+        self::assertStringContainsString('Ir a la carpeta', $crawler->html());
+        self::assertCount(0, $crawler->filter('[data-testid="activity-card"][data-controller="scroll-into-view"]'), 'unfolded by hand: no scrolling');
+
+        $component->call('openLevel', ['id' => '']);
+        $component->call('openActivitySearchResult', ['id' => $id]);
+        $crawler = $component->render()->crawler();
+        self::assertSame('true', $crawler->filter('[data-testid="activity-toggle"]')->attr('aria-expanded'), 'the one a search found comes unfolded');
+        self::assertCount(1, $crawler->filter('[data-testid="activity-card"][data-controller="scroll-into-view"][data-scroll-into-view-block-value="start"]'));
+
+        $component->call('openLevel', ['id' => $category->getId()->toRfc4122()]);
+        self::assertSame('false', $component->render()->crawler()->filter('[data-testid="activity-toggle"]')->attr('aria-expanded'), 'back to the category: folded again');
+    }
+
+    /** A link to an activity (dashboard, bell, calendar) lands on it unfolded and scrolled to. */
+    public function testALinkToAnActivityLandsOnItUnfolded(): void
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $admin    = $this->admin();
+        $activity = $this->activity($category)->setFolder($folder);
+        $second   = (new \App\Entity\Folder())->setDocumentSection($folder->getDocumentSection())->setName('Otra carpeta');
+        $other    = $this->activity($category, 'Otra')->setFolder($second);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $second, $admin, $activity, $other);
+
+        $this->loginAs($admin, $centre);
+        $crawler = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
+        ], $this->client)->render()->crawler();
+
+        $cards = $crawler->filter('[data-testid="activity-card"]');
+        self::assertCount(2, $cards);
+        $landed = $crawler->filter('#activity-' . $activity->getId()->toRfc4122());
+        self::assertSame('scroll-into-view', $landed->attr('data-controller'));
+        self::assertSame('true', $landed->filter('[data-testid="activity-toggle"]')->attr('aria-expanded'));
+        self::assertSame('false', $crawler->filter('#activity-' . $other->getId()->toRfc4122() . ' [data-testid="activity-toggle"]')->attr('aria-expanded'), 'the others stay folded');
     }
 
     /**
@@ -1429,6 +1499,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
         $html = (string) $component->render()->crawler()->html();
 
@@ -1526,6 +1597,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
 
         $html = (string) $component->call('toggleStats', ['activityId' => $activityId])->render()->crawler()->html();
@@ -1579,6 +1651,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
 
         $html = (string) $component->render()->crawler()->html();
@@ -1617,6 +1690,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
 
         $html = (string) $component->render()->crawler()->html();
@@ -1647,6 +1721,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
 
         $panelMarker = 'ml-4 space-y-1.5 border-l-2';
@@ -1697,6 +1772,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
         $component->call('toggleAllSubmissions', ['activityId' => $activity->getId()->toRfc4122()]);
 
@@ -1965,6 +2041,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
         $component->call('toggleRevisionPanel', ['id' => $documentA->getId()->toRfc4122()]);
 
@@ -2514,6 +2591,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
         $html = (string) $component->render()->crawler()->html();
 
@@ -2578,6 +2656,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
         $html = (string) $component->render()->crawler()->html();
 
@@ -2744,6 +2823,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $activity->getCategory()->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
         $component->call('toggleAllSubmissions', ['activityId' => $activity->getId()->toRfc4122()]);
         $component->call('toggleRevisionPanel', ['id' => $documentId]);
@@ -2771,6 +2851,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $activity->getCategory()->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
 
         // Neither folder-responsible, reviewer, nor (Individual scope) profile-sharing — the only
@@ -2861,6 +2942,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $activity->getCategory()->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
 
         $component->call('deleteDocument', ['id' => $document->getId()->toRfc4122()]);
@@ -3227,8 +3309,8 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
     }
 
     /**
-     * @return array{EducationalCentre, ActivityCategory, Teacher, SpecificProfile, SpecificProfile} a teacher holding the two upload
-     *         profiles of an Oct 1–31 by-profile activity: two empty submission rows
+     * @return array{EducationalCentre, ActivityCategory, Teacher, SpecificProfile, SpecificProfile, Activity} a teacher holding the two
+     *         upload profiles of an Oct 1–31 by-profile activity: two empty submission rows
      */
     private function teacherWithTwoEmptyRows(): array
     {
@@ -3247,17 +3329,19 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $year->addTeacher($teacher);
         $this->persist($centre, $year, $category, $folder->getDocumentSection(), $folder, $a, $b, $activity, $teacher, new SpecificProfileAssignment($a, null, $teacher), new SpecificProfileAssignment($b, null, $teacher));
 
-        return [$centre, $category, $teacher, $a, $b];
+        return [$centre, $category, $teacher, $a, $b, $activity];
     }
 
     public function testALinkWithASlotLandsOnThatEmptyRow(): void
     {
-        [$centre, $category, $teacher, , $b] = $this->teacherWithTwoEmptyRows();
+        [$centre, $category, $teacher, , $b, $activity] = $this->teacherWithTwoEmptyRows();
         $this->loginAs($teacher, $centre);
 
+        // As the links of the dashboard and the calendar do (ActivityDashboardItem::linkParams()): category, activity and slot.
         $crawler = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
             'initialSlotKey'    => $b->getId()->toRfc4122() . ':::',
         ], $this->client)->render()->crawler();
 
@@ -3301,6 +3385,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $crawler = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client)->render()->crawler();
 
         self::assertStringContainsString('Falta la firma de la dirección', $crawler->html());
@@ -3314,12 +3399,13 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
 
     public function testNextLandsOnTheFirstEmptyRowAndAMalformedKeyOnNone(): void
     {
-        [$centre, $category, $teacher] = $this->teacherWithTwoEmptyRows();
+        [$centre, $category, $teacher, , , $activity] = $this->teacherWithTwoEmptyRows();
         $this->loginAs($teacher, $centre);
 
         $render = fn (string $key) => $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $category->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
             'initialSlotKey'    => $key,
         ], $this->client)->render()->crawler();
 
@@ -3489,6 +3575,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('ActivityBrowserComponent', [
             'centre'            => $centre,
             'initialCategoryId' => $activity->getCategory()->getId()->toRfc4122(),
+            'initialActivityId' => $activity->getId()->toRfc4122(),
         ], $this->client);
 
         $html = (string) $component->render()->crawler()->html();

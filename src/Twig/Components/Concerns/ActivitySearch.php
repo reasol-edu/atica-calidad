@@ -116,6 +116,7 @@ trait ActivitySearch
         $this->currentCategoryId = $activity->getCategory()->getId()->toRfc4122();
         $this->resetTransientState();
         $this->searchQuery = '';
+        $this->landOnActivity($id);
     }
 
     #[LiveAction]
@@ -133,6 +134,11 @@ trait ActivitySearch
         $this->highlightedDocumentId  = $documentId;
         $this->resetTransientState();
         $this->searchQuery = '';
+        // Unfolded with every delivery listed: the row of the one found scrolls itself into view.
+        $this->landOnActivity($activity->getId()->toRfc4122());
+        if (!in_array($activity->getId()->toRfc4122(), $this->expandedAllSubmissions, true)) {
+            $this->expandedAllSubmissions[] = $activity->getId()->toRfc4122();
+        }
     }
 
     private function categoryTrail(ActivityCategory $category): string

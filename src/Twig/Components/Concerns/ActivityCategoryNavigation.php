@@ -63,6 +63,9 @@ trait ActivityCategoryNavigation
     {
         $this->currentCategoryId = $id;
         $this->resetTransientState();
+        // Another category: its activities come folded.
+        $this->expandedActivities = [];
+        $this->landedActivityId   = '';
         $this->dispatchCategoryLocation();
     }
 

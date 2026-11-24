@@ -47,6 +47,40 @@ class FormModelRepository extends ServiceEntityRepository
     }
 
     /**
+     * Which of $documents are models, in one query (the pending reviews tell a model's revision from any other document's).
+     *
+     * @param list<Document> $documents
+     *
+     * @return array<string, true> by the document's id (RFC 4122)
+     */
+    public function documentIdsWithModel(array $documents): array
+    {
+        if ($documents === []) {
+            return [];
+        }
+        // One typed parameter per document (as SpecificProfileAssignmentRepository does): a plain list would be bound as text, and the
+        // ids are binary in SQLite and MySQL.
+        $qb           = $this->createQueryBuilder('m');
+        $placeholders = [];
+        foreach ($documents as $i => $document) {
+            $placeholders[] = ":document{$i}";
+            $qb->setParameter("document{$i}", $document->getId(), 'uuid');
+        }
+        /** @var list<FormModel> $models */
+        $models = $qb
+            ->where('m.document IN (' . implode(', ', $placeholders) . ')')
+            ->getQuery()
+            ->getResult();
+
+        $ids = [];
+        foreach ($models as $model) {
+            $ids[$model->getDocument()->getId()->toRfc4122()] = true;
+        }
+
+        return $ids;
+    }
+
+    /**
      * The centre's models, by name, with their document and folder already loaded.
      *
      * @return list<FormModel>

@@ -11,6 +11,7 @@ use App\Entity\Teacher;
 use App\Model\PendingReviewGroup;
 use App\Repository\DocumentRevisionRepository;
 use App\Repository\FolderRepository;
+use App\Repository\FormModelRepository;
 
 /**
  * Document revisions awaiting review that are *personally* a given teacher's own responsibility —
@@ -28,6 +29,7 @@ final class PendingReviewFinder
         private readonly DocumentRevisionRepository $revisions,
         private readonly DocumentTreeAccessChecker $access,
         private readonly FolderRepository $folders,
+        private readonly FormModelRepository $models,
     ) {}
 
     /** @return list<DocumentRevision> oldest pending first, personally the teacher's own to review */
@@ -87,6 +89,9 @@ final class PendingReviewFinder
      */
     public function group(array $revisions): array
     {
+        // A model's new revision is not a delivery: it is said apart (a model lives in a folder of its own, never an activity's).
+        $models = $this->models->documentIdsWithModel(array_map(static fn (DocumentRevision $r) => $r->getDocument(), $revisions));
+
         /** @var array<string, array{activity: ?Activity, revisions: non-empty-list<DocumentRevision>}> $groups */
         $groups = [];
         foreach ($revisions as $index => $revision) {
@@ -100,7 +105,11 @@ final class PendingReviewFinder
         }
 
         return array_values(array_map(
-            static fn (array $group): PendingReviewGroup => new PendingReviewGroup($group['activity'], $group['revisions']),
+            static fn (array $group): PendingReviewGroup => new PendingReviewGroup(
+                $group['activity'],
+                $group['revisions'],
+                $group['activity'] === null && isset($models[$group['revisions'][0]->getDocument()->getId()->toRfc4122()]),
+            ),
             $groups,
         ));
     }
