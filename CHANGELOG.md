@@ -12,6 +12,12 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - Modelos de documento: **Mover a otra carpeta** en el menú ⋯ de cada modelo, a cualquier carpeta del centro, con todas sus revisiones; desde entonces lo revisa quien revise la carpeta de destino y las actividades lo siguen usando.
 - Editor de modelos: cada bloque se puede llevar a otra sección con el desplegable «Mover a otra sección…».
 - Editor de modelos: el «Resumen de la fila» ofrece **Calcular %**, que con dos columnas A y B calcula A / B × 100 (vacío si B es 0 o está vacía).
+- Editor de modelos: **editor visual de fórmulas**. Los datos se ven como etiquetas de colores con su nombre (no como identificadores) y se cambian pulsándolas; el nombre de una función abre la lista de funciones con su descripción en castellano; los paréntesis se colorean por profundidad y se resalta la pareja del cursor; los errores se subrayan donde están y se explican (con arreglo cuando es obvio: «¿Querías decir sum?»); al escribir se sugieren funciones (también por su nombre en castellano) y datos, y se muestran los valores de la función en la que está el cursor. «Ver como texto» enseña la fórmula tal como se guarda.
+- Editor de modelos: las referencias `{ }` de los títulos de sección y de los textos también se ven como etiquetas (se insertan con el botón o escribiendo `{`), y el índice y las listas de secciones muestran «Elemento de la lista» en lugar del código de la referencia.
+
+### Fixed
+
+- Editor de modelos: en el móvil, el resumen de cambios de la barra superior ocupa todo el ancho y el botón «Guardar como nueva revisión» va debajo (antes el texto quedaba en una columna estrecha).
 
 ## [2.8.0] - 2026-11-24
 

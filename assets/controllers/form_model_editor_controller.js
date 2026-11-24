@@ -2,18 +2,17 @@ import { Controller } from '@hotwired/stimulus';
 import TomSelect from 'tom-select';
 import { mountRichText } from '../utils/rich_text_editor.js';
 import { h, uid, sectionNumbers } from '../utils/form_dom.js';
-import { parse, ROW_SUMMARY, rowSummary, readRowSummary } from '../utils/form_expression.js';
+import { ROW_SUMMARY, rowSummary, readRowSummary } from '../utils/form_expression.js';
+import { mountFormulaEditor, mountTemplateEditor, templateText, openMenu } from '../utils/formula_editor.js';
+import { richTextRefs, htmlWithPills } from '../utils/rich_text_refs.js';
 import { confirmDialog } from '../utils/confirm_dialog.js';
 
 const FIELD_TYPES = ['short', 'long', 'number', 'scale', 'date', 'time', 'bool', 'choice', 'multichoice', 'attachment', 'calculated', 'relation'];
 // The types whose value is a number: totals at the foot, the summary of a row (the same as FormDefinition::NUMERIC_TYPES).
 const NUMERIC_TYPES = ['number', 'calculated', 'scale'];
 const CELL_TYPES = ['number', 'short', 'long', 'date', 'time', 'bool'];
-const FUNCTION_SNIPPETS = ['sum(', 'avg(', 'min(', 'max(', 'count(', 'count_if(', 'pct_if(', 'if(', 'round(', 'abs(', 'empty('];
 const BTN = 'rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-forest-500';
 const INPUT = 'w-full min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-forest-500 focus:ring-forest-500';
-// The chevron and the room under it come from the global rule for `select` in app.css.
-const SELECT = 'min-w-0 rounded-lg border border-gray-200 py-1.5 pl-2 text-sm focus:border-forest-500 focus:ring-forest-500';
 
 /**
  * The editor of a document model. It works on the definition (a JSON tree of sections, see App\Service\Form\FormDefinition),
@@ -219,6 +218,7 @@ export default class extends Controller {
 
     disconnect() {
         this.destroySelects();
+        this.destroyEditors();
         clearTimeout(this.timer);
         this.codeTarget.removeEventListener('input', this.onCode);
         window.removeEventListener('pagehide', this.onHide);
@@ -404,6 +404,7 @@ export default class extends Controller {
 
     render() {
         this.destroySelects();
+        this.destroyEditors();
         const numbers = sectionNumbers(this.def.sections);
         this.canvasTarget.replaceChildren(
             ...this.def.sections.map((s) => this.sectionEl(s, numbers, 0)),
@@ -477,6 +478,13 @@ export default class extends Controller {
         ]);
     }
 
+    /** The outline again, as a title is typed (the rest of the page stays as it is). */
+    refreshOutline() {
+        if (this.def.sections.length > 0) {
+            this.outlineTarget.replaceChildren(...this.outlineItems(this.def.sections, sectionNumbers(this.def.sections), 0));
+        }
+    }
+
     outlineItems(sections, numbers, depth) {
         const items = [];
         for (const s of sections) {
@@ -484,7 +492,7 @@ export default class extends Controller {
                 type: 'button',
                 class: 'block w-full truncate rounded-lg px-2 py-1 text-left text-sm text-gray-700 hover:bg-gray-50',
                 style: 'padding-left:' + (0.5 + depth * 0.9) + 'rem',
-                text: (numbers.get(s.key) ? numbers.get(s.key) + '. ' : '') + (s.title || this.l.section),
+                text: (numbers.get(s.key) ? numbers.get(s.key) + '. ' : '') + (templateText(s.title) || this.l.section),
                 onclick: () => document.getElementById('sec-' + s.key)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
             }));
             items.push(...this.outlineItems(s.children, numbers, depth + 1));
@@ -503,11 +511,22 @@ export default class extends Controller {
             h('button', { type: 'button', class: BTN + ' text-red-700', title: this.l.remove, 'aria-label': this.l.remove, text: '✕', onclick: () => this.removeSection(section.key) }),
         ]);
 
-        const titleInput = h('input', {
-            class: INPUT + ' font-semibold', value: section.title, placeholder: this.l.section_title, 'aria-label': this.l.section_title, maxlength: 255,
-            'data-focus': section.key,
-            oninput: (e) => { section.title = e.target.value; this.touch(); },
-        });
+        // The title, with its references as pills (`{{Elemento de la lista|copy.label}}` reads «Elemento de la lista»).
+        const titleBox = h('div');
+        this.keep(mountTemplateEditor(titleBox, {
+            value: section.title || '',
+            refs: this.templateRefs(section),
+            labels: this.l.fx,
+            ariaLabel: this.l.section_title,
+            placeholder: this.l.section_title,
+            focusKey: section.key,
+            className: 'fx-title',
+            onChange: (text) => {
+                section.title = text.slice(0, 255);
+                this.touch();
+                this.refreshOutline();
+            },
+        }));
         const numbered = h('label', { class: 'inline-flex items-center gap-1.5 text-xs text-gray-600' }, [
             h('input', { type: 'checkbox', checked: section.numbered !== false, onchange: (e) => { section.numbered = e.target.checked; this.changed(); } }),
             this.l.numbered,
@@ -516,7 +535,7 @@ export default class extends Controller {
         return h('section', { id: 'sec-' + section.key, class: depth === 0 ? 'rounded-2xl border border-gray-200 bg-white p-3 shadow-xs sm:p-4' : 'mt-3 rounded-xl border border-gray-200 bg-gray-50/50 p-3' }, [
             h('div', { class: 'flex flex-wrap items-center gap-2' }, [
                 h('span', { class: 'w-10 shrink-0 text-sm font-semibold text-forest-700', text: number ? number + '.' : '' }),
-                h('div', { class: 'min-w-0 flex-1 basis-48' }, [titleInput, this.refPicker(section, (token) => this.insertIntoInput(titleInput, section, 'title', token))]),
+                h('div', { class: 'min-w-0 flex-1 basis-48' }, [titleBox]),
                 numbered,
                 controls,
             ]),
@@ -556,7 +575,7 @@ export default class extends Controller {
         const out = [];
         const visit = (list, depth) => list.forEach((s) => {
             if (s.key !== except) {
-                out.push([s.key, ' '.repeat(depth) + (numbers.get(s.key) ? numbers.get(s.key) + '. ' : '') + (s.title || this.l.section)]);
+                out.push([s.key, ' '.repeat(depth) + (numbers.get(s.key) ? numbers.get(s.key) + '. ' : '') + (templateText(s.title) || this.l.section)]);
             }
             visit(s.children, depth + 1);
         });
@@ -631,6 +650,17 @@ export default class extends Controller {
         this.pendingSelects = [];
     }
 
+    /** The formula, title and text editors of the page drawn last (each one listens to the document while it lives). */
+    destroyEditors() {
+        (this.editors || []).forEach((e) => { try { e.destroy(); } catch (err) { /* already gone with its DOM */ } });
+        this.editors = [];
+    }
+
+    keep(editor) {
+        (this.editors ||= []).push(editor);
+        return editor;
+    }
+
     // ── Repetition, conditions and references ───────────────────────────────
 
     /** Every field of the document (optionally without some keys), in reading order. */
@@ -702,33 +732,6 @@ export default class extends Controller {
         this.fieldList().forEach((f) => options.push(['f:' + f.key, this.l.ref_field + ': ' + (f.label || '…')]));
         ['centre', 'year', 'activity', 'slot', 'date'].forEach((c) => options.push(['ctx:' + c, this.l['ref_ctx_' + c]]));
         return options;
-    }
-
-    /** A select that hands the chosen reference, written as {{label|ref}}, to $onPick. */
-    refPicker(section, onPick) {
-        const options = this.refOptions(section);
-        const select = h('select', {
-            class: SELECT + ' mt-1 text-xs text-gray-600', 'aria-label': this.l.insert_ref,
-            onchange: (e) => {
-                const chosen = options.find(([ref]) => ref === e.target.value);
-                e.target.value = '';
-                if (chosen) {
-                    onPick('{{' + chosen[1].replace(/[{}|]/g, '') + '|' + chosen[0] + '}}');
-                }
-            },
-        }, [h('option', { value: '', text: '{ } ' + this.l.insert_ref }), ...options.map(([ref, label]) => h('option', { value: ref, text: label }))]);
-
-        return select;
-    }
-
-    insertIntoInput(input, owner, prop, token) {
-        const start = input.selectionStart ?? input.value.length;
-        const end = input.selectionEnd ?? input.value.length;
-        input.value = input.value.slice(0, start) + token + input.value.slice(end);
-        owner[prop] = input.value;
-        input.focus();
-        input.setSelectionRange(start + token.length, start + token.length);
-        this.touch();
     }
 
     /** "Options of the section": how it repeats, whether its copies are numbered, and when it is shown. */
@@ -854,7 +857,7 @@ export default class extends Controller {
             });
             if (block.html) {
                 const content = h('div', { class: 'prose prose-sm max-w-none' });
-                content.innerHTML = block.html;
+                content.innerHTML = htmlWithPills(block.html, this.templateRefs(section), this.l.fx);
                 box.append(content);
             } else {
                 box.append(h('span', { class: 'text-gray-400', text: this.l.empty_text }));
@@ -864,14 +867,28 @@ export default class extends Controller {
         const mount = () => {
             const el = h('div');
             holder.replaceChildren(el);
-            const rich = mountRichText(el, {
+            // Its references as pills, as in the titles; what is saved is still `{{label|ref}}` (see rich_text_refs.js).
+            const refs = richTextRefs(this.templateRefs(section), this.l.fx);
+            const rich = this.keep(mountRichText(el, {
                 html: block.html,
+                extensions: refs.extensions,
+                htmlIn: refs.htmlIn,
+                htmlOut: refs.htmlOut,
                 onChange: (html) => {
                     block.html = html;
                     this.touch();
                 },
+            }));
+            const insert = h('button', {
+                type: 'button', class: 'fx-tool fx-tool-small mt-1', text: '{ } ' + this.l.fx.insert_template_ref,
+                onmousedown: (e) => e.preventDefault(),
+                onclick: (e) => openMenu({
+                    anchor: e.currentTarget, items: refs.items(), search: true, labels: this.l.fx, title: this.l.fx.insert_template_ref,
+                    onPick: (item) => refs.insert(rich.editor, item.value),
+                    onClose: () => rich.editor.commands.focus(),
+                }),
             });
-            holder.append(this.refPicker(section, (token) => rich.insertText(token)));
+            holder.append(insert);
             rich.focus();
         };
         preview();
@@ -885,22 +902,34 @@ export default class extends Controller {
         return allowed.map((t) => [t, this.l['type_' + t]]);
     }
 
-    /** The references a formula can use here, as [text between brackets, readable label]. */
-    formulaOptions(table) {
-        const options = [];
-        const tables = this.tableList().filter((t) => t.mode !== 'matrix');
-        this.fieldList().forEach((f) => options.push(['f:' + f.key, this.l.ref_field + ': ' + (f.label || '…')]));
-        tables.forEach((t) => (t.columns || []).forEach((c) => options.push(['t:' + t.key + '.' + c.key, (t.label || '…') + ' · ' + (c.label || '…')])));
+    /**
+     * The references a formula can use here, for the pills and their lists: {id (the text between brackets), label (short, what the pill
+     * says), kind (its colour: field, row, column, copies, matrix), group (the heading in the list), hint (the type, or where it is)}.
+     */
+    formulaRefs(table) {
+        const fx = this.l.fx;
+        const refs = [];
+        const typeOf = (spec) => this.l['type_' + spec.fieldType] || '';
+        const titleOf = (s) => templateText(s.title) || this.l.section;
         if (table) {
-            (table.columns || []).forEach((c) => options.push(['r:' + c.key, this.l.formula_this_row + ': ' + (c.label || '…')]));
+            (table.columns || []).forEach((c) => refs.push({ id: 'r:' + c.key, label: c.label || '…', kind: 'row', group: fx.group_row, hint: typeOf(c) }));
         }
+        this.fieldList().forEach((f) => refs.push({ id: 'f:' + f.key, label: f.label || '…', kind: 'field', group: fx.group_fields, hint: typeOf(f) }));
+        this.tableList().filter((t) => t.mode !== 'matrix').forEach((t) => (t.columns || []).forEach((c) => refs.push({
+            id: 't:' + t.key + '.' + c.key, label: (t.label || '…') + ' · ' + (c.label || '…'), kind: 'column', group: fx.group_tables, hint: typeOf(c),
+        })));
         // The same across the copies of a repeating section.
         const visit = (sections) => {
             for (const s of sections) {
                 if (s.repeat) {
+                    const where = '«' + titleOf(s) + '»';
                     const sub = (list) => list.forEach((x) => {
-                        x.blocks.filter((b) => b.type === 'field').forEach((f) => options.push(['c:' + s.key + '.f:' + f.key, this.l.formula_copies + ' «' + (s.title || '…') + '»: ' + (f.label || '…')]));
-                        x.blocks.filter((b) => b.type === 'table' && b.mode !== 'matrix').forEach((t) => (t.columns || []).forEach((c) => options.push(['c:' + s.key + '.t:' + t.key + '.' + c.key, this.l.formula_copies + ' «' + (s.title || '…') + '»: ' + (t.label || '…') + ' · ' + (c.label || '…')])));
+                        x.blocks.filter((b) => b.type === 'field').forEach((f) => refs.push({
+                            id: 'c:' + s.key + '.f:' + f.key, label: (f.label || '…'), kind: 'copies', group: fx.group_copies, hint: where,
+                        }));
+                        x.blocks.filter((b) => b.type === 'table' && b.mode !== 'matrix').forEach((t) => (t.columns || []).forEach((c) => refs.push({
+                            id: 'c:' + s.key + '.t:' + t.key + '.' + c.key, label: (t.label || '…') + ' · ' + (c.label || '…'), kind: 'copies', group: fx.group_copies, hint: where,
+                        })));
                         sub(x.children);
                     });
                     sub([s]);
@@ -910,64 +939,47 @@ export default class extends Controller {
         };
         visit(this.def.sections);
         this.tableList().filter((t) => t.mode === 'matrix').forEach((t) => {
-            options.push(['m:' + t.key, this.l.formula_matrix + ' «' + (t.label || '…') + '»']);
-            options.push(['m:' + t.key + '.rows', this.l.formula_matrix_rows + ' «' + (t.label || '…') + '»']);
-            options.push(['m:' + t.key + '.cols', this.l.formula_matrix_cols + ' «' + (t.label || '…') + '»']);
+            const name = '«' + (t.label || '…') + '»';
+            refs.push({ id: 'm:' + t.key, label: this.l.formula_matrix + ' ' + name, kind: 'matrix', group: fx.group_matrix });
+            refs.push({ id: 'm:' + t.key + '.rows', label: this.l.formula_matrix_rows + ' ' + name, kind: 'matrix', group: fx.group_matrix });
+            refs.push({ id: 'm:' + t.key + '.cols', label: this.l.formula_matrix_cols + ' ' + name, kind: 'matrix', group: fx.group_matrix });
         });
-        return options;
+        return refs;
     }
 
-    /** A formula input with a picker for references and functions, and a readable echo of what it says (or why it cannot be read). */
-    formulaEditor(owner, prop, table, labelText) {
-        const options = this.formulaOptions(table);
-        const names = new Map(options);
-        const preview = h('p', { class: 'mt-1 text-xs text-gray-500' });
-        const input = h('input', {
-            class: INPUT + ' font-mono', value: owner[prop] || '', maxlength: 1000, placeholder: 'sum([…]) / 2',
-            oninput: (e) => { owner[prop] = e.target.value; echo(); this.touch(); },
+    /** The references of a title or a text, for the pills: like formulaRefs(), plus `token`, the readable part written in `{{…|ref}}`. */
+    templateRefs(section) {
+        const fx = this.l.fx;
+        const kinds = { copy: ['copy', fx.group_copy], row: ['origin', fx.group_origin], f: ['field', fx.group_fields], ctx: ['ctx', fx.group_ctx] };
+        return this.refOptions(section).map(([id, token]) => {
+            const prefix = id.startsWith('copy.') ? 'copy' : id.split(':')[0];
+            const [kind, group] = kinds[prefix] || ['field', ''];
+            // The pill says the name alone («Departamento»): its colour and tag already say it is a field.
+            const label = prefix === 'f' || prefix === 'row' ? token.replace(/^[^:]*:\s*/, '') : token;
+            return { id, label, token, kind, group };
         });
-        const echo = () => {
-            const source = owner[prop] || '';
-            const { error } = parse(source);
-            if (source === '') {
-                preview.textContent = '';
-            } else if (error) {
-                preview.className = 'mt-1 text-xs text-red-700';
-                preview.textContent = this.l.formula_invalid;
-            } else {
-                preview.className = 'mt-1 text-xs text-gray-500';
-                preview.textContent = source.replace(/\[([^\]]+)\]/g, (all, ref) => '«' + (names.get(ref.trim()) || '?') + '»');
-            }
-        };
-        const insert = (text) => {
-            const start = input.selectionStart ?? input.value.length;
-            const end = input.selectionEnd ?? input.value.length;
-            input.value = input.value.slice(0, start) + text + input.value.slice(end);
-            owner[prop] = input.value;
-            input.focus();
-            input.setSelectionRange(start + text.length, start + text.length);
-            echo();
-            this.touch();
-        };
-        const pick = (list, label, wrap) => h('select', {
-            class: SELECT + ' text-xs text-gray-600', 'aria-label': label,
-            onchange: (e) => { const v = e.target.value; e.target.value = ''; if (v) { insert(wrap(v)); } },
-        }, [h('option', { value: '', text: label }), ...list.map(([v, t]) => h('option', { value: v, text: t }))]);
-        echo();
-        const set = (formula) => {
-            input.value = formula;
-            owner[prop] = formula;
-            echo();
-            this.touch();
-        };
+    }
+
+    /**
+     * A formula: the visual editor (pills for the data, functions to click, parentheses by colour, mistakes where they are; see
+     * formula_editor.js), and in a calculated column the «Resumen de la fila» assistant, which writes into it.
+     */
+    formulaEditor(owner, prop, table, labelText) {
+        const holder = h('div');
+        // Not itself: a calculated field or column that read its own value would never settle.
+        const self = owner.key ? new Set(['f:' + owner.key, 'r:' + owner.key, ...(table ? ['t:' + table.key + '.' + owner.key] : [])]) : new Set();
+        const editor = this.keep(mountFormulaEditor(holder, {
+            value: owner[prop] || '',
+            refs: this.formulaRefs(table).filter((r) => !self.has(r.id)),
+            labels: this.l.fx,
+            ariaLabel: labelText,
+            placeholder: this.l.fx.placeholder,
+            onChange: (text) => { owner[prop] = text; this.touch(); },
+        }));
+        const set = (formula) => editor.setValue(formula);
 
         return h('div', { class: 'space-y-1' }, [
-            this.labelled(labelText, input),
-            h('div', { class: 'flex flex-wrap gap-2' }, [
-                pick(options, '[ ] ' + this.l.formula_insert_ref, (v) => '[' + v + ']'),
-                pick(FUNCTION_SNIPPETS.map((f) => [f, f + ')']), 'ƒ ' + this.l.formula_insert_function, (v) => v),
-            ]),
-            preview,
+            h('div', { class: 'block min-w-0' }, [h('span', { class: 'mb-1 block text-xs font-medium text-gray-600', text: labelText }), holder]),
             ...(table && prop === 'formula' ? [this.rowSummaryAssistant(owner, table, () => owner[prop] || '', set)] : []),
         ]);
     }

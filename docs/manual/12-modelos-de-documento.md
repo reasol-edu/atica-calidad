@@ -132,14 +132,16 @@ Además:
   elemento que deja de corresponder y tiene algo escrito se queda, con el aviso «ya no corresponde» y
   el botón **«Vaciar esta parte»**, y no se puede entregar hasta vaciarla.
 
-  ![Sección 5 del editor, con el título «Seguimiento de {{Elemento de la lista|copy.label}}» y abierta «Repetición y condición de la sección»: «Se repite una vez por elemento de una lista del catálogo», Lista «Enseñanza › Formación Profesional» (ahora 4: DAM › 1º DAM, DAM › 2º DAM, DAW › 1º DAW…), la casilla «Solo los elementos asociados a quien entrega» y «Numerar las copias»](img/modelos-editor-repetir-lista.png)
+  ![Sección 5 del editor, con el título «Seguimiento de» seguido de la etiqueta «Copia · Elemento de la lista» y abierta «Repetición y condición de la sección»: «Se repite una vez por elemento de una lista del catálogo», Lista «Enseñanza › Formación Profesional» (ahora 4: DAM › 1º DAM, DAM › 2º DAM, DAW › 1º DAW…), la casilla «Solo los elementos asociados a quien entrega» y «Numerar las copias»](img/modelos-editor-repetir-lista.png)
 - **Condiciones**: una sección o un bloque solo se muestra si otro campo está lleno, vacío o vale lo
   que se indica.
 - **Referencias** `{ }`: en títulos y textos se puede insertar el valor de un campo, el número de copia
-  o datos del contexto (centro, curso, actividad, fecha).
+  o datos del contexto (centro, curso, actividad, fecha). Se ven como **etiquetas de colores** con su
+  nombre («Copia · Elemento de la lista»); pulsando una se cambia por otra. Se insertan con
+  **{ } Insertar referencia** o escribiendo `{` y eligiendo de la lista que aparece.
 - **Cálculos**: fórmulas con suma, media, mínimo, máximo, recuento y operaciones, totales al pie de
   las columnas y **reglas de coherencia** que, si no se cumplen, impiden la entrega (con el mensaje
-  que escribas).
+  que escribas). Se escriben en el [editor de fórmulas](#editor-de-formulas).
 - **Columnas de relación**: una columna cuyas opciones son las filas de otra tabla.
 - **Ayuda** en cada campo, que se ve al rellenar pero no se imprime.
 - **Mover un bloque a otra sección**: además de subirlo y bajarlo con las flechas, cada bloque tiene el
@@ -149,6 +151,38 @@ Además:
   los problemas por resolver.
 
 El botón **Vista previa** muestra el modelo en blanco, tal como se verá.
+
+### El editor de fórmulas {#editor-de-formulas}
+
+Las fórmulas (campos y columnas calculados, totales personalizados, reglas de coherencia) se escriben
+en un editor que ayuda mientras escribes:
+
+- **Los datos son etiquetas** con su nombre y un color según de dónde salen: **Fila** (otra columna de
+  la misma fila), **Campo**, **Tabla** (una columna entera), **Copias** (lo mismo en todas las copias de
+  una sección) y **Matriz**. Pulsando una se abre la lista, con buscador, para **cambiarla por otra**.
+  Si un dato ya no existe o no se puede usar desde ahí (por ejemplo, al mover el campo a otra sección),
+  la etiqueta sale en rojo. Retroceso borra una etiqueta entera de una vez.
+- **Sugerencias al escribir**: empieza a escribir el nombre de un dato («apro» → «Aprobados (%)») o de
+  una función, también en castellano («media» propone `avg`, «redondear» propone `round`), y elige con
+  las flechas y Intro. Escribiendo `[` salen solo los datos. Los botones **[ ] Insertar un dato** e
+  **ƒ Insertar una función** hacen lo mismo con una lista completa.
+- **Las funciones se pueden cambiar** pulsando su nombre: sale la lista de funciones con lo que hace
+  cada una y un ejemplo, y al elegir otra se conservan sus valores. Mientras el cursor está dentro de
+  una función, debajo se ve qué valores lleva (`if(condición; si se cumple; si no)`) con el que estás
+  escribiendo en negrita.
+- **Paréntesis de colores** según su profundidad; el par en el que está el cursor se resalta y uno sin
+  pareja sale en rojo.
+- **Errores en su sitio y explicados**: lo que está mal se subraya donde está y debajo se dice qué
+  pasa («Este paréntesis no está cerrado», «Falta un valor después de «/»», «No existe la función
+  «suma». ¿Querías decir sum?», con un botón **Cambiar por sum**). Lo que solo está a medio escribir se
+  marca en gris hasta que sales del editor. Si una función lleva más o menos valores de los que usa, se
+  avisa en ámbar.
+- **Ver como texto** muestra la fórmula tal como se guarda, para quien prefiera escribirla a mano; las
+  dos vistas están siempre sincronizadas.
+
+![Fórmula de una columna calculada en el editor: los datos «Fila · Aprobados (%)» y «Fila · Matriculados» como etiquetas, la función «suma» subrayada en rojo con el aviso «No existe la función «suma». ¿Querías decir sum?» y el botón «Cambiar por sum»](img/modelos-editor-formula.png)
+
+![La lista de funciones abierta al pulsar el nombre de una función: cada una con sus valores y lo que hace en castellano, como «avg(valores; …) — Media de los valores que no están vacíos»](img/modelos-editor-funciones.png)
 
 ### Opciones que salen de una lista del catálogo {#opciones-desde-listas}
 

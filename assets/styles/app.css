@@ -676,6 +676,162 @@ input[type="search"]::-ms-clear { display: none; }
     color: var(--color-forest-400);
 }
 
+/* ── The formula and reference editor of the models (assets/utils/formula_editor.js) ────────────────────────────────────────────
+   Plain CSS (not utilities): its elements are drawn by a script. Pills by kind of datum, parentheses by depth, mistakes underlined. */
+.fx-editor {
+    min-width: 0;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.5rem;
+    background: #fff;
+}
+.fx-editor:focus-within { border-color: var(--color-forest-500); box-shadow: 0 0 0 1px var(--color-forest-500); }
+.fx-formula.is-invalid .fx-editor { border-color: #f87171; }
+.fx-content { padding: 0.3125rem 0.625rem; min-height: 2.25rem; font-size: 0.875rem; line-height: 1.6rem; outline: none; white-space: pre-wrap; word-break: break-word; }
+.fx-mono-line .fx-content { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8125rem; }
+.fx-title .fx-content { font-weight: 600; }
+.fx-line { min-height: 1.6rem; }
+.fx-empty::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+    color: var(--color-gray-400);
+    font-weight: 400;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+}
+.fx-raw {
+    width: 100%;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.5rem;
+    padding: 0.375rem 0.625rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+}
+.fx-raw[hidden], .fx-editor[hidden], .fx-tool[hidden] { display: none; }
+
+/* Pills: tag with the kind, name, chevron. */
+.fx-pill-wrap { display: inline; }
+.fx-pill {
+    display: inline-flex;
+    max-width: 18rem;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0 0.0625rem;
+    padding: 0 0.25rem 0 0.125rem;
+    border: 1px solid var(--fx-border);
+    border-radius: 9999px;
+    background: var(--fx-bg);
+    color: var(--fx-text);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    vertical-align: baseline;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.fx-pill:hover { filter: brightness(0.97); }
+.fx-pill.is-selected, .ProseMirror-selectednode .fx-pill { outline: 2px solid var(--color-forest-500); outline-offset: 1px; }
+.fx-pill-kind {
+    padding: 0 0.375rem;
+    border-radius: 9999px;
+    background: var(--fx-tag);
+    color: #fff;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+.fx-pill-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.fx-pill-chev { display: inline-flex; opacity: 0.6; }
+.fx-pill-chev svg { width: 0.875rem; height: 0.875rem; }
+.fx-kind-field   { --fx-bg: #f3f6f0; --fx-border: #c7d8bc; --fx-text: #2e3b27; --fx-tag: #5a7550; }
+.fx-kind-row     { --fx-bg: #e0f2fe; --fx-border: #bae6fd; --fx-text: #0c4a6e; --fx-tag: #0369a1; }
+.fx-kind-column  { --fx-bg: #ede9fe; --fx-border: #ddd6fe; --fx-text: #4c1d95; --fx-tag: #6d28d9; }
+.fx-kind-copies  { --fx-bg: #fef3c7; --fx-border: #fde68a; --fx-text: #78350f; --fx-tag: #b45309; }
+.fx-kind-matrix  { --fx-bg: #ffe4e6; --fx-border: #fecdd3; --fx-text: #881337; --fx-tag: #be123c; }
+.fx-kind-copy    { --fx-bg: #ccfbf1; --fx-border: #99f6e4; --fx-text: #134e4a; --fx-tag: #0f766e; }
+.fx-kind-origin  { --fx-bg: #e0e7ff; --fx-border: #c7d2fe; --fx-text: #312e81; --fx-tag: #4338ca; }
+.fx-kind-ctx     { --fx-bg: #f1ead9; --fx-border: #e3d8c1; --fx-text: #3f3326; --fx-tag: #82705a; }
+.fx-pill-bad     { --fx-bg: #fee2e2; --fx-border: #f87171; --fx-text: #991b1b; --fx-tag: #dc2626; }
+
+/* The tokens of a formula. */
+.fx-fn { color: #6d28d9; font-weight: 600; cursor: pointer; border-bottom: 1px dotted #a78bfa; }
+.fx-fn:hover { background: #ede9fe; border-radius: 0.25rem; }
+.fx-num { color: #0369a1; }
+.fx-str { color: #b45309; }
+.fx-bool { color: #0f766e; font-weight: 600; }
+.fx-op, .fx-sep { color: #82705a; font-weight: 600; }
+.fx-name, .fx-bad { color: #b91c1c; }
+.fx-paren { font-weight: 700; border-radius: 0.1875rem; }
+.fx-paren-0 { color: #5a7550; }
+.fx-paren-1 { color: #0369a1; }
+.fx-paren-2 { color: #a21caf; }
+.fx-paren-3 { color: #b45309; }
+.fx-paren-bad { color: #dc2626; background: #fee2e2; }
+.fx-paren-match { background: #fef08a; box-shadow: 0 0 0 1px #facc15; }
+.fx-error { text-decoration: underline wavy #dc2626; text-decoration-skip-ink: none; text-underline-offset: 3px; }
+.fx-pending { text-decoration: underline dotted var(--color-gray-400); text-underline-offset: 3px; }
+.fx-warn { text-decoration: underline wavy #d97706; text-decoration-skip-ink: none; text-underline-offset: 3px; }
+.fx-missing { display: inline-block; width: 0.625rem; height: 1rem; margin-left: 0.125rem; vertical-align: text-bottom; border-bottom: 2px solid #dc2626; }
+.fx-missing-pending { border-bottom-color: var(--color-gray-300); }
+
+/* The buttons and the line under it. */
+.fx-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; margin-top: 0.375rem; }
+.fx-spacer { flex: 1; }
+.fx-tool {
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.5rem;
+    background: #fff;
+    padding: 0.1875rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #4b4034;
+}
+.fx-tool:hover { background: var(--color-gray-50); }
+.fx-tool:focus-visible { outline: 2px solid var(--color-forest-500); outline-offset: 1px; }
+.fx-tool-ghost { border-color: transparent; color: var(--color-forest-700); text-decoration: underline; text-underline-offset: 2px; }
+.fx-tool-small { margin-top: 0.25rem; padding: 0.125rem 0.4375rem; }
+.fx-status { margin-top: 0.25rem; font-size: 0.75rem; line-height: 1.1rem; }
+.fx-status:empty { display: none; }
+.fx-signature { color: #4b4034; }
+.fx-signature code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #6d28d9; }
+.fx-signature strong { background: #ede9fe; border-radius: 0.1875rem; padding: 0 0.125rem; }
+.fx-msg-error { color: #b91c1c; }
+.fx-msg-warn { color: #b45309; }
+.fx-msg-pending { color: var(--color-gray-400); }
+.fx-fix { margin-left: 0.25rem; padding: 0 0.375rem; border-color: #fca5a5; color: #991b1b; }
+
+/* The lists: data, functions, suggestions. */
+.fx-menu {
+    position: fixed;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.75rem;
+    background: #fff;
+    box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.15), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    font-size: 0.8125rem;
+}
+.fx-menu-search { margin: 0.5rem; border: 1px solid var(--color-gray-200); border-radius: 0.5rem; padding: 0.375rem 0.625rem; font-size: 0.8125rem; }
+.fx-menu-search:focus { outline: none; border-color: var(--color-forest-500); box-shadow: 0 0 0 1px var(--color-forest-500); }
+.fx-menu-list { position: relative; margin: 0; padding: 0.25rem; list-style: none; overflow-y: auto; }
+.fx-menu-group { padding: 0.375rem 0.5rem 0.125rem; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--color-gray-400); }
+.fx-menu-item { padding: 0.3125rem 0.5rem; border-radius: 0.5rem; cursor: pointer; }
+.fx-menu-item.is-active { background: var(--color-forest-50); }
+.fx-menu-item.is-current .fx-menu-label { font-weight: 600; }
+.fx-menu-line { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.fx-menu-label { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #2b241c; }
+.fx-menu-label.fx-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #6d28d9; }
+.fx-menu-hint { flex-shrink: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.6875rem; color: var(--color-gray-400); }
+.fx-menu-desc { margin-top: 0.0625rem; font-size: 0.75rem; color: #6b5d4b; }
+.fx-menu-none { padding: 0.5rem; color: var(--color-gray-400); }
+.fx-kind-dot { width: 0.5rem; height: 0.5rem; flex-shrink: 0; border-radius: 9999px; background: var(--fx-tag); }
+
 /* A horizontal scroll container must also be the containing block of whatever is absolutely positioned inside it. Otherwise the
    `sr-only` labels of a table header (position: absolute) escape its clipping, land past the screen edge and make the whole page
    scroll sideways on a phone (the activities tracking table did). */

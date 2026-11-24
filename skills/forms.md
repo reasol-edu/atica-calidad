@@ -364,6 +364,32 @@ trap: a list-fed field normalized against the raw definition has no options, so 
 
 ## Front end
 
+**Formula and reference editor** (`assets/utils/formula_editor.js`, ProseMirror straight from `@tiptap/pm/*`, no Tiptap `Editor`):
+every formula of the model editor (`formulaEditor()`: calculated fields and columns, custom totals, rules) and every section title
+(`mountTemplateEditor`) is a one-line ProseMirror doc (`doc > line > (text | ref)*`, `ref` an inline atom drawn as a pill by a NodeView).
+**What it stores is the same text as before** (`[r:key]…`, `{{label|ref}}`): `splitLine()` / `joinLine()` in `formula_text.js` convert
+both ways; the server never sees the editor. Texts (Tiptap) get the same pills through `rich_text_refs.js` (`refToken` node; `htmlIn`
+turns `{{label|ref}}` into `<span data-ref-token>` on load, `htmlOut` back before `onChange` — `mountRichText` gained `extensions`,
+`htmlIn`, `htmlOut`); the preview of a text shows pills via `htmlWithPills()`. Pieces:
+- Refs come from `formulaRefs(table)` / `templateRefs(section)` as `{id, label, kind, group, hint, token?}`; `kind` picks the colour
+  (`.fx-kind-*`: field row column copies matrix copy origin ctx); an id not in the list is a red pill (deleted or out of scope). A
+  formula never lists its own field/column (self-reference). `token` is the readable part a template writes (`Campo: X`).
+- Colouring, mistakes and the line under it: `diagnose()` runs the **lenient** `tokens(s, true)` and `parse()` of `form_expression.js`
+  on the serialized text and maps offsets to positions (`serialize()` segs, `toPos`/`toOffset`). `parse()` now returns `at` {start,end}
+  and `data` with each error code (codes unchanged), calls carry `s`/`e`; `arityProblems()` (amber, not an error: the language accepts
+  any count) and `callAt()` (signature line) are new — all tested in `tests/js/formula-text.test.mjs`. While focused, what is only
+  incomplete (end, unclosed paren/string/bracket, a name being typed at the cursor) is grey, not red.
+- Menus: `openMenu()` (fixed, appended to `<body>`, one at a time; with `search` it takes the focus, without it the editor drives it).
+  Gotchas found the hard way: never `scrollIntoView()` inside it (before `place()` it sits at the end of the page and drags the document
+  down — scroll the list by hand); scrolling re-places it rather than closing it; the suggestion's range lives in a mutable object
+  updated as one types (closing runs `onClose` before `onPick`).
+- Keys: Backspace/Delete remove a whole pill; Home/End are handled (Chrome's native End next to pills jumped the page);
+  `handleScrollToSelection` only keeps the editor in sight; a press on the empty part of the line places the caret itself (with pills,
+  the browser left it at the start); the focus redraw is deferred a tick (an immediate transaction carried the old selection).
+- Function texts (description, values, Spanish keywords) are translations `editor.fx.fn.*`; `formula_text.js#suggestFunction` maps
+  Spanish names and typos to the function for «¿Querías decir…?» + its fix button.
+- The editors of a render are kept (`keep()`) and destroyed on the next `render()` (each ProseMirror view listens to the document).
+
 **Fill page layout** (`templates/form/fill.html.twig` + `form_fill_controller.js`): a sticky bar under the app header (`top-14`)
 with the save status, «N pendientes» (`goToProblems()`) and, under `lg`, a «Secciones» dropdown; on `lg` a sticky index at the left
 (`renderIndex()`: every visible top-level instance, copies included, with the count of server problems whose `path` is the instance's or

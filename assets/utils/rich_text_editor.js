@@ -83,11 +83,14 @@ export function linkHref(value) {
  * Draws the editor (toolbar and writing area) inside `el`.
  *
  * @param {HTMLElement} el
- * @param {{html?: string, placeholder?: string, labels?: object, onChange?: (html: string) => void, onBlur?: () => void}} options
+ * @param {{html?: string, placeholder?: string, labels?: object, onChange?: (html: string) => void, onBlur?: () => void,
+ *          extensions?: Array, htmlIn?: (html: string) => string, htmlOut?: (html: string) => string}} options
  *   `onChange` gets the HTML ('' when nothing is written) on every change the person makes; `onBlur` fires when the focus leaves it.
+ *   `extensions` adds Tiptap extensions, and `htmlIn` / `htmlOut` translate what is stored to what they read and back (the model
+ *   editor's references, see rich_text_refs.js): what is stored stays the sanitizer's HTML.
  * @returns {{editor: Editor, focus: () => void, insertText: (text: string) => void, html: () => string, destroy: () => void}}
  */
-export function mountRichText(el, { html = '', placeholder = '', labels = {}, onChange = () => {}, onBlur = () => {} } = {}) {
+export function mountRichText(el, { html = '', placeholder = '', labels = {}, onChange = () => {}, onBlur = () => {}, extensions = [], htmlIn = (x) => x, htmlOut = (x) => x } = {}) {
     const L = { ...LABELS, ...labels };
     el.classList.add('rich-box');
     const toolbar = document.createElement('div');
@@ -109,10 +112,11 @@ export function mountRichText(el, { html = '', placeholder = '', labels = {}, on
             }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             Placeholder.configure({ placeholder }),
+            ...extensions,
         ],
-        content: legacyHtml(html) || '',
+        content: htmlIn(legacyHtml(html) || ''),
         editorProps: { attributes: { class: 'rich-content prose prose-sm max-w-none focus:outline-none', 'aria-label': L.editor, role: 'textbox', 'aria-multiline': 'true' } },
-        onUpdate: ({ editor: e }) => onChange(e.isEmpty ? '' : e.getHTML()),
+        onUpdate: ({ editor: e }) => onChange(e.isEmpty ? '' : htmlOut(e.getHTML())),
         onBlur: ({ event }) => {
             // Going to the toolbar or the link field is still being inside the editor.
             if (!(event?.relatedTarget instanceof Node && el.contains(event.relatedTarget))) {
@@ -227,7 +231,7 @@ export function mountRichText(el, { html = '', placeholder = '', labels = {}, on
         editor,
         focus: () => editor.commands.focus('end'),
         insertText: (text) => editor.chain().focus().insertContent(text).run(),
-        html: () => (editor.isEmpty ? '' : editor.getHTML()),
+        html: () => (editor.isEmpty ? '' : htmlOut(editor.getHTML())),
         destroy: () => {
             editor.destroy();
             el.replaceChildren();

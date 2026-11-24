@@ -123,7 +123,6 @@
     cond_neq: 'editor.cond_neq'|trans({}, 'forms'),
     cond_field: 'editor.cond_field'|trans({}, 'forms'),
     cond_value: 'editor.cond_value'|trans({}, 'forms'),
-    insert_ref: 'editor.insert_ref'|trans({}, 'forms'),
     ref_copy_number: 'editor.ref_copy_number'|trans({}, 'forms'),
     ref_copy_total: 'editor.ref_copy_total'|trans({}, 'forms'),
     ref_copy_label: 'editor.ref_copy_label'|trans({}, 'forms'),
@@ -137,14 +136,10 @@
     type_calculated: 'editor.type_calculated'|trans({}, 'forms'),
     type_relation: 'editor.type_relation'|trans({}, 'forms'),
     formula: 'editor.formula'|trans({}, 'forms'),
-    formula_invalid: 'editor.formula_invalid'|trans({}, 'forms'),
-    formula_insert_ref: 'editor.formula_insert_ref'|trans({}, 'forms'),
-    formula_insert_function: 'editor.formula_insert_function'|trans({}, 'forms'),
     total_custom: 'editor.total_custom'|trans({}, 'forms'),
     total_formula: 'editor.total_formula'|trans({}, 'forms'),
     total_name: 'editor.total_name'|trans({}, 'forms'),
     total_name_hint: 'editor.total_name_hint'|trans({}, 'forms'),
-    formula_this_row: 'editor.formula_this_row'|trans({}, 'forms'),
     row_summary: 'editor.row_summary'|trans({}, 'forms'),
     row_summary_help: 'editor.row_summary_help'|trans({}, 'forms'),
     row_summary_fn: 'editor.row_summary_fn'|trans({}, 'forms'),
@@ -157,7 +152,6 @@
     row_summary_pct_b: 'editor.row_summary_pct_b'|trans({}, 'forms'),
     row_summary_pct_help: 'editor.row_summary_pct_help'|trans({}, 'forms'),
     row_summary_pick: 'editor.row_summary_pick'|trans({}, 'forms'),
-    formula_copies: 'editor.formula_copies'|trans({}, 'forms'),
     formula_matrix: 'editor.formula_matrix'|trans({}, 'forms'),
     formula_matrix_rows: 'editor.formula_matrix_rows'|trans({}, 'forms'),
     formula_matrix_cols: 'editor.formula_matrix_cols'|trans({}, 'forms'),
@@ -196,6 +190,25 @@
     step_profile: 'editor.step_profile'|trans({}, 'forms'),
     no_profile: 'editor.no_profile'|trans({}, 'forms'),
 } %}
+{# The visual editor of formulas and references: its texts, and what each function does (editor.fx.*). #}
+{% set fx = {} %}
+{% for k in ['kind_field', 'kind_row', 'kind_column', 'kind_copies', 'kind_matrix', 'kind_copy', 'kind_origin', 'kind_ctx',
+             'group_fields', 'group_row', 'group_tables', 'group_copies', 'group_matrix', 'group_copy', 'group_origin', 'group_ctx',
+             'search', 'no_results', 'suggestions', 'functions', 'change_ref', 'change_function', 'change_hint', 'fn_click',
+             'unknown_ref', 'unknown_ref_short', 'unknown_refs', 'insert_ref', 'insert_function', 'insert_template_ref', 'as_text', 'as_pills',
+             'placeholder', 'err_string', 'err_reference', 'err_character', 'err_end', 'err_empty', 'err_parenthesis', 'err_call',
+             'err_function', 'err_did_you_mean', 'fix_to', 'err_extra_paren', 'err_semicolon', 'err_unexpected', 'warn_few', 'warn_many'] %}
+    {% set fx = fx|merge({(k): ('editor.fx.' ~ k)|trans({}, 'forms')}) %}
+{% endfor %}
+{% set fx_fn = {} %}
+{% for f in ['sum', 'avg', 'min', 'max', 'count', 'count_if', 'pct_if', 'if', 'round', 'abs', 'empty'] %}
+    {% set fx_fn = fx_fn|merge({(f): {
+        desc: ('editor.fx.fn.' ~ f ~ '.desc')|trans({}, 'forms'),
+        args: ('editor.fx.fn.' ~ f ~ '.args')|trans({}, 'forms'),
+        keywords: ('editor.fx.fn.' ~ f ~ '.keywords')|trans({}, 'forms'),
+    }}) %}
+{% endfor %}
+{% set labels = labels|merge({fx: fx|merge({fn: fx_fn})}) %}
 <div class="px-4 sm:px-6 py-6 max-w-7xl mx-auto"
      data-controller="form-model-editor"
      data-form-model-editor-config-value="{{ editor|json_encode|e('html_attr') }}"
@@ -230,9 +243,10 @@
     <div class="sticky top-0 z-30 -mx-4 mt-3 border-b border-gray-200 bg-white/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6" data-form-model-editor-target="bar">
         <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
             <p class="text-sm" role="status" aria-live="polite" data-form-model-editor-target="status"></p>
-            <p class="min-w-0 flex-1 text-sm text-gray-600" data-form-model-editor-target="summary"></p>
+            {# On a phone the summary takes the whole width and the button goes under it, as wide as the bar. #}
+            <p class="min-w-0 basis-full text-sm text-gray-600 sm:flex-1 sm:basis-0" data-form-model-editor-target="summary"></p>
             <button type="button" data-form-model-editor-target="openSend" data-action="form-model-editor#togglePanel" aria-expanded="false" aria-controls="send-panel"
-                    class="inline-flex items-center gap-1.5 rounded-xl bg-forest-600 px-3.5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 disabled:cursor-not-allowed disabled:bg-gray-300">
+                    class="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-forest-600 px-3.5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 disabled:cursor-not-allowed disabled:bg-gray-300 sm:w-auto">
                 {{ ux_icon('heroicons:paper-airplane', {class: 'h-4 w-4'}) }}{{ send_label }}
             </button>
         </div>

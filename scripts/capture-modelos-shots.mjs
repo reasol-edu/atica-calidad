@@ -87,6 +87,47 @@ await page.waitForTimeout(300);
 await ownBoxes.last().evaluate((el) => el.scrollIntoView({ block: 'center' }));
 await shot('modelos-editor-repetir-lista', { clip: await clipAround(ownBoxes.last(), 50, 270, 800, 360) });
 
+// The formula editor: in «Resultados por materia», a column «Matriculados» and a calculated «% sobre matriculados» written with the
+// «Calcular %» assistant; then a slip (« + suma(2)») with its explanation and fix, and the list of functions. (Only the draft changes:
+// the activity fills in the revision in force.)
+const tableBlock = page.locator('#' + await page.evaluate(() => [...document.querySelectorAll('[id^="blk-"] input')].find((i) => i.value === 'Aprobados (%)').closest('[id^="blk-"]').id));
+const pickIn = (select, value) => select.evaluate((s, v) => (s.tomselect ? s.tomselect.setValue(v) : (s.value = v, s.dispatchEvent(new Event('change')))), value);
+const optionOf = (select, text) => select.evaluate((s, t) => [...s.options].find((o) => o.text.startsWith(t)).value, text);
+await tableBlock.locator('button:has-text("Añadir columna")').click();
+await page.waitForTimeout(400);
+await pickIn(tableBlock.locator('select[aria-label="Tipo"]').last(), 'number');
+await page.waitForTimeout(400);
+await tableBlock.locator('label', { hasText: /^Columna 2$/ }).locator('input').fill('Matriculados');
+await tableBlock.locator('button:has-text("Añadir columna")').click();
+await page.waitForTimeout(400);
+await tableBlock.locator('label', { hasText: /^Columna 3$/ }).locator('input').fill('% sobre matriculados');
+await pickIn(tableBlock.locator('select[aria-label="Tipo"]').last(), 'calculated');
+await page.waitForTimeout(500);
+await pickIn(tableBlock.locator('select[aria-label="Cálculo"]').last(), 'pct');
+await page.waitForTimeout(400);
+const partA = tableBlock.locator('select[aria-label="Columna A (la parte)"]').last();
+await pickIn(partA, await optionOf(partA, 'Aprobados'));
+const partB = tableBlock.locator('select[aria-label="Columna B (el total)"]').last();
+await pickIn(partB, await optionOf(partB, 'Matriculados'));
+await page.waitForTimeout(400);
+const formula = tableBlock.locator('.fx-formula').last();
+const formulaLine = formula.locator('.fx-content');
+await formulaLine.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+const lineBox = await formulaLine.boundingBox();
+await page.mouse.click(lineBox.x + lineBox.width - 6, lineBox.y + lineBox.height / 2);
+await page.keyboard.type(' + suma(2)');
+await page.keyboard.press('Escape');
+await page.evaluate(() => document.activeElement?.blur());
+await page.waitForTimeout(500);
+await shot('modelos-editor-formula', { clip: await clipAround(formulaLine, 30, 48, 800, 150) });
+await formula.locator('.fx-fix').click();
+await page.waitForTimeout(300);
+await formula.locator('.fx-fn').first().click();
+await page.waitForSelector('.fx-menu');
+await page.waitForTimeout(300);
+await shot('modelos-editor-funciones', { clip: await clipAround(formula.locator('.fx-fn').first(), 420, 60, 800, 470) });
+await page.keyboard.press('Escape');
+
 // ── 3. Filling it in: the department is chosen among the list's items ─────────
 await page.goto(`${baseUrl}/actividades/${activityId}/formulario/${profileId}:::`);
 await settle();
