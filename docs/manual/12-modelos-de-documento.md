@@ -75,7 +75,7 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
 
   ![Editor del campo «Evidencias», de tipo «Adjuntos (archivos)»: «Archivos como máximo» 5, la casilla «Incluir las páginas de los PDF adjuntos al final del PDF entregado» y la explicación de los tipos y tamaños admitidos](img/modelos-editor-adjuntos.png)
 - **Escala de valoración**: una respuesta de 1 a N puntos (de 3 a 10; 5 si no se dice otra cosa), con
-  una palabra opcional para cada extremo («Nada» … «Mucho»). Se contesta pulsando el número (en una
+  una palabra opcional para cada extremo («Nada» … «Mucho»). Se contesta marcando uno de los puntos, con el número debajo de cada uno (en una
   tabla, en un desplegable) y se lee como «4 / 5». Cuenta como un número: sirve en fórmulas, en el
   total al pie (la **media** de una columna de valoraciones) y en los indicadores, que proponen la
   media. En el modelo en blanco se imprimen los puntos para marcarlos a mano. Una tabla de filas
@@ -237,7 +237,7 @@ cuánto falta para poder entregarlo. Lo que debes saber:
 
 ![Formulario «Memoria de departamento» a medio rellenar: el departamento «Matemáticas» elegido entre los de la lista, 11 reuniones, una valoración escrita en el editor de texto con su barra de formato y, en la tabla de coordinación, una fila con dos departamentos elegidos en un selector con buscador](img/modelos-rellenar.png)
 
-Más abajo, en la sección 3, la **escala de valoración** se contesta pulsando un número, y los
+Más abajo, en la sección 3, la **escala de valoración** se contesta marcando uno de sus puntos, y los
 **adjuntos** se eligen o se arrastran sobre el recuadro; cada archivo subido aparece en la lista, con
 su tamaño y una ✕ para quitarlo:
 

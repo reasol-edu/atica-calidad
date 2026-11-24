@@ -772,26 +772,26 @@ export default class extends Controller {
                     text: this.l.clear_answer,
                     onclick: () => { radios.forEach((r) => { r.checked = false; }); clear.hidden = true; onChange(null); },
                 });
-                const pill = (n) => {
+                // The usual look of a rating: a row of radio buttons, the number under each, the words of the ends at the sides.
+                const point = (n) => {
                     const radio = h('input', {
-                        type: 'radio', name, value: String(n), checked: value === n, disabled, class: 'peer sr-only',
+                        type: 'radio', name, value: String(n), checked: value === n, disabled,
+                        class: 'h-5 w-5 cursor-pointer accent-forest-600 disabled:cursor-default',
+                        'aria-label': end(n) ? n + ' · ' + end(n) : String(n),
                         onchange: () => { clear.hidden = !!spec.required; onChange(n); },
                     });
                     radios.push(radio);
-                    return h('label', { class: 'cursor-pointer' }, [
+                    return h('label', { class: 'flex min-w-8 cursor-pointer flex-col items-center gap-1 px-1 py-1' }, [
                         radio,
-                        h('span', {
-                            class: 'flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 px-2 text-sm text-gray-700 hover:bg-gray-50 peer-checked:border-forest-600 peer-checked:bg-forest-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-forest-500 peer-disabled:cursor-default',
-                            text: String(n),
-                        }),
+                        h('span', { class: 'text-xs text-gray-600', 'aria-hidden': 'true', text: String(n) }),
                     ]);
                 };
                 return h('fieldset', { id, class: 'min-w-0' }, [
                     h('legend', { class: 'sr-only', text: spec.label || '' }),
-                    h('div', { class: 'flex flex-wrap items-center gap-1.5' }, [
-                        spec.lowLabel ? h('span', { class: 'mr-1 text-xs text-gray-500', text: spec.lowLabel }) : null,
-                        ...Array.from({ length: points }, (_, i) => pill(i + 1)),
-                        spec.highLabel ? h('span', { class: 'ml-1 text-xs text-gray-500', text: spec.highLabel }) : null,
+                    h('div', { class: 'flex flex-wrap items-center gap-x-2 gap-y-1' }, [
+                        spec.lowLabel ? h('span', { class: 'text-sm text-gray-600', 'aria-hidden': 'true', text: spec.lowLabel }) : null,
+                        h('div', { class: 'flex items-start' }, Array.from({ length: points }, (_, i) => point(i + 1))),
+                        spec.highLabel ? h('span', { class: 'text-sm text-gray-600', 'aria-hidden': 'true', text: spec.highLabel }) : null,
                         h('span', { class: 'ml-2' }, [clear]),
                     ]),
                 ]);

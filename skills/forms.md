@@ -129,7 +129,9 @@ because a script cannot read them: add a new icon in both places; the Spanish la
   `FormValueIndexer` stores it in `num`). Fields and free/fixed table columns only; a matrix cell is coerced to number. Reads «4 / 5»
   (+ the end's word on 1 and N) in `FormResolver::format()` and its twin `format()` in `form_scopes.js`. Unanswered, the resolver item
   carries `scale` (`FormResolver::scalePoints()`: «Nada ○ 1 … ○ 5 Mucho»), drawn by the blank web view, the blank PDF and the office
-  exports. The fill form draws radio pills (a fieldset; «Borrar la respuesta» for an optional one), a drop-down in a table cell.
+  exports. The fill form draws the usual Likert row: native radio buttons (visible, `accent-forest-600`, arrow keys move between
+  them) with the number under each and the words of the ends at the sides, in a fieldset; «Borrar la respuesta» for an optional one; a
+  drop-down in a table cell.
 - **«Resumen de la fila»** (editor only, no grammar change): a calculated table column gets a box that writes `fn([r:A];[r:B])` from a
   function (`ROW_SUMMARY`: sum avg min max count) and ticked columns (`rowSummary()` / `readRowSummary()` in `form_expression.js`,
   tested in `form-expression.test.mjs`). It recognises only formulas of exactly that shape; anything else is left alone until a box is
