@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.11.0] - 2026-11-24
+
 ### Added
 
 - Actividades: con un elemento del catálogo, el formulario ofrece cómo se nombra el documento de cada entrega: **Incluir la ruta completa del elemento del catálogo** («Ciencias › Física», lo que se hacía hasta ahora y por defecto) o **Solo el nombre del elemento hoja** («Física»), con dos opciones con borde que explican cada una con un ejemplo real. Con la segunda, el formulario avisa de las hojas con el mismo nombre y no deja guardar; al cambiar la opción de una actividad con entregas, estas se renombran para que sigan en su fila. El cambio queda en el historial de la actividad.
