@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.9.0] - 2026-11-24
+
 ### Added
 
 - Modelos de documento: **Mover a otra carpeta** en el menú ⋯ de cada modelo, a cualquier carpeta del centro, con todas sus revisiones; desde entonces lo revisa quien revise la carpeta de destino y las actividades lo siguen usando.
