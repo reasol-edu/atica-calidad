@@ -1,0 +1,18 @@
+{#
+   A draft of a document filled in online (FormSubmission with a draft): it is not a Document, so the row of its slot would look empty.
+   Says it is in progress, who touched it last and when. draft: FormSubmission · newVersion: bool (a correction of a delivered document)
+#}
+{% set newVersion = newVersion|default(false) %}
+<span class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5" data-testid="form-draft">
+    <span class="shrink-0 inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+        {{ ux_icon('heroicons:pencil-square', {class: 'h-3 w-3'}) }}
+        {{ (newVersion ? 'submission.form_draft_new_version' : 'submission.form_draft')|trans({}, 'activity_content') }}
+    </span>
+    <span class="truncate text-xs text-gray-400">
+        {% if draft.updatedBy %}
+            {{ 'submission.form_draft_by'|trans({'%name%': draft.updatedBy.name.firstName ~ ' ' ~ draft.updatedBy.name.lastName, '%date%': draft.updatedAt|date('d/m/Y H:i')}, 'activity_content') }}
+        {% else %}
+            {{ 'submission.form_draft_at'|trans({'%date%': draft.updatedAt|date('d/m/Y H:i')}, 'activity_content') }}
+        {% endif %}
+    </span>
+</span>

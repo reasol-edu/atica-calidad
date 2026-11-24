@@ -61,6 +61,10 @@
             {% if slot.ownerLabel %}
                 <p class="truncate text-xs font-medium text-forest-700">{{ slot.ownerLabel }}</p>
             {% endif %}
+            {% set form_draft = this.getFormDraft(activity, slot) %}
+            {% if form_draft %}
+                {% include 'components/_activity_form_draft.html.twig' with {draft: form_draft, newVersion: true} only %}
+            {% endif %}
             {% if active %}
                 <p class="truncate text-xs text-gray-400">
                     {% if slot.teacher %}
@@ -140,8 +144,14 @@
             {% if slot.ownerLabel %}
                 <span class="block truncate text-xs font-medium text-forest-700">{{ slot.ownerLabel }}</span>
             {% endif %}
+            {% set form_draft = this.getFormDraft(activity, slot) %}
+            {% if form_draft %}
+                {% include 'components/_activity_form_draft.html.twig' with {draft: form_draft} only %}
+            {% endif %}
         </div>
+        {% if not form_draft %}
         <span class="shrink-0 text-xs italic text-gray-400">{{ 'status.no_revision'|trans({}, 'activity_content') }}</span>
+        {% endif %}
     </div>
 {% elseif activity.isForm %}
     {# Delivered by filling a model in: instead of a dropzone, the way into the form. #}
@@ -156,7 +166,13 @@
             {% if slot.ownerLabel %}
                 <span class="block truncate text-xs font-medium text-forest-700">{{ slot.ownerLabel }}</span>
             {% endif %}
-            <span class="block truncate text-xs text-gray-400">{{ 'submission.form_fill_hint'|trans({}, 'activity_content') }}</span>
+            {% set form_draft = this.getFormDraft(activity, slot) %}
+            {% if form_draft %}
+                {% include 'components/_activity_form_draft.html.twig' with {draft: form_draft} only %}
+                <span class="block truncate text-xs text-forest-700">{{ 'submission.form_draft_continue'|trans({}, 'activity_content') }}</span>
+            {% else %}
+                <span class="block truncate text-xs text-gray-400">{{ 'submission.form_fill_hint'|trans({}, 'activity_content') }}</span>
+            {% endif %}
         </div>
     </a>
 {% else %}

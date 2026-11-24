@@ -280,6 +280,11 @@ cuánto falta para poder entregarlo. Lo que debes saber:
 - **Borradores para todos**: la actividad puede crear el borrador de todas las personas o grupos al
   abrirse el plazo (*Crear el borrador de todos al abrirse el plazo*), de modo que cada cual lo
   encuentre ya empezado.
+- **El borrador se ve en la actividad**: mientras un documento está sin entregar, su fila en la
+  actividad (Mis entregas, Todas las entregas) muestra la etiqueta **Borrador en curso**, quién lo
+  editó por última vez y cuándo, y «Continuar rellenándolo», en lugar del mensaje de que se entrega
+  rellenando el modelo. Si se está preparando una corrección de un documento ya entregado, su fila
+  lleva **Nueva versión en borrador**.
 - Los desplegables se pueden **filtrar escribiendo**, y una pregunta de varias opciones se elige en
   un desplegable y se muestra con **etiquetas** que se quitan con la ×. Un número con mínimo o máximo
   se marca en rojo en cuanto se sale de los límites, y uno que solo admite enteros (o pocos decimales)

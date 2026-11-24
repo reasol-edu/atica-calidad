@@ -419,6 +419,29 @@ final class FormFlowTest extends ControllerTestCase
 
     // ── Filling in an activity ──────────────────────────────────────────────
 
+    /** A draft is not a Document: without help the row of its slot looked exactly as if nobody had started. */
+    public function testTheActivityShowsADraftInProgressInsteadOfAnEmptyRow(): void
+    {
+        $this->modelInForce();
+        $this->loginAs($this->teacher, $this->centre);
+        $activityUrl = '/actividades?tab=view&category=' . $this->activity->getCategory()->getId()->toRfc4122() . '&activity=' . $this->activity->getId()->toRfc4122();
+
+        $crawler = $this->client->request('GET', $activityUrl);
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('[data-testid="form-draft"]'), 'nothing started yet');
+        self::assertStringContainsString('Se entrega rellenando el modelo en línea', $crawler->text());
+
+        // Opening the form starts the draft; the row now says so, and who touched it last and when.
+        $this->client->request('GET', $this->fillUrl());
+        $crawler = $this->client->request('GET', $activityUrl);
+        $draft   = $crawler->filter('[data-testid="form-draft"]');
+        self::assertCount(1, $draft);
+        self::assertStringContainsString('Borrador en curso', $draft->text());
+        self::assertStringContainsString('Última edición', $draft->text());
+        self::assertStringContainsString('Continuar rellenándolo', $crawler->text());
+        self::assertStringNotContainsString('Se entrega rellenando el modelo en línea', $crawler->text());
+    }
+
     public function testFillingAutosavesAndDeliversADocumentWithItsPdf(): void
     {
         $this->modelInForce();

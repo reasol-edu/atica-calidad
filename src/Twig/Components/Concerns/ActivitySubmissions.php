@@ -9,6 +9,7 @@ use App\Entity\ActivityChange;
 use App\Entity\ActivitySubmissionScope;
 use App\Entity\Document;
 use App\Entity\DocumentRevision;
+use App\Entity\FormSubmission;
 use App\Entity\Teacher;
 use App\Model\ActivitySubmissionProgress;
 use App\Model\ActivitySubmissionSlot;
@@ -51,6 +52,31 @@ trait ActivitySubmissions
 
 
     // ── Submission slots ──────────────────────────────────────────────────────
+
+    /** @var array<string, array<string, FormSubmission>> the drafts of one activity and cycle by slot key, loaded once per render */
+    private array $formDraftsByCycle = [];
+
+    /**
+     * The draft being filled in for $slot of an activity delivered through a model, if any. A draft is not a Document (so the slot looks
+     * empty): without this the row would say nothing happened. One query per (activity, cycle), not one per row.
+     */
+    public function getFormDraft(Activity $activity, ActivitySubmissionSlot $slot): ?FormSubmission
+    {
+        if (!$activity->isForm()) {
+            return null;
+        }
+        $cycle = $this->submissionSlots->cycleKeyFor($activity, $slot);
+        $key   = $activity->getId()->toRfc4122() . '|' . $cycle;
+        if (!isset($this->formDraftsByCycle[$key])) {
+            $this->formDraftsByCycle[$key] = [];
+            foreach ($this->formSubmissions->findByActivityCycle($activity, $cycle) as $submission) {
+                $this->formDraftsByCycle[$key][$submission->getSlotKey()] = $submission;
+            }
+        }
+        $submission = $this->formDraftsByCycle[$key][$slot->key()] ?? null;
+
+        return $submission !== null && $submission->hasDraft() ? $submission : null;
+    }
 
     /** @return ActivitySubmissionSlot[] every expected submission of $activity. */
     public function getAllSlots(Activity $activity): array

@@ -16,6 +16,7 @@ use App\Repository\DocumentRepository;
 use App\Repository\DocumentRevisionRepository;
 use App\Repository\DocumentSectionRepository;
 use App\Repository\FolderRepository;
+use App\Repository\FormSubmissionRepository;
 use App\Repository\FormModelRepository;
 use App\Repository\ListItemRepository;
 use App\Repository\TeacherRepository;
@@ -111,6 +112,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly ActivityRepository $activities,
         private readonly FolderRepository $folders,
         private readonly FormModelRepository $formModels,
+        private readonly FormSubmissionRepository $formSubmissions,
         private readonly DocumentSectionRepository $sections,
         private readonly ListItemRepository $listItems,
         private readonly ActivityChangeRepository $activityChanges,
