@@ -439,7 +439,7 @@ class FormFillController extends AbstractController
         foreach ($this->service->problems($submission) as $p) {
             // A rule carries its own text, written by whoever made the model.
             $text   = $p['code'] === 'rule' ? $p['params']['%message%'] : $this->translator->trans('fill.problem.' . $p['code'], $p['params'], 'forms');
-            $short  = in_array($p['code'], ['required', 'number_min', 'number_max', 'option_gone'], true) ? $this->translator->trans('fill.error.' . $p['code'], $p['params'], 'forms') : $text;
+            $short  = in_array($p['code'], ['required', 'number_min', 'number_max', 'number_integer', 'number_decimals', 'option_gone'], true) ? $this->translator->trans('fill.error.' . $p['code'], $p['params'], 'forms') : $text;
             $lists[$p['severity'] === 'block' ? 'problems' : 'warnings'][] = [
                 'block' => $p['block'], 'path' => $p['path'], 'row' => $p['row'] ?? null, 'column' => $p['column'] ?? null,
                 'code' => $p['code'], 'text' => $text, 'short' => $short,

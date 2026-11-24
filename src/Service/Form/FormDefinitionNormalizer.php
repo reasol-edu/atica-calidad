@@ -752,6 +752,8 @@ final class FormDefinitionNormalizer
             'list'      => $list,
             'min'       => $type === 'number' ? $this->number($raw['min'] ?? null) : null,
             'max'       => $type === 'number' ? $this->number($raw['max'] ?? null) : null,
+            // How many decimals a number takes: null, any (what it always took); 0, a whole number; up to 6.
+            'maxDecimals' => $type === 'number' && is_numeric($raw['maxDecimals'] ?? null) ? min(6, max(0, (int) $raw['maxDecimals'])) : null,
             'unit'      => in_array($type, ['number', 'calculated'], true) ? $this->text($raw['unit'] ?? '', 20) : '',
             'formula'   => $calculated ? mb_substr(trim(FormDefinition::str($raw['formula'] ?? '')), 0, 1000) : '',
             'decimals'  => $calculated ? min(6, max(0, FormDefinition::int($raw['decimals'] ?? 2))) : 0,

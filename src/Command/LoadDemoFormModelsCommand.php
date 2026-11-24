@@ -116,7 +116,7 @@ final class LoadDemoFormModelsCommand extends Command
                 'key' => FormDefinition::newKey(), 'title' => 'Datos del departamento', 'numbered' => true, 'help' => '', 'children' => [],
                 'blocks' => [
                     ['key' => FormDefinition::newKey(), 'type' => 'field', 'name' => 'departamento', 'fieldType' => 'choice', 'label' => 'Departamento', 'required' => true, 'options' => [], 'list' => $departmentsId, 'help' => 'Las opciones salen de la lista «Departamento» del catálogo del centro.'],
-                    ['key' => FormDefinition::newKey(), 'type' => 'field', 'name' => 'reuniones', 'fieldType' => 'number', 'label' => 'Reuniones celebradas', 'required' => true, 'min' => 0, 'unit' => '', 'help' => ''],
+                    ['key' => FormDefinition::newKey(), 'type' => 'field', 'name' => 'reuniones', 'fieldType' => 'number', 'label' => 'Reuniones celebradas', 'required' => true, 'min' => 0, 'maxDecimals' => 0, 'unit' => '', 'help' => ''],
                     ['key' => FormDefinition::newKey(), 'type' => 'field', 'name' => 'valoracion', 'fieldType' => 'long', 'label' => 'Valoración del curso', 'required' => false, 'help' => ''],
                 ],
             ],

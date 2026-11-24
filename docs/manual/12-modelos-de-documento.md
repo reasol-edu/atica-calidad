@@ -56,6 +56,8 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
 - **Campo**: texto corto, texto largo (con **formato enriquecido**: negrita, cursiva, listas,
   enlaces…; en las celdas de una tabla sigue siendo texto plano), número (con mínimo, máximo y unidad), fecha, hora, sí/no, una o
   varias opciones, **escala de valoración**, **adjuntos** o un valor **calculado** a partir de los demás.
+  Un número (campo o columna) dice además cuántos **decimales** admite: *Cualquiera* (lo normal), *Ninguno
+  (entero)* —para recuentos como alumnos o reuniones— o *Hasta 1…6*.
 - **Adjuntos**: archivos que acompañan al documento como evidencia (un acta, una foto, una hoja de
   cálculo). El modelo dice cuántos admite el campo (de 1 a 10; 5 si no se dice otra cosa). Se aceptan
   PDF, imágenes, documentos de oficina y texto, de hasta 10 MB cada uno (menos si el servidor limita
@@ -271,7 +273,8 @@ cuánto falta para poder entregarlo. Lo que debes saber:
   encuentre ya empezado.
 - Los desplegables se pueden **filtrar escribiendo**, y una pregunta de varias opciones se elige en
   un desplegable y se muestra con **etiquetas** que se quitan con la ×. Un número con mínimo o máximo
-  se marca en rojo en cuanto se sale de los límites.
+  se marca en rojo en cuanto se sale de los límites, y uno que solo admite enteros (o pocos decimales)
+  en cuanto lleva decimales de más; en el móvil, un entero se escribe con el teclado numérico sin coma.
 - Lo que falta aparece bajo **Pendiente antes de entregar**, cada punto con un enlace al lugar. Cada
   dato obligatorio vacío o inválido se marca **en rojo, con su mensaje, en el propio campo**: al salir
   de él, o todos a la vez al pulsar un punto de la lista. **Previsualizar** abre en otra pestaña el

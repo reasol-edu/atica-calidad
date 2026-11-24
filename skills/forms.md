@@ -97,6 +97,11 @@ because a script cannot read them: add a new icon in both places; the Spanish la
 - **«Texto largo» fields are rich text** (blocks only; table cells stay plain): `FormDataNormalizer::richText()` stores sanitized HTML
   (plain text from before becomes paragraphs, see `FormRichText`); `FormResolver::format()` returns it as plain text (`value`: diff, Word,
   index, explorer) and the field item also carries `html` for `_document.html.twig`. The fill form mounts a rich editor per field (`richEl()`).
+- **Number fields and columns** (`fieldType: number`): `min`, `max`, `unit` and `maxDecimals` — `null` any (the default, and every model
+  from before it existed), `0` whole numbers, `1–6` at most that many. Not `decimals`: that key is the calculated type's and the
+  normalizer has always stored `0` there for a number, so it could not mean «whole». `FormDataValidator` reports `number_integer` /
+  `number_decimals` (blocking, with a short form for the field, like `number_min`); `decimalsOf()` counts them on the number as written
+  (25.0 is whole). The fill box takes `step` 10^-N and `inputmode="numeric"` for whole numbers, and marks the box at once.
 - **Calculated fields and columns** (`fieldType: calculated`, `formula`, `decimals`, `unit`): never typed (the normalizer drops what the
   browser sends), filled by `FormCalculator` after the data is cleaned, in up to four passes so a formula can read another calculated
   value; a cycle is a model problem. The result is stored with the data, so it is frozen with each delivered revision. A column can show a

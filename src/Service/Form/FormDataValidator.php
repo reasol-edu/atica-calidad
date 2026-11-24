@@ -210,5 +210,20 @@ final class FormDataValidator
         if (is_numeric($max) && $value > $max) {
             $problems[] = ['block' => $block, 'path' => $path, 'row' => $row, 'column' => $column, 'code' => 'number_max', 'params' => ['%label%' => $label, '%max%' => (string) $max]];
         }
+        $places = $spec['maxDecimals'] ?? null;
+        if (is_int($places) && self::decimalsOf((float) $value) > $places) {
+            $problems[] = $places === 0
+                ? ['block' => $block, 'path' => $path, 'row' => $row, 'column' => $column, 'code' => 'number_integer', 'params' => ['%label%' => $label]]
+                : ['block' => $block, 'path' => $path, 'row' => $row, 'column' => $column, 'code' => 'number_decimals', 'params' => ['%label%' => $label, '%decimals%' => (string) $places]];
+        }
+    }
+
+    /** How many decimals a number has as written (0.1 has one, 2.50 one, 3 none), up to ten. */
+    public static function decimalsOf(float $value): int
+    {
+        $text = rtrim(rtrim(number_format($value, 10, '.', ''), '0'), '.');
+        $dot  = strpos($text, '.');
+
+        return $dot === false ? 0 : strlen($text) - $dot - 1;
     }
 }

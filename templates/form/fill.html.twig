@@ -112,6 +112,8 @@
             no_results: 'fill.no_results'|trans({}, 'forms'),
             err_min: 'fill.error.number_min'|trans({}, 'forms'),
             err_max: 'fill.error.number_max'|trans({}, 'forms'),
+            err_integer: 'fill.error.number_integer'|trans({}, 'forms'),
+            err_decimals: 'fill.error.number_decimals'|trans({}, 'forms'),
         } %}
         <div data-controller="form-fill"
              data-form-fill-config-value="{{ editor|json_encode|e('html_attr') }}"

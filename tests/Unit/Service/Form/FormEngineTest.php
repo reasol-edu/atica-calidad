@@ -236,6 +236,36 @@ final class FormEngineTest extends TestCase
         self::assertSame(['number_max'], array_column($this->validator->problems($def, $this->data->withoutEmptyRows($def, $tooMuch)), 'code'));
     }
 
+    public function testANumberCanBeWholeOrHaveAtMostSomeDecimals(): void
+    {
+        $def = $this->definitions->normalize(['sections' => [['title' => 'Datos', 'blocks' => [
+            ['type' => 'field', 'fieldType' => 'number', 'label' => 'Alumnos', 'maxDecimals' => 0],
+            ['type' => 'field', 'fieldType' => 'number', 'label' => 'Nota', 'maxDecimals' => '2'],
+            ['type' => 'field', 'fieldType' => 'number', 'label' => 'Libre'],
+            ['type' => 'field', 'fieldType' => 'number', 'label' => 'Demasiados', 'maxDecimals' => 9],
+            ['type' => 'field', 'fieldType' => 'short', 'label' => 'Texto', 'maxDecimals' => 0],
+            ['type' => 'table', 'label' => 'Grupos', 'mode' => 'free', 'columns' => [['label' => 'Matriculados', 'fieldType' => 'number', 'maxDecimals' => 0]]],
+        ]]]]);
+        $blocks = $def['sections'][0]['blocks'];
+        self::assertSame([0, 2, null, 6, null], array_map(static fn (array $b): ?int => $b['maxDecimals'] ?? null, array_slice($blocks, 0, 5)),
+            'a whole number, two decimals, any (as ever), capped at six; only numbers have it');
+        self::assertSame(0, $blocks[5]['columns'][0]['maxDecimals']);
+
+        [$whole, $mark, $free] = [$blocks[0]['key'], $blocks[1]['key'], $blocks[2]['key']];
+        $table  = $blocks[5]['key'];
+        $column = $blocks[5]['columns'][0]['key'];
+        $codes  = fn (array $fields, array $rows = []): array => array_column($this->validator->problems($def, $this->data->withoutEmptyRows($def,
+            $this->data->normalize($def, ['fields' => $fields, 'tables' => [$table => $rows]]))), 'code');
+
+        self::assertSame([], $codes([$whole => 25, $mark => 7.25, $free => 3.14159], [[$column => 30]]));
+        self::assertSame([], $codes([$whole => 25.0, $mark => 7.5]), '25.0 is a whole number; 7.5 has one decimal');
+        self::assertSame(['number_integer', 'number_decimals'], $codes([$whole => 25.5, $mark => 7.125]));
+        self::assertSame(['number_integer'], $codes([], [[$column => 30.5]]), 'in a table cell too');
+        self::assertSame(1, FormDataValidator::decimalsOf(0.1));
+        self::assertSame(0, FormDataValidator::decimalsOf(-3.0));
+        self::assertSame(2, FormDataValidator::decimalsOf(1.15));
+    }
+
     public function testTheResolverNumbersSectionsHierarchicallyAndFormatsValues(): void
     {
         $def    = $this->definition();

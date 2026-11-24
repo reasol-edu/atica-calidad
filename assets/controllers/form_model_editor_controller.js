@@ -1108,7 +1108,13 @@ export default class extends Controller {
                 type: 'number', step: 'any', class: INPUT, value: spec[prop] ?? '',
                 oninput: (e) => { spec[prop] = e.target.value === '' ? null : Number(e.target.value); this.touch(); },
             }), 'w-28');
-            parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [num('min', this.l.min), num('max', this.l.max), this.textInput(spec, 'unit', this.l.unit, 'w-28', 20)]));
+            // Whole numbers only, or at most N decimals; «any» (empty) is what a number has always accepted.
+            const places = [['', this.l.decimals_any], ['0', this.l.decimals_none], ...[1, 2, 3, 4, 5, 6].map((n) => [String(n), this.l.decimals_upto.replace('%n%', String(n))])];
+            const decimals = this.labelled(this.l.decimals, this.select(spec.maxDecimals === null || spec.maxDecimals === undefined ? '' : String(spec.maxDecimals), places, (v) => {
+                spec.maxDecimals = v === '' ? null : Number(v);
+                this.touch();
+            }, this.l.decimals), 'w-44');
+            parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [decimals, num('min', this.l.min), num('max', this.l.max), this.textInput(spec, 'unit', this.l.unit, 'w-28', 20)]));
         }
         if (spec.fieldType === 'scale') {
             // A rating from 1 to N, with optional words for both ends («Nada» … «Mucho»).

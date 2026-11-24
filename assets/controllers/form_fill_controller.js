@@ -870,15 +870,24 @@ export default class extends Controller {
             case 'number': {
                 const limit = (n) => (n === null || n === undefined || n === '' || !Number.isFinite(Number(n)) ? null : Number(n));
                 const [min, max] = [limit(spec.min), limit(spec.max)];
+                // Whole numbers only (0), at most N decimals, or any (null): the step of the box and the phone's keyboard follow it.
+                const places = Number.isInteger(spec.maxDecimals) ? spec.maxDecimals : null;
+                const decimalsOf = (n) => { const t = String(Number(n.toFixed(10))); return t.includes('.') ? t.length - t.indexOf('.') - 1 : 0; };
                 const input = h('input', {
-                    ...base, type: 'number', step: 'any', inputmode: 'decimal', value: value ?? '',
+                    ...base, type: 'number', step: places === null ? 'any' : String(10 ** -places), inputmode: places === 0 ? 'numeric' : 'decimal', value: value ?? '',
                     min: min ?? null, max: max ?? null,
                     oninput: (e) => {
                         onChange(e.target.value === '' ? null : Number(e.target.value));
-                        // At once, without waiting for the save: a value outside the limits turns the box red as it is typed.
+                        // At once, without waiting for the save: a value outside the limits (or with too many decimals) turns the box red
+                        // as it is typed.
                         const n = e.target.value === '' ? null : Number(e.target.value);
-                        const wrong = n !== null && ((min !== null && n < min) || (max !== null && n > max));
-                        this.limitMark(e.target, wrong ? (min !== null && n < min ? this.l.err_min.replace('%min%', String(min)) : this.l.err_max.replace('%max%', String(max))) : null);
+                        let error = null;
+                        if (n !== null && min !== null && n < min) { error = this.l.err_min.replace('%min%', String(min)); }
+                        else if (n !== null && max !== null && n > max) { error = this.l.err_max.replace('%max%', String(max)); }
+                        else if (n !== null && places !== null && decimalsOf(n) > places) {
+                            error = places === 0 ? this.l.err_integer : this.l.err_decimals.replace('%decimals%', String(places));
+                        }
+                        this.limitMark(e.target, error);
                     },
                 });
                 return spec.unit ? h('div', { class: 'flex items-center gap-2' }, [input, h('span', { class: 'shrink-0 text-sm text-gray-500', text: spec.unit })]) : input;

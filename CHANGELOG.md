@@ -13,6 +13,7 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - Editor de modelos: cada bloque se puede llevar a otra sección con el desplegable «Mover a otra sección…».
 - Editor de modelos: el «Resumen de la fila» ofrece **Calcular %**, que con dos columnas A y B calcula A / B × 100 (vacío si B es 0 o está vacía).
 - Editor de modelos: **editor visual de fórmulas**. Los datos se ven como etiquetas de colores con su nombre (no como identificadores) y se cambian pulsándolas; el nombre de una función abre la lista de funciones con su descripción en castellano; los paréntesis se colorean por profundidad y se resalta la pareja del cursor; los errores se subrayan donde están y se explican (con arreglo cuando es obvio: «¿Querías decir sum?»); al escribir se sugieren funciones (también por su nombre en castellano) y datos, y se muestran los valores de la función en la que está el cursor. «Ver como texto» enseña la fórmula tal como se guarda.
+- Modelos de documento: un campo o una columna de tipo **Número** dice cuántos decimales admite: cualquiera (como hasta ahora, y lo que tienen los modelos existentes), ninguno (entero) o hasta 1…6. Al rellenar, el valor que no cumple se marca en rojo al momento y bloquea la entrega; un entero se escribe con el teclado numérico del móvil.
 - Editor de modelos: las referencias `{ }` de los títulos de sección y de los textos también se ven como etiquetas (se insertan con el botón o escribiendo `{`), y el índice y las listas de secciones muestran «Elemento de la lista» en lugar del código de la referencia.
 
 ### Fixed
