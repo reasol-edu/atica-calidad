@@ -3,6 +3,7 @@ import TomSelect from 'tom-select';
 import { mountRichText } from '../utils/rich_text_editor.js';
 import { h } from '../utils/form_dom.js';
 import { confirmDialog } from '../utils/confirm_dialog.js';
+import { fold } from '../utils/formula_text.js';
 import { asMap, sync, walk, numbers, references, referencesHtml, fieldSpecs, progress, newKey, MAX_COPIES, calculate, buildIndex, totals, rowsOf, format, countedCount } from '../utils/form_scopes.js';
 
 const INPUT = 'w-full min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-forest-500 focus:ring-forest-500 disabled:bg-gray-50 disabled:text-gray-500';
@@ -66,6 +67,8 @@ export default class extends Controller {
         this.failed = false;
         this.timer = null;
         this.live = [];
+        // What is typed in the filter of the first column of each table whose rows come from a source (kept while the page redraws).
+        this.rowFilters = new Map();
         // What the server says is wrong, and which empty required fields have been left (or asked for) and so are shown in red.
         this.problemList = this.configValue.problems || [];
         this.revealed = new Set();
@@ -374,7 +377,10 @@ export default class extends Controller {
                     this.showAll = true;
                     // A copy folded away that holds it is unfolded first.
                     const folded = [...this.collapsed].filter((path) => p.path === path || (p.path || '').startsWith(path + '/'));
-                    if (folded.length > 0) {
+                    // And a filtered table shows all its rows again: the one with the problem could be hidden by it.
+                    const filtered = this.rowFilters.size > 0;
+                    if (filtered) { this.rowFilters.clear(); }
+                    if (folded.length > 0 || filtered) {
                         folded.forEach((path) => this.collapsed.delete(path));
                         this.render();
                     }
@@ -1274,8 +1280,30 @@ export default class extends Controller {
         const narrow = (c) => ['number', 'scale', 'date', 'time', 'bool', 'calculated'].includes(c.fieldType);
         const cellClass = (c) => (narrow(c) ? 'w-36 ' : 'min-w-[9rem] ') + 'px-2 py-1.5 align-top';
 
+        // Rows that come from a source (a list of the catalogue, a number) are many and not written by anyone: their first column, the
+        // one that names each row, carries a filter to find one while typing.
+        const automatic = counted || Boolean(block.rowsList);
+        const filterKey = inst.path + '|' + block.key;
+        const rowEls = [];
+        let filterInput = null;
+        let applyFilter = () => {};
+        const firstHeader = () => {
+            if (!automatic || rows.length === 0) {
+                return h('th', { scope: 'col', class: 'px-2 py-2 text-left font-medium', text: block.rowHeader || '' });
+            }
+            const name = block.rowHeader || this.l.row;
+            filterInput = h('input', {
+                type: 'search', value: this.rowFilters.get(filterKey) || '', autocomplete: 'off', placeholder: this.l.filter_rows,
+                'aria-label': this.l.filter_rows_by.replace('%column%', name),
+                class: 'mt-1 block w-full min-w-[8rem] rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-normal text-gray-800 placeholder:text-gray-400 focus:border-forest-500 focus:outline-none focus:ring-1 focus:ring-forest-500/30',
+                oninput: (e) => { this.rowFilters.set(filterKey, e.target.value); applyFilter(); },
+                onkeydown: (e) => { if (e.key === 'Escape' && e.target.value !== '') { e.preventDefault(); e.target.value = ''; this.rowFilters.delete(filterKey); applyFilter(); } },
+            });
+
+            return h('th', { scope: 'col', class: 'px-2 py-2 text-left font-medium' }, [h('span', { class: 'block', text: block.rowHeader || '' }), filterInput]);
+        };
         const head = h('tr', {}, [
-            ...(fixed ? [h('th', { scope: 'col', class: 'px-2 py-2 text-left font-medium', text: block.rowHeader || '' })] : []),
+            ...(fixed ? [firstHeader()] : []),
             ...block.columns.map((c) => h('th', { scope: 'col', class: (narrow(c) ? 'w-36 ' : '') + 'px-2 py-2 text-left font-medium' }, [c.label, c.required ? h('span', { class: 'text-red-600', 'aria-hidden': 'true', text: ' *' }) : null])),
             ...(fixed ? [] : [h('th', { scope: 'col', class: 'w-10 px-2 py-2' }, [h('span', { class: 'sr-only', text: this.l.remove_row })])]),
         ]);
@@ -1300,7 +1328,7 @@ export default class extends Controller {
                 }),
             ]);
         };
-        const body = h('tbody', { class: 'divide-y divide-gray-100' }, rows.map((row, index) => h('tr', { class: gone.has(row._key) ? 'bg-amber-50' : null }, [
+        const body = h('tbody', { class: 'divide-y divide-gray-100' }, rows.map((row, index) => rowEls[index] = h('tr', { class: gone.has(row._key) ? 'bg-amber-50' : null }, [
             ...(fixed ? [rowHead(row, index)] : []),
             ...block.columns.map((c) => h('td', { class: cellClass(c) }, [
                 this.tag(
@@ -1332,11 +1360,37 @@ export default class extends Controller {
         const typed = (c) => c.fieldType !== 'calculated';
         const filledRows = () => rows.filter((r) => block.columns.some((c) => typed(c) && !this.isEmpty(r[c.key]))).length;
         let counter = null;
+        let shownRows = rows.length;
         if (fixed && rows.length > 0) {
             counter = h('span', { class: 'shrink-0 text-xs text-gray-500' });
-            const show = () => { counter.textContent = this.l.rows_filled.replace('%done%', String(filledRows())).replace('%total%', String(rows.length)); };
+            const show = () => {
+                counter.textContent = this.l.rows_filled.replace('%done%', String(filledRows())).replace('%total%', String(rows.length))
+                    + (shownRows < rows.length ? ' · ' + this.l.rows_shown.replace('%shown%', String(shownRows)).replace('%total%', String(rows.length)) : '');
+            };
             show();
             this.calcEls.push({ update: show });
+            const countAgain = show;
+            // The filter: hides the rows whose first column does not hold what is typed (without accents or capitals), and says how many are left.
+            applyFilter = () => {
+                const query = fold(this.rowFilters.get(filterKey) || '').trim();
+                shownRows = 0;
+                rows.forEach((row, index) => {
+                    const text = counted ? String(index + 1) : labels.get(row._key) ?? '';
+                    const visible = query === '' || fold(text).includes(query);
+                    rowEls[index].hidden = !visible;
+                    if (visible) { shownRows++; }
+                });
+                countAgain();
+                noMatch.hidden = shownRows > 0;
+            };
+        }
+        // No row has what is typed: said under the table, with the way out.
+        const noMatch = h('p', { class: 'mt-1 text-xs text-gray-500', hidden: true, role: 'status' }, [
+            this.l.filter_rows_none + ' ',
+            h('button', { type: 'button', class: 'underline decoration-dotted', text: this.l.filter_rows_clear, onclick: () => { this.rowFilters.delete(filterKey); if (filterInput) { filterInput.value = ''; } applyFilter(); filterInput?.focus(); } }),
+        ]);
+        if (automatic && rows.length > 0 && (this.rowFilters.get(filterKey) || '') !== '') {
+            applyFilter();
         }
         // A long table keeps its header in sight: it scrolls inside its box, with the header stuck at the top.
         const long = rows.length > 10;
@@ -1352,6 +1406,7 @@ export default class extends Controller {
             h('div', { class: 'overflow-x-auto rounded-xl border border-gray-200' + (long ? ' max-h-[32rem] overflow-y-auto' : '') }, [
                 h('table', { class: 'min-w-full text-sm' }, [h('thead', { class: 'bg-gray-50 text-gray-600' + (long ? ' sticky top-0 z-10 shadow-[0_1px_0_0_rgb(229_231_235)]' : '') }, [head]), body, ...(foot ? [foot] : [])]),
             ]),
+            ...(automatic && rows.length > 0 ? [noMatch] : []),
             ...(counted && rows.length === 0 ? [h('p', { class: 'mt-1 text-xs text-gray-500', text: this.l.counted_empty })] : []),
             ...(fixed ? [] : [h('button', {
                 type: 'button', class: BTN + ' mt-2', disabled: this.readOnly || rows.length >= max, text: '+ ' + this.l.add_row,

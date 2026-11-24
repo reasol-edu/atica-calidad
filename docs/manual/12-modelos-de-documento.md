@@ -305,6 +305,12 @@ cuánto falta para poder entregarlo. Lo que debes saber:
   centrarse en las que faltan.
 - Las **tablas largas** se desplazan dentro de su recuadro con la cabecera fija, y las de filas fijas
   dicen cuántas filas llevan algo («Rellenas 2 de 14»).
+- Cuando las filas de una tabla **vienen de una fuente automática** (una lista del catálogo, o tantas
+  como diga un número), la cabecera de su primera columna lleva un **filtro**: al escribir se ven solo
+  las filas cuyo nombre contiene lo escrito (sin distinguir mayúsculas ni tildes: «fisica» encuentra
+  «Física y Química») y el contador dice **«Mostrando 3 de 14 filas»**. Con **Esc** se quita el filtro;
+  si ninguna fila coincide, un enlace lo quita también. El filtro no cambia lo escrito ni los totales, y
+  se retira solo al saltar a un problema que pudiera quedar oculto.
 - Los **adjuntos** muestran el número de anexo con que saldrán en el documento, una miniatura de las
   imágenes y una barra de progreso mientras se suben.
 

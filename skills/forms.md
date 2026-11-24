@@ -404,7 +404,7 @@ with the save status, «N pendientes» (`goToProblems()`) and, under `lg`, a «S
 starts with it + `/`). Sections have `scroll-mt-32` so jumps land below the bars. Copies of repeating sections fold (`this.collapsed`,
 by path, kept across `render()`; jumping to a problem or an index entry unfolds). History is a clock button next to the label
 (`historyEl()` returns `{button, panel}`, `headRow()`). Tables: number-like columns `w-36`; > 10 rows → `max-h-[32rem]` box with a
-sticky `thead` and `tfoot`; fixed/counted tables show «Rellenas X de N» (a `calcEls` update). Attachments: XHR upload with progress,
+sticky `thead` and `tfoot`; fixed/counted tables show «Rellenas X de N» (a `calcEls` update). Tables whose rows come from a source (`rowsList` or counted: `automatic` in `tableEl()`) get a filter input in the header of the first column: it hides rows (`hidden`) whose name contains the text (`fold()` from `formula_text.js`: no accents/case), the counter adds «Mostrando X de Y filas», the text lives in `this.rowFilters` (by `path|block`) so a redraw keeps it, and clicking a problem clears every filter before scrolling (a hidden row could hold it). Attachments: XHR upload with progress,
 image thumbnails, «Anexo N» labels renumbered in DOM order (`renumberAnnexes()`). The page draws its own Heroicons from `ICON_PATHS`
 (the same files as `assets/icons/heroicons`; add new ones in both places).
 

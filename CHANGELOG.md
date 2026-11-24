@@ -11,6 +11,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 - Actividades: con un elemento del catálogo, el formulario ofrece cómo se nombra el documento de cada entrega: **Incluir la ruta completa del elemento del catálogo** («Ciencias › Física», lo que se hacía hasta ahora y por defecto) o **Solo el nombre del elemento hoja** («Física»), con dos opciones con borde que explican cada una con un ejemplo real. Con la segunda, el formulario avisa de las hojas con el mismo nombre y no deja guardar; al cambiar la opción de una actividad con entregas, estas se renombran para que sigan en su fila. El cambio queda en el historial de la actividad.
 
+- Formulario de relleno de los modelos: las tablas cuyas filas vienen de una fuente automática (una lista del catálogo o un recuento) llevan un **filtro dinámico** en la cabecera de su primera columna; mientras se filtra, el contador dice «Mostrando X de Y filas». Sin distinguir mayúsculas ni tildes, con Esc para quitarlo, y se retira solo al ir a un problema.
+
 ### Changed
 
 - Actividades: en el formulario, «Completado» (A mano / Al entregar) pasa justo debajo de «Obligatoriedad», y «Opciones avanzadas» conserva solo lo de ocultar la actividad.
