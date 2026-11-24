@@ -7,6 +7,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- Documentación: el manual (capítulo 1) y la guía de Ubuntu Server explican la instalación con un solo comando desde GitHub en Ubuntu Server 26.04, instalando antes `curl`, y cómo revisar el script antes de ejecutarlo.
+
 ## [2.10.0] - 2026-11-24
 
 ### Added

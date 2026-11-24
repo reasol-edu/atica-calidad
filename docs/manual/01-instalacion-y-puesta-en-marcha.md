@@ -60,6 +60,41 @@ modos:
 3. **[Cloudflare Tunnel](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/cloudflare-tunnel.md)** — exposición sin abrir puertos,
    para servidores detrás de un NAT o cortafuegos.
 
+### Instalación con un solo comando {#instalacion-remota}
+
+En un Ubuntu Server 26.04 recién instalado, con acceso por SSH y un usuario con `sudo`, la
+instalación se descarga y se lanza directamente desde GitHub. Hace falta **`curl` instalado antes**:
+es lo que descarga el script, y algunas instalaciones mínimas de Ubuntu Server no lo traen.
+
+```bash
+sudo apt-get update && sudo apt-get install -y curl
+curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/install-ubuntu.sh | sudo bash
+```
+
+El script es interactivo (aunque se reciba por una tubería, las preguntas se leen del teclado):
+pide el **nombre de dominio**, la **contraseña de la base de datos** (mínimo 12 caracteres, sin
+comillas ni `\`, `$` o `` ` ``), el **correo remitente** y el **modo de acceso** descrito arriba, y
+antes de empezar pide confirmación. Después instala PostgreSQL, el cortafuegos (UFW), el usuario
+del sistema `aticacalidad`, la última versión publicada en GitHub Releases (comprobando su suma
+SHA256), la configuración (`.env.local`) y los servicios `atica-calidad` y `atica-calidad-worker`,
+que arrancan solos con el servidor. Requisitos: acceso a Internet, ejecutarlo como root (con
+`sudo`) y, para el modo HTTPS directo, el dominio ya apuntando al servidor con los puertos 80 y 443
+abiertos.
+
+Si prefieres **leer el script antes de ejecutarlo** (recomendable en un servidor de producción),
+descárgalo, revísalo y lánzalo:
+
+```bash
+curl -fsSL -o install-ubuntu.sh https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/install-ubuntu.sh
+less install-ubuntu.sh
+sudo bash install-ubuntu.sh
+```
+
+Para instalarlo **paso a paso**, sin el script, está la
+[guía de instalación manual](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/ubuntu-manual.md).
+Al terminar, la plataforma se actualiza con el comando de [Actualizar a la última
+versión](#actualizar).
+
 ## Actualizar a la última versión publicada {#actualizar}
 
 Cada versión se anuncia con sus cambios en el

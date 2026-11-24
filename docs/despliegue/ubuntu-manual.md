@@ -11,6 +11,22 @@ Docker. Se requiere acceso SSH con sudo.
 > [instalación automatizada](../manual/01-instalacion-y-puesta-en-marcha.md#despliegue-en-ubuntu-server-2604)
 > descrita en el manual.
 
+## Instalación automatizada con un comando
+
+Si no necesitas controlar cada paso, el mismo resultado se consigue con un solo comando desde
+GitHub. Primero hay que tener **`curl`** (es lo que descarga el script, y una instalación mínima de
+Ubuntu Server puede no traerlo):
+
+```bash
+sudo apt-get update && sudo apt-get install -y curl
+curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/install-ubuntu.sh | sudo bash
+```
+
+El script pregunta el dominio, la contraseña de la base de datos, el correo remitente y el modo de
+acceso (HTTPS directo, proxy inverso o Cloudflare Tunnel), y pide confirmación antes de empezar.
+Para revisarlo antes de ejecutarlo: `curl -fsSL -o install-ubuntu.sh <la misma URL>`, `less
+install-ubuntu.sh` y `sudo bash install-ubuntu.sh`. Los pasos siguientes son los que automatiza.
+
 ## 1. Instalar PostgreSQL
 
 ```bash
