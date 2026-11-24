@@ -7,12 +7,15 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-11-24
+
 ### Added
 
+- Formulario de relleno de los modelos: índice de secciones (a la izquierda en pantalla grande, en «Secciones» en el móvil) con los pendientes de cada una, y una barra fija con el estado del guardado y los pendientes; las copias de una sección repetida se pueden plegar; las tablas de filas fijas dicen cuántas filas llevan algo y las largas mantienen la cabecera a la vista; los adjuntos muestran su número de anexo, una miniatura y el progreso de la subida.
 - Modelos de documento: una sección puede repetirse una vez por elemento de una lista del catálogo, con la misma opción de quedarse solo con los elementos asociados a quien entrega, y cada copia puede llevar el nombre de su elemento en el título (referencia «Elemento de la lista»).
 - Modelos de documento: las filas de una tabla de filas fijas pueden salir de una lista del catálogo (una por elemento) y, si se marca, solo las de los elementos asociados a quien entrega (todas si no está asociado a ninguno). Una fila que deja de corresponder con datos escritos se marca y bloquea la entrega hasta vaciarla; lo entregado conserva sus filas.
 - Modelos de documento: nuevo tipo de campo **adjuntos**, para añadir archivos (PDF, imágenes, documentos de oficina o texto, comprobados por su contenido) como evidencias de un documento rellenado. Cada archivo es un «Anexo N» numerado: las imágenes se ven en su sitio, el PDF entregado lleva una lista de anexos y los archivos originales dentro (y, si el campo lo pide, las páginas de los PDF adjuntos al final), y el documento entregado se puede descargar en un ZIP con sus anexos. En Word y LibreOffice las imágenes adjuntas se ven debajo de su campo. Los anexos se congelan con cada entrega.
-- Modelos de documento: nuevo tipo de campo **escala de valoración** (de 1 a N puntos, con palabras opcionales para los extremos), en campos y columnas de tabla. Se contesta pulsando un número, cuenta como número en fórmulas, totales e indicadores (que proponen la media) y en el modelo en blanco se imprimen los puntos para marcarlos a mano.
+- Modelos de documento: nuevo tipo de campo **escala de valoración** (de 1 a N puntos, con palabras opcionales para los extremos), en campos y columnas de tabla. Se contesta marcando un punto en una fila de botones de opción, cuenta como número en fórmulas, totales e indicadores (que proponen la media) y en el modelo en blanco se imprimen los puntos para marcarlos a mano.
 - Modelos de documento: asistente «Resumen de la fila» en las columnas calculadas de una tabla, que suma, promedia, cuenta o da el mínimo o el máximo de las columnas que se marquen de la misma fila sin escribir la fórmula.
 
 ### Security
@@ -21,6 +24,7 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 
+- Formulario de relleno: el historial de cada campo se abre con un reloj junto a su etiqueta en lugar del enlace «Historial» bajo cada campo; las columnas numéricas de las tablas son más estrechas; en el móvil, las palabras de los extremos de una escala van debajo de la fila de puntos.
 - Todos los editores de texto enriquecido (ajustes, descripción de carpeta, revisión por la dirección, textos y campos de texto largo de los modelos) pasan de Quill a Tiptap, con un único editor compartido: mismos formatos (título, negrita, cursiva, subrayado, cita, listas, alineación y enlaces, ahora con un campo de dirección propio). El texto ya guardado se conserva; las listas con viñetas escritas con Quill se convierten en listas reales al editarlas. Quill y sus dependencias salen del importmap.
 - Al aprobar la revisión de un modelo de documento se genera de nuevo su PDF en blanco, de modo que `{fecha_aprobacion}` ya lleva la fecha de aprobación (mientras estaba pendiente salía vacía).
 

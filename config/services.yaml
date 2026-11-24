@@ -9,8 +9,8 @@
 parameters:
     # Application version
     app.name:                   "ÁTICA Calidad"
-    app.version:                "2.7.0"
-    app.pub_date:               "2026-11-23"
+    app.version:                "2.8.0"
+    app.pub_date:               "2026-11-24"
     # Zona horaria de la aplicación (la que ven las personas y la de «hoy», los plazos y los avisos). Las fechas con hora
     # siguen guardándose en UTC; ver App\Doctrine\Type\UtcDateTimeImmutableType. Se cambia con APP_TIMEZONE.
     env(APP_TIMEZONE):          "Europe/Madrid"
