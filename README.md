@@ -103,10 +103,16 @@ Capítulos:
 | Responsabilidades | Catálogo del centro (listas jerárquicas), perfiles específicos con subperfiles e importación desde Séneca |
 | Árbol documental | Secciones, carpetas, documentos, revisiones y flujo de visto bueno |
 | Actividades | Plazos y tareas periódicas, entregas y completado |
+| Mejora continua | Incidencias, no conformidades y acciones, plan de mejora, indicadores, auditoría interna y revisión por la dirección |
 | Administrar la plataforma | Administración global, ajustes, correo, copias de seguridad |
 | Permisos de un vistazo | Perfiles y tabla de permisos |
-| Resolución de problemas | Soluciones a las dudas más habituales |
-| Glosario | Términos del manual y de la aplicación |
+| Modelos de documento | Documentos con estructura que se rellenan en línea: editor, fórmulas, revisiones y entregas |
+| Anexo: Resolución de problemas | Soluciones a las dudas más habituales |
+| Anexo: Glosario | Términos del manual y de la aplicación |
+| Anexo: Despliegue en Plesk | Instalación en un servidor gestionado con Plesk |
+| Anexo: Instalación manual en Ubuntu Server | Instalación paso a paso en Ubuntu Server 26.04, sin el script |
+| Anexo: Despliegue continuo en Ubuntu Server | Actualización automática con un timer de systemd o un webhook |
+| Anexo: Exposición con Cloudflare Tunnel | Publicar el servidor sin abrir puertos |
 
 ---
 

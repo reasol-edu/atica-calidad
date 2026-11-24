@@ -67,3 +67,7 @@ nav:
   - Modelos de documento: 12-modelos-de-documento.md
   - 'Anexo: Resolución de problemas': 13-resolucion-de-problemas.md
   - 'Anexo: Glosario': 14-glosario.md
+  - 'Anexo: Despliegue en Plesk': 15-despliegue-en-plesk.md
+  - 'Anexo: Instalación manual en Ubuntu Server': 16-ubuntu-instalacion-manual.md
+  - 'Anexo: Despliegue continuo en Ubuntu Server': 17-despliegue-continuo.md
+  - 'Anexo: Exposición con Cloudflare Tunnel': 18-cloudflare-tunnel.md

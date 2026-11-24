@@ -31,7 +31,7 @@
 #      se guarda en SYMFONY_TRUSTED_PROXIES para registrar la IP real del usuario.
 #   c) Cloudflare Tunnel: para servidores detrás de un NAT/cortafuegos sin
 #      puertos abiertos. Hace falta un token de túnel ya creado
-#      (ver docs/despliegue/cloudflare-tunnel.md).
+#      (ver docs/manual/18-cloudflare-tunnel.md).
 #
 # Requisitos previos:
 #   - Ubuntu Server 26.04 LTS (o posterior) con acceso a Internet
@@ -125,7 +125,7 @@ echo -e "
      3) Cloudflare Tunnel — para servidores detrás de un NAT/cortafuegos sin
         puertos abiertos: el servidor abre una conexión saliente hacia
         Cloudflare. Hace falta un túnel ya creado y su token
-        (ver docs/despliegue/cloudflare-tunnel.md).
+        (ver docs/manual/18-cloudflare-tunnel.md).
 "
 USE_TUNNEL=false
 USE_PROXY=false
@@ -573,7 +573,7 @@ elif [[ "$USE_PROXY" == true ]]; then
        • añada las cabeceras X-Forwarded-For, X-Forwarded-Proto y X-Forwarded-Host.
      La IP del proxy (${PROXY_IP}) ya está en SYMFONY_TRUSTED_PROXIES; si cambia,
      edítala en /opt/atica-calidad/.env.local y reinicia el servicio.
-     Ejemplos de configuración del proxy en docs/despliegue/ubuntu-manual.md.${NC}"
+     Ejemplos de configuración del proxy en https://github.com/reasol-edu/atica-calidad/blob/main/docs/manual/16-ubuntu-instalacion-manual.md.${NC}"
     STATUS_CMD="sudo systemctl status atica-calidad atica-calidad-worker"
 else
     TUNNEL_NOTE="

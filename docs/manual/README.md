@@ -6,8 +6,11 @@ del repositorio con `make`, no directamente desde esta carpeta.
 
 ## Ficheros
 
-- `index.md` y `01-*.md` a `14-*.md` — los capítulos del manual, en el orden en que aparecen tanto
+- `index.md` y `01-*.md` a `18-*.md` — los capítulos del manual, en el orden en que aparecen tanto
   en el PDF como en el índice de la web (ver [Cómo usar este manual](index.md#como-usar-este-manual)).
+  Los capítulos 15 a 18 son las guías de despliegue (Plesk, Ubuntu a mano, despliegue continuo y
+  Cloudflare Tunnel), que antes vivían aparte en `docs/despliegue/`. Los enlaces a ficheros del
+  repositorio (scripts de `dist/`, `compose.cloudflare.yaml`…) van como URL de GitHub, no relativos.
 - `mkdocs.yml` — configuración de MkDocs Material para la versión web (navegación, tema, exclusiones).
 - `requirements.txt` — dependencias de Python para generar la web (MkDocs Material y sus plugins).
 - `assets/` — hojas de estilo (`theme.css`, `print.css`) compartidas por el PDF y la web.

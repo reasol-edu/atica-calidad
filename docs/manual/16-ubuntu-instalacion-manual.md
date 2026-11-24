@@ -1,31 +1,16 @@
-# Instalación manual en Ubuntu Server 26.04
+# Anexo: Instalación manual en Ubuntu Server 26.04
 
 Guía paso a paso para instalar ÁTICA Calidad en un **VPS o servidor dedicado con Ubuntu Server 26.04
 LTS**, usando el binario de FrankenPHP con **PostgreSQL nativo** y dos servicios **systemd**, sin
 Docker. Se requiere acceso SSH con sudo.
 
-> [!TIP]
-> Estos son exactamente los pasos que automatiza el script
-> [`dist/install-ubuntu.sh`](../../dist/install-ubuntu.sh). Sigue esta guía solo si prefieres
-> controlar cada paso o adaptar la instalación a tu entorno; en caso contrario, usa la
-> [instalación automatizada](../manual/01-instalacion-y-puesta-en-marcha.md#despliegue-en-ubuntu-server-2604)
-> descrita en el manual.
-
-## Instalación automatizada con un comando
-
-Si no necesitas controlar cada paso, el mismo resultado se consigue con un solo comando desde
-GitHub. Primero hay que tener **`curl`** (es lo que descarga el script, y una instalación mínima de
-Ubuntu Server puede no traerlo):
-
-```bash
-sudo apt-get update && sudo apt-get install -y curl
-curl -fsSL https://raw.githubusercontent.com/reasol-edu/atica-calidad/main/dist/install-ubuntu.sh | sudo bash
-```
-
-El script pregunta el dominio, la contraseña de la base de datos, el correo remitente y el modo de
-acceso (HTTPS directo, proxy inverso o Cloudflare Tunnel), y pide confirmación antes de empezar.
-Para revisarlo antes de ejecutarlo: `curl -fsSL -o install-ubuntu.sh <la misma URL>`, `less
-install-ubuntu.sh` y `sudo bash install-ubuntu.sh`. Los pasos siguientes son los que automatiza.
+!!! tip "Esto es lo que automatiza el script de instalación"
+    Estos son exactamente los pasos que automatiza el script
+    [`dist/install-ubuntu.sh`](https://github.com/reasol-edu/atica-calidad/blob/main/dist/install-ubuntu.sh).
+    Sigue este anexo solo si prefieres controlar cada paso o adaptar la instalación a tu entorno; en
+    caso contrario, usa la
+    [instalación con un solo comando](01-instalacion-y-puesta-en-marcha.md#instalacion-remota)
+    descrita en el capítulo de instalación.
 
 ## 1. Instalar PostgreSQL
 
@@ -52,12 +37,12 @@ sudo ufw allow 443/udp   # HTTP/3 (QUIC)
 sudo ufw enable
 ```
 
-> [!NOTE]
-> Si vas a poner ÁTICA Calidad **detrás de un proxy inverso propio** (ver el
-> [paso 5](#5b-variante-detras-de-un-proxy-inverso)), no abras 80/443: FrankenPHP servirá HTTP
-> plano en un puerto local (p. ej. `8080`). Si el proxy corre en el mismo servidor no hace falta
-> abrir nada más que SSH; si está en otra máquina, abre ese puerto **solo** para la IP del proxy:
-> `sudo ufw allow from 10.0.0.5 to any port 8080 proto tcp`.
+!!! note "Detrás de un proxy inverso no se abren 80/443"
+    Si vas a poner ÁTICA Calidad **detrás de un proxy inverso propio** (ver el
+    [paso 5](#5b-variante-detras-de-un-proxy-inverso)), no abras 80/443: FrankenPHP servirá HTTP
+    plano en un puerto local (p. ej. `8080`). Si el proxy corre en el mismo servidor no hace falta
+    abrir nada más que SSH; si está en otra máquina, abre ese puerto **solo** para la IP del proxy:
+    `sudo ufw allow from 10.0.0.5 to any port 8080 proto tcp`.
 
 ## 3. Crear el usuario del sistema y el directorio de instalación
 
@@ -121,7 +106,7 @@ SYMFONY_TRUSTED_PROXIES=10.0.0.5
 - **No** hay Let's Encrypt ni certificado en este servidor: `SERVER_ADDR` con puerto y sin
   dominio desactiva el HTTPS automático de Caddy. El certificado del dominio lo gestiona el proxy.
 - `SYMFONY_TRUSTED_PROXIES` es imprescindible para que el [registro de
-  actividad](../manual/10-administrar-la-plataforma.md#registro-de-actividad) y los límites de
+  actividad](10-administrar-la-plataforma.md#registro-de-actividad) y los límites de
   intentos guarden la IP real del usuario y no la del proxy. Acepta una IP, un rango CIDR o varios
   valores separados por comas.
 - El proxy debe reenviar las cabeceras `X-Forwarded-For`, `X-Forwarded-Proto` y `X-Forwarded-Host`.
@@ -165,14 +150,14 @@ server {
 </VirtualHost>
 ```
 
-El script [`dist/install-ubuntu.sh`](../../dist/install-ubuntu.sh) ofrece esta variante como
+El script [`dist/install-ubuntu.sh`](https://github.com/reasol-edu/atica-calidad/blob/main/dist/install-ubuntu.sh) ofrece esta variante como
 opción 2 («Detrás de un proxy inverso propio») y pregunta el puerto local y la IP del proxy.
 
 ## 6. Crear los scripts de arranque
 
 Los scripts `atica-calidad-start.sh` y `atica-calidad-worker.sh` los genera `install-ubuntu.sh`; en la
 instalación manual, copia su contenido desde el propio script (sección «Crear scripts de arranque»
-de [`dist/install-ubuntu.sh`](../../dist/install-ubuntu.sh)).
+de [`dist/install-ubuntu.sh`](https://github.com/reasol-edu/atica-calidad/blob/main/dist/install-ubuntu.sh)).
 
 Los scripts leen `.env.local`, generan `APP_SECRET` automáticamente en el primer arranque
 (guardado en `data/.secret`), escriben el fichero `app/.env` que necesita Symfony y lanzan en
@@ -229,9 +214,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now atica-calidad atica-calidad-worker
 ```
 
-> [!NOTE]
-> La directiva `AmbientCapabilities=CAP_NET_BIND_SERVICE` permite que el proceso (ejecutado como
-> `aticacalidad`, sin privilegios de root) escuche en los puertos 80 y 443.
+!!! note "Puertos 80 y 443 sin ser root"
+    La directiva `AmbientCapabilities=CAP_NET_BIND_SERVICE` permite que el proceso (ejecutado como
+    `aticacalidad`, sin privilegios de root) escuche en los puertos 80 y 443.
 
 ## Comandos útiles
 
@@ -252,11 +237,12 @@ sudo systemctl restart atica-calidad atica-calidad-worker
 - La aplicación queda accesible en `https://tudominio.es` con `admin` / `admin`.
   **Cambia la contraseña inmediatamente** en **Perfil → Cambiar contraseña**.
 - Si usas un [proxy inverso](#5b-variante-detras-de-un-proxy-inverso), comprueba en el
-  [registro de actividad](../manual/10-administrar-la-plataforma.md#registro-de-actividad) que la
+  [registro de actividad](10-administrar-la-plataforma.md#registro-de-actividad) que la
   IP que se registra es la del cliente y no la del proxy; si no, revisa `SYMFONY_TRUSTED_PROXIES`
   y que el proxy envíe `X-Forwarded-For`.
-- Para automatizar las actualizaciones a nuevas versiones, ver la guía de
-  [despliegue continuo](despliegue-continuo.md).
+- Los pasos de actualización a nuevas versiones están en
+  [Actualización en Ubuntu Server](01-instalacion-y-puesta-en-marcha.md#ubuntu-server-binario-nativo), y la
+  actualización automática, en [Despliegue continuo en Ubuntu Server](17-despliegue-continuo.md).
 - Incluye en tus copias de seguridad el volcado de la base de datos, el secreto (`data/.secret`) y
   la configuración (`.env.local`):
 

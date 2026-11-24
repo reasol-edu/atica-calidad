@@ -556,8 +556,9 @@ php bin/console messenger:consume async scheduler_default --time-limit=3540 --me
 ```
 
 En un despliegue con Docker, el worker ya se levanta como un servicio aparte (`compose.yaml`). En
-un despliegue con binario nativo, se gestiona como un servicio systemd independiente — ver las
-[guías de despliegue](https://github.com/reasol-edu/atica-calidad/tree/main/docs/despliegue).
+un despliegue con binario nativo, se gestiona como un servicio systemd independiente — ver el anexo
+[Instalación manual en Ubuntu Server](16-ubuntu-instalacion-manual.md#7-instalar-los-servicios-systemd)
+(en Plesk, [una tarea programada](15-despliegue-en-plesk.md#7-correos-y-tareas-programadas-worker-via-cron)).
 
 ### Estado del sistema {#estado-del-sistema}
 
@@ -685,7 +686,7 @@ rangos CIDR separados por comas:
 | --- | --- |
 | Binario nativo / Plesk | `SYMFONY_TRUSTED_PROXIES` en `.env.local` |
 | Docker | variable de entorno del servicio `app` en `compose.yaml` (o en un `compose.override.yaml`) |
-| Docker + Cloudflare Tunnel | ya la fija `compose.cloudflare.yaml` con el rango de la red interna; no hay que tocar nada — ver [Cloudflare Tunnel](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/cloudflare-tunnel.md) |
+| Docker + Cloudflare Tunnel | ya la fija `compose.cloudflare.yaml` con el rango de la red interna; no hay que tocar nada — ver [Exposición con Cloudflare Tunnel](18-cloudflare-tunnel.md) |
 
 Ejemplos de valor: `127.0.0.1` (proxy en la misma máquina), `10.0.0.0/8` (rango de una red
 interna), `127.0.0.1,10.0.0.1` (varios). Sin proxy inverso, deja la variable sin definir.

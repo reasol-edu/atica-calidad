@@ -1,4 +1,4 @@
-# Exposición a Internet con Cloudflare Tunnel (sin abrir puertos)
+# Anexo: Exposición con Cloudflare Tunnel (sin abrir puertos)
 
 Guía para publicar ÁTICA Calidad en Internet cuando el servidor está detrás de un **NAT o un
 cortafuegos sobre el que no tienes control** (red de centro sin IP pública, sin posibilidad de
@@ -8,8 +8,8 @@ atraviesa cualquier NAT/cortafuegos sin abrir nada— y Cloudflare enruta el tr�
 esa conexión, terminando el certificado TLS en su borde. El servidor nunca necesita un puerto
 entrante abierto.
 
-Aplica tanto a la [instalación en Ubuntu Server](ubuntu-manual.md) como al
-[despliegue con Docker](../manual/01-instalacion-y-puesta-en-marcha.md#despliegue-con-docker).
+Aplica tanto a la [instalación en Ubuntu Server](16-ubuntu-instalacion-manual.md) como al
+[despliegue con Docker](01-instalacion-y-puesta-en-marcha.md#despliegue-con-docker).
 
 ## 1. Qué es y cuándo usarlo
 
@@ -23,7 +23,8 @@ Usa Cloudflare Tunnel si el servidor:
 
 Si el servidor ya tiene un dominio apuntando a una IP pública accesible y puedes abrir 80/443,
 la vía más sencilla sigue siendo la exposición directa con **HTTPS automático vía Let's Encrypt**,
-ya descrita en el manual y en la [instalación manual en Ubuntu Server](ubuntu-manual.md). Esta guía
+ya descrita en [Instalación y puesta en marcha](01-instalacion-y-puesta-en-marcha.md#despliegue-en-ubuntu-server-2604)
+y en la [instalación manual en Ubuntu Server](16-ubuntu-instalacion-manual.md). Este anexo
 es la alternativa cuando eso no es posible.
 
 ## 2. Requisitos previos
@@ -70,7 +71,7 @@ dig NS atica.instituto-mayor.es
 Debe devolver los nameservers de Cloudflare que te asignó al dar de alta la zona (puede tardar
 desde minutos hasta unas horas en propagarse, según el TTL del registro NS anterior).
 
-A partir de aquí, el resto de esta guía usa ese subdominio exactamente igual que un dominio propio
+A partir de aquí, el resto de este anexo usa ese subdominio exactamente igual que un dominio propio
 en todos los pasos siguientes (creación del túnel, Public Hostname, campo `DOMAIN` de
 `install-ubuntu.sh`, etc.).
 
@@ -97,7 +98,7 @@ En el dashboard de Cloudflare:
 ### Instalación nueva
 
 Si vas a instalar desde cero, responde «sí» a la pregunta que hace
-[`install-ubuntu.sh`](../../dist/install-ubuntu.sh) sobre si el servidor está detrás de un NAT o
+[`install-ubuntu.sh`](https://github.com/reasol-edu/atica-calidad/blob/main/dist/install-ubuntu.sh) sobre si el servidor está detrás de un NAT o
 cortafuegos sin apertura de puertos, y ten el token del punto 4 a mano cuando lo pida. El script
 instala `cloudflared`, lo registra como servicio con tu token, deja FrankenPHP escuchando solo en
 local y ajusta `SYMFONY_TRUSTED_PROXIES` automáticamente — no hay ningún paso manual adicional.
@@ -113,7 +114,7 @@ pasarlo a Cloudflare Tunnel:
 sudo systemctl stop atica-calidad atica-calidad-worker
 ```
 
-**2. Edita `.env.local`** ([instalación manual](ubuntu-manual.md#5-crear-el-fichero-de-configuración))
+**2. Edita `.env.local`** ([instalación manual](16-ubuntu-instalacion-manual.md#5-crear-el-fichero-de-configuracion))
 para que FrankenPHP escuche solo en local y confíe en el proxy interno de `cloudflared`:
 
 ```bash
@@ -159,11 +160,11 @@ sudo systemctl start atica-calidad atica-calidad-worker
 
 ## 6. Docker
 
-El repositorio incluye el overlay [`compose.cloudflare.yaml`](../../compose.cloudflare.yaml), que
+El repositorio incluye el overlay [`compose.cloudflare.yaml`](https://github.com/reasol-edu/atica-calidad/blob/main/compose.cloudflare.yaml), que
 añade el sidecar `cloudflared` sin tocar `compose.yaml`:
 
 **1. Define el token en `.env.local`** (ver `CLOUDFLARE_TUNNEL_TOKEN` en
-[`.env.example`](../../.env.example)):
+[`.env.example`](https://github.com/reasol-edu/atica-calidad/blob/main/.env.example)):
 
 ```dotenv
 CLOUDFLARE_TUNNEL_TOKEN=<token del punto 4>
@@ -212,7 +213,7 @@ docker compose -f compose.yaml -f compose.cloudflare.yaml logs cloudflared
 Ambos deben mostrar la conexión establecida con la red de Cloudflare (`Registered tunnel
 connection`). Comprueba después que el dominio responde desde fuera de la red del centro (por
 ejemplo, desde datos móviles) y que los
-[registros del servidor](../manual/10-administrar-la-plataforma.md)
+[registros del servidor](10-administrar-la-plataforma.md#registro-de-actividad)
 muestran IPs de clientes reales y no `127.0.0.1` — confirma que `SYMFONY_TRUSTED_PROXIES` se está
 aplicando correctamente.
 

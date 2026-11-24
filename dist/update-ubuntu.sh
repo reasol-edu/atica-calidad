@@ -33,7 +33,7 @@
 # Es seguro ejecutarlo repetidamente (p. ej. desde un cron o un systemd
 # timer): si ya está en la última versión, no hace nada y termina en 0. Ver
 # la guía de despliegue continuo para automatizarlo:
-# https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/despliegue-continuo.md
+# https://github.com/reasol-edu/atica-calidad/blob/main/docs/manual/17-despliegue-continuo.md
 # =============================================================================
 set -euo pipefail
 

@@ -7,6 +7,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Las guías de despliegue pasan a ser anexos del manual** (anexos 15 a 18: despliegue en Plesk, instalación manual en Ubuntu Server, despliegue continuo en Ubuntu Server y exposición con Cloudflare Tunnel). Antes vivían aparte, en `docs/despliegue/`, y solo se leían en GitHub; ahora salen en la web del manual, en su buscador y en el PDF, con los mismos avisos y estilo, y los capítulos de instalación y de administración de la plataforma enlazan a ellos. La carpeta `docs/despliegue/` desaparece; los comentarios de `dist/`, `compose.cloudflare.yaml` y `.env.example` apuntan a los nuevos capítulos. El anexo de Plesk deja de hablar de tareas programadas que no existen en esta aplicación («partes sin notificar») y lista las reales, y la tabla de capítulos del README incluye Mejora continua, Modelos de documento y los anexos.
+
 ## [2.10.2] - 2026-11-24
 
 ### Fixed

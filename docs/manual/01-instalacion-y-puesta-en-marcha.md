@@ -38,14 +38,14 @@ arrancar al inicio del sistema (`systemctl enable docker`).
 
 ## Despliegue en Plesk
 
-Ver la [guía de despliegue en Plesk](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/plesk.md) para instalar la aplicación como
-binario nativo en un panel de hosting compartido, sin Docker.
+Ver el anexo [Despliegue en Plesk](15-despliegue-en-plesk.md) para instalar la aplicación en un
+servidor gestionado con Plesk (PHP-FPM, sin Docker).
 
 ## Despliegue en Ubuntu Server 26.04
 
-Ver la [guía de despliegue en Ubuntu Server](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/ubuntu-manual.md) para instalar el
-binario nativo con systemd en un VPS o servidor dedicado, incluida la actualización
-[automatizada](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/despliegue-continuo.md).
+El binario nativo con systemd en un VPS o servidor dedicado se instala con el script de abajo, o paso
+a paso con el anexo [Instalación manual en Ubuntu Server](16-ubuntu-instalacion-manual.md); la
+actualización se puede dejar [automatizada](17-despliegue-continuo.md).
 
 El script `dist/install-ubuntu.sh` pregunta **cómo se accederá a la plataforma** y ofrece tres
 modos:
@@ -56,8 +56,8 @@ modos:
    FrankenPHP sirve HTTP plano en un puerto local, sin Let's Encrypt; el TLS lo termina el proxy.
    El script pregunta el puerto y la IP del proxy, que guarda en `SYMFONY_TRUSTED_PROXIES` para
    registrar la IP real del usuario. Ver
-   [Variante: detrás de un proxy inverso](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/ubuntu-manual.md).
-3. **[Cloudflare Tunnel](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/cloudflare-tunnel.md)** — exposición sin abrir puertos,
+   [Variante: detrás de un proxy inverso](16-ubuntu-instalacion-manual.md#5b-variante-detras-de-un-proxy-inverso).
+3. **[Cloudflare Tunnel](18-cloudflare-tunnel.md)** — exposición sin abrir puertos,
    para servidores detrás de un NAT o cortafuegos.
 
 ### Instalación con un solo comando {#instalacion-remota}
@@ -90,8 +90,8 @@ less install-ubuntu.sh
 sudo bash install-ubuntu.sh
 ```
 
-Para instalarlo **paso a paso**, sin el script, está la
-[guía de instalación manual](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/ubuntu-manual.md).
+Para instalarlo **paso a paso**, sin el script, está el
+anexo [Instalación manual en Ubuntu Server](16-ubuntu-instalacion-manual.md).
 Al terminar, la plataforma se actualiza con el comando de [Actualizar a la última
 versión](#actualizar).
 
@@ -151,8 +151,8 @@ arrancar a propósito. Si no estás seguro de qué contraseña usa tu instalaci�
 
 ### Plesk
 
-Ver [Actualizar a una nueva versión](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/plesk.md) en la
-guía de Plesk. En resumen: `git pull`, `composer install --no-dev --optimize-autoloader`,
+Ver [Actualizar a una nueva versión](15-despliegue-en-plesk.md#actualizar-a-una-nueva-version) en el
+anexo de Plesk. En resumen: `git pull`, `composer install --no-dev --optimize-autoloader`,
 recompilar los assets (`tailwind:build` + `asset-map:compile`), `doctrine:migrations:migrate` y
 regenerar la caché de `prod`.
 
@@ -174,8 +174,8 @@ a otro commit):
 curl -fsSL https://github.com/reasol-edu/atica-calidad/releases/latest/download/update-ubuntu.sh | sudo bash -s -- --force
 ```
 
-Para dejarlo **automatizado** (sondeo con un timer de systemd, o webhook desde GitHub), ver la guía
-de [despliegue continuo](https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/despliegue-continuo.md).
+Para dejarlo **automatizado** (sondeo con un timer de systemd, o webhook desde GitHub), ver el anexo
+[Despliegue continuo en Ubuntu Server](17-despliegue-continuo.md).
 
 ## Variables de entorno {#variables-de-entorno-opcionales}
 

@@ -1,13 +1,12 @@
-# Despliegue en Plesk
+# Anexo: Despliegue en Plesk
 
 Guía para centros que ya disponen de un **VPS o servidor dedicado gestionado con Plesk**. El stack
 es PHP-FPM + MySQL + Apache/Nginx estándar: no requiere Docker ni FrankenPHP. Se requiere
 **acceso SSH** a la suscripción.
 
-Esta guía complementa al capítulo
-[Instalación y puesta en marcha](../manual/01-instalacion-y-puesta-en-marcha.md)
-del manual de usuario, donde están la tabla comparativa de modos de despliegue y la referencia de
-variables de entorno.
+Este anexo complementa al capítulo
+[Instalación y puesta en marcha](01-instalacion-y-puesta-en-marcha.md),
+donde están la tabla comparativa de modos de despliegue y la referencia de variables de entorno.
 
 ## Requisitos previos
 
@@ -19,15 +18,14 @@ variables de entorno.
 
 ## 1. Obtener los archivos
 
-> [!TIP]
-> **Usa Git para facilitar las actualizaciones.** Clona el repositorio en un directorio
-> **fuera de `httpdocs/`** (por ejemplo `~/apps/atica-calidad/`):
->
-> ```bash
-> git clone https://github.com/reasol-edu/atica-calidad.git ~/apps/atica-calidad
-> ```
->
-> Así, actualizar a una nueva versión se reduce a un `git pull` y tres comandos.
+!!! tip "Usa Git para facilitar las actualizaciones"
+    Clona el repositorio en un directorio **fuera de `httpdocs/`** (por ejemplo `~/apps/atica-calidad/`):
+
+    ```bash
+    git clone https://github.com/reasol-edu/atica-calidad.git ~/apps/atica-calidad
+    ```
+
+    Así, actualizar a una nueva versión se reduce a un `git pull` y tres comandos.
 
 Si prefieres no usar Git, descarga el código fuente desde la
 [página de Releases](https://github.com/reasol-edu/atica-calidad/releases) en **Assets → Source code (zip)**
@@ -70,27 +68,26 @@ MIGRATIONS_PATH=migrations/mysql
 DEFAULT_URI=https://tudominio.es
 ```
 
-> [!TIP]
-> **Generar APP_SECRET.** Ejecuta este comando en el servidor y copia el resultado:
->
-> ```bash
-> php -r "echo bin2hex(random_bytes(32));"
-> ```
+!!! tip "Generar APP_SECRET"
+    Ejecuta este comando en el servidor y copia el resultado:
+
+    ```bash
+    php -r "echo bin2hex(random_bytes(32));"
+    ```
 
 El resto de variables (correo, autenticación externa, registro de actividad…) son opcionales;
 consulta la
-[referencia de variables de entorno](../manual/01-instalacion-y-puesta-en-marcha.md#variables-de-entorno-opcionales)
-del manual.
+[referencia de variables de entorno](01-instalacion-y-puesta-en-marcha.md#variables-de-entorno-opcionales)
+del capítulo de instalación.
 
-> [!NOTE]
-> **PostgreSQL como alternativa.** Si el servidor dispone de PostgreSQL en lugar de MySQL, cambia
-> `DATABASE_URL` al formato:
->
-> ```
-> postgresql://usuario:contraseña@localhost:5432/nombre_bd?serverVersion=16&charset=utf8
-> ```
->
-> y ajusta también `MIGRATIONS_PATH=migrations/postgresql`.
+!!! note "PostgreSQL como alternativa"
+    Si el servidor dispone de PostgreSQL en lugar de MySQL, cambia `DATABASE_URL` al formato:
+
+    ```
+    postgresql://usuario:contraseña@localhost:5432/nombre_bd?serverVersion=16&charset=utf8
+    ```
+
+    y ajusta también `MIGRATIONS_PATH=migrations/postgresql`.
 
 ## 5. Instalar dependencias y compilar los assets
 
@@ -101,10 +98,10 @@ php bin/console tailwind:build --env=prod
 php bin/console asset-map:compile
 ```
 
-> [!NOTE]
-> **Por qué hace falta compilar los assets.** Los archivos CSS y JS generados no se incluyen en el
-> repositorio. `tailwind:build` genera el CSS a partir de las plantillas (sin necesidad de Node.js)
-> y `asset-map:compile` copia y versiona todos los assets en `public/assets/`.
+!!! note "Por qué hace falta compilar los assets"
+    Los archivos CSS y JS generados no se incluyen en el repositorio. `tailwind:build` genera el CSS
+    a partir de las plantillas (sin necesidad de Node.js) y `asset-map:compile` copia y versiona
+    todos los assets en `public/assets/`.
 
 ## 6. Crear la base de datos y configurar la aplicación
 
@@ -120,21 +117,20 @@ php bin/console app:setup --no-interaction
 `app:setup` crea únicamente el usuario `admin`, sin ningún centro educativo: tras iniciar sesión,
 la pantalla de selección de centro ofrece un enlace directo para dar de alta el centro real desde
 **Administración › Centros › Nuevo centro** (ver
-[Comandos de consola](../manual/01-instalacion-y-puesta-en-marcha.md#appsetup)).
+[Comandos de consola](01-instalacion-y-puesta-en-marcha.md#appsetup)).
 
-> [!CAUTION]
-> **Cambia la contraseña por defecto.** `app:setup` crea el usuario `admin` con contraseña `admin`,
-> con el cambio de contraseña obligatorio en el primer inicio de sesión: la cuenta queda confinada
-> a la pantalla de cambio de contraseña hasta que se establece una nueva. Si has usado
-> `--no-force-password-change`, cambia la contraseña manualmente en
-> **Perfil → Cambiar contraseña** antes de que nadie más acceda.
+!!! danger "Cambia la contraseña por defecto"
+    `app:setup` crea el usuario `admin` con contraseña `admin`, con el cambio de contraseña
+    obligatorio en el primer inicio de sesión: la cuenta queda confinada a la pantalla de cambio de
+    contraseña hasta que se establece una nueva. Si has usado `--no-force-password-change`, cambia la
+    contraseña manualmente en **Perfil → Cambiar contraseña** antes de que nadie más acceda.
 
 ## 7. Correos y tareas programadas (worker vía cron)
 
-Los correos automáticos (verificación de email) y las tareas programadas (limpieza semanal del
-registro de actividad, prescripción automática diaria de partes sin notificar) los procesa un
-*worker* de Symfony Messenger. Sin él la aplicación funciona, pero **no se envían emails ni se
-ejecutan las tareas programadas**.
+Los correos automáticos y las tareas programadas (copia de seguridad nocturna, limpieza del registro
+de actividad y de la papelera, indexado de los documentos subidos, recordatorios y resúmenes de
+revisión por correo) los procesa un *worker* de Symfony Messenger. Sin él la aplicación funciona,
+pero **no se envían emails ni se ejecutan las tareas programadas**.
 
 Ve a **Tareas programadas** en el panel de Plesk y crea una tarea con periodicidad **cada hora**:
 
@@ -147,7 +143,7 @@ siguiente ejecución, evitando solapamientos.
 
 El transporte `async` lleva los correos pendientes y `scheduler_default` gestiona las tareas
 programadas. Consulta
-[Correos en cola (Messenger)](../manual/10-administrar-la-plataforma.md#correos-en-cola-messenger)
+[Correos en cola (Messenger)](10-administrar-la-plataforma.md#correos-en-cola-messenger)
 para los comandos de diagnóstico de la cola.
 
 ## 8. HTTPS y dominio definitivo
@@ -187,10 +183,9 @@ php bin/console cache:clear
    php bin/console cache:warmup --env=prod --no-debug
    ```
 
-> [!TIP]
-> **Las migraciones son seguras de re-ejecutar.** Si una versión no incluye cambios de esquema,
-> `doctrine:migrations:migrate` termina en segundos sin modificar nada. Puedes ejecutarlo en cada
-> actualización sin riesgo.
+!!! tip "Las migraciones son seguras de re-ejecutar"
+    Si una versión no incluye cambios de esquema, `doctrine:migrations:migrate` termina en segundos
+    sin modificar nada. Puedes ejecutarlo en cada actualización sin riesgo.
 
 ## Copias de seguridad
 
@@ -201,5 +196,5 @@ mysqldump -u usuario -p nombre_bd > backup-$(date +%Y%m%d).sql
 ```
 
 Consulta
-[Copias de seguridad](../manual/10-administrar-la-plataforma.md#copias-de-seguridad)
-en el manual para más contexto sobre protección de datos y política de conservación.
+[Copias de seguridad](10-administrar-la-plataforma.md#copias-de-seguridad)
+para más contexto sobre protección de datos y política de conservación.

@@ -12,7 +12,7 @@
 # El Public Hostname del túnel debe apuntar a http://app:80 (nombre del
 # servicio en la red interna de Compose, no un puerto del host).
 #
-# Guía completa: docs/despliegue/cloudflare-tunnel.md
+# Guía completa: docs/manual/18-cloudflare-tunnel.md
 ##############################################################################
 
 services:

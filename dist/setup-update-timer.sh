@@ -24,7 +24,7 @@
 #
 # Es la opción de despliegue continuo que NO requiere abrir ningún puerto
 # adicional ni configurar un webhook en GitHub — ver la guía completa:
-# https://github.com/reasol-edu/atica-calidad/blob/main/docs/despliegue/despliegue-continuo.md
+# https://github.com/reasol-edu/atica-calidad/blob/main/docs/manual/17-despliegue-continuo.md
 # =============================================================================
 set -euo pipefail
 
