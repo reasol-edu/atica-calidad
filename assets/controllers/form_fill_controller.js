@@ -12,6 +12,23 @@ const SELECT = INPUT;
 const INVALID = ['border-red-400', 'bg-red-50', 'focus:border-red-500', 'focus:ring-red-500'];
 const BTN ='rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-forest-500 disabled:opacity-50';
 
+// The Heroicons the page draws by itself (the same files as assets/icons/heroicons, which Twig's ux_icon() reads: a script cannot).
+const ICON_PATHS = {
+    'arrow-up-tray': 'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5',
+    document: 'M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9',
+    photo: 'm2.25 15.75l5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5m10.5-11.25h.008v.008h-.008zm.375 0a.375.375 0 1 1-.75 0a.375.375 0 0 1 .75 0',
+    'x-mark': 'M6 18L18 6M6 6l12 12',
+};
+
+/** A Heroicon as an inline SVG (decorative: the control around it says what it is). */
+function icon(name, cls) {
+    const span = document.createElement('span');
+    span.className = 'inline-flex shrink-0';
+    span.setAttribute('aria-hidden', 'true');
+    span.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="${cls}"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="${ICON_PATHS[name]}"/></svg>`;
+    return span;
+}
+
 /**
  * Filling in a document online. It draws the form from the model's definition and the data typed so far (App\Service\Form),
  * following the rules of repeating sections, conditions and references (assets/utils/form_scopes.js), and saves the data as it
@@ -860,28 +877,34 @@ export default class extends Controller {
         let files = Array.isArray(value) ? [...value] : [];
         const urlOf = (file) => (config.fileUrl || '').replace('__ID__', encodeURIComponent(file.id));
         const size = (bytes) => (bytes < 1024 ? bytes + ' B' : bytes < 1048576 ? Math.max(1, Math.round(bytes / 1024)) + ' KB' : (Math.round(bytes / 104857.6) / 10).toString().replace('.', ',') + ' MB');
-        const list = h('ul', { class: 'space-y-1' });
+        const list = h('ul', { class: 'space-y-1.5' });
         const status = h('p', { class: 'text-xs text-gray-500', 'aria-live': 'polite' });
         const input = h('input', { type: 'file', multiple: true, class: 'sr-only', id: id ? id + '-files' : null, disabled: this.readOnly });
+        // The same box as the other uploads of the application (Form:PdfDropzone): dashed, the upload icon at the left.
         const box = h('label', {
             for: input.id || null,
-            class: 'flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-center text-sm text-gray-600 hover:bg-gray-50 focus-within:ring-2 focus-within:ring-forest-500',
+            class: 'flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-3 transition-colors hover:border-forest-300 hover:bg-forest-50/50 focus-within:ring-2 focus-within:ring-forest-500',
         }, [
             input,
-            h('span', { class: 'font-medium text-forest-700', text: this.l.attachment_add }),
-            h('span', { class: 'text-xs text-gray-500', text: this.l.attachment_drop }),
-            h('span', { class: 'text-xs text-gray-400', text: this.l.attachment_hint.replace('%max%', size(config.fileMaxBytes || 10485760)) }),
+            icon('arrow-up-tray', 'h-5 w-5 shrink-0 text-gray-400'),
+            h('span', { class: 'min-w-0' }, [
+                h('span', { class: 'block text-sm text-gray-600' }, [
+                    h('span', { class: 'font-medium text-forest-700', text: this.l.attachment_add }), ' ' + this.l.attachment_drop,
+                ]),
+                h('span', { class: 'block text-xs text-gray-400', text: this.l.attachment_hint.replace('%max%', size(config.fileMaxBytes || 10485760)) }),
+            ]),
         ]);
 
         const draw = () => {
-            list.replaceChildren(...files.map((file) => h('li', { class: 'flex items-center gap-2 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm' }, [
-                h('a', { href: urlOf(file), class: 'min-w-0 flex-1 truncate font-medium text-forest-700 underline decoration-dotted', text: file.name }),
-                h('span', { class: 'shrink-0 text-xs text-gray-500', text: size(file.size || 0) }),
+            list.replaceChildren(...files.map((file) => h('li', { class: 'flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2' }, [
+                icon((file.mime || '').startsWith('image/') ? 'photo' : 'document', 'h-4 w-4 shrink-0 text-gray-400'),
+                h('a', { href: urlOf(file), class: 'min-w-0 flex-1 truncate text-sm text-gray-700 hover:text-forest-700 hover:underline', text: file.name }),
+                h('span', { class: 'shrink-0 text-xs text-gray-400', text: size(file.size || 0) }),
                 this.readOnly ? null : h('button', {
-                    type: 'button', class: 'shrink-0 rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-red-700',
-                    'aria-label': this.l.attachment_remove.replace('%name%', file.name), text: '✕',
+                    type: 'button', class: 'shrink-0 text-gray-400 transition-colors hover:text-red-600',
+                    'aria-label': this.l.attachment_remove.replace('%name%', file.name),
                     onclick: () => { files = files.filter((f) => f.id !== file.id); draw(); onChange(files.length ? [...files] : null); },
-                }),
+                }, [icon('x-mark', 'h-4 w-4')]),
             ])));
             box.hidden = this.readOnly || files.length >= max;
             if (!this.readOnly && files.length >= max) {
@@ -921,9 +944,11 @@ export default class extends Controller {
         };
 
         input.addEventListener('change', () => { upload([...input.files]); input.value = ''; });
-        box.addEventListener('dragover', (e) => { e.preventDefault(); box.classList.add('bg-forest-50'); });
-        box.addEventListener('dragleave', () => box.classList.remove('bg-forest-50'));
-        box.addEventListener('drop', (e) => { e.preventDefault(); box.classList.remove('bg-forest-50'); upload([...(e.dataTransfer?.files || [])]); });
+        // While a file is dragged over it, the box lights up like the other dropzones.
+        const over = ['border-forest-400', 'bg-forest-50'];
+        box.addEventListener('dragover', (e) => { e.preventDefault(); box.classList.add(...over); });
+        box.addEventListener('dragleave', () => box.classList.remove(...over));
+        box.addEventListener('drop', (e) => { e.preventDefault(); box.classList.remove(...over); upload([...(e.dataTransfer?.files || [])]); });
         draw();
 
         return h('div', { id, class: 'space-y-2' }, [list, box, status]);
