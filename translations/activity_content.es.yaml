@@ -267,6 +267,7 @@ history.field.start_enforced: 'Respetar la fecha de inicio'
 history.field.end_enforced: 'Respetar la fecha de fin'
 history.field.grace_days: 'Días de gracia'
 history.field.prefix: 'Prefijo del nombre del fichero'
+history.field.name_full_path: 'Nombre de la entrega con la ruta completa del elemento'
 history.field.general: 'Para todo el profesorado'
 history.field.related_documents: 'Documentos relacionados'
 

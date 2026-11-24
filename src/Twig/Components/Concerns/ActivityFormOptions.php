@@ -172,6 +172,13 @@ trait ActivityFormOptions
     #[LiveProp(writable: true)]
     public bool $formDraftsForAll = false;
 
+    /**
+     * With a catalogue element: the documents are named with its whole path under it («Ciencias › Física», true, what it always did)
+     * or only with the leaf's own name («Física», false) — see Activity::isSubmissionNameFullPath().
+     */
+    #[LiveProp(writable: true)]
+    public bool $formNameFullPath = true;
+
     /** The other form activity whose delivered documents pre-fill this one ('' = only last year's own). */
     #[LiveProp(writable: true)]
     public string $formPrefillSourceId = '';
@@ -331,6 +338,29 @@ trait ActivityFormOptions
     }
 
     /**
+     * The two ways of naming a document, with a real example from the chosen element: its deepest leaf (where they differ the most),
+     * as «Ciencias › Física» and as «Física». Null without an element, or when its leaves are all direct children (both read the same).
+     *
+     * @return array{full: string, leaf: string}|null
+     */
+    public function getNameModeExamples(): ?array
+    {
+        $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
+        if ($listItem === null) {
+            return null;
+        }
+        $best = null;
+        foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
+            $full = $this->submissionSlots->submissionName($listItem, $leaf);
+            if ($best === null || mb_strlen($full) > mb_strlen($best['full'])) {
+                $best = ['full' => $full, 'leaf' => $leaf->getName()];
+            }
+        }
+
+        return $best;
+    }
+
+    /**
      * What a submission of the activity being edited would be downloaded as, from the form as it
      * stands (title, prefix, scope, folder upload profiles, list element, deadline): the same
      * naming rule as a real download (ActivitySubmissionFilenameBuilder::compose()), on an example
@@ -347,7 +377,14 @@ trait ActivityFormOptions
         $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
         $leaves   = $listItem === null ? [] : $this->listItems->findLeafDescendants($listItem);
         if ($listItem !== null && $leaves !== []) {
-            $documentName = $this->submissionSlots->submissionName($listItem, $leaves[0]);
+            // The deepest leaf: the one where the two ways of naming differ the most.
+            $sampleLeaf = $leaves[0];
+            foreach ($leaves as $leaf) {
+                if (mb_strlen($this->submissionSlots->submissionName($listItem, $leaf)) > mb_strlen($this->submissionSlots->submissionName($listItem, $sampleLeaf))) {
+                    $sampleLeaf = $leaf;
+                }
+            }
+            $documentName = $this->submissionSlots->submissionName($listItem, $sampleLeaf, $this->formNameFullPath);
         } else {
             $documentName = $this->t('activity.field.submission_preview_example_name');
             foreach ($this->getAvailableProfileRows() as $row) {

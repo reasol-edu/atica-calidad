@@ -803,6 +803,155 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertSame(['Perfil A'], array_map(static fn ($r) => $r->getSpecificProfile()->getName(), $reloaded->getReviewProfiles()->toArray()));
     }
 
+    /**
+     * @return array{\Symfony\UX\LiveComponent\Test\TestLiveComponent, \App\Entity\ListItem, ActivityCategory, EducationalCentre, Folder}
+     *         an open activity form on a folder, with the element «Materias» (branches «Ciencias» and «Letras»)
+     */
+    private function formWithBranches(string $letrasLeaf): array
+    {
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $folder   = $this->folder($centre);
+        $perfil   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $folder->addUploadProfile($perfil);
+        $root     = (new \App\Entity\ListItem())->setName('Materias')->setEducationalCentre($centre);
+        $ciencias = (new \App\Entity\ListItem())->setName('Ciencias')->setEducationalCentre($centre)->setParent($root);
+        $letras   = (new \App\Entity\ListItem())->setName('Letras')->setEducationalCentre($centre)->setParent($root);
+        $fisica   = (new \App\Entity\ListItem())->setName('Física')->setEducationalCentre($centre)->setParent($ciencias);
+        $lengua   = (new \App\Entity\ListItem())->setName($letrasLeaf)->setEducationalCentre($centre)->setParent($letras);
+        $admin    = $this->admin();
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $perfil, $root, $ciencias, $letras, $fisica, $lengua, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('ActivityBrowserComponent', [
+            'centre'            => $centre,
+            'initialCategoryId' => $category->getId()->toRfc4122(),
+        ], $this->client);
+        $component
+            ->call('startAddActivity')
+            ->set('formTitle', 'Memoria')
+            ->set('formStartDay', '1')->set('formStartMonth', '9')
+            ->set('formEndDay', '30')->set('formEndMonth', '6')
+            ->set('formFolderId', $folder->getId()->toRfc4122())
+            ->set('formFolderUploadKeys', [$perfil->getId()->toRfc4122()])
+            ->set('formListItemId', $root->getId()->toRfc4122());
+
+        return [$component, $root, $category, $centre, $folder];
+    }
+
+    /** With a catalogue element, the form offers the two ways of naming the document, each explained with a real example. */
+    public function testTheFormOffersToNameTheDocumentWithTheFullPathOrTheLeafOnly(): void
+    {
+        [$component] = $this->formWithBranches('Lengua');
+        $crawler = $component->render()->crawler();
+
+        $mode = $crawler->filter('[id^="activity-form-name-mode-"]');
+        self::assertCount(1, $mode);
+        self::assertStringContainsString('Incluir la ruta completa del elemento del catálogo', $mode->text());
+        self::assertStringContainsString('Solo el nombre del elemento hoja', $mode->text());
+        self::assertCount(2, $mode->filter('input[type="radio"][name="activity_name_full_path"]'));
+        self::assertCount(1, $mode->filter('input[type="radio"][value="1"][checked]'), 'the full path is the default');
+        self::assertStringContainsString('«Ciencias › Física»', $mode->text(), 'a real example of the full path');
+        self::assertStringContainsString('«Física»', $mode->text(), 'and of the leaf alone');
+
+        self::assertCount(0, $crawler->filter('[data-testid="name-mode-same"]'), 'the two ways differ for this element');
+
+        // An element whose leaves hang straight from it: both ways read the same, and the form says so.
+        $ciencias = $this->em->getRepository(\App\Entity\ListItem::class)->findOneBy(['name' => 'Ciencias']);
+        self::assertNotNull($ciencias);
+        $component->set('formListItemId', $ciencias->getId()->toRfc4122());
+        self::assertCount(1, $component->render()->crawler()->filter('[data-testid="name-mode-same"]'));
+
+        // Without a catalogue element there is no leaf to name after: no option.
+        $component->set('formListItemId', '');
+        self::assertCount(0, $component->render()->crawler()->filter('[id^="activity-form-name-mode-"]'));
+    }
+
+    public function testTheActivityIsSavedWithTheChosenNamingAndTheDocumentNamePreviewFollowsIt(): void
+    {
+        [$component, , $category, $centre] = $this->formWithBranches('Lengua');
+        /** @var ActivityBrowserComponent $instance */
+        $instance = $component->component();
+        self::assertStringContainsString('Ciencias › Física', (string) $instance->getSubmissionNamePreview());
+
+        $component->set('formNameFullPath', false);
+        self::assertStringNotContainsString('›', (string) $component->component()->getSubmissionNamePreview(), 'the preview names the leaf alone');
+        $component->call('saveActivity');
+        self::assertSame([], $component->component()->errors);
+
+        $this->em->clear();
+        $reloadedCategory = self::getContainer()->get(\App\Repository\ActivityCategoryRepository::class)->findByIdAndCentre($category->getId()->toRfc4122(), $centre);
+        self::assertNotNull($reloadedCategory);
+        $activity = self::getContainer()->get(\App\Repository\ActivityRepository::class)->findByCategory($reloadedCategory)[0];
+        self::assertFalse($activity->isSubmissionNameFullPath());
+
+        // Reopening the form shows it as it was saved.
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()]);
+        self::assertFalse($component->component()->formNameFullPath);
+    }
+
+    /** Two leaves called «Física» would be one submission: leaf-only naming is refused, the full path is fine. */
+    public function testLeafOnlyNamingIsRefusedWhenTwoLeavesShareAName(): void
+    {
+        [$component, , $category, $centre] = $this->formWithBranches('Física');
+        $component->set('formNameFullPath', false)->call('saveActivity');
+
+        $errors = $component->component()->errors;
+        self::assertArrayHasKey('nameFullPath', $errors);
+        self::assertStringContainsString('Física', $errors['nameFullPath']);
+        self::assertCount(0, $this->em->getRepository(Activity::class)->findAll(), 'nothing saved');
+
+        $component->set('formNameFullPath', true)->call('saveActivity');
+        self::assertSame([], $component->component()->errors);
+        self::assertCount(1, $this->em->getRepository(Activity::class)->findAll());
+    }
+
+    /** Changing only the naming of an activity that already has deliveries renames them, so their rows keep finding them. */
+    public function testSavingAnotherNamingRenamesTheDeliveriesAlreadyMade(): void
+    {
+        [$component, , $category, $centre, $folder] = $this->formWithBranches('Lengua');
+        $component->call('saveActivity');
+        self::assertSame([], $component->component()->errors);
+
+        $managedFolder = $this->em->find(Folder::class, $folder->getId());
+        self::assertNotNull($managedFolder);
+        $document = new Document($managedFolder, 'Ciencias › Física');
+        $this->persist($document);
+        $managedCategory = $this->em->find(ActivityCategory::class, $category->getId());
+        self::assertNotNull($managedCategory);
+        $activity = self::getContainer()->get(\App\Repository\ActivityRepository::class)->findByCategory($managedCategory)[0];
+
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()])->set('formNameFullPath', false)->call('saveActivity');
+        self::assertSame([], $component->component()->errors);
+
+        $this->em->clear();
+        self::assertSame('Física', $this->em->find(Document::class, $document->getId())?->getName());
+        self::assertFalse($this->em->find(Activity::class, $activity->getId())?->isSubmissionNameFullPath());
+        self::assertNotNull($centre);
+    }
+
+    /** «Completado» sits right under «Obligatoriedad»; the advanced options keep only hiding the activity. */
+    public function testCompletionIsUnderMandatoryAndAdvancedOptionsKeepOnlyHiding(): void
+    {
+        [$component] = $this->formWithBranches('Lengua');
+        $html = $component->render()->crawler()->html();
+
+        $required   = strpos($html, 'name="activity_required"');
+        $completion = strpos($html, 'name="activity_auto_complete"');
+        $scope      = strpos($html, 'name="activity_scope"');
+        self::assertNotFalse($required);
+        self::assertNotFalse($completion);
+        self::assertNotFalse($scope);
+        self::assertTrue($required < $completion && $completion < $scope, 'Obligatoriedad, then Completado, then the scope');
+
+        // Advanced options closed: Completado is still there; open: only «Ocultar».
+        self::assertStringNotContainsString('activity_hidden', $html);
+        $component->call('toggleAdvanced');
+        $open = $component->render()->crawler();
+        self::assertCount(1, $open->filter('input[data-model="formHidden"]'));
+        self::assertCount(2, $open->filter('input[name="activity_auto_complete"]'), 'not repeated in the advanced options');
+    }
+
     public function testTheFormPreviewsTheDownloadNameOfAnExampleSubmission(): void
     {
         self::mockTime('2025-10-10 10:00:00');

@@ -24,11 +24,11 @@ final class ActivityChangeRecorder
     /** Every setting that is tracked, in display order. */
     public const array FIELDS = [
         'title', 'description', 'category', 'deadline', 'element_deadlines', 'list_item', 'folder', 'scope',
-        'required', 'hidden', 'auto_complete', 'start_enforced', 'end_enforced', 'grace_days', 'prefix', 'general', 'related_documents',
+        'required', 'hidden', 'auto_complete', 'start_enforced', 'end_enforced', 'grace_days', 'prefix', 'name_full_path', 'general', 'related_documents',
     ];
 
     /** Fields shown as yes/no. */
-    public const array BOOLEAN_FIELDS = ['required', 'hidden', 'auto_complete', 'start_enforced', 'end_enforced', 'general'];
+    public const array BOOLEAN_FIELDS = ['required', 'hidden', 'auto_complete', 'start_enforced', 'end_enforced', 'general', 'name_full_path'];
 
     private const int TEXT_LIMIT = 120;
 
@@ -103,6 +103,7 @@ final class ActivityChangeRecorder
             'end_enforced'      => $activity->isEndDateEnforced() ? '1' : '0',
             'grace_days'        => (string) $activity->getEndDateGraceDays(),
             'prefix'            => $activity->getSubmissionPrefix() ?? '',
+            'name_full_path'    => $activity->isSubmissionNameFullPath() ? '1' : '0',
             'general'           => $activity->isGeneral() ? '1' : '0',
             default             => (string) $activity->getRelatedDocuments()->count(),
         };

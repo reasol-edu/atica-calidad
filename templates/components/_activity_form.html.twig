@@ -223,6 +223,29 @@
                 </div>
             {% endif %}
 
+            {# How the document of each submission is named after its leaf of the catalogue element. #}
+            {% if formWithSubmissions and formListItemId != '' %}
+            {% set name_examples = this.nameModeExamples %}
+            <div class="sm:col-span-2" id="activity-form-name-mode-{{ formActivityId ?: 'new' }}">
+                <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.name_full_path'|trans({}, 'admin') }}</span>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <twig:Form:RadioCard name="activity_name_full_path" value="1"
+                        label="{{ 'activity.field.name_full_path_yes'|trans({}, 'admin') }}"
+                        help="{{ 'activity.field.name_full_path_yes_help'|trans({'%full%': name_examples.full ?? ''}, 'admin') }}"
+                        :checked="formNameFullPath" data-model="formNameFullPath" />
+                    <twig:Form:RadioCard name="activity_name_full_path" value="0"
+                        label="{{ 'activity.field.name_full_path_no'|trans({}, 'admin') }}"
+                        help="{{ 'activity.field.name_full_path_no_help'|trans({'%leaf%': name_examples.leaf ?? ''}, 'admin') }}"
+                        :checked="not formNameFullPath" data-model="formNameFullPath" />
+                </div>
+                {% if name_examples is not null and name_examples.full == name_examples.leaf %}
+                    <p class="mt-1 text-xs text-amber-700" data-testid="name-mode-same">{{ 'activity.field.name_full_path_same'|trans({}, 'admin') }}</p>
+                {% endif %}
+                <p class="mt-1 text-xs text-gray-400">{{ 'activity.field.name_full_path_note'|trans({}, 'admin') }}</p>
+                {% if errors.nameFullPath is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.nameFullPath }}</p>{% endif %}
+            </div>
+            {% endif %}
+
             {% if formWithSubmissions %}
             <div class="sm:col-span-2">
                 <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'activity.field.submission_prefix'|trans({}, 'admin') }}</label>
@@ -296,6 +319,26 @@
                         label="{{ 'activity.field.required_no'|trans({}, 'admin') }}"
                         :checked="not formRequired" data-model="formRequired" />
                 </div>
+            </div>
+
+            {# How it is marked as done: by hand, or by itself when everything is delivered (only with a folder). #}
+            <div class="sm:col-span-2">
+                <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.auto_complete'|trans({}, 'admin') }}</span>
+                {% if formFolderId == '' %}
+                    <p class="text-xs italic text-gray-400">{{ 'activity.field.auto_complete_disabled_hint'|trans({}, 'admin') }}</p>
+                {% else %}
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <twig:Form:RadioCard name="activity_auto_complete" value="0"
+                            label="{{ 'activity.field.auto_complete_no'|trans({}, 'admin') }}"
+                            help="{{ 'activity.field.auto_complete_no_help'|trans({}, 'admin') }}"
+                            :checked="not formAutoComplete" data-model="formAutoComplete" />
+                        <twig:Form:RadioCard name="activity_auto_complete" value="1"
+                            label="{{ 'activity.field.auto_complete_yes'|trans({}, 'admin') }}"
+                            help="{{ 'activity.field.auto_complete_yes_help'|trans({}, 'admin') }}"
+                            :checked="formAutoComplete" data-model="formAutoComplete" />
+                    </div>
+                {% endif %}
+                {% if errors.autoComplete is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.autoComplete }}</p>{% endif %}
             </div>
 
             <div class="sm:col-span-2">
@@ -436,25 +479,6 @@
                 </button>
             </div>
             {% if advancedOpen %}
-            <div class="sm:col-span-2">
-                <span class="mb-2 block text-xs font-medium text-gray-600">{{ 'activity.field.auto_complete'|trans({}, 'admin') }}</span>
-                {% if formFolderId == '' %}
-                    <p class="text-xs italic text-gray-400">{{ 'activity.field.auto_complete_disabled_hint'|trans({}, 'admin') }}</p>
-                {% else %}
-                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        <twig:Form:RadioCard name="activity_auto_complete" value="0"
-                            label="{{ 'activity.field.auto_complete_no'|trans({}, 'admin') }}"
-                            help="{{ 'activity.field.auto_complete_no_help'|trans({}, 'admin') }}"
-                            :checked="not formAutoComplete" data-model="formAutoComplete" />
-                        <twig:Form:RadioCard name="activity_auto_complete" value="1"
-                            label="{{ 'activity.field.auto_complete_yes'|trans({}, 'admin') }}"
-                            help="{{ 'activity.field.auto_complete_yes_help'|trans({}, 'admin') }}"
-                            :checked="formAutoComplete" data-model="formAutoComplete" />
-                    </div>
-                {% endif %}
-                {% if errors.autoComplete is defined %}<p class="mt-1 text-xs text-red-600">{{ errors.autoComplete }}</p>{% endif %}
-            </div>
-
             <div class="sm:col-span-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3">
                 <label class="flex items-start gap-2 text-sm text-gray-700">
                     <input type="checkbox" data-model="formHidden" {{ formHidden ? 'checked' : '' }}

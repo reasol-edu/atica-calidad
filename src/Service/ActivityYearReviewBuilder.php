@@ -84,6 +84,7 @@ class ActivityYearReviewBuilder
                 $activity->getListItem(),
                 ActivitySubmissionScope::ByProfile,
                 $this->access->getFolderUploadRows($folder),
+                $activity->isSubmissionNameFullPath(),
             );
             $submissions = \count($slots);
             foreach ($slots as $slot) {

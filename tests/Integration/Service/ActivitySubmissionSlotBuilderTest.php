@@ -163,6 +163,87 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         self::assertSame('Experimentales › Física', $slots[0]->displayName, 'path runs from just below the selected element down to the leaf');
     }
 
+    /** The activity can name the documents after the leaf alone: «Física» instead of «Ciencias › Experimentales › Física». */
+    public function testSubmissionNameCanBeJustTheLeafsOwnName(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $folder->addUploadProfile($profile);
+        $materias = (new ListItem())->setEducationalCentre($centre)->setName('Materias');
+        $ciencias = (new ListItem())->setEducationalCentre($centre)->setName('Ciencias')->setParent($materias);
+        $fisica   = (new ListItem())->setEducationalCentre($centre)->setName('Física')->setParent($ciencias);
+        $activity = $this->activity($category)->setFolder($folder)->setListItem($materias);
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $materias, $ciencias, $fisica, $activity);
+
+        self::assertTrue($activity->isSubmissionNameFullPath(), 'what it always did, for every activity that already exists');
+        self::assertSame('Ciencias › Física', $this->builder->buildSlots($activity)[0]->displayName);
+
+        $activity->setSubmissionNameFullPath(false);
+        self::assertSame('Física', $this->builder->buildSlots($activity)[0]->displayName);
+        self::assertSame('Física', $this->builder->submissionName($materias, $fisica, false));
+        self::assertSame('Ciencias › Física', $this->builder->submissionName($materias, $fisica), 'the path is still the default');
+    }
+
+    public function testLeavesWithTheSameNameCannotBeNamedByTheLeafAlone(): void
+    {
+        $centre   = $this->centre();
+        $materias = (new ListItem())->setEducationalCentre($centre)->setName('Materias');
+        $ciencias = (new ListItem())->setEducationalCentre($centre)->setName('Ciencias')->setParent($materias);
+        $letras   = (new ListItem())->setEducationalCentre($centre)->setName('Letras')->setParent($materias);
+        $fisica1  = (new ListItem())->setEducationalCentre($centre)->setName('Física')->setParent($ciencias);
+        $quimica  = (new ListItem())->setEducationalCentre($centre)->setName('Química')->setParent($ciencias);
+        $fisica2  = (new ListItem())->setEducationalCentre($centre)->setName('Física')->setParent($letras);
+        $this->persist($centre, $materias, $ciencias, $letras, $fisica1, $quimica, $fisica2);
+
+        self::assertSame(['Física'], $this->builder->duplicateLeafNames($materias));
+        self::assertSame([], $this->builder->duplicateLeafNames($ciencias), 'inside one branch the names are all different');
+    }
+
+    public function testChangingTheNamingRenamesWhatIsAlreadyDeliveredSoItsSlotStillFindsIt(): void
+    {
+        $centre   = $this->centre();
+        $category = (new ActivityCategory())->setEducationalCentre($centre)->setName('Categoría');
+        $folder   = $this->folder($centre);
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $folder->addUploadProfile($profile);
+        $materias = (new ListItem())->setEducationalCentre($centre)->setName('Materias');
+        $ciencias = (new ListItem())->setEducationalCentre($centre)->setName('Ciencias')->setParent($materias);
+        $fisica   = (new ListItem())->setEducationalCentre($centre)->setName('Física')->setParent($ciencias);
+        $quimica  = (new ListItem())->setEducationalCentre($centre)->setName('Química')->setParent($ciencias);
+        $activity = $this->activity($category)->setFolder($folder)->setListItem($materias);
+        $teacher  = $this->teacher('docente');
+        // The tree first: persisting a document runs the cycle listener, which reads the catalogue.
+        $this->persist($centre, $category, $folder->getDocumentSection(), $folder, $profile, $materias, $ciencias, $fisica, $quimica, $activity, $teacher);
+
+        $document = new Document($folder, 'Ciencias › Física');
+        $document->setUploadProfile($profile, null);
+        $other    = new Document($folder, 'Un documento cualquiera');
+        $file     = new DocumentFile(hash('sha256', 'x'), 'x', 'text/plain', 'f.txt', 1);
+        $revision = new DocumentRevision($document, 1, $file, false, $teacher);
+        $document->getRevisions()->add($revision);
+        $document->setActiveRevision($revision);
+        $this->persist($document, $other, $file, $revision);
+        $this->builder->reset();
+
+        $slotOfFisica = static fn (ActivitySubmissionSlotBuilder $b, Activity $a): ActivitySubmissionSlot => array_values(array_filter($b->buildSlots($a), static fn (ActivitySubmissionSlot $s): bool => $s->nameListItem?->getName() === 'Física'))[0];
+        self::assertNotNull($this->builder->resolveSlot($activity, $slotOfFisica($this->builder, $activity)));
+
+        $activity->setSubmissionNameFullPath(false);
+        self::assertNull($this->builder->resolveSlot($activity, $slotOfFisica($this->builder, $activity)), 'renamed slot, old name: it would look undelivered');
+
+        self::assertSame(1, $this->builder->renameDocumentsForNameMode($activity, true));
+        self::assertSame('Física', $document->getName());
+        self::assertSame('Un documento cualquiera', $other->getName(), 'only the documents named after a leaf');
+        self::assertNotNull($this->builder->resolveSlot($activity, $slotOfFisica($this->builder, $activity)));
+
+        $activity->setSubmissionNameFullPath(true);
+        self::assertSame(1, $this->builder->renameDocumentsForNameMode($activity, false), 'back to the path');
+        self::assertSame('Ciencias › Física', $document->getName());
+        self::assertSame(0, $this->builder->renameDocumentsForNameMode($activity, true), 'nothing to do when the naming did not change');
+    }
+
     public function testSlotsNameTheirOwnerOnlyWhenAnElementIsOwedByMoreThanOne(): void
     {
         ['activity' => $activity, 'jefe' => $jefe, 'infor' => $infor, 'sani' => $sani, 'evalFp' => $evalFp, 'deptFp' => $deptFp] = $this->evaluationScenario();

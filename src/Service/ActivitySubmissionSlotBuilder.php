@@ -70,6 +70,7 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
             $activity->getListItem(),
             $activity->getSubmissionScope(),
             $this->access->getFolderUploadRows($folder),
+            $activity->isSubmissionNameFullPath(),
         );
     }
 
@@ -78,14 +79,15 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
      * activity form uses to say how many submissions the settings being edited would ask for.
      *
      * @param ProfileAssignmentRow[] $uploadRows see DocumentTreeAccessChecker::getFolderUploadRows()
+     * @param bool                   $fullPath   how the leaves are named, see submissionName()
      *
      * @return ActivitySubmissionSlot[]
      */
-    public function buildSlotsFor(?ListItem $listItem, ActivitySubmissionScope $scope, array $uploadRows): array
+    public function buildSlotsFor(?ListItem $listItem, ActivitySubmissionScope $scope, array $uploadRows, bool $fullPath = true): array
     {
         $rowSlots = $listItem === null
             ? $this->plainRowSlots($uploadRows)
-            : $this->listItemRowSlots($listItem, $uploadRows);
+            : $this->listItemRowSlots($listItem, $uploadRows, $fullPath);
 
         if ($scope !== ActivitySubmissionScope::Individual) {
             return $rowSlots;
@@ -149,12 +151,12 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
      * @param  ProfileAssignmentRow[] $uploadRows
      * @return ActivitySubmissionSlot[]
      */
-    private function listItemRowSlots(ListItem $listItem, array $uploadRows): array
+    private function listItemRowSlots(ListItem $listItem, array $uploadRows, bool $fullPath): array
     {
         $slots   = [];
         $perName = [];
         foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
-            $name = $this->submissionName($listItem, $leaf);
+            $name = $this->submissionName($listItem, $leaf, $fullPath);
             foreach ($this->uploadRowsForLeaf($leaf, $uploadRows) as $row) {
                 $slots[]         = new ActivitySubmissionSlot($row->profile, $row->listItem, $leaf, $name, null, $row->displayName);
                 $perName[$name]  = ($perName[$name] ?? 0) + 1;
@@ -221,10 +223,16 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
      * A submission's name: the list path from just under the activity's selected element down to
      * the leaf, joined with " › " (e.g. selecting "Materias" names a leaf "Ciencias › Física").
      * A leaf directly under the selected element — or the selected element itself, when a leaf was
-     * picked — is just its own name.
+     * picked — is just its own name. With $fullPath false (the activity's «solo el nombre del elemento»
+     * setting) it is the leaf's own name whatever its depth («Física»): then two leaves with the same
+     * name would be the same submission, which the form refuses (see duplicateLeafNames()).
      */
-    public function submissionName(ListItem $selected, ListItem $leaf): string
+    public function submissionName(ListItem $selected, ListItem $leaf, bool $fullPath = true): string
     {
+        if (!$fullPath) {
+            return $leaf->getName();
+        }
+
         $trail = [];
         for ($node = $leaf; $node !== null && $node !== $selected; $node = $node->getParent()) {
             array_unshift($trail, $node->getName());
@@ -302,11 +310,60 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
         }
 
         foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
-            if ($this->submissionName($listItem, $leaf) === $document->getName()) {
+            if ($this->submissionName($listItem, $leaf, $activity->isSubmissionNameFullPath()) === $document->getName()) {
                 return $leaf;
             }
         }
 
         return null;
+    }
+
+    /**
+     * The names that more than one leaf of $listItem would have in the leaf-only naming («Física» under «Ciencias» and under
+     * «Letras»): they could not be told apart, so the activity form does not allow that setting then.
+     *
+     * @return list<string>
+     */
+    public function duplicateLeafNames(ListItem $listItem): array
+    {
+        $seen = [];
+        foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
+            $seen[$leaf->getName()] = ($seen[$leaf->getName()] ?? 0) + 1;
+        }
+
+        return array_keys(array_filter($seen, static fn (int $n): bool => $n > 1));
+    }
+
+    /**
+     * After the naming setting of $activity changed (the caller has already set the new one), the documents already delivered take the
+     * name the new setting gives their leaf, so their slots keep finding them. Only those that carried exactly the old name of a leaf;
+     * the caller flushes.
+     *
+     * @return int how many documents were renamed
+     */
+    public function renameDocumentsForNameMode(Activity $activity, bool $wasFullPath): int
+    {
+        $folder   = $activity->getFolder();
+        $listItem = $activity->getListItem();
+        if ($folder === null || $listItem === null || $wasFullPath === $activity->isSubmissionNameFullPath()) {
+            return 0;
+        }
+
+        $newNames = [];
+        foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
+            $newNames[$this->submissionName($listItem, $leaf, $wasFullPath)] = $this->submissionName($listItem, $leaf, $activity->isSubmissionNameFullPath());
+        }
+
+        $renamed = 0;
+        foreach ($this->documents->findByFolder($folder) as $document) {
+            $to = $newNames[$document->getName()] ?? null;
+            if ($to !== null && $to !== $document->getName()) {
+                $document->setName($to);
+                ++$renamed;
+            }
+        }
+        $this->reset();
+
+        return $renamed;
     }
 }

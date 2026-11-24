@@ -56,6 +56,7 @@ trait ActivityFormActions
         $this->formScope       = 'by_profile';
         $this->formModelId     = '';
         $this->formDraftsForAll = false;
+        $this->formNameFullPath = true;
         $this->formPrefillSourceId = '';
         $this->formHidden      = false;
         $this->formGeneral     = true;
@@ -113,6 +114,7 @@ trait ActivityFormActions
         $this->formScope        = $activity->getSubmissionScope()->value;
         $this->formModelId      = $activity->getFormModel()?->getId()->toRfc4122() ?? '';
         $this->formDraftsForAll = $activity->isFormDraftsForAll();
+        $this->formNameFullPath = $activity->isSubmissionNameFullPath();
         $this->formPrefillSourceId = $activity->getFormPrefillSource()?->getId()->toRfc4122() ?? '';
         $this->formHidden       = $activity->isHidden();
         $this->formGeneral      = $activity->isGeneral();
@@ -173,6 +175,7 @@ trait ActivityFormActions
             ->setTitle($this->translator->trans('activity.duplicate.title', ['%title%' => $source->getTitle()], 'admin'))
             ->setDescription($source->getDescription())
             ->setSubmissionPrefix($source->getSubmissionPrefix())
+            ->setSubmissionNameFullPath($source->isSubmissionNameFullPath())
             ->setStart($source->getStartDay(), $source->getStartMonth())
             ->setEnd($source->getEndDay(), $source->getEndMonth())
             ->setListItem($source->getListItem())
@@ -320,6 +323,15 @@ trait ActivityFormActions
 
             return;
         }
+        // Naming the submissions after the leaf alone: two leaves with the same name would be the same submission.
+        if ($listItem !== null && $folder !== null && !$this->formNameFullPath) {
+            $duplicates = $this->submissionSlots->duplicateLeafNames($listItem);
+            if ($duplicates !== []) {
+                $this->errors = ['nameFullPath' => str_replace('%names%', implode('», «', array_slice($duplicates, 0, 5)), $this->t('activity.error.name_leaf_duplicated'))];
+
+                return;
+            }
+        }
 
         // Restriction only applies to manual activities — a folder-backed one's ownership already
         // comes from the folder's own upload profiles, so $folder !== null always means general.
@@ -340,6 +352,9 @@ trait ActivityFormActions
         }
         // Taken before anything is touched: the history records what this save changes.
         $before = $activity === null ? null : $this->changeRecorder->snapshot($activity);
+        // What the delivered documents are named after, to rename them if only the naming changes (not the element).
+        $wasFullPath   = $activity?->isSubmissionNameFullPath() ?? true;
+        $wasListItemId = $activity?->getListItem()?->getId()->toRfc4122();
         if ($activity === null) {
             $activity = (new Activity())
                 ->setCategory($category)
@@ -369,6 +384,11 @@ trait ActivityFormActions
         // setEndDateGraceDays() zeroes itself when the end date isn't enforced.
         $activity->setEndDateGraceDays(max(0, (int) $this->formEndDateGraceDays));
         $activity->setFolder($folder);
+        $activity->setSubmissionNameFullPath($listItem === null || $this->formNameFullPath);
+        // Same element, other naming: what is already delivered takes the new names, so its rows keep finding it.
+        if ($wasListItemId !== null && $wasListItemId === $listItem?->getId()->toRfc4122()) {
+            $this->submissionSlots->renameDocumentsForNameMode($activity, $wasFullPath);
+        }
         // A model only makes sense where there is a folder to keep what is delivered; an id from another centre never matches.
         $activity->setFormModel($folder !== null && $this->formModelId !== '' ? $this->formModels->findByIdAndCentre($this->formModelId, $this->centre) : null);
         $activity->setFormDraftsForAll($activity->isForm() && $this->formDraftsForAll);

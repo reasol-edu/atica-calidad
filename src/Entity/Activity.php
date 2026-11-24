@@ -51,6 +51,14 @@ class Activity implements Trashable
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $submissionPrefix = null;
 
+    /**
+     * Only with a catalogue element selected: how a submission (the document) is named after the leaf it is for. True (what it always
+     * did): the whole path under the selected element, «Ciencias › Física». False: just the leaf's own name, «Física» — which needs
+     * the leaves of the element to have different names (see ActivitySubmissionSlotBuilder::submissionName()).
+     */
+    #[ORM\Column(options: ['default' => true])]
+    private bool $submissionNameFullPath = true;
+
     /** Deadline is a day/month pair, not a date — it repeats every academic year, with no year of its own. */
     #[ORM\Column]
     private int $startDay;
@@ -237,6 +245,18 @@ class Activity implements Trashable
     public function setSubmissionPrefix(?string $submissionPrefix): static
     {
         $this->submissionPrefix = $submissionPrefix;
+
+        return $this;
+    }
+
+    public function isSubmissionNameFullPath(): bool
+    {
+        return $this->submissionNameFullPath;
+    }
+
+    public function setSubmissionNameFullPath(bool $fullPath): static
+    {
+        $this->submissionNameFullPath = $fullPath;
 
         return $this;
     }
