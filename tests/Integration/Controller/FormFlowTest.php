@@ -282,6 +282,35 @@ final class FormFlowTest extends ControllerTestCase
         self::assertSelectorTextContains('body', 'se ha aprobado y ya está en vigor');
     }
 
+    public function testTheListOfModelsLinksEachToItsFolderAndToTheActivitiesThatUseIt(): void
+    {
+        $service = self::getContainer()->get(FormModelService::class);
+        $used    = $service->create($this->modelFolder, 'Ficha', null);
+        $service->create($this->modelFolder, 'Otra ficha', null);
+        $this->activity->setFormModel($used);
+        $this->flush();
+
+        $this->loginAs($this->admin, $this->centre);
+        $crawler = $this->client->request('GET', '/modelos');
+        self::assertResponseIsSuccessful();
+
+        $row = $crawler->filter('li[data-model-list-target="row"][data-name="Ficha"]');
+        self::assertStringContainsString(
+            'folder=' . $this->modelFolder->getId()->toRfc4122(),
+            (string) $row->filter('[data-testid="model-folder-link"]')->attr('href'),
+        );
+        self::assertStringContainsString('document=' . $used->getDocument()->getId()->toRfc4122(), (string) $row->filter('[data-testid="model-folder-link"]')->attr('href'));
+        $activityLink = $row->filter('[data-testid="model-activity-link"]');
+        self::assertCount(1, $activityLink);
+        self::assertSame('Ficha de actividad', trim($activityLink->text()));
+        self::assertStringContainsString('activity=' . $this->activity->getId()->toRfc4122(), (string) $activityLink->attr('href'));
+        self::assertStringContainsString('Ficha de actividad', (string) $row->attr('data-search'), 'searching by the activity finds its model');
+
+        $other = $crawler->filter('li[data-model-list-target="row"][data-name="Otra ficha"]');
+        self::assertCount(0, $other->filter('[data-testid="model-activity-link"]'));
+        self::assertStringContainsString('Aún no lo usa ninguna actividad', $other->text());
+    }
+
     public function testAFolderThatDoesNotAskForReviewHasNoApproveButton(): void
     {
         $service = self::getContainer()->get(FormModelService::class);

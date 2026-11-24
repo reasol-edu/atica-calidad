@@ -79,6 +79,27 @@ class ActivityRepository extends ServiceEntityRepository
     }
 
     /**
+     * The centre's activities delivered by filling a model (hidden ones too: the list of models is for whoever manages them), by title,
+     * with their category: what Gestión › Modelos de documento links each model to.
+     *
+     * @return list<Activity>
+     */
+    public function findUsingAFormModel(EducationalCentre $centre): array
+    {
+        /** @var list<Activity> $activities */
+        $activities = $this->createQueryBuilder('a')
+            ->join('a.category', 'c')->addSelect('c')
+            ->where('c.educationalCentre = :centre')
+            ->andWhere('a.formModel IS NOT NULL')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('a.title')
+            ->getQuery()
+            ->getResult();
+
+        return $activities;
+    }
+
+    /**
      * Fetch-joins relatedDocuments (and just enough of each one — its active revision and its
      * folder/section — to render a download link and a tree-location icon) so that rendering a
      * category's activity list doesn't re-query per activity per related document.

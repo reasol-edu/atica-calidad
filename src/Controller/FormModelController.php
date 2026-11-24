@@ -56,6 +56,7 @@ class FormModelController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly CsrfTokenManagerInterface $csrf,
         private readonly DocumentRevisionReviewer $reviewer,
+        private readonly \App\Repository\ActivityRepository $activities,
     ) {}
 
     #[Route('', name: 'app_form_models', methods: ['GET'])]
@@ -68,6 +69,14 @@ class FormModelController extends AbstractController
             $folders[] = ['id' => $folder->getId()->toRfc4122(), 'label' => $folder->getDocumentSection()->getName() . ' › ' . $folder->getName()];
         }
         usort($folders, static fn (array $a, array $b): int => strnatcasecmp($a['label'], $b['label']));
+
+        // The activities delivered by filling each model, linked from its row (as is its folder, in the tree).
+        $activitiesByModel = [];
+        foreach ($this->activities->findUsingAFormModel($centre) as $activity) {
+            if ($activity->isForm()) {
+                $activitiesByModel[$activity->getFormModel()?->getId()->toRfc4122()][] = $activity;
+            }
+        }
 
         // What the list needs of each model (the client filters, sorts and groups with it): where it lives, its status flags and when
         // it last changed (the draft or the latest revision, whichever is newer).
@@ -96,6 +105,7 @@ class FormModelController extends AbstractController
                 'draftAhead' => $draftAhead,
                 'attention'  => $pending !== null || $draftAhead,
                 'updated'    => $updated,
+                'activities' => $activitiesByModel[$model->getId()->toRfc4122()] ?? [],
             ];
         }
 

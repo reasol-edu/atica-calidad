@@ -11,6 +11,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 - Editor de modelos: quien puede revisar la carpeta del modelo tiene en el panel de envío el botón **Aprobar nueva revisión**, que crea la revisión ya aprobada y en vigor (sin avisar a los revisores de una revisión pendiente que ya no lo está).
 
+- Modelos de documento: cada fila del listado enlaza con su carpeta del árbol documental (abre el documento del modelo) y con las actividades que se entregan rellenándolo (abiertas ya desplegadas); el buscador también encuentra un modelo por el nombre de su actividad.
+
 ### Changed
 
 - Actividades › Ver: las tarjetas de una categoría salen plegadas (título, plazo, estado y avance) y se despliegan pulsando su título o «Ver detalles y entregas»; una búsqueda o un enlace a una actividad o a una entrega la despliega y se desplaza hasta ella. Una actividad con muchas entregas ya no alarga la página sin fin.

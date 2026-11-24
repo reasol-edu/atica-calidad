@@ -36,9 +36,14 @@ muestra su estado: un **punto ámbar** si esa parte difiere de la última revisi
 rojo** con los problemas que impiden enviarla. Encima de las pestañas, una **barra fija** dice si hay
 cambios sin enviar y tiene el botón de envío.
 
-![Pantalla «Modelos de documento»: botones Nuevo modelo e Importar, y debajo la «Memoria de departamento» (MD-07) en vigor, con sus botones Editar, Exportar y Duplicar](img/modelos-lista.png)
+![Pantalla «Modelos de documento»: botones Nuevo modelo e Importar, y debajo la «Memoria de departamento» (MD-07) en vigor, con el enlace a su carpeta «Memorias › Modelos rellenables», la actividad que lo usa («Memoria final de departamento») y sus botones Editar y ⋯](img/modelos-lista.png)
 
-La lista de modelos tiene un **buscador** (nombre, código o carpeta) y filtros por **estado** (en vigor, sin
+Cada fila enlaza con lo relacionado: la ruta **sección › carpeta** abre el modelo en su carpeta del
+árbol documental, y debajo aparecen las **actividades que se entregan rellenándolo** («Lo usa la
+actividad: …»), cada una con un enlace que la abre ya desplegada en Actividades (o «Aún no lo usa
+ninguna actividad»).
+
+La lista de modelos tiene un **buscador** (nombre, código, carpeta o actividad) y filtros por **estado** (en vigor, sin
 revisión aprobada, pendiente de aprobar o con cambios en el borrador sin enviar) y por **sección** del árbol
 documental. Se puede **ordenar** por nombre, código, última modificación o estado, y **agrupar** por sección
 o por estado (cada grupo se pliega pulsando su título). El botón ámbar **Necesitan atención** filtra los

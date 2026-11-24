@@ -204,10 +204,29 @@
                         data-states="{{ states|join(' ') }}" data-primary="{{ primary }}"
                         data-primary-label="{{ ('models.status_' ~ primary)|trans({}, 'forms') }}"
                         data-updated="{{ r.updated|date('U') }}"
-                        data-search="{{ doc.name }} {{ m.code }} {{ r.section }} {{ doc.folder.name }}">
+                        data-search="{{ doc.name }} {{ m.code }} {{ r.section }} {{ doc.folder.name }} {{ r.activities|map(a => a.title)|join(' ') }}">
                         <div class="min-w-0 basis-full sm:flex-1 sm:basis-0">
                             <p class="break-words font-medium text-gray-900">{{ doc.name }}{% if m.code %} <span class="font-normal text-gray-500">· {{ m.code }}</span>{% endif %}</p>
-                            <p class="break-words text-xs text-gray-500">{{ r.section }} › {{ doc.folder.name }} · {{ 'models.updated'|trans({'%date%': r.updated|date('d/m/Y')}, 'forms') }}</p>
+                            {# Where it lives (the document in the tree) and the activities filled with it, each a link to it. #}
+                            <p class="break-words text-xs text-gray-500">
+                                <a href="{{ path('app_document_tree', {section: doc.folder.documentSection.id.toRfc4122, folder: doc.folder.id.toRfc4122, document: doc.id.toRfc4122}) }}"
+                                   title="{{ 'models.folder_link'|trans({}, 'forms') }}" data-testid="model-folder-link"
+                                   class="inline-flex items-center gap-1 hover:text-forest-700 hover:underline">
+                                    {{ ux_icon('heroicons:folder-open', {class: 'h-3.5 w-3.5 shrink-0'}) }}{{ r.section }} › {{ doc.folder.name }}</a>
+                                · {{ 'models.updated'|trans({'%date%': r.updated|date('d/m/Y')}, 'forms') }}
+                            </p>
+                            <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
+                                {% if r.activities is empty %}
+                                    <span class="italic text-gray-400">{{ 'models.no_activities'|trans({}, 'forms') }}</span>
+                                {% else %}
+                                    <span>{{ 'models.used_by'|trans({'%count%': r.activities|length}, 'forms') }}</span>
+                                    {% for activity in r.activities %}
+                                        <a href="{{ path('app_activities', {category: activity.category.id.toRfc4122, activity: activity.id.toRfc4122}) }}" data-testid="model-activity-link"
+                                           class="inline-flex items-center gap-1 text-forest-700 hover:text-forest-800 hover:underline">
+                                            {{ ux_icon('heroicons:check-circle', {class: 'h-3.5 w-3.5 shrink-0'}) }}{{ activity.title }}</a>
+                                    {% endfor %}
+                                {% endif %}
+                            </p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2 text-xs">
                             {% if r.active %}<span class="rounded-full bg-forest-50 px-2.5 py-1 font-medium text-forest-700">{{ 'models.in_force'|trans({'%version%': r.active.version}, 'forms') }}</span>
