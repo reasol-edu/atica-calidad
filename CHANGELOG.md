@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-11-24
+
 ### Added
 
 - Editor de modelos: quien puede revisar la carpeta del modelo tiene en el panel de envío el botón **Aprobar nueva revisión**, que crea la revisión ya aprobada y en vigor (sin avisar a los revisores de una revisión pendiente que ya no lo está).
