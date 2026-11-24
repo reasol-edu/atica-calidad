@@ -100,7 +100,11 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
 - **Total al pie de una columna** numérica o calculada (cuenta, suma, media, mínimo o máximo): el
   valor se ve al final de la columna. Si le pones un **nombre**, además es un campo del documento
   (no se muestra aparte: está solo al pie de la tabla) y sirve en fórmulas, indicadores, reglas y
-  en el explorador de datos. «Cuenta» cuenta los valores rellenados, no las filas. Eliges qué valor
+  en el explorador de datos. «Cuenta» cuenta los valores rellenados, no las filas. Una **media**
+  muestra siempre el número de **decimales** que indiques en **Decimales de la media** (de 0 a 6; dos
+  si no dices otra cosa, o los de la propia columna si es calculada): «82,33 %» y no «82,333333 %», o
+  «82,50 %» en vez de «82,5 %». Vale igual en pantalla, en el PDF, en Word y en OpenDocument; una suma,
+  un mínimo o un máximo conservan los decimales que tengan (hasta seis). Eliges qué valor
   mostrar columna a columna (o ninguno) y, con **Personalizado**, escribes tú la fórmula del total
   (por ejemplo, máximo menos mínimo); un total personalizado es siempre un campo del documento.
 - **Tabla** de filas libres (quien rellena añade las que necesite, con un máximo), de filas fijas, de
@@ -326,7 +330,7 @@ Las secciones 4 y 5 salen de listas del catálogo. La tabla «Aprobados en la ev
 una fila por materia (quien entrega esta memoria no está asociado a ninguna, así que salen las 14),
 con la media al pie:
 
-![Sección «4. Resultados por materia»: la tabla «Aprobados en la evaluación final», con «Rellenas 2 de 14» sobre ella y una fila por materia que se desplaza dentro de su recuadro (Matemáticas 86 %, Lengua Castellana y Literatura 78 %, Inglés, Física y Química… hasta la FFEOE) y el total al pie, 82 %](img/modelos-filas-lista.png)
+![Sección «4. Resultados por materia»: la tabla «Aprobados en la evaluación final», con «Rellenas 2 de 14» sobre ella, el campo «Filtrar…» en la cabecera de su primera columna y una fila por materia que se desplaza dentro de su recuadro (Matemáticas 86 %, Lengua Castellana y Literatura 78 %, Inglés, Física y Química… hasta la FFEOE) y la media al pie, 82,00 %](img/modelos-filas-lista.png)
 
 Y la sección «Seguimiento» se repite una vez por curso de Formación Profesional, cada copia con el
 nombre de su curso en el título:

@@ -108,7 +108,10 @@ because a script cannot read them: add a new icon in both places; the Spanish la
 - **Calculated fields and columns** (`fieldType: calculated`, `formula`, `decimals`, `unit`): never typed (the normalizer drops what the
   browser sends), filled by `FormCalculator` after the data is cleaned, in up to four passes so a formula can read another calculated
   value; a cycle is a model problem. The result is stored with the data, so it is frozen with each delivered revision. A column can show a
-  **total at its foot** (`total`: sum, avg, min, max, count, or `custom` with a `totalFormula`, always a field and shown from its value),
+  **total at its foot** (`total`: sum, avg, min, max, count, or `custom` with a `totalFormula`, always a field and shown from its value;
+  an `avg` shows exactly `totalDecimals` decimals — 0–6, default 2, a calculated column's own `decimals` if none was given — in
+  `FormResolver::totals()` and its twin `totals()` of `form_scopes.js`, via `number($v, $column, $fixed)`; the other totals keep
+  «as many as they have, up to six»; the named total field of an `avg` gets the same `decimals`),
   display-only unless it has a `totalName`: then `totalKey` is also the key of
   a calculated field (`fn([t:TABLE.COL])`, `foot: true`) that `FormDefinitionNormalizer::footFields()` writes right after the table every
   time (stored `foot` blocks are dropped and remade; the editor hides them). `FormWalker` / `walk()` mark it not visible, so nothing

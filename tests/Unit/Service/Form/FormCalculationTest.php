@@ -212,6 +212,38 @@ final class FormCalculationTest extends TestCase
         self::assertSame(['', '100', '', '160,00 €'], $units['totals']);
     }
 
+    /** The twin of «an average at the foot has the decimals the column asks for» of tests/js/form-scopes.test.mjs. */
+    public function testAnAverageAtTheFootHasTheDecimalsTheColumnAsksFor(): void
+    {
+        $def = $this->definitions->normalize(['sections' => [['title' => 'x', 'blocks' => [['type' => 'table', 'label' => 'Notas', 'mode' => 'free', 'columns' => [
+            ['label' => 'Media', 'fieldType' => 'number', 'total' => 'avg', 'unit' => '%'],
+            ['label' => 'Media 0', 'fieldType' => 'number', 'total' => 'avg', 'totalDecimals' => 0],
+            ['label' => 'Media 4', 'fieldType' => 'number', 'total' => 'avg', 'totalDecimals' => 4],
+            ['label' => 'Media 9', 'fieldType' => 'number', 'total' => 'avg', 'totalDecimals' => 9],
+            ['label' => 'Suma', 'fieldType' => 'number', 'total' => 'sum', 'totalDecimals' => 1],
+            ['label' => 'Máx', 'fieldType' => 'number', 'total' => 'max'],
+            ['label' => 'Calc', 'fieldType' => 'calculated', 'formula' => '1', 'decimals' => 4, 'total' => 'avg'],
+        ]]]]]]);
+        $table = $def['sections'][0]['blocks'][0];
+        $keys  = array_column($table['columns'], 'key');
+        self::assertSame([2, 0, 4, 6, 1, 2, 4], array_column($table['columns'], 'totalDecimals'), 'two by default, those of a calculated column, six at most (kept, though only an average uses it)');
+
+        [$avg, $avg0, $avg4, $avg9, $sum, $max, $calc] = $keys;
+        $rows = [];
+        foreach ([80, 85, 82] as $i => $n) {
+            $rows[] = ['_key' => 'a0000000-0000-4000-8000-00000000000' . ($i + 1), $avg => $n, $avg0 => $n, $avg4 => $n, $avg9 => $n, $sum => [0.1234567, 1, 0][$i], $max => [1.123456789, 1, 0][$i], $calc => [1, 1, 2][$i]];
+        }
+        $view = $this->resolver->resolve($def, ['fields' => [], 'texts' => [], 'tables' => [$table['key'] => $rows], 'copies' => []]);
+
+        // 247 / 3 = 82,3333…: always that many decimals, as the browser says.
+        self::assertSame(['82,33 %', '82', '82,3333', '82,333333', '1,123457', '1,123457', '1,3333'], $view[0]['blocks'][0]['totals']);
+
+        // The same with one thing to round both ways: 1 and 2 average 1,5.
+        $rows2 = [['_key' => 'b0000000-0000-4000-8000-000000000001', $avg => 1], ['_key' => 'b0000000-0000-4000-8000-000000000002', $avg => 2]];
+        $view2 = $this->resolver->resolve($def, ['fields' => [], 'texts' => [], 'tables' => [$table['key'] => $rows2], 'copies' => []]);
+        self::assertSame('1,50 %', $view2[0]['blocks'][0]['totals'][0]);
+    }
+
     public function testCalculatedValuesAreFormattedWithTheirDecimals(): void
     {
         $def    = $this->definition();

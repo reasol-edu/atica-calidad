@@ -57,6 +57,24 @@ test('totals at the foot of a column', () => {
     assert.deepEqual(totals(columns, rows), ['', '100', '', '160,00 €']);
 });
 
+test('an average at the foot has the decimals the column asks for (two by default), the other totals keep what they have', () => {
+    const plain = (total, totalDecimals) => [{ key: 'a', label: 'A', fieldType: 'number', total, unit: '%', ...(totalDecimals === undefined ? {} : { totalDecimals }) }];
+    const rows = [{ a: 80 }, { a: 85 }, { a: 82 }];   // 247 / 3 = 82,333333…
+    assert.deepEqual(totals(plain('avg'), rows), ['82,33 %'], 'two by default');
+    assert.deepEqual(totals(plain('avg'), [{ a: 1 }, { a: 2 }]), ['1,50 %'], 'always that many decimals');
+    assert.deepEqual(totals(plain('avg'), [{ a: 2 }, { a: 4 }]), ['3,00 %']);
+    assert.deepEqual(totals(plain('avg', 0), rows), ['82 %'], 'none: a whole number');
+    assert.deepEqual(totals(plain('avg', 1), rows), ['82,3 %']);
+    assert.deepEqual(totals(plain('avg', 4), rows), ['82,3333 %']);
+    assert.deepEqual(totals(plain('avg', 6), rows), ['82,333333 %']);
+    assert.deepEqual(totals(plain('avg', 9), rows), ['82,333333 %'], 'six at most');
+    assert.deepEqual(totals(plain('avg', 1), [{ a: 0.25 }, { a: 0.3 }, { a: 0.3 }]), ['0,3 %'], 'half away from zero, as the server does');
+    assert.deepEqual(totals(plain('sum'), [{ a: 0.1234567 }, { a: 1 }]), ['1,123457 %'], 'a sum keeps up to six');
+    assert.deepEqual(totals(plain('max', 2), [{ a: 1.123456789 }]), ['1,123457 %'], 'and so do the extremes: only the average has the setting');
+    const calculated = [{ key: 'c', label: 'C', fieldType: 'calculated', decimals: 4, total: 'avg', totalDecimals: 4 }];
+    assert.deepEqual(totals(calculated, [{ c: 1 }, { c: 1 }, { c: 2 }]), ['1,3333']);
+});
+
 test('a double-entry table has a row per unit and a relation forgets rows that went', () => {
     const def = definition();
     const state = { fields: {}, texts: {}, copies: {}, tables: {
@@ -158,7 +176,7 @@ test('a scale column is a number for calculations and totals', () => {
     const state = { fields: {}, texts: {}, tables: { [k('t')]: [{ _key: 'r1', [k('a')]: 3 }, { _key: 'r2', [k('a')]: 4 }] }, copies: {} };
     calculate(def, state);
     assert.deepEqual(state.tables[k('t')].map((r) => r[k('b')]), [6, 8]);
-    assert.deepEqual(totals(def.sections[0].blocks[0].columns, state.tables[k('t')]), ['3,5', '']);
+    assert.deepEqual(totals(def.sections[0].blocks[0].columns, state.tables[k('t')]), ['3,50', ''], 'the average of the ratings, with its two decimals');
 });
 
 test('the field of a named foot total is calculated but not shown as a block', () => {

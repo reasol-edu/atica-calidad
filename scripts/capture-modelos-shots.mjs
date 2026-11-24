@@ -166,10 +166,11 @@ await shot('modelos-escala-adjuntos');
 
 // Sections 4 and 5: a row per subject (the list «Materia»), a copy per course of vocational training.
 const results = canvas.locator('table:has(th:text("Aprobados (%)"))').first();
-await results.locator('input').nth(0).fill('86');
+// (Its first column has a filter, an input of its own: only the numbers are the cells.)
+await results.locator('input[type="number"]').nth(0).fill('86');
 await page.keyboard.press('Tab');
 await page.waitForTimeout(500);
-await results.locator('input').nth(1).fill('78');
+await results.locator('input[type="number"]').nth(1).fill('78');
 await page.keyboard.press('Tab');
 await page.waitForTimeout(800);
 await atSection('Resultados por materia');

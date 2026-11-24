@@ -1100,6 +1100,13 @@ export default class extends Controller {
             };
             parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
                 this.labelled(this.l.total, this.select(spec.total || '', totalsList, (v) => { spec.total = v; this.changed(); }, this.l.total), 'w-48'),
+                // An average says how many decimals it shows (two, or those of a calculated column, if nothing was chosen).
+                ...(spec.total === 'avg' ? [this.labelled(this.l.total_decimals, this.select(
+                    String(spec.totalDecimals ?? (spec.fieldType === 'calculated' ? (spec.decimals ?? 2) : 2)),
+                    [0, 1, 2, 3, 4, 5, 6].map((n) => [String(n), String(n)]),
+                    (v) => { spec.totalDecimals = Number(v); this.touch(); },
+                    this.l.total_decimals,
+                ), 'w-40')] : []),
                 ...(spec.total ? [this.labelled(this.l.total_name, h('input', { class: INPUT, value: spec.totalName ?? '', maxlength: 255, placeholder: this.l.total_name_hint, oninput: named }), 'flex-1 basis-64')] : []),
             ]));
             if (spec.total === 'custom') {

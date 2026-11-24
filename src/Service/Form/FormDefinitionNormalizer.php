@@ -618,7 +618,7 @@ final class FormDefinitionNormalizer
                     'label'     => $name !== '' ? $name : FormDefinition::str($column['label'] ?? ''),
                     'fieldType' => 'calculated',
                     'formula'   => $formula,
-                    'decimals'  => $fn === 'count' ? 0 : ($calculated ? FormDefinition::int($column['decimals'] ?? 2) : 2),
+                    'decimals'  => $fn === 'count' ? 0 : ($fn === 'avg' ? FormDefinition::int($column['totalDecimals'] ?? 2) : ($calculated ? FormDefinition::int($column['decimals'] ?? 2) : 2)),
                     'unit'      => $fn === 'count' ? '' : FormDefinition::str($column['unit'] ?? ''),
                 ])
                 + ['help' => '', 'visibleIf' => null, 'foot' => true];
@@ -761,6 +761,8 @@ final class FormDefinitionNormalizer
             'relLabel'  => $type === 'relation' ? ($this->reference($raw['relLabel'] ?? null) ?? '') : '',
             'multiple'  => $type === 'relation' && ($raw['multiple'] ?? false) === true,
             'total'     => in_array($total, FormDefinition::TOTALS, true) && in_array($type, FormDefinition::NUMERIC_TYPES, true) ? $total : '',
+            // The decimals of an average at the foot of the column (0–6): two, or, in a calculated column, the ones of the column itself.
+            'totalDecimals' => min(6, max(0, FormDefinition::int($raw['totalDecimals'] ?? ($calculated ? ($raw['decimals'] ?? 2) : 2)))),
             'points'    => $scale ? min(FormDefinition::SCALE_MAX_POINTS, max(FormDefinition::SCALE_MIN_POINTS, $points)) : 0,
             'lowLabel'  => $scale ? $this->text($raw['lowLabel'] ?? '', 60) : '',
             'highLabel' => $scale ? $this->text($raw['highLabel'] ?? '', 60) : '',

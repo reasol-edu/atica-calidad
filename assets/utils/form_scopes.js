@@ -592,11 +592,16 @@ export function calculate(definition, data, index = buildIndex(definition)) {
     }
 }
 
-/** A number the way a column shows it (the twin of FormResolver::number()). */
-function numberText(value, column) {
-    const text = column.fieldType === 'calculated'
-        ? value.toFixed(Math.min(6, Math.max(0, column.decimals ?? 2))).replace('.', ',')
-        : String(round(value, 6)).replace('.', ',');
+/**
+ * A number the way a column shows it (the twin of FormResolver::number()): with `fixed` decimals when they are given (an average at the
+ * foot of a table); else a calculated column with its own decimals, and any other with as many as it has, up to six.
+ */
+function numberText(value, column, fixed = null) {
+    const text = fixed !== null
+        ? round(value, fixed).toFixed(fixed).replace('.', ',')
+        : column.fieldType === 'calculated'
+            ? value.toFixed(Math.min(6, Math.max(0, column.decimals ?? 2))).replace('.', ',')
+            : String(round(value, 6)).replace('.', ',');
     return column.unit ? text + ' ' + column.unit : text;
 }
 
@@ -627,7 +632,8 @@ export function totals(columns, rows, fields = {}) {
         if (result === null) {
             return '';
         }
-        return column.total === 'count' ? String(result) : numberText(result, column);
+        // An average has the decimals the column asks for (two by default: 82,33 and not 82,333333), always that many (82,50).
+        return column.total === 'count' ? String(result) : numberText(result, column, column.total === 'avg' ? Math.min(6, Math.max(0, column.totalDecimals ?? 2)) : null);
     });
 }
 

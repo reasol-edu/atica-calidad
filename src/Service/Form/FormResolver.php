@@ -259,22 +259,26 @@ final class FormResolver
                 'min'   => $numbers === [] ? null : min($numbers),
                 default => $numbers === [] ? null : max($numbers),
             };
-            $out[] = $result === null ? '' : ($kind === 'count' ? (string) $result : $this->number((float) $result, $column));
+            // An average has the decimals the column asks for (two by default: 82,33 and not 82,333333), always that many (82,50).
+            $out[] = $result === null ? '' : ($kind === 'count' ? (string) $result : $this->number((float) $result, $column, $kind === 'avg' ? min(6, max(0, FormDefinition::int($column['totalDecimals'] ?? 2))) : null));
         }
 
         return $out;
     }
 
     /**
-     * A number the way a column shows it: its decimals when it is calculated (otherwise as many as it has, up to six) and its unit.
+     * A number the way a column shows it: with $fixed decimals when it is given (an average at the foot of a table), else its own when it
+     * is calculated (otherwise as many as it has, up to six) — and its unit.
      *
      * @param array<string, mixed> $column
      */
-    private function number(float $value, array $column): string
+    private function number(float $value, array $column, ?int $fixed = null): string
     {
-        $text = ($column['fieldType'] ?? '') === 'calculated'
-            ? number_format($value, min(6, max(0, FormDefinition::int($column['decimals'] ?? 2))), ',', '')
-            : str_replace('.', ',', (string) round($value, 6));
+        $text = $fixed !== null
+            ? number_format(round($value, $fixed), $fixed, ',', '')
+            : (($column['fieldType'] ?? '') === 'calculated'
+                ? number_format($value, min(6, max(0, FormDefinition::int($column['decimals'] ?? 2))), ',', '')
+                : str_replace('.', ',', (string) round($value, 6)));
         $unit = FormDefinition::str($column['unit'] ?? '');
 
         return $unit === '' ? $text : $text . ' ' . $unit;

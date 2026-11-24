@@ -15,6 +15,7 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 
+- Modelos de documento: el total al pie de una columna que es una **media** muestra siempre el número de decimales que se indique en el nuevo ajuste **Decimales de la media** (de 0 a 6; dos por defecto, o los de la propia columna si es calculada): «82,33 %» en vez de «82,333333 %», o «82,50 %». Vale en pantalla y en el PDF, Word y OpenDocument. La suma, el mínimo y el máximo siguen con sus decimales (hasta seis).
 - Actividades: en el formulario, «Completado» (A mano / Al entregar) pasa justo debajo de «Obligatoriedad», y «Opciones avanzadas» conserva solo lo de ocultar la actividad.
 - **Las guías de despliegue pasan a ser anexos del manual** (anexos 15 a 18: despliegue en Plesk, instalación manual en Ubuntu Server, despliegue continuo en Ubuntu Server y exposición con Cloudflare Tunnel). Antes vivían aparte, en `docs/despliegue/`, y solo se leían en GitHub; ahora salen en la web del manual, en su buscador y en el PDF, con los mismos avisos y estilo, y los capítulos de instalación y de administración de la plataforma enlazan a ellos. La carpeta `docs/despliegue/` desaparece; los comentarios de `dist/`, `compose.cloudflare.yaml` y `.env.example` apuntan a los nuevos capítulos. El anexo de Plesk deja de hablar de tareas programadas que no existen en esta aplicación («partes sin notificar») y lista las reales, y la tabla de capítulos del README incluye Mejora continua, Modelos de documento y los anexos.
 
