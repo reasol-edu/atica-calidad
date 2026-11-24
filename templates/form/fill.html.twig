@@ -4,7 +4,8 @@
 
 {# One slot of an activity delivered by filling a model in: the form while there is a draft, the delivered document otherwise. #}
 {% block content %}
-<div class="px-4 sm:px-6 py-6 max-w-4xl mx-auto">
+{# Wider while filling in: the index of the sections goes at the side on a big screen. #}
+<div class="px-4 sm:px-6 py-6 {{ editor is defined ? 'max-w-6xl' : 'max-w-4xl' }} mx-auto">
     <div class="mb-4">
         <a href="{{ backUrl }}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-forest-600">
             {{ ux_icon('heroicons:arrow-left', {class: 'h-4 w-4'}) }}{{ activity.title }}
@@ -61,6 +62,14 @@
     {% if editor is defined %}
         {% set labels = {
             history: 'fill.history'|trans({}, 'forms'),
+            pending_one: 'fill.pending_one'|trans({}, 'forms'),
+            pending_many: 'fill.pending_many'|trans({}, 'forms'),
+            index_done: 'fill.index_done'|trans({}, 'forms'),
+            index_pending: 'fill.index_pending'|trans({}, 'forms'),
+            collapse: 'fill.collapse'|trans({}, 'forms'),
+            expand: 'fill.expand'|trans({}, 'forms'),
+            rows_filled: 'fill.rows_filled'|trans({}, 'forms'),
+            annex: 'view.annex'|trans({'%n%': '%n%'}, 'forms'),
             history_empty: 'fill.history_empty'|trans({}, 'forms'),
             history_restore: 'fill.history_restore'|trans({}, 'forms'),
             history_loading: 'fill.history_loading'|trans({}, 'forms'),
@@ -107,10 +116,29 @@
         <div data-controller="form-fill"
              data-form-fill-config-value="{{ editor|json_encode|e('html_attr') }}"
              data-form-fill-labels-value="{{ labels|json_encode|e('html_attr') }}">
-            <p class="mb-3 text-sm" role="status" aria-live="polite" data-form-fill-target="status"></p>
+            {# Always in sight while scrolling: whether it is saved, how much is left before delivering, and (small screens) the index. #}
+            <div class="sticky top-14 z-20 -mx-4 mb-4 border-b border-gray-200 bg-white/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6" data-testid="fill-bar">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                    <span role="status" aria-live="polite" data-form-fill-target="status"></span>
+                    <button type="button" data-form-fill-target="pending" data-action="form-fill#goToProblems"
+                            class="hidden items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 hover:bg-amber-100"></button>
+                    <details class="relative ml-auto lg:hidden" data-form-fill-target="indexMenu">
+                        <summary class="flex cursor-pointer list-none items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                            {{ ux_icon('heroicons:queue-list', {class: 'h-4 w-4'}) }}{{ 'fill.index'|trans({}, 'forms') }}
+                        </summary>
+                        <div class="absolute right-0 z-30 mt-1 max-h-[60vh] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-gray-200 bg-white p-2 shadow-lg" data-form-fill-target="indexMobile"></div>
+                    </details>
+                </div>
+            </div>
+
+            <div class="lg:grid lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-6">
+                <nav class="hidden lg:block" aria-label="{{ 'fill.index'|trans({}, 'forms') }}">
+                    <div class="sticky top-32 max-h-[calc(100vh-9rem)] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-2 shadow-xs" data-form-fill-target="index"></div>
+                </nav>
+                <div class="min-w-0">
             <div class="rounded-2xl border border-gray-200 bg-white px-4 py-5 shadow-xs sm:px-6" data-form-fill-target="canvas"></div>
 
-            <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs sm:p-5">
+            <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs sm:p-5" data-form-fill-target="deliverBox">
                 <h2 class="text-base font-semibold text-gray-900">{{ 'fill.deliver_title'|trans({}, 'forms') }}</h2>
                 <div data-form-fill-target="problemsBox" class="{{ problems is empty ? 'hidden' : '' }}">
                     <p class="mt-1 text-sm font-medium text-amber-800">{{ 'fill.pending'|trans({}, 'forms') }}</p>
@@ -143,6 +171,8 @@
                     {% endif %}
                 </div>
             </section>
+                </div>
+            </div>
         </div>
     {% elseif last is not null %}
         {% set revision = lastRevision %}

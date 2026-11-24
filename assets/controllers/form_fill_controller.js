@@ -18,6 +18,10 @@ const ICON_PATHS = {
     document: 'M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9',
     photo: 'm2.25 15.75l5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5m10.5-11.25h.008v.008h-.008zm.375 0a.375.375 0 1 1-.75 0a.375.375 0 0 1 .75 0',
     'x-mark': 'M6 18L18 6M6 6l12 12',
+    clock: 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0a9 9 0 0 1 18 0',
+    'chevron-down': 'm19.5 8.25l-7.5 7.5l-7.5-7.5',
+    'check-circle': 'M9 12.75L11.25 15L15 9.75M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0',
+    'exclamation-circle': 'M12 9v3.75m9-.75a9 9 0 1 1-18 0a9 9 0 0 1 18 0m-9 3.75h.008v.008H12z',
 };
 
 /** A Heroicon as an inline SVG (decorative: the control around it says what it is). */
@@ -38,7 +42,7 @@ function icon(name, cls) {
  */
 /* stimulusFetch: 'lazy' */
 export default class extends Controller {
-    static targets = ['canvas', 'status', 'problems', 'problemsBox', 'warnings', 'warningsBox', 'deliver'];
+    static targets = ['canvas', 'status', 'problems', 'problemsBox', 'warnings', 'warningsBox', 'deliver', 'deliverBox', 'pending', 'index', 'indexMenu', 'indexMobile'];
     static values = { config: Object, labels: Object };
 
     connect() {
@@ -66,6 +70,8 @@ export default class extends Controller {
         this.problemList = this.configValue.problems || [];
         this.revealed = new Set();
         this.showAll = false;
+        // The copies of repeating sections folded away (by path): kept across redraws.
+        this.collapsed = new Set();
         this.pendingSelects = [];
         this.tomSelects = [];
 
@@ -299,8 +305,62 @@ export default class extends Controller {
     setStatus(text, tone) {
         if (this.hasStatusTarget) {
             this.statusTarget.textContent = text;
-            this.statusTarget.className = 'mb-3 text-sm ' + tone;
+            this.statusTarget.className = tone;
         }
+    }
+
+    /** The bar's «N pendientes»: down to the list of what is left before delivering. */
+    goToProblems() {
+        this.showAll = true;
+        this.markInvalid();
+        (this.hasDeliverBoxTarget ? this.deliverBoxTarget : this.problemsBoxTarget).scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    /**
+     * The index of the document's sections (each copy of a repeating one too), with how many problems each holds now: at the side on a big
+     * screen, in the bar's «Secciones» on a small one. A problem belongs to the section whose path is its own or starts it.
+     */
+    renderIndex() {
+        if (!this.hasIndexTarget && !this.hasIndexMobileTarget) {
+            return;
+        }
+        const entries = (this.tree || []).filter((inst) => !inst.adder && inst.visible);
+        const count = (inst) => this.problemList.filter((p) => p.path && (p.path === inst.path || p.path.startsWith(inst.path + '/'))).length;
+        const list = () => h('ul', { class: 'space-y-0.5' }, entries.map((inst) => {
+            const problems = count(inst);
+            const number = this.nums.get(inst.path);
+            const title = references(inst.section.title || '', inst, this.specs, this.refContext, this.l) || '…';
+            return h('li', {}, [h('a', {
+                href: '#sec-' + inst.path,
+                class: 'flex items-start gap-2 rounded-lg px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50',
+                onclick: (e) => {
+                    e.preventDefault();
+                    if (this.collapsed.delete(inst.path)) {
+                        this.render();
+                    }
+                    document.getElementById('sec-' + inst.path)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (this.hasIndexMenuTarget) { this.indexMenuTarget.open = false; }
+                },
+            }, [
+                problems > 0
+                    ? h('span', { class: 'mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-amber-100 px-1 text-[10px] font-semibold text-amber-800', title: this.l.index_pending.replace('%count%', String(problems)), text: String(problems) })
+                    : h('span', { class: 'mt-0.5 shrink-0 text-forest-600', title: this.l.index_done }, [icon('check-circle', 'h-4 w-4')]),
+                h('span', { class: 'min-w-0', text: (number ? number + '. ' : '') + title }),
+            ])]);
+        }));
+        if (this.hasIndexTarget) { this.indexTarget.replaceChildren(list()); }
+        if (this.hasIndexMobileTarget) { this.indexMobileTarget.replaceChildren(list()); }
+    }
+
+    /** «N pendientes» in the bar (hidden when nothing is). */
+    renderPending() {
+        if (!this.hasPendingTarget) {
+            return;
+        }
+        const n = this.problemList.length;
+        this.pendingTarget.classList.toggle('hidden', n === 0);
+        this.pendingTarget.classList.toggle('inline-flex', n > 0);
+        this.pendingTarget.replaceChildren(icon('exclamation-circle', 'h-3.5 w-3.5'), document.createTextNode(n === 1 ? this.l.pending_one : this.l.pending_many.replace('%count%', String(n))));
     }
 
     /** A list of what is wrong, each one a link to the place (a rule of the model has no place: plain text). */
@@ -312,6 +372,12 @@ export default class extends Controller {
                 onclick: () => {
                     // Asking where it is judges every field: what is missing turns red, not only the one clicked.
                     this.showAll = true;
+                    // A copy folded away that holds it is unfolded first.
+                    const folded = [...this.collapsed].filter((path) => p.path === path || (p.path || '').startsWith(path + '/'));
+                    if (folded.length > 0) {
+                        folded.forEach((path) => this.collapsed.delete(path));
+                        this.render();
+                    }
                     this.markInvalid();
                     (document.getElementById('blk-' + p.path + '-' + p.block) || document.getElementById('blk-' + p.block))?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 },
@@ -321,6 +387,8 @@ export default class extends Controller {
     showProblems(problems, warnings = []) {
         this.problemList = problems;
         this.markInvalid();
+        this.renderIndex();
+        this.renderPending();
         if (!this.hasProblemsTarget) {
             return;
         }
@@ -409,6 +477,14 @@ export default class extends Controller {
         this.enhanceSelects();
         this.markInvalid();
         this.updateProgress();
+        this.renderIndex();
+        this.renderPending();
+        this.renumberAnnexes();
+    }
+
+    /** The files of the fields «Adjuntos» numbered as the document will number them («Anexo 1», «Anexo 2»…), in the page's order. */
+    renumberAnnexes() {
+        this.canvasTarget.querySelectorAll('[data-annex]').forEach((el, i) => { el.textContent = this.l.annex.replace('%n%', String(i + 1)); });
     }
 
     /** The drop-downs of the choices (not the ones that follow another table) become boxes you can type in to filter, with pills when several are chosen. */
@@ -562,8 +638,27 @@ export default class extends Controller {
         const section = inst.section;
         const number = this.nums.get(inst.path);
         const canRemove = inst.own && section.repeat.mode === 'manual' && !this.readOnly;
+        // A copy of a repeating section can be folded away (a long list of them reads better), and stays folded across redraws.
+        const foldable = inst.own === true;
+        const folded = foldable && this.collapsed.has(inst.path);
+        const body = h('div', { class: folded ? 'hidden' : null });
+        const titleText = () => references(section.title || '', inst, this.specs, this.refContext, this.l);
+        const fold = foldable ? h('button', {
+            type: 'button', class: 'mt-0.5 shrink-0 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700',
+            'aria-expanded': folded ? 'false' : 'true', 'aria-label': (folded ? this.l.expand : this.l.collapse).replace('%title%', titleText()),
+            onclick: (e) => {
+                const button = e.currentTarget;
+                const now = !this.collapsed.has(inst.path);
+                if (now) { this.collapsed.add(inst.path); } else { this.collapsed.delete(inst.path); }
+                body.classList.toggle('hidden', now);
+                button.setAttribute('aria-expanded', now ? 'false' : 'true');
+                button.setAttribute('aria-label', (now ? this.l.expand : this.l.collapse).replace('%title%', titleText()));
+                button.firstChild.firstChild.classList.toggle('-rotate-90', now);
+            },
+        }, [icon('chevron-down', 'h-5 w-5 transition-transform' + (folded ? ' -rotate-90' : ''))]) : null;
         const heading = section.title || canRemove
             ? h('div', { class: 'flex items-start justify-between gap-2' }, [
+                fold,
                 this.liveText(level === 1 ? 'h2' : 'h3', { class: (level === 1 ? 'border-b border-gray-200 pb-1 text-lg' : 'text-base') + ' min-w-0 flex-1 font-semibold text-gray-900' }, section.title || '', inst, number ? number + '. ' : ''),
                 ...(canRemove ? [h('button', {
                     type: 'button', class: BTN + ' text-red-700', title: this.l.remove_copy, 'aria-label': this.l.remove_copy, text: '✕',
@@ -589,12 +684,17 @@ export default class extends Controller {
             }),
         ]) : null;
 
-        return h('section', { id: 'sec-' + inst.path, class: (level === 1 ? 'mt-6 first:mt-0' : 'mt-5') + (goneItem ? ' opacity-80' : '') }, [
-            heading,
-            goneBox,
+        body.append(
             ...(section.help ? [h('p', { class: 'mt-1 text-sm text-gray-500', text: section.help })] : []),
             h('div', { class: 'mt-3 space-y-4' }, inst.blocks.filter((b) => b.visible).map((b) => this.blockEl(b.block, inst))),
-            ...inst.children.map((c) => this.instEl(c, level + 1)),
+            ...inst.children.map((c) => this.instEl(c, level + 1)).filter((c) => c !== null),
+        );
+
+        // scroll-mt: jumping to it (the index, a problem) leaves it below the page's header and the bar.
+        return h('section', { id: 'sec-' + inst.path, class: 'scroll-mt-32 ' + (level === 1 ? 'mt-6 first:mt-0' : 'mt-5') + (goneItem ? ' opacity-80' : '') }, [
+            heading,
+            goneBox,
+            body,
         ]);
     }
 
@@ -668,20 +768,37 @@ export default class extends Controller {
                 panel.textContent = '—';
             }
         };
+        // A small clock next to the label (a link under every field made the form noisy); the panel opens under the field.
         const button = h('button', {
-            type: 'button', class: 'mt-1 text-xs text-gray-400 underline decoration-dotted hover:text-forest-700', text: this.l.history,
-            onclick: () => { panel.classList.toggle('hidden'); if (!panel.classList.contains('hidden')) { load(); } },
-        });
+            type: 'button', class: 'shrink-0 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-forest-700 focus:outline-none focus:ring-2 focus:ring-forest-500',
+            title: this.l.history, 'aria-label': this.l.history, 'aria-expanded': 'false',
+            onclick: () => {
+                panel.classList.toggle('hidden');
+                const open = !panel.classList.contains('hidden');
+                button.setAttribute('aria-expanded', open ? 'true' : 'false');
+                if (open) { load(); }
+            },
+        }, [icon('clock', 'h-4 w-4')]);
 
-        return h('div', {}, [button, panel]);
+        return { button, panel };
+    }
+
+    /** The label of a field or text with, at its right, the button of its history. */
+    headRow(head, history) {
+        return history ? h('div', { class: 'flex items-start justify-between gap-2' }, [head, history.button]) : head;
     }
 
     blockEl(block, inst) {
         const wrap = (content) => h('div', { id: 'blk-' + inst.path + '-' + block.key }, content);
         if (block.type === 'text') {
             const text = this.textEl(block, inst);
+            if (block.mode === 'fixed') {
+                return wrap(text);
+            }
+            const history = this.historyEl(block, inst);
+            const [head, ...rest] = text;
 
-            return wrap(block.mode === 'fixed' ? text : [...text, this.historyEl(block, inst)]);
+            return wrap([this.headRow(head, history), ...rest, history ? history.panel : null]);
         }
         if (block.type === 'field') {
             const id = 'f-' + inst.path + '-' + block.key;
@@ -701,11 +818,13 @@ export default class extends Controller {
                     this.refresh();
                 });
             }
+            const history = block.fieldType === 'calculated' ? null : this.historyEl(block, inst);
+
             return wrap([
-                this.labelEl(block, inst, id),
+                this.headRow(this.labelEl(block, inst, id), history),
                 control,
                 ...(block.help ? [h('p', { class: 'mt-1 text-xs text-gray-500', text: block.help })] : []),
-                block.fieldType === 'calculated' ? null : this.historyEl(block, inst),
+                history ? history.panel : null,
             ]);
         }
         return wrap(this.tableEl(block, inst));
@@ -805,12 +924,22 @@ export default class extends Controller {
                 };
                 // Everything is aligned on the row of the buttons, not on the buttons with their numbers (measured in the browser:
                 // the native button has a margin of its own, so the words need 6 px above and the link 2 px).
-                const side = 'pt-1.5 text-sm leading-5 text-gray-600';
+                // On a narrow screen the words go under the first and the last point instead (at the sides they push the row apart).
+                const side = 'hidden pt-1.5 text-sm leading-5 text-gray-600 sm:block';
+                const ends = spec.lowLabel || spec.highLabel
+                    ? h('div', { class: 'flex justify-between gap-3 text-xs text-gray-600 sm:hidden', 'aria-hidden': 'true' }, [
+                        h('span', { text: spec.lowLabel || '' }),
+                        h('span', { class: 'text-right', text: spec.highLabel || '' }),
+                    ])
+                    : null;
                 return h('fieldset', { id, class: 'min-w-0' }, [
                     h('legend', { class: 'sr-only', text: spec.label || '' }),
                     h('div', { class: 'flex flex-wrap items-start gap-x-2 gap-y-1' }, [
                         spec.lowLabel ? h('span', { class: side, 'aria-hidden': 'true', text: spec.lowLabel }) : null,
-                        h('div', { class: 'flex items-start' }, Array.from({ length: points }, (_, i) => point(i + 1))),
+                        h('div', { class: 'flex flex-col' }, [
+                            h('div', { class: 'flex items-start' }, Array.from({ length: points }, (_, i) => point(i + 1))),
+                            ends,
+                        ]),
                         spec.highLabel ? h('span', { class: side, 'aria-hidden': 'true', text: spec.highLabel }) : null,
                         h('span', { class: 'ml-2 pt-0.5 leading-5' }, [clear]),
                     ]),
@@ -896,8 +1025,12 @@ export default class extends Controller {
         ]);
 
         const draw = () => {
+            // Each file with its number of annex (as the document will call it: renumberAnnexes()), a thumbnail when it is a picture.
             list.replaceChildren(...files.map((file) => h('li', { class: 'flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2' }, [
-                icon((file.mime || '').startsWith('image/') ? 'photo' : 'document', 'h-4 w-4 shrink-0 text-gray-400'),
+                (file.mime || '').startsWith('image/')
+                    ? h('img', { src: urlOf(file) + '?ver=1', alt: '', loading: 'lazy', class: 'h-10 w-14 shrink-0 rounded border border-gray-200 bg-gray-50 object-cover' })
+                    : icon('document', 'h-4 w-4 shrink-0 text-gray-400'),
+                h('span', { class: 'shrink-0 text-xs font-medium text-gray-500', 'data-annex': '' }),
                 h('a', { href: urlOf(file), class: 'min-w-0 flex-1 truncate text-sm text-gray-700 hover:text-forest-700 hover:underline', text: file.name }),
                 h('span', { class: 'shrink-0 text-xs text-gray-400', text: size(file.size || 0) }),
                 this.readOnly ? null : h('button', {
@@ -910,7 +1043,30 @@ export default class extends Controller {
             if (!this.readOnly && files.length >= max) {
                 status.textContent = this.l.attachment_full.replace('%max%', String(max));
             }
+            if (list.isConnected) {
+                this.renumberAnnexes();
+            }
         };
+
+        // The file being sent: its name and a bar that fills as it goes up (a big PDF takes a while).
+        const bar = h('div', { class: 'h-full w-0 rounded-full bg-forest-500 transition-[width]' });
+        const sending = h('div', { class: 'hidden rounded-lg border border-gray-200 bg-white px-3 py-2' }, [
+            h('p', { class: 'truncate text-xs text-gray-600', 'aria-live': 'polite' }),
+            h('div', { class: 'mt-1 h-1.5 overflow-hidden rounded-full bg-gray-100' }, [bar]),
+        ]);
+        const send = (body, name) => new Promise((resolve) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', config.attachUrl);
+            xhr.setRequestHeader('X-CSRF-Token', config.csrf);
+            xhr.responseType = 'json';
+            sending.classList.remove('hidden');
+            sending.firstChild.textContent = this.l.attachment_uploading.replace('%name%', name);
+            bar.style.width = '0%';
+            xhr.upload.onprogress = (e) => { if (e.lengthComputable) { bar.style.width = Math.round((e.loaded / e.total) * 100) + '%'; } };
+            xhr.onload = () => { sending.classList.add('hidden'); resolve({ ok: xhr.status >= 200 && xhr.status < 300, body: xhr.response || {} }); };
+            xhr.onerror = () => { sending.classList.add('hidden'); resolve(null); };
+            xhr.send(body);
+        });
 
         const upload = async (picked) => {
             if (!navigator.onLine) {
@@ -922,24 +1078,23 @@ export default class extends Controller {
                     status.textContent = this.l.attachment_full.replace('%max%', String(max));
                     break;
                 }
-                status.textContent = this.l.attachment_uploading.replace('%name%', file.name);
                 const body = new FormData();
                 body.append('field', spec.key);
                 body.append('file', file);
-                try {
-                    const response = await fetch(config.attachUrl, { method: 'POST', headers: { 'X-CSRF-Token': config.csrf }, body });
-                    const answer = await response.json().catch(() => ({}));
-                    if (!response.ok || !answer.id) {
-                        status.textContent = answer.message || this.l.attachment_error;
-                        continue;
-                    }
-                    files.push({ id: answer.id, name: answer.name, size: answer.size, mime: answer.mime });
-                    status.textContent = '';
-                    draw();
-                    onChange([...files]);
-                } catch (e) {
+                const result = await send(body, file.name);
+                if (result === null) {
                     status.textContent = this.l.attachment_offline;
+                    continue;
                 }
+                const answer = result.body;
+                if (!result.ok || !answer.id) {
+                    status.textContent = answer.message || this.l.attachment_error;
+                    continue;
+                }
+                files.push({ id: answer.id, name: answer.name, size: answer.size, mime: answer.mime });
+                status.textContent = '';
+                draw();
+                onChange([...files]);
             }
         };
 
@@ -951,7 +1106,7 @@ export default class extends Controller {
         box.addEventListener('drop', (e) => { e.preventDefault(); box.classList.remove(...over); upload([...(e.dataTransfer?.files || [])]); });
         draw();
 
-        return h('div', { id, class: 'space-y-2' }, [list, box, status]);
+        return h('div', { id, class: 'space-y-2' }, [list, sending, box, status]);
     }
 
     /**
@@ -1096,10 +1251,13 @@ export default class extends Controller {
         const rows = tables[block.key];
         const labels = new Map((block.rows || []).map((r) => [r.key, r.label]));
         const max = block.maxRows > 0 ? block.maxRows : 1000;
+        // A number, a date, a rating… needs little room: its column stays narrow and the texts take the rest.
+        const narrow = (c) => ['number', 'scale', 'date', 'time', 'bool', 'calculated'].includes(c.fieldType);
+        const cellClass = (c) => (narrow(c) ? 'w-36 ' : 'min-w-[9rem] ') + 'px-2 py-1.5 align-top';
 
         const head = h('tr', {}, [
             ...(fixed ? [h('th', { scope: 'col', class: 'px-2 py-2 text-left font-medium', text: block.rowHeader || '' })] : []),
-            ...block.columns.map((c) => h('th', { scope: 'col', class: 'px-2 py-2 text-left font-medium' }, [c.label, c.required ? h('span', { class: 'text-red-600', 'aria-hidden': 'true', text: ' *' }) : null])),
+            ...block.columns.map((c) => h('th', { scope: 'col', class: (narrow(c) ? 'w-36 ' : '') + 'px-2 py-2 text-left font-medium' }, [c.label, c.required ? h('span', { class: 'text-red-600', 'aria-hidden': 'true', text: ' *' }) : null])),
             ...(fixed ? [] : [h('th', { scope: 'col', class: 'w-10 px-2 py-2' }, [h('span', { class: 'sr-only', text: this.l.remove_row })])]),
         ]);
 
@@ -1125,7 +1283,7 @@ export default class extends Controller {
         };
         const body = h('tbody', { class: 'divide-y divide-gray-100' }, rows.map((row, index) => h('tr', { class: gone.has(row._key) ? 'bg-amber-50' : null }, [
             ...(fixed ? [rowHead(row, index)] : []),
-            ...block.columns.map((c) => h('td', { class: 'min-w-[9rem] px-2 py-1.5 align-top' }, [
+            ...block.columns.map((c) => h('td', { class: cellClass(c) }, [
                 this.tag(
                     this.control({ ...c, label: c.label + ' · ' + this.l.row + ' ' + (index + 1) }, row[c.key], (v) => this.setIn(row, c.key, v), null, true, { chain: inst.chain, map: row, key: c.key }),
                     [inst.path, block.key, row._key, c.key].join('|'),
@@ -1151,10 +1309,29 @@ export default class extends Controller {
             ...(fixed ? [] : [h('td')]),
         ])]);
 
+        // A fixed (or counted) table says how many of its rows have something: «Rellenas 2 de 14», kept up to date as they are typed.
+        const typed = (c) => c.fieldType !== 'calculated';
+        const filledRows = () => rows.filter((r) => block.columns.some((c) => typed(c) && !this.isEmpty(r[c.key]))).length;
+        let counter = null;
+        if (fixed && rows.length > 0) {
+            counter = h('span', { class: 'shrink-0 text-xs text-gray-500' });
+            const show = () => { counter.textContent = this.l.rows_filled.replace('%done%', String(filledRows())).replace('%total%', String(rows.length)); };
+            show();
+            this.calcEls.push({ update: show });
+        }
+        // A long table keeps its header in sight: it scrolls inside its box, with the header stuck at the top.
+        const long = rows.length > 10;
+        if (long && foot) {
+            foot.classList.add('sticky', 'bottom-0');   // and the totals at the bottom
+        }
+
         return [
-            ...(block.label ? [h('p', { class: 'mb-1 text-sm font-medium text-gray-700' }, [this.liveText('span', {}, block.label, inst)])] : []),
-            h('div', { class: 'overflow-x-auto rounded-xl border border-gray-200' }, [
-                h('table', { class: 'min-w-full text-sm' }, [h('thead', { class: 'bg-gray-50 text-gray-600' }, [head]), body, ...(foot ? [foot] : [])]),
+            h('div', { class: 'mb-1 flex items-end justify-between gap-2' }, [
+                block.label ? h('p', { class: 'min-w-0 text-sm font-medium text-gray-700' }, [this.liveText('span', {}, block.label, inst)]) : h('span'),
+                counter,
+            ]),
+            h('div', { class: 'overflow-x-auto rounded-xl border border-gray-200' + (long ? ' max-h-[32rem] overflow-y-auto' : '') }, [
+                h('table', { class: 'min-w-full text-sm' }, [h('thead', { class: 'bg-gray-50 text-gray-600' + (long ? ' sticky top-0 z-10 shadow-[0_1px_0_0_rgb(229_231_235)]' : '') }, [head]), body, ...(foot ? [foot] : [])]),
             ]),
             ...(counted && rows.length === 0 ? [h('p', { class: 'mt-1 text-xs text-gray-500', text: this.l.counted_empty })] : []),
             ...(fixed ? [] : [h('button', {

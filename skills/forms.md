@@ -359,6 +359,16 @@ trap: a list-fed field normalized against the raw definition has no options, so 
 
 ## Front end
 
+**Fill page layout** (`templates/form/fill.html.twig` + `form_fill_controller.js`): a sticky bar under the app header (`top-14`)
+with the save status, «N pendientes» (`goToProblems()`) and, under `lg`, a «Secciones» dropdown; on `lg` a sticky index at the left
+(`renderIndex()`: every visible top-level instance, copies included, with the count of server problems whose `path` is the instance's or
+starts with it + `/`). Sections have `scroll-mt-32` so jumps land below the bars. Copies of repeating sections fold (`this.collapsed`,
+by path, kept across `render()`; jumping to a problem or an index entry unfolds). History is a clock button next to the label
+(`historyEl()` returns `{button, panel}`, `headRow()`). Tables: number-like columns `w-36`; > 10 rows → `max-h-[32rem]` box with a
+sticky `thead` and `tfoot`; fixed/counted tables show «Rellenas X de N» (a `calcEls` update). Attachments: XHR upload with progress,
+image thumbnails, «Anexo N» labels renumbered in DOM order (`renumberAnnexes()`). The page draws its own Heroicons from `ICON_PATHS`
+(the same files as `assets/icons/heroicons`; add new ones in both places).
+
 The editor and the form are **Stimulus controllers that build the page from the JSON** (`form_model_editor_controller.js`,
 `form_fill_controller.js`, helpers in `assets/utils/form_dom.js`), not Live Components: they hold a lot of client state (nesting,
 tables, offline later) and a Live round trip per keystroke would not do. They save the whole draft, debounced, with the version they

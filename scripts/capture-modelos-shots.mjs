@@ -110,6 +110,7 @@ await canvas.locator('table .ts-wrapper .ts-control').first().click();
 await page.locator('.ts-dropdown .option:has-text("Lengua Castellana")').first().click();
 await page.locator('.ts-dropdown .option:has-text("Inglés")').first().click();
 await page.keyboard.press('Escape');
+await atSection('Datos del departamento');
 await shot('modelos-rellenar');
 
 // Section 3: the rating, and two files attached (a photo of the board and the act of the meeting).
@@ -119,8 +120,7 @@ await page.waitForTimeout(800);
 await canvas.locator('input[type="file"]').first().setInputFiles([`${fixtures}pizarra-reunion.png`, `${fixtures}acta-coordinacion.pdf`]);
 await page.waitForFunction(() => document.querySelectorAll('a[href*="/formularios/adjunto/"]').length >= 2, null, { timeout: 15000 });
 await page.waitForTimeout(1500);   // the field is saved after the uploads
-await page.locator('h2:has-text("Satisfacción y evidencias"), h3:has-text("Satisfacción y evidencias")').first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
-await page.evaluate(() => window.scrollBy(0, -70));   // below the sticky header
+await atSection('Satisfacción y evidencias');
 await shot('modelos-escala-adjuntos');
 
 // Sections 4 and 5: a row per subject (the list «Materia»), a copy per course of vocational training.
@@ -131,14 +131,12 @@ await page.waitForTimeout(500);
 await results.locator('input').nth(1).fill('78');
 await page.keyboard.press('Tab');
 await page.waitForTimeout(800);
-await page.locator('h2:has-text("Resultados por materia")').first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
-await page.evaluate(() => window.scrollBy(0, -70));
+await atSection('Resultados por materia');
 await shot('modelos-filas-lista');
 await canvas.locator('section:has(h2:has-text("Seguimiento de")) input').first().fill('Más horas de prácticas en empresa');
 await page.keyboard.press('Tab');
 await page.waitForTimeout(1500);
-await page.locator('h2:has-text("Seguimiento de")').first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
-await page.evaluate(() => window.scrollBy(0, -70));
+await atSection('Seguimiento de');
 await shot('modelos-copias-lista');
 
 // ── 4. Delivering it: the reviewer's view keeps reading as it was delivered ───
@@ -202,6 +200,18 @@ await page.locator('button[data-live-action-param="bulkMoveSelected"]').click();
 await page.waitForSelector('[data-testid="move-form-usage"]');
 await page.locator('[data-testid="move-form-usage"]').evaluate((el) => el.scrollIntoView({ block: 'center' }));
 await shot('modelos-mover-elemento');
+
+/**
+ * The fill form at a section: its heading right under the page's header and the form's bar, nothing focused (no focus ring in the
+ * picture) and everything saved («Guardado» in the bar, not «Guardando…»).
+ */
+async function atSection(title) {
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.waitForFunction(() => document.querySelector('[data-form-fill-target="status"]')?.textContent.trim() !== 'Guardando…', null, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(400);
+    await page.locator(`section > div h2:has-text("${title}")`).first().evaluate((el) => el.closest('section').scrollIntoView({ block: 'start' }));
+    await page.waitForTimeout(300);
+}
 
 async function clipAround(locator, dx, dy, width, height) {
     const box = await locator.boundingBox();
