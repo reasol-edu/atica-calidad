@@ -786,13 +786,16 @@ export default class extends Controller {
                         h('span', { class: 'text-xs text-gray-600', 'aria-hidden': 'true', text: String(n) }),
                     ]);
                 };
+                // Everything is aligned on the row of the buttons, not on the buttons with their numbers (measured in the browser:
+                // the native button has a margin of its own, so the words need 6 px above and the link 2 px).
+                const side = 'pt-1.5 text-sm leading-5 text-gray-600';
                 return h('fieldset', { id, class: 'min-w-0' }, [
                     h('legend', { class: 'sr-only', text: spec.label || '' }),
-                    h('div', { class: 'flex flex-wrap items-center gap-x-2 gap-y-1' }, [
-                        spec.lowLabel ? h('span', { class: 'text-sm text-gray-600', 'aria-hidden': 'true', text: spec.lowLabel }) : null,
+                    h('div', { class: 'flex flex-wrap items-start gap-x-2 gap-y-1' }, [
+                        spec.lowLabel ? h('span', { class: side, 'aria-hidden': 'true', text: spec.lowLabel }) : null,
                         h('div', { class: 'flex items-start' }, Array.from({ length: points }, (_, i) => point(i + 1))),
-                        spec.highLabel ? h('span', { class: 'text-sm text-gray-600', 'aria-hidden': 'true', text: spec.highLabel }) : null,
-                        h('span', { class: 'ml-2' }, [clear]),
+                        spec.highLabel ? h('span', { class: side, 'aria-hidden': 'true', text: spec.highLabel }) : null,
+                        h('span', { class: 'ml-2 pt-0.5 leading-5' }, [clear]),
                     ]),
                 ]);
             }
