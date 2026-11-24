@@ -7,6 +7,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Formulario de relleno: los textos fijos de un modelo (y la vista previa de los textos de partida) muestran sus referencias resueltas —el centro, el elemento de la copia, el valor de un campo, que se actualiza mientras se escribe— en lugar del código `{{…|…}}`, igual que en el documento entregado y en el PDF.
+
 ## [2.9.0] - 2026-11-24
 
 ### Added

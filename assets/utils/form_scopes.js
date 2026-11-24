@@ -363,6 +363,18 @@ export function references(text, inst, specs, context, labels) {
     });
 }
 
+/**
+ * The same in HTML (a fixed or starter text): the values are escaped, as FormResolver::text() does with `$html` true. The `{{ … }}`
+ * are in the text nodes of the HTML as written (a label may carry `&amp;`): only what follows the last `|` is read.
+ */
+export function referencesHtml(html, inst, specs, context, labels) {
+    if (!html || !html.includes('{{')) {
+        return html || '';
+    }
+    const escape = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    return html.replace(/\{\{\s*([^{}]*?)\s*\}\}/g, (all) => escape(references(all, inst, specs, context, labels)));
+}
+
 /** Every field block of the definition by key. */
 export function fieldSpecs(definition) {
     const map = new Map();

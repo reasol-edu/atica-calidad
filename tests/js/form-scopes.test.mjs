@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 globalThis.window = globalThis;
-const { sync, calculate, totals, walk, numbers, countedCount, format, references } = await import('../../assets/utils/form_scopes.js');
+const { sync, calculate, totals, walk, numbers, countedCount, format, references, referencesHtml } = await import('../../assets/utils/form_scopes.js');
 
 const k = (n) => `${n}0000000-0000-4000-8000-000000000000`;
 
@@ -130,6 +130,13 @@ test('a section repeated by a list has a copy per item, keyed by it, and each co
 
     const instances = walk(def, state);
     assert.deepEqual(instances.map((i) => references(i.section.title, i, new Map(), {}, {})), ['Materia: Física', 'Materia: Química']);
+
+    // A fixed text reads its references too, as HTML: the values escaped, the tags of the text kept.
+    const html = '<p>Propuestas para <strong>{{Elemento de la lista|copy.label}}</strong> ({{Centro &amp; curso|ctx:centre}})</p>';
+    assert.equal(referencesHtml(html, instances[0], new Map(), { centre: 'IES <Ada> & "Co"' }, {}),
+        '<p>Propuestas para <strong>Física</strong> (IES &lt;Ada&gt; &amp; &quot;Co&quot;)</p>');
+    assert.equal(referencesHtml('<p>Sin referencias</p>', instances[0], new Map(), {}, {}), '<p>Sin referencias</p>');
+    assert.equal(referencesHtml('', instances[0], new Map(), {}, {}), '');
 });
 
 test('a rating reads as points out of the top, with the word of an end (the same as FormResolver::format())', () => {

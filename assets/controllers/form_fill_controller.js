@@ -3,7 +3,7 @@ import TomSelect from 'tom-select';
 import { mountRichText } from '../utils/rich_text_editor.js';
 import { h } from '../utils/form_dom.js';
 import { confirmDialog } from '../utils/confirm_dialog.js';
-import { asMap, sync, walk, numbers, references, fieldSpecs, progress, newKey, MAX_COPIES, calculate, buildIndex, totals, rowsOf, format, countedCount } from '../utils/form_scopes.js';
+import { asMap, sync, walk, numbers, references, referencesHtml, fieldSpecs, progress, newKey, MAX_COPIES, calculate, buildIndex, totals, rowsOf, format, countedCount } from '../utils/form_scopes.js';
 
 const INPUT = 'w-full min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-forest-500 focus:ring-forest-500 disabled:bg-gray-50 disabled:text-gray-500';
 // A native drop-down (its chevron and the room under it come from the global rule for `select` in app.css).
@@ -594,7 +594,11 @@ export default class extends Controller {
     /** Titles and labels that contain references follow what is typed without redrawing the form (that would lose the focus). */
     updateLive() {
         for (const entry of this.live) {
-            entry.el.textContent = entry.prefix + references(entry.text, entry.inst, this.specs, this.refContext, this.l);
+            if (entry.html) {
+                entry.el.innerHTML = referencesHtml(entry.text, entry.inst, this.specs, this.refContext, this.l);
+            } else {
+                entry.el.textContent = entry.prefix + references(entry.text, entry.inst, this.specs, this.refContext, this.l);
+            }
         }
         clearTimeout(this.progressTimer);
         this.progressTimer = setTimeout(() => this.updateProgress(), 150);
@@ -624,6 +628,15 @@ export default class extends Controller {
         el.textContent = prefix + references(text, inst, this.specs, this.refContext, this.l);
         if (text.includes('{{') || prefix !== '') {
             this.live.push({ el, text, inst, prefix });
+        }
+        return el;
+    }
+
+    /** The same for a text's HTML (a fixed text, the preview of a starter one): its references resolved, and kept up to date. */
+    liveHtml(el, html, inst) {
+        el.innerHTML = referencesHtml(html, inst, this.specs, this.refContext, this.l);
+        if (html && html.includes('{{')) {
+            this.live.push({ el, text: html, inst, html: true });
         }
         return el;
     }
@@ -1152,9 +1165,8 @@ export default class extends Controller {
 
     textEl(block, inst) {
         if (block.mode === 'fixed') {
-            const el = h('div', { class: 'prose prose-sm max-w-none text-gray-800' });
-            el.innerHTML = block.html || '';
-            return el;
+            // Its {{…}} read as in the delivered document (they were shown as written).
+            return this.liveHtml(h('div', { class: 'prose prose-sm max-w-none text-gray-800' }), block.html || '', inst);
         }
         const texts = inst.scope.texts;
         const entry = texts[block.key] || { html: '', modified: false };
@@ -1169,9 +1181,7 @@ export default class extends Controller {
                 'aria-label': this.l.edit_text, onclick: mount,
             });
             if (entry.html) {
-                const content = h('div', { class: 'prose prose-sm max-w-none' });
-                content.innerHTML = entry.html;
-                box.append(content);
+                box.append(this.liveHtml(h('div', { class: 'prose prose-sm max-w-none' }), entry.html, inst));
             } else {
                 box.append(h('span', { class: 'text-gray-400', text: this.l.write_text }));
             }
