@@ -115,7 +115,14 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
 Además:
 
 - **Repetición**: una sección puede repetirse una vez por fila de una tabla, tantas veces como diga un
-  número, o las que quiera añadir quien rellena (por ejemplo, una por grupo).
+  número, las que quiera añadir quien rellena (por ejemplo, una por grupo) o **una vez por elemento de
+  una lista del catálogo** (por ejemplo, una por materia). En este último caso funciona como las filas
+  tomadas de una lista: con «Solo los elementos asociados a quien entrega», la jefatura de un
+  departamento rellena una copia por cada una de sus materias; si no está asociada a ninguna, salen
+  todas, y en el modelo en blanco salen siempre todas. Para que cada copia diga su elemento, pon en el
+  título la referencia **«Elemento de la lista»** («Materia: Física y Química»). Una copia de un
+  elemento que deja de corresponder y tiene algo escrito se queda, con el aviso «ya no corresponde» y
+  el botón **«Vaciar esta parte»**, y no se puede entregar hasta vaciarla.
 - **Condiciones**: una sección o un bloque solo se muestra si otro campo está lleno, vacío o vale lo
   que se indica.
 - **Referencias** `{ }`: en títulos y textos se puede insertar el valor de un campo, el número de copia

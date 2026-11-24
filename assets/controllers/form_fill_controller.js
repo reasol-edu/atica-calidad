@@ -555,8 +555,26 @@ export default class extends Controller {
             ])
             : null;
 
-        return h('section', { id: 'sec-' + inst.path, class: level === 1 ? 'mt-6 first:mt-0' : 'mt-5' }, [
+        // The copy of an item of a list that no longer belongs here (kept because something is typed in it): it says so and can be emptied
+        // in one go, which is what lets the document be delivered.
+        const goneItem = inst.own && section.repeat && section.repeat.mode === 'list'
+            ? (section.repeat.items || []).find((i) => i.gone && i.key === inst.copy.key)
+            : null;
+        const goneBox = goneItem ? h('div', { class: 'mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900' }, [
+            h('span', { class: 'flex-1', text: this.l.copy_gone.replace('%item%', goneItem.label) }),
+            h('button', {
+                type: 'button', class: BTN, disabled: this.readOnly, text: this.l.copy_gone_clear,
+                onclick: () => {
+                    for (const part of ['fields', 'texts', 'tables', 'copies']) { inst.scope[part] = {}; }
+                    this.touch();
+                    this.refresh();
+                },
+            }),
+        ]) : null;
+
+        return h('section', { id: 'sec-' + inst.path, class: (level === 1 ? 'mt-6 first:mt-0' : 'mt-5') + (goneItem ? ' opacity-80' : '') }, [
             heading,
+            goneBox,
             ...(section.help ? [h('p', { class: 'mt-1 text-sm text-gray-500', text: section.help })] : []),
             h('div', { class: 'mt-3 space-y-4' }, inst.blocks.filter((b) => b.visible).map((b) => this.blockEl(b.block, inst))),
             ...inst.children.map((c) => this.instEl(c, level + 1)),

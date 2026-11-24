@@ -340,6 +340,9 @@ final class FormDefinitionNormalizer
         if ($mode === 'table' && !isset($tableKeys[$ref])) {
             $problems[] = ['code' => 'repeat_table_invalid', 'params' => ['%section%' => $title]];
         }
+        if ($mode === 'list' && FormDefinition::str($repeat['list'] ?? '') === '') {
+            $problems[] = ['code' => 'repeat_list_invalid', 'params' => ['%section%' => $title]];
+        }
         if ($ref !== '') {
             // What decides the copies cannot be inside the copies.
             foreach (FormDefinition::blocks(['sections' => [$section]]) as $entry) {
@@ -487,6 +490,13 @@ final class FormDefinitionNormalizer
                 $table = $this->reference($raw['table'] ?? null);
 
                 return $table === null ? null : ['mode' => 'table', 'table' => $table];
+
+            case 'list':
+                // One copy per item of a list of the centre (read when filling it in, never stored: FormListOptions puts them in
+                // `items`), only those of who delivers it when `own` says so.
+                $item = is_string($raw['list'] ?? null) ? strtolower(trim($raw['list'])) : '';
+
+                return ['mode' => 'list', 'list' => FormListOptions::isItemId($item) ? $item : '', 'own' => ($raw['own'] ?? true) !== false];
         }
 
         return null;

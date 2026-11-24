@@ -86,6 +86,19 @@ final class FormDataValidator
             $texts  = is_array($scope['texts'] ?? null) ? $scope['texts'] : [];
             $tables = is_array($scope['tables'] ?? null) ? $scope['tables'] : [];
 
+            // The copy of an item of a list that no longer belongs here, kept only because something is typed in it: it has to be
+            // emptied before delivering (what is in it is not checked: it is not part of the document any more).
+            if ($copy !== null && ($instance['own'] ?? false) === true) {
+                $section = FormDefinition::map($instance['section'] ?? null) ?? [];
+                $repeat  = FormDefinition::map($section['repeat'] ?? null) ?? [];
+                foreach (($repeat['mode'] ?? '') === 'list' ? FormDefinition::listOf($repeat['items'] ?? []) : [] as $item) {
+                    if (($item['gone'] ?? false) === true && FormDefinition::str($item['key'] ?? '') === FormDefinition::str($copy['key'] ?? '')) {
+                        $problems[] = ['block' => FormDefinition::str($section['key'] ?? ''), 'path' => $path, 'row' => null, 'column' => null, 'code' => 'copy_gone', 'params' => ['%section%' => FormDefinition::str($section['title'] ?? ''), '%item%' => FormDefinition::str($item['label'] ?? '')]];
+                        continue 2;
+                    }
+                }
+            }
+
             foreach (FormDefinition::listOf($instance['blocks'] ?? []) as $entry) {
                 if ($entry['visible'] !== true || !is_array($entry['block'] ?? null)) {
                     continue;

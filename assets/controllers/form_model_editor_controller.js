@@ -654,6 +654,9 @@ export default class extends Controller {
     refOptions(section) {
         const options = [['copy.number', this.l.ref_copy_number], ['copy.total', this.l.ref_copy_total]];
         for (const s of this.trailTo(section.key) || []) {
+            if (s.repeat && s.repeat.mode === 'list') {
+                options.push(['copy.label', this.l.ref_copy_label]);
+            }
             if (s.repeat && s.repeat.mode === 'table') {
                 const table = this.tableList().find((t) => t.key === s.repeat.table);
                 (table ? table.columns : []).forEach((c) => options.push(['row:' + c.key, this.l.ref_row + ': ' + (c.label || '…')]));
@@ -696,7 +699,9 @@ export default class extends Controller {
         const own = this.subtreeKeys(section);
         const repeat = section.repeat;
         const mode = repeat ? repeat.mode : '';
-        const modes = [['', this.l.repeat_none], ['manual', this.l.repeat_manual], ['field', this.l.repeat_field], ['table', this.l.repeat_table]];
+        const lists = this.centreLists();
+        const modes = [['', this.l.repeat_none], ['manual', this.l.repeat_manual], ['field', this.l.repeat_field], ['table', this.l.repeat_table],
+            ...(lists.length > 0 || mode === 'list' ? [['list', this.l.repeat_list]] : [])];
         const numbered = (obj, prop, min, max) => this.labelled(prop === 'min' ? this.l.repeat_min : this.l.repeat_max, h('input', {
             type: 'number', min: 0, max: 100, class: INPUT, value: obj[prop] ?? 0,
             oninput: (e) => { obj[prop] = Math.min(100, Math.max(0, Number(e.target.value) || 0)); this.touch(); },
@@ -708,6 +713,7 @@ export default class extends Controller {
                     if (v === '') { section.repeat = null; }
                     else if (v === 'manual') { section.repeat = { mode: 'manual', min: 0, max: 100 }; }
                     else if (v === 'field') { section.repeat = { mode: 'field', field: (this.fieldList(own).find((f) => f.fieldType === 'number') || {}).key || '' }; }
+                    else if (v === 'list') { section.repeat = { mode: 'list', list: (lists[0] || {}).id || '', own: true }; }
                     else { section.repeat = { mode: 'table', table: (this.tableList(own)[0] || {}).key || '' }; }
                     this.changed();
                 }, this.l.repeat)),
@@ -723,6 +729,18 @@ export default class extends Controller {
         if (repeat && repeat.mode === 'table') {
             const tables = this.tableList(own).map((t) => [t.key, t.label || '…']);
             parts[0].append(this.labelled(this.l.repeat_source_table, this.select(repeat.table, [['', '—'], ...tables], (v) => { repeat.table = v; this.changed(); }, this.l.repeat_source_table)));
+        }
+        if (repeat && repeat.mode === 'list') {
+            // One copy per item of a list (only those of who delivers it, when asked); the title names the item with {{…|copy.label}}.
+            const current = lists.find((l) => l.id === repeat.list);
+            if (repeat.own === undefined) { repeat.own = true; }
+            parts[0].append(this.labelled(this.l.options_list_pick, this.select(repeat.list || '', [...(current ? [] : [[repeat.list || '', '—']]), ...lists.map((l) => [l.id, l.label])], (v) => { repeat.list = v; this.changed(); }, this.l.options_list_pick), 'flex-1 basis-64'));
+            parts.push(h('p', {
+                class: 'text-xs ' + (current && current.options.length ? 'text-gray-500' : 'text-amber-700'),
+                text: current ? this.l.repeat_list_hint.replace('%count%', String(current.options.length)).replace('%sample%', current.options.slice(0, 3).map((o) => o.label).join(', ')) : this.l.options_list_missing,
+            }));
+            parts.push(this.checkbox(repeat, 'own', this.l.rows_own));
+            parts.push(h('p', { class: 'text-xs text-gray-500', text: this.l.rows_own_help }));
         }
         if (repeat) {
             parts.push(this.checkbox(section, 'numberCopies', this.l.number_copies));

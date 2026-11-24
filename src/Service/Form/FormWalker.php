@@ -66,6 +66,11 @@ final class FormWalker
             $copies = FormDefinition::listOf(is_array($scope['copies'] ?? null) && is_array($scope['copies'][$key] ?? null) ? $scope['copies'][$key] : []);
             $table  = ($repeat['mode'] ?? '') === 'table' ? ($tables[FormDefinition::str($repeat['table'] ?? '')] ?? null) : null;
             $total  = count($copies);
+            // A section repeated by the items of a list: each copy knows the name of its item (`{{…|copy.label}}`).
+            $labels = [];
+            foreach (FormDefinition::listOf(($repeat['mode'] ?? '') === 'list' ? ($repeat['items'] ?? []) : []) as $item) {
+                $labels[FormDefinition::str($item['key'] ?? '')] = FormDefinition::str($item['label'] ?? '');
+            }
             foreach ($copies as $index => $copy) {
                 $copyKey = FormDefinition::str($copy['_key'] ?? '');
                 $origin  = null;
@@ -75,7 +80,7 @@ final class FormWalker
                         $origin = ['table' => $table, 'row' => $row];
                     }
                 }
-                $info  = ['index' => $index + 1, 'total' => $total, 'key' => $copyKey, 'source' => isset($copy['_source']) ? FormDefinition::str($copy['_source']) : null, 'title' => FormDefinition::str($section['title'] ?? '')];
+                $info  = ['index' => $index + 1, 'total' => $total, 'key' => $copyKey, 'source' => isset($copy['_source']) ? FormDefinition::str($copy['_source']) : null, 'title' => FormDefinition::str($section['title'] ?? ''), 'label' => $labels[$copyKey] ?? ''];
                 $out[] = $this->instance($section, $path . $key . ':' . $copyKey, true, $info, $origin, $copy, [$copy, ...$chain], $visible, $tables, [...$address, [$key, $copyKey]]);
             }
         }

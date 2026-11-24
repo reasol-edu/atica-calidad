@@ -82,8 +82,25 @@ final class FormListOptions
                 return true;
             }
         }
+        foreach (FormDefinition::sectionsOf($definition['sections'] ?? []) as $section) {
+            if (self::repeatList($section) !== null) {
+                return true;
+            }
+        }
 
         return false;
+    }
+
+    /**
+     * The item a section is repeated by (`repeat: {mode: list, list}`), or null when it is not repeated by a list.
+     *
+     * @param array<string, mixed> $section
+     */
+    private static function repeatList(array $section): ?string
+    {
+        $repeat = is_array($section['repeat'] ?? null) ? $section['repeat'] : [];
+
+        return ($repeat['mode'] ?? '') === 'list' ? FormDefinition::str($repeat['list'] ?? '') : null;
     }
 
     /**
@@ -132,13 +149,36 @@ final class FormListOptions
             $known   = array_map(static fn (array $r): string => FormDefinition::str($r['key'] ?? ''), $rows);
             foreach (array_slice(self::rowsWithData($data, $block), 0, self::MAX_GONE) as $key) {
                 if (self::isItemId($key) && !in_array($key, $known, true)) {
-                    $rows[]  = $this->gone($key, $index[$key] ?? null);
+                    $rows[]  = $this->gone($key, $index[$key] ?? null, true);
                     $known[] = $key;
                 }
             }
             $block['rows'] = $rows;
 
             return $block;
+        });
+        // The copies of a section repeated by a list: the same, in `repeat.items` (a copy that no longer belongs and holds something
+        // stays as `gone`).
+        $definition = $this->mapRepeats($definition, function (array $section) use ($centre, $data, $slot, &$index): array {
+            $list = self::repeatList($section) ?? '';
+            if ($list === '') {
+                return $section;
+            }
+            $index ??= $this->items->indexByCentre($centre);
+            $root    = self::isItemId($list) ? ($index[$list] ?? null) : null;
+            $repeat  = FormDefinition::map($section['repeat'] ?? null) ?? [];
+            $items   = $root === null ? [] : self::forSlot($this->optionsOfItem($root), ($repeat['own'] ?? true) === true ? $slot : null, $index);
+            $known   = array_map(static fn (array $i): string => FormDefinition::str($i['key'] ?? ''), $items);
+            foreach (array_slice(self::copiesWithData($data, $section), 0, self::MAX_GONE) as $key) {
+                if (self::isItemId($key) && !in_array($key, $known, true)) {
+                    $items[] = $this->gone($key, $index[$key] ?? null, true);
+                    $known[] = $key;
+                }
+            }
+            $repeat['items']   = $items;
+            $section['repeat'] = $repeat;
+
+            return $section;
         });
         if (self::sources($definition) === []) {
             return $definition;
@@ -208,6 +248,23 @@ final class FormListOptions
         }
 
         $index = null;
+        // A section repeated by a list: `repeat.list` → `repeat.listPath`.
+        $definition = $this->mapRepeats($definition, function (array $section) use ($centre, &$index): array {
+            $list = self::repeatList($section);
+            if ($list === null) {
+                return $section;
+            }
+            $index ??= $this->items->indexByCentre($centre);
+            $item = self::isItemId($list) ? ($index[$list] ?? null) : null;
+            $repeat = FormDefinition::map($section['repeat'] ?? null) ?? [];
+            unset($repeat['list'], $repeat['items']);
+            if ($item !== null) {
+                $repeat['listPath'] = self::pathOf($item);
+            }
+            $section['repeat'] = $repeat;
+
+            return $section;
+        });
         // The rows of a fixed table: `rowsList` → `rowsListPath`.
         $definition = $this->mapTables($definition, function (array $block) use ($centre, &$index): array {
             $list = FormDefinition::str($block['rowsList'] ?? '');
@@ -264,6 +321,30 @@ final class FormListOptions
     {
         $unlinked = [];
         $index    = null;
+        // A section repeated by a list: `repeat.listPath` → this centre's item, or no list (a model problem until somebody picks one).
+        $definition = $this->mapRepeats($definition, function (array $section) use ($centre, &$unlinked, &$index): array {
+            $repeat = FormDefinition::map($section['repeat'] ?? null) ?? [];
+            if (($repeat['mode'] ?? '') !== 'list') {
+                return $section;
+            }
+            $raw  = $repeat['listPath'] ?? null;
+            $path = array_values(array_filter(array_map('strval', array_filter(is_array($raw) ? $raw : [], 'is_scalar')), static fn (string $n): bool => $n !== ''));
+            unset($repeat['listPath'], $repeat['items']);
+            // An id that came in a file is of another centre's (or nobody's): only the path is trusted.
+            $repeat['list'] = '';
+            if ($path !== []) {
+                $index ??= $this->items->indexByCentre($centre);
+                $item  = $this->resolvePath($path, $index);
+                if ($item === null) {
+                    $unlinked[] = FormDefinition::str($section['title'] ?? '');
+                } else {
+                    $repeat['list'] = $item->getId()->toRfc4122();
+                }
+            }
+            $section['repeat'] = $repeat;
+
+            return $section;
+        });
         // The rows of a fixed table: `rowsListPath` → this centre's item, or no list (the table then has no rows until somebody links it).
         $definition = $this->mapTables($definition, function (array $block) use ($centre, &$unlinked, &$index): array {
             $path = array_values(array_filter(array_map('strval', array_filter(is_array($block['rowsListPath'] ?? null) ? $block['rowsListPath'] : [], 'is_scalar')), static fn (string $n): bool => $n !== ''));
@@ -347,7 +428,17 @@ final class FormListOptions
         if (!self::usesLists($definition)) {
             return $definition;
         }
-        // The rows of a fixed table taken from a list: the ones it had when it was delivered, named as they were.
+        // The copies of a section repeated by a list, and the rows of a fixed table taken from one: the ones they had when it was
+        // delivered, named as they were.
+        $definition = $this->mapRepeats($definition, static function (array $section) use ($snapshot): array {
+            if (self::repeatList($section) !== null) {
+                $repeat            = FormDefinition::map($section['repeat'] ?? null) ?? [];
+                $repeat['items']   = $snapshot[FormDefinition::str($section['key'] ?? '')] ?? [];
+                $section['repeat'] = $repeat;
+            }
+
+            return $section;
+        });
         $definition = $this->mapTables($definition, static function (array $block) use ($snapshot): array {
             if (($block['mode'] ?? '') === 'fixed' && FormDefinition::str($block['rowsList'] ?? '') !== '') {
                 $block['rows'] = $snapshot[FormDefinition::str($block['key'] ?? '')] ?? [];
@@ -388,6 +479,19 @@ final class FormListOptions
                 }
                 $snapshot[FormDefinition::str($block['key'] ?? '')] = $rows;
             }
+        }
+        // A section repeated by a list: all its items (each a copy of the document), under the section's key.
+        foreach (FormDefinition::sectionsOf($expanded['sections'] ?? []) as $section) {
+            if (self::repeatList($section) === null) {
+                continue;
+            }
+            $items = [];
+            foreach (FormDefinition::listOf((FormDefinition::map($section['repeat'] ?? null) ?? [])['items'] ?? []) as $item) {
+                if (($item['gone'] ?? false) !== true) {
+                    $items[] = ['key' => FormDefinition::str($item['key'] ?? ''), 'label' => FormDefinition::str($item['label'] ?? '')];
+                }
+            }
+            $snapshot[FormDefinition::str($section['key'] ?? '')] = $items;
         }
         foreach (self::specs($expanded) as $spec) {
             if (FormDefinition::str($spec['list'] ?? '') === '') {
@@ -494,14 +598,21 @@ final class FormListOptions
         return implode(self::SEPARATOR, $names);
     }
 
-    /** @return array<string, mixed> the option of a selected item that is no longer offered */
-    private function gone(string $value, ?ListItem $item): array
+    /**
+     * The option of a selected item that is no longer offered — or a row or copy of an item that no longer belongs (`$ofSlot`: an item
+     * that is still there but is not of who delivers it, or not under the list any more, reads «ya no corresponde»).
+     *
+     * @return array<string, mixed>
+     */
+    private function gone(string $value, ?ListItem $item, bool $ofSlot = false): array
     {
         return [
             'key'   => $value,
-            'label' => $item === null
-                ? $this->translator->trans('options.gone_missing', [], 'forms')
-                : $this->translator->trans('options.gone_inactive', ['%name%' => $item->getName()], 'forms'),
+            'label' => match (true) {
+                $item === null                    => $this->translator->trans('options.gone_missing', [], 'forms'),
+                $ofSlot && $item->isActive()      => $this->translator->trans('options.gone_other', ['%name%' => $item->getName()], 'forms'),
+                default                           => $this->translator->trans('options.gone_inactive', ['%name%' => $item->getName()], 'forms'),
+            },
             'gone'  => true,
         ];
     }
@@ -628,12 +739,122 @@ final class FormListOptions
     private static function listSources(array $definition): \Generator
     {
         yield from self::specs($definition);
+        foreach (FormDefinition::sectionsOf($definition['sections'] ?? []) as $section) {
+            $list = self::repeatList($section);
+            if ($list !== null && $list !== '') {
+                yield ['label' => FormDefinition::str($section['title'] ?? ''), 'list' => $list];
+            }
+        }
         foreach (FormDefinition::blocks($definition) as $entry) {
             $block = $entry['block'];
             if (($block['type'] ?? '') === 'table' && ($block['mode'] ?? '') === 'fixed' && FormDefinition::str($block['rowsList'] ?? '') !== '') {
                 yield ['label' => FormDefinition::str($block['label'] ?? ''), 'list' => FormDefinition::str($block['rowsList'])];
             }
         }
+    }
+
+    /**
+     * The keys of the copies of a section that hold something typed, wherever the section's copies are in the data. A calculated value
+     * and a starting text nobody changed are not typed.
+     *
+     * @param array<mixed>         $data
+     * @param array<string, mixed> $section
+     *
+     * @return list<string>
+     */
+    private static function copiesWithData(array $data, array $section): array
+    {
+        $key      = FormDefinition::str($section['key'] ?? '');
+        $computed = $starter = [];
+        foreach (FormDefinition::blocks(['sections' => [$section]]) as $entry) {
+            $block = $entry['block'];
+            if (($block['fieldType'] ?? '') === 'calculated') {
+                $computed[FormDefinition::str($block['key'] ?? '')] = true;
+            }
+            if (($block['type'] ?? '') === 'text' && ($block['mode'] ?? '') === 'starter') {
+                $starter[FormDefinition::str($block['key'] ?? '')] = true;
+            }
+            foreach (FormDefinition::listOf($block['columns'] ?? []) as $column) {
+                if (($column['fieldType'] ?? '') === 'calculated') {
+                    $computed[FormDefinition::str($column['key'] ?? '')] = true;
+                }
+            }
+        }
+        $empty = static fn (mixed $v): bool => $v === null || $v === '' || $v === [];
+        $holds = static function (array $scope) use (&$holds, $computed, $starter, $empty): bool {
+            foreach (is_array($scope['fields'] ?? null) ? $scope['fields'] : [] as $field => $value) {
+                if (!isset($computed[(string) $field]) && !$empty($value)) {
+                    return true;
+                }
+            }
+            foreach (is_array($scope['texts'] ?? null) ? $scope['texts'] : [] as $text => $value) {
+                $entry = FormDefinition::map($value) ?? [];
+                $html  = FormDefinition::str($entry['html'] ?? '');
+                if (trim(strip_tags($html)) !== '' && (!isset($starter[(string) $text]) || ($entry['modified'] ?? false) === true)) {
+                    return true;
+                }
+            }
+            foreach (is_array($scope['tables'] ?? null) ? $scope['tables'] : [] as $rows) {
+                foreach (is_array($rows) ? $rows : [] as $row) {
+                    foreach (is_array($row) ? $row : [] as $cell => $value) {
+                        if (!str_starts_with((string) $cell, '_') && !isset($computed[(string) $cell]) && !$empty($value)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            foreach (is_array($scope['copies'] ?? null) ? $scope['copies'] : [] as $copies) {
+                foreach (is_array($copies) ? $copies : [] as $copy) {
+                    if (is_array($copy) && $holds($copy)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        };
+        $found = [];
+        $visit = static function (array $node) use (&$visit, &$found, $key, $holds): void {
+            foreach ($node as $name => $value) {
+                if (!is_array($value)) {
+                    continue;
+                }
+                if ((string) $name === $key && array_is_list($value)) {
+                    foreach ($value as $copy) {
+                        if (is_array($copy) && is_string($copy['_key'] ?? null) && $holds($copy)) {
+                            $found[] = $copy['_key'];
+                        }
+                    }
+                }
+                $visit($value);
+            }
+        };
+        $visit($data);
+
+        return array_values(array_unique($found));
+    }
+
+    /**
+     * @param array<string, mixed>                                  $definition
+     * @param \Closure(array<string, mixed>): array<string, mixed> $change applied to every section, depth first
+     *
+     * @return array<string, mixed>
+     */
+    private function mapRepeats(array $definition, \Closure $change): array
+    {
+        $map = static function (mixed $sections) use (&$map, $change): array {
+            $out = [];
+            foreach (FormDefinition::listOf($sections) as $section) {
+                $section             = $change($section);
+                $section['children'] = $map($section['children'] ?? []);
+                $out[]               = $section;
+            }
+
+            return $out;
+        };
+        $definition['sections'] = $map($definition['sections'] ?? []);
+
+        return $definition;
     }
 
     /**

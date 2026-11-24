@@ -144,6 +144,64 @@ final class FormListRowsTest extends RepositoryTestCase
         self::assertCount(3, $data['tables'][$block['key']]);
     }
 
+    /** @return array<string, mixed> a section «Materia» repeated by the leaves of «Materia», its title naming each, with one field */
+    private function repeated(bool $own = true): array
+    {
+        return self::getContainer()->get(FormDefinitionNormalizer::class)->normalize(['sections' => [[
+            'key' => FormDefinition::newKey(), 'title' => 'Materia: {{Elemento de la lista|copy.label}}',
+            'repeat' => ['mode' => 'list', 'list' => $this->items['materia']->getId()->toRfc4122(), 'own' => $own, 'items' => [['key' => 'x', 'label' => 'never stored']]],
+            'blocks' => [['key' => FormDefinition::newKey(), 'type' => 'field', 'fieldType' => 'short', 'label' => 'Valoración']],
+        ]]]);
+    }
+
+    public function testASectionRepeatedByAListHasACopyPerItemOfWhoDeliversItNamedAfterIt(): void
+    {
+        $def = $this->repeated();
+        self::assertSame(['mode' => 'list', 'list' => $this->items['materia']->getId()->toRfc4122(), 'own' => true], $def['sections'][0]['repeat'], 'the items are never stored');
+
+        $slot     = ['profile' => $this->headOfDepartment->getId()->toRfc4122(), 'subprofile' => $this->items['informatica']->getId()->toRfc4122()];
+        $expanded = self::getContainer()->get(FormListOptions::class)->expand($def, $this->centre, [], $slot);
+        $data     = self::getContainer()->get(FormDataNormalizer::class)->initial($expanded);
+        $copies   = $data['copies'][$def['sections'][0]['key']];
+        self::assertSame([$this->items['quimica']->getId()->toRfc4122(), $this->items['tecnologia']->getId()->toRfc4122()], array_column($copies, '_key'), 'one copy per item, keyed by it');
+
+        $view = self::getContainer()->get(\App\Service\Form\FormResolver::class)->resolve($expanded, $data);
+        self::assertSame(['Materia: Ciencias naturales › Química', 'Materia: Tecnología'], array_column($view, 'title'));
+
+        // A blank model: every item.
+        $blank = self::getContainer()->get(FormListOptions::class)->expand($def, $this->centre);
+        self::assertCount(4, self::getContainer()->get(FormDataNormalizer::class)->sample($blank)['copies'][$def['sections'][0]['key']]);
+    }
+
+    public function testACopyThatNoLongerBelongsStaysWhileItHoldsSomethingAndBlocksTheDelivery(): void
+    {
+        $def     = $this->repeated();
+        $section = $def['sections'][0]['key'];
+        $field   = $def['sections'][0]['blocks'][0]['key'];
+        $slot    = ['profile' => $this->headOfDepartment->getId()->toRfc4122(), 'subprofile' => $this->items['informatica']->getId()->toRfc4122()];
+        // Matemáticas is not of Informática: with something typed it stays, marked; Física, with nothing, goes.
+        $raw = ['copies' => [$section => [
+            ['_key' => $this->items['matematicas']->getId()->toRfc4122(), 'fields' => [$field => 'Bien']],
+            ['_key' => $this->items['fisica']->getId()->toRfc4122(), 'fields' => []],
+        ]]];
+        $lists    = self::getContainer()->get(FormListOptions::class);
+        $expanded = $lists->expand($def, $this->centre, $raw, $slot);
+        self::assertSame(['Ciencias naturales › Química', 'Tecnología', 'Matemáticas (ya no corresponde)'], array_column($expanded['sections'][0]['repeat']['items'], 'label'), 'still active, but not of who delivers it');
+        self::assertTrue($expanded['sections'][0]['repeat']['items'][2]['gone']);
+
+        $data = self::getContainer()->get(FormDataNormalizer::class)->normalize($expanded, $raw);
+        self::assertCount(3, $data['copies'][$section]);
+        self::assertContains('copy_gone', array_column(self::getContainer()->get(FormDataValidator::class)->problems($expanded, $data), 'code'));
+
+        // Frozen at delivery: the items it had (never a gone one), and back from the snapshot; by path in the JSON library.
+        $snapshot = $lists->snapshot($lists->expand($def, $this->centre, [], $slot), []);
+        self::assertSame(['Ciencias naturales › Química', 'Tecnología'], array_column($snapshot[$section], 'label'));
+        $paths = $lists->toPaths($def, $this->centre);
+        self::assertSame(['Materia'], $paths['sections'][0]['repeat']['listPath']);
+        [$back] = $lists->fromPaths($paths, $this->centre);
+        self::assertSame($this->items['materia']->getId()->toRfc4122(), $back['sections'][0]['repeat']['list']);
+    }
+
     public function testADeliveryFreezesAllTheRowsWithTheirNamesAndTheModelTravelsByPath(): void
     {
         $lists    = self::getContainer()->get(FormListOptions::class);

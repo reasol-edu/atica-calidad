@@ -45,13 +45,14 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
 - **Conditions** (`visibleIf: {field, op, value}`, on sections and blocks; `FormConditions`): hidden parts are not shown, validated or
   printed, and what was typed in them is kept. A broken condition holds (shows).
 - **References** `{{label|ref}}` in titles, labels and texts (what follows the last `|` counts, so a rename of the label is harmless):
-  `copy.number`, `copy.total`, `row:<column key>`, `f:<field key>`, `ctx:<centre|year|activity|slot|date>`. Resolved by `FormResolver`.
+  `copy.number`, `copy.total`, `copy.label` (the item of a section repeated by a list), `row:<column key>`, `f:<field key>`,
+  `ctx:<centre|year|activity|slot|date>`. Resolved by `FormResolver`.
 - **The rules live twice**: PHP (`FormDataNormalizer`, `FormWalker`, `FormConditions`, `FormResolver`) and JavaScript
   (`assets/utils/form_scopes.js`), because the page reacts while typing (a new row creates its section, a title follows the unit's name).
   The server cleans and validates everything again on save, so a drift only shows as the page and the saved document disagreeing: after
   changing one side, change the other and drive a model with repetition in a real browser.
-- Not done yet in this phase: the "list of the centre" and "another document" sources of repetition (need the catalogues of phase 6 and the
-  pre-fill of phase 5) and a minimum of manual copies as a delivery problem (it only applies when the document is created).
+- Not done yet in this phase: the "another document" source of repetition (the "list of the centre" one is done: «Sections repeated by
+  a list», below) and a minimum of manual copies as a delivery problem (it only applies when the document is created).
 
 ### Pending (parked 2026-11-22): a table fed from another document
 
@@ -267,6 +268,15 @@ trap: a list-fed field normalized against the raw definition has no options, so 
   them back. JSON library: `rowsList` ↔ `rowsListPath`. Tested in `FormListRowsTest`. Note: the delete/move confirmations of
   Responsabilidades count values, not row keys: they under-count documents that use an item as a row (harmless: delivered rows keep
   their names).
+- **Sections repeated by a list** (`repeat: {mode: list, list, own}`; `items` is never stored): `FormListOptions` (`mapRepeats()`)
+  fills `repeat.items` with the same filter and gone rule as the rows (a copy "holds something" when a non-calculated field, a text
+  that is not an unchanged starter, a non-calculated cell or a nested copy has a value: `copiesWithData()`). Copies keyed by the item
+  id with `_source` (PHP `FormDataNormalizer::copies()` case `list`, JS twin in `sync()`); the walker gives each copy `label` (the
+  item's name) for `{{…|copy.label}}` (`FormResolver::reference()` / `references()` in JS; the editor offers it as «Elemento de la
+  lista» inside such a section). A gone copy is validator `copy_gone` (its content is not checked); the fill page shows «Vaciar esta
+  parte». Snapshot/delivered under the SECTION's key; JSON library `repeat.list` ↔ `repeat.listPath`; `repeat_list_invalid` when no list
+  is picked. Gone rows and copies of an item still active read «(ya no corresponde)» (`options.gone_other`), of an inactive one
+  «(ya no disponible)».
 - Not done: a list-fed field in a double-entry table's cells.
 
 ## Files in and out, and offline (phase 7)

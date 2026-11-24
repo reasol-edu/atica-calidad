@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 globalThis.window = globalThis;
-const { sync, calculate, totals, walk, numbers, countedCount, format } = await import('../../assets/utils/form_scopes.js');
+const { sync, calculate, totals, walk, numbers, countedCount, format, references } = await import('../../assets/utils/form_scopes.js');
 
 const k = (n) => `${n}0000000-0000-4000-8000-000000000000`;
 
@@ -113,6 +113,23 @@ test('a counted table has as many rows as its number field says and keeps the fi
 test('a rich text reads as the text it says', () => {
     assert.equal(format({ fieldType: 'long' }, '<p>Hola <strong>mundo</strong></p><ul><li>uno</li><li>a &amp; b</li></ul>', {}), 'Hola mundo uno a & b');
     assert.equal(format({ fieldType: 'long' }, 'texto\nplano', {}), 'texto plano');
+});
+
+test('a section repeated by a list has a copy per item, keyed by it, and each copy knows its name (the twin of FormDataNormalizer::copies())', () => {
+    const def = { version: 1, sections: [{
+        key: k('s'), title: 'Materia: {{Elemento|copy.label}}', numbered: true, children: [],
+        repeat: { mode: 'list', list: k('l'), own: true, items: [{ key: k('a'), label: 'Física' }, { key: k('b'), label: 'Química' }] },
+        blocks: [{ key: k('f'), type: 'field', fieldType: 'short', label: 'Valoración' }],
+    }] };
+    // What was typed for Química stays with it whatever the order; a copy of an item no longer listed goes.
+    const state = { fields: {}, texts: {}, tables: {}, copies: { [k('s')]: [{ _key: k('c'), fields: { [k('f')]: 'x' } }, { _key: k('b'), fields: { [k('f')]: 'Bien' } }] } };
+    sync(def.sections, state);
+    assert.deepEqual(state.copies[k('s')].map((c) => c._key), [k('a'), k('b')]);
+    assert.equal(state.copies[k('s')][1].fields[k('f')], 'Bien');
+    assert.equal(state.copies[k('s')][1]._source, k('b'));
+
+    const instances = walk(def, state);
+    assert.deepEqual(instances.map((i) => references(i.section.title, i, new Map(), {}, {})), ['Materia: Física', 'Materia: Química']);
 });
 
 test('a rating reads as points out of the top, with the word of an end (the same as FormResolver::format())', () => {

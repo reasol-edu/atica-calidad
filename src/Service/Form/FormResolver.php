@@ -361,6 +361,10 @@ final class FormResolver
         if ($ref === 'copy.total') {
             return $copy === null ? '' : (string) FormDefinition::int($copy['total'] ?? 0);
         }
+        if ($ref === 'copy.label') {
+            // The name of the item of a list the copy is for (a section repeated by a list).
+            return $copy === null ? '' : FormDefinition::str($copy['label'] ?? '');
+        }
         if (str_starts_with($ref, 'ctx:')) {
             return $context[substr($ref, 4)] ?? '';
         }

@@ -154,13 +154,17 @@ export function sync(sections, scope, outer = []) {
         const repeat = section.repeat;
         const out = [];
 
-        if (repeat.mode === 'table') {
-            const rows = lookup(chain, 'tables', repeat.table) || [];
+        if (repeat.mode === 'table' || repeat.mode === 'list') {
+            // One copy per row of a table, or per item of a list (the server puts them in `repeat.items`): keyed by it, so a copy follows
+            // its row or item (the twin of FormDataNormalizer::copies()).
+            const sources = repeat.mode === 'table'
+                ? (lookup(chain, 'tables', repeat.table) || []).map((r) => r._key)
+                : (repeat.items || []).slice(0, MAX_COPIES).map((i) => i.key);
             const byKey = new Map(list.map((c) => [c._key, c]));
-            for (const row of rows) {
-                const copy = byKey.get(row._key) || {};
-                copy._key = row._key;
-                copy._source = row._key;
+            for (const key of sources) {
+                const copy = byKey.get(key) || {};
+                copy._key = key;
+                copy._source = key;
                 sync([inner], copy, chain);
                 out.push(copy);
             }
@@ -233,13 +237,14 @@ export function walk(definition, data) {
             }
             const copies = Array.isArray(scope.copies && scope.copies[section.key]) ? scope.copies[section.key] : [];
             const table = section.repeat.mode === 'table' ? tables.get(section.repeat.table) : null;
+            const labels = new Map(section.repeat.mode === 'list' ? (section.repeat.items || []).map((i) => [i.key, i.label]) : []);
             copies.forEach((copy, index) => {
                 let origin = null;
                 if (table) {
                     const row = (lookup(chain, 'tables', table.key) || []).find((r) => r._key === copy._source);
                     origin = row ? { table, row } : null;
                 }
-                const info = { index: index + 1, total: copies.length, key: copy._key, source: copy._source || null };
+                const info = { index: index + 1, total: copies.length, key: copy._key, source: copy._source || null, label: labels.get(copy._key) || '' };
                 out.push(instance(section, path + section.key + ':' + copy._key, true, info, origin, copy, [copy, ...chain], visible));
             });
             if (section.repeat.mode === 'manual') {
@@ -341,6 +346,7 @@ export function references(text, inst, specs, context, labels) {
         const ref = body.split('|').pop().trim();
         if (ref === 'copy.number') { return inst.copy ? String(inst.copy.index) : ''; }
         if (ref === 'copy.total') { return inst.copy ? String(inst.copy.total) : ''; }
+        if (ref === 'copy.label') { return inst.copy ? (inst.copy.label || '') : ''; }
         if (ref.startsWith('ctx:')) { return context[ref.slice(4)] || ''; }
         if (ref.startsWith('row:')) {
             const column = ref.slice(4);

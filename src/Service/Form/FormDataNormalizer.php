@@ -295,6 +295,15 @@ final class FormDataNormalizer
                 }
                 break;
 
+            case 'list':
+                // One copy per item of a list, keyed by the item (FormListOptions put them in `items`, the gone ones that still hold
+                // something included): a copy follows its item whatever the order of the list.
+                foreach (array_slice(FormDefinition::listOf($repeat['items'] ?? []), 0, self::MAX_COPIES) as $item) {
+                    $key   = FormDefinition::str($item['key'] ?? '');
+                    $out[] = ['_key' => $key, '_source' => $key] + $this->scope([$inner], $byKey[$key] ?? [], $chain);
+                }
+                break;
+
             case 'field':
                 $count = min(self::MAX_COPIES, max(0, FormDefinition::int($this->fieldOf($chain, FormDefinition::str($repeat['field'] ?? '')))));
                 for ($i = 0; $i < $count; ++$i) {
