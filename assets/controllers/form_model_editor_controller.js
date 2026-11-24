@@ -21,7 +21,7 @@ const INPUT = 'w-full min-w-0 rounded-lg border border-gray-200 px-2.5 py-1.5 te
  */
 /* stimulusFetch: 'lazy' */
 export default class extends Controller {
-    static targets = ['canvas', 'outline', 'status', 'problems', 'code', 'send', 'bar', 'summary', 'panel', 'openSend', 'tabs', 'rules', 'approval', 'scale', 'scaleOutput'];
+    static targets = ['canvas', 'outline', 'status', 'problems', 'code', 'send', 'bar', 'summary', 'panel', 'openSend', 'tabs', 'rules', 'approval', 'scale', 'scaleOutput', 'approve'];
     static values = { config: Object, labels: Object };
 
     connect() {
@@ -134,6 +134,11 @@ export default class extends Controller {
         this.openSendTarget.title = changes.any ? '' : this.l.send_unchanged;
         this.sendTarget.disabled = !changes.any || problems.length > 0;
         this.sendTarget.title = problems.length > 0 ? this.l.send_blocked : (changes.any ? '' : this.l.send_unchanged);
+        // «Aprobar nueva revisión» (only for whoever may review the folder) waits for the same.
+        if (this.hasApproveTarget) {
+            this.approveTarget.disabled = this.sendTarget.disabled;
+            this.approveTarget.title = this.sendTarget.title;
+        }
         this.problemsTarget.replaceChildren(...problems.map((p) => h('li', { class: 'flex items-start gap-2' }, [
             h('span', { class: 'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-600', 'aria-hidden': 'true' }),
             h('span', { class: 'min-w-0 flex-1', text: p.text }),

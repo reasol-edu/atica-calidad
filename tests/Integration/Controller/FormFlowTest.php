@@ -254,6 +254,49 @@ final class FormFlowTest extends ControllerTestCase
         self::assertTrue($this->client->getResponse()->isRedirect(), 'the activity cannot be filled while no revision is approved');
     }
 
+    public function testWhoMayReviewTheFolderApprovesTheNewRevisionFromTheEditor(): void
+    {
+        $reviewers = (new SpecificProfile())->setEducationalCentre($this->centre)->setName('Revisión');
+        $this->modelFolder->addReviewProfile($reviewers);
+        $this->persist($reviewers);
+        $service = self::getContainer()->get(FormModelService::class);
+        $model   = $service->create($this->modelFolder, 'Ficha', null);
+        $service->saveDraft($model, $this->definition(), $model->getDraftVersion(), $this->admin);
+        $this->flush();
+        $id = $model->getId()->toRfc4122();
+
+        $this->loginAs($this->admin, $this->centre);
+        $this->client->request('GET', "/modelos/{$id}");
+        self::assertSelectorExists('[data-testid="send-approve"]');
+        self::assertSelectorTextContains('[data-testid="send-approve"]', 'Aprobar nueva revisión');
+
+        $this->client->request('POST', "/modelos/{$id}/enviar", ['_token' => $this->csrfToken('form_model_send_' . $id), 'approve' => '1', 'description' => 'Primera']);
+        self::assertResponseRedirects('/modelos');
+        $this->em->clear();
+        $document = $this->em->getRepository(FormModel::class)->find($model->getId())->getDocument();
+        $active   = $document->getActiveRevision();
+        self::assertNotNull($active, 'in force at once');
+        self::assertFalse($active->isPendingReview());
+        self::assertSame('admin', $active->getReviewedBy()?->getUsername());
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('body', 'se ha aprobado y ya está en vigor');
+    }
+
+    public function testAFolderThatDoesNotAskForReviewHasNoApproveButton(): void
+    {
+        $service = self::getContainer()->get(FormModelService::class);
+        $model   = $service->create($this->modelFolder, 'Ficha', null);
+        $service->saveDraft($model, $this->definition(), $model->getDraftVersion(), $this->admin);
+        $this->flush();
+        $id = $model->getId()->toRfc4122();
+
+        $this->loginAs($this->admin, $this->centre);
+        $this->client->request('GET', "/modelos/{$id}");
+        self::assertSelectorNotExists('[data-testid="send-approve"]', 'it goes into force when it is saved anyway');
+        $this->client->request('POST', "/modelos/{$id}/enviar", ['_token' => $this->csrfToken('form_model_send_' . $id), 'approve' => '1']);
+        self::assertResponseStatusCodeSame(403);
+    }
+
     public function testApprovingAModelRevisionMakesItsBlankPdfAgain(): void
     {
         $reviewers = (new SpecificProfile())->setEducationalCentre($this->centre)->setName('Revisión');

@@ -69,6 +69,7 @@ model.error.stale: 'Otra persona (u otra pestaña) ha guardado este modelo mient
 model.error.model_problems: 'El modelo todavía tiene problemas que impiden enviarlo a revisión; están listados bajo el botón.'
 model.flash.sent_pending: 'La revisión %version% del modelo se ha enviado a revisión.'
 model.flash.sent_active: 'La revisión %version% del modelo ya está en vigor (la carpeta no exige revisión).'
+model.flash.sent_approved: 'La revisión %version% del modelo se ha aprobado y ya está en vigor.'
 model.problem.empty: 'El modelo no tiene ninguna sección.'
 model.problem.section_without_title: 'Hay una sección sin título.'
 model.problem.text_without_label: 'Un texto a rellenar de la sección «%section%» no tiene etiqueta.'
@@ -375,6 +376,8 @@ editor.send_review: 'Se creará una revisión nueva del modelo, pendiente de apr
 editor.send_direct: 'La carpeta no exige revisión: la revisión nueva entrará en vigor al enviarla.'
 editor.send_description: 'Qué ha cambiado (opcional)'
 editor.send: 'Enviar a revisión'
+editor.send_approve: 'Aprobar nueva revisión'
+editor.send_approve_help: 'Puedes revisar la carpeta de este modelo: con «Aprobar nueva revisión» la revisión se crea ya aprobada y entra en vigor, sin esperar a otra persona.'
 
 # ── Rellenado ────────────────────────────────────────────────────────────────
 fill.locked_banner: 'Lo está editando %name% (hasta las %time% si no sigue escribiendo). Ves el documento en solo lectura.'

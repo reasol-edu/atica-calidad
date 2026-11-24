@@ -13,7 +13,10 @@ this file records what the code does and the traps already hit. Phase 1 is imple
 - A model is a `Document` + `FormModel` (1:1). It has **no revision until the first one is sent to review**. Each revision sent is a
   normal `DocumentRevision` — pending when the folder has review profiles, approved with the usual screens — whose **file is the
   blank PDF** (so the tree, downloads, ZIPs, search and backups keep working) and whose frozen definition is its
-  `FormModelRevision` (1:1, immutable). The editor works on `FormModel::draftDefinition`.
+  `FormModelRevision` (1:1, immutable). The editor works on `FormModel::draftDefinition`. «Aprobar nueva revisión» (send panel, shown
+  when the folder requires review and `FolderVoter::REVIEW` holds — today every model editor, as admins and quality managers manage any
+  folder) posts `approve=1` to the same send action: `sendToReview(..., notify: false)` then `DocumentRevisionReviewer::approve()`, the
+  single approval entry point (version in force, blank PDF remade with its date, log, outcome e-mail).
 - A filled document is **not a Document while it is a draft**: `FormSubmission` is keyed by (activity, slot key, cycle year), holds
   `draftData`, and only **delivering** creates the `Document` (named and owned by the slot, exactly as an uploaded file would be, so
   `ActivitySubmissionSlotBuilder::resolveSlot()` finds it) or its next revision. The PDF is the revision's file; the data is frozen in

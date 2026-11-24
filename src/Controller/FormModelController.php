@@ -13,7 +13,9 @@ use App\Entity\Teacher;
 use App\Repository\FolderRepository;
 use App\Repository\FormModelRepository;
 use App\Repository\SpecificProfileRepository;
+use App\Security\Voter\FolderVoter;
 use App\Security\Voter\QualityVoter;
+use App\Service\DocumentRevisionReviewer;
 use App\Service\Form\FormDataNormalizer;
 use App\Service\Form\FormDefinition;
 use App\Service\Form\FormDefinitionNormalizer;
@@ -53,6 +55,7 @@ class FormModelController extends AbstractController
         private readonly \App\Service\Form\FormPdfBuilder $pdf,
         private readonly TranslatorInterface $translator,
         private readonly CsrfTokenManagerInterface $csrf,
+        private readonly DocumentRevisionReviewer $reviewer,
     ) {}
 
     #[Route('', name: 'app_form_models', methods: ['GET'])]
@@ -158,6 +161,7 @@ class FormModelController extends AbstractController
             'indicatorSources' => $sources,
             'modelIndicators'  => $indicators,
             'hasRevisions' => $model->getDocument()->getRevisions()->count() > 0,
+            'canApprove'   => $this->canApprove($model),
             // The header, footer, orientation and font scale of the model, and the header and footer it would have without its own.
             'layout'    => $this->definitions->normalize($model->getDraftDefinition())['layout'],
             'inherited' => $this->layouts->inherited($centre),
@@ -269,6 +273,12 @@ class FormModelController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        // «Aprobar nueva revisión»: whoever may review the model's folder sends it and approves it in one go.
+        $approve = $request->request->getString('approve') === '1';
+        if ($approve && !$this->canApprove($model)) {
+            throw $this->createAccessDeniedException();
+        }
+
         try {
             $description = trim($request->request->getString('description'));
             $mandatory   = $request->request->getString('policy') === FormUpdatePolicy::Mandatory->value;
@@ -279,6 +289,7 @@ class FormModelController extends AbstractController
                 $description === '' ? null : mb_substr($description, 0, 2000),
                 $mandatory ? FormUpdatePolicy::Mandatory : FormUpdatePolicy::Optional,
                 $deadline === false ? null : $deadline,
+                !$approve,
             );
         } catch (FormException $e) {
             $this->addFlash('error', $this->translator->trans('model.' . $e->getMessage(), [], 'forms'));
@@ -286,9 +297,25 @@ class FormModelController extends AbstractController
             return $this->redirectToRoute('app_form_model_edit', ['id' => $id]);
         }
 
+        // The same approval as from the folder (version in force, blank PDF with its date, log, e-mail to who sent it).
+        if ($approve && $revision->isPendingReview()) {
+            $this->reviewer->approve($revision, $this->teacher(), null, $centre);
+            $this->addFlash('success', $this->translator->trans('model.flash.sent_approved', ['%version%' => $revision->getVersion()], 'forms'));
+
+            return $this->redirectToRoute('app_form_models');
+        }
+
         $this->addFlash('success', $this->translator->trans($revision->isPendingReview() ? 'model.flash.sent_pending' : 'model.flash.sent_active', ['%version%' => $revision->getVersion()], 'forms'));
 
         return $this->redirectToRoute('app_form_models');
+    }
+
+    /** Whoever edits the model may also approve its revisions: its folder asks for review and they can review it. */
+    private function canApprove(FormModel $model): bool
+    {
+        $folder = $model->getDocument()->getFolder();
+
+        return $folder->requiresReview() && $this->isGranted(FolderVoter::REVIEW, $folder);
     }
 
     private function requireModel(string $id, EducationalCentre $centre): FormModel

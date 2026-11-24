@@ -7,6 +7,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- Editor de modelos: quien puede revisar la carpeta del modelo tiene en el panel de envío el botón **Aprobar nueva revisión**, que crea la revisión ya aprobada y en vigor (sin avisar a los revisores de una revisión pendiente que ya no lo está).
+
 ### Fixed
 
 - Formulario de relleno: los textos fijos de un modelo (y la vista previa de los textos de partida) muestran sus referencias resueltas —el centro, el elemento de la copia, el valor de un campo, que se actualiza mientras se escribe— en lugar del código `{{…|…}}`, igual que en el documento entregado y en el PDF.

@@ -290,8 +290,20 @@
                     <label for="send-description" class="block text-sm font-medium text-gray-700">{{ 'editor.send_description'|trans({}, 'forms') }}</label>
                     <input id="send-description" name="description" maxlength="2000" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-forest-500 focus:ring-forest-500">
                 </div>
-                <button type="submit" data-form-model-editor-target="send" class="w-full rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 disabled:cursor-not-allowed disabled:bg-gray-300 sm:w-auto">{{ send_label }}</button>
+                <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    <button type="submit" data-form-model-editor-target="send" class="w-full rounded-xl bg-forest-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-forest-700 disabled:cursor-not-allowed disabled:bg-gray-300 sm:w-auto">{{ send_label }}</button>
+                    {# Whoever may review the model's folder can send the revision and approve it at once (it goes into force). #}
+                    {% if canApprove %}
+                        <button type="submit" name="approve" value="1" data-form-model-editor-target="approve" data-testid="send-approve"
+                                class="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-forest-600 bg-white px-4 py-2.5 text-sm font-semibold text-forest-700 shadow-xs hover:bg-forest-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 sm:w-auto">
+                            {{ ux_icon('heroicons:check-badge', {class: 'h-4 w-4'}) }}{{ 'editor.send_approve'|trans({}, 'forms') }}
+                        </button>
+                    {% endif %}
+                </div>
             </form>
+            {% if canApprove %}
+                <p class="mt-2 text-xs text-gray-500">{{ 'editor.send_approve_help'|trans({}, 'forms') }}</p>
+            {% endif %}
         </section>
     </div>
 

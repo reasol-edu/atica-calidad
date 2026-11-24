@@ -254,6 +254,10 @@ dice cuántos borradores y entregas se verían afectados y deja elegir:
 - **Actualizar es opcional**: cada cual decide si pasa su documento a la revisión nueva.
 - **Actualizar es obligatorio** (opcionalmente a partir de una fecha): hay que pasar.
 
+Si la carpeta exige revisión y tú puedes revisarla, el panel tiene además **Aprobar nueva revisión**:
+crea la revisión ya aprobada por ti y entra en vigor al momento, sin esperar a otra persona (es lo mismo
+que enviarla y aprobarla después desde la carpeta, y queda en el historial con tu nombre como revisor).
+
 Al **actualizar** un documento a la revisión vigente, lo ya escrito se conserva por la identidad de
 cada campo, no por su posición ni su título; si algún dato se pierde porque el campo ya no existe, se
 avisa antes. También se puede **empezar de cero**.

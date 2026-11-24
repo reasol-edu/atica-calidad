@@ -131,11 +131,12 @@ final class FormModelService
     }
 
     /**
-     * Freezes the draft as the next revision of the document and sends it to review.
+     * Freezes the draft as the next revision of the document and sends it to review. `$notify` false keeps the reviewers' e-mail
+     * from going out: the revision is about to be approved by whoever sends it (FormModelController::send(), «Aprobar nueva revisión»).
      *
      * @throws FormException `error.model_problems` (with what to fix) when the draft cannot work yet
      */
-    public function sendToReview(FormModel $model, Teacher $by, ?string $description, FormUpdatePolicy $policy = FormUpdatePolicy::Optional, ?\DateTimeImmutable $deadline = null): DocumentRevision
+    public function sendToReview(FormModel $model, Teacher $by, ?string $description, FormUpdatePolicy $policy = FormUpdatePolicy::Optional, ?\DateTimeImmutable $deadline = null, bool $notify = true): DocumentRevision
     {
         $definition = $this->definitions->normalize($model->getDraftDefinition());
         $document   = $model->getDocument();
@@ -160,7 +161,7 @@ final class FormModelService
         $this->em->flush();
 
         $this->logger->record('form_model.send', ['document' => $document->getName(), 'version' => $revision->getVersion()], $centre);
-        if ($revision->isPendingReview()) {
+        if ($notify && $revision->isPendingReview()) {
             $this->notifier->notifyReviewers($revision);
         }
 
