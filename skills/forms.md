@@ -266,8 +266,10 @@ trap: a list-fed field normalized against the raw definition has no options, so 
   offered any more is kept as `gone` (validator `row_gone`, blocking; the fill page strikes it out with «vaciar la fila»); without
   data it is dropped. `snapshot()` freezes ALL the rows of the table (not only filled ones) under the table's key; `delivered()` puts
   them back. JSON library: `rowsList` ↔ `rowsListPath`. Tested in `FormListRowsTest`. Note: the delete/move confirmations of
-  Responsabilidades count values, not row keys: they under-count documents that use an item as a row (harmless: delivered rows keep
-  their names).
+  Responsabilidades (and the Séneca «in use») count values, not row keys or copy paths: they under-count documents that use an item as
+  a row or copy (harmless: delivered rows and copies keep their names). **Optional, parked by the user 2026-11-24 («no merece la
+  pena»)**: a table of the list items each delivered revision uses (written from `optionsSnapshot` at delivery, backfilled by
+  `app:forms:reindex`) for an exact, indexed count of options, rows and copies — needs a migration on every engine.
 - **Sections repeated by a list** (`repeat: {mode: list, list, own}`; `items` is never stored): `FormListOptions` (`mapRepeats()`)
   fills `repeat.items` with the same filter and gone rule as the rows (a copy "holds something" when a non-calculated field, a text
   that is not an unchanged starter, a non-calculated cell or a nested copy has a value: `copiesWithData()`). Copies keyed by the item

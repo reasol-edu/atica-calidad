@@ -108,6 +108,8 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
   tachada y marcada, con el botón **«Ya no corresponde: vaciar la fila»**, y no se puede entregar
   hasta vaciarla. Lo entregado conserva las filas y los nombres con que se entregó.
 
+  ![Editor de la tabla «Aprobados en la evaluación final»: Filas «Una por elemento de una lista del catálogo», Lista «Materia» con la explicación «ahora 14: Matemáticas, Lengua Castellana y Literatura, Inglés…» y la casilla marcada «Solo los elementos asociados a quien entrega» con su explicación](img/modelos-editor-filas-lista.png)
+
   En la tabla según un campo, si el número sube se añaden filas en blanco al final; si baja, se
   quitan las últimas, y antes de hacerlo la pantalla avisa cuando alguna de esas filas tiene algo
   escrito. Se puede poner un máximo de filas (hasta 100), que prevalece sobre el número.
@@ -123,6 +125,8 @@ Además:
   título la referencia **«Elemento de la lista»** («Materia: Física y Química»). Una copia de un
   elemento que deja de corresponder y tiene algo escrito se queda, con el aviso «ya no corresponde» y
   el botón **«Vaciar esta parte»**, y no se puede entregar hasta vaciarla.
+
+  ![Sección 5 del editor, con el título «Seguimiento de {{Elemento de la lista|copy.label}}» y abierta «Repetición y condición de la sección»: «Se repite una vez por elemento de una lista del catálogo», Lista «Enseñanza › Formación Profesional» (ahora 4: DAM › 1º DAM, DAM › 2º DAM, DAW › 1º DAW…), la casilla «Solo los elementos asociados a quien entrega» y «Numerar las copias»](img/modelos-editor-repetir-lista.png)
 - **Condiciones**: una sección o un bloque solo se muestra si otro campo está lleno, vacío o vale lo
   que se indica.
 - **Referencias** `{ }`: en títulos y textos se puede insertar el valor de un campo, el número de copia
@@ -238,6 +242,17 @@ Más abajo, en la sección 3, la **escala de valoración** se contesta pulsando 
 su tamaño y una ✕ para quitarlo:
 
 ![Sección «3. Satisfacción y evidencias» del formulario: «Satisfacción con el curso» de «Nada» a «Mucho» con el 4 marcado y el enlace «Borrar la respuesta»; «Evidencias» con pizarra-reunion.png (20 KB) y acta-coordinacion.pdf (30 KB) ya adjuntos, y debajo el recuadro «Adjuntar archivos — o arrástralos aquí»](img/modelos-escala-adjuntos.png)
+
+Las secciones 4 y 5 salen de listas del catálogo. La tabla «Aprobados en la evaluación final» tiene
+una fila por materia (quien entrega esta memoria no está asociado a ninguna, así que salen las 14),
+con la media al pie:
+
+![Sección «4. Resultados por materia»: la tabla «Aprobados en la evaluación final» con una fila por materia (Matemáticas 86 %, Lengua Castellana y Literatura 78 %, Inglés, Física y Química… hasta la FFEOE) y el total al pie, 82 %](img/modelos-filas-lista.png)
+
+Y la sección «Seguimiento» se repite una vez por curso de Formación Profesional, cada copia con el
+nombre de su curso en el título:
+
+![Secciones 5 a 8 del formulario: «Seguimiento de DAM › 1º DAM» con la propuesta «Más horas de prácticas en empresa», y «Seguimiento de DAM › 2º DAM», «DAW › 1º DAW» y «DAW › 2º DAW» por rellenar](img/modelos-copias-lista.png)
 
 Entregado y aprobado, el documento se ve así, con los departamentos por su nombre y los botones para
 bajarlo en PDF, Word u OpenDocument y, como tiene archivos adjuntos, **Documento con anexos (ZIP)**:
@@ -371,7 +386,7 @@ desde documentos*.
 actividad y un curso (entrega, versión, copia, fila, campo y valor), con un filtro de texto en
 pantalla y **exportación completa a CSV y Excel**. Lo ve quien puede ver los demás informes.
 
-![Datos de modelos: siete valores de la «Memoria final de departamento» del curso 2026-2027 (departamento Matemáticas, 11 reuniones, la valoración, las dos columnas de la fila de coordinación, los nombres de los archivos de «Evidencias» y la satisfacción, 4), con el filtro y los botones CSV y Excel](img/modelos-explorador.png)
+![Datos de modelos: diez valores de la «Memoria final de departamento» del curso 2026-2027 (se ven el departamento Matemáticas, 11 reuniones, la valoración, las dos columnas de la fila de coordinación, los nombres de los archivos de «Evidencias» y la satisfacción, 4; más abajo, los aprobados de dos materias y una propuesta de mejora), con el filtro y los botones CSV y Excel](img/modelos-explorador.png)
 
 ## Permisos, de un vistazo
 

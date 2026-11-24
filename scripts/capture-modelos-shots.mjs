@@ -76,6 +76,17 @@ const filesBox = page.locator('text=Archivos como máximo').first();
 await filesBox.evaluate((el) => el.scrollIntoView({ block: 'center' }));
 await shot('modelos-editor-adjuntos', { clip: await clipAround(filesBox, 30, 140, 800, 255) });
 
+// A fixed table whose rows are the items of a list («Materia»), only those of who delivers it.
+const ownBoxes = page.locator('label:has-text("Solo los elementos asociados a quien entrega")');
+await ownBoxes.first().evaluate((el) => el.scrollIntoView({ block: 'center' }));
+await shot('modelos-editor-filas-lista', { clip: await clipAround(ownBoxes.first(), 30, 215, 800, 330) });
+
+// A section repeated once per item of a list (Enseñanza › Formación Profesional), its title naming each.
+await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { if (d.textContent.includes('Se repite una vez por elemento')) { d.open = true; } }));
+await page.waitForTimeout(300);
+await ownBoxes.last().evaluate((el) => el.scrollIntoView({ block: 'center' }));
+await shot('modelos-editor-repetir-lista', { clip: await clipAround(ownBoxes.last(), 50, 270, 800, 360) });
+
 // ── 3. Filling it in: the department is chosen among the list's items ─────────
 await page.goto(`${baseUrl}/actividades/${activityId}/formulario/${profileId}:::`);
 await settle();
@@ -111,6 +122,24 @@ await page.waitForTimeout(1500);   // the field is saved after the uploads
 await page.locator('h2:has-text("Satisfacción y evidencias"), h3:has-text("Satisfacción y evidencias")').first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
 await page.evaluate(() => window.scrollBy(0, -70));   // below the sticky header
 await shot('modelos-escala-adjuntos');
+
+// Sections 4 and 5: a row per subject (the list «Materia»), a copy per course of vocational training.
+const results = canvas.locator('table:has(th:text("Aprobados (%)"))').first();
+await results.locator('input').nth(0).fill('86');
+await page.keyboard.press('Tab');
+await page.waitForTimeout(500);
+await results.locator('input').nth(1).fill('78');
+await page.keyboard.press('Tab');
+await page.waitForTimeout(800);
+await page.locator('h2:has-text("Resultados por materia")').first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
+await page.evaluate(() => window.scrollBy(0, -70));
+await shot('modelos-filas-lista');
+await canvas.locator('section:has(h2:has-text("Seguimiento de")) input').first().fill('Más horas de prácticas en empresa');
+await page.keyboard.press('Tab');
+await page.waitForTimeout(1500);
+await page.locator('h2:has-text("Seguimiento de")').first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
+await page.evaluate(() => window.scrollBy(0, -70));
+await shot('modelos-copias-lista');
 
 // ── 4. Delivering it: the reviewer's view keeps reading as it was delivered ───
 await page.locator('form[action$="/entregar"] button[type="submit"]').click();

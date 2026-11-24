@@ -55,14 +55,24 @@ final class LoadDemoFormModelsCommand extends Command
 
             return Command::FAILURE;
         }
-        $departments = null;
+        $departments = $subjects = $vocational = null;
         foreach ($this->items->findRootsByCentre($centre) as $root) {
             if ($root->getName() === 'Departamento') {
                 $departments = $root;
             }
+            if ($root->getName() === 'Materia') {
+                $subjects = $root;
+            }
+            if ($root->getName() === 'Enseñanza') {
+                foreach ($root->getChildren() as $child) {
+                    if ($child->getName() === 'Formación Profesional') {
+                        $vocational = $child;
+                    }
+                }
+            }
         }
-        if (!$departments instanceof ListItem) {
-            $io->error('No se encuentra la lista «Departamento».');
+        if (!$departments instanceof ListItem || !$subjects instanceof ListItem || !$vocational instanceof ListItem) {
+            $io->error('No se encuentran las listas «Departamento», «Materia» y «Enseñanza › Formación Profesional».');
 
             return Command::FAILURE;
         }
@@ -79,7 +89,7 @@ final class LoadDemoFormModelsCommand extends Command
         $this->em->flush();
 
         $model = $this->models->create($models, 'Memoria de departamento', 'MD-07');
-        $this->models->saveDraft($model, $this->definition($departments->getId()->toRfc4122()), $model->getDraftVersion(), $author);
+        $this->models->saveDraft($model, $this->definition($departments->getId()->toRfc4122(), $subjects->getId()->toRfc4122(), $vocational->getId()->toRfc4122()), $model->getDraftVersion(), $author);
         $this->models->sendToReview($model, $author, null);
 
         $activity = (new Activity())
@@ -99,7 +109,7 @@ final class LoadDemoFormModelsCommand extends Command
     }
 
     /** @return array<string, mixed> */
-    private function definition(string $departmentsId): array
+    private function definition(string $departmentsId, string $subjectsId, string $vocationalId): array
     {
         return ['version' => 1, 'sections' => [
             [
@@ -125,6 +135,24 @@ final class LoadDemoFormModelsCommand extends Command
                 'blocks' => [
                     ['key' => FormDefinition::newKey(), 'type' => 'field', 'name' => 'satisfaccion', 'fieldType' => 'scale', 'label' => 'Satisfacción con el curso', 'required' => false, 'points' => 5, 'lowLabel' => 'Nada', 'highLabel' => 'Mucho', 'help' => ''],
                     ['key' => FormDefinition::newKey(), 'type' => 'field', 'name' => 'evidencias', 'fieldType' => 'attachment', 'label' => 'Evidencias', 'required' => false, 'maxFiles' => 5, 'printPages' => false, 'help' => 'Actas de las reuniones, fotos de las actividades…'],
+                ],
+            ],
+            // A fixed table whose rows are the items of a list, and a section repeated once per item of another (chapter 12). Nobody who
+            // delivers it is associated with those items: they all show (the associations of the lists are not touched, the other
+            // chapters' images show them).
+            [
+                'key' => FormDefinition::newKey(), 'title' => 'Resultados por materia', 'numbered' => true, 'help' => '', 'children' => [],
+                'blocks' => [
+                    ['key' => FormDefinition::newKey(), 'type' => 'table', 'name' => 'resultados', 'label' => 'Aprobados en la evaluación final', 'mode' => 'fixed', 'rowHeader' => 'Materia', 'rows' => [], 'rowsList' => $subjectsId, 'rowsOwn' => true, 'minRows' => 0, 'maxRows' => 0, 'help' => '', 'columns' => [
+                        ['key' => FormDefinition::newKey(), 'name' => 'aprobados', 'label' => 'Aprobados (%)', 'fieldType' => 'number', 'required' => false, 'min' => 0, 'max' => 100, 'unit' => '%', 'total' => 'avg'],
+                    ]],
+                ],
+            ],
+            [
+                'key' => FormDefinition::newKey(), 'title' => 'Seguimiento de {{Elemento de la lista|copy.label}}', 'numbered' => true, 'numberCopies' => true, 'help' => '', 'children' => [],
+                'repeat' => ['mode' => 'list', 'list' => $vocationalId, 'own' => true],
+                'blocks' => [
+                    ['key' => FormDefinition::newKey(), 'type' => 'field', 'name' => 'propuesta', 'fieldType' => 'short', 'label' => 'Propuesta de mejora', 'required' => false, 'help' => ''],
                 ],
             ],
         ]];
