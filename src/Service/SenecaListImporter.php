@@ -67,7 +67,7 @@ final class SenecaListImporter
         $reactivations = [];
 
         $this->diffChildren(
-            $root !== null ? $this->children($root) : [],
+            $root,
             $desired,
             [],
             $additions,
@@ -105,7 +105,6 @@ final class SenecaListImporter
     // ── plan (read-only) ─────────────────────────────────────────────────────
 
     /**
-     * @param ListItem[]                  $existingChildren
      * @param SenecaImportNode[]          $desired
      * @param string[]                    $path
      * @param SenecaListImportPlanItem[]  $additions
@@ -114,7 +113,7 @@ final class SenecaListImporter
      * @param SenecaListImportPlanItem[]  $reactivations
      */
     private function diffChildren(
-        array $existingChildren,
+        ?ListItem $parent,
         array $desired,
         array $path,
         array &$additions,
@@ -123,7 +122,7 @@ final class SenecaListImporter
         array &$reactivations,
     ): void {
         $existingByName = [];
-        foreach ($existingChildren as $child) {
+        foreach ($parent !== null ? $this->children($parent) : [] as $child) {
             $existingByName[mb_strtolower($child->getName())] = $child;
         }
 
@@ -132,6 +131,12 @@ final class SenecaListImporter
             $match     = $existingByName[$key] ?? null;
             $childPath = [...$path, $node->name];
             unset($existingByName[$key]);
+
+            // Not a child of its own: the list may have been organised in categories, so look further down.
+            $match ??= $parent !== null ? $this->findDeeper($parent, $node) : null;
+            if ($match !== null) {
+                $this->claim($match);
+            }
 
             if ($match === null) {
                 $this->collectAdditions($node, $childPath, $additions);
@@ -145,7 +150,7 @@ final class SenecaListImporter
 
             // A repository query, not $match->getChildren() — see planRemoval()'s comment on why.
             $this->diffChildren(
-                $this->children($match),
+                $match,
                 $node->getChildren(),
                 $childPath,
                 $additions,
@@ -180,6 +185,11 @@ final class SenecaListImporter
      */
     private function planRemoval(ListItem $item, array $path, array &$deletions, array &$deactivations): bool
     {
+        // Matched by the import further down the tree (inside a category): it stays where it is, with what is under it.
+        if (isset($this->claimed[$item->getId()->toRfc4122()])) {
+            return false;
+        }
+
         $childrenDeletable = true;
         // A repository query, not $item->getChildren(): $item may be an identity-map hit whose
         // in-memory collection was never hydrated from the database (e.g. an entity built and
@@ -188,6 +198,11 @@ final class SenecaListImporter
             if (!$this->planRemoval($child, [...$path, $child->getName()], $deletions, $deactivations)) {
                 $childrenDeletable = false;
             }
+        }
+
+        // A category that holds something the import matched is not removed or deactivated: its other items already were.
+        if (isset($this->claimedAncestors[$item->getId()->toRfc4122()])) {
+            return false;
         }
 
         if ($childrenDeletable && !$this->isInUse($item)) {
@@ -216,30 +231,48 @@ final class SenecaListImporter
             $existingByName[mb_strtolower($child->getName())] = $child;
         }
 
-        $position = 0;
+        /** @var ListItem[] $placed the direct children the CSV names, in its order */
+        $placed = [];
         foreach ($desired as $node) {
             $key   = mb_strtolower($node->name);
             $match = $existingByName[$key] ?? null;
             unset($existingByName[$key]);
+
+            // Not a child of its own: the list may have been organised in categories, so look further down.
+            $deep  = $match === null ? $this->findDeeper($parent, $node) : null;
+            $match ??= $deep;
+            if ($match !== null) {
+                $this->claim($match);
+            }
 
             if ($match === null) {
                 $match = new ListItem();
                 $match->setEducationalCentre($centre);
                 $match->setParent($parent);
                 $match->setName($node->name);
-                $match->setPosition($position);
                 $this->em->persist($match);
                 ++$counts['added'];
-            } else {
-                if (!$match->isActive()) {
-                    $match->setActive(true);
-                    ++$counts['reactivated'];
-                }
-                $match->setPosition($position);
+            } elseif (!$match->isActive()) {
+                $match->setActive(true);
+                ++$counts['reactivated'];
             }
-            ++$position;
+            // One found inside a category keeps its place there: only the direct children follow the CSV's order.
+            if ($deep === null) {
+                $placed[] = $match;
+            }
 
             $this->applyChildren($match, $centre, $node->getChildren(), $deleteUnused, $counts);
+        }
+
+        // After the categories that were kept because they hold something the import matched (none, in a list without them).
+        $position = 0;
+        foreach ($this->children($parent) as $child) {
+            if (isset($this->claimedAncestors[$child->getId()->toRfc4122()])) {
+                $position = max($position, $child->getPosition() + 1);
+            }
+        }
+        foreach ($placed as $item) {
+            $item->setPosition($position++);
         }
 
         foreach ($existingByName as $orphan) {
@@ -253,6 +286,11 @@ final class SenecaListImporter
      */
     private function applyRemoval(ListItem $item, bool $deleteUnused, array &$counts): bool
     {
+        // See planRemoval(): matched further down the tree, it stays; a category that holds one is kept too.
+        if (isset($this->claimed[$item->getId()->toRfc4122()])) {
+            return false;
+        }
+
         $childrenRemoved = true;
         // A repository query, not $item->getChildren() — see planRemoval()'s identical comment;
         // this also sidesteps needing to snapshot a live Collection before mutating it below.
@@ -260,6 +298,10 @@ final class SenecaListImporter
             if (!$this->applyRemoval($child, $deleteUnused, $counts)) {
                 $childrenRemoved = false;
             }
+        }
+
+        if (isset($this->claimedAncestors[$item->getId()->toRfc4122()])) {
+            return false;
         }
 
         if ($childrenRemoved && $deleteUnused && !$this->isInUse($item)) {
@@ -287,6 +329,47 @@ final class SenecaListImporter
     /** @var array<string, true> the items of the centre that cannot be deleted (read once per plan or apply) */
     private array $usedItems = [];
 
+    /** @var array<string, true> the items the import matched (by name, at any depth) in this plan or apply */
+    private array $claimed = [];
+
+    /** @var array<string, true> the ancestors of those: categories that must not be removed or deactivated */
+    private array $claimedAncestors = [];
+
+    private function claim(ListItem $item): void
+    {
+        $this->claimed[$item->getId()->toRfc4122()] = true;
+        for ($up = $item->getParent(); $up !== null; $up = $up->getParent()) {
+            $this->claimedAncestors[$up->getId()->toRfc4122()] = true;
+        }
+    }
+
+    /**
+     * An item with the node's name under one of the children of $parent (or deeper still), not matched yet: the list may have its
+     * groups, or its subjects, organised in categories. A node with nothing under it (a group, or a subject) only matches a leaf.
+     */
+    private function findDeeper(ListItem $parent, SenecaImportNode $node): ?ListItem
+    {
+        $needle   = mb_strtolower($node->name);
+        $wantLeaf = $node->getChildren() === [];
+        $queue    = $this->children($parent);
+        while ($queue !== []) {
+            $category = array_shift($queue);
+            if (isset($this->claimed[$category->getId()->toRfc4122()])) {
+                continue;
+            }
+            foreach ($this->children($category) as $candidate) {
+                if (!isset($this->claimed[$candidate->getId()->toRfc4122()])
+                    && mb_strtolower($candidate->getName()) === $needle
+                    && (!$wantLeaf || $this->children($candidate) === [])) {
+                    return $candidate;
+                }
+                $queue[] = $candidate;
+            }
+        }
+
+        return null;
+    }
+
     /** @var array<string, ListItem[]> the centre's tree by parent id (the roots under ''), read once per plan or apply */
     private array $childMap = [];
 
@@ -303,6 +386,7 @@ final class SenecaListImporter
     private function loadUsage(EducationalCentre $centre, ?ListItem $root): void
     {
         $this->items->reset();
+        $this->claimed = $this->claimedAncestors = [];
         $this->childMap = $this->items->childrenMap($centre);
         $this->usedItems = $this->usage->keptByImports($centre);
         if ($root !== null && $this->em->contains($root)) {

@@ -7,6 +7,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Responsabilidades: la importación de grupos y de materias desde Séneca reconoce los elementos que se han organizado en **categorías** dentro de la raíz: los busca también en los niveles inferiores (un elemento hoja solo se empareja con otro hoja) en vez de añadirlos de nuevo y desactivar los antiguos. Lo encontrado conserva su sitio, y las categorías que lo contienen no se eliminan ni se desactivan.
+
 ## [2.11.0] - 2026-11-24
 
 ### Added

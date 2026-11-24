@@ -238,6 +238,13 @@ raíz con ese nombre (comparando sin distinguir mayúsculas), se actualiza en ve
 
 ![Importar grupos desde Séneca: selector del fichero CSV y campo con el nombre de la raíz, propuesto como «Grupo»](img/responsabilidades-seneca-formulario.png)
 
+Si has **organizado los grupos (o las materias) en categorías** dentro de la raíz —por ejemplo
+«ESO» › «1º ESO»—, la importación los reconoce: busca cada nombre del fichero primero entre los
+hijos directos de la raíz y, si no está, en los niveles inferiores (un grupo o una materia sin nada
+debajo solo se empareja con un elemento hoja). Lo que encuentra se queda donde está, sin duplicarse
+ni desactivarse, y las categorías que contengan algo del fichero tampoco se tocan. Solo se añade lo
+que no existe en ningún nivel, y se coloca en la raíz, detrás de las categorías.
+
 Antes de tocar nada se muestra una **previsualización**: qué elementos se añadirían, cuáles ya
 existen y se reactivarían (si estaban inactivos) y cuáles ya no aparecen en el fichero. Para estos
 últimos hay que elegir qué hacer:

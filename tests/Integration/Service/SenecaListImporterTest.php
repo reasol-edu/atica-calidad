@@ -298,6 +298,99 @@ final class SenecaListImporterTest extends RepositoryTestCase
         self::assertTrue($children[0]->isActive());
     }
 
+    // ── items organised in categories ─────────────────────────────────────────
+
+    /** @param array<string, ListItem> $tree */
+    private function categorised(EducationalCentre $centre, string $rootName): array
+    {
+        $root = (new ListItem())->setEducationalCentre($centre)->setName($rootName)->setPosition(0);
+        $eso  = (new ListItem())->setEducationalCentre($centre)->setName('ESO')->setPosition(0);
+        $eso->setParent($root);
+        $eso1 = (new ListItem())->setEducationalCentre($centre)->setName('1º ESO')->setPosition(0);
+        $eso1->setParent($eso);
+        $bach = (new ListItem())->setEducationalCentre($centre)->setName('Bachillerato')->setPosition(1);
+        $bach->setParent($root);
+        $bach1 = (new ListItem())->setEducationalCentre($centre)->setName('1º BACH')->setPosition(0);
+        $bach1->setParent($bach);
+        $this->persist($centre, $root, $eso, $eso1, $bach, $bach1);
+
+        return compact('root', 'eso', 'eso1', 'bach', 'bach1');
+    }
+
+    public function testGroupsFoundInsideCategoriesAreRecognisedNotAddedAgainNorDeactivated(): void
+    {
+        $centre = $this->centre();
+        $this->categorised($centre, 'Grupo');
+
+        $desired = [new SenecaImportNode('1º ESO'), new SenecaImportNode('1º BACH'), new SenecaImportNode('2º BACH')];
+        $plan    = $this->importer->plan($centre, 'Grupo', $desired);
+
+        self::assertSame([['2º BACH']], array_map(static fn ($i): array => $i->path, $plan->additions), 'only the one that is really new');
+        self::assertSame([], $plan->deletions);
+        self::assertSame([], $plan->deactivations);
+
+        $counts = $this->importer->apply($centre, 'Grupo', $desired, true);
+        self::assertSame(['added' => 1, 'deleted' => 0, 'deactivated' => 0, 'reactivated' => 0], $counts);
+
+        $this->em->clear();
+        $root = $this->items->findRootsByCentre($centre)[0];
+        $top  = $this->items->findChildrenByParent($root);
+        self::assertSame(['ESO', 'Bachillerato', '2º BACH'], array_map(static fn (ListItem $i): string => $i->getName(), $top), 'the categories stay');
+        self::assertTrue($top[0]->isActive() && $top[1]->isActive());
+        self::assertSame(['1º ESO'], array_map(static fn (ListItem $i): string => $i->getName(), $this->items->findChildrenByParent($top[0])));
+    }
+
+    public function testACategoryWithGroupsThatLeftTheImportLosesThemButStaysWhileOthersRemain(): void
+    {
+        $centre = $this->centre();
+        $this->categorised($centre, 'Grupo');
+
+        // 1º BACH is no longer in the CSV: it goes, and so does its category (nothing is left in it); ESO stays for 1º ESO.
+        $this->importer->apply($centre, 'Grupo', [new SenecaImportNode('1º ESO')], true);
+
+        $this->em->clear();
+        $root = $this->items->findRootsByCentre($centre)[0];
+        self::assertSame(['ESO'], array_map(static fn (ListItem $i): string => $i->getName(), $this->items->findChildrenByParent($root)));
+    }
+
+    public function testSubjectsImportFindsTheGroupsInsideCategoriesAndTheirSubjects(): void
+    {
+        $centre = $this->centre();
+        $tree   = $this->categorised($centre, 'Materia');
+        $maths  = (new ListItem())->setEducationalCentre($centre)->setName('Matemáticas')->setPosition(0);
+        $maths->setParent($tree['eso1']);
+        $this->persist($maths);
+
+        $group = new SenecaImportNode('1º ESO');
+        $group->childNamed('Matemáticas');
+        $group->childNamed('Lengua');
+        $plan = $this->importer->plan($centre, 'Materia', [$group]);
+
+        self::assertSame([['1º ESO', 'Lengua']], array_map(static fn ($i): array => $i->path, $plan->additions), 'the group is not added again');
+        self::assertSame([], $plan->deactivations);
+
+        $this->importer->apply($centre, 'Materia', [$group], true);
+        $this->em->clear();
+        $eso1 = $this->items->find($tree['eso1']->getId());
+        self::assertNotNull($eso1);
+        self::assertSame(['Matemáticas', 'Lengua'], array_map(static fn (ListItem $i): string => $i->getName(), $this->items->findChildrenByParent($eso1)));
+    }
+
+    public function testADirectChildWinsOverOneInsideACategory(): void
+    {
+        $centre = $this->centre();
+        $tree   = $this->categorised($centre, 'Grupo');
+        $direct = (new ListItem())->setEducationalCentre($centre)->setName('1º ESO')->setPosition(2);
+        $direct->setParent($tree['root']);
+        $this->persist($direct);
+
+        $plan = $this->importer->plan($centre, 'Grupo', [new SenecaImportNode('1º ESO')]);
+
+        self::assertSame([], $plan->additions);
+        // The one inside the category is now the leftover: nothing in the CSV asks for it.
+        self::assertContains('ESO › 1º ESO', array_map(static fn ($i): string => implode(' › ', $i->path), [...$plan->deletions, ...$plan->deactivations]));
+    }
+
     // ── no-op ────────────────────────────────────────────────────────────────
 
     public function testPlanIsEmptyWhenTheImportAlreadyMatchesTheExistingList(): void
