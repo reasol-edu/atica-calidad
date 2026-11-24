@@ -1098,6 +1098,36 @@ export default class extends Controller {
         return parts;
     }
 
+    /**
+     * The rows of a fixed table: typed here, or the items of a list of the centre (`rowsList`, read when the document is filled in) —
+     * only those associated with who delivers it when `rowsOwn` is on (and all of them when that person has none).
+     */
+    fixedRowsEditor(block) {
+        const lists = this.centreLists();
+        const fromList = !!block.rowsList;
+        if (lists.length === 0 && !fromList) {
+            return [this.listEditor(block.rows, this.l.rows, this.l.add_row, this.l.row)];
+        }
+        if (block.rowsOwn === undefined) { block.rowsOwn = true; }
+        const parts = [this.labelled(this.l.rows_source, this.select(fromList ? 'list' : 'own', [['own', this.l.rows_typed], ['list', this.l.rows_from_list]], (v) => {
+            block.rowsList = v === 'list' ? ((lists[0] || {}).id || '') : '';
+            this.changed();
+        }, this.l.rows_source), 'max-w-md')];
+        if (!fromList) {
+            parts.push(this.listEditor(block.rows, this.l.rows, this.l.add_row, this.l.row));
+            return parts;
+        }
+        const current = lists.find((l) => l.id === block.rowsList);
+        parts.push(this.labelled(this.l.options_list_pick, this.select(block.rowsList, [...(current ? [] : [[block.rowsList, '—']]), ...lists.map((l) => [l.id, l.label])], (v) => { block.rowsList = v; this.changed(); }, this.l.options_list_pick), 'max-w-md'));
+        parts.push(h('p', {
+            class: 'text-xs ' + (current && current.options.length ? 'text-gray-500' : 'text-amber-700'),
+            text: current ? this.l.rows_list_hint.replace('%count%', String(current.options.length)).replace('%sample%', current.options.slice(0, 3).map((o) => o.label).join(', ')) : this.l.options_list_missing,
+        }));
+        parts.push(this.checkbox(block, 'rowsOwn', this.l.rows_own));
+        parts.push(h('p', { class: 'text-xs text-gray-500', text: this.l.rows_own_help }));
+        return parts;
+    }
+
     fieldBody(block) {
         return h('div', { class: 'space-y-3' }, [
             this.textInput(block, 'label', this.l.label),
@@ -1163,7 +1193,7 @@ export default class extends Controller {
         ]));
         if (block.mode === 'fixed') {
             parts.push(this.textInput(block, 'rowHeader', this.l.row_header));
-            parts.push(this.listEditor(block.rows, this.l.rows, this.l.add_row, this.l.row));
+            parts.push(...this.fixedRowsEditor(block));
         } else if (block.mode === 'counted') {
             const numbers = this.fieldList().filter((f) => f.fieldType === 'number').map((f) => [f.key, f.label || '…']);
             parts.push(this.textInput(block, 'rowHeader', this.l.row_header));

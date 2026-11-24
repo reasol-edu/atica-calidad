@@ -149,7 +149,9 @@ final class FormModelService
 
         // The blank PDF is what the tree downloads, the search reads and the reviewers open.
         $version = $document->getNextVersion();
-        $content = $this->pdf->build($definition, $this->data->sample($definition), $centre, $document->getName(), $model->getCode(), $version, true, ['centre' => $centre->getName(), 'activity' => $document->getName()], null, null, null, $folder->requiresReview());
+        // (With the rows taken from lists: every item, since nobody delivers it.)
+        $blank   = $this->lists->expand($definition, $centre);
+        $content = $this->pdf->build($blank, $this->data->sample($blank), $centre, $document->getName(), $model->getCode(), $version, true, ['centre' => $centre->getName(), 'activity' => $document->getName()], null, null, null, $folder->requiresReview());
         $file    = $this->creation->storeFile($content, 'application/pdf', $document->getName() . '.pdf');
 
         $revision = $this->creation->addRevision($document, $file, $by, $description);
@@ -179,7 +181,9 @@ final class FormModelService
 
         $document = $revision->getDocument();
         $centre   = $document->getFolder()->getEducationalCentre();
-        $content  = $this->pdf->buildForRevision($modelRevision, $modelRevision->getDefinition(), $this->data->sample($modelRevision->getDefinition()), $centre, $document->getName(), true, ['centre' => $centre->getName(), 'activity' => $document->getName()]);
+        // Blank: the rows taken from a list are all its items (nobody delivers it yet).
+        $definition = $this->lists->expand($modelRevision->getDefinition(), $centre);
+        $content    = $this->pdf->buildForRevision($modelRevision, $definition, $this->data->sample($definition), $centre, $document->getName(), true, ['centre' => $centre->getName(), 'activity' => $document->getName()]);
 
         $revision->replaceFile($this->creation->storeFile($content, 'application/pdf', $document->getName() . '.pdf'));
     }

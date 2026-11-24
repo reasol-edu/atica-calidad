@@ -218,7 +218,8 @@ class FormModelController extends AbstractController
     public function preview(string $id, #[CurrentCentre] EducationalCentre $centre): Response
     {
         $model      = $this->requireModel($id, $centre);
-        $definition = $this->definitions->normalize($model->getDraftDefinition());
+        // Blank: the rows taken from a list are all its items.
+        $definition = $this->lists->expand($this->definitions->normalize($model->getDraftDefinition()), $centre);
 
         return $this->render('form/preview.html.twig', [
             'centre'   => $centre,
@@ -236,7 +237,7 @@ class FormModelController extends AbstractController
     {
         $model      = $this->requireModel($id, $centre);
         $document   = $model->getDocument();
-        $definition = $this->definitions->normalize($model->getDraftDefinition());
+        $definition = $this->lists->expand($this->definitions->normalize($model->getDraftDefinition()), $centre);
         $content    = $this->pdf->build(
             $definition,
             $this->data->sample($definition),

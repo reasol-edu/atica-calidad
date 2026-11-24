@@ -404,7 +404,7 @@ final class FormDefinitionNormalizer
             }
             $this->checkOptions($column, FormDefinition::str($column['label'] ?? ''), $problems);
         }
-        if (($block['mode'] ?? '') === 'fixed' && FormDefinition::listOf($block['rows'] ?? []) === []) {
+        if (($block['mode'] ?? '') === 'fixed' && FormDefinition::listOf($block['rows'] ?? []) === [] && FormDefinition::str($block['rowsList'] ?? '') === '') {
             $problems[] = ['code' => 'fixed_table_without_rows', 'params' => ['%label%' => $label]];
         }
         // The number that says how many rows a counted table has: a number field the person types (a calculated one is worked out
@@ -640,11 +640,19 @@ final class FormDefinitionNormalizer
                 + ['totalName' => $footName, 'totalFormula' => $formula, 'totalKey' => $isField ? $this->key($column['totalKey'] ?? null) : ''];
         }
         $rows = [];
+        // The rows of a fixed table are typed in the model, or they are the items of a list of the centre (`rowsList`): then they are
+        // never stored, but read from the list every time (FormListOptions), only those of who delivers it when `rowsOwn` says so.
+        $rowsList = '';
         if ($mode === 'fixed') {
+            $item     = is_string($raw['rowsList'] ?? null) ? strtolower(trim($raw['rowsList'])) : '';
+            $rowsList = FormListOptions::isItemId($item) ? $item : '';
+        }
+        if ($mode === 'fixed' && $rowsList === '') {
             foreach (array_slice(FormDefinition::listOf($raw['rows'] ?? []), 0, self::MAX_FIXED_ROWS) as $row) {
                 $rows[] = ['key' => $this->key($row['key'] ?? null), 'label' => $this->text($row['label'] ?? '', 500)];
             }
         }
+        $listRows = $mode === 'fixed' ? ['rowsList' => $rowsList, 'rowsOwn' => ($raw['rowsOwn'] ?? true) !== false] : [];
         $min = max(0, FormDefinition::int($raw['minRows'] ?? 0));
         $max = max(0, FormDefinition::int($raw['maxRows'] ?? 0));
 
@@ -683,7 +691,7 @@ final class FormDefinitionNormalizer
             'maxRows'   => in_array($mode, ['free', 'counted'], true) ? $max : 0,
             'help'      => $this->text($raw['help'] ?? '', 1000),
             'visibleIf' => $this->condition($raw['visibleIf'] ?? null),
-        ] + $matrix + $counted;
+        ] + $matrix + $counted + $listRows;
     }
 
     /**

@@ -132,7 +132,20 @@ final class FormDataValidator
         if ($max > 0 && count($rows) > $max) {
             $problems[] = ['block' => $key, 'path' => $path, 'row' => null, 'column' => null, 'code' => 'rows_max', 'params' => ['%label%' => $label, '%max%' => (string) $max]];
         }
+        // A row taken from a list whose item is no longer offered (deactivated, moved, deleted, or no longer of who delivers it) is only
+        // kept while something is typed in it: it has to be emptied before delivering.
+        $gone = [];
+        foreach (FormDefinition::listOf($block['rows'] ?? []) as $defRow) {
+            if (($defRow['gone'] ?? false) === true) {
+                $gone[FormDefinition::str($defRow['key'] ?? '')] = FormDefinition::str($defRow['label'] ?? '');
+            }
+        }
         foreach ($rows as $index => $row) {
+            $rowKey = FormDefinition::str($row['_key'] ?? '');
+            if (isset($gone[$rowKey])) {
+                $problems[] = ['block' => $key, 'path' => $path, 'row' => $rowKey, 'column' => null, 'code' => 'row_gone', 'params' => ['%label%' => $label, '%row%' => $gone[$rowKey]]];
+                continue;
+            }
             foreach (FormDefinition::listOf($block['columns'] ?? []) as $column) {
                 $columnKey = FormDefinition::str($column['key'] ?? '');
                 $this->checkValue(

@@ -95,6 +95,19 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
   celebradas»: la tabla tiene esas filas, numeradas, y quien rellena no las añade ni las quita) o de
   **doble entrada** (las filas son las de una tabla y las columnas las de otra).
 
+  Las filas fijas se escriben en el modelo o salen **de una lista del catálogo** del centro: una fila
+  por cada elemento final, tal como esté la lista al rellenar (un elemento nuevo aparece, uno
+  renombrado cambia de nombre). Con la casilla **«Solo los elementos asociados a quien entrega»**
+  (marcada al elegir la lista), si quien entrega está asociado a algunos de esos elementos solo
+  salen esos: la memoria de la jefatura del departamento de Ciencias lleva una fila por cada una de
+  sus materias, y no las del resto. Cuenta la asociación como en Responsabilidades: la propia del
+  elemento o la heredada de un elemento superior, y la de un subperfil intermedio vale para todos los
+  de debajo. Si quien entrega no está asociado a ninguno, salen todos; en el modelo en blanco y en
+  la vista previa salen siempre todos. Si un elemento deja de corresponder mientras se rellena (se
+  desactiva, se mueve o cambia la asociación), su fila desaparece; si ya tenía algo escrito se queda,
+  tachada y marcada, con el botón **«Ya no corresponde: vaciar la fila»**, y no se puede entregar
+  hasta vaciarla. Lo entregado conserva las filas y los nombres con que se entregó.
+
   En la tabla según un campo, si el número sube se añaden filas en blanco al final; si baja, se
   quitan las últimas, y antes de hacerlo la pantalla avisa cuando alguna de esas filas tiene algo
   escrito. Se puede poner un máximo de filas (hasta 100), que prevalece sobre el número.

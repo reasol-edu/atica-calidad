@@ -1057,8 +1057,28 @@ export default class extends Controller {
             ...(fixed ? [] : [h('th', { scope: 'col', class: 'w-10 px-2 py-2' }, [h('span', { class: 'sr-only', text: this.l.remove_row })])]),
         ]);
 
-        const body = h('tbody', { class: 'divide-y divide-gray-100' }, rows.map((row, index) => h('tr', {}, [
-            ...(fixed ? [h('th', { scope: 'row', class: 'px-2 py-2 text-left align-top font-normal text-gray-700', text: counted ? String(index + 1) : labels.get(row._key) ?? '' })] : []),
+        // A row taken from a list that no longer belongs here (the item was deactivated or moved, or it is no longer of who delivers it)
+        // stays only while it holds something: it is marked and can be emptied in one go, which is what lets the document be delivered.
+        const gone = new Set((block.rows || []).filter((r) => r.gone).map((r) => r.key));
+        const rowHead = (row, index) => {
+            const text = counted ? String(index + 1) : labels.get(row._key) ?? '';
+            if (!gone.has(row._key)) {
+                return h('th', { scope: 'row', class: 'px-2 py-2 text-left align-top font-normal text-gray-700', text });
+            }
+            return h('th', { scope: 'row', class: 'px-2 py-2 text-left align-top font-normal text-amber-800' }, [
+                h('span', { class: 'block line-through', text }),
+                h('button', {
+                    type: 'button', class: 'mt-1 text-xs underline decoration-dotted', disabled: this.readOnly, text: this.l.row_gone_clear,
+                    onclick: () => {
+                        for (const c of block.columns) { delete row[c.key]; }
+                        this.touch();
+                        this.refresh();
+                    },
+                }),
+            ]);
+        };
+        const body = h('tbody', { class: 'divide-y divide-gray-100' }, rows.map((row, index) => h('tr', { class: gone.has(row._key) ? 'bg-amber-50' : null }, [
+            ...(fixed ? [rowHead(row, index)] : []),
             ...block.columns.map((c) => h('td', { class: 'min-w-[9rem] px-2 py-1.5 align-top' }, [
                 this.tag(
                     this.control({ ...c, label: c.label + ' · ' + this.l.row + ' ' + (index + 1) }, row[c.key], (v) => this.setIn(row, c.key, v), null, true, { chain: inst.chain, map: row, key: c.key }),

@@ -85,7 +85,10 @@ final class FormUpdateService
             return [];
         }
         [$oldDefinition, $oldData] = $this->sourceOf($submission);
-        $newDefinition             = $this->lists->live($target, $oldData);
+        // Both with the rows of who delivers it (a table whose rows come from a list has none in the stored definition).
+        $slot                      = \App\Model\ActivitySubmissionSlot::deliveredBy($submission->getSlotKey());
+        $oldDefinition             = $this->lists->expand($oldDefinition, $submission->getActivity()->getCategory()->getEducationalCentre(), $oldData, $slot);
+        $newDefinition             = $this->lists->live($target, $oldData, $slot);
         $newFlat                   = $this->flat->flatten($newDefinition, $this->normalizer->normalize($newDefinition, $oldData));
         $index                     = FormIndex::of($oldDefinition);
 
@@ -112,7 +115,7 @@ final class FormUpdateService
             return false;
         }
         [, $oldData] = $this->sourceOf($submission);
-        $submission->startDraft($target, $this->normalizer->normalize($this->lists->live($target, $oldData), $oldData));
+        $submission->startDraft($target, $this->normalizer->normalize($this->lists->live($target, $oldData, \App\Model\ActivitySubmissionSlot::deliveredBy($submission->getSlotKey())), $oldData));
         $this->em->flush();
 
         return true;

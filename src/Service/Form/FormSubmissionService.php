@@ -64,7 +64,7 @@ final class FormSubmissionService
      */
     public function definitionOf(FormSubmission $submission, ?array $data = null): array
     {
-        return $this->lists->live($submission->getModelRevision(), $data ?? $submission->getDraftData() ?? []);
+        return $this->lists->live($submission->getModelRevision(), $data ?? $submission->getDraftData() ?? [], ActivitySubmissionSlot::deliveredBy($submission->getSlotKey()));
     }
 
     /**
@@ -116,7 +116,7 @@ final class FormSubmissionService
         }
 
         $prefill    = $this->prefiller->build($activity, $slot->key(), $cycle, $force);
-        $submission = new FormSubmission($activity, $slot->key(), $cycle, $force, $prefill['data'] ?? $this->normalizer->initial($force->getDefinition()));
+        $submission = new FormSubmission($activity, $slot->key(), $cycle, $force, $prefill['data'] ?? $this->normalizer->initial($this->lists->live($force, [], ActivitySubmissionSlot::deliveredBy($slot->key()))));
         $submission->setPrefilledFrom($prefill['from'] ?? null);
         $this->em->persist($submission);
         $this->em->flush();
@@ -155,7 +155,7 @@ final class FormSubmissionService
             return;
         }
         $revision = $submission->getModelRevision();
-        $submission->startDraft($revision, $this->normalizer->initial($revision->getDefinition()));
+        $submission->startDraft($revision, $this->normalizer->initial($this->lists->live($revision, [], ActivitySubmissionSlot::deliveredBy($submission->getSlotKey()))));
         $submission->setPrefilledFrom(null);
         $this->em->flush();
     }
@@ -202,7 +202,7 @@ final class FormSubmissionService
         }
 
         $revision = $last->getModelRevision();
-        $submission->startDraft($revision, $this->normalizer->normalize($this->lists->live($revision, $last->getData()), $last->getData()));
+        $submission->startDraft($revision, $this->normalizer->normalize($this->lists->live($revision, $last->getData(), ActivitySubmissionSlot::deliveredBy($submission->getSlotKey())), $last->getData()));
         $this->em->flush();
     }
 
@@ -214,7 +214,7 @@ final class FormSubmissionService
             $submission->closeDraft();
         } else {
             $revision = $submission->getModelRevision();
-            $submission->startDraft($revision, $this->normalizer->initial($revision->getDefinition()));
+            $submission->startDraft($revision, $this->normalizer->initial($this->lists->live($revision, [], ActivitySubmissionSlot::deliveredBy($submission->getSlotKey()))));
         }
         $this->em->flush();
     }

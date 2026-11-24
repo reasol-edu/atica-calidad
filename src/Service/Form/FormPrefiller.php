@@ -33,7 +33,7 @@ final class FormPrefiller
         if ($source !== null) {
             $found = $this->latestDelivered($source, $slotKey, null);
             if ($found !== null) {
-                return $this->transfer($found, $target, 'document', $source->getTitle());
+                return $this->transfer($found, $target, 'document', $source->getTitle(), $slotKey);
             }
         }
 
@@ -43,7 +43,7 @@ final class FormPrefiller
         }
         $year = $found->getSubmission()->getCycleYear();
 
-        return $this->transfer($found, $target, 'previous', $year . '-' . ($year + 1));
+        return $this->transfer($found, $target, 'previous', $year . '-' . ($year + 1), $slotKey);
     }
 
     /** The slot's most recent delivered revision, among the cycles before $before when given. */
@@ -65,7 +65,7 @@ final class FormPrefiller
     /**
      * @return array{data: array<string, mixed>, from: array<string, mixed>}
      */
-    private function transfer(\App\Entity\FormSubmissionRevision $from, FormModelRevision $target, string $kind, string $label): array
+    private function transfer(\App\Entity\FormSubmissionRevision $from, FormModelRevision $target, string $kind, string $label, string $slotKey): array
     {
         $sourceRevision = $from->getModelRevision();
         $targetDef      = $target->getDefinition();
@@ -75,7 +75,8 @@ final class FormPrefiller
         $raw  = $sourceRevision->getModel()->getId()->equals($target->getModel()->getId())
             ? $from->getData()
             : ['fields' => $this->byName($sourceRevision->getDefinition(), $from->getData(), $targetDef)];
-        $data = $this->normalizer->normalize($this->lists->live($target, $raw), $raw);
+        // (With the rows of who delivers it: a pre-fill read against every item would be filtered on the next save.)
+        $data = $this->normalizer->normalize($this->lists->live($target, $raw, \App\Model\ActivitySubmissionSlot::deliveredBy($slotKey)), $raw);
 
         return ['data' => $data, 'from' => ['kind' => $kind, 'label' => $label, 'revisionId' => $from->getRevision()->getId()->toRfc4122()]];
     }

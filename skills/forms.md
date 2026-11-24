@@ -252,7 +252,22 @@ trap: a list-fed field normalized against the raw definition has no options, so 
   case for each and fails if the count grows: add a case there when adding a screen or a service that loops.
 - The condition (`count_if` / `percent_if`) of an indicator on a choice field is picked in a searchable Tom Select
   (`indicator_condition_controller.js`, fed by `FormSourceChoices` with the options as the lists are now); the stored value is the option's key.
-- Not done: rows of a fixed table taken from a list (one row per item), a list-fed field in a double-entry table's cells.
+- **Rows of a fixed table from a list** (`rowsList` = item id, `rowsOwn` default true; `rows` is then never stored): expanded like
+  options by `FormListOptions` (`usesLists()` is the gate — every early return checks it, not `sources()`; `mapTables()` visits table
+  blocks). Row key = the item's id, label = its path below the chosen item. **Filtered by who delivers** (`rowsOwn`):
+  `ActivitySubmissionSlot::deliveredBy($slotKey)` reads `{profile, subprofile}` from the slot key (no slot building on every save) and
+  `FormListOptions::forSlot()` keeps the leaves whose EFFECTIVE associations (`ListItem::getEffectiveProfileAssociations()`: the
+  item's own replace the inherited ones) name that profile through the subprofile or one of its ancestors (plain profile: no
+  subprofile); none matching → all. The associations come in the same query as the tree (`groupChildrenByParent`): no query per item.
+  EVERY place that expands a draft's definition passes the slot (`FormSubmissionService::definitionOf()`, the initial data of a new,
+  restarted or discarded draft, correction, `FormPrefiller`, `FormUpdateService`); the blank model (send, `refreshBlankPdf`, previews,
+  office export) expands with none → all items. A row with typed data (ignoring `_*` keys and calculated columns) whose item is not
+  offered any more is kept as `gone` (validator `row_gone`, blocking; the fill page strikes it out with «vaciar la fila»); without
+  data it is dropped. `snapshot()` freezes ALL the rows of the table (not only filled ones) under the table's key; `delivered()` puts
+  them back. JSON library: `rowsList` ↔ `rowsListPath`. Tested in `FormListRowsTest`. Note: the delete/move confirmations of
+  Responsabilidades count values, not row keys: they under-count documents that use an item as a row (harmless: delivered rows keep
+  their names).
+- Not done: a list-fed field in a double-entry table's cells.
 
 ## Files in and out, and offline (phase 7)
 

@@ -47,7 +47,8 @@ final class FormModelPorter
     /** The draft of a model as a DOCX or ODT, blank (what it will look like to fill in). */
     public function exportOffice(FormModel $model, string $format, EducationalCentre $centre): string
     {
-        $definition = $this->definitions->normalize($model->getDraftDefinition());
+        // Blank: the rows taken from a list are all its items.
+        $definition = $this->lists->expand($this->definitions->normalize($model->getDraftDefinition()), $centre);
         $document   = $model->getDocument();
         $layout     = $this->layouts->resolve($definition, $centre, $this->layouts->values($centre, $document->getName(), $model->getCode(), $document->getNextVersion(), new \DateTimeImmutable()));
 
