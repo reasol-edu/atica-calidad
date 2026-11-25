@@ -220,6 +220,47 @@ final class FormDeliveredRowsTest extends ControllerTestCase
         self::assertNull($this->read($this->informatica)[$this->keys['table']]['sources']['activity']);
     }
 
+    public function testTheModelSaysWhatItsTablesOfDeliveriesCannotRead(): void
+    {
+        $service    = self::getContainer()->get(FormModelService::class);
+        $normalizer = self::getContainer()->get(\App\Service\Form\FormDefinitionNormalizer::class);
+        $centre     = $this->em->getRepository(EducationalCentre::class)->find($this->centre->getId());
+        $source     = $this->fresh($this->reviews)->getFormModel();
+        $target     = $this->fresh($this->report)->getFormModel();
+        $table      = static fn (array $extra): array => ['type' => 'table', 'mode' => 'delivered', 'label' => 'Resultados'] + $extra;
+        $codes      = static fn (array $blocks, ?\App\Entity\FormModel $model = null): array => array_column($service->problems($normalizer->normalize(['sections' => [['title' => 'S', 'blocks' => $blocks], ['title' => 'R', 'repeat' => ['mode' => 'manual', 'min' => 0, 'max' => 3], 'blocks' => [$table(['sourceModel' => $source->getId()->toRfc4122(), 'columns' => [['label' => 'H', 'fieldType' => 'number', 'sourceField' => 'horas_previstas']]])]]]]), $centre, $model), 'code');
+
+        self::assertSame(['delivered_without_model', 'delivered_in_repeat'], $codes([$table(['columns' => []])]));
+        self::assertSame(['delivered_model_gone', 'delivered_in_repeat'], $codes([$table(['sourceModel' => FormDefinition::newKey()])]));
+        self::assertContains('delivered_without_columns', $codes([$table(['sourceModel' => $source->getId()->toRfc4122(), 'columns' => [['label' => 'Propia', 'fieldType' => 'short']]])]));
+        self::assertContains('delivered_field_gone', $codes([$table(['sourceModel' => $source->getId()->toRfc4122(), 'columns' => [
+            ['label' => 'Previstas', 'fieldType' => 'number', 'sourceField' => 'horas_previstas'],
+            ['label' => 'Ya no', 'fieldType' => 'number', 'sourceField' => 'no_existe'],
+        ]])]));
+        self::assertSame(['delivered_in_repeat'], $codes([$table(['sourceModel' => $source->getId()->toRfc4122(), 'columns' => [['label' => 'Previstas', 'fieldType' => 'number', 'sourceField' => 'horas_previstas']]])]));
+        self::assertContains('delivered_field_gone', $codes([$table(['sourceModel' => $source->getId()->toRfc4122(), 'columns' => [['label' => 'Previstas', 'fieldType' => 'short', 'sourceField' => 'horas_previstas']]])]), 'a number shown as text is not the type it gets');
+
+        // The reviews' model reading the report's deliveries: the report already reads the reviews'.
+        self::assertContains('delivered_cycle', $codes([$table(['sourceModel' => $target->getId()->toRfc4122(), 'columns' => [['label' => 'Previstas', 'fieldType' => 'number', 'sourceField' => 'horas_previstas']]])], $source));
+    }
+
+    public function testTheEditorAsksForTheNamedFieldsOfAModel(): void
+    {
+        $source = $this->fresh($this->reviews)->getFormModel();
+        $admin  = $this->em->getRepository(Teacher::class)->find($this->admin->getId());
+        $this->loginAs($admin, $this->em->getRepository(EducationalCentre::class)->find($this->centre->getId()));
+        $this->client->request('GET', '/modelos/' . $source->getId()->toRfc4122() . '/campos-con-nombre');
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        $fields = json_decode((string) $this->client->getResponse()->getContent(), true)['fields'];
+        self::assertSame(['horas_previstas', 'horas_impartidas', 'observaciones'], array_column($fields, 'name'));
+        self::assertSame(['number', 'number', 'long'], array_column($fields, 'columnType'));
+        self::assertSame('Datos', $fields[0]['section']);
+
+        $this->loginAs($this->em->getRepository(Teacher::class)->find($this->claudia->getId()), $this->em->getRepository(EducationalCentre::class)->find($this->centre->getId()));
+        $this->client->request('GET', '/modelos/' . $source->getId()->toRfc4122() . '/campos-con-nombre');
+        self::assertSame(403, $this->client->getResponse()->getStatusCode());
+    }
+
     public function testReadingTenDeliveriesCostsWhatReadingTwoDoes(): void
     {
         $this->review($this->informatica, $this->programacion, 30);

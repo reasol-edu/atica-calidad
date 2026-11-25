@@ -38,6 +38,7 @@ final class FormModelService
         private readonly SpecificProfileRepository $profiles,
         private readonly FormListOptions $lists,
         private readonly \App\Repository\FormModelRevisionRepository $modelRevisions,
+        private readonly \App\Repository\FormModelRepository $models,
     ) {}
 
     /**
@@ -107,13 +108,14 @@ final class FormModelService
 
     /**
      * What stops a (normalized) definition from being sent to review: what the definition itself says is wrong, and the profiles of
-     * the approval chain that do not exist in this centre.
+     * the approval chain that do not exist in this centre, and what its tables of deliveries cannot read. $model is the model the
+     * definition is of (for a table of deliveries that would read, through other models, its own deliveries).
      *
      * @param array<string, mixed> $definition
      *
      * @return list<array{code: string, params: array<string, string>}>
      */
-    public function problems(array $definition, EducationalCentre $centre): array
+    public function problems(array $definition, EducationalCentre $centre, ?FormModel $model = null): array
     {
         $problems = $this->definitions->problems($definition);
         foreach (FormDefinition::listOf($definition['approval'] ?? []) as $step) {
@@ -127,7 +129,89 @@ final class FormModelService
             $problems[] = ['code' => 'choice_list_empty', 'params' => ['%label%' => $label]];
         }
 
+        return [...$problems, ...$this->deliveredProblems($definition, $centre, $model)];
+    }
+
+    /**
+     * What stops a table of deliveries from working: no model chosen, a model that is gone (or has no revision in force), no column
+     * of the delivery, a column that reads a field the model does not have now (or with a type that cannot go into it), a table inside a
+     * repeating section (one per copy: not supported), and two models that read each other's deliveries.
+     *
+     * @param array<string, mixed> $definition
+     *
+     * @return list<array{code: string, params: array<string, string>}>
+     */
+    private function deliveredProblems(array $definition, EducationalCentre $centre, ?FormModel $model): array
+    {
+        $problems = [];
+        $inside   = array_map(static fn (array $b): string => FormDefinition::str($b['key'] ?? ''), FormDeliveredRows::tables($definition));
+        foreach (FormDefinition::blocks($definition) as ['block' => $block]) {
+            if (($block['type'] ?? '') !== 'table' || ($block['mode'] ?? '') !== 'delivered') {
+                continue;
+            }
+            $label = FormDefinition::str($block['label'] ?? '');
+            if (!in_array(FormDefinition::str($block['key'] ?? ''), $inside, true)) {
+                $problems[] = ['code' => 'delivered_in_repeat', 'params' => ['%label%' => $label]];
+                continue;
+            }
+            $sourceId = FormDefinition::str($block['sourceModel'] ?? '');
+            if ($sourceId === '') {
+                $problems[] = ['code' => 'delivered_without_model', 'params' => ['%label%' => $label]];
+                continue;
+            }
+            $source = $this->models->findByIdAndCentre($sourceId, $centre);
+            $force  = $source === null ? null : $this->modelRevisions->findInForce($source);
+            if ($source === null || $force === null) {
+                $problems[] = ['code' => 'delivered_model_gone', 'params' => ['%label%' => $label]];
+                continue;
+            }
+            $columns = FormDeliveredRows::sourceColumns($block);
+            if ($columns === []) {
+                $problems[] = ['code' => 'delivered_without_columns', 'params' => ['%label%' => $label]];
+            }
+            $fields = FormDeliveredRows::namedFields($force->getDefinition());
+            foreach (FormDefinition::listOf($block['columns'] ?? []) as $column) {
+                $name = FormDefinition::str($column['sourceField'] ?? '');
+                if ($name === '') {
+                    continue;
+                }
+                $field = $fields[$name] ?? null;
+                if ($field === null || FormDeliveredRows::columnTypeFor(FormDefinition::str($field['fieldType'] ?? '')) !== ($column['fieldType'] ?? null)) {
+                    $problems[] = ['code' => 'delivered_field_gone', 'params' => ['%column%' => FormDefinition::str($column['label'] ?? ''), '%field%' => $name, '%model%' => $source->getDocument()->getName()]];
+                }
+            }
+            if ($model !== null && $this->readsDeliveriesOf($source, $model, $centre, [])) {
+                $problems[] = ['code' => 'delivered_cycle', 'params' => ['%model%' => $source->getDocument()->getName()]];
+            }
+        }
+
         return $problems;
+    }
+
+    /**
+     * Whether the revision in force of $model has a table of deliveries of $target, directly or through the models it reads.
+     *
+     * @param array<string, true> $seen
+     */
+    private function readsDeliveriesOf(FormModel $model, FormModel $target, EducationalCentre $centre, array $seen): bool
+    {
+        $id = $model->getId()->toRfc4122();
+        if (isset($seen[$id])) {
+            return false;
+        }
+        $seen[$id] = true;
+        foreach (FormDeliveredRows::tables($this->modelRevisions->findInForce($model)?->getDefinition() ?? []) as $block) {
+            $next = FormDefinition::str($block['sourceModel'] ?? '');
+            if ($next === $target->getId()->toRfc4122()) {
+                return true;
+            }
+            $nextModel = $next === '' ? null : $this->models->findByIdAndCentre($next, $centre);
+            if ($nextModel !== null && $this->readsDeliveriesOf($nextModel, $target, $centre, $seen)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -143,7 +227,7 @@ final class FormModelService
         $folder     = $document->getFolder();
         $centre     = $folder->getEducationalCentre();
 
-        $problems = $this->problems($definition, $centre);
+        $problems = $this->problems($definition, $centre, $model);
         if ($problems !== []) {
             throw new FormException('error.model_problems', $problems);
         }

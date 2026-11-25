@@ -19,6 +19,7 @@ use App\Service\DocumentRevisionReviewer;
 use App\Service\Form\FormDataNormalizer;
 use App\Service\Form\FormDefinition;
 use App\Service\Form\FormDefinitionNormalizer;
+use App\Service\Form\FormDeliveredRows;
 use App\Service\Form\FormException;
 use App\Service\Form\FormModelService;
 use App\Service\Form\FormResolver;
@@ -57,6 +58,7 @@ class FormModelController extends AbstractController
         private readonly CsrfTokenManagerInterface $csrf,
         private readonly DocumentRevisionReviewer $reviewer,
         private readonly \App\Repository\ActivityRepository $activities,
+        private readonly \App\Repository\FormModelRevisionRepository $modelRevisions,
     ) {}
 
     #[Route('', name: 'app_form_models', methods: ['GET'])]
@@ -176,7 +178,7 @@ class FormModelController extends AbstractController
             'layout'    => $this->definitions->normalize($model->getDraftDefinition())['layout'],
             'inherited' => $this->layouts->inherited($centre),
             'editor'   => [
-                'problems'   => $this->translateProblems($this->service->problems($this->definitions->normalize($model->getDraftDefinition()), $centre)),
+                'problems'   => $this->translateProblems($this->service->problems($this->definitions->normalize($model->getDraftDefinition()), $centre, $model)),
                 'changes'    => $this->service->changes($model),
                 'requiresReview' => $model->getDocument()->getFolder()->requiresReview(),
                 'definition' => $model->getDraftDefinition(),
@@ -188,6 +190,10 @@ class FormModelController extends AbstractController
                 'profiles'   => array_map(static fn (SpecificProfile $p): array => ['id' => $p->getId()->toRfc4122(), 'name' => $p->getName(), 'hasList' => $p->getListItem() !== null], $this->profiles->findByCentre($centre)),
                 // The lists of Responsabilidades a choice can take its options from, with what each offers now.
                 'lists'      => $this->lists->pickable($centre),
+                // The models a table of deliveries can read (another one of the centre, with a revision in force), and where to ask for
+                // the named fields of each (__ID__ is its id).
+                'deliveryModels' => $this->deliveryModels($centre, $model),
+                'fieldsUrl'      => $this->generateUrl('app_form_model_named_fields', ['id' => '__ID__']),
             ],
         ]);
     }
@@ -224,7 +230,7 @@ class FormModelController extends AbstractController
         return new JsonResponse([
             'version'    => $model->getDraftVersion(),
             'definition' => $model->getDraftDefinition(),
-            'problems'   => $this->translateProblems($this->service->problems($model->getDraftDefinition(), $centre)),
+            'problems'   => $this->translateProblems($this->service->problems($model->getDraftDefinition(), $centre, $model)),
             'changes'    => $this->service->changes($model),
         ]);
     }
@@ -322,6 +328,54 @@ class FormModelController extends AbstractController
     }
 
     /** Whoever edits the model may also approve its revisions: its folder asks for review and they can review it. */
+    /**
+     * The fields of a model that a table of deliveries can read (FormDeliveredRows::namedFields()), from its revision in force, in the
+     * order of the document: name, label, section, type and the type of the column that shows it.
+     */
+    #[Route('/{id}/campos-con-nombre', name: 'app_form_model_named_fields', methods: ['GET'])]
+    public function namedFields(string $id, #[CurrentCentre] EducationalCentre $centre): JsonResponse
+    {
+        $model = $this->requireModel($id, $centre);
+        $force = $this->modelRevisions->findInForce($model);
+        if ($force === null) {
+            return new JsonResponse(['fields' => []]);
+        }
+
+        $sectionOf = [];
+        foreach (FormDefinition::blocks($force->getDefinition()) as ['block' => $block, 'section' => $section]) {
+            $sectionOf[FormDefinition::str($block['key'] ?? '')] = FormDefinition::str($section['title'] ?? '');
+        }
+        $fields = [];
+        foreach (FormDeliveredRows::namedFields($force->getDefinition()) as $name => $field) {
+            $fields[] = [
+                'name'       => $name,
+                'label'      => FormDefinition::str($field['label'] ?? ''),
+                'section'    => $sectionOf[FormDefinition::str($field['key'] ?? '')] ?? '',
+                'fieldType'  => FormDefinition::str($field['fieldType'] ?? ''),
+                'columnType' => FormDeliveredRows::columnTypeFor(FormDefinition::str($field['fieldType'] ?? '')),
+                'unit'       => FormDefinition::str($field['unit'] ?? ''),
+                'decimals'   => ($field['fieldType'] ?? '') === 'calculated' ? FormDefinition::int($field['decimals'] ?? 2) : null,
+                'foot'       => ($field['foot'] ?? false) === true,
+            ];
+        }
+
+        return new JsonResponse(['fields' => $fields, 'editUrl' => $this->generateUrl('app_form_model_edit', ['id' => $id])]);
+    }
+
+    /** @return list<array{id: string, name: string}> the other models of the centre with a revision in force, by name */
+    private function deliveryModels(EducationalCentre $centre, FormModel $model): array
+    {
+        $out = [];
+        foreach ($this->modelRevisions->findAllInForceByCentre($centre) as $id => $revision) {
+            if ($id !== $model->getId()->toRfc4122()) {
+                $out[] = ['id' => $id, 'name' => $revision->getModel()->getDocument()->getName()];
+            }
+        }
+        usort($out, static fn (array $a, array $b): int => strnatcasecmp($a['name'], $b['name']));
+
+        return $out;
+    }
+
     private function canApprove(FormModel $model): bool
     {
         $folder = $model->getDocument()->getFolder();

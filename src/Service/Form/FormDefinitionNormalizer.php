@@ -399,8 +399,9 @@ final class FormDefinitionNormalizer
     private function checkTable(array $block, string $label, array $fieldTypes, array &$problems): void
     {
         $columns = FormDefinition::listOf($block['columns'] ?? []);
-        // A double-entry table has no columns of its own (its sources are checked with the calculations).
-        if ($columns === [] && ($block['mode'] ?? '') !== 'matrix') {
+        // A double-entry table has no columns of its own (its sources are checked with the calculations); a table of deliveries says what
+        // it lacks in its own words (FormModelService::problems()).
+        if ($columns === [] && !in_array($block['mode'] ?? '', ['matrix', 'delivered'], true)) {
             $problems[] = ['code' => 'table_without_columns', 'params' => ['%label%' => $label]];
         }
         foreach ($columns as $column) {
