@@ -329,9 +329,57 @@ estén en uso, en vez de eliminarlos*.
 
 La importación de **materias** construye un árbol de dos niveles: cada grupo del fichero con sus
 materias dentro. Aquí, con un nombre de raíz que no existe todavía («Materias por grupo»), todo
-aparece como «Se añadirán» y se ve la estructura que se crearía:
+aparece como «Se añadirán» y se ve la estructura que se crearía. Encima, la tarjeta **Opciones**
+(ver más abajo) y, en la previsualización, los docentes que se asociarían: ocho encontrados en el
+curso, «Gómez Pérez, Ana», que no existe, y «Fuentes Mora, Ricardo», que ya no está en el curso:
 
-![Previsualización de la importación de materias con una raíz nueva: cada grupo (1º ESO A, 1º ESO B, 1º DAW, 2º DAW) con las materias que se cursan en él](img/responsabilidades-seneca-materias.png)
+![Previsualización de la importación de materias con una raíz nueva: la tarjeta Opciones con «Por grupo» y la casilla de los docentes marcadas, «8 docentes asociados · 2 no encontrados» con cada materia y su docente, y cada grupo (1º ESO A, 1º ESO B, 1º DAW, 2º DAW) con las materias que se cursan en él](img/responsabilidades-seneca-materias.png)
+
+#### Opciones de la importación de materias {#seneca-opciones-materias}
+
+En la previsualización de las materias, la tarjeta **Opciones** cambia lo que se va a importar; al
+tocar cualquiera de las dos, la previsualización se vuelve a calcular con el mismo fichero.
+
+**Forma de la lista.** Dos opciones:
+
+- **Por grupo** («1.º ESO A › Matemáticas»): cada materia dentro de su grupo, como hasta ahora.
+- **Por materia** («Matemáticas › 1.º ESO A»): cada grupo dentro de la materia. Así basta con
+  asociar cada materia a la jefatura de su departamento **una vez**: todos sus grupos la heredan
+  (ver [Asociar un elemento con un perfil](#asociar-un-elemento-con-un-perfil)).
+
+Viene marcada la forma que ya tiene la lista: se deduce de los nombres de su primer nivel (si son
+grupos o materias del fichero) o, si la lista está organizada en categorías, de los de sus hojas. Si
+la lista es nueva o está vacía, viene marcada «Por grupo».
+
+![El mismo fichero «Por materia» en una raíz nueva («Materias por materia»): cada materia con sus grupos dentro y el docente de cada grupo](img/responsabilidades-seneca-materias-por-materia.png)
+
+Si eliges la forma contraria a la de la lista, la previsualización avisa en ámbar: importarla así
+**crea elementos nuevos** y elimina o desactiva los actuales (con lo que tuvieran asociado). Para
+cambiar de forma conviene crear una lista nueva con otro nombre de raíz. Si aun así quieres
+seguir, hay que marcar **Entiendo que se crearán elementos nuevos** para poder confirmar.
+
+**Asociar también los docentes (columna «Profesor/a»).** El fichero «Materias y grupos» de Séneca
+trae en cada fila el docente que imparte esa materia en ese grupo, como «Apellidos, Nombre». Con la
+casilla marcada (lo está siempre que el fichero trae la columna), cada materia de cada grupo queda
+asociada a sus docentes (varios, en los desdobles), los mismos que se ponen a mano en el campo
+**Docentes** del elemento (ver [Docentes asociados](#docentes-asociados)):
+
+- Los nombres se buscan entre los **docentes del curso activo** del centro, sin distinguir
+  mayúsculas. Importa antes el personal del centro para que los nombres coincidan. Los que no
+  aparecen se dejan fuera y la previsualización los lista: «Docente no encontrado» si no existe nadie
+  con ese nombre, o «No está en el curso» si existe pero no está en el curso activo. El resto se
+  importa igual.
+- La previsualización resume cuántas asociaciones quedan («35 docentes asociados · 2 no
+  encontrados») y, por elemento, quién entra (**+ Noelia Bravo Escudero**) y quién sale
+  (**− Marcos Pardo Esteban**).
+- Al confirmar, los docentes propios de cada materia que viene en el fichero se **sustituyen** por
+  los del fichero, así que al empezar un curso basta con volver a importar. Los de los elementos que
+  el fichero no menciona no se tocan, ni tampoco las asociaciones con perfiles. Una fila con la
+  columna vacía deja esa materia sin docentes.
+
+Si el fichero no trae la columna, la casilla aparece deshabilitada con «El fichero no trae la
+columna «Profesor/a»»; si el centro no tiene curso activo, también, porque no hay con quién
+compararlos.
 
 ## Perfiles específicos
 

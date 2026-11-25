@@ -72,7 +72,7 @@ The second centre is «CEIP Miguel Hernández» (`18700123`), empty, only so `mu
 | File | Outcome each row produces |
 |---|---|
 | `seneca-grupos.csv` (into the existing root «Grupo») | add (1º ESO C, 3º ESO C), reactivate (4º ESO A, deactivated by the script), delete (2º PMAR, added by the script, unused), deactivate (1º Bach. B, 2º Bach. B: in use) |
-| `seneca-materias.csv` (new root «Materias por grupo») | A two-level tree, all "se añadirán" |
+| `seneca-materias.csv` (new roots «Materias por grupo» and, by subject, «Materias por materia») | A two-level tree, all "se añadirán"; its «Profesor/a» column: 8 teachers of the course found, «Gómez Pérez, Ana» not found (nobody has that name), «Fuentes Mora, Ricardo» not in the course (`r.fuentes`) |
 | `seneca-docentes.csv` | register (3), add existing user (`r.fuentes`), fill e-mail (2), unchanged (7) |
 
 ## Screenshot matrix

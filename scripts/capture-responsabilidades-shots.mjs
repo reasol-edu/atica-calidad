@@ -158,6 +158,19 @@ await page.locator('input[name="root_name"], input[type="text"]').first().fill('
 await page.locator('form:has(input[type="file"]) button[type="submit"]').first().click();
 await settle();
 await shot('responsabilidades-seneca-materias');
+
+// The same file by subject, into another new root: the option recomputes the preview.
+await page.goto(lists);
+await settle();
+await page.click('a:has-text("Importar materias desde Séneca")');
+await settle();
+await page.setInputFiles('input[type="file"]', `${fixtures}seneca-materias.csv`);
+await page.locator('input[name="root_name"], input[type="text"]').first().fill('Materias por materia');
+await page.locator('form:has(input[type="file"]) button[type="submit"]').first().click();
+await settle();
+await page.locator('label:has(input[name="layout"][value="subject"])').click();
+await settle();
+await shot('responsabilidades-seneca-materias-por-materia');
 }
 
 // ── 6. Specific profiles ────────────────────────────────────────────────────

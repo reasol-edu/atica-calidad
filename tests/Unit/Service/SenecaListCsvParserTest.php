@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Service;
 
 use App\Model\SenecaImportNode;
 use App\Model\SenecaListImportKind;
+use App\Model\SenecaSubjectsLayout;
 use App\Service\CsvReader;
 use App\Service\SenecaListCsvParser;
 use PHPUnit\Framework\TestCase;
@@ -134,5 +135,52 @@ final class SenecaListCsvParserTest extends TestCase
         self::assertSame('1º DAM', $nodes[0]->name);
         self::assertCount(1, $nodes[0]->getChildren());
         self::assertSame('Sistemas informáticos', $nodes[0]->getChildren()[0]->name);
+    }
+
+    // ── teachers and layout ─────────────────────────────────────────────────
+
+    private const DESDOBLE_CSV = <<<'CSV'
+        "Curso","Materia","Unidad","Profesor/a"
+        "1º ESO","Matemáticas","1º ESO A","Bravo Escudero, Noelia"
+        "1º ESO","Matemáticas","1º ESO A","Pardo  Esteban, Marcos"
+        "1º ESO","Matemáticas","1º ESO A","Bravo Escudero, Noelia"
+        "1º ESO","Lengua","1º ESO A",""
+        "1º ESO","Matemáticas","1º ESO B","Bravo Escudero, Noelia"
+        CSV;
+
+    public function testEachSubjectOfAGroupGathersTheTeachersOfItsRowsOnceEach(): void
+    {
+        self::assertTrue($this->parser->hasTeacherColumn(self::DESDOBLE_CSV));
+        $nodes = $this->parser->buildTree(self::DESDOBLE_CSV, SenecaListImportKind::Subjects);
+
+        self::assertSame(['1º ESO A', '1º ESO B'], array_map(static fn (SenecaImportNode $n): string => $n->name, $nodes));
+        self::assertFalse($nodes[0]->takesTeachers(), 'the group is not what the teachers teach');
+        [$maths, $language] = $nodes[0]->getChildren();
+        self::assertSame(['Bravo Escudero, Noelia', 'Pardo Esteban, Marcos'], $maths->getTeacherNames(), 'a desdoble adds both, repeated spaces collapsed');
+        self::assertTrue($language->takesTeachers(), 'an empty «Profesor/a» still says nobody teaches it');
+        self::assertSame([], $language->getTeacherNames());
+    }
+
+    public function testBySubjectTheSubjectsAreOnTopAndEachGroupCarriesItsTeachers(): void
+    {
+        $nodes = $this->parser->buildTree(self::DESDOBLE_CSV, SenecaListImportKind::Subjects, SenecaSubjectsLayout::BySubject);
+
+        self::assertSame(['Matemáticas', 'Lengua'], array_map(static fn (SenecaImportNode $n): string => $n->name, $nodes));
+        self::assertSame(['1º ESO A', '1º ESO B'], array_map(static fn (SenecaImportNode $n): string => $n->name, $nodes[0]->getChildren()));
+        self::assertSame(['Bravo Escudero, Noelia', 'Pardo Esteban, Marcos'], $nodes[0]->getChildren()[0]->getTeacherNames());
+        self::assertSame(['Bravo Escudero, Noelia'], $nodes[0]->getChildren()[1]->getTeacherNames());
+    }
+
+    public function testWithoutTheTeacherColumnNoNodeTakesTeachers(): void
+    {
+        $csv = "\"Materia\",\"Unidad\"\n\"Matemáticas\",\"1º ESO A\"\n";
+
+        self::assertFalse($this->parser->hasTeacherColumn($csv));
+        self::assertFalse($this->parser->buildTree($csv, SenecaListImportKind::Subjects)[0]->getChildren()[0]->takesTeachers());
+    }
+
+    public function testDistinctValuesAreLowerCasedOnceEach(): void
+    {
+        self::assertSame(['1º eso a' => true, '1º eso b' => true], $this->parser->distinctValues(self::DESDOBLE_CSV, 'Unidad'));
     }
 }

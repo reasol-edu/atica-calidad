@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
+use App\Entity\ListItemTeacher;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Contracts\Service\ResetInterface;
@@ -45,6 +46,35 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
         $this->byParentCache = [];
         $this->parentOfCache = [];
         $this->leafIdsCache  = [];
+    }
+
+    /**
+     * The own teacher associations of every item of the centre (not the inherited ones), with their teacher: ONE query, for the
+     * Séneca import, which compares them with the file for each of its elements.
+     *
+     * @return array<string, list<ListItemTeacher>> by the RFC4122 id of the item
+     */
+    public function teacherAssociationsByItem(EducationalCentre $centre): array
+    {
+        /** @var list<ListItemTeacher> $rows */
+        $rows = $this->getEntityManager()->createQueryBuilder()
+            ->select('a', 't')
+            ->from(ListItemTeacher::class, 'a')
+            ->join('a.teacher', 't')
+            ->join('a.listItem', 'li')
+            ->where('li.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->orderBy('t.name.lastName')
+            ->addOrderBy('t.name.firstName')
+            ->getQuery()
+            ->getResult();
+
+        $byItem = [];
+        foreach ($rows as $association) {
+            $byItem[$association->getListItem()->getId()->toRfc4122()][] = $association;
+        }
+
+        return $byItem;
     }
 
     /** @return ListItem[] */

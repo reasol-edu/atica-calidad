@@ -6,9 +6,14 @@ namespace App\Service;
 
 use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
+use App\Entity\ListItemTeacher;
+use App\Entity\Teacher;
 use App\Model\SenecaImportNode;
 use App\Model\SenecaListImportPlan;
 use App\Model\SenecaListImportPlanItem;
+use App\Model\SenecaListImportTeacherChange;
+use App\Model\SenecaSubjectsLayout;
+use App\Model\SenecaTeacherMatch;
 use App\Repository\ListItemRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -28,6 +33,19 @@ use Doctrine\ORM\EntityManagerInterface;
  * intentionally independent passes (not one plan reused for both) since a fresh apply() call is
  * the only way to be sure nothing changed underneath a preview the user took a moment to read
  * before confirming.
+ *
+ * With the teachers of a subjects import (a SenecaTeacherMatch), each element of the file whose
+ * node takes teachers ends up with exactly the teachers the file names for it that were found:
+ * its own associations are diffed with them (never cleared and re-added, which would hit the
+ * unique constraint in the same flush), those of the elements the file does not mention are left
+ * alone, and profile associations are never touched.
+ *
+ * $searchDeeper = false turns off looking for items inside categories: when the list is imported
+ * with the other layout (by subject a list made by group, or the opposite), a subject would
+ * otherwise "match" the subject leaf of some group — the import must create the new layout and
+ * remove the old one instead (see detectLayout()).
+ *
+ * @phpstan-type ImportCounts array{added: int, deleted: int, deactivated: int, reactivated: int, teachers_added: int, teachers_removed: int}
  */
 final class SenecaListImporter
 {
@@ -37,6 +55,66 @@ final class SenecaListImporter
         private readonly ListItemUsage $usage,
         private readonly \App\Repository\FormValueRepository $formValues,
     ) {}
+
+    /**
+     * The layout the list under $rootName already has, from how many of its first-level names are groups («Unidad») and how
+     * many are subjects («Materia») of the file; on a tie (a list organised in categories), from its leaves — subjects as
+     * leaves is by group, groups as leaves is by subject. Null when there is no such list, it is empty or nothing tells.
+     *
+     * @param array<string, true> $units    the lower-cased «Unidad» values of the file
+     * @param array<string, true> $subjects the lower-cased «Materia» values of the file
+     */
+    public function detectLayout(EducationalCentre $centre, string $rootName, array $units, array $subjects): ?SenecaSubjectsLayout
+    {
+        $root = $this->findRootByName($centre, $rootName);
+        if ($root === null) {
+            return null;
+        }
+
+        $this->items->reset();
+        $byParent = $this->items->childrenMap($centre);
+        $first= array_values(array_map(static fn (ListItem $i): string => mb_strtolower($i->getName()), $byParent[$root->getId()->toRfc4122()] ?? []));
+        $byTop = self::layoutOfNames($first, $units, $subjects);
+        if ($byTop !== null) {
+            return $byTop;
+        }
+
+        $leaves = [];
+        $queue  = $byParent[$root->getId()->toRfc4122()] ?? [];
+        while ($queue !== []) {
+            $item     = array_shift($queue);
+            $children = $byParent[$item->getId()->toRfc4122()] ?? [];
+            if ($children === []) {
+                $leaves[] = mb_strtolower($item->getName());
+            }
+            array_push($queue, ...$children);
+        }
+
+        // Leaves that are groups mean a list by subject, and the other way round.
+        return match (self::layoutOfNames($leaves, $units, $subjects)) {
+            SenecaSubjectsLayout::ByGroup   => SenecaSubjectsLayout::BySubject,
+            SenecaSubjectsLayout::BySubject => SenecaSubjectsLayout::ByGroup,
+            null                            => null,
+        };
+    }
+
+    /**
+     * ByGroup when more of $names are groups than subjects, BySubject the other way round, null on a tie.
+     *
+     * @param list<string>        $names
+     * @param array<string, true> $units
+     * @param array<string, true> $subjects
+     */
+    private static function layoutOfNames(array $names, array $units, array $subjects): ?SenecaSubjectsLayout
+    {
+        $u = $s = 0;
+        foreach ($names as $name) {
+            $u += isset($units[$name]) ? 1 : 0;
+            $s += isset($subjects[$name]) ? 1 : 0;
+        }
+
+        return $u === $s ? null : ($u > $s ? SenecaSubjectsLayout::ByGroup : SenecaSubjectsLayout::BySubject);
+    }
 
     /**
      * In how many delivered documents of the models filled in online the items the import would remove or deactivate appear: those
@@ -56,15 +134,22 @@ final class SenecaListImporter
     }
 
     /** @param SenecaImportNode[] $desired */
-    public function plan(EducationalCentre $centre, string $rootName, array $desired): SenecaListImportPlan
-    {
+    public function plan(
+        EducationalCentre $centre,
+        string $rootName,
+        array $desired,
+        ?SenecaTeacherMatch $teachers = null,
+        bool $searchDeeper = true,
+    ): SenecaListImportPlan {
         $root = $this->findRootByName($centre, $rootName);
-        $this->loadUsage($centre, $root);
+        $this->loadUsage($centre, $root, $teachers, $searchDeeper);
 
         $additions     = [];
         $deletions     = [];
         $deactivations = [];
         $reactivations = [];
+        $this->teacherChanges = [];
+        $this->teacherLinks   = 0;
 
         $this->diffChildren(
             $root,
@@ -76,15 +161,31 @@ final class SenecaListImporter
             $reactivations,
         );
 
-        return new SenecaListImportPlan($rootName, $root !== null, $additions, $deletions, $deactivations, $reactivations);
+        return new SenecaListImportPlan(
+            $rootName,
+            $root !== null,
+            $additions,
+            $deletions,
+            $deactivations,
+            $reactivations,
+            $this->teacherChanges,
+            $this->teacherLinks,
+            $teachers,
+        );
     }
 
     /**
      * @param  SenecaImportNode[] $desired
-     * @return array{added: int, deleted: int, deactivated: int, reactivated: int}
+     * @return ImportCounts
      */
-    public function apply(EducationalCentre $centre, string $rootName, array $desired, bool $deleteUnused): array
-    {
+    public function apply(
+        EducationalCentre $centre,
+        string $rootName,
+        array $desired,
+        bool $deleteUnused,
+        ?SenecaTeacherMatch $teachers = null,
+        bool $searchDeeper = true,
+    ): array {
         $root = $this->findRootByName($centre, $rootName);
         if ($root === null) {
             $root = new ListItem();
@@ -94,12 +195,85 @@ final class SenecaListImporter
             $this->em->persist($root);
         }
 
-        $this->loadUsage($centre, $root);
-        $counts = ['added' => 0, 'deleted' => 0, 'deactivated' => 0, 'reactivated' => 0];
+        $this->loadUsage($centre, $root, $teachers, $searchDeeper);
+        $counts = ['added' => 0, 'deleted' => 0, 'deactivated' => 0, 'reactivated' => 0, 'teachers_added' => 0, 'teachers_removed' => 0];
         $this->applyChildren($root, $centre, $desired, $deleteUnused, $counts);
         $this->em->flush();
 
         return $counts;
+    }
+
+    // ── teachers ────────────────────────────────────────────────────────────
+
+    /** @var SenecaListImportTeacherChange[] filled by a plan */
+    private array $teacherChanges = [];
+
+    /** the element–teacher pairs of the file that were found, counted by a plan */
+    private int $teacherLinks = 0;
+
+    private ?SenecaTeacherMatch $teacherMatch = null;
+
+    private bool $searchDeeper = true;
+
+    /** @var array<string, list<ListItemTeacher>> the own teacher associations of the centre's items, by item id (read once, only with teachers) */
+    private array $ownTeachers = [];
+
+    /**
+     * What the file says about the teachers of $node, against the own associations of $item (null: an element the import creates):
+     * the associations to drop and the teachers to add. Null when the import does not handle teachers or the node takes none.
+     *
+     * @return array{keep: list<Teacher>, drop: list<ListItemTeacher>, add: list<Teacher>}|null
+     */
+    private function teacherDiff(SenecaImportNode $node, ?ListItem $item): ?array
+    {
+        if ($this->teacherMatch === null || !$node->takesTeachers()) {
+            return null;
+        }
+
+        $wanted  = $this->teacherMatch->teachersFor($node->getTeacherNames());
+        $current = $item !== null ? $this->ownTeachers[$item->getId()->toRfc4122()] ?? [] : [];
+
+        $drop = array_values(array_filter($current, static fn (ListItemTeacher $a): bool => !LeafTeachers::isAmong($a->getTeacher(), $wanted)));
+        $have = array_map(static fn (ListItemTeacher $a): Teacher => $a->getTeacher(), $current);
+        $add  = array_values(array_filter($wanted, static fn (Teacher $t): bool => !LeafTeachers::isAmong($t, $have)));
+
+        return ['keep' => $wanted, 'drop' => $drop, 'add' => $add];
+    }
+
+    /** @param string[] $path */
+    private function planTeachers(SenecaImportNode $node, ?ListItem $item, array $path): void
+    {
+        $diff = $this->teacherDiff($node, $item);
+        if ($diff === null) {
+            return;
+        }
+
+        $this->teacherLinks += count($diff['keep']);
+        if ($diff['add'] !== [] || $diff['drop'] !== []) {
+            $this->teacherChanges[] = new SenecaListImportTeacherChange(
+                $path,
+                array_map(static fn (Teacher $t): string => $t->getName()->full(), $diff['add']),
+                array_map(static fn (ListItemTeacher $a): string => $a->getTeacher()->getName()->full(), $diff['drop']),
+            );
+        }
+    }
+
+    /** @param ImportCounts $counts */
+    private function applyTeachers(SenecaImportNode $node, ListItem $item, bool $isNew, array &$counts): void
+    {
+        $diff = $this->teacherDiff($node, $isNew ? null : $item);
+        if ($diff === null) {
+            return;
+        }
+
+        foreach ($diff['drop'] as $association) {
+            $item->removeTeacher($association->getTeacher());
+            ++$counts['teachers_removed'];
+        }
+        foreach ($diff['add'] as $teacher) {
+            $item->addTeacher($teacher);
+            ++$counts['teachers_added'];
+        }
     }
 
     // ── plan (read-only) ─────────────────────────────────────────────────────
@@ -147,6 +321,7 @@ final class SenecaListImporter
             if (!$match->isActive()) {
                 $reactivations[] = new SenecaListImportPlanItem($childPath, $match);
             }
+            $this->planTeachers($node, $match, $childPath);
 
             // A repository query, not $match->getChildren() — see planRemoval()'s comment on why.
             $this->diffChildren(
@@ -172,6 +347,7 @@ final class SenecaListImporter
     private function collectAdditions(SenecaImportNode $node, array $path, array &$additions): void
     {
         $additions[] = new SenecaListImportPlanItem($path);
+        $this->planTeachers($node, null, $path);
         foreach ($node->getChildren() as $child) {
             $this->collectAdditions($child, [...$path, $child->name], $additions);
         }
@@ -221,8 +397,8 @@ final class SenecaListImporter
     // ── apply (mutating) ────────────────────────────────────────────────────
 
     /**
-     * @param SenecaImportNode[]                            $desired
-     * @param array{added: int, deleted: int, deactivated: int, reactivated: int} $counts
+     * @param SenecaImportNode[] $desired
+     * @param ImportCounts       $counts
      */
     private function applyChildren(ListItem $parent, EducationalCentre $centre, array $desired, bool $deleteUnused, array &$counts): void
     {
@@ -245,6 +421,7 @@ final class SenecaListImporter
                 $this->claim($match);
             }
 
+            $isNew = $match === null;
             if ($match === null) {
                 $match = new ListItem();
                 $match->setEducationalCentre($centre);
@@ -256,6 +433,7 @@ final class SenecaListImporter
                 $match->setActive(true);
                 ++$counts['reactivated'];
             }
+            $this->applyTeachers($node, $match, $isNew, $counts);
             // One found inside a category keeps its place there: only the direct children follow the CSV's order.
             if ($deep === null) {
                 $placed[] = $match;
@@ -281,7 +459,7 @@ final class SenecaListImporter
     }
 
     /**
-     * @param  array{added: int, deleted: int, deactivated: int, reactivated: int} $counts
+     * @param  ImportCounts $counts
      * @return bool whether $item ended up deleted (vs. kept, deactivated)
      */
     private function applyRemoval(ListItem $item, bool $deleteUnused, array &$counts): bool
@@ -349,6 +527,10 @@ final class SenecaListImporter
      */
     private function findDeeper(ListItem $parent, SenecaImportNode $node): ?ListItem
     {
+        if (!$this->searchDeeper) {
+            return null;
+        }
+
         $needle   = mb_strtolower($node->name);
         $wantLeaf = $node->getChildren() === [];
         $queue    = $this->children($parent);
@@ -383,10 +565,13 @@ final class SenecaListImporter
      * What a plan or an apply reads about the centre, ONCE: its tree and what is in use. Without this, every item of the list costs
      * its own queries (its children, and a profile, an assignment, a document and a delivered form check).
      */
-    private function loadUsage(EducationalCentre $centre, ?ListItem $root): void
+    private function loadUsage(EducationalCentre $centre, ?ListItem $root, ?SenecaTeacherMatch $teachers, bool $searchDeeper): void
     {
         $this->items->reset();
         $this->claimed = $this->claimedAncestors = [];
+        $this->teacherMatch = $teachers;
+        $this->searchDeeper = $searchDeeper;
+        $this->ownTeachers  = $teachers !== null ? $this->items->teacherAssociationsByItem($centre) : [];
         $this->childMap = $this->items->childrenMap($centre);
         $this->usedItems = $this->usage->keptByImports($centre);
         if ($root !== null && $this->em->contains($root)) {

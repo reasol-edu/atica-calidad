@@ -93,7 +93,7 @@ final class SenecaListImporterTest extends RepositoryTestCase
         self::assertCount(2, $plan->additions);
 
         $counts = $this->importer->apply($centre, 'Grupo', $desired, true);
-        self::assertSame(['added' => 2, 'deleted' => 0, 'deactivated' => 0, 'reactivated' => 0], $counts);
+        self::assertSame(['added' => 2, 'deleted' => 0, 'deactivated' => 0, 'reactivated' => 0, 'teachers_added' => 0, 'teachers_removed' => 0], $counts);
 
         $this->em->clear();
         $roots = $this->items->findRootsByCentre($centre);
@@ -330,7 +330,7 @@ final class SenecaListImporterTest extends RepositoryTestCase
         self::assertSame([], $plan->deactivations);
 
         $counts = $this->importer->apply($centre, 'Grupo', $desired, true);
-        self::assertSame(['added' => 1, 'deleted' => 0, 'deactivated' => 0, 'reactivated' => 0], $counts);
+        self::assertSame(['added' => 1, 'deleted' => 0, 'deactivated' => 0, 'reactivated' => 0, 'teachers_added' => 0, 'teachers_removed' => 0], $counts);
 
         $this->em->clear();
         $root = $this->items->findRootsByCentre($centre)[0];
