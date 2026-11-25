@@ -194,6 +194,20 @@ final class FormDeliveredRowsTest extends ControllerTestCase
         self::assertSame([$rows[0]['key'] => [$this->keys['colHours'] => 30, $this->keys['colDone'] => 28]], $reading['values'], 'only what was delivered');
     }
 
+    public function testASubjectSharedByTwoDepartmentsShowsEachHeadTheirOwnDelivery(): void
+    {
+        $algebra = $this->em->getRepository(ListItem::class)->find($this->algebra->getId());
+        $algebra->addProfileAssociation($this->em->getRepository(SpecificProfile::class)->find($this->head->getId()), $this->em->getRepository(ListItem::class)->find($this->informatica->getId()));
+        $this->flush();
+        $this->clear();
+        $this->review($this->matematicas, $this->algebra, 40);
+
+        $rows = $this->read($this->informatica)[$this->keys['table']]['sources']['rows'];
+        self::assertSame(['Programación', 'Bases de datos', 'Álgebra'], array_column($rows, 'label'), 'Álgebra once: the one asked of Informática');
+        self::assertSame($this->slotKey($this->informatica, $this->algebra), $rows[2]['slot']);
+        self::assertSame('none', $rows[2]['status'], 'what Matemáticas delivered is Matemáticas\' row, not this one');
+    }
+
     public function testAllTheDeliveriesOrAllOfThemWhenTheHeadHasNoSubjectOrNoActivityIsChosen(): void
     {
         $this->review($this->matematicas, $this->algebra, 40);

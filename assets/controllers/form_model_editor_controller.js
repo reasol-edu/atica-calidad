@@ -1248,6 +1248,8 @@ export default class extends Controller {
 
     /** The named fields of the chosen model (asked once per model and kept), as boxes to tick, in $container. */
     async fillDeliveredFields(block, container) {
+        // Called while the page is being drawn: its container is in the page only once that is done.
+        await Promise.resolve();
         const id = block.sourceModel;
         this.namedFields ||= {};
         const fresh = !this.namedFields[id];

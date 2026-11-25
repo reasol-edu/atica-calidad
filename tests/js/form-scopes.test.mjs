@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 globalThis.window = globalThis;
-const { sync, calculate, totals, walk, numbers, countedCount, format, references, referencesHtml } = await import('../../assets/utils/form_scopes.js');
+const { sync, calculate, totals, walk, numbers, countedCount, format, references, referencesHtml, progress } = await import('../../assets/utils/form_scopes.js');
 
 const k = (n) => `${n}0000000-0000-4000-8000-000000000000`;
 
@@ -55,6 +55,14 @@ test('totals at the foot of a column', () => {
     const columns = def.sections[0].blocks[1].columns;
     const rows = [{ [k('hours')]: 40, [k('cost')]: 100 }, { [k('hours')]: 60, [k('cost')]: 60 }];
     assert.deepEqual(totals(columns, rows), ['', '100', '', '160,00 €']);
+});
+
+test('in a table of deliveries a required column only counts in the delivered rows (as FormDataValidator)', () => {
+    const def = { sections: [{ key: 's', title: 'S', blocks: [{ key: 't', type: 'table', mode: 'delivered', columns: [{ key: 'v', label: 'V', fieldType: 'long', required: true }],
+        rows: [{ key: 'r1', label: 'A', status: 'delivered' }, { key: 'r2', label: 'B', status: 'draft' }, { key: 'r3', label: 'C', status: 'none' }] }], children: [] }] };
+    const data = { fields: {}, texts: {}, tables: { t: [{ _key: 'r1' }, { _key: 'r2', v: 'algo' }, { _key: 'r3' }] }, copies: {} };
+    sync(def.sections, data);
+    assert.deepEqual(progress(walk(def, data)), { done: 0, total: 1 });
 });
 
 test('a column that reads a delivery shows always the decimals it asks for, in its cells and at its foot (the twin of FormResolver)', () => {

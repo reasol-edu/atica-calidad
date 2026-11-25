@@ -22,7 +22,7 @@ use Symfony\Component\Uid\Uuid;
  * and when it is delivered, and writes them into the draft's data (inject()): the cells into `tables[<table key>]`, like any other
  * cell, and where they came from into `sources[<table key>]`:
  *
- *   sources[<table key>] = { activity: ?<activity id>, title, at: <ISO date>, assumedAll: bool,
+ *   sources[<table key>] = { activity: ?<activity id>, title, at: <ISO date>, assumedAll: bool, teachersAsked: bool,
  *                            rows: [ { key, slot, label, status: delivered|draft|none, approval: pending|approved|rejected|null,
  *                                      revision: ?<DocumentRevision id>, version: ?int, document: ?<Document id>, teachers: [names] } ] }
  *
@@ -110,7 +110,7 @@ final class FormDeliveredRows
             }
 
             $readings[$key] = [
-                'sources' => ['activity' => $id, 'title' => $source->getTitle(), 'at' => $now, 'assumedAll' => $assumedAll, 'rows' => $rows],
+                'sources' => ['activity' => $id, 'title' => $source->getTitle(), 'at' => $now, 'assumedAll' => $assumedAll, 'teachersAsked' => $source->isTeachersDeliver(), 'rows' => $rows],
                 'values'  => $values,
                 'columns' => array_keys($columns),
             ];
@@ -159,13 +159,36 @@ final class FormDeliveredRows
             $item = $slot->nameListItem ?? $slot->listItem;
             if ($item === null) {
                 $kept[] = $slot;
-            } elseif (FormListOptions::belongsToSlot($item, $who, $index)) {
+            } elseif ($this->isOfWhoDelivers($slot, $item, $who, $index)) {
                 $kept[] = $slot;
                 $any    = true;
             }
         }
 
         return $any ? ['slots' => $kept, 'assumedAll' => false] : ['slots' => $slots, 'assumedAll' => true];
+    }
+
+    /**
+     * Whether a slot of the activity read belongs to who delivers this document. When both are delivered by the same profile of a list,
+     * the slot's own row decides: a subject shared by two departments asks each one for its own delivery, and each head sees theirs,
+     * not the other's. Otherwise, the element's associations (FormListOptions::belongsToSlot(), as the tables of a list).
+     *
+     * @param array{profile: string, subprofile: ?string} $who
+     * @param array<string, \App\Entity\ListItem>          $index
+     */
+    private function isOfWhoDelivers(ActivitySubmissionSlot $slot, \App\Entity\ListItem $item, array $who, array $index): bool
+    {
+        if ($slot->profile->getId()->toRfc4122() === $who['profile'] && $slot->listItem !== null && $who['subprofile'] !== null) {
+            for ($node = $slot->listItem; $node !== null; $node = $node->getParent()) {
+                if ($node->getId()->toRfc4122() === $who['subprofile']) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return FormListOptions::belongsToSlot($item, $who, $index);
     }
 
     /**
@@ -556,6 +579,7 @@ final class FormDeliveredRows
                 'title'      => mb_substr(FormDefinition::str($source['title'] ?? ''), 0, 255),
                 'at'         => mb_substr(FormDefinition::str($source['at'] ?? ''), 0, 40),
                 'assumedAll' => ($source['assumedAll'] ?? false) === true,
+                'teachersAsked' => ($source['teachersAsked'] ?? false) === true,
                 'rows'       => $rows,
             ];
         }

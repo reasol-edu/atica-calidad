@@ -23,6 +23,8 @@ const ICON_PATHS = {
     'chevron-down': 'm19.5 8.25l-7.5 7.5l-7.5-7.5',
     'check-circle': 'M9 12.75L11.25 15L15 9.75M21 12a9 9 0 1 1-18 0a9 9 0 0 1 18 0',
     'exclamation-circle': 'M12 9v3.75m9-.75a9 9 0 1 1-18 0a9 9 0 0 1 18 0m-9 3.75h.008v.008H12z',
+    'arrow-path': 'M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99',
+    'arrow-top-right-on-square': 'M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25',
 };
 
 /** A Heroicon as an inline SVG (decorative: the control around it says what it is). */
@@ -53,6 +55,11 @@ export default class extends Controller {
         const data = this.configValue.data || {};
         // PHP writes an empty map as [] and an array loses its string keys in JSON.stringify: always plain objects here.
         this.state = { fields: asMap(data.fields), texts: asMap(data.texts), tables: asMap(data.tables), copies: asMap(data.copies) };
+        // Where the rows of the tables of deliveries came from (written by the server only; the saves send it back and it is ignored).
+        this.sources = asMap(data.sources);
+        // The cells «Actualizar» changed, to blink them once, and what it said, by table.
+        this.changedCells = new Set();
+        this.deliveredNotes = new Map();
         this.version = this.configValue.version;
         this.readOnly = this.configValue.readOnly === true;
         this.recovered = this.readOnly ? false : this.recoverLocal();
@@ -1268,7 +1275,18 @@ export default class extends Controller {
         }
         // A counted table has as many rows as a number says: like a fixed one nobody adds or removes them, and they are told by number.
         const counted = block.mode === 'counted';
-        const fixed = block.mode === 'fixed' || counted;
+        // A table of deliveries has a row per delivery of another activity: nobody adds them either (see deliveredHeader()).
+        const delivered = block.mode === 'delivered';
+        const fixed = block.mode === 'fixed' || counted || delivered;
+        const source = delivered ? (this.sources[block.key] || null) : null;
+        if (delivered && (!source || !source.activity)) {
+            return [
+                ...(block.label ? [h('p', { class: 'mb-1 text-sm font-medium text-gray-700' }, [this.liveText('span', {}, block.label, inst)])] : []),
+                h('p', { class: 'rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500', text: this.l.delivered_no_source }),
+            ];
+        }
+        const rowInfo = new Map((block.rows || []).map((r) => [r.key, r]));
+        const showStatus = delivered && block.showStatus !== false;
         const tables = inst.scope.tables;
         if (!Array.isArray(tables[block.key])) {
             tables[block.key] = [];
@@ -1282,7 +1300,7 @@ export default class extends Controller {
 
         // Rows that come from a source (a list of the catalogue, a number) are many and not written by anyone: their first column, the
         // one that names each row, carries a filter to find one while typing.
-        const automatic = counted || Boolean(block.rowsList);
+        const automatic = counted || Boolean(block.rowsList) || delivered;
         const filterKey = inst.path + '|' + block.key;
         const rowEls = [];
         let filterInput = null;
@@ -1302,9 +1320,12 @@ export default class extends Controller {
 
             return h('th', { scope: 'col', class: 'px-2 py-2 text-left font-medium' }, [h('span', { class: 'block', text: block.rowHeader || '' }), filterInput]);
         };
+        // A column that reads each delivery is not typed here: it says where to correct it.
+        const read = (c) => delivered && Boolean(c.sourceField);
         const head = h('tr', {}, [
             ...(fixed ? [firstHeader()] : []),
-            ...block.columns.map((c) => h('th', { scope: 'col', class: (narrow(c) ? 'w-36 ' : '') + 'px-2 py-2 text-left font-medium' }, [c.label, c.required ? h('span', { class: 'text-red-600', 'aria-hidden': 'true', text: ' *' }) : null])),
+            ...(showStatus ? [h('th', { scope: 'col', class: 'w-32 px-2 py-2 text-left font-medium', text: this.l.delivered_status })] : []),
+            ...block.columns.map((c) => h('th', { scope: 'col', class: (narrow(c) ? 'w-36 ' : '') + 'px-2 py-2 text-left font-medium', title: read(c) ? this.l.delivered_cell_title : null }, [c.label, c.required ? h('span', { class: 'text-red-600', 'aria-hidden': 'true', text: ' *' }) : null])),
             ...(fixed ? [] : [h('th', { scope: 'col', class: 'w-10 px-2 py-2' }, [h('span', { class: 'sr-only', text: this.l.remove_row })])]),
         ]);
 
@@ -1313,6 +1334,9 @@ export default class extends Controller {
         const gone = new Set((block.rows || []).filter((r) => r.gone).map((r) => r.key));
         const rowHead = (row, index) => {
             const text = counted ? String(index + 1) : labels.get(row._key) ?? '';
+            if (delivered) {
+                return this.deliveredRowHead(block, rowInfo.get(row._key) || {}, text, source);
+            }
             if (!gone.has(row._key)) {
                 return h('th', { scope: 'row', class: 'px-2 py-2 text-left align-top font-normal text-gray-700', text });
             }
@@ -1330,7 +1354,8 @@ export default class extends Controller {
         };
         const body = h('tbody', { class: 'divide-y divide-gray-100' }, rows.map((row, index) => rowEls[index] = h('tr', { class: gone.has(row._key) ? 'bg-amber-50' : null }, [
             ...(fixed ? [rowHead(row, index)] : []),
-            ...block.columns.map((c) => h('td', { class: cellClass(c) }, [
+            ...(showStatus ? [this.deliveredStatusCell(rowInfo.get(row._key) || {})] : []),
+            ...block.columns.map((c) => read(c) ? this.deliveredCell(block, row, c, cellClass(c)) : h('td', { class: cellClass(c) }, [
                 this.tag(
                     this.control({ ...c, label: c.label + ' · ' + this.l.row + ' ' + (index + 1) }, row[c.key], (v) => this.setIn(row, c.key, v), null, true, { chain: inst.chain, map: row, key: c.key }),
                     [inst.path, block.key, row._key, c.key].join('|'),
@@ -1348,6 +1373,7 @@ export default class extends Controller {
         const footValues = () => totals(block.columns, rows, inst.scope.fields);
         const foot = footValues() === null ? null : h('tfoot', { class: 'border-t border-gray-200 bg-gray-50 font-medium text-gray-900' }, [h('tr', {}, [
             ...(fixed ? [h('th', { scope: 'row', class: 'px-2 py-2 text-left', text: this.l.total })] : []),
+            ...(showStatus ? [h('td')] : []),
             ...block.columns.map((c, i) => {
                 const cell = h('td', { class: 'px-2 py-2', text: footValues()[i] });
                 this.calcEls.push({ el: cell, read: () => (footValues() || [])[i] || '' });
@@ -1363,8 +1389,10 @@ export default class extends Controller {
         let shownRows = rows.length;
         if (fixed && rows.length > 0) {
             counter = h('span', { class: 'shrink-0 text-xs text-gray-500' });
+            // A table of deliveries counts what is delivered, not what is typed here.
+            const done = () => (delivered ? rows.filter((r) => (rowInfo.get(r._key) || {}).status === 'delivered').length : filledRows());
             const show = () => {
-                counter.textContent = this.l.rows_filled.replace('%done%', String(filledRows())).replace('%total%', String(rows.length))
+                counter.textContent = (delivered ? this.l.delivered_count : this.l.rows_filled).replace('%done%', String(done())).replace('%total%', String(rows.length))
                     + (shownRows < rows.length ? ' · ' + this.l.rows_shown.replace('%shown%', String(shownRows)).replace('%total%', String(rows.length)) : '');
             };
             show();
@@ -1398,11 +1426,19 @@ export default class extends Controller {
             foot.classList.add('sticky', 'bottom-0');   // and the totals at the bottom
         }
 
+        if (delivered && rows.length === 0) {
+            const none = (block.sourceScope || 'own') === 'own' && !source.assumedAll ? this.l.delivered_none_own : this.l.delivered_none;
+            return [
+                ...this.deliveredHeader(block, inst, source, null),
+                h('p', { class: 'rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500', text: none.replace('%title%', source.title || '') }),
+            ];
+        }
+
         return [
-            h('div', { class: 'mb-1 flex items-end justify-between gap-2' }, [
+            ...(delivered ? this.deliveredHeader(block, inst, source, counter) : [h('div', { class: 'mb-1 flex items-end justify-between gap-2' }, [
                 block.label ? h('p', { class: 'min-w-0 text-sm font-medium text-gray-700' }, [this.liveText('span', {}, block.label, inst)]) : h('span'),
                 counter,
-            ]),
+            ])]),
             h('div', { class: 'overflow-x-auto rounded-xl border border-gray-200' + (long ? ' max-h-[32rem] overflow-y-auto' : '') }, [
                 h('table', { class: 'min-w-full text-sm' }, [h('thead', { class: 'bg-gray-50 text-gray-600' + (long ? ' sticky top-0 z-10 shadow-[0_1px_0_0_rgb(229_231_235)]' : '') }, [head]), body, ...(foot ? [foot] : [])]),
             ]),
@@ -1414,5 +1450,150 @@ export default class extends Controller {
             })]),
             ...(block.help ? [h('p', { class: 'mt-1 text-xs text-gray-500', text: block.help })] : []),
         ];
+    }
+
+    // ── Tables of deliveries ────────────────────────────────────────────────
+    // A row per delivery of another activity: the server reads them (when the page opens, and with «Actualizar») and the page only
+    // draws them; their cells are read-only and the own columns are typed as in any table.
+
+    /** Above the table: where the rows come from and when they were read, how many are delivered, and «Actualizar». */
+    deliveredHeader(block, inst, source, counter) {
+        const at = source.at ? new Date(source.at) : null;
+        const time = at && !Number.isNaN(at.getTime()) ? at.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
+        const today = at && at.toDateString() === new Date().toDateString();
+        const when = time === '' ? '' : (today ? this.l.delivered_at_today : this.l.delivered_at_day)
+            .replace('%time%', time).replace('%date%', at.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }));
+        const url = (this.configValue.delivered?.activities || {})[block.key];
+        const title = url
+            ? h('a', { href: url, class: 'font-medium text-forest-700 hover:underline', text: source.title || '' })
+            : h('span', { class: 'font-medium', text: source.title || '' });
+        const busy = this.refreshing === block.key;
+        const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+        const button = h('button', {
+            type: 'button', class: BTN + ' inline-flex items-center gap-1.5', 'data-refresh-delivered': block.key,
+            disabled: this.readOnly || busy || offline || !this.configValue.refreshUrl,
+            title: offline ? this.l.delivered_offline : null,
+            onclick: () => this.refreshDelivered(block.key),
+        }, [icon('arrow-path', 'h-3.5 w-3.5' + (busy ? ' animate-spin' : '')), busy ? this.l.delivered_refreshing : this.l.delivered_refresh]);
+        const note = this.deliveredNotes.get(block.key);
+
+        return [
+            ...(block.label ? [h('p', { class: 'mb-1 text-sm font-medium text-gray-700' }, [this.liveText('span', {}, block.label, inst)])] : []),
+            // On a phone: where it comes from on one line, the count and the button on the next.
+            h('div', { class: 'mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1' }, [
+                h('p', { class: 'min-w-0 text-xs text-gray-500' }, [this.l.delivered_from.split('%title%')[0], title, this.l.delivered_from.split('%title%')[1] || '', when ? ' · ' + when : '']),
+                h('div', { class: 'flex shrink-0 items-center gap-2' }, [counter, button]),
+            ]),
+            ...(source.assumedAll ? [h('p', { class: 'mb-1 text-xs text-gray-500', text: this.l.delivered_assumed_all })] : []),
+            ...(note ? [h('p', { class: 'mb-1 text-xs font-medium text-amber-800', role: 'status', text: note })] : []),
+        ];
+    }
+
+    /** The first column of a row: the name of the delivery (a link to it when it is delivered and may be opened) and who teaches it. */
+    deliveredRowHead(block, info, text, source) {
+        const links = this.configValue.delivered?.links || {};
+        const canOpen = info.status === 'delivered' && info.revision && links[block.key] === true && this.configValue.delivered?.revisionUrl;
+        const teachers = (info.teachers || []).join(', ');
+
+        return h('th', { scope: 'row', class: 'px-2 py-2 text-left align-top font-normal text-gray-700' }, [
+            h('span', { class: 'inline-flex items-start gap-1' }, [
+                h('span', { text }),
+                ...(canOpen ? [h('a', {
+                    href: this.configValue.delivered.revisionUrl.replace('__ID__', info.revision), target: '_blank', rel: 'noopener',
+                    class: 'text-gray-400 hover:text-forest-700', title: this.l.delivered_open, 'aria-label': this.l.delivered_open + ': ' + text,
+                }, [icon('arrow-top-right-on-square', 'h-3.5 w-3.5')])] : []),
+            ]),
+            ...(teachers !== ''
+                ? [h('span', { class: 'block text-xs text-gray-500', text: teachers })]
+                : (source.teachersAsked ? [h('span', { class: 'block text-xs text-gray-400', text: this.l.delivered_no_teacher })] : [])),
+        ]);
+    }
+
+    /** The state of a delivery: delivered (and how its review goes), a draft, or not started. */
+    deliveredStatusCell(info) {
+        const status = info.status || 'none';
+        const tone = { delivered: 'bg-forest-50 text-forest-700', draft: 'bg-gray-100 text-gray-700', none: 'bg-gray-50 text-gray-400' }[status] || 'bg-gray-50 text-gray-400';
+
+        return h('td', { class: 'px-2 py-2 align-top' }, [
+            h('span', { class: 'inline-block rounded-full px-2 py-0.5 text-xs font-medium ' + tone, text: this.l['delivered_status_' + status] || status }),
+            ...(status === 'delivered' && info.approval ? [h('span', { class: 'mt-0.5 block text-xs ' + (info.approval === 'rejected' ? 'text-red-700' : 'text-gray-500'), text: this.l['delivered_approval_' + info.approval] || '' })] : []),
+        ]);
+    }
+
+    /** A cell read from a delivery: its value as it shows (unit, decimals), or a grey dash; it blinks once if «Actualizar» changed it. */
+    deliveredCell(block, row, column, cls) {
+        const text = format(column, row[column.key], this.l);
+        const cell = h('td', { class: cls + ' bg-gray-50 text-gray-800', 'data-cell': row._key + '|' + column.key }, [
+            text === '' ? h('span', { class: 'text-gray-300', text: '—' }) : text,
+        ]);
+        if (this.changedCells.has(block.key + '|' + row._key + '|' + column.key)) {
+            cell.classList.add('delivered-changed');
+        }
+
+        return cell;
+    }
+
+    /**
+     * «Actualizar»: what is pending is saved first; the server reads the deliveries again and stores the draft; the tables of deliveries
+     * take the new rows and cells (what is typed in the own columns stays: the server kept it), the formulas and totals follow, and
+     * the cells that changed blink once.
+     */
+    async refreshDelivered(key) {
+        if (this.readOnly || this.refreshing) {
+            return;
+        }
+        this.refreshing = key;
+        this.render();
+        try {
+            await this.flush();
+            if (this.stale || this.failed) {
+                return;
+            }
+            const response = await fetch(this.configValue.refreshUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': this.configValue.csrf },
+                body: JSON.stringify({ version: this.version }),
+            });
+            const body = await response.json().catch(() => ({}));
+            if (response.status === 409) {
+                this.stale = true;
+                this.setStatus(body.message || this.l.stale, 'text-red-700');
+                return;
+            }
+            if (!response.ok) {
+                throw new Error('refresh');
+            }
+            this.version = body.version;
+            this.sources = asMap(body.sources);
+            const rowsByTable = asMap(body.rows);
+            const tables = asMap(body.tables);
+            const visit = (sections) => (sections || []).forEach((s) => {
+                (s.blocks || []).forEach((b) => {
+                    if (b.type === 'table' && b.mode === 'delivered' && rowsByTable[b.key]) {
+                        b.rows = rowsByTable[b.key];
+                    }
+                });
+                visit(s.children);
+            });
+            visit(this.def.sections);
+            for (const [table, rows] of Object.entries(tables)) {
+                this.state.tables[table] = rows;
+            }
+            this.index = buildIndex(this.def);
+            this.changedCells = new Set((body.changed?.cells || []).map((c) => c.table + '|' + c.row + '|' + c.column));
+            const count = body.changed?.count || 0;
+            this.deliveredNotes.set(key, count === 0 ? this.l.delivered_unchanged : (count === 1 ? this.l.delivered_changed_one : this.l.delivered_changed_many.replace('%count%', String(count))));
+            sync(this.def.sections || [], this.state);
+            calculate(this.def, this.state, this.index);
+            this.showProblems(body.problems || [], body.warnings || []);
+            this.setStatus(this.l.saved, 'text-forest-700');
+        } catch (e) {
+            this.setStatus(this.l.offline, 'text-amber-700');
+        } finally {
+            this.refreshing = null;
+            this.render();
+            // Blinked once: a later redraw does not blink them again.
+            this.changedCells = new Set();
+        }
     }
 }

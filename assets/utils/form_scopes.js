@@ -416,7 +416,12 @@ export function progress(instances) {
                     total += 1;
                     done += inst.scope.texts[block.key] && (inst.scope.texts[block.key].html || '').replace(/<[^>]*>/g, '').trim() !== '' ? 1 : 0;
                 } else if (block.type === 'table') {
+                    // In a table of deliveries, a required column is only asked of the delivered rows (as FormDataValidator does).
+                    const notDelivered = new Set(block.mode === 'delivered' ? (block.rows || []).filter((r) => r.status !== 'delivered').map((r) => r.key) : []);
                     for (const row of inst.scope.tables[block.key] || []) {
+                        if (notDelivered.has(row._key)) {
+                            continue;
+                        }
                         for (const column of block.columns || []) {
                             if (column.required) {
                                 total += 1;

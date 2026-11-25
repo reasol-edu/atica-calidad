@@ -270,18 +270,22 @@ class FormFillController extends AbstractController
      *
      * @param array<string, mixed> $definition
      *
-     * @return array{links: array<string, bool>, revisionUrl: string}
+     * @return array{links: array<string, bool>, activities: array<string, string>, revisionUrl: string}
      */
     private function deliveredLinks(Activity $activity, array $definition, Teacher $teacher): array
     {
-        $links = [];
+        $links = $activities = [];
         foreach (FormDeliveredRows::tables($definition) as $block) {
             $key    = FormDefinition::str($block['key'] ?? '');
-            $folder = $activity->getDeliverySource($key)?->getFolder();
+            $source = $activity->getDeliverySource($key);
+            $folder = $source?->getFolder();
             $links[$key] = $folder !== null && $this->treeAccess->canViewFolder($teacher, $folder);
+            if ($source !== null) {
+                $activities[$key] = $this->generateUrl('app_activities', ['category' => $source->getCategory()->getId()->toRfc4122(), 'activity' => $source->getId()->toRfc4122()]);
+            }
         }
 
-        return ['links' => $links, 'revisionUrl' => $this->generateUrl('app_form_revision_view', ['revisionId' => '__ID__'])];
+        return ['links' => $links, 'activities' => $activities, 'revisionUrl' => $this->generateUrl('app_form_revision_view', ['revisionId' => '__ID__'])];
     }
 
     /** The draft as a document, the way it will read once delivered (nothing is delivered or saved by looking at it). */

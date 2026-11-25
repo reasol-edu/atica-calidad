@@ -65,18 +65,31 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
 - Not done yet in this phase: the "another document" source of repetition (the "list of the centre" one is done: «Sections repeated by
   a list», below) and a minimum of manual copies as a delivery problem (it only applies when the document is created).
 
-### Pending (parked 2026-11-22): a table fed from another document
+### Tables of deliveries («Datos de otras entregas», phase 1 done 2026-11-25)
 
-Use case: a «revisión de programación didáctica» model that reads the rows of the «temporalización» table of the programación didáctica
-model its activity is associated with. **Not supported**: the pre-fill between different models copies only fields by internal name
-(`FormPrefiller::byName()`), never tables, and only once at draft creation; relations, repetition and totals live inside one document.
-Workaround today: one model with both parts, two activities, the second pre-filled from the first (same model: whole data, tables included).
-
-Sketch to take up again: a table block "from another document" (source model + table; rows come from the last delivered document of the
-activity's «documento de origen», like `formPrefillSource`), rows read-only and identified by the source row key (like fixed/counted rows),
-read-only source columns plus the model's own, repetition of sections by those rows, totals and formulas as in any table, a snapshot frozen
-at delivery and a warning when the origin changes afterwards. Open decision: freeze the copy when the draft is created, or refresh it while
-it is a draft. Needs: definition + normalizer, server and client resolution (`FormScopes` / `form_scopes.js`), validation, revision diff, tests.
+A table with `mode: delivered` has **a row per delivery of another activity** (spec «Especificación: datos de otras entregas» in Claude
+Docs). The model says which model those deliveries fill (`sourceModel`), whose (`sourceScope` own|all) and `showStatus`; a column with
+`sourceField` (an internal `name` of the source model, document level only: `FormDeliveredRows::namedFields()`) reads it, typed by
+`columnTypeFor()` and never typed in (normalizer drops required/limits/options; `displayDecimals` null|0–6, twin in `form_scopes.js`). Each
+activity picks the source per table: `ActivityDeliverySource` (activity, blockKey, sourceActivity; a trashed source counts as none — the
+trash filter makes loading it throw, `Activity::getDeliverySources()` catches it).
+- **Server only reads**: `FormDeliveredRows::read()` (source slots + 2 queries, no query per row; scope `own` keeps slots whose element
+  `FormListOptions::belongsToSlot()`, except when the source is delivered by the same profile of a list: then the slot's own ROW must be
+  who delivers — a subject shared by two departments shows each head their own) → `inject()` (pure: keeps own cells by `_key`, rows in read
+  order) → stored in `data.tables` + `data.sources[tableKey]`. Row key = `Uuid::v5(NAMESPACE, slotKey)`.
+- **The definition gets its rows only from the data** (`rowsFromData()`), called in `FormListOptions::expand()` and `delivered()`: every
+  path that expands a draft or a revision sees them. `FormDefinition::hasGivenRows()` = fixed or delivered (normalizer rows, resolver).
+- `FormDataNormalizer` keeps a shape-checked `sources` (`clean()`); **`save()` replaces the browser's `sources` and source cells with the
+  saved draft's BEFORE normalizing** (`keepSaved()`), so formulas use what was read and a forged POST changes nothing. Saving never reads.
+- Opening the fill page reads and stores (`FormSubmission::refreshDraft()`: new version, no history, `updatedBy` untouched) only if the
+  opener holds the lock and something changed; `POST …/actualizar-entregas` (same CSRF header, lock and version as saving) reads again and
+  answers tables, sources, rows and the changed cells (blink `.delivered-changed` in app.css). `FormFlatData` skips source cells (no history).
+- Validator and `progress()` (JS): an own required column only in rows with `status: delivered`.
+- Model problems (`FormModelService::problems(…, $model)`): `delivered_without_model`, `_model_gone` (no revision in force), `_without_columns`,
+  `_field_gone`, `_cycle` (models reading each other), `_in_repeat` (not in the spec: a table in a repeating section is never filled).
+- Editor: `GET /modelos/{id}/campos-con-nombre` (QualityVoter::MANAGE) fills the boxes; `deliveryModels` = other models with a revision in force.
+- Phase 2 (pending): re-read at delivery (`delivered_rows_changed`), PDF/office «—», state column and provenance note, `FormDiff` labels,
+  porter by title, demo data, manual. Phase 3: «Hay datos más recientes». Phase 4 only on request.
 
 ### Rich text: one Tiptap editor everywhere (migrated from Quill, 2026-11-23)
 
