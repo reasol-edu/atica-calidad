@@ -1120,29 +1120,7 @@ export default class extends Controller {
             ]));
         }
         if (context.table && NUMERIC_TYPES.includes(spec.fieldType)) {
-            const totalsList = [['', this.l.total_none], ['sum', this.l.total_sum], ['avg', this.l.total_avg], ['min', this.l.total_min], ['max', this.l.total_max], ['count', this.l.total_count], ['custom', this.l.total_custom]];
-            // With a name, the total is also a field of the document (it is still shown only at the foot of the column).
-            const named = (e) => {
-                spec.totalName = e.target.value;
-                if (spec.totalName.trim() !== '' && !spec.totalKey) { spec.totalKey = uid(); }
-                this.touch();
-            };
-            parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
-                this.labelled(this.l.total, this.select(spec.total || '', totalsList, (v) => { spec.total = v; this.changed(); }, this.l.total), 'w-48'),
-                // An average says how many decimals it shows (two, or those of a calculated column, if nothing was chosen).
-                ...(spec.total === 'avg' ? [this.labelled(this.l.total_decimals, this.select(
-                    String(spec.totalDecimals ?? (spec.fieldType === 'calculated' ? (spec.decimals ?? 2) : 2)),
-                    [0, 1, 2, 3, 4, 5, 6].map((n) => [String(n), String(n)]),
-                    (v) => { spec.totalDecimals = Number(v); this.touch(); },
-                    this.l.total_decimals,
-                ), 'w-40')] : []),
-                ...(spec.total ? [this.labelled(this.l.total_name, h('input', { class: INPUT, value: spec.totalName ?? '', maxlength: 255, placeholder: this.l.total_name_hint, oninput: named }), 'flex-1 basis-64')] : []),
-            ]));
-            if (spec.total === 'custom') {
-                // A formula over the whole table (no "this row"): e.g. sum([t:…]) / count([t:…]).
-                if (!spec.totalKey) { spec.totalKey = uid(); }
-                parts.push(this.formulaEditor(spec, 'totalFormula', null, this.l.total_formula));
-            }
+            parts.push(...this.totalProps(spec, context.table));
         }
         if (spec.fieldType === 'number') {
             const num = (prop, text) => this.labelled(text, h('input', {
@@ -1182,6 +1160,175 @@ export default class extends Controller {
         if (spec.fieldType === 'choice' || spec.fieldType === 'multichoice') {
             parts.push(...this.optionsEditor(spec));
         }
+        return parts;
+    }
+
+    /** The total at the foot of a numeric column: which one, the decimals of an average, its name and, when custom, its formula. */
+    totalProps(spec, table) {
+        const parts = [];
+        const totalsList = [['', this.l.total_none], ['sum', this.l.total_sum], ['avg', this.l.total_avg], ['min', this.l.total_min], ['max', this.l.total_max], ['count', this.l.total_count], ['custom', this.l.total_custom]];
+        // With a name, the total is also a field of the document (it is still shown only at the foot of the column).
+        const named = (e) => {
+            spec.totalName = e.target.value;
+            if (spec.totalName.trim() !== '' && !spec.totalKey) { spec.totalKey = uid(); }
+            this.touch();
+        };
+        parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
+            this.labelled(this.l.total, this.select(spec.total || '', totalsList, (v) => { spec.total = v; this.changed(); }, this.l.total), 'w-48'),
+            // An average says how many decimals it shows (two, or those of a calculated column, if nothing was chosen).
+            ...(spec.total === 'avg' ? [this.labelled(this.l.total_decimals, this.select(
+                String(spec.totalDecimals ?? (spec.fieldType === 'calculated' ? (spec.decimals ?? 2) : 2)),
+                [0, 1, 2, 3, 4, 5, 6].map((n) => [String(n), String(n)]),
+                (v) => { spec.totalDecimals = Number(v); this.touch(); },
+                this.l.total_decimals,
+            ), 'w-40')] : []),
+            ...(spec.total ? [this.labelled(this.l.total_name, h('input', { class: INPUT, value: spec.totalName ?? '', maxlength: 255, placeholder: this.l.total_name_hint, oninput: named }), 'flex-1 basis-64')] : []),
+        ]));
+        if (spec.total === 'custom') {
+            // A formula over the whole table (no "this row"): e.g. sum([t:…]) / count([t:…]).
+            if (!spec.totalKey) { spec.totalKey = uid(); }
+            parts.push(this.formulaEditor(spec, 'totalFormula', null, this.l.total_formula));
+            // In a table of deliveries, the weighted total is the usual one: say how.
+            if (table && table.mode === 'delivered') {
+                parts.push(h('p', { class: 'text-xs text-gray-500', text: this.l.delivered_custom_help }));
+            }
+        }
+
+        return parts;
+    }
+
+    // ── Tables of deliveries ────────────────────────────────────────────────
+
+    /**
+     * The settings of a table whose rows are the deliveries of another activity: the model those deliveries fill, which of its named
+     * fields come as columns (ticking one adds a column at the end, unticking removes it), whose deliveries and whether their state shows.
+     */
+    deliveredConfig(block) {
+        const models = this.configValue.deliveryModels || [];
+        const fields = h('div', { class: 'space-y-1.5' });
+        const parts = [
+            this.labelled(this.l.delivered_model, models.length === 0
+                ? h('p', { class: 'text-sm text-amber-800', text: this.l.delivered_no_models })
+                : this.select(block.sourceModel || '', [['', '—'], ...models.map((m) => [m.id, m.name])], (v) => {
+                    // The columns that read the other model's fields go with it; the own ones stay.
+                    block.sourceModel = v;
+                    block.columns = block.columns.filter((c) => !c.sourceField);
+                    this.changed();
+                }, this.l.delivered_model)),
+            h('p', { class: '-mt-2 text-xs text-gray-500', text: this.l.delivered_model_help }),
+        ];
+        if (block.sourceModel) {
+            parts.push(h('div', { class: 'space-y-1.5' }, [
+                h('p', { class: 'text-xs font-medium text-gray-600', text: this.l.delivered_columns }),
+                fields,
+                h('p', { class: 'text-xs text-gray-500', text: this.l.delivered_columns_help }),
+            ]));
+            this.fillDeliveredFields(block, fields);
+        }
+        const card = (value, label, help) => h('label', {
+            class: 'flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 px-4 py-3 transition-colors hover:border-gray-300 has-[:checked]:border-forest-400 has-[:checked]:bg-forest-50',
+        }, [
+            h('input', { type: 'radio', name: 'scope-' + block.key, value, checked: (block.sourceScope || 'own') === value, class: 'mt-0.5 h-4 w-4 border-gray-300 text-forest-600 focus:ring-forest-500', onchange: () => { block.sourceScope = value; this.touch(); } }),
+            h('span', {}, [h('span', { class: 'block text-sm font-medium text-gray-700', text: label }), h('span', { class: 'block text-xs text-gray-500', text: help })]),
+        ]);
+        parts.push(h('fieldset', { class: 'space-y-1.5' }, [
+            h('legend', { class: 'mb-1 text-xs font-medium text-gray-600', text: this.l.delivered_scope }),
+            h('div', { class: 'grid gap-2 sm:grid-cols-2' }, [
+                card('own', this.l.delivered_scope_own, this.l.delivered_scope_own_help),
+                card('all', this.l.delivered_scope_all, this.l.delivered_scope_all_help),
+            ]),
+        ]));
+        parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
+            this.textInput(block, 'rowHeader', this.l.row_header, 'flex-1 basis-48'),
+            h('div', { class: 'pb-1.5' }, [this.checkbox(block, 'showStatus', this.l.delivered_show_status)]),
+        ]));
+
+        return h('div', { class: 'space-y-3 rounded-lg border border-gray-200 bg-gray-50/60 p-2.5' }, parts);
+    }
+
+    /** The named fields of the chosen model (asked once per model and kept), as boxes to tick, in $container. */
+    async fillDeliveredFields(block, container) {
+        const id = block.sourceModel;
+        this.namedFields ||= {};
+        const fresh = !this.namedFields[id];
+        if (fresh) {
+            container.replaceChildren(h('p', { class: 'text-xs text-gray-500', text: this.l.delivered_loading }));
+            try {
+                const response = await fetch(this.configValue.fieldsUrl.replace('__ID__', id), { headers: { Accept: 'application/json' } });
+                this.namedFields[id] = response.ok ? await response.json() : { fields: [] };
+            } catch (e) {
+                container.replaceChildren(h('p', { class: 'text-xs text-amber-800', text: this.l.offline }));
+                return;
+            }
+        }
+        if (!container.isConnected || block.sourceModel !== id) {
+            return; // drawn again meanwhile
+        }
+        const { fields, editUrl } = this.namedFields[id];
+        // The first time a model's fields arrive, the columns that read them can say which field that is (drawn again, once).
+        if (fresh && block.columns.some((c) => c.sourceField)) {
+            this.render();
+            return;
+        }
+        if (fields.length === 0) {
+            container.replaceChildren(h('p', { class: 'text-sm text-amber-800' }, [
+                this.l.delivered_no_fields + ' ',
+                h('a', { href: editUrl, target: '_blank', rel: 'noopener', class: 'font-medium underline', text: this.l.delivered_open_model }),
+            ]));
+            return;
+        }
+        container.replaceChildren(...fields.map((field) => {
+            const column = block.columns.find((c) => c.sourceField === field.name);
+            return h('label', { class: 'flex items-start gap-2 text-sm text-gray-700' }, [
+                h('input', {
+                    type: 'checkbox', class: 'mt-0.5', checked: Boolean(column),
+                    onchange: (e) => {
+                        if (e.target.checked) {
+                            // What the column shows is copied from the field: its name, its unit and its decimals.
+                            const added = { ...this.newColumn(), label: field.label, fieldType: field.columnType, sourceField: field.name, unit: field.unit || '', displayDecimals: field.decimals ?? null };
+                            block.columns.push(added);
+                            this.changed(added.key);
+                        } else {
+                            block.columns = block.columns.filter((c) => c.sourceField !== field.name);
+                            this.changed();
+                        }
+                    },
+                }),
+                h('span', {}, [
+                    h('span', { text: field.label || field.name }),
+                    ...(field.foot ? [h('span', { class: 'ml-1.5 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600', text: this.l.delivered_total_badge })] : []),
+                    h('span', { class: 'ml-1.5 text-xs text-gray-400', text: [field.section, this.typeLabel(field.fieldType)].filter(Boolean).join(' · ') }),
+                ]),
+            ]);
+        }));
+    }
+
+    /** The name of a field type, as the type drop-down says it. */
+    typeLabel(type) {
+        return this.l['type_' + type] || type;
+    }
+
+    /** A column that reads a delivery: only its label, unit, decimals and total are the model's; the rest is the delivery's. */
+    sourceColumnProps(column, block) {
+        const field = ((this.namedFields || {})[block.sourceModel]?.fields || []).find((f) => f.name === column.sourceField);
+        const parts = [
+            h('p', { class: 'text-xs text-gray-500' }, [
+                h('span', { class: 'mr-1.5 rounded bg-forest-50 px-1.5 py-0.5 font-medium text-forest-700', text: this.l.delivered_badge }),
+                this.l.delivered_reads.replace('%label%', field ? field.label : column.sourceField).replace('%name%', column.sourceField),
+            ]),
+        ];
+        if (column.fieldType === 'number') {
+            const places = [['', this.l.delivered_decimals_any], ...[0, 1, 2, 3, 4, 5, 6].map((n) => [String(n), String(n)])];
+            parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [
+                this.labelled(this.l.delivered_decimals, this.select(column.displayDecimals === null || column.displayDecimals === undefined ? '' : String(column.displayDecimals), places, (v) => {
+                    column.displayDecimals = v === '' ? null : Number(v);
+                    this.touch();
+                }, this.l.delivered_decimals), 'w-44'),
+                this.textInput(column, 'unit', this.l.unit, 'w-28', 20),
+            ]));
+            parts.push(...this.totalProps(column, block));
+        }
+
         return parts;
     }
 
@@ -1287,7 +1434,8 @@ export default class extends Controller {
     }
 
     tableBody(block) {
-        const modes = [['free', this.l.table_free], ['fixed', this.l.table_fixed], ['counted', this.l.table_counted], ['matrix', this.l.table_matrix]];
+        const modes = [['free', this.l.table_free], ['fixed', this.l.table_fixed], ['counted', this.l.table_counted], ['matrix', this.l.table_matrix], ['delivered', this.l.table_delivered]];
+        const delivered = block.mode === 'delivered';
         const columns = block.columns.map((c, i) => h('div', { class: 'rounded-lg border border-gray-200 bg-gray-50/60 p-2.5 space-y-2' }, [
             h('div', { class: 'flex items-end gap-2' }, [
                 this.textInput(c, 'label', this.l.column + ' ' + (i + 1), 'flex-1'),
@@ -1295,7 +1443,8 @@ export default class extends Controller {
                 h('button', { type: 'button', class: BTN, title: this.l.down, 'aria-label': this.l.down, text: '↓', disabled: i === block.columns.length - 1, onclick: () => this.moveIn(block.columns, i, 1) }),
                 h('button', { type: 'button', class: BTN + ' text-red-700', title: this.l.remove, 'aria-label': this.l.remove, text: '✕', onclick: () => this.removeFrom(block.columns, i) }),
             ]),
-            ...this.fieldProps(c, { table: block }),
+            // What a column of a table of deliveries reads is the delivery's: type, requirement and limits are not the model's to say.
+            ...(delivered && c.sourceField ? this.sourceColumnProps(c, block) : this.fieldProps(c, { table: block })),
         ]));
 
         const parts = [
@@ -1308,6 +1457,13 @@ export default class extends Controller {
                         block.rowsField = block.rowsField || (this.fieldList().find((f) => f.fieldType === 'number') || {}).key || '';
                         block.maxRows = block.maxRows > 0 ? block.maxRows : 100;
                     }
+                    if (v === 'delivered') {
+                        // The first column names each delivery: «Entrega» unless it says something else; its state shows.
+                        block.rowHeader = block.rowHeader || this.l.delivered_row_header;
+                        block.sourceScope = block.sourceScope || 'own';
+                        block.showStatus = block.showStatus !== false;
+                        block.sourceModel = block.sourceModel || '';
+                    }
                     this.changed();
                 }, this.l.table_mode)),
             ]),
@@ -1318,11 +1474,20 @@ export default class extends Controller {
 
             return h('div', { class: 'space-y-3' }, parts);
         }
+        if (delivered) {
+            parts.push(this.deliveredConfig(block));
+        }
         parts.push(h('div', { class: 'space-y-2' }, [
             h('p', { class: 'text-xs font-medium text-gray-600', text: this.l.columns }),
             ...columns,
             h('button', { type: 'button', class: BTN, text: '+ ' + this.l.add_column, onclick: () => { const c = this.newColumn(); block.columns.push(c); this.changed(c.key); } }),
         ]));
+        if (delivered) {
+            // No rows to add, no minimum or maximum: the rows are the deliveries.
+            parts.push(this.textInput(block, 'help', this.l.help, '', 1000));
+
+            return h('div', { class: 'space-y-3' }, parts);
+        }
         if (block.mode === 'fixed') {
             parts.push(this.textInput(block, 'rowHeader', this.l.row_header));
             parts.push(...this.fixedRowsEditor(block));
