@@ -101,6 +101,21 @@
                     {% if activity.description %}
                         <p class="text-sm text-gray-600 whitespace-pre-line">{{ activity.description }}</p>
                     {% endif %}
+                    {# The tables of its model with a row per delivery of another activity: which one each reads, or that it is missing. #}
+                    {% for d in this.deliverySourceSummary(activity) %}
+                        {% if d.source %}
+                            <p class="text-xs text-gray-500" data-testid="delivery-source-line">
+                                {{ 'delivery_sources.from'|trans({}, 'activity_content') }}
+                                <a href="{{ path('app_activities', {category: d.source.category.id.toRfc4122, activity: d.source.id.toRfc4122}) }}" class="font-medium text-forest-700 hover:underline">{{ d.source.title }}</a>
+                            </p>
+                        {% elseif can_edit %}
+                            <p class="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900" data-testid="delivery-source-missing">
+                                {{ 'delivery_sources.missing'|trans({'%label%': d.label}, 'activity_content') }}
+                                <button type="button" data-action="live#action" data-live-action-param="startEditActivity" data-live-id-param="{{ aid }}"
+                                        class="ml-1 font-medium underline hover:text-amber-950">{{ 'activity.edit'|trans({}, 'admin') }}</button>
+                            </p>
+                        {% endif %}
+                    {% endfor %}
                     {% if activity.relatedDocuments is not empty %}
                         <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                             {% for document in activity.relatedDocuments %}

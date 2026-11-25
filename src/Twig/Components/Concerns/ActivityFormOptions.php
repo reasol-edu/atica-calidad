@@ -15,6 +15,7 @@ use App\Model\ActivityDeadlineSummary;
 use App\Model\ActivitySubmissionSlot;
 use App\Model\ProfileAssignmentRow;
 use App\Service\ActivitySubmissionFilenameBuilder;
+use App\Service\Form\ActivityDeliverySources;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
@@ -189,6 +190,14 @@ trait ActivityFormOptions
     /** The other form activity whose delivered documents pre-fill this one ('' = only last year's own). */
     #[LiveProp(writable: true)]
     public string $formPrefillSourceId = '';
+
+    /**
+     * For each table of deliveries of the model: the activity its rows come from (by the table's key; '' = not chosen yet).
+     *
+     * @var array<string, string>
+     */
+    #[LiveProp(writable: true)]
+    public array $formDeliverySources = [];
 
     /** Hidden from everyone but whoever can edit activities, and counted nowhere — see Activity::isHidden(). */
     #[LiveProp(writable: true)]
@@ -523,6 +532,51 @@ trait ActivityFormOptions
         }
 
         return $choices;
+    }
+
+    /**
+     * «Datos de otras entregas» of the form being edited: a row per table of deliveries of the chosen model, with the activities it can
+     * read (each with its deadline) and, for the one chosen, whether it ends after this activity.
+     *
+     * @return list<array{key: string, label: string, section: string, choices: list<array{id: string, name: string, due: string}>, chosen: string, late: bool}>
+     */
+    public function getFormDeliveredTables(): array
+    {
+        $model = $this->formModelId === '' ? null : $this->formModels->findByIdAndCentre($this->formModelId, $this->centre);
+        $out   = [];
+        foreach ($this->deliverySources->tablesOf($model) as $table) {
+            $chosen  = $this->formDeliverySources[$table['key']] ?? '';
+            $choices = [];
+            $late    = false;
+            foreach ($this->deliverySources->choicesFor($this->centre, $table['sourceModel'], $this->formActivityId) as $activity) {
+                $id        = $activity->getId()->toRfc4122();
+                $choices[] = ['id' => $id, 'name' => $activity->getTitle(), 'due' => sprintf('%02d/%02d', $activity->getEndDay(), $activity->getEndMonth())];
+                if ($id === $chosen && $this->formEndDay !== '' && $this->formEndMonth !== '') {
+                    $late = ActivityDeliverySources::endsAfter($activity->getEndDay(), $activity->getEndMonth(), (int) $this->formEndDay, (int) $this->formEndMonth);
+                }
+            }
+            $out[] = $table + ['choices' => $choices, 'chosen' => $chosen, 'late' => $late];
+        }
+
+        return $out;
+    }
+
+    /**
+     * The tables of deliveries of an activity's model and the activity each one reads (null: none chosen, or in the trash), for the
+     * line «Datos de otras entregas» of its view and the warning when one is missing.
+     *
+     * @return list<array{label: string, source: ?Activity}>
+     */
+    public function getDeliverySourceSummary(Activity $activity): array
+    {
+        if (!$activity->isForm()) {
+            return [];
+        }
+
+        return array_map(
+            static fn (array $table): array => ['label' => $table['label'], 'source' => $activity->getDeliverySource($table['key'])],
+            $this->deliverySources->tablesOf($activity->getFormModel()),
+        );
     }
 
     /** LiveProp(onUpdated:) hook for $formWithSubmissions: a manual activity has no folder. */

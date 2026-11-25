@@ -59,6 +59,7 @@ trait ActivityFormActions
         $this->formNameFullPath = true;
         $this->formTeachersDeliver = false;
         $this->formPrefillSourceId = '';
+        $this->formDeliverySources = [];
         $this->formHidden      = false;
         $this->formGeneral     = true;
         $this->formProfileKeys = [];
@@ -118,6 +119,7 @@ trait ActivityFormActions
         $this->formNameFullPath = $activity->isSubmissionNameFullPath();
         $this->formTeachersDeliver = $activity->isTeachersDeliver();
         $this->formPrefillSourceId = $activity->getFormPrefillSource()?->getId()->toRfc4122() ?? '';
+        $this->formDeliverySources = array_map(static fn (Activity $a): string => $a->getId()->toRfc4122(), $activity->getDeliverySources());
         $this->formHidden       = $activity->isHidden();
         $this->formGeneral      = $activity->isGeneral();
         $this->formProfileKeys  = array_map(
@@ -200,6 +202,10 @@ trait ActivityFormActions
         }
         foreach ($source->getResponsibleProfiles() as $responsible) {
             $copy->addResponsibleProfile($responsible->getSpecificProfile(), $responsible->getListItem());
+        }
+        // Where the rows of its tables of deliveries come from (they apply once the copy is given the same model).
+        foreach ($source->getDeliverySources() as $blockKey => $deliveries) {
+            $copy->setDeliverySource($blockKey, $deliveries);
         }
         $this->em->persist($copy);
         $this->changeRecorder->recordDuplicated($copy, $source, $this->teacher());
@@ -345,6 +351,29 @@ trait ActivityFormActions
             return;
         }
 
+        // «Datos de otras entregas»: each table of deliveries of the model reads an activity of the centre filled with the model it asks
+        // for (an id from elsewhere never matches), and never one that, directly or through others, reads this one.
+        $formModel       = $folder !== null && $this->formModelId !== '' ? $this->formModels->findByIdAndCentre($this->formModelId, $this->centre) : null;
+        $deliverySources = [];
+        foreach ($this->deliverySources->tablesOf($formModel) as $table) {
+            $chosenId = $this->formDeliverySources[$table['key']] ?? '';
+            $chosen   = null;
+            foreach ($this->deliverySources->choicesFor($this->centre, $table['sourceModel'], $this->formActivityId) as $candidate) {
+                $chosen = $candidate->getId()->toRfc4122() === $chosenId ? $candidate : $chosen;
+            }
+            if ($chosen === null) {
+                $this->errors = ['delivery_' . $table['key'] => str_replace('%label%', $table['label'], $this->t('activity.error.delivery_source_required'))];
+
+                return;
+            }
+            if ($this->formActivityId !== '' && $this->deliverySources->readsFrom($chosen, $this->formActivityId)) {
+                $this->errors = ['delivery_' . $table['key'] => str_replace('%title%', $chosen->getTitle(), $this->t('activity.error.delivery_source_cycle'))];
+
+                return;
+            }
+            $deliverySources[$table['key']] = $chosen;
+        }
+
         $scope = ActivitySubmissionScope::from($this->formScope === 'individual' ? 'individual' : 'by_profile');
 
         $activity = null;
@@ -399,6 +428,15 @@ trait ActivityFormActions
         $activity->setFormDraftsForAll($activity->isForm() && $this->formDraftsForAll);
         $source = $activity->isForm() && $this->formPrefillSourceId !== '' ? $this->activities->findById($this->formPrefillSourceId) : null;
         $activity->setFormPrefillSource($source !== null && $source->getCategory()->getEducationalCentre()->getId()->equals($this->centre->getId()) ? $source : null);
+        // The tables the model has now, with what was chosen; the choices of tables it no longer has go.
+        foreach (array_keys($activity->getDeliverySources()) as $blockKey) {
+            if (!isset($deliverySources[$blockKey])) {
+                $activity->setDeliverySource($blockKey, null);
+            }
+        }
+        foreach ($deliverySources as $blockKey => $deliveries) {
+            $activity->setDeliverySource($blockKey, $deliveries);
+        }
         // Safe unconditionally: the guard above already ensures $folder isn't null whenever
         // $this->formAutoComplete is true, and setAutoComplete(false) never throws either way.
         $activity->setAutoComplete($this->formAutoComplete);

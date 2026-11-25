@@ -140,6 +140,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly DocumentVersioning $versioning,
         private readonly SlotResponsibility $responsibility,
         private readonly LeafTeachers $leafTeachers,
+        private readonly \App\Service\Form\ActivityDeliverySources $deliverySources,
     ) {}
 
     /** The lowest revision number the centre allows (0 or 1): the floor of the version typed when editing a submission's revision. */

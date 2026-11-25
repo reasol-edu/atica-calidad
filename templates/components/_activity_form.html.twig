@@ -401,6 +401,37 @@
                     </select>
                     <p class="mt-1 text-xs text-gray-500">{{ 'activity.field.form_prefill_source_help'|trans({}, 'admin') }}</p>
                 </div>
+
+                {# The tables of the model with a row per delivery of another activity: which activity each one reads. #}
+                {% set delivered_tables = this.formDeliveredTables %}
+                {% if delivered_tables is not empty %}
+                    <div class="space-y-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3" data-testid="delivery-sources">
+                        <p class="text-xs font-semibold text-gray-700">{{ 'activity.field.delivery_sources'|trans({}, 'admin') }}</p>
+                        {% for t in delivered_tables %}
+                            {% set error = errors['delivery_' ~ t.key] ?? null %}
+                            <div>
+                                <label for="activity-delivery-{{ t.key }}" class="mb-1 block text-xs font-medium text-gray-600">
+                                    {{ 'activity.field.delivery_source'|trans({'%label%': t.label, '%section%': t.section}, 'admin') }}
+                                </label>
+                                {% if t.choices is empty %}
+                                    <p class="text-xs text-amber-800">{{ 'activity.field.delivery_source_none'|trans({'%label%': t.label}, 'admin') }}</p>
+                                {% else %}
+                                    <select id="activity-delivery-{{ t.key }}" data-model="formDeliverySources.{{ t.key }}"
+                                            class="w-full min-w-0 rounded-xl border px-3 py-2 text-sm {{ error ? 'border-red-300 focus:ring-red-400/20' : 'border-gray-200 focus:border-forest-500 focus:ring-forest-500' }}">
+                                        <option value="" {{ t.chosen == '' ? 'selected' : '' }}>—</option>
+                                        {% for c in t.choices %}
+                                            <option value="{{ c.id }}" {{ t.chosen == c.id ? 'selected' : '' }}>{{ 'activity.field.delivery_source_option'|trans({'%name%': c.name, '%due%': c.due}, 'admin') }}</option>
+                                        {% endfor %}
+                                    </select>
+                                {% endif %}
+                                {% if error %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endif %}
+                                {% if t.late %}
+                                    <p class="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900">{{ 'activity.field.delivery_source_late'|trans({}, 'admin') }}</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
             {% endif %}
             {% endif %}

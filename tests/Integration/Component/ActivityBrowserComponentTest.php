@@ -839,6 +839,71 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         return [$component, $root, $category, $centre, $folder];
     }
 
+    /**
+     * «Datos de otras entregas»: a model with a table of deliveries asks the activity which activity its rows come from — required,
+     * with a warning when that one ends later, refused when it reads this one back —, the view says it, and duplicating copies it.
+     */
+    public function testATableOfDeliveriesAsksTheActivityWhereItsRowsComeFrom(): void
+    {
+        [$component, , $category, $centre, $folder] = $this->formWithBranches('Lengua');
+        $models  = self::getContainer()->get(\App\Service\Form\FormModelService::class);
+        $admin   = $this->em->getRepository(Teacher::class)->findOneBy(['username' => 'admin']);
+        $managed = $this->em->find(EducationalCentre::class, $centre->getId());
+        $section = $this->em->find(Folder::class, $folder->getId())->getDocumentSection();
+        $modelFolder  = (new Folder())->setDocumentSection($section)->setName('Modelos');
+        $reviewFolder = (new Folder())->setDocumentSection($section)->setName('Revisiones');
+        $this->persist($modelFolder, $reviewFolder);
+
+        $source = $models->create($modelFolder, 'Revisión trimestral PD', null);
+        $models->saveDraft($source, ['sections' => [['title' => 'Datos', 'blocks' => [['type' => 'field', 'fieldType' => 'number', 'name' => 'horas', 'label' => 'Horas']]]]], $source->getDraftVersion(), $admin);
+        $models->sendToReview($source, $admin, null);
+        $table  = \App\Service\Form\FormDefinition::newKey();
+        $target = $models->create($modelFolder, 'Informe de evaluación', null);
+        $models->saveDraft($target, ['sections' => [['title' => 'Resultados', 'blocks' => [['key' => $table, 'type' => 'table', 'mode' => 'delivered', 'label' => 'Resultados de las materias', 'sourceModel' => $source->getId()->toRfc4122(), 'columns' => [['label' => 'Horas', 'fieldType' => 'number', 'sourceField' => 'horas']]]]]]], $target->getDraftVersion(), $admin);
+        $models->sendToReview($target, $admin, null);
+
+        $reviews = (new Activity())->setCategory($this->em->find(ActivityCategory::class, $category->getId()))->setTitle('Revisión trimestral PD – 1.er trimestre')->setStart(1, 9)->setEnd(15, 7)->setFolder($reviewFolder)->setFormModel($source);
+        $this->persist($reviews);
+        self::assertNotNull($managed);
+
+        $component->set('formModelId', $target->getId()->toRfc4122());
+        $section = $component->render()->crawler()->filter('[data-testid="delivery-sources"]');
+        self::assertStringContainsString('«Resultados de las materias» (sección «Resultados») sale de la actividad:', $section->text());
+        self::assertStringContainsString('Revisión trimestral PD – 1.er trimestre · vence el 15/07', $section->text());
+
+        $component->call('saveActivity');
+        self::assertSame('Elige de qué actividad salen los datos de «Resultados de las materias».', $component->component()->errors['delivery_' . $table] ?? null);
+
+        $component->set('formDeliverySources', [$table => $reviews->getId()->toRfc4122()]);
+        self::assertStringContainsString('La actividad de origen vence después que esta', $component->render()->crawler()->filter('[data-testid="delivery-sources"]')->text(), 'it ends on 15/07, this one on 30/06');
+        $component->call('saveActivity');
+        self::assertSame([], $component->component()->errors);
+
+        $report = $this->em->getRepository(Activity::class)->findOneBy(['title' => 'Memoria']);
+        self::assertNotNull($report);
+        self::assertSame($reviews->getId()->toRfc4122(), $report->getDeliverySource($table)?->getId()->toRfc4122());
+
+        // Reopened, it shows as saved.
+        $component->call('startEditActivity', ['id' => $report->getId()->toRfc4122()]);
+        self::assertSame([$table => $reviews->getId()->toRfc4122()], $component->component()->formDeliverySources);
+
+        // The reviews reading the report would be a circle: refused.
+        $reviewsManaged = $this->em->find(Activity::class, $reviews->getId());
+        $reviewsManaged->setDeliverySource($table, $this->em->find(Activity::class, $report->getId()));
+        $this->em->flush();
+        $component->call('saveActivity');
+        self::assertSame('No puede salir de «Revisión trimestral PD – 1.er trimestre»: esa actividad ya lee los datos de esta.', $component->component()->errors['delivery_' . $table] ?? null);
+        $reviewsManaged = $this->em->find(Activity::class, $reviews->getId());
+        $reviewsManaged->setDeliverySource($table, null);
+        $this->em->flush();
+
+        // Duplicating copies the choice.
+        $component->call('duplicateActivity', ['id' => $report->getId()->toRfc4122()]);
+        $copy = $this->em->getRepository(Activity::class)->findOneBy(['title' => 'Copia de Memoria']) ?? array_values(array_filter($this->em->getRepository(Activity::class)->findAll(), static fn (Activity $a): bool => str_contains($a->getTitle(), 'Memoria') && !$a->getId()->equals($report->getId())))[0] ?? null;
+        self::assertNotNull($copy);
+        self::assertSame($reviews->getId()->toRfc4122(), $copy->getDeliverySource($table)?->getId()->toRfc4122());
+    }
+
     /** With a catalogue element, the form offers the two ways of naming the document, each explained with a real example. */
     public function testTheFormOffersToNameTheDocumentWithTheFullPathOrTheLeafOnly(): void
     {
