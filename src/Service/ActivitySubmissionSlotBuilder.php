@@ -50,6 +50,7 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
         private readonly SpecificProfileAssignmentRepository $assignments,
         private readonly DocumentRepository $documents,
         private readonly ActivityDeadlineChecker $deadline,
+        private readonly ActivityLeafResolver $leaves,
     ) {}
 
     public function reset(): void
@@ -231,26 +232,10 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
         return $owners;
     }
 
-    /**
-     * A submission's name: the list path from just under the activity's selected element down to
-     * the leaf, joined with " › " (e.g. selecting "Materias" names a leaf "Ciencias › Física").
-     * A leaf directly under the selected element — or the selected element itself, when a leaf was
-     * picked — is just its own name. With $fullPath false (the activity's «solo el nombre del elemento»
-     * setting) it is the leaf's own name whatever its depth («Física»): then two leaves with the same
-     * name would be the same submission, which the form refuses (see duplicateLeafNames()).
-     */
+    /** A submission's name after its leaf — see ActivityLeafResolver::submissionName(), which holds the rule. */
     public function submissionName(ListItem $selected, ListItem $leaf, bool $fullPath = true): string
     {
-        if (!$fullPath) {
-            return $leaf->getName();
-        }
-
-        $trail = [];
-        for ($node = $leaf; $node !== null && $node !== $selected; $node = $node->getParent()) {
-            array_unshift($trail, $node->getName());
-        }
-
-        return $trail === [] ? $leaf->getName() : implode(' › ', $trail);
+        return $this->leaves->submissionName($selected, $leaf, $fullPath);
     }
 
     /**
@@ -302,32 +287,10 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
             : $this->deadline->cycleKeyNear($activity, $reference, $slot->nameListItem);
     }
 
-    /**
-     * The leaf of $activity's own list item that a persisted $document was named after — matched
-     * by recomputing submissionName() for every leaf and comparing against $document's own name,
-     * the same naming rule listItemRowSlots() uses, just backwards. Used wherever something about
-     * $document needs to know which leaf (if any) it belongs to — e.g. stamping its cycle year at
-     * creation time with that leaf's own deadline override, or deciding whether it's a past
-     * occurrence's submission. Deliberately lighter than matching a full ActivitySubmissionSlot
-     * (buildSlots()): it never touches the folder's upload-row/profile resolution, which runs from
-     * a Doctrine entity listener (see DocumentActivityCycleListener) where other entities in the
-     * same flush may not have their id assigned yet. Null when the activity has no list item, or
-     * $document's name matches no current leaf (the list item changed after it was uploaded).
-     */
+    /** The leaf a persisted $document was named after — see ActivityLeafResolver::findLeafForDocument(), which holds the rule. */
     public function findLeafForDocument(Activity $activity, Document $document): ?ListItem
     {
-        $listItem = $activity->getListItem();
-        if ($listItem === null) {
-            return null;
-        }
-
-        foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
-            if ($this->submissionName($listItem, $leaf, $activity->isSubmissionNameFullPath()) === $document->getName()) {
-                return $leaf;
-            }
-        }
-
-        return null;
+        return $this->leaves->findLeafForDocument($activity, $document);
     }
 
     /**

@@ -24,8 +24,10 @@ use App\Repository\DocumentRepository;
 use App\Repository\DocumentReviewNotificationEventRepository;
 use App\Repository\DocumentRevisionRepository;
 use App\Repository\SpecificProfileAssignmentRepository;
+use App\Service\ActivityLeafResolver;
 use App\Service\AppSettingsInterface;
 use App\Service\DocumentReviewOutcomeNotifier;
+use App\Service\LeafTeachers;
 use App\Service\NotificationMailer;
 use App\Tests\Integration\RepositoryTestCase;
 use Doctrine\ORM\EntityManagerInterface;
@@ -73,6 +75,8 @@ final class DocumentReviewOutcomeNotifierTest extends RepositoryTestCase
             self::getContainer()->get(TranslatorInterface::class),
             self::getContainer()->get(UrlGeneratorInterface::class),
             self::getContainer()->get(Environment::class),
+            self::getContainer()->get(ActivityLeafResolver::class),
+            self::getContainer()->get(LeafTeachers::class),
         );
     }
 

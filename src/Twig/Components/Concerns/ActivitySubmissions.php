@@ -107,6 +107,24 @@ trait ActivitySubmissions
         ));
     }
 
+    /**
+     * The names of the teachers of a delivery's element, to show under its name — null when this is not an activity whose teachers
+     * deliver, or the delivery is not of an element (nothing to say); an empty list when the element has no teacher in the course.
+     *
+     * @return list<string>|null
+     */
+    public function getSlotTeacherNames(Activity $activity, ActivitySubmissionSlot $slot): ?array
+    {
+        if (!$activity->isTeachersDeliver() || $slot->nameListItem === null || $slot->teacher !== null) {
+            return null;
+        }
+
+        return array_map(
+            static fn (Teacher $teacher): string => $teacher->getName()->full(),
+            $this->responsibility->teachersOf($activity, $slot),
+        );
+    }
+
     /** @return array{pending: int, toReview: int} how many of the managed slots still have no document, and how many have one waiting for review */
     public function getManagedSummary(Activity $activity): array
     {

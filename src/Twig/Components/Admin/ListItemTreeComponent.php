@@ -8,8 +8,11 @@ use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
 use App\Entity\ListItemProfile;
 use App\Model\ProfileAssignmentRow;
+use App\Entity\Teacher;
 use App\Repository\ListItemRepository;
+use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
+use App\Service\LeafTeachers;
 use App\Service\ProfileAssignmentRowBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -120,6 +123,34 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public array $bulkAssociationKeys = [];
 
+    /**
+     * Ids of the teachers associated with the selected item as its own (not the ones it inherits): what the «Docentes» picker of the
+     * panel holds.
+     *
+     * @var string[]
+     */
+    #[LiveProp(writable: true)]
+    public array $teacherIds = [];
+
+    /**
+     * The bulk action bar's own teacher picker, and what it does with them on the checked items: 'add', 'remove' or 'replace'.
+     *
+     * @var string[]
+     */
+    #[LiveProp(writable: true)]
+    public array $bulkTeacherIds = [];
+
+    #[LiveProp(writable: true)]
+    public string $bulkTeacherMode = 'add';
+
+    /** The tree shows only the leaves with no teacher in the course (and the branches leading to them), to find what is missing. */
+    #[LiveProp(writable: true)]
+    public bool $onlyWithoutTeacher = false;
+
+    /** Asking for confirmation before removing the teachers that are not in the active course from every item of the tree. */
+    #[LiveProp(writable: true)]
+    public bool $confirmingRemoveOffYearTeachers = false;
+
     #[LiveProp(writable: true)]
     public bool $confirmingBulkDelete = false;
 
@@ -138,6 +169,8 @@ class ListItemTreeComponent extends AbstractController
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly \App\Repository\FormValueRepository $formValues,
         private readonly \App\Service\ListItemUsage $usage,
+        private readonly TeacherRepository $teachers,
+        private readonly LeafTeachers $leafTeachers,
     ) {}
 
     /**
@@ -251,7 +284,50 @@ class ListItemTreeComponent extends AbstractController
             $byParent[$key][] = $item;
         }
 
-        return $this->buildNodes($this->getScopeParentId(), $byParent);
+        $nodes = $this->buildNodes($this->getScopeParentId(), $byParent);
+
+        return $this->onlyWithoutTeacher ? $this->pruneToLeavesWithoutTeacher($nodes) : $nodes;
+    }
+
+    /**
+     * Only the leaves nobody in the course teaches, with the branches that lead to them.
+     *
+     * @param array<int, array{item: ListItem, children: array<mixed>}> $nodes
+     *
+     * @return array<int, array{item: ListItem, children: array<mixed>}>
+     */
+    private function pruneToLeavesWithoutTeacher(array $nodes): array
+    {
+        $kept = [];
+        foreach ($nodes as $node) {
+            if ($node['children'] === []) {
+                if ($this->lacksTeacherInCourse($node['item'])) {
+                    $kept[] = $node;
+                }
+
+                continue;
+            }
+            /** @var array<int, array{item: ListItem, children: array<mixed>}> $children */
+            $children = $node['children'];
+            $children = $this->pruneToLeavesWithoutTeacher($children);
+            if ($children !== []) {
+                $kept[] = ['item' => $node['item'], 'children' => $children];
+            }
+        }
+
+        return $kept;
+    }
+
+    /** Whether no teacher of the item (its own or inherited) is in the active course. */
+    private function lacksTeacherInCourse(ListItem $item): bool
+    {
+        foreach ($item->getEffectiveTeachers() as $teacher) {
+            if ($this->leafTeachers->isInCourse($teacher, $this->centre)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -285,14 +361,34 @@ class ListItemTreeComponent extends AbstractController
         return $this->items->findByIdAndCentre($id, $this->centre);
     }
 
-    /** @return ListItem[] */
-    public function getVisibleItems(): array
+    /** @return ListItem[] every item of the level being browsed, whatever the filters */
+    private function levelItems(): array
     {
         $parent = $this->getCurrentParent();
 
         return $parent === null
             ? $this->items->findRootsByCentre($this->centre)
             : $this->items->findChildrenByParent($parent);
+    }
+
+    /** @return ListItem[] */
+    public function getVisibleItems(): array
+    {
+        $visible = $this->levelItems();
+
+        if (!$this->onlyWithoutTeacher) {
+            return $visible;
+        }
+
+        return array_values(array_filter($visible, function (ListItem $item): bool {
+            foreach ($this->items->findLeafDescendants($item) as $leaf) {
+                if ($this->lacksTeacherInCourse($leaf)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }));
     }
 
     /**
@@ -357,6 +453,7 @@ class ListItemTreeComponent extends AbstractController
         $this->editName          = $selected?->getName() ?? '';
         $this->editActive        = $selected?->isActive() ?? true;
         $this->associationKeys   = $this->associationKeysFor($selected);
+        $this->teacherIds        = array_map(static fn (Teacher $t): string => $t->getId()->toRfc4122(), $selected?->getTeachers() ?? []);
     }
 
     /** @return string[] */
@@ -614,7 +711,7 @@ class ListItemTreeComponent extends AbstractController
     #[LiveAction]
     public function sortAlphabetically(): void
     {
-        $items = $this->getVisibleItems();
+        $items = $this->levelItems();
         usort($items, static fn (ListItem $a, ListItem $b) => strcmp($a->getName(), $b->getName()));
 
         foreach ($items as $position => $item) {
@@ -682,6 +779,263 @@ class ListItemTreeComponent extends AbstractController
         $this->flashSuccess($this->t('responsibilities.lists.association.flash.saved'));
     }
 
+    // ── Associated teachers ──────────────────────────────────────────────────
+
+    /** @var list<Teacher>|null the teachers of the active course by name, read once per request when first needed */
+    private ?array $courseTeachers = null;
+
+    /** @return list<Teacher> who can be associated: the teachers of the centre's active course, by name */
+    public function getTeacherOptions(): array
+    {
+        $year = $this->centre->getActiveAcademicYear();
+        if ($year === null) {
+            return [];
+        }
+
+        return $this->courseTeachers ??= array_values($this->teachers->findByAcademicYearOrderedByName($year));
+    }
+
+    /**
+     * The options of the panel's picker for $item: the course's teachers plus those it already has as its own that are no longer in the
+     * course — so saving does not silently drop them (they show in red; «Quitar docentes fuera de curso» is how they go).
+     *
+     * @return list<Teacher>
+     */
+    public function getTeacherOptionsFor(ListItem $item): array
+    {
+        $options = $this->getTeacherOptions();
+        $known   = array_fill_keys(array_map(static fn (Teacher $t): string => $t->getId()->toRfc4122(), $options), true);
+        foreach ($item->getTeachers() as $teacher) {
+            if (!isset($known[$teacher->getId()->toRfc4122()])) {
+                $options[] = $teacher;
+            }
+        }
+
+        return $options;
+    }
+
+    /** Whether $teacher is outside the active course (or inactive): their association counts for nothing — red, like in Asignar perfiles. */
+    public function isTeacherOutOfCourse(Teacher $teacher): bool
+    {
+        return !$this->leafTeachers->isInCourse($teacher, $this->centre);
+    }
+
+    /**
+     * The teachers behind the badge of an item in the tree: its own and those it inherits, with the names for the tooltip.
+     *
+     * @return array{own: list<Teacher>, inherited: list<Teacher>, count: int, names: string, allOutOfCourse: bool}
+     */
+    public function teacherBadge(ListItem $item): array
+    {
+        $own       = $item->getTeachers();
+        $inherited = array_map(static fn (array $pair): Teacher => $pair['teacher'], $item->getInheritedTeachers());
+        $all       = [...$own, ...$inherited];
+        $names     = array_map(
+            fn (Teacher $t): string => $t->getName()->full() . ($this->isTeacherOutOfCourse($t) ? ' (' . $this->t('responsibilities.lists.teachers.out_of_course') . ')' : ''),
+            $all,
+        );
+        $outOfCourse = \count(array_filter($all, fn (Teacher $t): bool => $this->isTeacherOutOfCourse($t)));
+
+        return ['own' => $own, 'inherited' => $inherited, 'count' => \count($names), 'names' => implode(', ', $names), 'allOutOfCourse' => $all !== [] && $outOfCourse === \count($all)];
+    }
+
+    /**
+     * Resolves picked ids to teachers that may be associated: a teacher of the course or one of $already (those the item has now, so
+     * keeping an out-of-course one is possible). Unknown or tampered ids are dropped.
+     *
+     * @param  array<mixed>  $ids
+     * @param  list<Teacher> $already
+     * @return list<Teacher>
+     */
+    private function teachersFor(array $ids, array $already = []): array
+    {
+        $allowed = [];
+        foreach ([...$this->getTeacherOptions(), ...$already] as $teacher) {
+            $allowed[$teacher->getId()->toRfc4122()] = $teacher;
+        }
+
+        $result = [];
+        foreach (array_unique(array_filter($ids, 'is_string')) as $id) {
+            if (isset($allowed[$id])) {
+                $result[] = $allowed[$id];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Makes $item's own teachers exactly $teachers, touching only what changes (no row is deleted and inserted again).
+     *
+     * @param list<Teacher> $teachers
+     */
+    private function setTeachers(ListItem $item, array $teachers): void
+    {
+        $wanted = [];
+        foreach ($teachers as $teacher) {
+            $wanted[$teacher->getId()->toRfc4122()] = $teacher;
+        }
+        foreach ($item->getTeachers() as $current) {
+            if (!isset($wanted[$current->getId()->toRfc4122()])) {
+                $item->removeTeacher($current);
+            }
+        }
+        foreach ($wanted as $teacher) {
+            $item->addTeacher($teacher);
+        }
+        $this->offCourseMemo = null;
+    }
+
+    #[LiveAction]
+    public function saveTeachers(): void
+    {
+        $selected = $this->getSelected();
+        if ($selected === null) {
+            return;
+        }
+
+        $this->setTeachers($selected, $this->teachersFor($this->teacherIds, $selected->getTeachers()));
+        $this->em->flush();
+        $this->teacherIds = array_map(static fn (Teacher $t): string => $t->getId()->toRfc4122(), $selected->getTeachers());
+        $this->flashSuccess($this->t('responsibilities.lists.teachers.flash.saved'));
+    }
+
+    /**
+     * What the bulk teachers action would do, said in words before it is pressed («Se añadirá a Noelia Bravo Escudero en 6 elementos.»);
+     * null with nothing picked or nothing checked.
+     */
+    public function getBulkTeacherSummary(): ?string
+    {
+        $teachers = $this->teachersFor($this->bulkTeacherIds);
+        if ($teachers === [] || $this->bulkSelectedIds === []) {
+            return null;
+        }
+
+        $mode = \in_array($this->bulkTeacherMode, ['add', 'remove', 'replace'], true) ? $this->bulkTeacherMode : 'add';
+
+        return $this->translator->trans('responsibilities.lists.teachers.bulk.summary.' . $mode, [
+            '%names%' => implode(', ', array_map(static fn (Teacher $t): string => $t->getName()->full(), $teachers)),
+            '%count%' => \count($this->bulkSelectedIds),
+        ], 'admin');
+    }
+
+    /** Adds, removes or replaces the teachers of $bulkTeacherIds on every checked item (their own: the inherited ones are not theirs to touch). */
+    #[LiveAction]
+    public function bulkApplyTeachers(): void
+    {
+        $teachers = $this->teachersFor($this->bulkTeacherIds);
+        if ($this->bulkSelectedIds === [] || $teachers === []) {
+            return;
+        }
+        $mode = \in_array($this->bulkTeacherMode, ['add', 'remove', 'replace'], true) ? $this->bulkTeacherMode : 'add';
+
+        $count = 0;
+        $index = $this->itemIndex();
+        foreach ($this->bulkSelectedIds as $id) {
+            $item = $index[(string) $id] ?? null;
+            if ($item === null) {
+                continue;
+            }
+
+            if ($mode === 'replace') {
+                $this->setTeachers($item, $teachers);
+            } else {
+                foreach ($teachers as $teacher) {
+                    if ($mode === 'remove') {
+                        $item->removeTeacher($teacher);
+                    } else {
+                        $item->addTeacher($teacher);
+                    }
+                }
+            }
+            ++$count;
+        }
+
+        $this->offCourseMemo = null;
+        $this->em->flush();
+        $this->bulkSelectedIds = [];
+        $this->bulkTeacherIds  = [];
+        $this->flashSuccess($this->translator->trans('responsibilities.lists.teachers.bulk.flash.' . $mode, ['%count%' => $count], 'admin'));
+    }
+
+    /**
+     * Every item of this list (of the centre, in the centre-wide view) with an own teacher that is outside the active course, as the
+     * associations to remove — what «Quitar docentes fuera de curso (N)» counts and removes.
+     *
+     * @return list<array{item: ListItem, teacher: Teacher}>
+     */
+    private function offCourseAssociations(): array
+    {
+        return $this->offCourseMemo ??= $this->findOffCourseAssociations();
+    }
+
+    /** @var list<array{item: ListItem, teacher: Teacher}>|null read once per render (both headers ask), forgotten whenever teachers change */
+    private ?array $offCourseMemo = null;
+
+    /** @return list<array{item: ListItem, teacher: Teacher}> */
+    private function findOffCourseAssociations(): array
+    {
+        $scope = null;
+        if ($this->root !== null) {
+            $scope = [];
+            foreach ($this->items->findSubtree($this->root) as $node) {
+                $scope[$node->getId()->toRfc4122()] = true;
+            }
+        }
+
+        $found = [];
+        foreach ($this->items->findAllByCentre($this->centre) as $item) {
+            if ($scope !== null && !isset($scope[$item->getId()->toRfc4122()])) {
+                continue;
+            }
+            foreach ($item->getTeachers() as $teacher) {
+                if ($this->isTeacherOutOfCourse($teacher)) {
+                    $found[] = ['item' => $item, 'teacher' => $teacher];
+                }
+            }
+        }
+
+        return $found;
+    }
+
+    public function getOffCourseTeacherCount(): int
+    {
+        return \count($this->offCourseAssociations());
+    }
+
+    #[LiveAction]
+    public function askRemoveOffCourseTeachers(): void
+    {
+        $this->confirmingRemoveOffYearTeachers = true;
+    }
+
+    #[LiveAction]
+    public function cancelRemoveOffCourseTeachers(): void
+    {
+        $this->confirmingRemoveOffYearTeachers = false;
+    }
+
+    #[LiveAction]
+    public function removeOffCourseTeachers(): void
+    {
+        $this->confirmingRemoveOffYearTeachers = false;
+        $removed = 0;
+        foreach ($this->offCourseAssociations() as $pair) {
+            $pair['item']->removeTeacher($pair['teacher']);
+            ++$removed;
+        }
+        $this->offCourseMemo = null;
+        $this->em->flush();
+        $this->loadDetail();
+        $this->flashSuccess($this->translator->trans('responsibilities.lists.teachers.flash.off_course_removed', ['%count%' => $removed], 'admin'));
+    }
+
+    #[LiveAction]
+    public function toggleOnlyWithoutTeacher(): void
+    {
+        $this->onlyWithoutTeacher = !$this->onlyWithoutTeacher;
+    }
+
     // ── Bulk association ─────────────────────────────────────────────────────
 
     #[LiveAction]
@@ -690,6 +1044,8 @@ class ListItemTreeComponent extends AbstractController
         $this->bulkSelectMode       = !$this->bulkSelectMode;
         $this->bulkSelectedIds      = [];
         $this->bulkAssociationKeys  = [];
+        $this->bulkTeacherIds       = [];
+        $this->bulkTeacherMode      = 'add';
         $this->confirmingBulkDelete = false;
         $this->bulkMoveTargetId     = '';
         $this->errors               = [];
@@ -993,8 +1349,8 @@ class ListItemTreeComponent extends AbstractController
     }
 
     /**
-     * Whether moving these branches under $target changes which profiles apply to anything in them:
-     * everything in the branch inherits the associations of all its ancestors, and a profile's
+     * Whether moving these branches under $target changes which profiles — or which teachers — apply to anything in them:
+     * everything in the branch inherits the associations and the teachers of all its ancestors, and a profile's
      * subprofiles are the descendants of the item it takes its list from — either one differs once
      * the branch has a different chain of ancestors.
      *
@@ -1002,10 +1358,13 @@ class ListItemTreeComponent extends AbstractController
      */
     private function moveChangesProfiles(array $roots, ?ListItem $target): bool
     {
-        $targetKeys  = $this->associationKeysOfChain($target);
-        $targetLists = $this->profileListAncestors($target);
+        $targetKeys     = $this->associationKeysOfChain($target);
+        $targetTeachers = $this->teacherIdsOfChain($target);
+        $targetLists    = $this->profileListAncestors($target);
         /** @var array<string, array<string, true>> $chains the chain of each current parent, computed once */
         $chains = [];
+        /** @var array<string, array<string, true>> $teacherChains same, for the teachers */
+        $teacherChains = [];
 
         foreach ($roots as $root) {
             $parent = $root->getParent();
@@ -1013,32 +1372,54 @@ class ListItemTreeComponent extends AbstractController
                 return true;
             }
 
-            $chain = $chains[$parent?->getId()->toRfc4122() ?? ''] ??= $this->associationKeysOfChain($parent);
-            $lost  = array_diff_key($chain, $targetKeys);
-            $gained = array_diff_key($targetKeys, $chain);
-            if ($lost === [] && $gained === []) {
+            $chain      = $chains[$parent?->getId()->toRfc4122() ?? ''] ??= $this->associationKeysOfChain($parent);
+            $differing  = array_diff_key($chain, $targetKeys) + array_diff_key($targetKeys, $chain);
+            $teacherChain = $teacherChains[$parent?->getId()->toRfc4122() ?? ''] ??= $this->teacherIdsOfChain($parent);
+            $differingTeachers = array_diff_key($teacherChain, $targetTeachers) + array_diff_key($targetTeachers, $teacherChain);
+            if ($differing === [] && $differingTeachers === []) {
                 continue;
             }
 
-            // A node's own associations, and those of its ancestors inside the branch, are there
-            // before and after: only a node missing some of the keys that differ changes.
-            $differing = $lost + $gained;
-            $base      = [];
+            // A node's own associations (and teachers), and those of its ancestors inside the branch, are
+            // there before and after: only a node missing some of the keys that differ changes.
+            $base         = [];
+            $baseTeachers = [];
             foreach ($this->items->findSubtree($root) as $node) {
-                $inherited = $node === $root ? [] : ($base[spl_object_id($node->getParent() ?? $node)] ?? []);
-                $mine      = $inherited;
+                $parentId = spl_object_id($node->getParent() ?? $node);
+                $mine     = $node === $root ? [] : ($base[$parentId] ?? []);
                 foreach ($node->getProfileAssociations() as $association) {
                     $mine[$association->getKey()] = true;
                 }
                 $base[spl_object_id($node)] = $mine;
 
-                if (array_diff_key($differing, $mine) !== []) {
+                $mineTeachers = $node === $root ? [] : ($baseTeachers[$parentId] ?? []);
+                foreach ($node->getTeachers() as $teacher) {
+                    $mineTeachers[$teacher->getId()->toRfc4122()] = true;
+                }
+                $baseTeachers[spl_object_id($node)] = $mineTeachers;
+
+                if (array_diff_key($differing, $mine) !== [] || array_diff_key($differingTeachers, $mineTeachers) !== []) {
                     return true;
                 }
             }
         }
 
         return false;
+    }
+
+    /**
+     * The ids of the teachers of $item and of all its ancestors: who a branch hung under $item inherits.
+     *
+     * @return array<string, true>
+     */
+    private function teacherIdsOfChain(?ListItem $item): array
+    {
+        $ids = [];
+        foreach ($item?->getEffectiveTeachers() ?? [] as $teacher) {
+            $ids[$teacher->getId()->toRfc4122()] = true;
+        }
+
+        return $ids;
     }
 
     /**

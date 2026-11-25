@@ -53,6 +53,16 @@ class ListItem
     #[ORM\OneToMany(targetEntity: ListItemProfile::class, mappedBy: 'listItem', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $profileAssociations;
 
+    /**
+     * The teachers associated with this item (who teach it). Accumulate along the branch like the
+     * profile associations — see getEffectiveTeachers() — and only mean something in the activities
+     * that ask for them (Activity::isTeachersDeliver()).
+     *
+     * @var Collection<int, ListItemTeacher>
+     */
+    #[ORM\OneToMany(targetEntity: ListItemTeacher::class, mappedBy: 'listItem', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $teacherAssociations;
+
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private EducationalCentre $educationalCentre;
@@ -61,6 +71,7 @@ class ListItem
     {
         $this->children            = new ArrayCollection();
         $this->profileAssociations = new ArrayCollection();
+        $this->teacherAssociations = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -322,6 +333,96 @@ class ListItem
         }
 
         return false;
+    }
+
+    /** @return list<Teacher> this item's own teachers (not the inherited ones), in the order they were added */
+    public function getTeachers(): array
+    {
+        return array_values(array_map(
+            static fn (ListItemTeacher $a): Teacher => $a->getTeacher(),
+            $this->teacherAssociations->toArray(),
+        ));
+    }
+
+    public function hasTeacher(Teacher $teacher): bool
+    {
+        return $this->teacherAssociations->exists(
+            static fn (int $i, ListItemTeacher $a): bool => $a->getTeacher()->getId()->equals($teacher->getId())
+        );
+    }
+
+    public function addTeacher(Teacher $teacher): static
+    {
+        if (!$this->hasTeacher($teacher)) {
+            $this->teacherAssociations->add(new ListItemTeacher($this, $teacher));
+        }
+
+        return $this;
+    }
+
+    public function removeTeacher(Teacher $teacher): static
+    {
+        foreach ($this->teacherAssociations as $association) {
+            if ($association->getTeacher()->getId()->equals($teacher->getId())) {
+                $this->teacherAssociations->removeElement($association);
+            }
+        }
+
+        return $this;
+    }
+
+    public function clearTeachers(): static
+    {
+        $this->teacherAssociations->clear();
+
+        return $this;
+    }
+
+    /**
+     * What this item inherits in teachers: pairs of the ancestor they come from and the teacher,
+     * closest ancestor first, leaving out those the item already has as its own (and those a closer
+     * ancestor already contributed).
+     *
+     * @return list<array{item: self, teacher: Teacher}>
+     */
+    public function getInheritedTeachers(): array
+    {
+        $seen = [];
+        foreach ($this->teacherAssociations as $association) {
+            $seen[$association->getTeacher()->getId()->toRfc4122()] = true;
+        }
+
+        $result = [];
+        foreach ($this->selfAndAncestors() as $node) {
+            if ($node === $this) {
+                continue;
+            }
+            foreach ($node->teacherAssociations as $association) {
+                $teacher = $association->getTeacher();
+                $key     = $teacher->getId()->toRfc4122();
+                if (!isset($seen[$key])) {
+                    $seen[$key] = true;
+                    $result[]   = ['item' => $node, 'teacher' => $teacher];
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * The teachers that apply to this item: its own plus those of every ancestor, own ones first,
+     * without repeating anyone. Whether each is in the active course is not decided here (that is
+     * SlotResponsibility's).
+     *
+     * @return list<Teacher>
+     */
+    public function getEffectiveTeachers(): array
+    {
+        return array_merge(
+            $this->getTeachers(),
+            array_map(static fn (array $pair): Teacher => $pair['teacher'], $this->getInheritedTeachers()),
+        );
     }
 
     /**

@@ -179,6 +179,13 @@ trait ActivityFormOptions
     #[LiveProp(writable: true)]
     public bool $formNameFullPath = true;
 
+    /**
+     * With a catalogue element and a shared (not individual) delivery: the teachers associated with each element also fill in and
+     * deliver it — see Activity::isTeachersDeliver().
+     */
+    #[LiveProp(writable: true)]
+    public bool $formTeachersDeliver = false;
+
     /** The other form activity whose delivered documents pre-fill this one ('' = only last year's own). */
     #[LiveProp(writable: true)]
     public string $formPrefillSourceId = '';
@@ -450,6 +457,10 @@ trait ActivityFormOptions
             if ($listItem !== null) {
                 $elements = \count(array_unique(array_map(static fn (ActivitySubmissionSlot $s): string => $s->displayName, $slots)));
                 $summary .= ' ' . $this->translator->trans('activity.summary.of_elements', ['%count%' => $elements], 'admin');
+
+                if ($this->formTeachersDeliver && $this->formScope !== 'individual') {
+                    $summary = rtrim($summary, '.') . ' ' . $this->translator->trans('activity.summary.without_teacher', ['%count%' => $this->countElementsWithoutTeacher($slots)], 'admin');
+                }
             }
 
             return $summary;
@@ -460,6 +471,24 @@ trait ActivityFormOptions
         }
 
         return $this->translator->trans('activity.summary.profiles', ['%count%' => \count($this->formProfileKeys)], 'admin');
+    }
+
+    /**
+     * How many of the elements the slots are named after have no teacher in the course — what «· 3 sin docente asociado» counts.
+     *
+     * @param ActivitySubmissionSlot[] $slots
+     */
+    private function countElementsWithoutTeacher(array $slots): int
+    {
+        $without = [];
+        foreach ($slots as $slot) {
+            $leaf = $slot->nameListItem;
+            if ($leaf !== null && $this->leafTeachers->ofLeaf($leaf, $this->centre) === []) {
+                $without[$leaf->getId()->toRfc4122()] = true;
+            }
+        }
+
+        return \count($without);
     }
 
     /** LiveProp(onUpdated:) hook for $formFolderId: the form now shows the newly picked folder's profiles. */

@@ -207,6 +207,7 @@ aplicó el cambio.
 | Elemento del catálogo | Opcional. Un elemento del [Catálogo del centro](06-responsabilidades.md#catalogo-del-centro) (p. ej. «Materia», o una rama concreta): **cada hoja que cuelga de él** —a cualquier profundidad— es una entrega esperada, con nombre igual a su **ruta bajo el elemento elegido** (p. ej. «Ciencias › Física»; ver *Nombre del documento* abajo para dejar solo «Física»). Si la carpeta tiene un único perfil de subida, todas las hojas cuentan; si tiene varios, solo cuentan las hojas asociadas (en Listas, directamente o por heredarlo de su elemento padre) a alguno de ellos, que además determina a quién le corresponde. Una hoja con varias asociaciones, o asociada a un elemento intermedio de la lista de un perfil, se pide **una vez por cada subperfil** que abarca (p. ej. «FP» abarca «Informática» y «Sanidad»: cada jefatura entrega la suya), siempre que la carpeta acepte subidas de ese subperfil. |
 | Plazos por elemento | Aparece al elegir un elemento del catálogo: un plazo propio opcional para cada elemento hoja. |
 | Nombre del documento de cada entrega | Aparece al elegir un elemento del catálogo y se elige con dos opciones: **Incluir la ruta completa del elemento del catálogo** (lo que se hacía hasta ahora: «Ciencias › Física») o **Solo el nombre del elemento hoja** («Física»), más corto. Con la segunda, cada hoja necesita un nombre distinto: si dos se llaman igual (por ejemplo, «Física» en «Ciencias» y en «Letras»), el formulario no deja guardar y dice cuáles. Si la actividad ya tiene entregas, al cambiar la opción se **renombran** con el nuevo criterio para que cada una siga en su fila. Si todas las hojas cuelgan directamente del elemento, las dos opciones dan el mismo nombre y el formulario lo indica. |
+| Los docentes asociados a cada elemento también lo entregan | Casilla que aparece solo con un elemento del catálogo y una entrega **por perfil** (no individual), desmarcada por defecto. Marcada, cada docente [asociado al elemento](06-responsabilidades.md#docentes-asociados) ve su entrega en «Mis actividades» y puede rellenarla y entregarla; quien tenga el perfil asociado al elemento (por ejemplo, la jefatura del departamento) también puede. Ver [Docentes asociados a cada elemento](#docentes-asociados-a-cada-elemento). El resumen del formulario añade, con la casilla marcada, cuántos elementos están «sin docente asociado» («· 3 sin docente asociado»). Duplicar la actividad copia la casilla; la edición en bloque no la toca. |
 | Documentos relacionados | Documentos del árbol documental enlazados como lectura de apoyo, independientes de la carpeta de entregas. |
 | Obligatoria / Opcional | Solo informativo: se muestra como etiqueta, no cambia ningún permiso. |
 | Completado: Al entregar / A mano | Solo si hay carpeta. **Al entregar**: la actividad se da por completada en cuanto se publican todos los documentos que hay que entregar, sin botón de completar; el docente solo tiene que entregar. **A mano**: entregar no la completa, hay que pulsar el botón. Está justo debajo de Obligatoria / Opcional. |
@@ -250,6 +251,37 @@ cada fila indica **a qué perfil corresponde**, en verde bajo el nombre del elem
 mismo elemento van **juntas, ordenadas alfabéticamente por perfil**, y se agrupan con una línea a la
 izquierda y un pequeño hueco que las separa de los demás elementos. Mientras ningún elemento tenga más
 de un perfil, las filas no muestran el perfil, como siempre.
+
+### Docentes asociados a cada elemento {#docentes-asociados-a-cada-elemento}
+
+![Formulario de la actividad «Entrega de programaciones de los módulos», con la casilla «Los docentes asociados a cada elemento también lo entregan» marcada](img/actividades-docentes-casilla.png)
+
+Con la casilla marcada, la entrega de cada elemento del catálogo la hacen **los docentes asociados a
+él** (o a un elemento del que cuelga; ver [Docentes asociados](06-responsabilidades.md#docentes-asociados)).
+Sigue siendo **un documento por elemento**, compartido por sus docentes (también en un desdoble) y
+por la jefatura. Quién hace qué:
+
+| Quién | Rellenar y entregar | Es tarea suya (Mis actividades, campana, recordatorios, retrasos) | Ver el documento |
+| --- | --- | --- | --- |
+| Docente asociado al elemento (y en el curso activo) | Sí | Sí | Sí |
+| Quien tiene el perfil o subperfil de la entrega (la jefatura) | Sí | Solo si el elemento no tiene docentes en el curso | Sí, como siempre |
+| Quien gestiona la carpeta | Sí, como siempre | No, como siempre | Sí, como siempre |
+| Cualquier otro | No | No | Según la visibilidad de la carpeta, como siempre |
+
+Un docente que ya no está en el curso no rellena, no tiene la tarea y no se la quita a la jefatura. La
+casilla no crea ni quita entregas ni cambia su identidad: si un docente sustituye a otro en el catálogo,
+el borrador sigue donde estaba y el nuevo lo abre tal cual.
+
+Bajo el nombre de cada entrega, en gris, salen sus docentes («Noelia Bravo Escudero, Marcos Pardo
+Esteban»), o «Sin docente asociado» en ámbar. La jefatura ve entre sus entregas las de los elementos
+sin docente (son suyas) y, en **«Entregas que gestionas»**, las que sí tienen: puede rellenarlas, pero
+no le salen como pendientes ni retrasadas. En los datos de demostración, la actividad «Entrega de
+programaciones de los módulos» lo enseña: Noelia Bravo ve en «Mis actividades» solo «Programación» y
+«Bases de Datos»; Claudia Núñez, jefa de Informática, tiene como suyas «Sistemas Informáticos» (sin
+docente), la FFEOE (su docente dejó el centro) y «Tecnología», que también entrega su departamento
+y no tiene docente asociado, y ve el resto de Informática en «Entregas que gestionas».
+
+![«Entregas que gestionas» de la jefa del departamento de Informática: las entregas de los módulos con sus docentes en gris bajo el nombre y «Sin docente asociado» en ámbar](img/actividades-docentes-entregas.png)
 
 ### Subir los ficheros {#subir-varios-ficheros}
 

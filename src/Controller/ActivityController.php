@@ -22,6 +22,7 @@ use App\Service\DocumentCreationService;
 use App\Service\DocumentRevisionReviewer;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\NotificationMailer;
+use App\Service\SlotResponsibility;
 use App\Service\UploadLimits;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -70,6 +71,7 @@ class ActivityController extends AbstractController
         private readonly Environment $twig,
         private readonly RateLimiterFactoryInterface $activityReminderLimiter,
         private readonly UploadLimits $uploadLimits,
+        private readonly SlotResponsibility $responsibility,
     ) {}
 
     /**
@@ -272,7 +274,6 @@ class ActivityController extends AbstractController
             $slotsByKey[$slot->key()] = $slot;
         }
 
-        $canManage = $this->access->canManageFolder($teacher, $folder);
         /** @var array<int, array{slotKey?: string}> $items */
         $items = $request->request->all('items');
 
@@ -309,11 +310,7 @@ class ActivityController extends AbstractController
                 continue;
             }
 
-            $canSubmit = $canManage
-                || ($slot->teacher !== null
-                    ? $slot->teacher === $teacher
-                    : $this->access->holdsProfile($teacher, $slot->profile, $slot->listItem));
-            if (!$canSubmit) {
+            if (!$this->responsibility->canFill($teacher, $activity, $slot)) {
                 continue;
             }
 

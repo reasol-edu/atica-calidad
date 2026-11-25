@@ -43,6 +43,18 @@
             </span>
         {% endif %}
 
+        {# Associated teachers: their name (or how many), paler when they are all inherited and red when none is in the course (like in
+           Asignar perfiles); the title lists everyone. #}
+        {% set badge = this.teacherBadge(item) %}
+        {% if badge.count > 0 %}
+            {% set only_inherited = badge.own is empty %}
+            <span title="{{ 'responsibilities.lists.teachers.badge_title'|trans({'%names%': badge.names}, 'admin') }}" data-testid="teacher-badge"
+                  class="shrink-0 inline-flex max-w-[11rem] items-center gap-1 rounded-full px-1.5 py-0.5 text-xs {{ badge.allOutOfCourse ? 'bg-red-50 text-red-700' : (only_inherited ? 'bg-gray-50 text-gray-400' : 'bg-gray-100 text-gray-600') }}">
+                {{ ux_icon('heroicons:user', {class: 'h-3 w-3 shrink-0'}) }}
+                <span class="truncate">{{ badge.count == 1 ? (only_inherited ? badge.inherited[0] : badge.own[0]).name.full : badge.count }}</span>
+            </span>
+        {% endif %}
+
         <button type="button" data-action="live#action" data-live-action-param="toggleAdd" data-live-parent-id-param="{{ lid }}"
                 aria-label="{{ 'responsibilities.lists.add_child'|trans({}, 'admin') }}" title="{{ 'responsibilities.lists.add_child'|trans({}, 'admin') }}"
                 class="shrink-0 inline-flex items-center justify-center rounded-full p-1 text-gray-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 hover:text-forest-600 hover:bg-forest-50 transition-opacity">

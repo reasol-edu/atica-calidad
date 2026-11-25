@@ -47,6 +47,8 @@ final class DocumentTreeAccessChecker implements ResetInterface
         private readonly SpecificProfileAssignmentRepository $assignments,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
         private readonly ListItemRepository $listItems,
+        private readonly ActivityLeafResolver $leafResolver,
+        private readonly LeafTeachers $leafTeachers,
     ) {}
 
     public function isAdminOrQualityManager(Teacher $teacher, EducationalCentre $centre): bool
@@ -113,10 +115,29 @@ final class DocumentTreeAccessChecker implements ResetInterface
         return true;
     }
 
-    /** Whether the teacher could reach this document by browsing the tree — see canReachFolder(). */
+    /**
+     * Whether the teacher could reach this document by browsing the tree — see canReachFolder() — or it is the delivery of an
+     * element of which they are one of the associated teachers, in an activity that asks for them (see isTeacherOfDocument()).
+     */
     public function canViewDocument(Teacher $teacher, Document $document): bool
     {
-        return $this->canReachFolder($teacher, $document->getFolder());
+        return $this->canReachFolder($teacher, $document->getFolder()) || $this->isTeacherOfDocument($teacher, $document);
+    }
+
+    /**
+     * Whether $document is the delivery of an element of an activity with the «teachers deliver» box checked, and $teacher is one of
+     * that element's teachers (effective — also those of its ancestors — and in the active course, see LeafTeachers). The document is
+     * matched to its element by name (ActivityLeafResolver), which is light enough for the access checks that run per document.
+     */
+    private function isTeacherOfDocument(Teacher $teacher, Document $document): bool
+    {
+        $activity = $document->getFolder()->getActivity();
+        if ($activity === null || !$activity->isTeachersDeliver() || $activity->getSubmissionScope() === ActivitySubmissionScope::Individual) {
+            return false;
+        }
+        $leaf = $this->leafResolver->findLeafForDocument($activity, $document);
+
+        return $leaf !== null && $this->leafTeachers->includes($activity, $leaf, $teacher);
     }
 
     public function canManageFolder(Teacher $teacher, Folder $folder): bool
@@ -170,7 +191,8 @@ final class DocumentTreeAccessChecker implements ResetInterface
             return false;
         }
 
-        return $this->holdsProfile($teacher, $profile, $document->getUploadListItem());
+        return $this->holdsProfile($teacher, $profile, $document->getUploadListItem())
+            || $this->isTeacherOfDocument($teacher, $document);
     }
 
     /**
@@ -431,6 +453,24 @@ final class DocumentTreeAccessChecker implements ResetInterface
 
         return $this->canManageFolder($teacher, $folder)
             || $this->canUploadToFolder($teacher, $folder)
-            || $this->canReviewFolder($teacher, $folder);
+            || $this->canReviewFolder($teacher, $folder)
+            || $this->isTeacherOfSomeElement($teacher, $activity);
+    }
+
+    /** Whether $teacher is one of the teachers of some element of an activity that asks for them — what makes it theirs to browse. */
+    private function isTeacherOfSomeElement(Teacher $teacher, Activity $activity): bool
+    {
+        $listItem = $activity->getListItem();
+        if ($listItem === null || !$activity->isTeachersDeliver() || $activity->getSubmissionScope() === ActivitySubmissionScope::Individual) {
+            return false;
+        }
+
+        foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
+            if ($this->leafTeachers->includes($activity, $leaf, $teacher)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -44,6 +44,31 @@ class TeacherRepository extends ServiceEntityRepository implements PasswordUpgra
         return $this->createByAcademicYearFilteredQuery($year)->getResult();
     }
 
+    /**
+     * Who is in the course, in one query and without loading the teachers: what asks "is this teacher in the active course?" for many.
+     *
+     * @return array<string, true> ids (RFC 4122)
+     */
+    public function findIdsByAcademicYear(AcademicYear $year): array
+    {
+        // The id *field* (not IDENTITY()): a Uuid on every engine, see skills/database.md.
+        /** @var list<array{id: Uuid}> $rows */
+        $rows = $this->createQueryBuilder('t')
+            ->select('t.id')
+            ->join('t.academicYears', 'ay')
+            ->where('ay.id = :year')
+            ->setParameter('year', $year->getId(), 'uuid')
+            ->getQuery()
+            ->getArrayResult();
+
+        $ids = [];
+        foreach ($rows as $row) {
+            $ids[$row['id']->toRfc4122()] = true;
+        }
+
+        return $ids;
+    }
+
     public function countByAcademicYear(AcademicYear $year): int
     {
         return (int) $this->createQueryBuilder('t')

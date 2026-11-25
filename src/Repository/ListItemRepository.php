@@ -123,9 +123,14 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
      */
     public function findAllByCentre(EducationalCentre $centre): array
     {
+        // The associated teachers come along (with the teacher itself, a to-one): the tree paints a badge with their names.
         return $this->createQueryBuilder('li')
             ->leftJoin('li.profileAssociations', 'pa')
             ->addSelect('pa')
+            ->leftJoin('li.teacherAssociations', 'ta')
+            ->addSelect('ta')
+            ->leftJoin('ta.teacher', 'tt')
+            ->addSelect('tt')
             ->where('li.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->orderBy('li.position')
@@ -290,10 +295,17 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
         }
 
         // With each item's profile associations in the same query: walking the tree asks every leaf
-        // (and its ancestors) for them — see ListItem::getEffectiveProfileAssociations().
+        // (and its ancestors) for them — see ListItem::getEffectiveProfileAssociations(). Same for the
+        // associated teachers (and the teacher itself, a to-one, so reading names or isActive() never
+        // queries): ListItem::getEffectiveTeachers(). Two collections in one query multiply the rows,
+        // but an element has a handful of each.
         $all = $this->createQueryBuilder('li')
             ->leftJoin('li.profileAssociations', 'pa')
             ->addSelect('pa')
+            ->leftJoin('li.teacherAssociations', 'ta')
+            ->addSelect('ta')
+            ->leftJoin('ta.teacher', 'tt')
+            ->addSelect('tt')
             ->where('li.educationalCentre = :centre')
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->orderBy('li.position')

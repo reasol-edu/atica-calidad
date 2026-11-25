@@ -930,6 +930,93 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertNotNull($centre);
     }
 
+    /** The box «Los docentes asociados a cada elemento también lo entregan»: only with a catalogue element and a shared delivery, off by default. */
+    public function testTheFormOffersTheTeachersBoxOnlyWithACatalogueElementAndASharedDelivery(): void
+    {
+        [$component] = $this->formWithBranches('Lengua');
+        $box = static fn ($component) => $component->render()->crawler()->filter('[id^="activity-form-teachers-deliver-"]');
+
+        self::assertCount(1, $box($component));
+        self::assertStringContainsString('Los docentes asociados a cada elemento también lo entregan', $box($component)->text());
+        self::assertStringContainsString('verá su entrega en «Mis actividades»', $box($component)->text());
+        self::assertCount(0, $box($component)->filter('input[type="checkbox"][checked]'), 'off by default');
+
+        $component->set('formScope', 'individual');
+        self::assertCount(0, $box($component), 'an individual delivery is each teacher\'s own: nothing to share');
+        $component->set('formScope', 'by_profile')->set('formListItemId', '');
+        self::assertCount(0, $box($component), 'without a catalogue element there is no element to teach');
+    }
+
+    public function testTheSummaryCountsTheElementsWithoutATeacherOnlyWithTheBoxChecked(): void
+    {
+        [$component, , , $centre] = $this->formWithBranches('Lengua');
+        self::assertStringNotContainsString('sin docente', (string) $component->component()->getFormSummary());
+
+        $component->set('formTeachersDeliver', true);
+        self::assertStringContainsString('(de 2 elementos de la lista) · 2 sin docente asociado.', (string) $component->component()->getFormSummary());
+
+        // One of the two gets a teacher in the course.
+        $managedCentre = $this->em->find(EducationalCentre::class, $centre->getId());
+        self::assertNotNull($managedCentre);
+        $year    = (new AcademicYear())->setName('2026-2027')->setEducationalCentre($managedCentre);
+        $teacher = (new Teacher(new PersonName('Noelia', 'Bravo')))->setUsername('n.bravo');
+        $teacher->addAcademicYear($year);
+        $managedCentre->setActiveAcademicYear($year);
+        $fisica = $this->em->getRepository(\App\Entity\ListItem::class)->findOneBy(['name' => 'Física']);
+        self::assertNotNull($fisica);
+        $fisica->addTeacher($teacher);
+        $this->persist($year, $teacher);
+
+        self::assertStringContainsString('· 1 sin docente asociado.', (string) $component->component()->getFormSummary());
+    }
+
+    public function testTheTeachersBoxIsSavedDuplicatedAndRecordedInTheHistory(): void
+    {
+        [$component, , $category] = $this->formWithBranches('Lengua');
+        $component->set('formTeachersDeliver', true)->call('saveActivity');
+        self::assertSame([], $component->component()->errors);
+
+        $activity = $this->em->getRepository(Activity::class)->findOneBy(['title' => 'Memoria']);
+        self::assertNotNull($activity);
+        self::assertTrue($activity->isTeachersDeliver());
+
+        // Reopened, it shows as saved; edited off, the history says so.
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()]);
+        self::assertTrue($component->component()->formTeachersDeliver);
+        $component->set('formTeachersDeliver', false)->call('saveActivity');
+        self::assertFalse($this->em->find(Activity::class, $activity->getId())?->isTeachersDeliver());
+        $changes = $this->em->getRepository(\App\Entity\ActivityChange::class)->findAll();
+        $fields  = [];
+        foreach ($changes as $change) {
+            foreach ($change->getChanges() as $entry) {
+                $fields[] = $entry['field'];
+            }
+        }
+        self::assertContains('teachers_deliver', $fields);
+
+        // Duplicating copies it.
+        $this->em->find(Activity::class, $activity->getId())?->setTeachersDeliver(true);
+        $this->em->flush();
+        $component->call('duplicateActivity', ['id' => $activity->getId()->toRfc4122()]);
+        $copies = array_values(array_filter(
+            $this->em->getRepository(Activity::class)->findAll(),
+            static fn (Activity $a): bool => $a->getId()->toRfc4122() !== $activity->getId()->toRfc4122(),
+        ));
+        self::assertCount(1, $copies);
+        self::assertTrue($copies[0]->isTeachersDeliver());
+        self::assertNotNull($category);
+    }
+
+    public function testTheTeachersBoxIsLostWithoutAnElementOrWithAnIndividualDelivery(): void
+    {
+        [$component] = $this->formWithBranches('Lengua');
+        $component->set('formTeachersDeliver', true)->set('formScope', 'individual')->call('saveActivity');
+        self::assertSame([], $component->component()->errors);
+        $activity = $this->em->getRepository(Activity::class)->findOneBy(['title' => 'Memoria']);
+        self::assertNotNull($activity);
+        self::assertFalse($activity->isTeachersDeliver(), 'an individual delivery has nobody to share with');
+    }
+
     /** «Completado» sits right under «Obligatoriedad»; the advanced options keep only hiding the activity. */
     public function testCompletionIsUnderMandatoryAndAdvancedOptionsKeepOnlyHiding(): void
     {

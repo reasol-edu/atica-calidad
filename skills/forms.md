@@ -22,8 +22,16 @@ this file records what the code does and the traps already hit. Phase 1 is imple
   `ActivitySubmissionSlotBuilder::resolveSlot()` finds it) or its next revision. The PDF is the revision's file; the data is frozen in
   a `FormSubmissionRevision`. A half-filled draft therefore never counts as delivered and never shows in the tree.
 - `Activity::$submissionMode` (`file`|`form`) + `$formModel`. `Activity::isForm()` is what the templates ask. One mode per activity.
-- Who may fill a slot = who may upload to it (`FormSlotAccess`); the activity's start/end window applies. Models are created and
-  edited by `QualityVoter::MANAGE`; approving a revision is `FolderVoter::REVIEW` on the model's folder.
+- Who may fill a slot = who may upload to it (`FormSlotAccess`, which delegates to `SlotResponsibility::canFill()`); the activity's
+  start/end window applies. Models are created and edited by `QualityVoter::MANAGE`; approving a revision is `FolderVoter::REVIEW`
+  on the model's folder.
+- **`SlotResponsibility` is the one place that answers «may fill» (`canFill`) and «whose task is it» (`owns`)** — never repeat «the
+  slot's teacher, otherwise `holdsProfile()`» (grep `holdsProfile($teacher, $slot->profile` must find only it). With the activity's box
+  `teachersDeliver` checked, the teachers associated with the slot's element (own + ancestors, `ListItem::getEffectiveTeachers()`,
+  kept to those active and in the centre's active course by `LeafTeachers`) fill it and own it; the head holding the profile fills it
+  and owns it only when the element has no such teacher. The teachers never change `slotKey` or the set of slots. `LeafTeachers` and
+  `ActivityLeafResolver` exist apart so that `DocumentTreeAccessChecker` (which `SlotResponsibility` depends on) can use them for
+  `canViewDocument()` / `canManageDocumentAsUploader()` without a circular dependency.
 
 ## Definition and data (JSON)
 

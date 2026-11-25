@@ -35,6 +35,8 @@ final class DocumentReviewOutcomeNotifier
         private readonly TranslatorInterface $translator,
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly Environment $twig,
+        private readonly ActivityLeafResolver $leafResolver,
+        private readonly LeafTeachers $leafTeachers,
     ) {}
 
     public function notifyOutcome(DocumentRevision $revision, DocumentReviewNotificationKind $kind): void
@@ -112,14 +114,35 @@ final class DocumentReviewOutcomeNotifier
 
         $teachers = [];
         $seen     = [];
-        foreach ($folder->getUploadProfiles() as $restriction) {
-            foreach ($this->assignments->findTeachersHoldingProfileAndListItem($restriction->getSpecificProfile(), $restriction->getListItem()) as $teacher) {
-                $key = $teacher->getId()->toRfc4122();
-                if (isset($seen[$key])) {
-                    continue;
-                }
+        $add      = static function (Teacher $teacher) use (&$teachers, &$seen): void {
+            $key = $teacher->getId()->toRfc4122();
+            if (!isset($seen[$key])) {
                 $seen[$key] = true;
                 $teachers[] = $teacher;
+            }
+        };
+
+        // A delivery of an activity pinned to a catalogue element belongs to one row of the folder and to one element: those who hold
+        // that row, the element's teachers when the activity asks for them, and whoever delivered it — not every holder of any
+        // upload profile of the folder, which for a «Jefe/a de Departamento» is every head of department.
+        $document = $revision->getDocument();
+        $profile  = $document->getUploadProfile();
+        if ($activity !== null && $activity->getListItem() !== null && $profile !== null) {
+            foreach ($this->assignments->findTeachersHoldingProfileAndListItem($profile, $document->getUploadListItem()) as $teacher) {
+                $add($teacher);
+            }
+            $leaf = $this->leafResolver->findLeafForDocument($activity, $document);
+            foreach ($leaf === null ? [] : $this->leafTeachers->of($activity, $leaf) as $teacher) {
+                $add($teacher);
+            }
+            $add($revision->getUploadedBy());
+
+            return $teachers;
+        }
+
+        foreach ($folder->getUploadProfiles() as $restriction) {
+            foreach ($this->assignments->findTeachersHoldingProfileAndListItem($restriction->getSpecificProfile(), $restriction->getListItem()) as $teacher) {
+                $add($teacher);
             }
         }
 

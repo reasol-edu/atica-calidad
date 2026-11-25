@@ -53,6 +53,7 @@ final class ActivityCompletionChecker implements ResetInterface
         private readonly DocumentTreeAccessChecker $access,
         private readonly EntityManagerInterface $em,
         private readonly ActivityDeadlineChecker $deadline,
+        private readonly SlotResponsibility $responsibility,
     ) {}
 
     /** @return ActivitySubmissionSlot[] every expected submission of $activity. */
@@ -69,14 +70,9 @@ final class ActivityCompletionChecker implements ResetInterface
             return [];
         }
 
-        $canManage = $this->access->canManageFolder($teacher, $folder);
-
         return array_values(array_filter(
             $this->getAllSlots($activity),
-            fn (ActivitySubmissionSlot $slot): bool => $canManage
-                || ($slot->teacher !== null
-                    ? $slot->teacher === $teacher
-                    : $this->access->holdsProfile($teacher, $slot->profile, $slot->listItem)),
+            fn (ActivitySubmissionSlot $slot): bool => $this->responsibility->canFill($teacher, $activity, $slot),
         ));
     }
 
@@ -94,9 +90,7 @@ final class ActivityCompletionChecker implements ResetInterface
 
         return array_values(array_filter(
             $this->getAllSlots($activity),
-            fn (ActivitySubmissionSlot $slot): bool => $slot->teacher !== null
-                ? $slot->teacher === $teacher
-                : $this->access->holdsProfile($teacher, $slot->profile, $slot->listItem),
+            fn (ActivitySubmissionSlot $slot): bool => $this->responsibility->owns($teacher, $activity, $slot),
         ));
     }
 

@@ -42,6 +42,12 @@ elemento nuevo aparece solo), y lo ya entregado conserva los nombres con que se 
 a uno o varios perfiles o subperfiles; además de las suyas, hereda las de todos los elementos de los
 que cuelga.
 
+**Docente asociado (a un elemento)**
+: Docente que imparte un elemento del catálogo (una materia, un grupo…). Se acumula a lo largo de la
+rama como las asociaciones con perfiles y solo cuenta si está en el curso activo. En las actividades
+con la casilla «Los docentes asociados a cada elemento también lo entregan», rellena y entrega el
+documento de su elemento (ver [Docentes asociados](06-responsabilidades.md#docentes-asociados)).
+
 **Perfil específico**
 : Responsabilidad personalizada que cada centro crea en **Responsabilidades → Perfiles
 específicos**. Puede asignar docentes directamente, o asociarse a un elemento de una lista para

@@ -156,6 +156,22 @@ final class LoadDemoDataCommandTest extends RepositoryTestCase
         self::assertCount(2, $byName['2º DAW']->getEffectiveProfileAssociations());
         self::assertFalse($byName['1º DAW']->isAssociated());
         self::assertTrue($byName['1º DAW']->hasInheritedAssociation(), 'the FP branch passes its association down');
+
+        // The teachers of the computing modules (the catalogue's «Docentes», see skills/screenshots.md).
+        $materias = [];
+        foreach ($items->findAllByCentre($centre) as $item) {
+            if ($item->getParent()?->getName() === 'Materia') {
+                $materias[$item->getName()] = array_map(static fn ($t): string => $t->getUsername(), $item->getTeachers());
+                sort($materias[$item->getName()]);
+            }
+        }
+        self::assertSame(['n.bravo'], $materias['Programación']);
+        self::assertSame(['m.pardo', 'n.bravo'], $materias['Bases de Datos'], 'a split group: two teachers');
+        self::assertSame(['m.pardo'], $materias['Desarrollo Web en Entorno Cliente']);
+        self::assertSame(['r.serrano'], $materias['Desarrollo Web en Entorno Servidor']);
+        self::assertSame([], $materias['Sistemas Informáticos'], 'no teacher: «Sin docente asociado»');
+        self::assertSame(['r.fuentes'], $materias['Fase de Formación en Empresa u Organismo Equiparado (FFEOE)'], 'whose teacher is out of the course');
+        self::assertSame([], $materias['Matemáticas']);
     }
 
     public function testFailsWhenTheDemoCentreAlreadyExists(): void

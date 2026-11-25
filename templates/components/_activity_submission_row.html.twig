@@ -61,6 +61,7 @@
             {% if slot.ownerLabel %}
                 <p class="truncate text-xs font-medium text-forest-700">{{ slot.ownerLabel }}</p>
             {% endif %}
+            {% include 'components/_activity_slot_teachers.html.twig' %}
             {% set form_draft = this.getFormDraft(activity, slot) %}
             {% if form_draft %}
                 {% include 'components/_activity_form_draft.html.twig' with {draft: form_draft, newVersion: true} only %}
@@ -144,6 +145,7 @@
             {% if slot.ownerLabel %}
                 <span class="block truncate text-xs font-medium text-forest-700">{{ slot.ownerLabel }}</span>
             {% endif %}
+            {% include 'components/_activity_slot_teachers.html.twig' %}
             {% set form_draft = this.getFormDraft(activity, slot) %}
             {% if form_draft %}
                 {% include 'components/_activity_form_draft.html.twig' with {draft: form_draft} only %}
@@ -166,6 +168,7 @@
             {% if slot.ownerLabel %}
                 <span class="block truncate text-xs font-medium text-forest-700">{{ slot.ownerLabel }}</span>
             {% endif %}
+            {% include 'components/_activity_slot_teachers.html.twig' %}
             {% set form_draft = this.getFormDraft(activity, slot) %}
             {% if form_draft %}
                 {% include 'components/_activity_form_draft.html.twig' with {draft: form_draft} only %}
@@ -194,6 +197,7 @@
             {% if slot.ownerLabel %}
                 <span class="block truncate text-xs font-medium text-forest-700">{{ slot.ownerLabel }}</span>
             {% endif %}
+            {% include 'components/_activity_slot_teachers.html.twig' %}
             <span data-activity-submissions-target="preview" class="block truncate text-xs text-gray-400">{{ 'submission.dropzone_hint'|trans({}, 'activity_content') }}</span>
         </div>
         <input type="file" name="files[{{ index }}]" class="sr-only" form="{{ form_id }}" aria-label="{{ 'submission.dropzone_hint'|trans({}, 'activity_content') }}" data-activity-submissions-target="input" data-action="change->activity-submissions#change">

@@ -1,0 +1,10 @@
+{# Under the name of a delivery, only in an activity whose teachers deliver (see ActivitySubmissions::getSlotTeacherNames()): who
+   teaches that element, in grey, or «Sin docente asociado» in amber. Expects: activity, slot. #}
+{% set slot_teachers = this.getSlotTeacherNames(activity, slot) %}
+{% if slot_teachers is not null %}
+    {% if slot_teachers is empty %}
+        <span class="block truncate text-xs text-amber-700" data-testid="slot-no-teacher">{{ 'submission.no_teacher'|trans({}, 'activity_content') }}</span>
+    {% else %}
+        <span class="block truncate text-xs text-gray-400" data-testid="slot-teachers">{{ slot_teachers|join(', ') }}</span>
+    {% endif %}
+{% endif %}

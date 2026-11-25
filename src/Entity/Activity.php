@@ -59,6 +59,14 @@ class Activity implements Trashable
     #[ORM\Column(options: ['default' => true])]
     private bool $submissionNameFullPath = true;
 
+    /**
+     * Only with a catalogue element selected and a shared (not individual) delivery: the teachers associated with each element
+     * (ListItem::getEffectiveTeachers()) also fill in and deliver it, and it is theirs to do (see SlotResponsibility). False: the
+     * teachers associated with the elements change nothing in this activity.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $teachersDeliver = false;
+
     /** Deadline is a day/month pair, not a date — it repeats every academic year, with no year of its own. */
     #[ORM\Column]
     private int $startDay;
@@ -257,6 +265,18 @@ class Activity implements Trashable
     public function setSubmissionNameFullPath(bool $fullPath): static
     {
         $this->submissionNameFullPath = $fullPath;
+
+        return $this;
+    }
+
+    public function isTeachersDeliver(): bool
+    {
+        return $this->teachersDeliver;
+    }
+
+    public function setTeachersDeliver(bool $teachersDeliver): static
+    {
+        $this->teachersDeliver = $teachersDeliver;
 
         return $this;
     }

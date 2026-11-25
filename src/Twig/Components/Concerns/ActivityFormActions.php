@@ -57,6 +57,7 @@ trait ActivityFormActions
         $this->formModelId     = '';
         $this->formDraftsForAll = false;
         $this->formNameFullPath = true;
+        $this->formTeachersDeliver = false;
         $this->formPrefillSourceId = '';
         $this->formHidden      = false;
         $this->formGeneral     = true;
@@ -115,6 +116,7 @@ trait ActivityFormActions
         $this->formModelId      = $activity->getFormModel()?->getId()->toRfc4122() ?? '';
         $this->formDraftsForAll = $activity->isFormDraftsForAll();
         $this->formNameFullPath = $activity->isSubmissionNameFullPath();
+        $this->formTeachersDeliver = $activity->isTeachersDeliver();
         $this->formPrefillSourceId = $activity->getFormPrefillSource()?->getId()->toRfc4122() ?? '';
         $this->formHidden       = $activity->isHidden();
         $this->formGeneral      = $activity->isGeneral();
@@ -176,6 +178,7 @@ trait ActivityFormActions
             ->setDescription($source->getDescription())
             ->setSubmissionPrefix($source->getSubmissionPrefix())
             ->setSubmissionNameFullPath($source->isSubmissionNameFullPath())
+            ->setTeachersDeliver($source->isTeachersDeliver())
             ->setStart($source->getStartDay(), $source->getStartMonth())
             ->setEnd($source->getEndDay(), $source->getEndMonth())
             ->setListItem($source->getListItem())
@@ -385,6 +388,8 @@ trait ActivityFormActions
         $activity->setEndDateGraceDays(max(0, (int) $this->formEndDateGraceDays));
         $activity->setFolder($folder);
         $activity->setSubmissionNameFullPath($listItem === null || $this->formNameFullPath);
+        // The teachers of the elements only make sense for an activity of a catalogue element delivered as a shared one, not individually.
+        $activity->setTeachersDeliver($listItem !== null && $folder !== null && $scope !== ActivitySubmissionScope::Individual && $this->formTeachersDeliver);
         // Same element, other naming: what is already delivered takes the new names, so its rows keep finding it.
         if ($wasListItemId !== null && $wasListItemId === $listItem?->getId()->toRfc4122()) {
             $this->submissionSlots->renameDocumentsForNameMode($activity, $wasFullPath);

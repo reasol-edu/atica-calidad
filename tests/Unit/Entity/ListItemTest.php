@@ -6,7 +6,9 @@ namespace App\Tests\Unit\Entity;
 
 use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
+use App\Entity\PersonName;
 use App\Entity\SpecificProfile;
+use App\Entity\Teacher;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 
@@ -271,6 +273,72 @@ final class ListItemTest extends TestCase
         self::assertCount(0, $item->getEffectiveProfileAssociations());
         self::assertFalse($item->hasInheritedAssociation());
         self::assertSame([], $item->getInheritedProfileAssociations());
+    }
+
+    private function teacher(string $first): Teacher
+    {
+        $teacher = (new Teacher(new PersonName($first, 'Docente')))->setUsername(strtolower($first));
+        (new \ReflectionProperty(Teacher::class, 'id'))->setValue($teacher, Uuid::v7());
+
+        return $teacher;
+    }
+
+    public function testTeachersAddRemoveAndClearWithoutRepeating(): void
+    {
+        $item  = $this->item($this->centre());
+        $noelia = $this->teacher('Noelia');
+        $marcos = $this->teacher('Marcos');
+
+        $item->addTeacher($noelia)->addTeacher($marcos)->addTeacher($noelia);
+        self::assertSame([$noelia, $marcos], $item->getTeachers());
+        self::assertTrue($item->hasTeacher($marcos));
+
+        $item->removeTeacher($noelia);
+        self::assertSame([$marcos], $item->getTeachers());
+
+        $item->clearTeachers();
+        self::assertSame([], $item->getTeachers());
+    }
+
+    public function testTeachersAccumulateAlongTheBranchWithoutRepeating(): void
+    {
+        $centre = $this->centre();
+        $root   = $this->item($centre, 'Materia');
+        $mid    = $this->item($centre, 'Programación')->setParent($root);
+        $leaf   = $this->item($centre, '1º DAM')->setParent($mid);
+        $noelia = $this->teacher('Noelia');
+        $marcos = $this->teacher('Marcos');
+        $rocio  = $this->teacher('Rocio');
+
+        $root->addTeacher($rocio);
+        $mid->addTeacher($noelia)->addTeacher($rocio);
+        $leaf->addTeacher($marcos)->addTeacher($noelia);
+
+        // Own first, then the closest ancestor's, then the farthest; Noelia and Rocío once, wherever they are repeated.
+        self::assertSame([$marcos, $noelia, $rocio], $leaf->getEffectiveTeachers());
+        self::assertSame([$marcos, $noelia], $leaf->getTeachers(), 'the own ones are only the own ones');
+
+        $inherited = $leaf->getInheritedTeachers();
+        self::assertCount(1, $inherited);
+        self::assertSame($rocio, $inherited[0]['teacher']);
+        self::assertSame($mid, $inherited[0]['item'], 'the closest ancestor that has them');
+
+        self::assertSame([$noelia, $rocio], $mid->getEffectiveTeachers());
+        self::assertSame([$rocio], $root->getEffectiveTeachers());
+    }
+
+    public function testEffectiveTeachersSurviveACorruptedParentLoop(): void
+    {
+        $centre = $this->centre();
+        $a      = $this->item($centre, 'A');
+        $b      = $this->item($centre, 'B')->setParent($a);
+        // setParent() refuses a loop: corrupt the data by reflection, as the profile associations' test does.
+        (new \ReflectionProperty(ListItem::class, 'parent'))->setValue($a, $b);
+        $noelia = $this->teacher('Noelia');
+        $a->addTeacher($noelia);
+
+        self::assertSame([$noelia], $b->getEffectiveTeachers());
+        self::assertSame([$noelia], $a->getEffectiveTeachers());
     }
 
     /**

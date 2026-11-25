@@ -1,0 +1,26 @@
+{# The tree bar's two teacher tools — shared between the desktop and mobile headers: the «Sin docente» filter (only the leaves nobody in the
+   course teaches) and «Quitar docentes fuera de curso (N)», which asks first. #}
+{% set off_course = this.offCourseTeacherCount %}
+<button type="button" data-action="live#action" data-live-action-param="toggleOnlyWithoutTeacher" data-testid="only-without-teacher"
+        aria-pressed="{{ onlyWithoutTeacher ? 'true' : 'false' }}"
+        class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors
+               {{ onlyWithoutTeacher ? 'bg-amber-500 text-white hover:bg-amber-600' : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50' }}">
+    {{ ux_icon('heroicons:user', {class: 'h-3.5 w-3.5'}) }}
+    {{ 'responsibilities.lists.teachers.only_without'|trans({}, 'admin') }}
+</button>
+{% if off_course > 0 and not bulkSelectMode %}
+    {% if confirmingRemoveOffYearTeachers %}
+        <span class="inline-flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700" data-testid="off-course-confirm">
+            {{ 'responsibilities.lists.teachers.off_course_confirm'|trans({'%count%': off_course}, 'admin') }}
+            <button type="button" data-action="live#action" data-live-action-param="removeOffCourseTeachers"
+                    class="rounded-md bg-red-600 px-2 py-1 font-semibold text-white hover:bg-red-700">{{ 'responsibilities.lists.detail.confirm_yes'|trans({}, 'admin') }}</button>
+            <button type="button" data-action="live#action" data-live-action-param="cancelRemoveOffCourseTeachers"
+                    class="rounded-md border border-gray-200 bg-white px-2 py-1 font-medium text-gray-600 hover:bg-gray-50">{{ 'responsibilities.lists.detail.cancel'|trans({}, 'admin') }}</button>
+        </span>
+    {% else %}
+        <button type="button" data-action="live#action" data-live-action-param="askRemoveOffCourseTeachers" data-testid="off-course-button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors">
+            {{ 'responsibilities.lists.teachers.off_course_button'|trans({'%count%': off_course}, 'admin') }}
+        </button>
+    {% endif %}
+{% endif %}

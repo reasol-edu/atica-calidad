@@ -187,6 +187,7 @@ class LoadDemoDataCommand extends Command
 
         $this->associateMaterias($profiles['Jefe/a de Departamento'], $departamentoLeaves, $materiaLeaves, $materiaDepartamento, $io);
         $this->associateEnsenanza($profiles, $ensenanza, $departamentoLeaves, $grupoLeaves, $io);
+        $this->associateMateriaTeachers($materiaLeaves, $io);
 
         $io->section('Árbol documental (ISO 9001:2015)');
         $folders = $this->createDocumentTree($centre, $profiles, $io);
@@ -467,6 +468,31 @@ class LoadDemoDataCommand extends Command
         $ensenanza['2º DAW']->setAssociation($profiles['Tutor/a'], $grupoLeaves['2º DAW']);
 
         $io->text('Asociaciones de la lista Enseñanza: una heredada por toda la rama FP y una propia que se suma a ella en «2º DAW».');
+    }
+
+    /**
+     * The teachers of the computing modules, so the manual can show the catalogue's «Docentes» and the delivery of the module
+     * programmes (app:load-demo-form-models): one teacher, two (a split group: Bases de Datos), none (Sistemas Informáticos, to show
+     * «Sin docente asociado») and one who is no longer in the course (FFEOE: r.fuentes, in red; the head of department takes it over).
+     *
+     * @param array<string, ListItem> $materiaLeaves
+     */
+    private function associateMateriaTeachers(array $materiaLeaves, SymfonyStyle $io): void
+    {
+        $teachers = [
+            'Programación'                       => ['Noelia Bravo Escudero'],
+            'Bases de Datos'                     => ['Noelia Bravo Escudero', 'Marcos Pardo Esteban'],
+            'Desarrollo Web en Entorno Cliente'  => ['Marcos Pardo Esteban'],
+            'Desarrollo Web en Entorno Servidor' => ['Rocío Serrano Vicente'],
+            'Fase de Formación en Empresa u Organismo Equiparado (FFEOE)' => ['Ricardo Fuentes Mora'],
+        ];
+        foreach ($teachers as $materia => $names) {
+            foreach ($names as $name) {
+                $materiaLeaves[$materia]->addTeacher($this->teacher($name));
+            }
+        }
+
+        $io->text('Docentes asociados a las materias de Informática (Sistemas Informáticos, sin docente; FFEOE con un docente fuera de curso).');
     }
 
     /**

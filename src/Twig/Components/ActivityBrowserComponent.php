@@ -35,8 +35,10 @@ use App\Service\DocumentFileGarbageCollector;
 use App\Service\DocumentTreeAccessChecker;
 use App\Service\DocumentVersioning;
 use App\Service\FolderProfileSynchronizer;
+use App\Service\LeafTeachers;
 use App\Service\OwnCompletionManager;
 use App\Service\ProfileAssignmentRowBuilder;
+use App\Service\SlotResponsibility;
 use App\Service\TrashService;
 use App\Twig\Components\Concerns\ActivityCategoryNavigation;
 use App\Twig\Components\Concerns\ActivityCompletion;
@@ -136,6 +138,8 @@ class ActivityBrowserComponent extends AbstractController
         private readonly ActivitySubmissionSlotBuilder $submissionSlots,
         private readonly TrashService $trash,
         private readonly DocumentVersioning $versioning,
+        private readonly SlotResponsibility $responsibility,
+        private readonly LeafTeachers $leafTeachers,
     ) {}
 
     /** The lowest revision number the centre allows (0 or 1): the floor of the version typed when editing a submission's revision. */

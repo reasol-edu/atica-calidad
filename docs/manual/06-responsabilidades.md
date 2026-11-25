@@ -135,14 +135,16 @@ en listas propias.
 ![Un elemento marcado y el desplegable «Mover dentro de…», que ofrece los elementos de todas las listas](img/responsabilidades-lista-mover.png)
 
 !!! warning "Mover no modifica las asignaciones, pero sí lo que heredan"
-    Los docentes asignados a un elemento siguen asignados tras moverlo, y los perfiles asociados
-    a él también. Pero un elemento hereda además las asociaciones de todos los elementos de los
-    que cuelga: al cambiar de lista puede heredar otras distintas, y un perfil asociado a una rama
+    Los docentes asignados a un elemento siguen asignados tras moverlo, y los perfiles y los
+    [docentes asociados](#docentes-asociados) a él también. Pero un elemento hereda además las
+    asociaciones y los docentes de todos los elementos de los
+    que cuelga: al cambiar de lista puede heredar otros distintos (y con ellos cambia quién entrega
+    en las actividades que usan los docentes de cada elemento), y un perfil asociado a una rama
     pierde los elementos que saques de ella. Lo mismo ocurre con los subperfiles: si un perfil
     deriva sus subperfiles de un elemento, los hijos que muevas fuera dejan de ser subperfiles
     suyos (y entran como subperfiles del perfil asociado al destino, si lo hay). Revisa las
-    asociaciones y las asignaciones después de mover. Cuando el movimiento cambia los perfiles que
-    se aplican a algún elemento, se pide confirmación antes de hacerlo.
+    asociaciones y las asignaciones después de mover. Cuando el movimiento cambia los perfiles o los
+    docentes asociados que se aplican a algún elemento, se pide confirmación antes de hacerlo.
 
 ![Aviso de confirmación al mover «Matemáticas» dentro de un elemento de otra lista que tiene un perfil asociado](img/responsabilidades-lista-mover-confirmar.png)
 
@@ -196,6 +198,50 @@ sustituye el botón de cada elemento por una casilla; con uno o más marcados ap
 el mismo buscador y dos botones: **Asignar** **añade** los perfiles elegidos a los que ya tenga cada
 elemento marcado, y **Quitar asociaciones** se las quita todas. La selección no se limita a los
 hijos de un mismo elemento: se puede marcar en varias ramas distintas antes de asignar.
+
+### Docentes asociados {#docentes-asociados}
+
+Además de con perfiles, un elemento puede asociarse con **docentes**: quienes imparten esa materia,
+ese grupo… Sirve para que, en las actividades que lo pidan, **cada docente rellene y entregue el
+documento de su elemento** en vez de la jefatura (ver la casilla «Los docentes asociados a cada
+elemento también lo entregan» de [Actividades](08-actividades.md#docentes-asociados-a-cada-elemento)).
+No hace falta ningún perfil «Profesor/a»: basta con estar asociado al elemento. Los docentes no crean
+ni quitan entregas —las siguen marcando los perfiles de subida de la carpeta y las asociaciones con
+perfiles—, solo cambian **quién** puede rellenarlas y de quién es la tarea.
+
+En el panel del elemento, debajo de «Asociado a», el campo **Docentes** es un buscador con varias
+elecciones (por nombre o por usuario) entre los docentes del curso activo. **Guardar** deja al
+elemento con exactamente los elegidos (aviso «Docentes guardados»). Como los perfiles, **se acumulan a
+lo largo de la rama**: lo que se asocia a una materia vale para todos los elementos que cuelgan de
+ella, y el panel de cada uno lo dice en gris debajo del campo («Además, de «Programación»: Noelia
+Bravo Escudero»). En los datos de demostración, «Bases de Datos» la imparten dos docentes (un
+desdoble: Noelia Bravo y Marcos Pardo) y el documento de la materia es uno solo, compartido por los
+dos.
+
+![Panel del elemento «Bases de Datos» de la lista Materia: en «Docentes», las etiquetas «Noelia Bravo Escudero» y «Marcos Pardo Esteban»](img/responsabilidades-docentes-panel.png)
+
+**Docentes fuera de curso.** Cuentan solo los docentes que están en el curso activo del centro, el
+mismo criterio que [Asignar perfiles](#asignar-perfiles): quien ya no está en el curso sale **en rojo**,
+no rellena, no tiene la tarea y no se la quita a la jefatura. Se ve en la materia «Fase de Formación
+en Empresa u Organismo Equiparado (FFEOE)» de la demo, cuyo docente, Ricardo Fuentes, dejó el centro.
+El campo sigue ofreciéndolo mientras esté asociado, para que guardar no lo quite sin avisar; la barra
+del árbol tiene **«Quitar docentes fuera de curso (N)»**, con el número de asociaciones afectadas y
+una confirmación antes de quitarlas.
+
+**En el árbol**, junto al nombre de cada elemento sale una insignia gris con un icono de persona: el
+nombre del docente si es uno, o cuántos son si son varios, más clara si todos los docentes son
+heredados; al pasar el ratón, su `title` los lista a todos. El botón **«Sin docente»** de la barra deja
+solo las hojas sin ningún docente en el curso (y las ramas que llevan a ellas): sirve para encontrar
+lo que falta. En la demo, «Sistemas Informáticos» no tiene docente y «FFEOE» solo tiene uno que ya no
+está en el curso.
+
+![Árbol de la lista Materia con las insignias de los docentes, el botón «Sin docente» y «Quitar docentes fuera de curso (1)»](img/responsabilidades-docentes-arbol.png)
+
+Para varios elementos a la vez, **Seleccionar varios** muestra, bajo los botones de las asociaciones con
+perfiles, la fila **Docentes**: se elige qué hacer —**Añadir** (se suman a los que ya tenga cada
+elemento marcado), **Quitar** o **Sustituir** (los docentes propios de cada elemento pasan a ser
+exactamente los elegidos)— y los docentes, y una frase dice lo que ocurrirá antes de pulsar
+**Aplicar**: «Se añadirá a Noelia Bravo Escudero en 6 elementos.».
 
 ### Elementos activos e inactivos
 
