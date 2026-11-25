@@ -72,8 +72,29 @@ final class FormDefinition
     /**
      * `matrix` is a double-entry table: its rows are those of one table and its columns those of another. `counted` has as many
      * rows as a number field says (`rowsField`, capped by `maxRows`): nobody adds or removes them, they follow the number.
+     * `delivered` has a row per delivery of another activity (FormDeliveredRows): the activity says which one, the model says which
+     * model it fills (`sourceModel`), whose deliveries (`sourceScope` own|all) and which of its named fields each column reads
+     * (`column.sourceField`); `showStatus` adds the state of each delivery. Its rows are never stored in the model: they come from the
+     * data of each document (`data.sources`).
      */
-    public const array TABLE_MODES = ['free', 'fixed', 'matrix', 'counted'];
+    public const array TABLE_MODES = ['free', 'fixed', 'matrix', 'counted', 'delivered'];
+
+    /** The types a column that reads a delivery can show (any other field type arrives as text, see FormDeliveredRows::value()). */
+    public const array DELIVERED_TYPES = ['number', 'short', 'long', 'date', 'time', 'bool'];
+
+    /** Whose deliveries a table of deliveries shows: those of the elements associated with whoever delivers, or all. */
+    public const array DELIVERED_SCOPES = ['own', 'all'];
+
+    /**
+     * Whether the rows of a table are given (by the model, a list, a number field or the deliveries of another activity) rather than
+     * added by whoever fills it: a fixed table, and one of deliveries.
+     *
+     * @param array<string, mixed> $block
+     */
+    public static function hasGivenRows(array $block): bool
+    {
+        return in_array($block['mode'] ?? '', ['fixed', 'delivered'], true);
+    }
 
     /**
      * The largest autosave the server reads (bytes of JSON), for a model's draft and for a document's. Far above any real document (1000

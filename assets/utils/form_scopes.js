@@ -71,7 +71,8 @@ function prepare(blocks, scope) {
         if (fresh) {
             scope.tables[block.key] = [];
         }
-        if (block.mode === 'fixed') {
+        // Rows given by the model (or a list), or by the deliveries of another activity: the rows of the definition, in its order.
+        if (block.mode === 'fixed' || block.mode === 'delivered') {
             const byKey = new Map(scope.tables[block.key].map((r) => [r._key, r]));
             scope.tables[block.key] = (block.rows || []).map((r) => byKey.get(r.key) || { _key: r.key });
         } else if (fresh) {
@@ -289,7 +290,9 @@ export function format(spec, value, labels) {
     }
     switch (spec.fieldType) {
         case 'number': {
-            const text = String(value).replace('.', ',');
+            // A column that reads a delivery may show always the same decimals (`displayDecimals`, as FormResolver::format()).
+            const fixed = Number.isInteger(spec.displayDecimals) ? Math.min(6, Math.max(0, spec.displayDecimals)) : null;
+            const text = (fixed !== null && Number.isFinite(Number(value)) ? round(Number(value), fixed).toFixed(fixed) : String(value)).replace('.', ',');
             return spec.unit ? text + ' ' + spec.unit : text;
         }
         case 'date': {
@@ -597,6 +600,10 @@ export function calculate(definition, data, index = buildIndex(definition)) {
  * foot of a table); else a calculated column with its own decimals, and any other with as many as it has, up to six.
  */
 function numberText(value, column, fixed = null) {
+    // A column that reads a delivery may show always the same decimals (`displayDecimals`).
+    if (fixed === null && Number.isInteger(column.displayDecimals)) {
+        fixed = Math.min(6, Math.max(0, column.displayDecimals));
+    }
     const text = fixed !== null
         ? round(value, fixed).toFixed(fixed).replace('.', ',')
         : column.fieldType === 'calculated'

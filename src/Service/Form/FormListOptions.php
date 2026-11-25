@@ -127,6 +127,9 @@ final class FormListOptions
      */
     public function expand(array $definition, EducationalCentre $centre, array $data = [], ?array $slot = null): array
     {
+        // The rows of the tables of deliveries are in the data too (what was read last): every path that expands a draft's definition
+        // passes here, so none of them normalizes a draft against a table with no rows (which would drop them, and what was typed).
+        $definition = FormDeliveredRows::rowsFromData($definition, $data);
         if (!self::usesLists($definition)) {
             return $definition;
         }
@@ -423,7 +426,8 @@ final class FormListOptions
      */
     public function delivered(FormSubmissionRevision $filled): array
     {
-        $definition = $filled->getModelRevision()->getDefinition();
+        // The rows of its tables of deliveries: the ones read when it was delivered (they travel with the data).
+        $definition = FormDeliveredRows::rowsFromData($filled->getModelRevision()->getDefinition(), $filled->getData());
         $snapshot   = $filled->getOptionsSnapshot() ?? [];
         if (!self::usesLists($definition)) {
             return $definition;
@@ -659,27 +663,41 @@ final class FormListOptions
         if ($slot === null) {
             return $options;
         }
+        $own = array_values(array_filter($options, static function (array $option) use ($slot, $index): bool {
+            $item = $index[FormDefinition::str($option['key'] ?? '')] ?? null;
+
+            return $item !== null && self::belongsToSlot($item, $slot, $index);
+        }));
+
+        return $own === [] ? $options : $own;
+    }
+
+    /**
+     * Whether an item of a list belongs to who delivers a document (see forSlot()): its associations, own or inherited, name the slot's
+     * profile through the slot's subprofile or one of its ancestors (for a profile of a list), or with no subprofile (a plain one). The
+     * one rule of the tables of a list and the tables of deliveries.
+     *
+     * @param array{profile: string, subprofile: ?string} $slot
+     * @param array<string, ListItem>                      $index the centre's items by id
+     */
+    public static function belongsToSlot(ListItem $item, array $slot, array $index): bool
+    {
         // The subprofile and the items above it: an association to any of them covers it.
         $covering = [];
         for ($node = $slot['subprofile'] === null ? null : ($index[$slot['subprofile']] ?? null); $node !== null; $node = $node->getParent()) {
             $covering[$node->getId()->toRfc4122()] = true;
         }
-        $own = array_values(array_filter($options, static function (array $option) use ($slot, $index, $covering): bool {
-            $item = $index[FormDefinition::str($option['key'] ?? '')] ?? null;
-            foreach ($item?->getEffectiveProfileAssociations() ?? [] as $association) {
-                if ($association->getSpecificProfile()->getId()->toRfc4122() !== $slot['profile']) {
-                    continue;
-                }
-                $sub = $association->getSubprofile()?->getId()->toRfc4122();
-                if ($slot['subprofile'] === null ? $sub === null : ($sub !== null && isset($covering[$sub]))) {
-                    return true;
-                }
+        foreach ($item->getEffectiveProfileAssociations() as $association) {
+            if ($association->getSpecificProfile()->getId()->toRfc4122() !== $slot['profile']) {
+                continue;
             }
+            $sub = $association->getSubprofile()?->getId()->toRfc4122();
+            if ($slot['subprofile'] === null ? $sub === null : ($sub !== null && isset($covering[$sub]))) {
+                return true;
+            }
+        }
 
-            return false;
-        }));
-
-        return $own === [] ? $options : $own;
+        return false;
     }
 
     /**

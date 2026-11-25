@@ -59,6 +59,7 @@ final class FormSubmissionService
         private readonly DocumentRevisionReviewer $reviewer,
         private readonly TranslatorInterface $translator,
         private readonly LoggerInterface $errors,
+        private readonly FormDeliveredRows $deliveredRows,
     ) {}
 
     /**
@@ -246,13 +247,56 @@ final class FormSubmissionService
             throw new FormException('error.stale');
         }
 
+        // What a table of deliveries read is the server's: the rows and cells the draft has, whatever the browser says (and saving
+        // never reads deliveries again: refreshDelivered() does).
+        $saved      = $submission->getDraftData() ?? [];
+        $raw        = ['sources' => $saved['sources'] ?? []] + $raw;
         $definition = $this->definitionOf($submission, $raw);
+        $raw        = FormDeliveredRows::keepSaved($definition, $raw, $saved);
         $data       = $this->attachments->restrict($submission, $definition, $this->normalizer->normalize($definition, $raw));
         $this->recordChanges($submission, $definition, $submission->getDraftData() ?? [], $data, $by);
         $submission->saveDraft($data, $by);
         $this->em->flush();
 
         return $data;
+    }
+
+    // ── Tables of deliveries ─────────────────────────────────────────────────
+
+    /**
+     * Reads again the deliveries the draft's tables of deliveries show (FormDeliveredRows) and puts them into its data, keeping what
+     * was typed in the own columns; the formulas and totals are worked out again. With $persist, and only when something changed,
+     * the draft is stored (a new version, nobody's edit: no history, `updatedBy` untouched); without it (somebody else holds the
+     * draft, or it can only be looked at) the data is only for showing.
+     *
+     * @return array{data: array<string, mixed>, changed: array{count: int, cells: list<array{table: string, row: string, column: string}>}}
+     */
+    public function refreshDelivered(FormSubmission $submission, bool $persist): array
+    {
+        $data       = $submission->getDraftData() ?? [];
+        $definition = $this->definitionOf($submission, $data);
+        if (!$submission->hasDraft() || FormDeliveredRows::tables($definition) === []) {
+            return ['data' => $data, 'changed' => ['count' => 0, 'cells' => []]];
+        }
+
+        $readings   = $this->deliveredRows->read($definition, $submission->getActivity(), $submission->getCycleYear(), $submission->getSlotKey());
+        $injected   = FormDeliveredRows::inject($data, $readings);
+        $definition = $this->definitionOf($submission, $injected);
+        $fresh      = $this->normalizer->normalize($definition, $injected);
+        $changed    = FormDeliveredRows::changes($data, $fresh, $readings);
+
+        // The moment of the reading is part of what was read only when something else changed (rows, or which activity a table reads,
+        // the first time too): otherwise every opening would be a save.
+        $activities = static fn (array $d): array => array_map(static fn (mixed $s): mixed => is_array($s) ? ($s['activity'] ?? null) : null, FormDefinition::map($d['sources'] ?? null) ?? []);
+        if ($changed['count'] === 0 && $activities($data) == $activities($fresh)) {
+            return ['data' => $data, 'changed' => $changed];
+        }
+        if ($persist) {
+            $submission->refreshDraft($fresh);
+            $this->em->flush();
+        }
+
+        return ['data' => $fresh, 'changed' => $changed];
     }
 
     // ── Edit lock: one person at a time ──────────────────────────────────────

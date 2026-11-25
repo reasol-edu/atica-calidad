@@ -189,7 +189,7 @@ final class FormResolver
     {
         $columns = FormDefinition::listOf($block['columns'] ?? []);
         $counted = ($block['mode'] ?? '') === 'counted';
-        $fixed   = $counted || ($block['mode'] ?? '') === 'fixed';
+        $fixed   = $counted || FormDefinition::hasGivenRows($block);
 
         $labels = [];
         foreach (FormDefinition::listOf($block['rows'] ?? []) as $row) {
@@ -274,7 +274,9 @@ final class FormResolver
      */
     private function number(float $value, array $column, ?int $fixed = null): string
     {
-        $text = $fixed !== null
+        // A column that reads a delivery may show always the same decimals (`displayDecimals`).
+        $fixed ??= is_int($column['displayDecimals'] ?? null) ? min(6, max(0, $column['displayDecimals'])) : null;
+        $text    = $fixed !== null
             ? number_format(round($value, $fixed), $fixed, ',', '')
             : (($column['fieldType'] ?? '') === 'calculated'
                 ? number_format($value, min(6, max(0, FormDefinition::int($column['decimals'] ?? 2))), ',', '')
@@ -430,7 +432,9 @@ final class FormResolver
 
         switch (FormDefinition::str($spec['fieldType'] ?? 'short')) {
             case 'number':
-                $text = is_numeric($value) ? str_replace('.', ',', (string) (is_float($value) ? round($value, 6) : $value)) : '';
+                $text = !is_numeric($value) ? '' : (is_int($spec['displayDecimals'] ?? null)
+                    ? number_format(round((float) $value, min(6, max(0, $spec['displayDecimals']))), min(6, max(0, $spec['displayDecimals'])), ',', '')
+                    : str_replace('.', ',', (string) (is_float($value) ? round($value, 6) : $value)));
                 $unit = FormDefinition::str($spec['unit'] ?? '');
 
                 return $unit === '' ? $text : $text . ' ' . $unit;

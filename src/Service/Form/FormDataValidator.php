@@ -148,9 +148,15 @@ final class FormDataValidator
         // A row taken from a list whose item is no longer offered (deactivated, moved, deleted, or no longer of who delivers it) is only
         // kept while something is typed in it: it has to be emptied before delivering.
         $gone = [];
+        // In a table of deliveries, a required column of its own is only asked of the rows whose delivery is there: nobody can say
+        // anything yet about one that has not been delivered.
+        $notDelivered = [];
         foreach (FormDefinition::listOf($block['rows'] ?? []) as $defRow) {
             if (($defRow['gone'] ?? false) === true) {
                 $gone[FormDefinition::str($defRow['key'] ?? '')] = FormDefinition::str($defRow['label'] ?? '');
+            }
+            if (($block['mode'] ?? '') === 'delivered' && ($defRow['status'] ?? '') !== 'delivered') {
+                $notDelivered[FormDefinition::str($defRow['key'] ?? '')] = true;
             }
         }
         foreach ($rows as $index => $row) {
@@ -162,7 +168,7 @@ final class FormDataValidator
             foreach (FormDefinition::listOf($block['columns'] ?? []) as $column) {
                 $columnKey = FormDefinition::str($column['key'] ?? '');
                 $this->checkValue(
-                    $column,
+                    isset($notDelivered[$rowKey]) ? ['required' => false] + $column : $column,
                     $row[$columnKey] ?? null,
                     $key,
                     $path,

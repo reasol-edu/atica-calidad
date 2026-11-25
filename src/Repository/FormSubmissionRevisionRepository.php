@@ -97,6 +97,36 @@ class FormSubmissionRevisionRepository extends ServiceEntityRepository
         return array_values($latest);
     }
 
+    /**
+     * The latest delivered revision of every slot of an activity in a cycle, approved or not (what a table of deliveries reads), in
+     * ONE query, keyed by the slot key. The DocumentRevision comes with it (its review state); its file is never loaded.
+     *
+     * @return array<string, FormSubmissionRevision>
+     */
+    public function findLatestDeliveredByActivityCycle(\App\Entity\Activity $activity, int $cycleYear): array
+    {
+        /** @var list<FormSubmissionRevision> $all */
+        $all = $this->createQueryBuilder('s')
+            ->join('s.revision', 'r')->addSelect('r')
+            ->join('s.submission', 'sub')->addSelect('sub')
+            ->join('s.modelRevision', 'm')->addSelect('m')
+            ->where('sub.activity = :activity')
+            ->andWhere('sub.cycleYear = :cycle')
+            ->setParameter('activity', $activity->getId(), 'uuid')
+            ->setParameter('cycle', $cycleYear)
+            ->orderBy('r.version', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        $latest = [];
+        foreach ($all as $filled) {
+            // Newest first: the first one seen of a slot is its latest.
+            $latest[$filled->getSubmission()->getSlotKey()] ??= $filled;
+        }
+
+        return $latest;
+    }
+
     /** The data of a delivered revision by the id of its DocumentRevision, or null (also when the id is not a UUID). */
     public function findByRevisionId(string $revisionId): ?FormSubmissionRevision
     {

@@ -16,6 +16,8 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerInterface;
  *             "tables": { <blockKey>: [ { "_key": <rowKey>, <columnKey>: value } ] },
  *             "copies": { <sectionKey>: [ { "_key": <copyKey>, "_source"?: <rowKey>, …a scope } ] } }
  *
+ * The document's scope may also hold `sources`: where the rows of its tables of deliveries came from (FormDeliveredRows).
+ *
  * Only what the definition declares survives, every value has the type its field says, texts are sanitized, and a missing answer
  * is simply absent. The copies of a section that repeats by table are never typed: there is one for each row, keyed by the row,
  * so a copy follows its row when the rows are reordered. `initial()` is the data of a new document.
@@ -50,6 +52,12 @@ final class FormDataNormalizer
     public function normalize(array $definition, array $raw): array
     {
         $data = $this->scope(FormDefinition::listOf($definition['sections'] ?? []), $raw, []);
+        // Where the rows of the tables of deliveries came from, with only its known shape: whoever saves what a browser sent puts the
+        // draft's own back first (FormDeliveredRows::keepSaved()), so here it only has to travel with the data.
+        $sources = FormDeliveredRows::clean($raw['sources'] ?? null);
+        if ($sources !== []) {
+            $data['sources'] = $sources;
+        }
 
         // The calculated values are the last thing: they read the data as it has just been cleaned.
         return $this->calculator->apply($definition, $data);
@@ -494,7 +502,7 @@ final class FormDataNormalizer
     {
         $columns = FormDefinition::listOf($block['columns'] ?? []);
 
-        if (($block['mode'] ?? '') === 'fixed') {
+        if (FormDefinition::hasGivenRows($block)) {
             $byKey = [];
             foreach (FormDefinition::listOf($given ?? []) as $row) {
                 $byKey[FormDefinition::str($row['_key'] ?? '')] = $row;

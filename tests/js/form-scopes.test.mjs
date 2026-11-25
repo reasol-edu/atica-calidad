@@ -57,6 +57,15 @@ test('totals at the foot of a column', () => {
     assert.deepEqual(totals(columns, rows), ['', '100', '', '160,00 €']);
 });
 
+test('a column that reads a delivery shows always the decimals it asks for, in its cells and at its foot (the twin of FormResolver)', () => {
+    const column = { key: 'p', label: '%', fieldType: 'number', unit: '%', sourceField: 'pct', displayDecimals: 1, total: 'sum' };
+    assert.equal(format(column, 82.3333, {}), '82,3 %');
+    assert.equal(format(column, 80, {}), '80,0 %');
+    assert.equal(format({ ...column, displayDecimals: null }, 82.3333, {}), '82,3333 %', 'null: as it comes');
+    assert.deepEqual(totals([column], [{ p: 10.25 }, { p: 1 }]), ['11,3 %']);
+    assert.deepEqual(totals([{ ...column, total: 'avg', totalDecimals: 3 }], [{ p: 1 }, { p: 2 }]), ['1,500 %'], 'an average keeps its own');
+});
+
 test('an average at the foot has the decimals the column asks for (two by default), the other totals keep what they have', () => {
     const plain = (total, totalDecimals) => [{ key: 'a', label: 'A', fieldType: 'number', total, unit: '%', ...(totalDecimals === undefined ? {} : { totalDecimals }) }];
     const rows = [{ a: 80 }, { a: 85 }, { a: 82 }];   // 247 / 3 = 82,333333…

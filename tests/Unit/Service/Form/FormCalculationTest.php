@@ -212,6 +212,30 @@ final class FormCalculationTest extends TestCase
         self::assertSame(['', '100', '', '160,00 €'], $units['totals']);
     }
 
+    /** The twin of «a column that reads a delivery shows always the decimals it asks for» of tests/js/form-scopes.test.mjs. */
+    public function testAColumnThatReadsADeliveryShowsAlwaysTheDecimalsItAsksFor(): void
+    {
+        $def = $this->definitions->normalize(['sections' => [['title' => 'x', 'blocks' => [['type' => 'table', 'label' => 'Entregas', 'mode' => 'delivered', 'columns' => [
+            ['label' => '%', 'fieldType' => 'number', 'unit' => '%', 'sourceField' => 'pct', 'displayDecimals' => 1, 'total' => 'sum'],
+            ['label' => 'Media', 'fieldType' => 'number', 'sourceField' => 'pct', 'displayDecimals' => 1, 'total' => 'avg', 'totalDecimals' => 3],
+            ['label' => 'Tal cual', 'fieldType' => 'number', 'unit' => '%', 'sourceField' => 'pct'],
+        ]]]]]]);
+        $table = $def['sections'][0]['blocks'][0];
+        [$pct, $avg, $raw] = array_column($table['columns'], 'key');
+        $table['rows']     = [['key' => 'a0000000-0000-4000-8000-000000000001', 'label' => 'A'], ['key' => 'a0000000-0000-4000-8000-000000000002', 'label' => 'B']];
+        $def['sections'][0]['blocks'][0] = $table;
+
+        $view = $this->resolver->resolve($def, ['fields' => [], 'texts' => [], 'tables' => [$table['key'] => [
+            ['_key' => 'a0000000-0000-4000-8000-000000000001', $pct => 10.25, $avg => 1, $raw => 82.3333],
+            ['_key' => 'a0000000-0000-4000-8000-000000000002', $pct => 1, $avg => 2, $raw => 80],
+        ]], 'copies' => []]);
+        $block = $view[0]['blocks'][0];
+
+        self::assertSame(['10,3 %', '1,0', '82,3333 %'], $block['rows'][0]['cells']);
+        self::assertSame(['1,0 %', '2,0', '80 %'], $block['rows'][1]['cells']);
+        self::assertSame(['11,3 %', '1,500', ''], $block['totals'], 'an average keeps its own decimals');
+    }
+
     /** The twin of «an average at the foot has the decimals the column asks for» of tests/js/form-scopes.test.mjs. */
     public function testAnAverageAtTheFootHasTheDecimalsTheColumnAsksFor(): void
     {

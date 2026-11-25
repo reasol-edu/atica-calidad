@@ -6,8 +6,8 @@ namespace App\Service\Form;
 
 /**
  * The typed values of a document's data one by one, each with the identity that keeps it apart: the copy it is in (`path`), its
- * block and, in a table, its row and column. What the history of a field is made of. Calculated values are left out: they are not
- * anybody's change.
+ * block and, in a table, its row and column. What the history of a field is made of. Calculated values, and the cells a table of
+ * deliveries reads from them, are left out: they are not anybody's change.
  */
 final class FormFlatData
 {
@@ -62,7 +62,8 @@ final class FormFlatData
                     case 'table':
                         $columns = ($block['mode'] ?? '') === 'matrix'
                             ? array_map(static fn (array $r): string => FormDefinition::str($r['_key'] ?? ''), FormScopes::rows(FormDefinition::listOf($instance['chain'] ?? []), FormDefinition::str($block['colTable'] ?? '')))
-                            : array_map(static fn (array $c): string => FormDefinition::str($c['key'] ?? ''), array_filter(FormDefinition::listOf($block['columns'] ?? []), static fn (array $c): bool => ($c['fieldType'] ?? '') !== 'calculated'));
+                            // What a column reads from another delivery is nobody's edit here either.
+                            : array_map(static fn (array $c): string => FormDefinition::str($c['key'] ?? ''), array_filter(FormDefinition::listOf($block['columns'] ?? []), static fn (array $c): bool => ($c['fieldType'] ?? '') !== 'calculated' && FormDefinition::str($c['sourceField'] ?? '') === ''));
                         foreach (FormDefinition::listOf($tables[$key] ?? []) as $row) {
                             $rowKey = FormDefinition::str($row['_key'] ?? '');
                             foreach ($columns as $column) {

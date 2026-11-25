@@ -16,6 +16,7 @@ use App\Repository\ActivityRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Service\ActivityWindowChecker;
 use App\Service\Form\FormDefinition;
+use App\Service\Form\FormDeliveredRows;
 use App\Service\Form\FormException;
 use App\Service\Form\FormResolver;
 use App\Service\Form\FormSlotAccess;
@@ -48,6 +49,7 @@ class FormFillController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly \App\Service\Form\FormAttachmentService $attachments,
         private readonly \App\Service\UploadLimits $uploadLimits,
+        private readonly \App\Service\DocumentTreeAccessChecker $treeAccess,
     ) {}
 
     /**
@@ -136,13 +138,19 @@ class FormFillController extends AbstractController
                 $this->service->takeOver($submission, $teacher);
             }
             $readOnly = $window->blocked || $lockedByOther;
+            // The tables of deliveries are read on opening: stored only by whoever holds the draft (a save by somebody else would make
+            // the holder's next autosave stale), shown as read to anybody.
+            $data = $this->service->refreshDelivered($submission, !$readOnly)['data'];
             // Computed once: it normalizes and validates the whole draft.
             $pending = $readOnly ? ['problems' => [], 'warnings' => []] : $this->problemLists($submission);
+            $definition = $this->service->definitionOf($submission, $data);
 
             $view += [
                 'editor' => [
-                    'definition'   => $this->service->definitionOf($submission),
-                    'data'         => $submission->getDraftData(),
+                    'definition'   => $definition,
+                    'data'         => $data,
+                    'refreshUrl'   => $this->generateUrl('app_form_refresh_delivered', $base),
+                    'delivered'    => $this->deliveredLinks($activity, $definition, $teacher),
                     'version'      => $submission->getDraftVersion(),
                     'saveUrl'      => $this->generateUrl('app_form_save', $base),
                     'heartbeatUrl' => $this->generateUrl('app_form_heartbeat', $base),
@@ -206,6 +214,74 @@ class FormFillController extends AbstractController
         }
 
         return new JsonResponse(['version' => $submission->getDraftVersion()] + $this->problemLists($submission));
+    }
+
+    /**
+     * «Actualizar» of a table of deliveries: reads the deliveries again and stores the draft (same access, token, lock and version as
+     * saving). JSON { version } → { version, tables, sources, changed: {count, cells}, problems, warnings }.
+     */
+    #[Route('/actividades/{activityId}/formulario/{slotKey}/actualizar-entregas', name: 'app_form_refresh_delivered', methods: ['POST'])]
+    public function refreshDelivered(string $activityId, string $slotKey, Request $request, #[CurrentCentre] EducationalCentre $centre): JsonResponse
+    {
+        [$activity, $slot, $teacher] = $this->context($activityId, $slotKey, $centre, true);
+        $submission = $this->service->open($activity, $slot);
+        if (!$this->isCsrfTokenValid('form_fill_' . $submission->getId()->toRfc4122(), $request->headers->get('X-CSRF-Token', ''))) {
+            return new JsonResponse(['error' => 'csrf'], Response::HTTP_FORBIDDEN);
+        }
+        if ($this->windows->for($activity, $teacher, $slot->nameListItem)->blocked) {
+            return new JsonResponse(['error' => 'window'], Response::HTTP_FORBIDDEN);
+        }
+        $payload = json_decode($request->getContent(), true);
+        $version = is_array($payload) ? FormDefinition::int($payload['version'] ?? 0) : 0;
+
+        try {
+            if (!$submission->hasDraft()) {
+                throw new FormException('error.no_draft');
+            }
+            $this->service->acquireLock($submission, $teacher);
+            if ($version !== $submission->getDraftVersion()) {
+                throw new FormException('error.stale');
+            }
+            $result = $this->service->refreshDelivered($submission, true);
+        } catch (FormException $e) {
+            return new JsonResponse(['error' => $e->getMessage(), 'message' => $this->translator->trans('fill.' . $e->getMessage(), [], 'forms'), 'version' => $submission->getDraftVersion()], Response::HTTP_CONFLICT);
+        }
+        $this->em->flush(); // the renewed lock, when nothing else changed
+
+        $tables     = [];
+        $definition = $this->service->definitionOf($submission, $result['data']);
+        foreach (FormDeliveredRows::tables($definition) as $block) {
+            $key          = FormDefinition::str($block['key'] ?? '');
+            $tables[$key] = FormDefinition::listOf((FormDefinition::map($result['data']['tables'] ?? null) ?? [])[$key] ?? []);
+        }
+
+        return new JsonResponse([
+            'version' => $submission->getDraftVersion(),
+            'tables'  => $tables,
+            'sources' => $result['data']['sources'] ?? new \stdClass(),
+            'rows'    => array_combine(array_keys($tables), array_map(static fn (array $b): array => FormDefinition::listOf($b['rows'] ?? []), FormDeliveredRows::tables($definition))),
+            'changed' => $result['changed'],
+        ] + $this->problemLists($submission));
+    }
+
+    /**
+     * For each table of deliveries: whether whoever fills it may open the deliveries it lists (they see the activity's folder), and
+     * the address of the page of a delivered revision (__ID__ is its id). Values are shown anyway: the model decides that.
+     *
+     * @param array<string, mixed> $definition
+     *
+     * @return array{links: array<string, bool>, revisionUrl: string}
+     */
+    private function deliveredLinks(Activity $activity, array $definition, Teacher $teacher): array
+    {
+        $links = [];
+        foreach (FormDeliveredRows::tables($definition) as $block) {
+            $key    = FormDefinition::str($block['key'] ?? '');
+            $folder = $activity->getDeliverySource($key)?->getFolder();
+            $links[$key] = $folder !== null && $this->treeAccess->canViewFolder($teacher, $folder);
+        }
+
+        return ['links' => $links, 'revisionUrl' => $this->generateUrl('app_form_revision_view', ['revisionId' => '__ID__'])];
     }
 
     /** The draft as a document, the way it will read once delivered (nothing is delivered or saved by looking at it). */

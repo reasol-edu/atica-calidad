@@ -639,9 +639,19 @@ final class FormDefinitionNormalizer
         $mode = FormDefinition::str($raw['mode'] ?? '');
         $mode = in_array($mode, FormDefinition::TABLE_MODES, true) ? $mode : 'free';
 
-        $columns = [];
+        $delivered = $mode === 'delivered';
+        $columns   = [];
         foreach (array_slice(FormDefinition::listOf($raw['columns'] ?? []), 0, self::MAX_COLUMNS) as $column) {
-            $props    = $this->fieldProperties($column, column: true);
+            // A column of a table of deliveries may read a named field of each delivery: its type is limited to what can be shown and
+            // it is never typed in, so nothing else of a field applies (the delivery decides it).
+            $sourceField = $delivered ? $this->name($column['sourceField'] ?? '') : '';
+            if ($sourceField !== '' && !in_array($column['fieldType'] ?? '', FormDefinition::DELIVERED_TYPES, true)) {
+                $column['fieldType'] = 'short';
+            }
+            $props = $this->fieldProperties($column, column: true);
+            if ($sourceField !== '') {
+                $props = ['required' => false, 'options' => [], 'list' => '', 'min' => null, 'max' => null, 'maxDecimals' => null] + $props;
+            }
             $key      = $this->key($column['key'] ?? null);
             // A foot total with a name is also a field of the document (see footFields()); its key is kept so that what reads it still finds it.
             $footName = $props['total'] === '' ? '' : $this->text($column['totalName'] ?? '', 255);
@@ -649,7 +659,13 @@ final class FormDefinitionNormalizer
             $formula  = $props['total'] === 'custom' ? mb_substr(trim(FormDefinition::str($column['totalFormula'] ?? '')), 0, 1000) : '';
             $isField  = $footName !== '' || $formula !== '';
             $columns[] = ['key' => $key, 'name' => $this->name($column['name'] ?? '')] + $props
-                + ['totalName' => $footName, 'totalFormula' => $formula, 'totalKey' => $isField ? $this->key($column['totalKey'] ?? null) : ''];
+                + ['totalName' => $footName, 'totalFormula' => $formula, 'totalKey' => $isField ? $this->key($column['totalKey'] ?? null) : '']
+                + ($delivered ? [
+                    'sourceField'     => $sourceField,
+                    // How a number read from a delivery shows: null, as it comes (up to six decimals); 0–6, always that many.
+                    'displayDecimals' => $sourceField !== '' && $props['fieldType'] === 'number' && is_numeric($column['displayDecimals'] ?? null)
+                        ? min(6, max(0, (int) $column['displayDecimals'])) : null,
+                ] : []);
         }
         $rows = [];
         // The rows of a fixed table are typed in the model, or they are the items of a list of the centre (`rowsList`): then they are
@@ -690,6 +706,20 @@ final class FormDefinitionNormalizer
             $columns = [];
         }
 
+        // A table of deliveries: which model the deliveries fill, whose they are and whether their state shows. Its rows are never
+        // stored here (they come from each document's data, FormDeliveredRows::rowsFromData()).
+        $deliveries = [];
+        if ($delivered) {
+            $model      = is_string($raw['sourceModel'] ?? null) ? strtolower(trim($raw['sourceModel'])) : '';
+            $scope      = FormDefinition::str($raw['sourceScope'] ?? '');
+            $deliveries = [
+                'sourceModel' => FormListOptions::isItemId($model) ? $model : '',
+                'sourceScope' => in_array($scope, FormDefinition::DELIVERED_SCOPES, true) ? $scope : 'own',
+                'showStatus'  => ($raw['showStatus'] ?? true) !== false,
+            ];
+            $rows = [];
+        }
+
         return [
             'key'       => $this->key($raw['key'] ?? null),
             'type'      => 'table',
@@ -703,7 +733,7 @@ final class FormDefinitionNormalizer
             'maxRows'   => in_array($mode, ['free', 'counted'], true) ? $max : 0,
             'help'      => $this->text($raw['help'] ?? '', 1000),
             'visibleIf' => $this->condition($raw['visibleIf'] ?? null),
-        ] + $matrix + $counted + $listRows;
+        ] + $matrix + $counted + $listRows + $deliveries;
     }
 
     /**

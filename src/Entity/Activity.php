@@ -185,6 +185,14 @@ class Activity implements Trashable
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Activity $formPrefillSource = null;
 
+    /**
+     * For each table of deliveries of the model (by the table's key), the activity whose deliveries are its rows.
+     *
+     * @var Collection<int, ActivityDeliverySource>
+     */
+    #[ORM\OneToMany(targetEntity: ActivityDeliverySource::class, mappedBy: 'activity', cascade: ['persist'], orphanRemoval: true)]
+    private Collection $deliverySources;
+
     #[ORM\Column]
     private int $position = 0;
 
@@ -202,6 +210,7 @@ class Activity implements Trashable
         $this->profileRestrictions = new ArrayCollection();
         $this->responsibleProfiles = new ArrayCollection();
         $this->listItemDeadlines   = new ArrayCollection();
+        $this->deliverySources     = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -681,6 +690,57 @@ class Activity implements Trashable
     public function setFormPrefillSource(?Activity $source): static
     {
         $this->formPrefillSource = $source === null || $source === $this ? null : $source;
+
+        return $this;
+    }
+
+    /**
+     * The activity whose deliveries are the rows of the table $blockKey of the model, or null when none is chosen (or the one chosen
+     * is in the trash: it counts as not chosen).
+     */
+    public function getDeliverySource(string $blockKey): ?Activity
+    {
+        return $this->getDeliverySources()[$blockKey] ?? null;
+    }
+
+    /** @return array<string, Activity> the activity chosen for each table, by the table's key (those in the trash left out) */
+    public function getDeliverySources(): array
+    {
+        $out = [];
+        foreach ($this->deliverySources as $row) {
+            $source = $row->getSourceActivity();
+            try {
+                if (!$source->isTrashed()) {
+                    $out[$row->getBlockKey()] = $source;
+                }
+            } catch (\Doctrine\ORM\EntityNotFoundException) {
+                // The trash filter hides an activity in the trash from every query, the one loading this reference too.
+            }
+        }
+
+        return $out;
+    }
+
+    /** Chooses (or, with null, forgets) the activity of a table of deliveries; the activity itself is never its own. */
+    public function setDeliverySource(string $blockKey, ?Activity $source): static
+    {
+        if ($source === $this) {
+            $source = null;
+        }
+        foreach ($this->deliverySources as $row) {
+            if ($row->getBlockKey() === $blockKey) {
+                if ($source === null) {
+                    $this->deliverySources->removeElement($row);
+                } else {
+                    $row->setSourceActivity($source);
+                }
+
+                return $this;
+            }
+        }
+        if ($source !== null) {
+            $this->deliverySources->add(new ActivityDeliverySource($this, $blockKey, $source));
+        }
 
         return $this;
     }

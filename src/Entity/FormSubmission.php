@@ -161,6 +161,20 @@ class FormSubmission
         return $this;
     }
 
+    /**
+     * Replaces the draft's data with what the server read on its own (the deliveries a table of deliveries shows): a new version, so
+     * an open tab's next save is stale, but nobody's edit — who saved it last and when stay as they were.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function refreshDraft(array $data): static
+    {
+        $this->draftData = $data;
+        ++$this->draftVersion;
+
+        return $this;
+    }
+
     public function closeDraft(): static
     {
         $this->draftData = null;
