@@ -249,6 +249,17 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
     }
 
     /**
+     * Every item of the centre, from the same per-request tree findSubtree() walks (with their associations and teachers already
+     * loaded) — for a scan that would otherwise run its own query on every render.
+     *
+     * @return list<ListItem>
+     */
+    public function findAllInTree(EducationalCentre $centre): array
+    {
+        return array_values(array_merge(...array_values($this->groupChildrenByParent($centre))));
+    }
+
+    /**
      * $root and every descendant, in a pre-order walk (root first, then each child's own subtree,
      * siblings ordered by position) — the whole branch a caller deletes as one unit when removing an
      * item that has children, not just a leaf. Single query for the whole centre, then an in-memory

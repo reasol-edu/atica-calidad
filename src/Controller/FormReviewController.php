@@ -12,6 +12,7 @@ use App\Entity\FormSubmissionRevision;
 use App\Entity\Teacher;
 use App\Repository\FormCommentRepository;
 use App\Repository\FormSubmissionRevisionRepository;
+use App\Security\Voter\DocumentVoter;
 use App\Security\Voter\FolderVoter;
 use App\Service\DocumentRevisionReviewer;
 use App\Service\DocumentTreeAccessChecker;
@@ -254,11 +255,11 @@ class FormReviewController extends AbstractController
         if ($filled === null) {
             throw $this->createNotFoundException();
         }
-        $folder = $filled->getRevision()->getDocument()->getFolder();
-        if ($folder->getEducationalCentre()->getId()->toRfc4122() !== $centre->getId()->toRfc4122()) {
+        $document = $filled->getRevision()->getDocument();
+        if ($document->getFolder()->getEducationalCentre()->getId()->toRfc4122() !== $centre->getId()->toRfc4122()) {
             throw $this->createNotFoundException();
         }
-        $this->denyAccessUnlessGranted(FolderVoter::VIEW, $folder);
+        $this->denyAccessUnlessGranted(DocumentVoter::VIEW, $document);
 
         return $filled;
     }

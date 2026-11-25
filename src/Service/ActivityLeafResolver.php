@@ -8,14 +8,21 @@ use App\Entity\Activity;
 use App\Entity\Document;
 use App\Entity\ListItem;
 use App\Repository\ListItemRepository;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
+use Doctrine\ORM\Events;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * How the submissions of an activity pinned to a catalogue element are named after their leaf, and the way back: which leaf a delivered
- * document was named after. Stateless and dependent only on the list tree, so that both ActivitySubmissionSlotBuilder (which builds the
+ * document was named after. Dependent only on the list tree (its one memo is dropped by any flush), so that both ActivitySubmissionSlotBuilder (which builds the
  * slots) and DocumentTreeAccessChecker (which the slot builder itself depends on) can use it without depending on each other.
  */
-final class ActivityLeafResolver
+#[AsDoctrineListener(event: Events::postFlush)]
+final class ActivityLeafResolver implements ResetInterface
 {
+    /** @var array<string, array<string, ListItem>> the leaves of an element by submission name, see findLeafForDocument() */
+    private array $leavesByName = [];
+
     public function __construct(
         private readonly ListItemRepository $listItems,
     ) {}
@@ -61,12 +68,33 @@ final class ActivityLeafResolver
             return null;
         }
 
+        // The access checks ask this once per document of a folder: the names of the leaves are worked out once per element and
+        // naming rule, not once per document. Keyed by object, not id: this also runs from an entity listener in the middle of a flush.
+        $key    = spl_object_id($listItem) . '|' . ($activity->isSubmissionNameFullPath() ? '1' : '0');
+        $byName = $this->leavesByName[$key] ??= $this->namesOf($listItem, $activity->isSubmissionNameFullPath());
+
+        return $byName[$document->getName()] ?? null;
+    }
+
+    /** Any flush may have renamed, moved or added elements: the names are worked out again. */
+    public function postFlush(): void
+    {
+        $this->leavesByName = [];
+    }
+
+    public function reset(): void
+    {
+        $this->leavesByName = [];
+    }
+
+    /** @return array<string, ListItem> each leaf under $listItem by its submission name — the first one, if two share it */
+    private function namesOf(ListItem $listItem, bool $fullPath): array
+    {
+        $byName = [];
         foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
-            if ($this->submissionName($listItem, $leaf, $activity->isSubmissionNameFullPath()) === $document->getName()) {
-                return $leaf;
-            }
+            $byName[$this->submissionName($listItem, $leaf, $fullPath)] ??= $leaf;
         }
 
-        return null;
+        return $byName;
     }
 }

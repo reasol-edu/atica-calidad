@@ -14,6 +14,7 @@ use App\Entity\Teacher;
 use App\Repository\DocumentRepository;
 use App\Repository\DocumentRevisionRepository;
 use App\Repository\FolderRepository;
+use App\Security\Voter\DocumentVoter;
 use App\Security\Voter\FolderVoter;
 use App\Service\ActivityLogger;
 use App\Service\ActivitySubmissionFilenameBuilder;
@@ -255,7 +256,7 @@ class FolderController extends AbstractController
     {
         $folder   = $this->requireFolder($folderId, $centre);
         $document = $this->requireDocument($documentId, $folder);
-        $this->denyAccessUnlessGranted(FolderVoter::VIEW, $folder);
+        $this->denyAccessUnlessGranted(DocumentVoter::VIEW, $document);
 
         $revision = $this->revisions->findByIdAndDocument($revisionId, $document);
         if ($revision === null) {

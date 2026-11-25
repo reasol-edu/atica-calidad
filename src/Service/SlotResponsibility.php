@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Activity;
+use App\Entity\Folder;
 use App\Entity\Teacher;
 use App\Model\ActivitySubmissionSlot;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
@@ -29,6 +30,9 @@ final class SlotResponsibility implements ResetInterface
 {
     /** @var array<string, list<Teacher>> teachersOf() per (activity, element) for this request */
     private array $teachersMemo = [];
+
+    /** @var array<string, bool> canManageFolder() per (teacher, folder) for this request */
+    private array $managesMemo = [];
 
     public function __construct(
         private readonly DocumentTreeAccessChecker $access,
@@ -57,7 +61,7 @@ final class SlotResponsibility implements ResetInterface
         if ($folder === null) {
             return false;
         }
-        if ($this->access->canManageFolder($teacher, $folder)) {
+        if ($this->managesFolder($teacher, $folder)) {
             return true;
         }
         if ($slot->teacher !== null) {
@@ -65,7 +69,7 @@ final class SlotResponsibility implements ResetInterface
         }
 
         return $this->access->holdsProfile($teacher, $slot->profile, $slot->listItem)
-            || $this->isAmong($teacher, $this->teachersOf($activity, $slot));
+            || LeafTeachers::isAmong($teacher, $this->teachersOf($activity, $slot));
     }
 
     public function owns(Teacher $teacher, Activity $activity, ActivitySubmissionSlot $slot): bool
@@ -76,22 +80,16 @@ final class SlotResponsibility implements ResetInterface
 
         $teachers = $this->teachersOf($activity, $slot);
         if ($teachers !== []) {
-            return $this->isAmong($teacher, $teachers);
+            return LeafTeachers::isAmong($teacher, $teachers);
         }
 
         return $this->access->holdsProfile($teacher, $slot->profile, $slot->listItem);
     }
 
-    /** @param list<Teacher> $teachers */
-    private function isAmong(Teacher $teacher, array $teachers): bool
+    /** canManageFolder() once per teacher and folder: getMySlots() asks canFill() for every slot of an activity, all in one folder. */
+    private function managesFolder(Teacher $teacher, Folder $folder): bool
     {
-        foreach ($teachers as $candidate) {
-            if ($candidate->getId()->equals($teacher->getId())) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->managesMemo[$teacher->getId()->toRfc4122() . '|' . $folder->getId()->toRfc4122()] ??= $this->access->canManageFolder($teacher, $folder);
     }
 
     public function postFlush(): void
@@ -102,5 +100,6 @@ final class SlotResponsibility implements ResetInterface
     public function reset(): void
     {
         $this->teachersMemo = [];
+        $this->managesMemo  = [];
     }
 }

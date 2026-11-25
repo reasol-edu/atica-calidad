@@ -393,17 +393,23 @@ final class TeachersDeliverTest extends ControllerTestCase
         // The box unchecked: the folder is restricted and she does not hold the delivery's profile.
         self::assertFalse($access->canViewDocument($noelia, $document));
         self::assertFalse($access->canManageDocumentAsUploader($noelia, $document));
+        self::assertFalse($access->canOpenDocument($noelia, $document));
 
         $this->checkBox(true);
 
         self::assertTrue($access->canViewDocument($noelia, $document));
         self::assertTrue($access->canManageDocumentAsUploader($noelia, $document));
+        // She can open it (download it, see the delivered form and its annexes: DocumentVoter::VIEW) though not its folder,
+        // so the folder's ZIP stays closed to her.
+        self::assertTrue($access->canOpenDocument($noelia, $document));
+        self::assertFalse($access->canViewFolder($noelia, $document->getFolder()));
         // Only the delivery of her own element: the teacher of another one is left out.
         $other = new Document($document->getFolder(), 'Sistemas');
         $other->setUploadProfile($document->getUploadProfile(), $document->getUploadListItem());
         $this->em->persist($other);
         $this->em->flush();
         self::assertFalse($access->canViewDocument($noelia, $other));
+        self::assertFalse($access->canOpenDocument($noelia, $other));
         // And whoever left the course cannot open the one of their former element.
         $ffeoe = new Document($document->getFolder(), 'FFEOE');
         $ffeoe->setUploadProfile($document->getUploadProfile(), $document->getUploadListItem());
@@ -425,7 +431,7 @@ final class TeachersDeliverTest extends ControllerTestCase
         self::assertSame($builder->submissionName($this->subjects, $this->leaves['Álgebra']), $resolver->submissionName($this->subjects, $this->leaves['Álgebra']));
     }
 
-    public function testTheOutcomeGoesToTheRowOfTheDocumentItsTeachersAndWhoDeliveredIt(): void
+    public function testTheOutcomeGoesToWhoeverTheTaskBelongsTo(): void
     {
         $this->checkBox(true);
         $slot     = $this->slots()['Programación'];
@@ -439,13 +445,14 @@ final class TeachersDeliverTest extends ControllerTestCase
         $usernames  = array_map(static fn (Teacher $t): string => $t->getUsername(), $recipients);
         sort($usernames);
 
-        // Claudia holds the row of the document, Noelia teaches it, Ana delivered it; Pablo heads another department: not him.
-        self::assertSame(['ana', 'claudia', 'noelia'], $usernames);
+        // The element has a teacher in the course: the task is Noelia's, so only she hears. Not Claudia (who holds the row and only
+        // oversees it now), not Ana (who delivered it on someone's behalf), not Pablo (another department).
+        self::assertSame(['noelia'], $usernames);
 
-        // Without the box the teachers are not told (and the other department is still left out).
+        // Without the box the task is the row's again: its holder, and still not the other department nor whoever delivered it.
         $this->checkBox(false);
         $usernames = array_map(static fn (Teacher $t): string => $t->getUsername(), self::getContainer()->get(DocumentReviewOutcomeNotifier::class)->recipientsFor($this->folder, $revision));
         sort($usernames);
-        self::assertSame(['ana', 'claudia'], $usernames);
+        self::assertSame(['claudia'], $usernames);
     }
 }

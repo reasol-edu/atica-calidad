@@ -125,6 +125,15 @@ final class DocumentTreeAccessChecker implements ResetInterface
     }
 
     /**
+     * Whether the teacher may open this document (download its revisions, see its delivered form and annexes): whoever sees its
+     * folder, or one of the teachers of its element (see isTeacherOfDocument()). What DocumentVoter::VIEW answers.
+     */
+    public function canOpenDocument(Teacher $teacher, Document $document): bool
+    {
+        return $this->canViewFolder($teacher, $document->getFolder()) || $this->isTeacherOfDocument($teacher, $document);
+    }
+
+    /**
      * Whether $document is the delivery of an element of an activity with the «teachers deliver» box checked, and $teacher is one of
      * that element's teachers (effective — also those of its ancestors — and in the active course, see LeafTeachers). The document is
      * matched to its element by name (ActivityLeafResolver), which is light enough for the access checks that run per document.

@@ -5,10 +5,17 @@
 <li class="js-list-item-node" data-list-item-id="{{ lid }}">
     <div class="group flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors {{ is_sel ? 'bg-forest-50 ring-1 ring-inset ring-forest-200' : 'hover:bg-gray-50' }}"
          style="padding-left: {{ depth * 1.25 }}rem">
-        <span class="js-drag-handle shrink-0 cursor-grab text-gray-300 hover:text-gray-500"
-              title="{{ 'responsibilities.lists.drag'|trans({}, 'admin') }}">
-            {{ ux_icon('heroicons:bars-2', {class: 'h-4 w-4'}) }}
-        </span>
+        {# With «Sin docente» on, part of each list is hidden: dragging would renumber only the visible siblings, so there is nothing to drag. #}
+        {% if this.onlyWithoutTeacher %}
+            <span class="shrink-0 text-gray-200" title="{{ 'responsibilities.lists.drag_filtered'|trans({}, 'admin') }}">
+                {{ ux_icon('heroicons:bars-2', {class: 'h-4 w-4'}) }}
+            </span>
+        {% else %}
+            <span class="js-drag-handle shrink-0 cursor-grab text-gray-300 hover:text-gray-500"
+                  title="{{ 'responsibilities.lists.drag'|trans({}, 'admin') }}">
+                {{ ux_icon('heroicons:bars-2', {class: 'h-4 w-4'}) }}
+            </span>
+        {% endif %}
 
         {% if bulkSelectMode %}
             <label class="flex flex-1 min-w-0 items-center gap-2 cursor-pointer">

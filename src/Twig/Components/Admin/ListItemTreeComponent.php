@@ -143,6 +143,13 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $bulkTeacherMode = 'add';
 
+    /**
+     * Bumped after each bulk teacher action: the picker lives in a data-live-ignore wrapper keyed by it, so a new key makes the
+     * page swap in a fresh, empty picker instead of keeping the teachers chosen for the previous action.
+     */
+    #[LiveProp]
+    public int $bulkTeacherRound = 0;
+
     /** The tree shows only the leaves with no teacher in the course (and the branches leading to them), to find what is missing. */
     #[LiveProp(writable: true)]
     public bool $onlyWithoutTeacher = false;
@@ -664,7 +671,8 @@ class ListItemTreeComponent extends AbstractController
     public function moveListItem(#[LiveArg] string $id, #[LiveArg] string $newParentId, #[LiveArg] array $orderedIds): void
     {
         $target = $this->items->findByIdAndCentre($id, $this->centre);
-        if ($target === null) {
+        // With «Sin docente» on, the siblings sent are only the visible ones: numbering them would scramble the hidden ones.
+        if ($target === null || $this->onlyWithoutTeacher) {
             return;
         }
 
@@ -784,7 +792,10 @@ class ListItemTreeComponent extends AbstractController
     /** @var list<Teacher>|null the teachers of the active course by name, read once per request when first needed */
     private ?array $courseTeachers = null;
 
-    /** @return list<Teacher> who can be associated: the teachers of the centre's active course, by name */
+    /**
+     * @return list<Teacher> who can be associated: the active teachers of the centre's active course, by name — the same rule that
+     *                       makes an association count (LeafTeachers::isInCourse()), so nobody can be picked who would count for nothing
+     */
     public function getTeacherOptions(): array
     {
         $year = $this->centre->getActiveAcademicYear();
@@ -792,7 +803,10 @@ class ListItemTreeComponent extends AbstractController
             return [];
         }
 
-        return $this->courseTeachers ??= array_values($this->teachers->findByAcademicYearOrderedByName($year));
+        return $this->courseTeachers ??= array_values(array_filter(
+            $this->teachers->findByAcademicYearOrderedByName($year),
+            static fn (Teacher $teacher): bool => $teacher->isActive(),
+        ));
     }
 
     /**
@@ -955,6 +969,7 @@ class ListItemTreeComponent extends AbstractController
         $this->em->flush();
         $this->bulkSelectedIds = [];
         $this->bulkTeacherIds  = [];
+        ++$this->bulkTeacherRound;
         $this->flashSuccess($this->translator->trans('responsibilities.lists.teachers.bulk.flash.' . $mode, ['%count%' => $count], 'admin'));
     }
 
@@ -975,19 +990,11 @@ class ListItemTreeComponent extends AbstractController
     /** @return list<array{item: ListItem, teacher: Teacher}> */
     private function findOffCourseAssociations(): array
     {
-        $scope = null;
-        if ($this->root !== null) {
-            $scope = [];
-            foreach ($this->items->findSubtree($this->root) as $node) {
-                $scope[$node->getId()->toRfc4122()] = true;
-            }
-        }
+        // From the tree the repository already holds for this request (no query of its own on every render).
+        $items = $this->root !== null ? $this->items->findSubtree($this->root) : $this->items->findAllInTree($this->centre);
 
         $found = [];
-        foreach ($this->items->findAllByCentre($this->centre) as $item) {
-            if ($scope !== null && !isset($scope[$item->getId()->toRfc4122()])) {
-                continue;
-            }
+        foreach ($items as $item) {
             foreach ($item->getTeachers() as $teacher) {
                 if ($this->isTeacherOutOfCourse($teacher)) {
                     $found[] = ['item' => $item, 'teacher' => $teacher];

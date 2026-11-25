@@ -60,7 +60,17 @@ final class LeafTeachers implements ResetInterface
 
     public function includes(Activity $activity, ListItem $leaf, Teacher $teacher): bool
     {
-        foreach ($this->of($activity, $leaf) as $candidate) {
+        return self::isAmong($teacher, $this->of($activity, $leaf));
+    }
+
+    /**
+     * Whether $teacher is one of $teachers, by id — the one comparison every check of «is this one of the element's teachers» uses.
+     *
+     * @param list<Teacher> $teachers
+     */
+    public static function isAmong(Teacher $teacher, array $teachers): bool
+    {
+        foreach ($teachers as $candidate) {
             if ($candidate->getId()->equals($teacher->getId())) {
                 return true;
             }

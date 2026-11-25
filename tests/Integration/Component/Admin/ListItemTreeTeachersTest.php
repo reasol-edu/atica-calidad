@@ -168,6 +168,8 @@ final class ListItemTreeTeachersTest extends ControllerTestCase
         $component->call('bulkApplyTeachers');
         self::assertSame(['m.pardo'], $this->ownTeachers($this->sistemas));
         self::assertSame(['m.pardo'], $this->ownTeachers($this->dam));
+        // The picker comes back empty for the next action: a new wrapper key, so the page swaps in a fresh one.
+        self::assertSame(1, $this->propsOf($component)['bulkTeacherRound']);
 
         // Remove (leaving bulk mode and entering it again forgets what was checked).
         $component->call('toggleBulkSelectMode')->call('toggleBulkSelectMode');
@@ -239,6 +241,15 @@ final class ListItemTreeTeachersTest extends ControllerTestCase
         self::assertStringNotContainsString('data-list-item-id="' . $this->id($this->daw) . '"', $html);
         self::assertStringNotContainsString('data-list-item-id="' . $this->id($this->programacion) . '"', $html, 'a branch only shows when something below it is missing');
 
+        // Part of each list is hidden: nothing can be dragged, and a move sent anyway (only the visible siblings) is refused.
+        self::assertStringNotContainsString('js-drag-handle', $html);
+        $positionBefore = $this->ffeoe->getPosition();
+        $component->call('moveListItem', ['id' => $this->id($this->ffeoe), 'newParentId' => $this->id($this->root), 'orderedIds' => [$this->id($this->ffeoe), $this->id($this->sistemas)]]);
+        $this->em->clear();
+        $ffeoe = $this->em->find(ListItem::class, $this->ffeoe->getId());
+        self::assertNotNull($ffeoe);
+        self::assertSame($positionBefore, $ffeoe->getPosition());
+
         $component->call('toggleOnlyWithoutTeacher');
         self::assertStringContainsString('data-list-item-id="' . $this->id($this->dam) . '"', (string) $component->render()->crawler()->filter('.js-list-item-tree .hidden.lg\\:block')->html());
     }
@@ -259,6 +270,17 @@ final class ListItemTreeTeachersTest extends ControllerTestCase
         self::assertSame(['n.bravo'], $this->ownTeachers($this->programacion), 'the ones in the course stay');
         self::assertSame(0, $component->component()->getOffCourseTeacherCount());
         self::assertCount(0, $component->render()->crawler()->filter('[data-testid="off-course-button"]'));
+    }
+
+    /** An account deactivated while still in the course would count for nothing once picked: it is not offered. */
+    public function testAnInactiveTeacherIsNotOffered(): void
+    {
+        $this->marcos->setActive(false);
+        $this->em->flush();
+
+        $usernames = array_map(static fn (Teacher $t): string => $t->getUsername(), $this->component()->component()->getTeacherOptions());
+        self::assertNotContains('m.pardo', $usernames);
+        self::assertContains('n.bravo', $usernames);
     }
 
     /** @return array<string, mixed> */

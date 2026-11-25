@@ -299,7 +299,7 @@
                             <option value="{{ mode }}" {{ bulkTeacherMode == mode ? 'selected' : '' }}>{{ ('responsibilities.lists.teachers.bulk.mode_' ~ mode)|trans({}, 'admin') }}</option>
                         {% endfor %}
                     </select>
-                    <div id="bulk-teacher-picker" data-live-ignore class="min-w-[14rem] flex-1">
+                    <div id="bulk-teacher-picker-{{ bulkTeacherRound }}" data-live-ignore class="min-w-[14rem] flex-1">
                         <select multiple data-controller="tom-select"
                                 data-tom-select-placeholder-value="{{ 'responsibilities.lists.teachers.picker_placeholder'|trans({}, 'admin') }}"
                                 data-tom-select-no-results-value="{{ 'responsibilities.lists.association.picker_no_results'|trans({}, 'admin') }}"

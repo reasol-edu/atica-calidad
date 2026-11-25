@@ -465,6 +465,7 @@ responsibilities.lists.index.flash.created: 'Lista creada correctamente.'
 responsibilities.lists.index.error.name_required: 'El nombre de la lista es obligatorio.'
 responsibilities.lists.add_child: 'Añadir elemento hijo'
 responsibilities.lists.drag: 'Arrastrar para reordenar o mover a otro elemento'
+responsibilities.lists.drag_filtered: 'Quita el filtro «Sin docente» para reordenar o mover elementos'
 
 responsibilities.lists.field.name_placeholder: 'ej: Grupo'
 responsibilities.lists.field.name: 'Nombre'

@@ -128,14 +128,14 @@ final class DocumentReviewOutcomeNotifier
         $document = $revision->getDocument();
         $profile  = $document->getUploadProfile();
         if ($activity !== null && $activity->getListItem() !== null && $profile !== null) {
-            foreach ($this->assignments->findTeachersHoldingProfileAndListItem($profile, $document->getUploadListItem()) as $teacher) {
+            // Those whose task it is (SlotResponsibility::owns()): the element's teachers when it has any in the course, otherwise
+            // whoever holds the row. A folder manager who delivered on their behalf is not told about "their" document.
+            $leaf         = $this->leafResolver->findLeafForDocument($activity, $document);
+            $leafTeachers = $leaf === null ? [] : $this->leafTeachers->of($activity, $leaf);
+            $owners       = $leafTeachers !== [] ? $leafTeachers : $this->assignments->findTeachersHoldingProfileAndListItem($profile, $document->getUploadListItem());
+            foreach ($owners as $teacher) {
                 $add($teacher);
             }
-            $leaf = $this->leafResolver->findLeafForDocument($activity, $document);
-            foreach ($leaf === null ? [] : $this->leafTeachers->of($activity, $leaf) as $teacher) {
-                $add($teacher);
-            }
-            $add($revision->getUploadedBy());
 
             return $teachers;
         }

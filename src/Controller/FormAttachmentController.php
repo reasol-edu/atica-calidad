@@ -11,7 +11,7 @@ use App\Entity\Teacher;
 use App\Repository\DocumentFileRepository;
 use App\Repository\FormAttachmentRepository;
 use App\Repository\FormSubmissionRevisionRepository;
-use App\Security\Voter\FolderVoter;
+use App\Security\Voter\DocumentVoter;
 use App\Service\AttachmentDownloadResponder;
 use App\Service\Form\FormAttachments;
 use App\Service\Form\FormListOptions;
@@ -68,7 +68,7 @@ final class FormAttachmentController extends AbstractController
         if ($document->getFolder()->getEducationalCentre()->getId()->toRfc4122() !== $centre->getId()->toRfc4122()) {
             throw $this->createNotFoundException();
         }
-        $this->denyAccessUnlessGranted(FolderVoter::VIEW, $document->getFolder());
+        $this->denyAccessUnlessGranted(DocumentVoter::VIEW, $document);
 
         $annexes = FormAttachments::fromResolved($this->resolver->resolve($this->lists->delivered($filled), $filled->getData()));
         $own     = $this->attachments->findOfSubmission($filled->getSubmission(), array_column($annexes, 'id'));
@@ -125,7 +125,7 @@ final class FormAttachmentController extends AbstractController
         }
         // Whoever sees the folder sees what was delivered there, not what is still a draft.
         $document = $submission->getDocument();
-        if ($document === null || !$this->isGranted(FolderVoter::VIEW, $document->getFolder())) {
+        if ($document === null || !$this->isGranted(DocumentVoter::VIEW, $document)) {
             return false;
         }
         $id = $attachment->getId()->toRfc4122();
