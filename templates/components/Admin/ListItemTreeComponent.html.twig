@@ -361,16 +361,6 @@
                 <div class="border-t border-gray-100 pt-4">
                     <label class="mb-1 block text-xs font-medium text-gray-600">{{ 'responsibilities.lists.association.title'|trans({}, 'admin') }}</label>
                     <p class="mb-2 text-xs text-gray-400">{{ 'responsibilities.lists.association.help'|trans({}, 'admin') }}</p>
-                    {% if sel.hasInheritedAssociation %}
-                        {% set source = sel.associationSource %}
-                        {% set source_names = [] %}
-                        {% for a in source.profileAssociations %}
-                            {% set source_names = source_names|merge([a.specificProfile.name ~ (a.subprofile ? ' ' ~ a.subprofile.name : '')]) %}
-                        {% endfor %}
-                        <p class="mb-2 text-xs text-violet-600">
-                            {{ 'responsibilities.lists.association.inherited'|trans({'%name%': source.name, '%profile%': source_names|join(', ')}, 'admin') }}
-                        </p>
-                    {% endif %}
 
                     {% if association_rows is empty %}
                         <p class="text-xs italic text-gray-400">{{ 'responsibilities.lists.association.empty'|trans({}, 'admin') }}</p>
@@ -401,6 +391,30 @@
                             </button>
                         </form>
                     {% endif %}
+
+                    {# Own associations that an ancestor already gives: redundant, can be removed. #}
+                    {% for own in sel.profileAssociations %}
+                        {% set ancestor = sel.getAncestorHaving(own) %}
+                        {% if ancestor %}
+                            <p class="mt-2 text-xs text-amber-700" data-testid="association-redundant">
+                                {{ 'responsibilities.lists.association.redundant'|trans({'%association%': own.specificProfile.name ~ (own.subprofile ? ' ' ~ own.subprofile.name : ''), '%name%': ancestor.name}, 'admin') }}
+                            </p>
+                        {% endif %}
+                    {% endfor %}
+
+                    {# What it inherits as well, grouped by the element it comes from. #}
+                    {% set inherited_groups = {} %}
+                    {% for pair in sel.inheritedProfileAssociations %}
+                        {% set label = pair.association.specificProfile.name ~ (pair.association.subprofile ? ' ' ~ pair.association.subprofile.name : '') %}
+                        {% set gid = pair.item.id.toRfc4122 %}
+                        {% set group = inherited_groups[gid] ?? {name: pair.item.name, labels: []} %}
+                        {% set inherited_groups = inherited_groups|merge({(gid): {name: group.name, labels: group.labels|merge([label])}}) %}
+                    {% endfor %}
+                    {% for group in inherited_groups %}
+                        <p class="mt-2 text-xs text-gray-500" data-testid="association-inherited">
+                            {{ 'responsibilities.lists.association.inherited'|trans({'%name%': group.name, '%profile%': group.labels|join(', ')}, 'admin') }}
+                        </p>
+                    {% endfor %}
                 </div>
 
                 {# ── Save / delete ────────────────────────────────────── #}

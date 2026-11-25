@@ -176,8 +176,8 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
 
     /**
      * The folder upload rows a leaf's submission is owed by — one submission per row. The leaf's
-     * associations are the ones it has itself or, with none, those of its closest associated
-     * ancestor (see ListItem::getEffectiveProfileAssociations()); each stands for the folder rows it
+     * associations are the ones it has itself plus those of all its ancestors (see
+     * ListItem::getEffectiveProfileAssociations()); each stands for the folder rows it
      * covers: the row of a plain profile, the very row of a leaf subprofile, or — for an
      * intermediate node of the profile's list — every row of a leaf under it, so each of those
      * owes its own submission. Only rows the folder accepts count (they come from $uploadRows).
@@ -189,8 +189,20 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
      */
     private function uploadRowsForLeaf(ListItem $leaf, array $uploadRows): array
     {
-        $associations = $leaf->getEffectiveProfileAssociations();
-        if ($associations->isEmpty()) {
+        return $this->uploadRowsForAssociations($leaf->getEffectiveProfileAssociations()->getValues(), $uploadRows);
+    }
+
+    /**
+     * The same rule over any set of associations — what app:list-items:inheritance-report uses to
+     * count submissions under the former rule too.
+     *
+     * @param  list<\App\Entity\ListItemProfile> $associations
+     * @param  ProfileAssignmentRow[]            $uploadRows
+     * @return list<ProfileAssignmentRow>
+     */
+    public function uploadRowsForAssociations(array $associations, array $uploadRows): array
+    {
+        if ($associations === []) {
             return count($uploadRows) === 1 ? [current($uploadRows)] : [];
         }
 

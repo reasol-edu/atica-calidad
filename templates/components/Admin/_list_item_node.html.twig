@@ -33,7 +33,11 @@
                 {{ ux_icon('heroicons:link', {class: 'h-3.5 w-3.5'}) }}
             </span>
         {% elseif item.hasInheritedAssociation %}
-            <span title="{{ 'responsibilities.lists.association.inherited_icon'|trans({'%name%': item.associationSource.name}, 'admin') }}" class="shrink-0 text-violet-200">
+            {% set inherited_names = [] %}
+            {% for pair in item.inheritedProfileAssociations %}
+                {% if pair.item.name not in inherited_names %}{% set inherited_names = inherited_names|merge([pair.item.name]) %}{% endif %}
+            {% endfor %}
+            <span title="{{ 'responsibilities.lists.association.inherited_icon'|trans({'%name%': inherited_names|join('», «')}, 'admin') }}" class="shrink-0 text-violet-200">
                 {{ ux_icon('heroicons:link', {class: 'h-3.5 w-3.5'}) }}
             </span>
         {% endif %}

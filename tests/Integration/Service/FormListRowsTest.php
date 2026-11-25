@@ -52,7 +52,7 @@ final class FormListRowsTest extends RepositoryTestCase
         $this->items['tecnologia'] = $this->item('Tecnología', $this->items['materia'], 2);
         $this->items['latin']      = $this->item('Latín', $this->items['materia'], 3)->setActive(false);
 
-        // Física and Química inherit the group's (Ciencias); Química has its own, which replaces it (Informática); Matemáticas is
+        // Física and Química inherit the group's (Ciencias); Química has its own, which adds to it (Informática); Matemáticas is
         // Ciencias'; Tecnología is the whole area's (an intermediate subprofile: both departments under it).
         $natural->addProfileAssociation($this->headOfDepartment, $this->items['ciencias']);
         $this->items['quimica']->addProfileAssociation($this->headOfDepartment, $this->items['informatica']);
@@ -96,7 +96,7 @@ final class FormListRowsTest extends RepositoryTestCase
         $def = $this->definition();
         self::assertSame([], $def['sections'][0]['blocks'][0]['rows'], 'never stored in the model');
 
-        self::assertSame(['Ciencias naturales › Física', 'Matemáticas', 'Tecnología'], $this->rows($def, 'ciencias'), 'inherited, own and through the area; not Química, whose own replaces what it inherits');
+        self::assertSame(['Ciencias naturales › Física', 'Ciencias naturales › Química', 'Matemáticas', 'Tecnología'], $this->rows($def, 'ciencias'), 'inherited, own and through the area; Química too: its own association adds to the inherited one');
         self::assertSame(['Ciencias naturales › Química', 'Tecnología'], $this->rows($def, 'informatica'));
         self::assertSame(['Ciencias naturales › Física', 'Ciencias naturales › Química', 'Matemáticas', 'Tecnología'], $this->rows($def, 'lengua'), 'associated with none: all the active ones');
     }
@@ -123,16 +123,16 @@ final class FormListRowsTest extends RepositoryTestCase
         $block  = $def['sections'][0]['blocks'][0];
         [$pct, $calc] = array_column($block['columns'], 'key');
         $latin  = $this->items['latin']->getId()->toRfc4122();
-        $quimica = $this->items['quimica']->getId()->toRfc4122();
-        // Latín (now inactive) has a value; Química (not of Ciencias) only has what a calculated column holds: that is not typed.
-        $raw = ['tables' => [$block['key'] => [['_key' => $latin, $pct => 80], ['_key' => $quimica, $calc => 2]]]];
+        $fisica = $this->items['fisica']->getId()->toRfc4122();
+        // Latín (now inactive) has a value; Física (not of Informática) only has what a calculated column holds: that is not typed.
+        $raw = ['tables' => [$block['key'] => [['_key' => $latin, $pct => 80], ['_key' => $fisica, $calc => 2]]]];
 
-        self::assertSame(['Ciencias naturales › Física', 'Matemáticas', 'Tecnología', 'Latín (ya no disponible) (gone)'], $this->rows($def, 'ciencias', $raw));
+        self::assertSame(['Ciencias naturales › Química', 'Tecnología', 'Latín (ya no disponible) (gone)'], $this->rows($def, 'informatica', $raw));
 
-        $slot     = ['profile' => $this->headOfDepartment->getId()->toRfc4122(), 'subprofile' => $this->items['ciencias']->getId()->toRfc4122()];
+        $slot     = ['profile' => $this->headOfDepartment->getId()->toRfc4122(), 'subprofile' => $this->items['informatica']->getId()->toRfc4122()];
         $expanded = self::getContainer()->get(FormListOptions::class)->expand($def, $this->centre, $raw, $slot);
         $data     = self::getContainer()->get(FormDataNormalizer::class)->normalize($expanded, $raw);
-        self::assertCount(4, $data['tables'][$block['key']], 'the three of Ciencias and the one gone; Química is dropped');
+        self::assertCount(3, $data['tables'][$block['key']], 'the two of Informática and the one gone; Física is dropped');
         $codes = array_column(self::getContainer()->get(FormDataValidator::class)->problems($expanded, $data), 'code');
         self::assertContains('row_gone', $codes);
 
@@ -141,7 +141,7 @@ final class FormListRowsTest extends RepositoryTestCase
         $expanded = self::getContainer()->get(FormListOptions::class)->expand($def, $this->centre, $raw, $slot);
         $data     = self::getContainer()->get(FormDataNormalizer::class)->normalize($expanded, $raw);
         self::assertNotContains('row_gone', array_column(self::getContainer()->get(FormDataValidator::class)->problems($expanded, $data), 'code'));
-        self::assertCount(3, $data['tables'][$block['key']]);
+        self::assertCount(2, $data['tables'][$block['key']]);
     }
 
     /** @return array<string, mixed> a section «Materia» repeated by the leaves of «Materia», its title naming each, with one field */

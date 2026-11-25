@@ -151,7 +151,9 @@ final class LoadDemoDataCommandTest extends RepositoryTestCase
             }
         }
         self::assertFalse($byName['Programa de Mejora (extinguido)']->isActive());
-        self::assertTrue($byName['2º DAW']->isAssociated(), 'an own association replaces the inherited one');
+        self::assertTrue($byName['2º DAW']->isAssociated(), 'an own association adds to the inherited one');
+        self::assertTrue($byName['2º DAW']->hasInheritedAssociation());
+        self::assertCount(2, $byName['2º DAW']->getEffectiveProfileAssociations());
         self::assertFalse($byName['1º DAW']->isAssociated());
         self::assertTrue($byName['1º DAW']->hasInheritedAssociation(), 'the FP branch passes its association down');
     }

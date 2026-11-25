@@ -156,36 +156,80 @@ final class ListItemTest extends TestCase
         $this->item($centre)->addProfileAssociation($profile);
     }
 
-    public function testAnItemWithoutAssociationsInheritsTheOnesOfItsClosestAssociatedAncestor(): void
+    public function testAnItemWithoutAssociationsInheritsTheOnesOfItsAncestors(): void
     {
         $centre  = $this->centre();
         $a       = (new SpecificProfile())->setEducationalCentre($centre)->setName('A');
-        $b       = (new SpecificProfile())->setEducationalCentre($centre)->setName('B');
         $root    = $this->item($centre, 'Raíz');
         $mid     = $this->item($centre, 'Medio')->setParent($root);
         $leaf    = $this->item($centre, 'Hoja')->setParent($mid);
         $root->addProfileAssociation($a);
 
-        self::assertSame($root, $leaf->getAssociationSource());
         self::assertTrue($leaf->hasInheritedAssociation());
         self::assertSame($a, $leaf->getEffectiveProfileAssociations()->first()->getSpecificProfile());
+        $inherited = $leaf->getInheritedProfileAssociations();
+        self::assertCount(1, $inherited);
+        self::assertSame($root, $inherited[0]['item']);
+    }
 
+    public function testAssociationsAccumulateDownTheBranchOwnOnesFirst(): void
+    {
+        $centre = $this->centre();
+        $a      = (new SpecificProfile())->setEducationalCentre($centre)->setName('A');
+        $b      = (new SpecificProfile())->setEducationalCentre($centre)->setName('B');
+        $c      = (new SpecificProfile())->setEducationalCentre($centre)->setName('C');
+        $root   = $this->item($centre, 'Raíz');
+        $mid    = $this->item($centre, 'Medio')->setParent($root);
+        $leaf   = $this->item($centre, 'Hoja')->setParent($mid);
+        $root->addProfileAssociation($a);
         $mid->addProfileAssociation($b);
-        self::assertSame($mid, $leaf->getAssociationSource(), 'the closest ancestor wins');
-        self::assertCount(1, $leaf->getEffectiveProfileAssociations(), 'its associations replace the farther ones, they are not added to them');
+        $leaf->addProfileAssociation($c);
 
+        $effective = $leaf->getEffectiveProfileAssociations();
+        self::assertCount(3, $effective, 'what the item has plus what every ancestor has');
+        self::assertSame([$c, $b, $a], array_map(static fn ($x) => $x->getSpecificProfile(), $effective->getValues()), 'own first, then the closest ancestor');
+        self::assertTrue($leaf->hasInheritedAssociation(), 'with its own, it still inherits');
+        self::assertCount(2, $leaf->getInheritedProfileAssociations());
+        self::assertTrue($leaf->isAssociated());
+    }
+
+    public function testAnOwnAssociationAlsoInheritedCountsOnceAndIsNotListedAsInherited(): void
+    {
+        $centre = $this->centre();
+        $a      = (new SpecificProfile())->setEducationalCentre($centre)->setName('A');
+        $root   = $this->item($centre, 'Raíz');
+        $leaf   = $this->item($centre, 'Hoja')->setParent($root);
+        $root->addProfileAssociation($a);
         $leaf->addProfileAssociation($a);
-        self::assertSame($leaf, $leaf->getAssociationSource(), 'with its own, nothing is inherited');
+
+        self::assertCount(1, $leaf->getEffectiveProfileAssociations());
+        self::assertSame($leaf, $leaf->getEffectiveProfileAssociations()->first()->getListItem(), 'the own one comes first');
         self::assertFalse($leaf->hasInheritedAssociation());
+        self::assertSame([], $leaf->getInheritedProfileAssociations());
+        self::assertSame($root, $leaf->getAncestorHaving($leaf->getProfileAssociations()->first()));
+    }
+
+    public function testTheSamePairInTwoAncestorsIsListedOnceFromTheClosest(): void
+    {
+        $centre = $this->centre();
+        $a      = (new SpecificProfile())->setEducationalCentre($centre)->setName('A');
+        $root   = $this->item($centre, 'Raíz');
+        $mid    = $this->item($centre, 'Medio')->setParent($root);
+        $leaf   = $this->item($centre, 'Hoja')->setParent($mid);
+        $root->addProfileAssociation($a);
+        $mid->addProfileAssociation($a);
+
+        self::assertCount(1, $leaf->getEffectiveProfileAssociations());
+        self::assertSame($mid, $leaf->getInheritedProfileAssociations()[0]['item']);
     }
 
     public function testAnItemWithNoAssociationAnywhereHasNoEffectiveOnes(): void
     {
         $item = $this->item($this->centre());
 
-        self::assertNull($item->getAssociationSource());
         self::assertCount(0, $item->getEffectiveProfileAssociations());
         self::assertFalse($item->hasInheritedAssociation());
+        self::assertSame([], $item->getInheritedProfileAssociations());
     }
 
     /**

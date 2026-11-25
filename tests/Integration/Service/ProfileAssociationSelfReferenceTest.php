@@ -62,10 +62,10 @@ final class ProfileAssociationSelfReferenceTest extends RepositoryTestCase
         /** @var ListItemRepository $items */
         $items = self::getContainer()->get(ListItemRepository::class);
 
-        // The inherited associations of a leaf come from the closest associated ancestor...
-        self::assertSame($fp, $infor->getAssociationSource());
+        // The inherited associations of a leaf accumulate from all its ancestors...
+        self::assertSame([$fp, $dept], array_map(static fn (array $p): ListItem => $p['item'], $infor->getInheritedProfileAssociations()));
         // ...and an item reaching its own root through them still stops there.
-        self::assertSame($dept, $mates->getAssociationSource());
+        self::assertSame([$dept], array_map(static fn (array $p): ListItem => $p['item'], $mates->getInheritedProfileAssociations()));
         self::assertCount(2, $items->findLeafDescendants($fp));
         self::assertCount(3, $items->findLeafDescendants($dept));
         self::assertSame([$infor->getId()->toRfc4122(), $fp->getId()->toRfc4122(), $dept->getId()->toRfc4122()], $items->findSelfAndAncestorIds($infor));
@@ -102,13 +102,14 @@ final class ProfileAssociationSelfReferenceTest extends RepositoryTestCase
         );
         sort($slots);
 
-        // The root's own association (subprofile "Departamento", covering every leaf) applies to the
-        // leaves that no closer ancestor has associations for: ESO/Bach's. FP's leaves take FP's.
+        // The root's own association (subprofile "Departamento", covering every leaf) applies to every
+        // leaf, and FP's leaves also take FP's: with both, each owes one submission per row of the
+        // leaves under either subprofile.
         self::assertSame(
             [
                 'ESO/Bach › Matemáticas|Informática', 'ESO/Bach › Matemáticas|Matemáticas', 'ESO/Bach › Matemáticas|Sanidad',
-                'FP › Informática|Informática', 'FP › Informática|Sanidad',
-                'FP › Sanidad|Informática', 'FP › Sanidad|Sanidad',
+                'FP › Informática|Informática', 'FP › Informática|Matemáticas', 'FP › Informática|Sanidad',
+                'FP › Sanidad|Informática', 'FP › Sanidad|Matemáticas', 'FP › Sanidad|Sanidad',
             ],
             $slots,
         );
@@ -163,7 +164,7 @@ final class ProfileAssociationSelfReferenceTest extends RepositoryTestCase
         $loaded = $items->findByIdAndCentre($a->getId()->toRfc4122(), $centre);
         self::assertNotNull($loaded);
 
-        self::assertNull($loaded->getAssociationSource());
+        self::assertCount(0, $loaded->getEffectiveProfileAssociations());
         self::assertContains($a->getId()->toRfc4122(), $items->findSelfAndAncestorIds($loaded));
         self::assertNotNull($items->findLeafDescendants($loaded));
         self::assertNotNull($items->findSubtree($loaded));

@@ -994,47 +994,47 @@ class ListItemTreeComponent extends AbstractController
 
     /**
      * Whether moving these branches under $target changes which profiles apply to anything in them:
-     * an element with no association of its own inherits from its closest associated ancestor, and a
-     * profile's subprofiles are the descendants of the item it takes its list from — either one
-     * differs once the branch has a different chain of ancestors.
+     * everything in the branch inherits the associations of all its ancestors, and a profile's
+     * subprofiles are the descendants of the item it takes its list from — either one differs once
+     * the branch has a different chain of ancestors.
      *
      * @param ListItem[] $roots
      */
     private function moveChangesProfiles(array $roots, ?ListItem $target): bool
     {
-        $targetSource = $target?->getAssociationSource();
-        $targetLists  = $this->profileListAncestors($target);
+        $targetInherited = $this->associationKeysOfChain($target);
+        $targetLists     = $this->profileListAncestors($target);
 
         foreach ($roots as $root) {
             if ($this->profileListAncestors($root->getParent()) !== $targetLists) {
                 return true;
             }
 
-            if ($root->isAssociated()) {
-                continue;
-            }
-
-            $before = $root->getAssociationSource();
-            if ($before === $targetSource) {
-                continue;
-            }
-
-            // Only a descendant that inherits through the root is affected: one whose closest
-            // associated ancestor lies inside the branch keeps it.
-            $subtree = $this->items->findSubtree($root);
-            $inside  = [];
-            foreach ($subtree as $node) {
-                $inside[spl_object_id($node)] = true;
-            }
-            foreach ($subtree as $node) {
-                $source = $node->getAssociationSource();
-                if ($source === null || !isset($inside[spl_object_id($source)])) {
-                    return true;
-                }
+            if ($this->associationKeysOfChain($root->getParent()) !== $targetInherited) {
+                return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * The sorted (profile, subprofile) pairs of $item's and all its ancestors' associations: what
+     * a branch hung under $item inherits.
+     *
+     * @return string[]
+     */
+    private function associationKeysOfChain(?ListItem $item): array
+    {
+        $keys = [];
+        if ($item !== null) {
+            foreach ($item->getEffectiveProfileAssociations() as $association) {
+                $keys[] = $association->getSpecificProfile()->getId()->toRfc4122().'|'.($association->getSubprofile()?->getId()->toRfc4122() ?? '');
+            }
+        }
+        sort($keys);
+
+        return $keys;
     }
 
     /**

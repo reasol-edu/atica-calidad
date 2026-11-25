@@ -39,8 +39,8 @@ elemento nuevo aparece solo), y lo ya entregado conserva los nombres con que se 
 
 **Elemento del catálogo**
 : Cada nodo de una lista, a cualquier profundidad. Puede estar activo o inactivo, y puede asociarse
-a uno o varios perfiles o subperfiles; sin asociaciones propias, hereda las del elemento padre más
-cercano que las tenga.
+a uno o varios perfiles o subperfiles; además de las suyas, hereda las de todos los elementos de los
+que cuelga.
 
 **Perfil específico**
 : Responsabilidad personalizada que cada centro crea en **Responsabilidades → Perfiles

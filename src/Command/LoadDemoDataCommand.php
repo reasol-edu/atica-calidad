@@ -454,7 +454,7 @@ class LoadDemoDataCommand extends Command
      * Element → profile associations that only the nested list can show (see the manual,
      * Responsabilidades › Asociar un elemento con un perfil):
      *  - «Formación Profesional» is associated, so its whole branch INHERITS it (the pale link);
-     *  - «2º DAW» has an association of its own, which REPLACES the inherited one (they never add up).
+     *  - «2º DAW» has an association of its own, which ADDS to the inherited one (they accumulate).
      *
      * @param array<string, SpecificProfile> $profiles
      * @param array<string, ListItem>        $ensenanza
@@ -466,7 +466,7 @@ class LoadDemoDataCommand extends Command
         $ensenanza['Formación Profesional']->setAssociation($profiles['Jefe/a de Departamento'], $departamentoLeaves['Informática']);
         $ensenanza['2º DAW']->setAssociation($profiles['Tutor/a'], $grupoLeaves['2º DAW']);
 
-        $io->text('Asociaciones de la lista Enseñanza: una heredada por toda la rama FP y una propia que la sustituye en «2º DAW».');
+        $io->text('Asociaciones de la lista Enseñanza: una heredada por toda la rama FP y una propia que se suma a ella en «2º DAW».');
     }
 
     /**

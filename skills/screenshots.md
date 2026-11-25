@@ -43,7 +43,7 @@ The second centre is «CEIP Miguel Hernández» (`18700123`), empty, only so `mu
 | **`Enseñanza`** — ESO / Bachillerato / Formación Profesional → DAM, DAW → courses (16 elements, 3 levels) | The only nested list: intermediate nodes, profile on a non-root element, inheritance |
 | `Enseñanza › ESO › Programa de Mejora (extinguido)` | An **inactive** element (eye-slash; its subprofile is inactive too) |
 | `Enseñanza › Formación Profesional` associated to *Jefe/a de Departamento Informática* | An association **inherited** by the whole branch (pale link icon) |
-| `Enseñanza › 2º DAW` associated to *Tutor/a 2º DAW* | An **own** association that **replaces** the inherited one |
+| `Enseñanza › 2º DAW` associated to *Tutor/a 2º DAW* | An **own** association that **adds to** the inherited one (it has both: own in the selector, inherited in grey below) |
 | `Materia › Tecnología` associated to two subprofiles (Tecnología + Informática) | **Several** associations on one element |
 
 **Specific profiles** (`06-responsabilidades.md`)

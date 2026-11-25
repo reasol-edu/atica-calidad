@@ -427,7 +427,7 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         }
     }
 
-    public function testALeafWithNoAssociationOfItsOwnTakesTheOnesOfItsClosestAssociatedParent(): void
+    public function testALeafWithNoAssociationOfItsOwnTakesTheOnesOfItsAncestors(): void
     {
         ['activity' => $activity, 'jefe' => $jefe, 'infor' => $infor, 'evalFp' => $evalFp, 'evalEso' => $evalEso, 'mates' => $mates] = $this->evaluationScenario();
         $evalFp->addProfileAssociation($jefe, $infor);
@@ -441,17 +441,17 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         self::assertCount(4, array_filter($summary, static fn (string $s): bool => str_ends_with($s, '|Matemáticas')));
     }
 
-    public function testALeafWithItsOwnAssociationsIgnoresTheParents(): void
+    public function testALeafWithItsOwnAssociationsAddsThemToTheParents(): void
     {
         ['activity' => $activity, 'jefe' => $jefe, 'infor' => $infor, 'sani' => $sani, 'evalFp' => $evalFp, 'fpLeaves' => $fpLeaves] = $this->evaluationScenario();
         $evalFp->addProfileAssociation($jefe, $infor);
-        $fpLeaves[0]->addProfileAssociation($jefe, $sani); // the first leaf is only for Sanidad
+        $fpLeaves[0]->addProfileAssociation($jefe, $sani); // the first leaf is also for Sanidad, on top of what it inherits
         $this->em->flush();
 
         $summary = $this->slotSummary($this->builder->buildSlots($activity));
 
         self::assertSame(
-            ['FP › 1ªEV|Sanidad', 'FP › 2ªEV|Informática', 'FP › Final 1|Informática', 'FP › Final 2|Informática'],
+            ['FP › 1ªEV|Informática', 'FP › 1ªEV|Sanidad', 'FP › 2ªEV|Informática', 'FP › Final 1|Informática', 'FP › Final 2|Informática'],
             $summary,
         );
     }
@@ -527,7 +527,7 @@ final class ActivitySubmissionSlotBuilderTest extends RepositoryTestCase
         );
         sort($slots);
 
-        self::assertSame(['Ciencias › Física|Jefatura', 'Ciencias › Química|Tutoría'], $slots, 'Dibujo has no owner and the folder has two rows: nobody is asked');
+        self::assertSame(['Ciencias › Física|Jefatura', 'Ciencias › Química|Jefatura', 'Ciencias › Química|Tutoría'], $slots, 'Química has its own Tutoría plus the inherited Jefatura; Dibujo has no owner and the folder has two rows: nobody is asked');
     }
 
     public function testByProfileScopeKeepsSlotsSharedWithNoTeacher(): void

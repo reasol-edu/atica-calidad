@@ -46,7 +46,7 @@ class ListItem
      * The profiles/subprofiles this item is associated with (e.g. a "Matemáticas" item with the
      * "Jefatura de departamento" subprofile it falls under) — loose cross-references unrelated to
      * the parent/child hierarchy, any number of them. See ListItemProfile and
-     * getEffectiveProfileAssociations() for what applies to an item that has none of its own.
+     * getEffectiveProfileAssociations() for what applies to an item once its ancestors' are added.
      *
      * @var Collection<int, ListItemProfile>
      */
@@ -212,36 +212,104 @@ class ListItem
     }
 
     /**
-     * The item whose associations apply to this one: itself when it has some, otherwise its
-     * nearest ancestor that does — an element with none of its own takes those of the closest
-     * parent that has them (and only those: its own, when it has any, are never added to). Null when
-     * neither it nor any ancestor has any.
+     * The associations that apply to this item: its own plus those of every ancestor (they
+     * accumulate; nothing is hidden by an association of its own), own ones first, without repeating
+     * a (profile, subprofile) pair.
+     *
+     * @return Collection<int, ListItemProfile>
      */
-    public function getAssociationSource(): ?self
+    public function getEffectiveProfileAssociations(): Collection
     {
-        $seen = [];
-        for ($node = $this; $node !== null && !isset($seen[spl_object_id($node)]); $node = $node->parent) {
-            $seen[spl_object_id($node)] = true;
-            if ($node->isAssociated()) {
-                return $node;
+        $result = [];
+        $keys   = [];
+        foreach ($this->selfAndAncestors() as $node) {
+            foreach ($node->getProfileAssociations() as $association) {
+                $key = self::associationKey($association);
+                if (!isset($keys[$key])) {
+                    $keys[$key] = true;
+                    $result[]   = $association;
+                }
+            }
+        }
+
+        return new ArrayCollection($result);
+    }
+
+    /**
+     * What this item inherits: pairs of the ancestor it comes from and the association, closest
+     * ancestor first, leaving out what the item already has as its own (and what a closer ancestor
+     * already contributed).
+     *
+     * @return list<array{item: self, association: ListItemProfile}>
+     */
+    public function getInheritedProfileAssociations(): array
+    {
+        $keys = [];
+        foreach ($this->profileAssociations as $association) {
+            $keys[self::associationKey($association)] = true;
+        }
+
+        $result = [];
+        foreach ($this->selfAndAncestors() as $node) {
+            if ($node === $this) {
+                continue;
+            }
+            foreach ($node->getProfileAssociations() as $association) {
+                $key = self::associationKey($association);
+                if (!isset($keys[$key])) {
+                    $keys[$key] = true;
+                    $result[]   = ['item' => $node, 'association' => $association];
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /** The closest ancestor that also has the same (profile, subprofile) as this item's own association: it is redundant. */
+    public function getAncestorHaving(ListItemProfile $own): ?self
+    {
+        $key = self::associationKey($own);
+        foreach ($this->selfAndAncestors() as $node) {
+            if ($node === $this) {
+                continue;
+            }
+            foreach ($node->getProfileAssociations() as $association) {
+                if (self::associationKey($association) === $key) {
+                    return $node;
+                }
             }
         }
 
         return null;
     }
 
-    /** @return Collection<int, ListItemProfile> the associations that apply to this item: its own, or those it inherits */
-    public function getEffectiveProfileAssociations(): Collection
-    {
-        return $this->getAssociationSource()?->getProfileAssociations() ?? new ArrayCollection();
-    }
-
-    /** True when the associations that apply to this item come from an ancestor, not from itself. */
+    /** True when this item inherits some association from an ancestor that it does not have as its own. */
     public function hasInheritedAssociation(): bool
     {
-        $source = $this->getAssociationSource();
+        return $this->getInheritedProfileAssociations() !== [];
+    }
 
-        return $source !== null && $source !== $this;
+    /**
+     * This item followed by its ancestors, closest first, guarded against cycles.
+     *
+     * @return list<self>
+     */
+    private function selfAndAncestors(): array
+    {
+        $nodes = [];
+        $seen  = [];
+        for ($node = $this; $node !== null && !isset($seen[spl_object_id($node)]); $node = $node->parent) {
+            $seen[spl_object_id($node)] = true;
+            $nodes[]                    = $node;
+        }
+
+        return $nodes;
+    }
+
+    private static function associationKey(ListItemProfile $association): string
+    {
+        return spl_object_id($association->getSpecificProfile()).'|'.($association->getSubprofile() === null ? '' : (string) spl_object_id($association->getSubprofile()));
     }
 
     public function isLeaf(): bool

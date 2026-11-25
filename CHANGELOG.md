@@ -7,6 +7,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- Responsabilidades: las asociaciones de los elementos del catálogo con perfiles **se acumulan** a lo largo de la rama. Antes, un elemento con asociaciones propias usaba solo esas y tapaba las de sus padres; ahora vale lo del elemento más lo de todos los elementos de los que cuelga, sin repetir. En el panel del elemento, el selector «Asociado a» sigue mostrando solo las propias y, debajo, en gris, lo que hereda agrupado por elemento («Además, de «Formación Profesional»: …»); una propia que ya se hereda se marca en ámbar porque sobra. Ya no se puede tapar lo heredado: si un grupo lo lleva otro departamento, la asociación se pone en las hojas y no en la rama. Mover una rama pide confirmación siempre que cambie el conjunto de asociaciones que hereda.
+- **Antes de actualizar**, ejecuta `php bin/console app:list-items:inheritance-report`: es de solo lectura y lista, por centro, los elementos con asociaciones propias que además heredan otras (las entregas de las actividades con elemento del catálogo cuya carpeta acepte esos perfiles pasan a pedir una más por cada una) y, para cada actividad, cuántas entregas tiene hoy y cuántas tendrá. Las entregas que ya existen no se tocan.
+
 ## [2.11.1] - 2026-11-24
 
 ### Fixed

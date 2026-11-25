@@ -104,7 +104,8 @@ vistazo, las tres ramas con sus elementos; el **ojo tachado** de «Programa de M
 marca un elemento [inactivo](#elementos-activos-e-inactivos); y los iconos de **enlace** de la rama
 «Formación Profesional» —uno intenso en la rama y otro **atenuado** en cada elemento que cuelga de
 ella— son las [asociaciones](#asociar-un-elemento-con-un-perfil): la rama tiene una propia y sus
-descendientes la heredan, salvo «2º DAW», que tiene la suya.
+descendientes la heredan. «2º DAW» tiene además la suya, así que lleva el icono intenso: tiene
+las dos.
 
 ![Árbol de la lista «Enseñanza» con sus tres ramas: ESO (con un elemento inactivo), Bachillerato y Formación Profesional, con DAM y DAW; los iconos de enlace de la rama FP y de 2º DAW señalan las asociaciones](img/responsabilidades-lista-arbol.png)
 
@@ -135,8 +136,8 @@ en listas propias.
 
 !!! warning "Mover no modifica las asignaciones, pero sí lo que heredan"
     Los docentes asignados a un elemento siguen asignados tras moverlo, y los perfiles asociados
-    a él también. Pero un elemento sin asociaciones propias hereda las del padre más cercano que
-    las tenga: al cambiar de lista puede heredar otras distintas, y un perfil asociado a una rama
+    a él también. Pero un elemento hereda además las asociaciones de todos los elementos de los
+    que cuelga: al cambiar de lista puede heredar otras distintas, y un perfil asociado a una rama
     pierde los elementos que saques de ella. Lo mismo ocurre con los subperfiles: si un perfil
     deriva sus subperfiles de un elemento, los hijos que muevas fuera dejan de ser subperfiles
     suyos (y entran como subperfiles del perfil asociado al destino, si lo hay). Revisa las
@@ -167,19 +168,25 @@ Con un perfil asociado a una lista se puede elegir una hoja concreta (p. ej. «C
 entrega por cada una de ellas. No se ofrece el perfil entero: un elemento asociado a un perfil con
 lista indica siempre en qué punto de ella.
 
-Un elemento **sin asociaciones propias hereda las del elemento padre más cercano que las tenga**:
-basta con asociar la rama para que lo apliquen todas sus hojas. En la lista «Enseñanza», la rama
-«Formación Profesional» está asociada al subperfil «Jefe/a de Departamento Informática», y «1º DAW»
-—que cuelga de ella, dentro de «DAW»— no tiene nada propio: el panel del elemento lo dice, y el
-enlace atenuado del árbol lo marca.
+Un elemento **hereda las asociaciones de todos los elementos de los que cuelga**, y se suman a las
+suyas propias: basta con asociar la rama para que lo apliquen todas sus hojas. En la lista
+«Enseñanza», la rama «Formación Profesional» está asociada al subperfil «Jefe/a de Departamento
+Informática», y «1º DAW» —que cuelga de ella, dentro de «DAW»— no tiene nada propio: el panel del
+elemento lo dice, debajo del selector y en gris, y el enlace atenuado del árbol lo marca.
 
-![Panel de «1º DAW»: sin asociaciones propias, el selector está vacío y encima aparece el texto «Este elemento hereda las asociaciones de «Formación Profesional»: Jefe/a de Departamento Informática»](img/responsabilidades-elemento-hereda.png)
+![Panel de «1º DAW»: sin asociaciones propias, el selector está vacío y debajo, en gris, aparece el texto «Además, de «Formación Profesional»: Jefe/a de Departamento Informática»](img/responsabilidades-elemento-hereda.png)
 
-Si el elemento tiene asociaciones propias, usa **solo esas**: no se suman a las del padre. «2º DAW»
-también cuelga de «Formación Profesional», pero tiene la suya —«Tutor/a 2º DAW»—, así que ya no
-hereda «Jefe/a de Departamento Informática» y el panel ya no muestra el aviso de herencia.
+Las asociaciones propias **no sustituyen** a las heredadas: se añaden a ellas. «2º DAW» también
+cuelga de «Formación Profesional» y tiene la suya —«Tutor/a 2º DAW»—, así que tiene las dos: en el
+selector aparece solo la propia, que es la que se edita, y debajo, en gris, lo que hereda de
+«Formación Profesional». Una actividad cuya carpeta acepte los dos perfiles pedirá por «2º DAW» una
+entrega a cada uno. Si una asociación propia ya se hereda de un elemento superior, el panel avisa
+en ámbar («Ya la hereda de «X»») de que sobra y se puede quitar.
 
-![Panel de «2º DAW»: en «Asociado a», la etiqueta «Tutor/a 2º DAW»; no aparece ningún aviso de herencia](img/responsabilidades-elemento-propia.png)
+![Panel de «2º DAW»: en «Asociado a», la etiqueta «Tutor/a 2º DAW» y, debajo, en gris, «Además, de «Formación Profesional»: Jefe/a de Departamento Informática»](img/responsabilidades-elemento-propia.png)
+
+Como lo heredado ya no se puede tapar, si un grupo de una materia lo lleva otro departamento hay que
+asociar el departamento a las hojas y no a la materia.
 
 Para un elemento a la vez, se hace desde su panel de edición (**Asociado a**, con el mismo
 buscador de perfil/subperfil que en el resto de la aplicación, en el que se pueden elegir varios).

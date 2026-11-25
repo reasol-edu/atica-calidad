@@ -439,7 +439,7 @@ responsibilities.lists.title: 'Catálogo del centro'
 responsibilities.lists.hub_help: 'Las listas de nombres propias del centro (grupos, departamentos, materias...), con la profundidad que necesites.'
 responsibilities.lists.hub_stat: '{0}Ninguna lista en el catálogo todavía.|{1}1 lista en el catálogo.|]1,Inf[%count% listas en el catálogo.'
 responsibilities.lists.manage: 'Gestionar el catálogo'
-responsibilities.lists.help: 'El catálogo del centro reúne sus listas. Crea jerarquías de elementos con la profundidad que necesites (por ejemplo, «Grupo» → «1º ESO» → «1º ESO-A»). Cada elemento puede asociarse a los perfiles o subperfiles que correspondan, y sus descendientes sin asociaciones propias las heredan.'
+responsibilities.lists.help: 'El catálogo del centro reúne sus listas. Crea jerarquías de elementos con la profundidad que necesites (por ejemplo, «Grupo» → «1º ESO» → «1º ESO-A»). Cada elemento puede asociarse a los perfiles o subperfiles que correspondan, y sus descendientes las heredan, sumadas a las suyas propias.'
 # Nombres de las raíces que se crean automáticamente al dar de alta un centro, separados por
 # punto y coma — se pueden añadir, quitar o renombrar (ver CentreProvisioner).
 responsibilities.lists.default_roots: 'Departamento;Grupo;Materia'
@@ -491,9 +491,10 @@ responsibilities.lists.error.delete_in_use: 'No se puede eliminar: él, o alguno
 
 
 responsibilities.lists.association.title: 'Asociado a'
-responsibilities.lists.association.help: 'Vincula este elemento con los perfiles o subperfiles de Responsabilidades que correspondan (por ejemplo, una materia con la jefatura de departamento de la que depende). Un subperfil intermedio vale para todas las hojas que cuelgan de él. Sin asociaciones propias, un elemento usa las del elemento padre más cercano que las tenga.'
-responsibilities.lists.association.inherited: 'Este elemento hereda las asociaciones de «%name%»: %profile%.'
-responsibilities.lists.association.inherited_icon: 'Hereda las asociaciones de «%name%»'
+responsibilities.lists.association.help: 'Vincula este elemento con los perfiles o subperfiles de Responsabilidades que correspondan (por ejemplo, una materia con la jefatura de departamento de la que depende). Un subperfil intermedio vale para todas las hojas que cuelgan de él. Un elemento tiene sus asociaciones propias más las de todos los elementos de los que cuelga.'
+responsibilities.lists.association.inherited: 'Además, de «%name%»: %profile%.'
+responsibilities.lists.association.inherited_icon: 'Hereda asociaciones de «%name%»'
+responsibilities.lists.association.redundant: 'Ya la hereda de «%name%»: «%association%» sobra y se puede quitar.'
 responsibilities.lists.association.empty: 'No hay perfiles activos disponibles para asociar.'
 responsibilities.lists.association.picker_placeholder: 'Buscar perfil o subperfil…'
 responsibilities.lists.association.picker_no_results: 'Sin resultados'
