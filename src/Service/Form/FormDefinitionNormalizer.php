@@ -75,6 +75,8 @@ final class FormDefinitionNormalizer
                 'key'     => $this->key($step['key'] ?? null),
                 'name'    => $this->text($step['name'] ?? '', 255),
                 'profile' => $this->reference($step['profile'] ?? null) ?? '',
+                // 'element': decided only by whoever holds the profile with a subprofile associated with the document's element.
+                'scope'   => FormDefinition::str($step['scope'] ?? '') === 'element' ? 'element' : 'any',
             ];
         }
 

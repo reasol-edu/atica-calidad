@@ -44,6 +44,20 @@ final readonly class ActivitySubmissionSlot
     }
 
     /**
+     * The id of the element (leaf) a slot was named after, read back from its key (see key()): its third part. Null for a key that is
+     * not one or a slot with no element — what a step of an approval chain limited to the element looks at (FormApprovalChain).
+     */
+    public static function leafOf(string $key): ?string
+    {
+        $parts = explode(':', $key);
+        if (count($parts) !== 4 || preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $parts[2]) !== 1) {
+            return null;
+        }
+
+        return $parts[2];
+    }
+
+    /**
      * Who delivers a slot, read back from its key (see key()) without building the activity's slots: the profile and, for a profile of
      * a list, its subprofile. What the rows and copies taken from a list filter by (FormListOptions). Null for a key that is not one.
      *

@@ -185,6 +185,15 @@ because a script cannot read them: add a new icon in both places; the Spanish la
   the only entry point** (the tree, the review queue and the bulk review all end in it): it routes a chain revision to the chain, so no screen
   can approve around it. A step without profile (or with a profile that does not exist in the centre) blocks sending the model to review
   (`FormModelService::problems()`); a chain imported from another centre therefore arrives unassigned.
+- **Step limited to the element** (`step.scope` ∈ `any|element`, default `any`; only offered for a profile of a list). `start()` copies it to
+  `FormApprovalStep::elementScoped` (so editing the model never alters a chain under way). `FormApprovalChain::holdsStepProfile()` is the
+  rule: for a limited step, the element is `ActivitySubmissionSlot::leafOf()` of the submission's slot key, and only whoever holds the step's
+  profile with one of the subprofiles that element is associated with (own or inherited, `getEffectiveProfileAssociations()`) counts. No
+  such association → `isLimitedWithoutElement()`: anyone with the profile, and the document page says so. `canDecide()` = manages the folder
+  or `holdsStepProfile()`; `pendingFor()` (the review queue) and `FormReviewController::canParticipate()` follow from it.
+- **Steps approved by delivering**: after `start()`, `FormSubmissionService::approveOwnSteps()` approves, through
+  `DocumentRevisionReviewer::approve()` (which approves the revision too if it was the last step), every step from the current one that
+  whoever delivered holds by profile — never by managing the folder — with the note `approval.self_approved`.
 - The page of a delivered document is `FormReviewController` (`/formularios/revision/{id}`): steps with who decided and their note, the decision
   form (a rejection needs a reason), comments anchored to a section or block (`FormComment`, by key + copy path; whoever reviews or holds a step
   or delivers the slot may comment, anyone who can see the folder reads), and links to compare with earlier revisions (`FormDiff`: value by value

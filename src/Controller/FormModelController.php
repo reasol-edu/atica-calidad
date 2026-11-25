@@ -184,7 +184,8 @@ class FormModelController extends AbstractController
                 'code'       => $model->getCode(),
                 'saveUrl'    => $this->generateUrl('app_form_model_save', ['id' => $id]),
                 'csrf'       => $this->csrf->getToken('form_model_' . $id)->getValue(),
-                'profiles'   => array_map(static fn (SpecificProfile $p): array => ['id' => $p->getId()->toRfc4122(), 'name' => $p->getName()], $this->profiles->findByCentre($centre)),
+                // hasList: a profile of a list (it has subprofiles), whose step can be limited to the one of the document's element.
+                'profiles'   => array_map(static fn (SpecificProfile $p): array => ['id' => $p->getId()->toRfc4122(), 'name' => $p->getName(), 'hasList' => $p->getListItem() !== null], $this->profiles->findByCentre($centre)),
                 // The lists of Responsabilidades a choice can take its options from, with what each offers now.
                 'lists'      => $this->lists->pickable($centre),
             ],

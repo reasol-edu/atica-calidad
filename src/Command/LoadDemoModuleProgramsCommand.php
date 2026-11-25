@@ -35,10 +35,13 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * «Programación didáctica del módulo» and the activity «Entrega de programaciones de los módulos», delivered by filling the model in
  * with the teachers' box checked over the «Materia» list (whose computing modules have their teachers from `app:load-demo-data`).
  *
- * Where it starts: «Programación» is delivered by Noelia (n.bravo) and waits for the review of Jefatura de Estudios; «Desarrollo Web en
- * Entorno Servidor» is a draft of Rocío (r.serrano); «Sistemas Informáticos» (nobody teaches it) and the FFEOE (its teacher is no longer
- * in the course) are the head of department's, Claudia (c.núñez). The model has no approval chain yet (that is the next phase): a
- * delivery waits for the folder's own review. Kept apart from `app:load-demo-form-models` on purpose, so the models and activities the
+ * The model has a two-step approval chain, which replaces the folder's own review: «Jefatura del departamento» (Jefe/a de
+ * Departamento, limited to the element of the document: the head of the department of each subject) and then «Jefatura de estudios».
+ *
+ * Where it starts: «Programación» is delivered by Noelia (n.bravo) and waits for its first step, in the queue of Claudia (c.núñez, head of
+ * Informática) and not in that of Pablo (p.sánchez, head of Matemáticas); «Sistemas Informáticos» (nobody teaches it, so it is Claudia's
+ * own task) is delivered by Claudia, so her step is approved at once and it waits for Jefatura de Estudios; «Desarrollo Web en Entorno
+ * Servidor» is a draft of Rocío (r.serrano); the FFEOE (its teacher is no longer in the course) is still to do, Claudia's. Kept apart from `app:load-demo-form-models` on purpose, so the models and activities the
  * fillable-models chapter shows do not change; run it after `capture-modelos-shots.mjs` (see skills/screenshots.md).
  */
 #[AsCommand(name: 'app:load-demo-module-programs', description: 'Crea la entrega de las programaciones de los módulos, con docentes asociados (para las capturas del manual)')]
@@ -95,10 +98,10 @@ final class LoadDemoModuleProgramsCommand extends Command
             return Command::FAILURE;
         }
 
+        // No review profile: the model's chain is the review. No responsible profile either: whoever manages a folder may decide any
+        // step, and Jefatura de Estudios would then find the heads' step in its queue too.
         $folder = (new Folder())->setDocumentSection($section)->setName('Programaciones de los módulos')->setGroupByProfile(true);
         $folder->addUploadProfile($jefeDpt);
-        $folder->addResponsibleProfile($jefeEstudios);
-        $folder->addReviewProfile($jefeEstudios);
         $modelsFolder = (new Folder())->setDocumentSection($section)->setName('Modelos de programaciones');
         $this->em->persist($folder);
         $this->em->persist($modelsFolder);
@@ -113,7 +116,10 @@ final class LoadDemoModuleProgramsCommand extends Command
                 ['key' => $keys['timing'], 'type' => 'field', 'name' => 'temporalizacion', 'fieldType' => 'long', 'label' => 'Temporalización', 'required' => true, 'help' => ''],
                 ['key' => $keys['assessment'], 'type' => 'field', 'name' => 'evaluacion', 'fieldType' => 'long', 'label' => 'Evaluación', 'required' => true, 'help' => ''],
             ],
-        ]]], $model->getDraftVersion(), $author);
+        ]], 'approval' => [
+            ['key' => FormDefinition::newKey(), 'name' => 'Jefatura del departamento', 'profile' => $jefeDpt->getId()->toRfc4122(), 'scope' => 'element'],
+            ['key' => FormDefinition::newKey(), 'name' => 'Jefatura de estudios', 'profile' => $jefeEstudios->getId()->toRfc4122(), 'scope' => 'any'],
+        ]], $model->getDraftVersion(), $author);
         $this->models->sendToReview($model, $author, null);
 
         $category = null;
@@ -145,6 +151,7 @@ final class LoadDemoModuleProgramsCommand extends Command
         ]];
         foreach ([
             ['Programación', 'n.bravo', true, $text('domine los fundamentos de la programación')],
+            ['Sistemas Informáticos', 'c.núñez', true, $text('instale y administre sistemas operativos')],
             ['Desarrollo Web en Entorno Servidor', 'r.serrano', false, ['fields' => [$keys['objectives'] => 'Que el alumnado construya aplicaciones web con un framework.']]],
         ] as [$module, $username, $deliver, $data]) {
             $teacher = $this->teachers->findByUsername($username);
@@ -164,7 +171,7 @@ final class LoadDemoModuleProgramsCommand extends Command
             }
         }
 
-        $io->success('Entrega de las programaciones de los módulos creada: «Programación» entregada por n.bravo y «Desarrollo Web en Entorno Servidor» en borrador de r.serrano.');
+        $io->success('Entrega de las programaciones de los módulos creada: «Programación» entregada por n.bravo (pendiente de la jefatura de Informática), «Sistemas Informáticos» entregada por c.núñez (pendiente de Jefatura de Estudios) y «Desarrollo Web en Entorno Servidor» en borrador de r.serrano.');
 
         return Command::SUCCESS;
     }

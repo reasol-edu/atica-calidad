@@ -9,8 +9,11 @@ use App\Entity\Teacher;
 use App\Model\ActivitySubmissionSlot;
 use App\Repository\ActivityRepository;
 use App\Repository\EducationalCentreRepository;
+use App\Repository\FormModelRevisionRepository;
 use App\Repository\FormSubmissionRepository;
 use App\Repository\TeacherRepository;
+use App\Service\Form\FormApprovalChain;
+use App\Service\Form\FormDefinition;
 use App\Service\ActivityCompletionChecker;
 use App\Service\ActivityObligationFinder;
 use App\Service\ActivitySubmissionSlotBuilder;
@@ -75,7 +78,10 @@ final class LoadDemoModuleProgramsCommandTest extends ControllerTestCase
         self::assertSame('Materia', $this->activity->getListItem()?->getName());
         self::assertSame('Programación didáctica del módulo', $this->activity->getFormModel()?->getDocument()->getName());
         self::assertSame('Programaciones de los módulos', $this->activity->getFolder()?->getName());
-        // The model has no approval chain yet: that is the next phase.
+        $model = $this->activity->getFormModel();
+        self::assertNotNull($model);
+        $chain = FormDefinition::listOf(self::getContainer()->get(FormModelRevisionRepository::class)->findInForce($model)?->getDefinition()['approval'] ?? []);
+        self::assertSame(['element', 'any'], array_column($chain, 'scope'), 'the heads of each department, then Jefatura de Estudios');
         self::assertCount(15, self::getContainer()->get(ActivitySubmissionSlotBuilder::class)->buildSlots($this->activity), '14 modules, and Tecnología is owed by two departments');
     }
 
@@ -110,8 +116,8 @@ final class LoadDemoModuleProgramsCommandTest extends ControllerTestCase
         foreach ($submissions as $submission) {
             $states[$submission->getSlotKey()] = $submission->hasDraft() ? 'draft' : 'delivered';
         }
-        self::assertCount(2, $submissions, 'only the two the starting state needs');
-        self::assertEqualsCanonicalizing(['delivered', 'draft'], array_values($states));
+        self::assertCount(3, $submissions, 'only the three the starting state needs');
+        self::assertEqualsCanonicalizing(['delivered', 'delivered', 'draft'], array_values($states));
 
         $slots = [];
         foreach (self::getContainer()->get(ActivitySubmissionSlotBuilder::class)->buildSlots($this->activity) as $slot) {
@@ -132,6 +138,32 @@ final class LoadDemoModuleProgramsCommandTest extends ControllerTestCase
         $access = self::getContainer()->get(DocumentTreeAccessChecker::class);
         self::assertTrue($access->canViewDocument($this->teacher('n.bravo'), $document));
         self::assertTrue($access->canManageDocumentAsUploader($this->teacher('n.bravo'), $document));
+    }
+
+    /** Phase 0c on the demo: each delivery waits for the head of its own department, and Claudia's own step was approved by delivering. */
+    public function testTheQueuesOfEachHeadAndTheStepApprovedByDelivering(): void
+    {
+        $centre = self::getContainer()->get(EducationalCentreRepository::class)->findByCode('29700456');
+        self::assertNotNull($centre);
+        $chain   = self::getContainer()->get(FormApprovalChain::class);
+        $waiting = fn (string $username): array => array_map(
+            static fn ($step): string => $step->getRevision()->getRevision()->getDocument()->getName() . ' · ' . $step->getName(),
+            $chain->pendingFor($this->teacher($username), $centre),
+        );
+
+        self::assertContains('Programación · Jefatura del departamento', $waiting('c.núñez'));
+        self::assertNotContains('Programación · Jefatura del departamento', $waiting('p.sánchez'), 'the head of Matemáticas does not decide it');
+        self::assertNotContains('Programación · Jefatura del departamento', $waiting('g.ortiz'), 'nor Jefatura de Estudios, before its turn');
+        self::assertContains('Sistemas Informáticos · Jefatura de estudios', $waiting('g.ortiz'), 'its turn has come');
+
+        $sistemas = null;
+        foreach ($this->activity->getFolder()?->getDocuments() ?? [] as $document) {
+            $sistemas = $document->getName() === 'Sistemas Informáticos' ? $document : $sistemas;
+        }
+        self::assertNotNull($sistemas);
+        $steps = $chain->stepsOf($sistemas->getRevisions()->last() ?: throw new \LogicException('no revision'));
+        self::assertSame(['approved', 'pending'], array_map(static fn ($s): string => $s->getState()->value, $steps), 'Claudia delivered it: her step is approved');
+        self::assertSame('Entregado y aprobado por la misma persona.', $steps[0]->getNote());
     }
 
     public function testNoeliaOpensTheFormOfHerModuleAndNotTheOneOfSistemas(): void

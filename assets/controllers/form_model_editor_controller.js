@@ -441,10 +441,20 @@ export default class extends Controller {
         this.def.approval = Array.isArray(this.def.approval) ? this.def.approval : [];
         const steps = this.def.approval;
         const profiles = this.configValue.profiles || [];
+        const hasList = (id) => profiles.some((p) => p.id === id && p.hasList);
         const rows = steps.map((step, i) => h('div', { class: 'flex flex-wrap items-end gap-2 rounded-xl border border-gray-200 bg-white p-3' }, [
             h('span', { class: 'w-6 pb-2 text-sm text-gray-400', text: (i + 1) + '.' }),
             this.textInput(step, 'name', this.l.step_name, 'flex-1 basis-48', 255),
-            this.labelled(this.l.step_profile, this.select(step.profile || '', [['', this.l.no_profile], ...profiles.map((p) => [p.id, p.name])], (v) => { step.profile = v; this.touch(); }, this.l.step_profile), 'basis-48'),
+            this.labelled(this.l.step_profile, this.select(step.profile || '', [['', this.l.no_profile], ...profiles.map((p) => [p.id, p.name])], (v) => {
+                step.profile = v;
+                // Only a profile of a list can be limited to the element: another one goes back to «anyone with the profile».
+                if (!hasList(v)) {
+                    step.scope = 'any';
+                }
+                this.changed(step.key);
+            }, this.l.step_profile), 'basis-48'),
+            // Who of those decides: anyone with the profile (as always), or only the subprofile associated with the document's element.
+            hasList(step.profile) ? this.labelled(this.l.step_scope, this.select(step.scope === 'element' ? 'element' : 'any', [['any', this.l.step_scope_any], ['element', this.l.step_scope_element]], (v) => { step.scope = v; this.touch(); }, this.l.step_scope), 'basis-56') : null,
             h('div', { class: 'flex items-center gap-1 pb-0.5' }, [
                 h('button', { type: 'button', class: BTN, title: this.l.up, 'aria-label': this.l.up, text: '↑', disabled: i === 0, onclick: () => this.moveIn(steps, i, -1) }),
                 h('button', { type: 'button', class: BTN, title: this.l.down, 'aria-label': this.l.down, text: '↓', disabled: i === steps.length - 1, onclick: () => this.moveIn(steps, i, 1) }),
@@ -456,7 +466,7 @@ export default class extends Controller {
             h('h2', { class: 'text-base font-semibold text-gray-900', text: this.l.approval }),
             h('p', { class: 'mt-1 text-xs text-gray-500', text: this.l.approval_help }),
             h('div', { class: 'mt-3 space-y-2' }, rows),
-            h('button', { type: 'button', class: BTN + ' mt-3', text: '+ ' + this.l.add_step, onclick: () => { const s = { key: uid(), name: '', profile: '' }; steps.push(s); this.changed(s.key); } }),
+            h('button', { type: 'button', class: BTN + ' mt-3', text: '+ ' + this.l.add_step, onclick: () => { const s = { key: uid(), name: '', profile: '', scope: 'any' }; steps.push(s); this.changed(s.key); } }),
         ]);
     }
 

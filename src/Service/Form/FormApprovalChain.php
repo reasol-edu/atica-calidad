@@ -9,8 +9,11 @@ use App\Entity\EducationalCentre;
 use App\Entity\FormApprovalStep;
 use App\Entity\FormApprovalStepState;
 use App\Entity\FormSubmissionRevision;
+use App\Entity\ListItem;
 use App\Entity\Teacher;
+use App\Model\ActivitySubmissionSlot;
 use App\Repository\FormApprovalStepRepository;
+use App\Repository\ListItemRepository;
 use App\Repository\SpecificProfileRepository;
 use App\Service\DocumentTreeAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
@@ -34,6 +37,7 @@ final class FormApprovalChain
         private readonly FormApprovalStepRepository $steps,
         private readonly SpecificProfileRepository $profiles,
         private readonly DocumentTreeAccessChecker $access,
+        private readonly ListItemRepository $listItems,
     ) {}
 
     /**
@@ -62,6 +66,8 @@ final class FormApprovalChain
                 FormDefinition::str($step['name'] ?? ''),
                 $profile,
                 $position === 1 ? FormApprovalStepState::Pending : FormApprovalStepState::Waiting,
+                // Only a profile of a list can be limited to the element (its subprofiles are what elements are associated with).
+                ($step['scope'] ?? '') === 'element' && $profile?->getListItem() !== null,
             ));
         }
     }
@@ -98,9 +104,70 @@ final class FormApprovalChain
         if ($this->access->canManageFolder($teacher, $folder)) {
             return true;
         }
-        $profile = $step->getProfile();
 
-        return $profile !== null && $this->access->holdsProfile($teacher, $profile, null);
+        return $this->holdsStepProfile($teacher, $step);
+    }
+
+    /**
+     * Whether $teacher is one of the people of a step by their profile — never by managing the folder: anyone with the profile, or,
+     * for a step limited to the element, with a subprofile associated with the document's element (see elementSubprofiles()). Who
+     * may comment on a delivery, and whose own delivery approves the step at once (approveOwnSteps()).
+     */
+    public function holdsStepProfile(Teacher $teacher, FormApprovalStep $step): bool
+    {
+        $profile = $step->getProfile();
+        if ($profile === null) {
+            return false;
+        }
+        $subprofiles = $this->elementSubprofiles($step);
+        if ($subprofiles === null) {
+            return $this->access->holdsProfile($teacher, $profile, null);
+        }
+        foreach ($subprofiles as $subprofile) {
+            if ($this->access->holdsProfile($teacher, $profile, $subprofile)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * For a step limited to the element: the subprofiles of the step's profile that the document's element is associated with — its
+     * own associations and those of its ancestors (ListItem::getEffectiveProfileAssociations()). Null when the step is not limited, or
+     * when the element has none with that profile (or the document has no element): then the step works as «anyone with the profile»
+     * (see isLimitedWithoutElement()), so a chain is never left with nobody to decide it.
+     *
+     * @return list<ListItem>|null
+     */
+    public function elementSubprofiles(FormApprovalStep $step): ?array
+    {
+        $profile = $step->getProfile();
+        if (!$step->isElementScoped() || $profile === null) {
+            return null;
+        }
+        $leafId = ActivitySubmissionSlot::leafOf($step->getRevision()->getSubmission()->getSlotKey());
+        $centre = $step->getRevision()->getRevision()->getDocument()->getFolder()->getEducationalCentre();
+        $leaf   = $leafId === null ? null : $this->listItems->findByIdAndCentre($leafId, $centre);
+        if ($leaf === null) {
+            return null;
+        }
+
+        $subprofiles = [];
+        foreach ($leaf->getEffectiveProfileAssociations() as $association) {
+            $subprofile = $association->getSubprofile();
+            if ($subprofile !== null && $association->getSpecificProfile()->getId()->equals($profile->getId())) {
+                $subprofiles[] = $subprofile;
+            }
+        }
+
+        return $subprofiles === [] ? null : $subprofiles;
+    }
+
+    /** A step limited to the element whose element has no subprofile of its profile: anyone with the profile decides it (said in Ver). */
+    public function isLimitedWithoutElement(FormApprovalStep $step): bool
+    {
+        return $step->isElementScoped() && $this->elementSubprofiles($step) === null;
     }
 
     /**

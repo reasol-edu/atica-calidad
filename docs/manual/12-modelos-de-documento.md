@@ -245,8 +245,35 @@ Quitar o mover elementos de una lista afecta a los modelos que la usan, y las pa
 ## Aprobación de los documentos rellenados
 
 En el modelo puedes definir **pasos de aprobación**: cada documento entregado se aprueba en ese orden,
-y lo decide quien tenga el perfil de cada paso. Sin pasos, lo revisa quien revisa la carpeta; si la
-carpeta no tiene revisión, la entrega queda aprobada al instante.
+y lo decide quien tenga el perfil de cada paso. Los pasos **sustituyen a la revisión de la carpeta**:
+aprobar el último aprueba el documento. Sin pasos, lo revisa quien revisa la carpeta; si la carpeta no
+tiene revisión, la entrega queda aprobada al instante.
+
+### Quién decide cada paso {#quien-decide-cada-paso}
+
+Si el perfil de un paso es de una lista (por ejemplo, «Jefe/a de Departamento», con un subperfil por
+departamento), el paso ofrece **Quién decide**:
+
+- **Cualquiera con el perfil**: cualquier jefatura de departamento puede decidirlo. Es lo de siempre.
+- **Quien tenga el perfil asociado al elemento del documento**: solo la jefatura del departamento al
+  que está asociado el elemento de esa entrega (la materia, en una actividad con una entrega por
+  materia), con las asociaciones que el elemento tenga o herede en el
+  [catálogo](06-responsabilidades.md). La programación de Programación la decide la jefatura de
+  Informática; la de Matemáticas no la ve en su cola de revisión ni puede decidirla.
+
+Si el elemento de una entrega no está asociado a ningún subperfil del perfil del paso, el paso queda
+abierto a cualquiera con ese perfil, y la página del documento lo dice, para que la cadena no se quede
+sin nadie que la decida.
+
+Un caso habitual: la entrega de las programaciones de los módulos, que cada docente rellena (ver
+[docentes asociados](08-actividades.md)), con dos pasos: **Jefatura del departamento** (limitado al
+elemento) y **Jefatura de estudios** (cualquiera con el perfil).
+
+**Si quien entrega puede decidir el paso.** Cuando la persona que entrega tiene el perfil de un paso
+(por ejemplo, la jefa de departamento entrega ella misma la programación de un módulo sin docente), ese
+paso se aprueba solo al entregar, con la nota «Entregado y aprobado por la misma persona.», y el
+documento pasa al siguiente. Gestionar la carpeta no cuenta: si la persona responsable de calidad
+entrega un documento, la cadena sigue entera.
 
 En un documento entregado, quien lo revisa puede **comentar partes concretas** (un campo, una tabla,
 una sección), responder y marcar los comentarios como resueltos, y ver **qué ha cambiado** respecto a la

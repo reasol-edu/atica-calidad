@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Attribute\CurrentCentre;
 use App\Entity\EducationalCentre;
+use App\Entity\FormApprovalStep;
 use App\Entity\FormApprovalStepState;
 use App\Entity\FormComment;
 use App\Entity\FormSubmissionRevision;
@@ -101,6 +102,11 @@ class FormReviewController extends AbstractController
             'revision'   => $revision,
             'folder'     => $folder,
             'steps'      => $steps,
+            // The steps limited to the element whose element has no subprofile of their profile: anyone with it decides them.
+            'openSteps'  => array_values(array_map(
+                static fn (FormApprovalStep $step): string => $step->getId()->toRfc4122(),
+                array_filter($steps, fn (FormApprovalStep $step): bool => $this->chain->isLimitedWithoutElement($step)),
+            )),
             'current'    => $current,
             'canDecide'  => $canDecide,
             'others'     => $others,
@@ -275,7 +281,8 @@ class FormReviewController extends AbstractController
             return true;
         }
         foreach ($this->chain->stepsOf($filled->getRevision()) as $step) {
-            if ($step->getProfile() !== null && $this->access->holdsProfile($teacher, $step->getProfile(), null)) {
+            // A step limited to the element counts only for the people of that element (FormApprovalChain::holdsStepProfile()).
+            if ($this->chain->holdsStepProfile($teacher, $step)) {
                 return true;
             }
         }

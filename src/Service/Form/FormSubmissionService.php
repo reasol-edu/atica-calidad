@@ -19,8 +19,11 @@ use App\Repository\FormSubmissionRevisionRepository;
 use App\Service\ActivityLogger;
 use App\Service\ActivitySubmissionSlotBuilder;
 use App\Service\DocumentCreationService;
+use App\Entity\EducationalCentre;
 use App\Service\DocumentReviewNotifier;
+use App\Service\DocumentRevisionReviewer;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -52,6 +55,8 @@ final class FormSubmissionService
         private readonly FormIndicatorCalculator $indicators,
         private readonly FormListOptions $lists,
         private readonly FormAttachmentService $attachments,
+        private readonly DocumentRevisionReviewer $reviewer,
+        private readonly TranslatorInterface $translator,
     ) {}
 
     /**
@@ -425,12 +430,30 @@ final class FormSubmissionService
         if ($revision->isPendingReview() && !$hasChain) {
             $this->notifier->notifyReviewers($revision);
         }
-        // Approved at once (nobody reviews this folder): the indicators fed from it have a new value now.
+        if ($hasChain) {
+            $this->approveOwnSteps($revision, $by, $folder->getEducationalCentre());
+        }
+        // Approved at once (nobody reviews this folder, or whoever delivered it decides every step): the indicators fed from it
+        // have a new value now.
         if ($revision->isApproved()) {
             $this->indicators->recalculateForActivity($activity);
         }
 
         return $revision;
+    }
+
+    /**
+     * The steps that whoever delivered the document would decide themselves are approved at once, in order, up to the first one they
+     * cannot: the head of a department who delivers the programme of a subject with no teacher does not have to approve it afterwards.
+     * Only by holding the step's profile (FormApprovalChain::holdsStepProfile()), never by managing the folder, so the quality manager
+     * does not skip the whole chain. Through DocumentRevisionReviewer, which approves the revision itself if it was the last step.
+     */
+    private function approveOwnSteps(DocumentRevision $revision, Teacher $by, EducationalCentre $centre): void
+    {
+        $note = $this->translator->trans('approval.self_approved', [], 'forms');
+        while (($step = $this->chain->currentStep($revision)) !== null && $this->chain->holdsStepProfile($by, $step)) {
+            $this->reviewer->approve($revision, $by, $note, $centre);
+        }
     }
 
     public function modelRevisionOf(DocumentRevision $revision): ?FormModelRevision

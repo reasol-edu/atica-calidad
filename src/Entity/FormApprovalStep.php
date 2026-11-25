@@ -54,13 +54,27 @@ class FormApprovalStep
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $note = null;
 
-    public function __construct(FormSubmissionRevision $revision, int $position, string $name, ?SpecificProfile $profile, FormApprovalStepState $state)
+    /**
+     * Decided only by whoever holds the profile with a subprofile associated with the element of the document (the head of the
+     * department of each subject, not every head of department). Copied from the model when the chain starts, so a later change of the
+     * model does not alter a chain already under way. See FormApprovalChain::canDecide().
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $elementScoped;
+
+    public function __construct(FormSubmissionRevision $revision, int $position, string $name, ?SpecificProfile $profile, FormApprovalStepState $state, bool $elementScoped = false)
     {
-        $this->revision = $revision;
-        $this->position = $position;
-        $this->name     = $name;
-        $this->profile  = $profile;
-        $this->state    = $state;
+        $this->revision      = $revision;
+        $this->position      = $position;
+        $this->name          = $name;
+        $this->profile       = $profile;
+        $this->state         = $state;
+        $this->elementScoped = $elementScoped;
+    }
+
+    public function isElementScoped(): bool
+    {
+        return $this->elementScoped;
     }
 
     public function getId(): Uuid

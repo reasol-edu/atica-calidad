@@ -283,6 +283,14 @@ y no tiene docente asociado, y ve el resto de Informática en «Entregas que ges
 
 ![«Entregas que gestionas» de la jefa del departamento de Informática: las entregas de los módulos con sus docentes en gris bajo el nombre y «Sin docente asociado» en ámbar](img/actividades-docentes-entregas.png)
 
+Para que la jefatura **revise** lo que entrega cada docente antes de darlo por bueno, el modelo lleva
+una cadena de aprobación con un paso limitado al elemento del documento: lo decide solo la jefatura
+del departamento de esa materia, y después, si se quiere, jefatura de estudios (ver
+[Quién decide cada paso](12-modelos-de-documento.md#quien-decide-cada-paso)). En la demo, «Programación»
+espera en la cola de revisión de Claudia Núñez y no en la de Pablo Sánchez (Matemáticas), y
+«Sistemas Informáticos», que entregó la propia Claudia, tiene su paso aprobado y espera a jefatura de
+estudios.
+
 ### Subir los ficheros {#subir-varios-ficheros}
 
 Cada hueco vacío tiene su propia zona: se **arrastra el fichero encima** o se hace clic para elegirlo
