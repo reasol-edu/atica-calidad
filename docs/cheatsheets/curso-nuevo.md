@@ -26,11 +26,16 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 
 <div class="step">
   <span class="num">3</span>
-  <div class="text"><p>Definir los días no lectivos, importándolos desde el calendario escolar oficial.</p></div>
+  <div class="text"><p>Actualizar las materias y sus docentes (importación desde Séneca).</p></div>
 </div>
 
 <div class="step">
   <span class="num">4</span>
+  <div class="text"><p>Definir los días no lectivos, importándolos desde el calendario escolar oficial.</p></div>
+</div>
+
+<div class="step">
+  <span class="num">5</span>
   <div class="text"><p>Asignar los perfiles de responsable de calidad y auditor/a interno/a.</p></div>
 </div>
 
@@ -39,8 +44,8 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 <div class="nota">
   <p>Con los ficheros de Séneca a mano, todo el proceso lleva pocos minutos y se repite una vez
   al año, al abrir cada curso nuevo. <strong>Centro educativo › Cursos académicos › Preparar el
-  nuevo curso</strong> guía estos pasos y marca los que ya están hechos; allí también se pueden
-  copiar los docentes del curso anterior. Detalle completo en el capítulo «Preparar el curso
+  nuevo curso</strong> guía los pasos 1, 2, 4 y 5 y marca los que ya están hechos; allí también se
+  pueden copiar los docentes del curso anterior. Detalle completo en el capítulo «Preparar el curso
   académico» del manual.</p>
 </div>
 
@@ -90,7 +95,41 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 
 <p class="kicker">ÁTICA Calidad · Ficha rápida · Equipo directivo</p>
 
-# 3. Definir los días no lectivos
+# 3. Actualizar las materias y sus docentes
+
+<div class="steps sin-capturas">
+
+<div class="step">
+  <span class="num">1</span>
+  <div class="text">
+    <p>Desde <strong>Responsabilidades › Catálogo del centro › Importar materias desde
+    Séneca</strong>, sube el CSV de Séneca (perfil de Dirección: <strong>Personal › Personal del
+    centro › Materias y grupos › Unidad: Cualquiera › Exportar datos</strong>) con el mismo nombre de
+    raíz que el curso pasado.</p>
+  </div>
+</div>
+
+<div class="step">
+  <span class="num">2</span>
+  <div class="text">
+    <p>Deja marcada <strong>Asociar también los docentes</strong>: cada materia de cada grupo queda
+    con los docentes que le da el fichero. La previsualización dice quién entra y quién sale, y qué
+    nombres no encuentra en el curso; las asociaciones con perfiles no se tocan.</p>
+  </div>
+</div>
+
+</div>
+
+<div class="nota">
+  <p>Hazlo <strong>después de añadir el profesorado</strong>: los nombres se buscan entre los docentes
+  del curso activo.</p>
+</div>
+
+---
+
+<p class="kicker">ÁTICA Calidad · Ficha rápida · Equipo directivo</p>
+
+# 4. Definir los días no lectivos
 
 <div class="steps sin-capturas">
 
@@ -121,7 +160,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 
 <p class="kicker">ÁTICA Calidad · Ficha rápida · Equipo directivo</p>
 
-# 4. Asignar los perfiles de calidad
+# 5. Asignar los perfiles de calidad
 
 <div class="steps sin-capturas">
 
@@ -148,7 +187,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
   <span class="num">✓</span>
   <div class="text">
     <p>Con los pasos anteriores, el curso <strong>2026-2027</strong> queda activo, con su
-    profesorado, días no lectivos y perfiles de calidad asignados.</p>
+    profesorado, las materias con sus docentes, días no lectivos y perfiles de calidad asignados.</p>
   </div>
 </div>
 
