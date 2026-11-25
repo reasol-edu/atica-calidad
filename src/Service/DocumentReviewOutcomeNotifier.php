@@ -107,6 +107,18 @@ final class DocumentReviewOutcomeNotifier
      */
     public function recipientsFor(Folder $folder, DocumentRevision $revision): array
     {
+        // Whoever took the decision is not told about it (the head who delivers and approves her own document, among others).
+        $decidedBy = $revision->getReviewedBy();
+
+        return array_values(array_filter(
+            $this->candidatesFor($folder, $revision),
+            static fn (Teacher $teacher): bool => $decidedBy === null || !$teacher->getId()->equals($decidedBy->getId()),
+        ));
+    }
+
+    /** @return list<Teacher> */
+    private function candidatesFor(Folder $folder, DocumentRevision $revision): array
+    {
         $activity = $folder->getActivity();
         if ($activity !== null && $activity->getSubmissionScope() === ActivitySubmissionScope::Individual) {
             return [$revision->getUploadedBy()];

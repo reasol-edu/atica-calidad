@@ -451,8 +451,14 @@ export default class extends Controller {
                 if (!hasList(v)) {
                     step.scope = 'any';
                 }
-                this.changed(step.key);
-            }, this.l.step_profile), 'basis-48'),
+                // Only this tab is redrawn (to show or hide «Quién decide»), and the focus stays on the profile being chosen. After the
+                // event: the search box that fired it is one of those replaced.
+                setTimeout(() => {
+                    this.redrawApproval();
+                    this.approvalTarget.querySelectorAll('select[data-step-profile]')[i]?.tomselect?.focus();
+                }, 0);
+                this.touch();
+            }, this.l.step_profile, { 'data-step-profile': '' }), 'basis-48'),
             // Who of those decides: anyone with the profile (as always), or only the subprofile associated with the document's element.
             hasList(step.profile) ? this.labelled(this.l.step_scope, this.select(step.scope === 'element' ? 'element' : 'any', [['any', this.l.step_scope_any], ['element', this.l.step_scope_element]], (v) => { step.scope = v; this.touch(); }, this.l.step_scope), 'basis-56') : null,
             h('div', { class: 'flex items-center gap-1 pb-0.5' }, [
@@ -640,9 +646,9 @@ export default class extends Controller {
         ]);
     }
 
-    select(value, options, onchange, ariaLabel) {
+    select(value, options, onchange, ariaLabel, attrs = {}) {
         // Every drop-down is a box you can type in to filter (see enhanceSelects(), once the page is drawn).
-        const select = h('select', { class: 'w-full min-w-[8rem]', 'aria-label': ariaLabel, onchange: (e) => onchange(e.target.value) },
+        const select = h('select', { ...attrs, class: 'w-full min-w-[8rem]', 'aria-label': ariaLabel, onchange: (e) => onchange(e.target.value) },
             options.map(([v, t]) => h('option', { value: v, text: t, selected: v === value })));
         this.pendingSelects.push(select);
 
@@ -657,6 +663,19 @@ export default class extends Controller {
             }
         }
         this.pendingSelects = [];
+    }
+
+    /** The approval tab alone drawn again, with its drop-downs (the old ones' search boxes destroyed, the new ones enhanced). */
+    redrawApproval() {
+        this.tomSelects = this.tomSelects.filter((ts) => {
+            if (this.approvalTarget.contains(ts.input)) {
+                ts.destroy();
+                return false;
+            }
+            return true;
+        });
+        this.approvalTarget.replaceChildren(this.approvalEl());
+        this.enhanceSelects();
     }
 
     destroySelects() {

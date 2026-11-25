@@ -261,9 +261,15 @@ departamento), el paso ofrece **Quién decide**:
   [catálogo](06-responsabilidades.md). La programación de Programación la decide la jefatura de
   Informática; la de Matemáticas no la ve en su cola de revisión ni puede decidirla.
 
-Si el elemento de una entrega no está asociado a ningún subperfil del perfil del paso, el paso queda
-abierto a cualquiera con ese perfil, y la página del documento lo dice, para que la cadena no se quede
-sin nadie que la decida.
+También cuenta el subperfil que entrega el documento, si es del mismo perfil: una entrega de la fila
+«Jefe/a de Departamento Informática» la decide esa jefatura aunque su elemento no esté asociado a
+nada. Se mira cómo están las asociaciones en cada momento: si una materia pasa a otro departamento, su
+paso pendiente pasa con ella a la cola de la nueva jefatura.
+
+Si no hay ningún subperfil al que limitarse (el documento no es de un elemento del catálogo, o su
+elemento no está asociado a ningún subperfil del perfil del paso), el paso queda abierto a cualquiera
+con ese perfil, y la página del documento lo dice, para que la cadena no se quede sin nadie que la
+decida.
 
 Un caso habitual: la entrega de las programaciones de los módulos, que cada docente rellena (ver
 [docentes asociados](08-actividades.md)), con dos pasos: **Jefatura del departamento** (limitado al
@@ -273,7 +279,9 @@ elemento) y **Jefatura de estudios** (cualquiera con el perfil).
 (por ejemplo, la jefa de departamento entrega ella misma la programación de un módulo sin docente), ese
 paso se aprueba solo al entregar, con la nota «Entregado y aprobado por la misma persona.», y el
 documento pasa al siguiente. Gestionar la carpeta no cuenta: si la persona responsable de calidad
-entrega un documento, la cadena sigue entera.
+entrega un documento, la cadena sigue entera. Tampoco se aprueba solo un paso que ha quedado abierto
+a cualquiera con el perfil: ese lo tiene que decidir otra persona. Quien aprueba un documento no
+recibe el aviso de su propia aprobación.
 
 En un documento entregado, quien lo revisa puede **comentar partes concretas** (un campo, una tabla,
 una sección), responder y marcar los comentarios como resueltos, y ver **qué ha cambiado** respecto a la

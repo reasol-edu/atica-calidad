@@ -51,6 +51,8 @@ class FormApprovalStepRepository extends ServiceEntityRepository
         /** @var list<FormApprovalStep> $steps */
         $steps = $this->createQueryBuilder('s')
             ->join('s.revision', 'fr')->addSelect('fr')
+            // The submission too: a step limited to the element reads its slot key (FormApprovalChain::elementSubprofiles()).
+            ->join('fr.submission', 'sub')->addSelect('sub')
             ->join('fr.revision', 'r')->addSelect('r')
             ->join('r.document', 'd')->addSelect('d')
             ->join('d.folder', 'f')->addSelect('f')

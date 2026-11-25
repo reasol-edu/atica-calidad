@@ -49,12 +49,9 @@ final readonly class ActivitySubmissionSlot
      */
     public static function leafOf(string $key): ?string
     {
-        $parts = explode(':', $key);
-        if (count($parts) !== 4 || preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $parts[2]) !== 1) {
-            return null;
-        }
+        $parts = self::partsOf($key);
 
-        return $parts[2];
+        return $parts === null || $parts[2] === '' ? null : $parts[2];
     }
 
     /**
@@ -65,12 +62,32 @@ final readonly class ActivitySubmissionSlot
      */
     public static function deliveredBy(string $key): ?array
     {
-        $parts = explode(':', $key);
-        $uuid  = static fn (string $v): bool => preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $v) === 1;
-        if (count($parts) !== 4 || !$uuid($parts[0]) || ($parts[1] !== '' && !$uuid($parts[1]))) {
+        $parts = self::partsOf($key);
+        if ($parts === null || $parts[0] === '') {
             return null;
         }
 
         return ['profile' => $parts[0], 'subprofile' => $parts[1] === '' ? null : $parts[1]];
+    }
+
+    /**
+     * The four parts of a key (see key()) — profile, subprofile, element, teacher — each a UUID or empty; null for anything else. The one
+     * place that reads the format back, for deliveredBy() and leafOf().
+     *
+     * @return array{0: string, 1: string, 2: string, 3: string}|null
+     */
+    private static function partsOf(string $key): ?array
+    {
+        $parts = explode(':', $key);
+        if (count($parts) !== 4) {
+            return null;
+        }
+        foreach ($parts as $part) {
+            if ($part !== '' && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $part) !== 1) {
+                return null;
+            }
+        }
+
+        return [$parts[0], $parts[1], $parts[2], $parts[3]];
     }
 }

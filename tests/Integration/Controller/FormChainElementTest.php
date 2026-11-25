@@ -219,21 +219,48 @@ final class FormChainElementTest extends ControllerTestCase
         self::assertTrue($this->em->getRepository(DocumentRevision::class)->find($rev)?->isPendingReview(), 'one step is not the revision');
     }
 
-    public function testAnElementWithNoSubprofileOfTheProfileLeavesTheStepToAnyoneWithIt(): void
+    public function testTheSubprofileThatDeliversStillLimitsTheStepWhenTheElementLosesItsAssociation(): void
     {
         $rev = $this->deliver($this->quality);
 
-        // The element loses its association after the delivery: the step would have nobody, so anyone with the profile decides it.
         $this->em->clear();
         $programacion = $this->em->getRepository(ListItem::class)->find($this->programacion->getId());
         self::assertNotNull($programacion);
         $programacion->setAssociation(null);
         $this->em->flush();
 
+        // The slot is still delivered by «Jefe/a de Departamento Informática»: that is who decides, not any head.
+        self::assertSame(403, $this->decide($this->pablo, $rev)->getStatusCode());
+        self::assertTrue($this->decide($this->claudia, $rev)->isRedirect());
+        self::assertSame(['approved', 'pending'], $this->states($rev));
+    }
+
+    public function testAStepWithNobodyToBeLimitedToIsOpenToTheProfileAndSaysSo(): void
+    {
+        $rev = $this->deliver($this->quality);
+
+        // A step of another list profile that neither the element nor the slot belongs to: open to anyone with it.
+        $this->em->clear();
+        $departamento = $this->em->getRepository(ListItem::class)->findOneBy(['name' => 'Departamento']);
+        $matematicas  = $this->em->getRepository(ListItem::class)->findOneBy(['name' => 'Matemáticas']);
+        $centre       = $this->em->getRepository(EducationalCentre::class)->find($this->centre->getId());
+        $pablo        = $this->em->getRepository(Teacher::class)->find($this->pablo->getId());
+        self::assertNotNull($departamento);
+        self::assertNotNull($matematicas);
+        self::assertNotNull($centre);
+        self::assertNotNull($pablo);
+        $coordination = (new SpecificProfile())->setEducationalCentre($centre)->setName('Coordinación de área')->setListItem($departamento);
+        $filled       = self::getContainer()->get(\App\Repository\FormSubmissionRevisionRepository::class)->findByRevisionId($rev);
+        self::assertNotNull($filled);
+        $step = new \App\Entity\FormApprovalStep($filled, 9, 'Coordinación', $coordination, \App\Entity\FormApprovalStepState::Pending, true);
+        $this->persist($coordination, new SpecificProfileAssignment($coordination, $matematicas, $pablo), $step);
+
+        $chain = self::getContainer()->get(\App\Service\Form\FormApprovalChain::class);
+        self::assertTrue($chain->isLimitedWithoutElement($step));
+        self::assertTrue($chain->holdsStepProfile($pablo, $step), 'anyone with the profile');
+
         $this->loginAs($this->pablo, $this->centre);
         $this->client->request('GET', "/formularios/revision/{$rev}");
         self::assertStringContainsString('puede decidir cualquiera con ese perfil', (string) $this->client->getResponse()->getContent());
-        self::assertTrue($this->decide($this->pablo, $rev)->isRedirect());
-        self::assertSame(['approved', 'pending'], $this->states($rev));
     }
 }

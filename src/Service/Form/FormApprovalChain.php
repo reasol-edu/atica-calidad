@@ -16,7 +16,10 @@ use App\Repository\FormApprovalStepRepository;
 use App\Repository\ListItemRepository;
 use App\Repository\SpecificProfileRepository;
 use App\Service\DocumentTreeAccessChecker;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Events;
+use Symfony\Contracts\Service\ResetInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
@@ -26,11 +29,15 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  * delivery. DocumentRevisionReviewer is the one entry point (the tree, the review queue and the bulk review all end up there), so no
  * screen can approve around the chain.
  */
-final class FormApprovalChain
+#[AsDoctrineListener(event: Events::postFlush)]
+final class FormApprovalChain implements ResetInterface
 {
     public const string NEXT          = 'next';
     public const string FINAL_APPROVE = 'final_approve';
     public const string FINAL_REJECT  = 'final_reject';
+
+    /** @var array<string, list<ListItem>|null> elementSubprofiles() per step id for this request */
+    private array $subprofilesMemo = [];
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -133,10 +140,13 @@ final class FormApprovalChain
     }
 
     /**
-     * For a step limited to the element: the subprofiles of the step's profile that the document's element is associated with — its
-     * own associations and those of its ancestors (ListItem::getEffectiveProfileAssociations()). Null when the step is not limited, or
-     * when the element has none with that profile (or the document has no element): then the step works as «anyone with the profile»
-     * (see isLimitedWithoutElement()), so a chain is never left with nobody to decide it.
+     * For a step limited to the element: the subprofiles of the step's profile that the delivery belongs to — those its element is
+     * associated with (own and inherited, ListItem::getEffectiveProfileAssociations()) and, when the slot is delivered by that same
+     * profile, the subprofile that delivers it (a slot with no element still has one). They are read as they stand now: if a subject is
+     * moved to another department, its pending step moves with it (whether the step is limited is what stays as it was at the start).
+     * Null when the step is not limited or none is found: then the step works as «anyone with the profile» (isLimitedWithoutElement()),
+     * so a chain is never left with nobody to decide it. Worked out once per step and request (the review queue asks for every pending
+     * step of the centre).
      *
      * @return list<ListItem>|null
      */
@@ -146,22 +156,46 @@ final class FormApprovalChain
         if (!$step->isElementScoped() || $profile === null) {
             return null;
         }
-        $leafId = ActivitySubmissionSlot::leafOf($step->getRevision()->getSubmission()->getSlotKey());
-        $centre = $step->getRevision()->getRevision()->getDocument()->getFolder()->getEducationalCentre();
-        $leaf   = $leafId === null ? null : $this->listItems->findByIdAndCentre($leafId, $centre);
-        if ($leaf === null) {
-            return null;
+        $memoKey = $step->getId()->toRfc4122();
+        if (\array_key_exists($memoKey, $this->subprofilesMemo)) {
+            return $this->subprofilesMemo[$memoKey];
         }
 
+        $slotKey     = $step->getRevision()->getSubmission()->getSlotKey();
+        $centre      = $step->getRevision()->getRevision()->getDocument()->getFolder()->getEducationalCentre();
         $subprofiles = [];
-        foreach ($leaf->getEffectiveProfileAssociations() as $association) {
+        $add         = static function (ListItem $subprofile) use (&$subprofiles): void {
+            $subprofiles[$subprofile->getId()->toRfc4122()] = $subprofile;
+        };
+
+        $leafId = ActivitySubmissionSlot::leafOf($slotKey);
+        $leaf   = $leafId === null ? null : $this->listItems->findByIdAndCentre($leafId, $centre);
+        foreach ($leaf?->getEffectiveProfileAssociations() ?? [] as $association) {
             $subprofile = $association->getSubprofile();
             if ($subprofile !== null && $association->getSpecificProfile()->getId()->equals($profile->getId())) {
-                $subprofiles[] = $subprofile;
+                $add($subprofile);
+            }
+        }
+        $deliveredBy = ActivitySubmissionSlot::deliveredBy($slotKey);
+        if ($deliveredBy !== null && $deliveredBy['profile'] === $profile->getId()->toRfc4122() && $deliveredBy['subprofile'] !== null) {
+            $own = $this->listItems->findByIdAndCentre($deliveredBy['subprofile'], $centre);
+            if ($own !== null) {
+                $add($own);
             }
         }
 
-        return $subprofiles === [] ? null : $subprofiles;
+        return $this->subprofilesMemo[$memoKey] = $subprofiles === [] ? null : array_values($subprofiles);
+    }
+
+    /** Any flush may change an element's associations or a step's state: the subprofiles are worked out again. */
+    public function postFlush(): void
+    {
+        $this->subprofilesMemo = [];
+    }
+
+    public function reset(): void
+    {
+        $this->subprofilesMemo = [];
     }
 
     /** A step limited to the element whose element has no subprofile of its profile: anyone with the profile decides it (said in Ver). */

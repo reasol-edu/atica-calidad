@@ -23,6 +23,7 @@ use App\Entity\EducationalCentre;
 use App\Service\DocumentReviewNotifier;
 use App\Service\DocumentRevisionReviewer;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Component\Clock\ClockInterface;
 
@@ -57,6 +58,7 @@ final class FormSubmissionService
         private readonly FormAttachmentService $attachments,
         private readonly DocumentRevisionReviewer $reviewer,
         private readonly TranslatorInterface $translator,
+        private readonly LoggerInterface $errors,
     ) {}
 
     /**
@@ -451,8 +453,21 @@ final class FormSubmissionService
     private function approveOwnSteps(DocumentRevision $revision, Teacher $by, EducationalCentre $centre): void
     {
         $note = $this->translator->trans('approval.self_approved', [], 'forms');
-        while (($step = $this->chain->currentStep($revision)) !== null && $this->chain->holdsStepProfile($by, $step)) {
-            $this->reviewer->approve($revision, $by, $note, $centre);
+        // A limited step whose element points at nobody is open to anyone with the profile so the chain is never stuck — but that is
+        // no reason for whoever delivered it to approve it: somebody else has to.
+        while (($step = $this->chain->currentStep($revision)) !== null
+            && !$this->chain->isLimitedWithoutElement($step)
+            && $this->chain->holdsStepProfile($by, $step)
+        ) {
+            try {
+                $this->reviewer->approve($revision, $by, $note, $centre);
+            } catch (\Throwable $e) {
+                // The delivery is already saved: a failure here leaves the step pending (to be decided by hand) instead of
+                // reporting a delivery that did happen as failed — which would invite a second one.
+                $this->errors->error('The step approved by delivering could not be decided.', ['exception' => $e, 'revision' => $revision->getId()->toRfc4122()]);
+
+                return;
+            }
         }
     }
 
