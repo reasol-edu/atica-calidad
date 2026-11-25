@@ -394,10 +394,14 @@
 
                     {# Own associations that an ancestor already gives: redundant, can be removed. #}
                     {% for own in sel.profileAssociations %}
-                        {% set ancestor = sel.getAncestorHaving(own) %}
-                        {% if ancestor %}
+                        {% set covering = sel.getAncestorCovering(own) %}
+                        {% if covering %}
                             <p class="mt-2 text-xs text-amber-700" data-testid="association-redundant">
-                                {{ 'responsibilities.lists.association.redundant'|trans({'%association%': own.specificProfile.name ~ (own.subprofile ? ' ' ~ own.subprofile.name : ''), '%name%': ancestor.name}, 'admin') }}
+                                {% if covering.exact %}
+                                    {{ 'responsibilities.lists.association.redundant'|trans({'%association%': own.label, '%name%': covering.item.name}, 'admin') }}
+                                {% else %}
+                                    {{ 'responsibilities.lists.association.covered'|trans({'%association%': own.label, '%covering%': covering.association.label, '%name%': covering.item.name}, 'admin') }}
+                                {% endif %}
                             </p>
                         {% endif %}
                     {% endfor %}
@@ -405,7 +409,7 @@
                     {# What it inherits as well, grouped by the element it comes from. #}
                     {% set inherited_groups = {} %}
                     {% for pair in sel.inheritedProfileAssociations %}
-                        {% set label = pair.association.specificProfile.name ~ (pair.association.subprofile ? ' ' ~ pair.association.subprofile.name : '') %}
+                        {% set label = pair.association.label %}
                         {% set gid = pair.item.id.toRfc4122 %}
                         {% set group = inherited_groups[gid] ?? {name: pair.item.name, labels: []} %}
                         {% set inherited_groups = inherited_groups|merge({(gid): {name: group.name, labels: group.labels|merge([label])}}) %}

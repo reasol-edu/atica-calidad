@@ -55,6 +55,37 @@ final class ListItemsInheritanceReportCommandTest extends RepositoryTestCase
         self::assertSame($before, $snapshot(), 'read-only');
     }
 
+    public function testListsEveryElementWhoseEffectiveSetChangesAndApartTheOwnOnesNowCovered(): void
+    {
+        $centre = (new EducationalCentre())->setCode('12345678')->setName('Centro')->setCity('Ciudad');
+        $x      = (new SpecificProfile())->setEducationalCentre($centre)->setName('PerfilX');
+        $y      = (new SpecificProfile())->setEducationalCentre($centre)->setName('PerfilY');
+        $a      = (new ListItem())->setEducationalCentre($centre)->setName('A');
+        $b      = (new ListItem())->setEducationalCentre($centre)->setName('B')->setParent($a);
+        $c      = (new ListItem())->setEducationalCentre($centre)->setName('C')->setParent($b);
+        $a->addProfileAssociation($x);
+        $b->addProfileAssociation($y);
+
+        // A profile with a list of its own: an intermediate subprofile covers the leaf under it.
+        $anchor = (new ListItem())->setEducationalCentre($centre)->setName('Departamentos');
+        $inter  = (new ListItem())->setEducationalCentre($centre)->setName('Área')->setParent($anchor);
+        $dept   = (new ListItem())->setEducationalCentre($centre)->setName('Informática')->setParent($inter);
+        $jefe   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($anchor);
+        $top    = (new ListItem())->setEducationalCentre($centre)->setName('Enseñanza');
+        $low    = (new ListItem())->setEducationalCentre($centre)->setName('DAW')->setParent($top);
+        $top->addProfileAssociation($jefe, $inter);
+        $low->addProfileAssociation($jefe, $dept);
+        $this->persist($centre, $x, $y, $a, $b, $c, $anchor, $inter, $dept, $jefe, $top, $low);
+
+        $output = $this->report()->getDisplay();
+
+        self::assertMatchesRegularExpression('/A › B › C\s+PerfilY\s+PerfilX \(A\)/', $output, 'C has no own associations but now also takes A\'s');
+        self::assertMatchesRegularExpression('/A › B\s+PerfilY\s+PerfilX \(A\)/', $output, 'B too');
+        self::assertStringContainsString('ahora queda cubierta', $output);
+        $covered = substr($output, (int) strpos($output, 'ahora queda cubierta'));
+        self::assertMatchesRegularExpression('/Enseñanza › DAW\s+Jefatura Informática\s+Jefatura Área \(Enseñanza\)/', $covered, 'the own association is covered by the broader inherited one');
+    }
+
     public function testCountsTheSubmissionsBeforeAndAfterTheAccumulation(): void
     {
         $centre   = (new EducationalCentre())->setCode('12345678')->setName('Centro')->setCity('Ciudad');

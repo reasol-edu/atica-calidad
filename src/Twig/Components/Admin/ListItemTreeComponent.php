@@ -1002,16 +1002,39 @@ class ListItemTreeComponent extends AbstractController
      */
     private function moveChangesProfiles(array $roots, ?ListItem $target): bool
     {
-        $targetInherited = $this->associationKeysOfChain($target);
-        $targetLists     = $this->profileListAncestors($target);
+        $targetKeys  = $this->associationKeysOfChain($target);
+        $targetLists = $this->profileListAncestors($target);
+        /** @var array<string, array<string, true>> $chains the chain of each current parent, computed once */
+        $chains = [];
 
         foreach ($roots as $root) {
-            if ($this->profileListAncestors($root->getParent()) !== $targetLists) {
+            $parent = $root->getParent();
+            if ($this->profileListAncestors($parent) !== $targetLists) {
                 return true;
             }
 
-            if ($this->associationKeysOfChain($root->getParent()) !== $targetInherited) {
-                return true;
+            $chain = $chains[$parent?->getId()->toRfc4122() ?? ''] ??= $this->associationKeysOfChain($parent);
+            $lost  = array_diff_key($chain, $targetKeys);
+            $gained = array_diff_key($targetKeys, $chain);
+            if ($lost === [] && $gained === []) {
+                continue;
+            }
+
+            // A node's own associations, and those of its ancestors inside the branch, are there
+            // before and after: only a node missing some of the keys that differ changes.
+            $differing = $lost + $gained;
+            $base      = [];
+            foreach ($this->items->findSubtree($root) as $node) {
+                $inherited = $node === $root ? [] : ($base[spl_object_id($node->getParent() ?? $node)] ?? []);
+                $mine      = $inherited;
+                foreach ($node->getProfileAssociations() as $association) {
+                    $mine[$association->getKey()] = true;
+                }
+                $base[spl_object_id($node)] = $mine;
+
+                if (array_diff_key($differing, $mine) !== []) {
+                    return true;
+                }
             }
         }
 
@@ -1019,20 +1042,19 @@ class ListItemTreeComponent extends AbstractController
     }
 
     /**
-     * The sorted (profile, subprofile) pairs of $item's and all its ancestors' associations: what
-     * a branch hung under $item inherits.
+     * The (profile, subprofile) keys of $item's and all its ancestors' associations: what a branch
+     * hung under $item inherits.
      *
-     * @return string[]
+     * @return array<string, true>
      */
     private function associationKeysOfChain(?ListItem $item): array
     {
         $keys = [];
         if ($item !== null) {
             foreach ($item->getEffectiveProfileAssociations() as $association) {
-                $keys[] = $association->getSpecificProfile()->getId()->toRfc4122().'|'.($association->getSubprofile()?->getId()->toRfc4122() ?? '');
+                $keys[$association->getKey()] = true;
             }
         }
-        sort($keys);
 
         return $keys;
     }

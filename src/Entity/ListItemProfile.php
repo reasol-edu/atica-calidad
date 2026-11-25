@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Model\ProfileAssignmentRow;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
@@ -58,6 +59,18 @@ class ListItemProfile
     public function getSpecificProfile(): SpecificProfile
     {
         return $this->specificProfile;
+    }
+
+    /** The (profile, subprofile) pair as a string, in the format used everywhere else (see ProfileAssignmentRow::keyFor()). */
+    public function getKey(): string
+    {
+        return ProfileAssignmentRow::keyFor($this->specificProfile, $this->subprofile);
+    }
+
+    /** Profile name followed by the subprofile's, when there is one («Jefe/a de Departamento Informática»). */
+    public function getLabel(): string
+    {
+        return $this->specificProfile->getName().($this->subprofile !== null ? ' '.$this->subprofile->getName() : '');
     }
 
     /** The subprofile (leaf, or intermediate node) of the profile's list — null for a plain profile. */

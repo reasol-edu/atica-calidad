@@ -710,6 +710,59 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertCount(0, $crawler->filter('[data-testid="association-redundant"]'));
     }
 
+    public function testThePanelSaysWhenAnOwnSubprofileIsCoveredByAnInheritedIntermediateOne(): void
+    {
+        $centre = $this->centre();
+        $anchor = (new ListItem())->setEducationalCentre($centre)->setName('Departamentos');
+        $area   = (new ListItem())->setEducationalCentre($centre)->setName('Área')->setParent($anchor);
+        $dept   = (new ListItem())->setEducationalCentre($centre)->setName('Informática')->setParent($area);
+        $jefe   = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura')->setListItem($anchor);
+        $root   = (new ListItem())->setEducationalCentre($centre)->setName('Raíz');
+        $root->addProfileAssociation($jefe, $area);
+        $leaf = (new ListItem())->setEducationalCentre($centre)->setName('Hoja')->setParent($root);
+        $leaf->addProfileAssociation($jefe, $dept);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $anchor, $area, $dept, $jefe, $root, $leaf, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('selectItem', ['id' => $leaf->getId()->toRfc4122()]);
+        $text = $component->render()->crawler()->filter('[data-testid="association-redundant"]')->text();
+
+        self::assertStringContainsString('Ya la cubre «Jefatura Área» de «Raíz»', $text);
+        self::assertStringContainsString('«Jefatura Informática» sobra', $text);
+    }
+
+    /** A branch whose nodes already have the associations that would change as their own: moving it asks nothing. */
+    public function testBulkMoveDoesNotAskWhenTheBranchAlreadyHasWhatItWouldInheritOrLose(): void
+    {
+        $centre = $this->centre();
+        $a      = (new SpecificProfile())->setEducationalCentre($centre)->setName('A');
+        $b      = (new SpecificProfile())->setEducationalCentre($centre)->setName('B');
+        $from   = (new ListItem())->setEducationalCentre($centre)->setName('Origen');
+        $from->addProfileAssociation($a);
+        $to = (new ListItem())->setEducationalCentre($centre)->setName('Destino');
+        $to->addProfileAssociation($b);
+        $branch = (new ListItem())->setEducationalCentre($centre)->setName('Rama')->setParent($from);
+        $branch->addProfileAssociation($a)->addProfileAssociation($b);
+        $admin = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $a, $b, $from, $to, $branch, $admin);
+        $branchId = $branch->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component->set('bulkSelectedIds', [$branchId])->set('bulkMoveTargetId', $to->getId()->toRfc4122())->call('bulkMoveSelected');
+
+        self::assertSame('', $this->props($component)['bulkMoveConfirmKey'], 'nothing changes for any node: no confirmation');
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        self::assertSame($to->getId()->toRfc4122(), $items->findByIdAndCentre($branchId, $centre)?->getParent()?->getId()->toRfc4122());
+    }
+
     public function testThePanelFlagsAnOwnAssociationThatIsAlreadyInherited(): void
     {
         $centre = $this->centre();

@@ -8,6 +8,7 @@ use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
 use App\Entity\SpecificProfile;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Uid\Uuid;
 
 final class ListItemTest extends TestCase
 {
@@ -16,9 +17,24 @@ final class ListItemTest extends TestCase
         return (new EducationalCentre())->setCode($code)->setName('Centro')->setCity('Ciudad');
     }
 
+    /** Unsaved entities have no id; the association keys are built from UUIDs, so give them one. */
     private function item(EducationalCentre $centre, string $name = 'Item'): ListItem
     {
-        return (new ListItem())->setEducationalCentre($centre)->setName($name);
+        $item = (new ListItem())->setEducationalCentre($centre)->setName($name);
+        (new \ReflectionProperty(ListItem::class, 'id'))->setValue($item, Uuid::v7());
+
+        return $item;
+    }
+
+    private function profile(EducationalCentre $centre, string $name, ?ListItem $anchor = null): SpecificProfile
+    {
+        $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName($name);
+        if ($anchor !== null) {
+            $profile->setListItem($anchor);
+        }
+        (new \ReflectionProperty(SpecificProfile::class, 'id'))->setValue($profile, Uuid::v7());
+
+        return $profile;
     }
 
     public function testSetParentRejectsCrossCentreAttachment(): void
@@ -159,7 +175,7 @@ final class ListItemTest extends TestCase
     public function testAnItemWithoutAssociationsInheritsTheOnesOfItsAncestors(): void
     {
         $centre  = $this->centre();
-        $a       = (new SpecificProfile())->setEducationalCentre($centre)->setName('A');
+        $a       = $this->profile($centre, 'A');
         $root    = $this->item($centre, 'Raíz');
         $mid     = $this->item($centre, 'Medio')->setParent($root);
         $leaf    = $this->item($centre, 'Hoja')->setParent($mid);
@@ -175,9 +191,9 @@ final class ListItemTest extends TestCase
     public function testAssociationsAccumulateDownTheBranchOwnOnesFirst(): void
     {
         $centre = $this->centre();
-        $a      = (new SpecificProfile())->setEducationalCentre($centre)->setName('A');
-        $b      = (new SpecificProfile())->setEducationalCentre($centre)->setName('B');
-        $c      = (new SpecificProfile())->setEducationalCentre($centre)->setName('C');
+        $a      = $this->profile($centre, 'A');
+        $b      = $this->profile($centre, 'B');
+        $c      = $this->profile($centre, 'C');
         $root   = $this->item($centre, 'Raíz');
         $mid    = $this->item($centre, 'Medio')->setParent($root);
         $leaf   = $this->item($centre, 'Hoja')->setParent($mid);
@@ -196,7 +212,7 @@ final class ListItemTest extends TestCase
     public function testAnOwnAssociationAlsoInheritedCountsOnceAndIsNotListedAsInherited(): void
     {
         $centre = $this->centre();
-        $a      = (new SpecificProfile())->setEducationalCentre($centre)->setName('A');
+        $a      = $this->profile($centre, 'A');
         $root   = $this->item($centre, 'Raíz');
         $leaf   = $this->item($centre, 'Hoja')->setParent($root);
         $root->addProfileAssociation($a);
@@ -206,13 +222,38 @@ final class ListItemTest extends TestCase
         self::assertSame($leaf, $leaf->getEffectiveProfileAssociations()->first()->getListItem(), 'the own one comes first');
         self::assertFalse($leaf->hasInheritedAssociation());
         self::assertSame([], $leaf->getInheritedProfileAssociations());
-        self::assertSame($root, $leaf->getAncestorHaving($leaf->getProfileAssociations()->first()));
+        $covering = $leaf->getAncestorCovering($leaf->getProfileAssociations()->first());
+        self::assertNotNull($covering);
+        self::assertSame($root, $covering['item']);
+        self::assertTrue($covering['exact']);
+    }
+
+    public function testAnOwnSubprofileUnderAnInheritedIntermediateOneIsCoveredNotExact(): void
+    {
+        $centre = $this->centre();
+        $anchor = $this->item($centre, 'Departamentos');
+        $area   = $this->item($centre, 'Área')->setParent($anchor);
+        $dept   = $this->item($centre, 'Informática')->setParent($area);
+        $other  = $this->item($centre, 'Lengua')->setParent($anchor);
+        $jefe   = $this->profile($centre, 'Jefatura', $anchor);
+        $root   = $this->item($centre, 'Raíz');
+        $leaf   = $this->item($centre, 'Hoja')->setParent($root);
+        $root->addProfileAssociation($jefe, $area);
+        $leaf->addProfileAssociation($jefe, $dept);
+        $leaf->addProfileAssociation($jefe, $other);
+
+        $covering = $leaf->getAncestorCovering($leaf->getProfileAssociations()->first());
+        self::assertNotNull($covering);
+        self::assertFalse($covering['exact']);
+        self::assertSame($root, $covering['item']);
+        self::assertSame('Jefatura Área', $covering['association']->getLabel());
+        self::assertNull($leaf->getAncestorCovering($leaf->getProfileAssociations()->last()), 'another department is not covered');
     }
 
     public function testTheSamePairInTwoAncestorsIsListedOnceFromTheClosest(): void
     {
         $centre = $this->centre();
-        $a      = (new SpecificProfile())->setEducationalCentre($centre)->setName('A');
+        $a      = $this->profile($centre, 'A');
         $root   = $this->item($centre, 'Raíz');
         $mid    = $this->item($centre, 'Medio')->setParent($root);
         $leaf   = $this->item($centre, 'Hoja')->setParent($mid);

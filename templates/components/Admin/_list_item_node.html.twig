@@ -28,13 +28,14 @@
                 {{ ux_icon('heroicons:eye-slash', {class: 'h-3.5 w-3.5'}) }}
             </span>
         {% endif %}
+        {% set inherited = item.associated ? [] : item.inheritedProfileAssociations %}
         {% if item.associated %}
             <span title="{{ 'responsibilities.lists.association.title'|trans({}, 'admin') }}" class="shrink-0 text-violet-400">
                 {{ ux_icon('heroicons:link', {class: 'h-3.5 w-3.5'}) }}
             </span>
-        {% elseif item.hasInheritedAssociation %}
+        {% elseif inherited is not empty %}
             {% set inherited_names = [] %}
-            {% for pair in item.inheritedProfileAssociations %}
+            {% for pair in inherited %}
                 {% if pair.item.name not in inherited_names %}{% set inherited_names = inherited_names|merge([pair.item.name]) %}{% endif %}
             {% endfor %}
             <span title="{{ 'responsibilities.lists.association.inherited_icon'|trans({'%name%': inherited_names|join('», «')}, 'admin') }}" class="shrink-0 text-violet-200">

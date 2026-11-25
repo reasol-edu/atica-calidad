@@ -224,7 +224,7 @@ class ListItem
         $keys   = [];
         foreach ($this->selfAndAncestors() as $node) {
             foreach ($node->getProfileAssociations() as $association) {
-                $key = self::associationKey($association);
+                $key = $association->getKey();
                 if (!isset($keys[$key])) {
                     $keys[$key] = true;
                     $result[]   = $association;
@@ -246,7 +246,7 @@ class ListItem
     {
         $keys = [];
         foreach ($this->profileAssociations as $association) {
-            $keys[self::associationKey($association)] = true;
+            $keys[$association->getKey()] = true;
         }
 
         $result = [];
@@ -255,7 +255,7 @@ class ListItem
                 continue;
             }
             foreach ($node->getProfileAssociations() as $association) {
-                $key = self::associationKey($association);
+                $key = $association->getKey();
                 if (!isset($keys[$key])) {
                     $keys[$key] = true;
                     $result[]   = ['item' => $node, 'association' => $association];
@@ -266,17 +266,36 @@ class ListItem
         return $result;
     }
 
-    /** The closest ancestor that also has the same (profile, subprofile) as this item's own association: it is redundant. */
-    public function getAncestorHaving(ListItemProfile $own): ?self
+    /**
+     * The closest ancestor association that makes $own (one of this item's own) redundant: the same
+     * (profile, subprofile) pair — `exact` — or the same profile with an intermediate subprofile
+     * that covers $own's (its subprofile is that node or hangs from it in the profile's list), which
+     * is a broader association: then the own one only narrows nothing and can go.
+     *
+     * @return array{item: self, association: ListItemProfile, exact: bool}|null
+     */
+    public function getAncestorCovering(ListItemProfile $own): ?array
     {
-        $key = self::associationKey($own);
+        $ownKey       = $own->getKey();
+        $ownSub       = $own->getSubprofile();
+        $ownSubChain  = [];
+        $seen         = [];
+        for ($n = $ownSub; $n !== null && !isset($seen[spl_object_id($n)]); $n = $n->parent) {
+            $seen[spl_object_id($n)] = true;
+            $ownSubChain[$n->getId()->toRfc4122()] = true;
+        }
+
         foreach ($this->selfAndAncestors() as $node) {
             if ($node === $this) {
                 continue;
             }
             foreach ($node->getProfileAssociations() as $association) {
-                if (self::associationKey($association) === $key) {
-                    return $node;
+                if ($association->getKey() === $ownKey) {
+                    return ['item' => $node, 'association' => $association, 'exact' => true];
+                }
+                $sub = $association->getSubprofile();
+                if ($sub !== null && $ownSub !== null && $association->getSpecificProfile() === $own->getSpecificProfile() && isset($ownSubChain[$sub->getId()->toRfc4122()])) {
+                    return ['item' => $node, 'association' => $association, 'exact' => false];
                 }
             }
         }
@@ -287,7 +306,22 @@ class ListItem
     /** True when this item inherits some association from an ancestor that it does not have as its own. */
     public function hasInheritedAssociation(): bool
     {
-        return $this->getInheritedProfileAssociations() !== [];
+        $own = [];
+        foreach ($this->profileAssociations as $association) {
+            $own[$association->getKey()] = true;
+        }
+        foreach ($this->selfAndAncestors() as $node) {
+            if ($node === $this) {
+                continue;
+            }
+            foreach ($node->getProfileAssociations() as $association) {
+                if (!isset($own[$association->getKey()])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -305,11 +339,6 @@ class ListItem
         }
 
         return $nodes;
-    }
-
-    private static function associationKey(ListItemProfile $association): string
-    {
-        return spl_object_id($association->getSpecificProfile()).'|'.($association->getSubprofile() === null ? '' : (string) spl_object_id($association->getSubprofile()));
     }
 
     public function isLeaf(): bool

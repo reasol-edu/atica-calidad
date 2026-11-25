@@ -20,10 +20,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Read-only. Before updating to the version where the associations of the catalogue accumulate down
- * a branch (an element has its own plus those of all its ancestors, instead of only its own), says
- * which elements are affected and how many submissions each activity that works on a list element
- * has today and will have afterwards. It never writes anything.
+ * Read-only. Run it right after updating to the version where the associations of the catalogue
+ * accumulate down a branch (an element has its own plus those of all its ancestors, instead of only
+ * its own), and before any submission is generated from the new rule. It computes the former rule
+ * apart and says which elements now have more associations, which own associations are now covered
+ * by a broader inherited one, and how many submissions each activity that works on a list element
+ * had and has now. It never writes anything.
  */
 #[AsCommand(name: 'app:list-items:inheritance-report')]
 class ListItemsInheritanceReportCommand extends Command
@@ -52,28 +54,45 @@ class ListItemsInheritanceReportCommand extends Command
         foreach ($this->centres->findAllOrderedByName() as $centre) {
             $io->section($centre->getName());
 
-            $affected = [];
+            // Every element whose effective associations differ between the former rule and the new one,
+            // and apart those with an own association that used to narrow what they inherit and is now covered.
+            $changed = [];
+            $covered = [];
             foreach ($this->listItems->findAllByCentre($centre) as $item) {
-                if ($item->isAssociated() && $item->hasInheritedAssociation()) {
-                    $affected[] = $item;
+                $before = $this->formerAssociations($item);
+                $known  = [];
+                foreach ($before as $association) {
+                    $known[$association->getKey()] = true;
+                }
+                $added = [];
+                foreach ($item->getEffectiveProfileAssociations() as $association) {
+                    if (!isset($known[$association->getKey()])) {
+                        $added[] = $association->getLabel().' ('.$association->getListItem()->getName().')';
+                    }
+                }
+                if ($added !== []) {
+                    $changed[] = [$this->path($item), implode(', ', array_map(static fn (ListItemProfile $a): string => $a->getLabel(), $before)), implode(', ', $added)];
+                }
+
+                foreach ($item->getProfileAssociations() as $own) {
+                    $covering = $item->getAncestorCovering($own);
+                    if ($covering !== null && !$covering['exact']) {
+                        $covered[] = [$this->path($item), $own->getLabel(), $covering['association']->getLabel().' ('.$covering['item']->getName().')'];
+                    }
                 }
             }
+            usort($changed, static fn (array $a, array $b): int => strnatcasecmp($a[0], $b[0]));
+            usort($covered, static fn (array $a, array $b): int => strnatcasecmp($a[0], $b[0]));
 
-            if ($affected === []) {
+            if ($changed === []) {
                 $io->writeln($t('inheritance_report.no_items'));
             } else {
                 $io->writeln($t('inheritance_report.items_title'));
-                $rows = [];
-                foreach ($affected as $item) {
-                    $own = array_map($this->label(...), $item->getProfileAssociations()->getValues());
-                    $new = [];
-                    foreach ($item->getInheritedProfileAssociations() as $pair) {
-                        $new[] = $this->label($pair['association']).' ('.$pair['item']->getName().')';
-                    }
-                    $rows[] = [$this->path($item), implode(', ', $own), implode(', ', $new)];
-                }
-                usort($rows, static fn (array $a, array $b): int => strnatcasecmp($a[0], $b[0]));
-                $io->table([$t('inheritance_report.col.item'), $t('inheritance_report.col.own'), $t('inheritance_report.col.now_inherited')], $rows);
+                $io->table([$t('inheritance_report.col.item'), $t('inheritance_report.col.former'), $t('inheritance_report.col.added')], $changed);
+            }
+            if ($covered !== []) {
+                $io->writeln($t('inheritance_report.covered_title'));
+                $io->table([$t('inheritance_report.col.item'), $t('inheritance_report.col.own'), $t('inheritance_report.col.covered_by')], $covered);
             }
 
             $activityRows = [];
@@ -142,11 +161,6 @@ class ListItemsInheritanceReportCommand extends Command
         }
 
         return [];
-    }
-
-    private function label(ListItemProfile $association): string
-    {
-        return $association->getSpecificProfile()->getName().($association->getSubprofile() !== null ? ' '.$association->getSubprofile()->getName() : '');
     }
 
     private function path(ListItem $item): string
