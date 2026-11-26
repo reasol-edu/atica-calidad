@@ -6,12 +6,12 @@ namespace App\Command;
 
 use App\Entity\Activity;
 use App\Entity\ListItem;
-use App\Entity\ListItemProfile;
+use App\Model\ListItemAssociation;
 use App\Repository\ActivityRepository;
 use App\Repository\EducationalCentreRepository;
 use App\Repository\ListItemRepository;
-use App\Service\ActivitySubmissionSlotBuilder;
 use App\Service\DocumentTreeAccessChecker;
+use App\Service\ListItemOwners;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -34,7 +34,7 @@ class ListItemsInheritanceReportCommand extends Command
         private readonly EducationalCentreRepository $centres,
         private readonly ListItemRepository $listItems,
         private readonly ActivityRepository $activities,
-        private readonly ActivitySubmissionSlotBuilder $slotBuilder,
+        private readonly ListItemOwners $owners,
         private readonly DocumentTreeAccessChecker $access,
         private readonly TranslatorInterface $translator,
     ) {
@@ -62,22 +62,22 @@ class ListItemsInheritanceReportCommand extends Command
                 $before = $this->formerAssociations($item);
                 $known  = [];
                 foreach ($before as $association) {
-                    $known[$association->getKey()] = true;
+                    $known[$association->key()] = true;
                 }
                 $added = [];
-                foreach ($item->getEffectiveProfileAssociations() as $association) {
-                    if (!isset($known[$association->getKey()])) {
-                        $added[] = $association->getLabel().' ('.$association->getListItem()->getName().')';
+                foreach ($item->getInheritedAssociations() as $pair) {
+                    if (!isset($known[$pair['association']->key()])) {
+                        $added[] = $pair['association']->label().' ('.$pair['item']->getName().')';
                     }
                 }
                 if ($added !== []) {
-                    $changed[] = [$this->path($item), implode(', ', array_map(static fn (ListItemProfile $a): string => $a->getLabel(), $before)), implode(', ', $added)];
+                    $changed[] = [$this->path($item), implode(', ', array_map(static fn (ListItemAssociation $a): string => $a->label(), $before)), implode(', ', $added)];
                 }
 
-                foreach ($item->getProfileAssociations() as $own) {
+                foreach ($item->getAssociations() as $own) {
                     $covering = $item->getAncestorCovering($own);
                     if ($covering !== null && !$covering['exact']) {
-                        $covered[] = [$this->path($item), $own->getLabel(), $covering['association']->getLabel().' ('.$covering['item']->getName().')'];
+                        $covered[] = [$this->path($item), $own->label(), $covering['association']->label().' ('.$covering['item']->getName().')'];
                     }
                 }
             }
@@ -137,8 +137,8 @@ class ListItemsInheritanceReportCommand extends Command
         $before     = 0;
         $after      = 0;
         foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
-            $before += count($this->slotBuilder->uploadRowsForAssociations($this->formerAssociations($leaf), $uploadRows));
-            $after  += count($this->slotBuilder->uploadRowsForAssociations($leaf->getEffectiveProfileAssociations()->getValues(), $uploadRows));
+            $before += count($this->owners->forAssociations($this->formerAssociations($leaf), $uploadRows));
+            $after  += count($this->owners->ownersOf($leaf, $uploadRows));
         }
 
         return ['title' => $activity->getTitle(), 'before' => $before, 'after' => $after];
@@ -148,7 +148,7 @@ class ListItemsInheritanceReportCommand extends Command
      * The former rule, calculated apart: the associations of the item itself or, with none, of its
      * closest ancestor that has some.
      *
-     * @return list<ListItemProfile>
+     * @return list<ListItemAssociation>
      */
     private function formerAssociations(ListItem $leaf): array
     {
@@ -156,7 +156,7 @@ class ListItemsInheritanceReportCommand extends Command
         for ($node = $leaf; $node !== null && !isset($seen[spl_object_id($node)]); $node = $node->getParent()) {
             $seen[spl_object_id($node)] = true;
             if ($node->isAssociated()) {
-                return $node->getProfileAssociations()->getValues();
+                return $node->getAssociations();
             }
         }
 

@@ -63,9 +63,10 @@ final class ProfileAssociationSelfReferenceTest extends RepositoryTestCase
         $items = self::getContainer()->get(ListItemRepository::class);
 
         // The inherited associations of a leaf accumulate from all its ancestors...
-        self::assertSame([$fp, $dept], array_map(static fn (array $p): ListItem => $p['item'], $infor->getInheritedProfileAssociations()));
+        self::assertSame([$fp, $dept], array_map(static fn (array $p): ListItem => $p['item'], $infor->getInheritedAssociations()));
         // ...and an item reaching its own root through them still stops there.
-        self::assertSame([$dept], array_map(static fn (array $p): ListItem => $p['item'], $mates->getInheritedProfileAssociations()));
+        self::assertSame([$dept], array_map(static fn (array $p): ListItem => $p['item'], $mates->getInheritedAssociations()));
+        self::assertSame([$dept], $dept->getLinkedLists(), 'a list associated with itself');
         self::assertCount(2, $items->findLeafDescendants($fp));
         self::assertCount(3, $items->findLeafDescendants($dept));
         self::assertSame([$infor->getId()->toRfc4122(), $fp->getId()->toRfc4122(), $dept->getId()->toRfc4122()], $items->findSelfAndAncestorIds($infor));
@@ -141,8 +142,8 @@ final class ProfileAssociationSelfReferenceTest extends RepositoryTestCase
         self::assertNull($items->findByIdAndCentre($ids['infor'], $centre));
         $reloadedOutside = $items->findByIdAndCentre($ids['outside'], $centre);
         self::assertNotNull($reloadedOutside, 'the element outside the branch stays');
-        self::assertCount(0, $reloadedOutside->getProfileAssociations(), 'its association to a deleted subprofile goes with it');
-        $left = $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM list_item_profile');
+        self::assertSame([], $reloadedOutside->getLinks(), 'its association to a deleted subprofile goes with it');
+        $left = $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM list_item_link');
         self::assertSame(1, (int) $left, 'only the root\'s own association remains');
         unset($dept, $mates);
     }
@@ -164,7 +165,8 @@ final class ProfileAssociationSelfReferenceTest extends RepositoryTestCase
         $loaded = $items->findByIdAndCentre($a->getId()->toRfc4122(), $centre);
         self::assertNotNull($loaded);
 
-        self::assertCount(0, $loaded->getEffectiveProfileAssociations());
+        self::assertCount(0, $loaded->getEffectiveAssociations());
+        self::assertNotNull($loaded->getRoot());
         self::assertContains($a->getId()->toRfc4122(), $items->findSelfAndAncestorIds($loaded));
         self::assertNotNull($items->findLeafDescendants($loaded));
         self::assertNotNull($items->findSubtree($loaded));

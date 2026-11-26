@@ -272,7 +272,7 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         $this->loginAs($admin, $centre);
         $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
         $component->call('selectItem', ['id' => $itemId]);
-        $component->set('associationKeys', [$profile->getId()->toRfc4122()])->call('saveAssociation');
+        $component->set('associationKeys', ['p:' . $profile->getId()->toRfc4122()])->call('saveAssociation');
 
         $this->em->clear();
         /** @var ListItemRepository $items */
@@ -299,8 +299,8 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         $this->loginAs($admin, $centre);
         $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
         $component->call('selectItem', ['id' => $itemId]);
-        self::assertSame([$a->getId()->toRfc4122()], $this->props($component)['associationKeys'], 'the panel opens with the item\'s own associations');
-        $component->set('associationKeys', [$b->getId()->toRfc4122(), $c->getId()->toRfc4122()])->call('saveAssociation');
+        self::assertSame(['p:' . $a->getId()->toRfc4122()], $this->props($component)['associationKeys'], 'the panel opens with the item\'s own associations');
+        $component->set('associationKeys', ['p:' . $b->getId()->toRfc4122(), 'p:' . $c->getId()->toRfc4122()])->call('saveAssociation');
 
         $this->em->clear();
         /** @var ListItemRepository $items */
@@ -313,7 +313,7 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertSame(['B', 'C'], $names);
     }
 
-    public function testAnElementCanBeAssociatedWithAnIntermediateNodeOfAProfilesListButNotWithTheWholeProfile(): void
+    public function testAnElementIsAssociatedWithElementsOfTheListsItsListDeclaresNotWithAProfileThatHasAList(): void
     {
         $centre = $this->centre();
         $root   = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
@@ -330,17 +330,124 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
         $component->call('selectItem', ['id' => $itemId]);
 
-        $component->set('associationKeys', [$jefe->getId()->toRfc4122()])->call('saveAssociation');
+        // «Departamento» is not associated with this list yet: an element of it is not an option.
+        $component->set('associationKeys', ['l:' . $fp->getId()->toRfc4122(), 'p:' . $jefe->getId()->toRfc4122()])->call('saveAssociation');
         $this->em->clear();
         /** @var ListItemRepository $items */
         $items = self::getContainer()->get(ListItemRepository::class);
-        self::assertFalse($items->findByIdAndCentre($itemId, $centre)?->isAssociated(), 'the whole "(todos)" of a list-associated profile is not a valid association');
+        self::assertFalse($items->findByIdAndCentre($itemId, $centre)?->isAssociated(), 'neither an undeclared list nor a profile that has a list');
 
-        $component->set('associationKeys', [$jefe->getId()->toRfc4122() . ':' . $fp->getId()->toRfc4122()])->call('saveAssociation');
+        $component->set('linkedListIds', [$root->getId()->toRfc4122()])->call('saveLinkedLists');
+        $component->set('associationKeys', ['l:' . $fp->getId()->toRfc4122()])->call('saveAssociation');
         $this->em->clear();
         $reloaded = $items->findByIdAndCentre($itemId, $centre);
         self::assertNotNull($reloaded);
-        self::assertSame($fp->getId()->toRfc4122(), $reloaded->getProfileAssociations()->first()->getSubprofile()?->getId()->toRfc4122());
+        self::assertSame([$fp->getId()->toRfc4122()], array_map(static fn (ListItem $l): string => $l->getId()->toRfc4122(), $reloaded->getLinks()), 'an intermediate node');
+        self::assertStringContainsString('FP › Informática', $component->render()->toString(), 'the options are the nodes of the associated list, with their path');
+    }
+
+    public function testTakingAwayAnAssociatedListAsksFirstAndThenRemovesItsAssociations(): void
+    {
+        $centre   = $this->centre();
+        $depts    = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+        $infor    = (new ListItem())->setEducationalCentre($centre)->setName('Informática')->setParent($depts);
+        $subjects = (new ListItem())->setEducationalCentre($centre)->setName('Materia')->addLinkedList($depts);
+        $subject  = (new ListItem())->setEducationalCentre($centre)->setName('Programación')->setParent($subjects)->addLink($infor);
+        $admin    = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $depts, $infor, $subjects, $subject, $admin);
+        $subjectId = $subject->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre, 'root' => $subjects], $this->client);
+        $component->call('selectItem', ['id' => $subjects->getId()->toRfc4122()]);
+        self::assertSame([$depts->getId()->toRfc4122()], $this->props($component)['linkedListIds']);
+
+        $component->set('linkedListIds', [])->call('saveLinkedLists');
+        self::assertSame(1, $this->props($component)['linkedListsConfirmCount'], 'one association would go: it asks');
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        self::assertCount(1, $items->findByIdAndCentre($subjectId, $centre)?->getLinks() ?? []);
+
+        $component->call('saveLinkedLists');
+        $this->em->clear();
+        $items->reset();
+        self::assertSame([], $items->findByIdAndCentre($subjectId, $centre)?->getLinks());
+        self::assertSame([], $items->findByIdAndCentre($subjects->getId()->toRfc4122(), $centre)?->getLinkedLists());
+    }
+
+    public function testMarkByNameChecksEveryLeafWithThatNameUnderTheBranchAndTheCounterFiltersTheMissingOnes(): void
+    {
+        $centre   = $this->centre();
+        $depts    = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+        $fol      = (new ListItem())->setEducationalCentre($centre)->setName('FOL')->setParent($depts);
+        $subjects = (new ListItem())->setEducationalCentre($centre)->setName('Materia')->addLinkedList($depts);
+        $dam      = (new ListItem())->setEducationalCentre($centre)->setName('1º DAM')->setParent($subjects);
+        $daw      = (new ListItem())->setEducationalCentre($centre)->setName('1º DAW')->setParent($subjects);
+        $ipeDam   = (new ListItem())->setEducationalCentre($centre)->setName('Itinerario Personal para la Empleabilidad I')->setParent($dam);
+        $ipeDaw   = (new ListItem())->setEducationalCentre($centre)->setName('itinerario personal para la empleabilidad i')->setParent($daw);
+        $prog     = (new ListItem())->setEducationalCentre($centre)->setName('Programación')->setParent($dam);
+        $admin    = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $depts, $fol, $subjects, $dam, $daw, $ipeDam, $ipeDaw, $prog, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre, 'root' => $subjects], $this->client);
+        self::assertStringContainsString('3 sin Departamento', $component->render()->toString());
+
+        $component->call('toggleBulkSelectMode');
+        $component->set('markName', 'Itinerario Personal para la Empleabilidad I')->call('markByName');
+        $checked = $this->props($component)['bulkSelectedIds'];
+        self::assertIsArray($checked);
+        sort($checked);
+        $expected = [$ipeDam->getId()->toRfc4122(), $ipeDaw->getId()->toRfc4122()];
+        sort($expected);
+        self::assertSame($expected, $checked, 'case and accents aside, in every course');
+
+        $component->set('bulkAssociationKeys', ['l:' . $fol->getId()->toRfc4122()])->call('bulkSaveAssociation');
+        $html = $component->render()->toString();
+        self::assertStringContainsString('1 sin Departamento', $html, 'only «Programación» is left');
+
+        $component->call('toggleOnlyWithoutLink', ['listId' => $depts->getId()->toRfc4122()]);
+        $tree = implode('|', $component->render()->crawler()->filter('.js-list-item-node')->each(static fn ($node) => trim($node->text())));
+        self::assertStringContainsString('Programación', $tree);
+        self::assertStringNotContainsString('Itinerario Personal', $tree, 'the filter shows only what has no department');
+    }
+
+    public function testBulkReplaceChangesOnlyTheAssociationsOfTheSameList(): void
+    {
+        $centre   = $this->centre();
+        $depts    = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+        $infor    = (new ListItem())->setEducationalCentre($centre)->setName('Informática')->setParent($depts);
+        $fol      = (new ListItem())->setEducationalCentre($centre)->setName('FOL')->setParent($depts);
+        $evals    = (new ListItem())->setEducationalCentre($centre)->setName('Evaluación');
+        $first    = (new ListItem())->setEducationalCentre($centre)->setName('1ª')->setParent($evals);
+        $subjects = (new ListItem())->setEducationalCentre($centre)->setName('Materia')->addLinkedList($depts)->addLinkedList($evals);
+        $subject  = (new ListItem())->setEducationalCentre($centre)->setName('IPE')->setParent($subjects)->addLink($infor)->addLink($first);
+        $admin    = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $depts, $infor, $fol, $evals, $first, $subjects, $subject, $admin);
+        $subjectId = $subject->getId()->toRfc4122();
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre, 'root' => $subjects], $this->client);
+        $component->call('toggleBulkSelectMode');
+        $component->set('bulkSelectedIds', [$subjectId])->set('bulkAssociationMode', 'replace')
+            ->set('bulkAssociationKeys', ['l:' . $fol->getId()->toRfc4122()])->call('bulkSaveAssociation');
+
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        $names = array_map(static fn (ListItem $l): string => $l->getName(), $items->findByIdAndCentre($subjectId, $centre)?->getLinks() ?? []);
+        sort($names);
+        self::assertSame(['1ª', 'FOL'], $names, 'Informática is replaced, the evaluation stays');
+
+        $component->set('bulkSelectedIds', [$subjectId])->set('bulkAssociationMode', 'remove')
+            ->set('bulkAssociationKeys', ['l:' . $first->getId()->toRfc4122()])->call('bulkSaveAssociation');
+        $this->em->clear();
+        $items->reset();
+        self::assertSame(['FOL'], array_map(static fn (ListItem $l): string => $l->getName(), $items->findByIdAndCentre($subjectId, $centre)?->getLinks() ?? []));
     }
 
     public function testSaveAssociationWithAnEmptyKeyClearsIt(): void
@@ -405,7 +512,7 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         $component->call('toggleBulkSelectMode');
         $component
             ->set('bulkSelectedIds', [$idA, $idB])
-            ->set('bulkAssociationKeys', [$profile->getId()->toRfc4122()])
+            ->set('bulkAssociationKeys', ['p:' . $profile->getId()->toRfc4122()])
             ->call('bulkSaveAssociation');
 
         $this->em->clear();
@@ -438,7 +545,7 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         $this->loginAs($admin, $centre);
         $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
         $component->call('toggleBulkSelectMode');
-        $component->set('bulkSelectedIds', [$id1, $id2])->set('bulkAssociationKeys', [$b->getId()->toRfc4122()])->call('bulkSaveAssociation');
+        $component->set('bulkSelectedIds', [$id1, $id2])->set('bulkAssociationKeys', ['p:' . $b->getId()->toRfc4122()])->call('bulkSaveAssociation');
 
         $this->em->clear();
         /** @var ListItemRepository $items */
@@ -487,7 +594,7 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         $this->loginAs($admin, $centre);
         $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre], $this->client);
         $component->call('toggleBulkSelectMode');
-        $component->set('bulkAssociationKeys', [$profile->getId()->toRfc4122()])->call('bulkSaveAssociation');
+        $component->set('bulkAssociationKeys', ['p:' . $profile->getId()->toRfc4122()])->call('bulkSaveAssociation');
 
         $this->em->clear();
         /** @var ListItemRepository $items */
@@ -730,8 +837,8 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         $component->call('selectItem', ['id' => $leaf->getId()->toRfc4122()]);
         $text = $component->render()->crawler()->filter('[data-testid="association-redundant"]')->text();
 
-        self::assertStringContainsString('Ya la cubre «Jefatura Área» de «Raíz»', $text);
-        self::assertStringContainsString('«Jefatura Informática» sobra', $text);
+        self::assertStringContainsString('Ya la cubre «Departamentos › Área» de «Raíz»', $text);
+        self::assertStringContainsString('«Departamentos › Área › Informática» sobra', $text);
     }
 
     /** A branch whose nodes already have the associations that would change as their own: moving it asks nothing. */
@@ -913,7 +1020,7 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertStringNotContainsString('id="assoc-picker-' . $firstId . '"', $html);
 
         // The save still targets whichever item is selected, not the first one.
-        $component->set('associationKeys', [$profile->getId()->toRfc4122()])->call('saveAssociation');
+        $component->set('associationKeys', ['p:' . $profile->getId()->toRfc4122()])->call('saveAssociation');
 
         $this->em->clear();
         /** @var ListItemRepository $items */

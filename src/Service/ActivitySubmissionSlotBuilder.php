@@ -22,7 +22,7 @@ use Symfony\Contracts\Service\ResetInterface;
  * Builds the flat list of submissions an activity expects, and resolves each one to its Document
  * if anyone has already uploaded it. See DocumentTreeAccessChecker::getFolderUploadRows() for the
  * folder-side half of this (which profile/subprofile rows the folder accepts for upload) and
- * ListItem::getEffectiveProfileAssociations() for the list-item-to-subprofile associations that
+ * ListItemOwners for the associations of a list item (ListItem::getEffectiveAssociations()) that
  * let a row produce more than one named submission (and a leaf be owed by more than one row).
  *
  * Teachers-holding-a-profile/listItem lookups are memoized per (profile, listItem) for the life of
@@ -51,6 +51,7 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
         private readonly DocumentRepository $documents,
         private readonly ActivityDeadlineChecker $deadline,
         private readonly ActivityLeafResolver $leaves,
+        private readonly ListItemOwners $owners,
     ) {}
 
     public function reset(): void
@@ -176,60 +177,15 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
     }
 
     /**
-     * The folder upload rows a leaf's submission is owed by — one submission per row. The leaf's
-     * associations are the ones it has itself plus those of all its ancestors (see
-     * ListItem::getEffectiveProfileAssociations()); each stands for the folder rows it
-     * covers: the row of a plain profile, the very row of a leaf subprofile, or — for an
-     * intermediate node of the profile's list — every row of a leaf under it, so each of those
-     * owes its own submission. Only rows the folder accepts count (they come from $uploadRows).
-     * Without any association, the folder's single upload row, but only when there is exactly one;
-     * none when there are several (no way to tell which one owns the leaf).
+     * The folder upload rows a leaf's submission is owed by — one submission per row (ListItemOwners holds the rule). Only rows the
+     * folder accepts count (they come from $uploadRows).
      *
      * @param  ProfileAssignmentRow[] $uploadRows
      * @return list<ProfileAssignmentRow>
      */
     private function uploadRowsForLeaf(ListItem $leaf, array $uploadRows): array
     {
-        return $this->uploadRowsForAssociations($leaf->getEffectiveProfileAssociations()->getValues(), $uploadRows);
-    }
-
-    /**
-     * The same rule over any set of associations — what app:list-items:inheritance-report uses to
-     * count submissions under the former rule too.
-     *
-     * @param  list<\App\Entity\ListItemProfile> $associations
-     * @param  ProfileAssignmentRow[]            $uploadRows
-     * @return list<ProfileAssignmentRow>
-     */
-    public function uploadRowsForAssociations(array $associations, array $uploadRows): array
-    {
-        if ($associations === []) {
-            return count($uploadRows) === 1 ? [current($uploadRows)] : [];
-        }
-
-        $owners = [];
-        foreach ($associations as $association) {
-            $profile    = $association->getSpecificProfile();
-            $subprofile = $association->getSubprofile();
-            $covered    = $subprofile === null ? [] : array_flip($this->listItems->findLeafIdsUnder($subprofile));
-            foreach ($uploadRows as $row) {
-                if ($row->profile !== $profile) {
-                    continue;
-                }
-                $covers = $subprofile === null
-                    ? $row->listItem === null
-                    : $row->listItem !== null && isset($covered[$row->listItem->getId()->toRfc4122()]);
-                if ($covers) {
-                    $owners[$row->key()] = $row;
-                }
-            }
-        }
-
-        // Alphabetical, so the owners of one element always list in the same order.
-        $owners = array_values($owners);
-        usort($owners, static fn (ProfileAssignmentRow $a, ProfileAssignmentRow $b): int => strnatcasecmp($a->displayName, $b->displayName));
-
-        return $owners;
+        return $this->owners->ownersOf($leaf, $uploadRows);
     }
 
     /** A submission's name after its leaf — see ActivityLeafResolver::submissionName(), which holds the rule. */

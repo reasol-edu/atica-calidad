@@ -8,6 +8,19 @@
     {{ ux_icon('heroicons:user', {class: 'h-3.5 w-3.5'}) }}
     {{ 'responsibilities.lists.teachers.only_without'|trans({}, 'admin') }}
 </button>
+{# One counter per associated list: the leaves with no element of it, own or inherited (after a Séneca import, the new ones); a filter. #}
+{% for missing in this.missingLinks %}
+    {% set lid = missing.list.id.toRfc4122 %}
+    {% if missing.missing > 0 or onlyWithoutLinkTo == lid %}
+        <button type="button" data-action="live#action" data-live-action-param="toggleOnlyWithoutLink" data-live-list-id-param="{{ lid }}"
+                data-testid="only-without-link" aria-pressed="{{ onlyWithoutLinkTo == lid ? 'true' : 'false' }}"
+                class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors
+                       {{ onlyWithoutLinkTo == lid ? 'bg-amber-500 text-white hover:bg-amber-600' : 'border border-amber-200 bg-white text-amber-700 hover:bg-amber-50' }}">
+            {{ ux_icon('heroicons:link', {class: 'h-3.5 w-3.5'}) }}
+            {{ 'responsibilities.lists.linked_lists.missing'|trans({'%count%': missing.missing, '%list%': missing.list.name}, 'admin') }}
+        </button>
+    {% endif %}
+{% endfor %}
 {% if off_course > 0 and not bulkSelectMode %}
     {% if confirmingRemoveOffYearTeachers %}
         <span class="inline-flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700" data-testid="off-course-confirm">

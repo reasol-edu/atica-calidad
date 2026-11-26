@@ -4,21 +4,17 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Model\ProfileAssignmentRow;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * One profile/subprofile a list item is associated with — a loose cross-reference unrelated to the
- * list's own hierarchy (e.g. a "Matemáticas" element with the "Jefatura de departamento"
- * subprofile it falls under). An element can have several. $subprofile mirrors the
- * (profile, listItem) pair used everywhere else in the app (see ProfileAssignmentRow): null for a
- * plain profile, otherwise a leaf of the profile's own list — or an intermediate node of it,
- * standing for every leaf under it (ActivitySubmissionSlotBuilder expands it into one submission
- * per leaf). Deleting the profile, the element or the subprofile removes the row.
+ * A plain profile (one without a list of its own, e.g. «Orientación») a list item is associated with — a loose cross-reference
+ * unrelated to the list's own hierarchy. A profile that has a list is never associated like this: the item is associated with an
+ * element of that list instead (ListItem::addLink(), e.g. «Departamento › Informática»), and who owes the item comes out of it
+ * (ListItemOwners). Deleting the profile or the element removes the row.
  */
 #[ORM\Entity]
-#[ORM\UniqueConstraint(name: 'uq_list_item_profile', columns: ['list_item_id', 'specific_profile_id', 'subprofile_id'])]
+#[ORM\UniqueConstraint(name: 'uq_list_item_profile', columns: ['list_item_id', 'specific_profile_id'])]
 class ListItemProfile
 {
     #[ORM\Id]
@@ -35,15 +31,10 @@ class ListItemProfile
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private SpecificProfile $specificProfile;
 
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(name: 'subprofile_id', nullable: true, onDelete: 'CASCADE')]
-    private ?ListItem $subprofile;
-
-    public function __construct(ListItem $listItem, SpecificProfile $specificProfile, ?ListItem $subprofile)
+    public function __construct(ListItem $listItem, SpecificProfile $specificProfile)
     {
         $this->listItem        = $listItem;
         $this->specificProfile = $specificProfile;
-        $this->subprofile      = $subprofile;
     }
 
     public function getId(): Uuid
@@ -59,23 +50,5 @@ class ListItemProfile
     public function getSpecificProfile(): SpecificProfile
     {
         return $this->specificProfile;
-    }
-
-    /** The (profile, subprofile) pair as a string, in the format used everywhere else (see ProfileAssignmentRow::keyFor()). */
-    public function getKey(): string
-    {
-        return ProfileAssignmentRow::keyFor($this->specificProfile, $this->subprofile);
-    }
-
-    /** Profile name followed by the subprofile's, when there is one («Jefe/a de Departamento Informática»). */
-    public function getLabel(): string
-    {
-        return $this->specificProfile->getName().($this->subprofile !== null ? ' '.$this->subprofile->getName() : '');
-    }
-
-    /** The subprofile (leaf, or intermediate node) of the profile's list — null for a plain profile. */
-    public function getSubprofile(): ?ListItem
-    {
-        return $this->subprofile;
     }
 }

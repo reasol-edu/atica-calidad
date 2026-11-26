@@ -86,7 +86,7 @@ class Activity implements Trashable
     private ?Folder $folder = null;
 
     /** Optional root whose leaf descendants (each owed by the submission rows its profile
-     *  associations point at, see ListItem::getEffectiveProfileAssociations()) name each submission. */
+     *  associations point at, see ListItem::getEffectiveAssociations()) name each submission. */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?ListItem $listItem = null;

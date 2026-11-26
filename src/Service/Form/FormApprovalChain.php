@@ -16,6 +16,7 @@ use App\Repository\FormApprovalStepRepository;
 use App\Repository\ListItemRepository;
 use App\Repository\SpecificProfileRepository;
 use App\Service\DocumentTreeAccessChecker;
+use App\Service\ListItemOwners;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Events;
@@ -141,7 +142,7 @@ final class FormApprovalChain implements ResetInterface
 
     /**
      * For a step limited to the element: the subprofiles of the step's profile that the delivery belongs to — those its element is
-     * associated with (own and inherited, ListItem::getEffectiveProfileAssociations()) and, when the slot is delivered by that same
+     * associated with (own and inherited elements of the step's profile's list, ListItemOwners::linkedUnder()) and, when the slot is delivered by that same
      * profile, the subprofile that delivers it (a slot with no element still has one). They are read as they stand now: if a subject is
      * moved to another department, its pending step moves with it (whether the step is limited is what stays as it was at the start).
      * Null when the step is not limited or none is found: then the step works as «anyone with the profile» (isLimitedWithoutElement()),
@@ -170,9 +171,9 @@ final class FormApprovalChain implements ResetInterface
 
         $leafId = ActivitySubmissionSlot::leafOf($slotKey);
         $leaf   = $leafId === null ? null : $this->listItems->findByIdAndCentre($leafId, $centre);
-        foreach ($leaf?->getEffectiveProfileAssociations() ?? [] as $association) {
-            $subprofile = $association->getSubprofile();
-            if ($subprofile !== null && $association->getSpecificProfile()->getId()->equals($profile->getId())) {
+        $profileList = $profile->getListItem();
+        if ($leaf !== null && $profileList !== null) {
+            foreach (ListItemOwners::linkedUnder($leaf, $profileList) as $subprofile) {
                 $add($subprofile);
             }
         }

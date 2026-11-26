@@ -107,6 +107,15 @@ inheritance_report.no_activities: 'Ninguna actividad trabaja con un elemento del
 inheritance_report.activities_title: 'Actividades con elemento del catálogo (una entrega por hoja y fila de la carpeta; en las individuales, antes de contar los docentes):'
 inheritance_report.footnote: '* El número de entregas cambia. Las que ya existen no se tocan: su identificador no cambia.'
 
+links_report.description: 'Solo lectura: tras actualizar a las listas asociadas, lista las actividades cuya carpeta admite a dos perfiles de la misma lista (ahora los dos deben cada elemento asociado a esa lista) y cuántas entregas piden'
+links_report.nothing: 'Ninguna actividad admite en su carpeta a dos perfiles de la misma lista: nada cambia.'
+links_report.title: 'Actividades cuya carpeta admite a dos perfiles de la misma lista. Una asociación ya no dice el perfil: cada elemento asociado a esa lista lo deben los dos.'
+links_report.col.activity: 'Actividad'
+links_report.col.profiles: 'Perfiles de la misma lista'
+links_report.col.before: 'Entregas con un perfil por lista'
+links_report.col.after: 'Entregas ahora'
+links_report.footnote: '* El número de entregas cambia. Si solo uno de esos perfiles debe entregar, quita el otro de los perfiles que suben en la carpeta de la actividad.'
+
 field.required: 'Este campo es obligatorio.'
 create_form_drafts.description: 'Crea el borrador de cada entrega de las actividades que se rellenan en línea y piden el borrador de todos, cuando ya se ha abierto su plazo'
 create_form_drafts.done: 'Borradores creados: %count%.'

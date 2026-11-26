@@ -6,7 +6,7 @@
     <div class="group flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors {{ is_sel ? 'bg-forest-50 ring-1 ring-inset ring-forest-200' : 'hover:bg-gray-50' }}"
          style="padding-left: {{ depth * 1.25 }}rem">
         {# With «Sin docente» on, part of each list is hidden: dragging would renumber only the visible siblings, so there is nothing to drag. #}
-        {% if this.onlyWithoutTeacher %}
+        {% if this.filtered %}
             <span class="shrink-0 text-gray-200" title="{{ 'responsibilities.lists.drag_filtered'|trans({}, 'admin') }}">
                 {{ ux_icon('heroicons:bars-2', {class: 'h-4 w-4'}) }}
             </span>
@@ -19,7 +19,7 @@
 
         {% if bulkSelectMode %}
             <label class="flex flex-1 min-w-0 items-center gap-2 cursor-pointer">
-                <input type="checkbox" value="{{ lid }}" data-model="bulkSelectedIds"
+                <input type="checkbox" value="{{ lid }}" data-model="bulkSelectedIds" {{ lid in bulkSelectedIds ? 'checked' : '' }}
                        class="h-4 w-4 shrink-0 rounded border-gray-300 text-violet-600 focus:ring-violet-500">
                 <span class="min-w-0 truncate text-sm text-gray-800">{{ item.name }}</span>
             </label>
@@ -35,11 +35,19 @@
                 {{ ux_icon('heroicons:eye-slash', {class: 'h-3.5 w-3.5'}) }}
             </span>
         {% endif %}
-        {% set inherited = item.associated ? [] : item.inheritedProfileAssociations %}
+        {% set inherited = item.associated ? [] : item.inheritedAssociations %}
         {% if item.associated %}
-            <span title="{{ 'responsibilities.lists.association.title'|trans({}, 'admin') }}" class="shrink-0 text-violet-400">
-                {{ ux_icon('heroicons:link', {class: 'h-3.5 w-3.5'}) }}
-            </span>
+            {# Its own associations, short; the full path in the title. Two at most, then how many more. #}
+            {% set chips = this.associationChips(item) %}
+            {% for chip in chips|slice(0, 2) %}
+                <span title="{{ chip.label }}" data-testid="association-chip"
+                      class="shrink-0 inline-flex max-w-[9rem] items-center gap-1 rounded-full bg-violet-50 px-1.5 py-0.5 text-xs text-violet-700">
+                    {{ ux_icon('heroicons:link', {class: 'h-3 w-3 shrink-0'}) }}<span class="truncate">{{ chip.short }}</span>
+                </span>
+            {% endfor %}
+            {% if chips|length > 2 %}
+                <span title="{{ chips|slice(2)|map(c => c.label)|join(', ') }}" class="shrink-0 rounded-full bg-violet-50 px-1.5 py-0.5 text-xs text-violet-700">+{{ chips|length - 2 }}</span>
+            {% endif %}
         {% elseif inherited is not empty %}
             {% set inherited_names = [] %}
             {% for pair in inherited %}

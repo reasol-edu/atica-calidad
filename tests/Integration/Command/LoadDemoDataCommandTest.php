@@ -104,8 +104,57 @@ final class LoadDemoDataCommandTest extends RepositoryTestCase
         /** @var ListItemRepository $items */
         $items = self::getContainer()->get(ListItemRepository::class);
         $roots = $items->findRootsByCentre($centre);
-        self::assertCount(4, $roots, 'the Departamento/Grupo/Materia roots CentreProvisioner creates must be reused, not duplicated, by the demo data, plus the nested Enseñanza list');
-        self::assertSame(['Departamento', 'Grupo', 'Materia', 'Enseñanza'], array_map(static fn (ListItem $r): string => $r->getName(), $roots));
+        self::assertCount(5, $roots, 'the Departamento/Grupo/Materia roots CentreProvisioner creates must be reused, not duplicated, by the demo data, plus the nested Enseñanza list and Evaluación');
+        self::assertSame(['Departamento', 'Grupo', 'Materia', 'Enseñanza', 'Evaluación'], array_map(static fn (ListItem $r): string => $r->getName(), $roots));
+
+        // «Materia» is associated with «Departamento» (its subjects' departments) and with «Evaluación».
+        self::assertSame(['Departamento', 'Evaluación'], array_map(static fn (ListItem $l): string => $l->getName(), $roots[2]->getLinkedLists()));
+        $subjects = [];
+        foreach ($items->findLeafDescendants($roots[2]) as $leaf) {
+            $subjects[$leaf->getName()] = array_map(static fn (ListItem $l): string => $l->getName(), $leaf->getLinks());
+        }
+        self::assertSame(['Informática', '1ª', '2ª', 'Final 1', 'Final 2'], $subjects['Programación']);
+        self::assertSame(['Matemáticas', '1ª', '2ª', 'Ord.', 'Extr.'], $subjects['Matemáticas']);
+        self::assertSame(['Educación Física'], $subjects['Educación Física'], 'one of the two without an evaluation');
+    }
+
+    /**
+     * The submissions every activity of the demo asks for, read with the names of what identifies them: they must not change when the
+     * catalogue's associations change form. Taken before the associations with «perfil › subperfil» became associations with elements
+     * of other lists (tests/Fixtures/demo-activity-slots.txt); a change to the demo that adds or removes submissions updates the file.
+     */
+    public function testEveryActivityOfTheDemoAsksForTheSameSubmissions(): void
+    {
+        $this->tester->execute([]);
+        self::assertSame(0, $this->tester->getStatusCode());
+        $this->em->clear();
+        // The tree the command walked is cached with the entities of before the clear().
+        self::getContainer()->get(ListItemRepository::class)->reset();
+
+        $path = static function (?ListItem $item): string {
+            $names = [];
+            for ($n = $item; $n !== null; $n = $n->getParent()) {
+                array_unshift($names, $n->getName());
+            }
+
+            return implode(' › ', $names);
+        };
+        /** @var \App\Service\ActivitySubmissionSlotBuilder $builder */
+        $builder = self::getContainer()->get(\App\Service\ActivitySubmissionSlotBuilder::class);
+        $tuples  = [];
+        foreach (self::getContainer()->get(ActivityRepository::class)->findAll() as $activity) {
+            $prefix = $activity->getCategory()->getEducationalCentre()->getName() . ' / ' . $activity->getTitle();
+            foreach ($builder->buildSlots($activity) as $slot) {
+                $tuples[] = rtrim(implode(' | ', [$prefix, $slot->displayName, $slot->profile->getName(), $path($slot->listItem), $path($slot->nameListItem), $slot->teacher?->getUsername() ?? '', $slot->ownerLabel ?? '']));
+            }
+        }
+        sort($tuples);
+        $expected = file(dirname(__DIR__, 2) . '/Fixtures/demo-activity-slots.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        self::assertIsArray($expected);
+        $expected = array_map('rtrim', $expected);
+        sort($expected);
+
+        self::assertSame($expected, $tuples);
     }
 
     /** The extra fixtures the manual's screenshots rely on (see skills/screenshots.md). */
@@ -153,7 +202,7 @@ final class LoadDemoDataCommandTest extends RepositoryTestCase
         self::assertFalse($byName['Programa de Mejora (extinguido)']->isActive());
         self::assertTrue($byName['2º DAW']->isAssociated(), 'an own association adds to the inherited one');
         self::assertTrue($byName['2º DAW']->hasInheritedAssociation());
-        self::assertCount(2, $byName['2º DAW']->getEffectiveProfileAssociations());
+        self::assertCount(2, $byName['2º DAW']->getEffectiveAssociations());
         self::assertFalse($byName['1º DAW']->isAssociated());
         self::assertTrue($byName['1º DAW']->hasInheritedAssociation(), 'the FP branch passes its association down');
 

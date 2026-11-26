@@ -239,21 +239,20 @@ final class FormChainElementTest extends ControllerTestCase
     {
         $rev = $this->deliver($this->quality);
 
-        // A step of another list profile that neither the element nor the slot belongs to: open to anyone with it.
+        // A step of a profile of another list, one the element is not associated with and the slot is not delivered by: open to anyone
+        // with it. (A profile on «Departamento» would be limited too: two profiles on the same list both owe the element.)
         $this->em->clear();
-        $departamento = $this->em->getRepository(ListItem::class)->findOneBy(['name' => 'Departamento']);
-        $matematicas  = $this->em->getRepository(ListItem::class)->findOneBy(['name' => 'Matemáticas']);
-        $centre       = $this->em->getRepository(EducationalCentre::class)->find($this->centre->getId());
-        $pablo        = $this->em->getRepository(Teacher::class)->find($this->pablo->getId());
-        self::assertNotNull($departamento);
-        self::assertNotNull($matematicas);
+        $centre = $this->em->getRepository(EducationalCentre::class)->find($this->centre->getId());
+        $pablo  = $this->em->getRepository(Teacher::class)->find($this->pablo->getId());
         self::assertNotNull($centre);
         self::assertNotNull($pablo);
-        $coordination = (new SpecificProfile())->setEducationalCentre($centre)->setName('Coordinación de área')->setListItem($departamento);
+        $areas        = (new ListItem())->setEducationalCentre($centre)->setName('Área');
+        $sciences     = (new ListItem())->setEducationalCentre($centre)->setName('Ciencias')->setParent($areas);
+        $coordination = (new SpecificProfile())->setEducationalCentre($centre)->setName('Coordinación de área')->setListItem($areas);
         $filled       = self::getContainer()->get(\App\Repository\FormSubmissionRevisionRepository::class)->findByRevisionId($rev);
         self::assertNotNull($filled);
         $step = new \App\Entity\FormApprovalStep($filled, 9, 'Coordinación', $coordination, \App\Entity\FormApprovalStepState::Pending, true);
-        $this->persist($coordination, new SpecificProfileAssignment($coordination, $matematicas, $pablo), $step);
+        $this->persist($areas, $sciences, $coordination, new SpecificProfileAssignment($coordination, $sciences, $pablo), $step);
 
         $chain = self::getContainer()->get(\App\Service\Form\FormApprovalChain::class);
         self::assertTrue($chain->isLimitedWithoutElement($step));

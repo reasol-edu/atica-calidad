@@ -9,6 +9,7 @@ use App\Entity\FormModelRevision;
 use App\Entity\FormSubmissionRevision;
 use App\Entity\ListItem;
 use App\Repository\ListItemRepository;
+use App\Service\ListItemOwners;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -648,8 +649,8 @@ final class FormListOptions
 
     /**
      * The items of a list that belong to who delivers a document: those whose associations (their own, or the ones they inherit, as
-     * everywhere in the application: ListItem::getEffectiveProfileAssociations()) name the slot's profile — through its subprofile or one
-     * of the subprofile's ancestors, for a profile of a list; with no subprofile, for a plain one. When none does, all of them: a
+     * everywhere in the application: ListItem::getEffectiveAssociations()) name the slot's subprofile or one of the nodes above it, for
+     * a profile of a list; with no subprofile, the plain profile (ListItemOwners::belongsTo()). When none does, all of them: a
      * profile that is not tied to that list sees the whole list.
      *
      * @param list<array<string, mixed>>                        $options `{key, label}` of the items, key = the item's id
@@ -682,22 +683,7 @@ final class FormListOptions
      */
     public static function belongsToSlot(ListItem $item, array $slot, array $index): bool
     {
-        // The subprofile and the items above it: an association to any of them covers it.
-        $covering = [];
-        for ($node = $slot['subprofile'] === null ? null : ($index[$slot['subprofile']] ?? null); $node !== null; $node = $node->getParent()) {
-            $covering[$node->getId()->toRfc4122()] = true;
-        }
-        foreach ($item->getEffectiveProfileAssociations() as $association) {
-            if ($association->getSpecificProfile()->getId()->toRfc4122() !== $slot['profile']) {
-                continue;
-            }
-            $sub = $association->getSubprofile()?->getId()->toRfc4122();
-            if ($slot['subprofile'] === null ? $sub === null : ($sub !== null && isset($covering[$sub]))) {
-                return true;
-            }
-        }
-
-        return false;
+        return ListItemOwners::belongsTo($item, $slot, $index);
     }
 
     /**

@@ -188,6 +188,7 @@ class LoadDemoDataCommand extends Command
         $this->associateMaterias($profiles['Jefe/a de Departamento'], $departamentoLeaves, $materiaLeaves, $materiaDepartamento, $io);
         $this->associateEnsenanza($profiles, $ensenanza, $departamentoLeaves, $grupoLeaves, $io);
         $this->associateMateriaTeachers($materiaLeaves, $io);
+        $this->associateEvaluaciones($centre, $materiaLeaves, $io);
 
         $io->section('Árbol documental (ISO 9001:2015)');
         $folders = $this->createDocumentTree($centre, $profiles, $io);
@@ -493,6 +494,33 @@ class LoadDemoDataCommand extends Command
         }
 
         $io->text('Docentes asociados a las materias de Informática (Sistemas Informáticos, sin docente; FFEOE con un docente fuera de curso).');
+    }
+
+    /**
+     * The list «Evaluación», flat (so the 1ª of ESO and the 1ª of FP are one and the same), associated with «Materia»: the subjects of
+     * ESO/Bachillerato have 1ª, 2ª, Ord. and Extr.; the modules of FP, 1ª, 2ª, Final 1 and Final 2. Two subjects are left without, so
+     * the counter «sin Evaluación» of the catalogue has something to show.
+     *
+     * @param array<string, ListItem> $materiaLeaves
+     */
+    private function associateEvaluaciones(EducationalCentre $centre, array $materiaLeaves, SymfonyStyle $io): void
+    {
+        $evaluaciones = $this->createFlatList('Evaluación', ['1ª', '2ª', 'Ord.', 'Extr.', 'Final 1', 'Final 2'], $centre);
+        $materiaRoot  = $this->firstLeaf($materiaLeaves)->getParent() ?? throw new \LogicException('Materia root missing.');
+        $materiaRoot->addLinkedList($this->firstLeaf($evaluaciones)->getRoot());
+
+        $fp       = ['Programación', 'Bases de Datos', 'Desarrollo Web en Entorno Cliente', 'Desarrollo Web en Entorno Servidor', 'Sistemas Informáticos'];
+        $without  = ['Educación Física', 'Fase de Formación en Empresa u Organismo Equiparado (FFEOE)'];
+        foreach ($materiaLeaves as $name => $leaf) {
+            if (in_array($name, $without, true)) {
+                continue;
+            }
+            foreach (in_array($name, $fp, true) ? ['1ª', '2ª', 'Final 1', 'Final 2'] : ['1ª', '2ª', 'Ord.', 'Extr.'] as $evaluacion) {
+                $leaf->addLink($evaluaciones[$evaluacion]);
+            }
+        }
+
+        $io->text('Lista «Evaluación» asociada a «Materia» (ESO/Bachillerato y FP con sus evaluaciones; Educación Física y la FFEOE, sin evaluación).');
     }
 
     /**

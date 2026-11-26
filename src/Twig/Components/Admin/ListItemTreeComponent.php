@@ -6,14 +6,14 @@ namespace App\Twig\Components\Admin;
 
 use App\Entity\EducationalCentre;
 use App\Entity\ListItem;
-use App\Entity\ListItemProfile;
-use App\Model\ProfileAssignmentRow;
+use App\Entity\SpecificProfile;
 use App\Entity\Teacher;
+use App\Model\ListItemAssociation;
+use App\Repository\SpecificProfileRepository;
 use App\Repository\ListItemRepository;
 use App\Repository\TeacherRepository;
 use App\Security\Voter\EducationalCentreVoter;
 use App\Service\LeafTeachers;
-use App\Service\ProfileAssignmentRowBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -81,13 +81,43 @@ class ListItemTreeComponent extends AbstractController
     public bool $editActive = true;
 
     /**
-     * Keys (see ProfileAssignmentRow::key()) of the profiles/subprofiles this item is associated
-     * with — its own, not the ones it inherits from an ancestor (empty when it has none).
+     * Keys (ListItemAssociation::key(): `l:<item id>`, `p:<profile id>`) of what this item is associated with — its own, not the ones
+     * it inherits from an ancestor (empty when it has none).
      *
      * @var string[]
      */
     #[LiveProp(writable: true)]
     public array $associationKeys = [];
+
+    /**
+     * Ids of the lists the managed list is associated with, as the «Listas asociadas» picker holds them.
+     *
+     * @var string[]
+     */
+    #[LiveProp(writable: true)]
+    public array $linkedListIds = [];
+
+    /** Set when saving the associated lists would remove associations of the elements: which lists go (ids), waiting for a confirmation. */
+    #[LiveProp]
+    public string $linkedListsConfirmKey = '';
+
+    #[LiveProp]
+    public int $linkedListsConfirmCount = 0;
+
+    /** The tree shows only the leaves with no element of this list (its id), own or inherited; '' = everything. */
+    #[LiveProp(writable: true)]
+    public string $onlyWithoutLinkTo = '';
+
+    /** «Marcar por nombre»: the name, and the branch it looks in ('' = the whole list). */
+    #[LiveProp(writable: true)]
+    public string $markName = '';
+
+    #[LiveProp(writable: true)]
+    public string $markWithinId = '';
+
+    /** What the bulk association does with the picked ones on the checked items: 'add', 'replace' (those of the same lists) or 'remove'. */
+    #[LiveProp(writable: true)]
+    public string $bulkAssociationMode = 'add';
 
     /** @var array<string, string> */
     #[LiveProp]
@@ -173,7 +203,7 @@ class ListItemTreeComponent extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
         private readonly ListItemRepository $items,
-        private readonly ProfileAssignmentRowBuilder $rowBuilder,
+        private readonly SpecificProfileRepository $profiles,
         private readonly \App\Repository\FormValueRepository $formValues,
         private readonly \App\Service\ListItemUsage $usage,
         private readonly TeacherRepository $teachers,
@@ -292,23 +322,32 @@ class ListItemTreeComponent extends AbstractController
         }
 
         $nodes = $this->buildNodes($this->getScopeParentId(), $byParent);
+        if ($this->onlyWithoutTeacher) {
+            return $this->pruneToLeaves($nodes, fn (ListItem $leaf): bool => $this->lacksTeacherInCourse($leaf));
+        }
+        $linkedList = $this->withoutLinkList();
+        if ($linkedList !== null) {
+            return $this->pruneToLeaves($nodes, fn (ListItem $leaf): bool => !$this->hasLinkInto($leaf, $linkedList));
+        }
 
-        return $this->onlyWithoutTeacher ? $this->pruneToLeavesWithoutTeacher($nodes) : $nodes;
+        return $nodes;
     }
 
     /**
-     * Only the leaves nobody in the course teaches, with the branches that lead to them.
+     * Only the leaves $keep accepts (nobody in the course teaches them, they have no element of a list), with the branches that lead
+     * to them.
      *
      * @param array<int, array{item: ListItem, children: array<mixed>}> $nodes
+     * @param callable(ListItem): bool                                  $keep
      *
      * @return array<int, array{item: ListItem, children: array<mixed>}>
      */
-    private function pruneToLeavesWithoutTeacher(array $nodes): array
+    private function pruneToLeaves(array $nodes, callable $keep): array
     {
         $kept = [];
         foreach ($nodes as $node) {
             if ($node['children'] === []) {
-                if ($this->lacksTeacherInCourse($node['item'])) {
+                if ($keep($node['item'])) {
                     $kept[] = $node;
                 }
 
@@ -316,7 +355,7 @@ class ListItemTreeComponent extends AbstractController
             }
             /** @var array<int, array{item: ListItem, children: array<mixed>}> $children */
             $children = $node['children'];
-            $children = $this->pruneToLeavesWithoutTeacher($children);
+            $children = $this->pruneToLeaves($children, $keep);
             if ($children !== []) {
                 $kept[] = ['item' => $node['item'], 'children' => $children];
             }
@@ -381,15 +420,16 @@ class ListItemTreeComponent extends AbstractController
     /** @return ListItem[] */
     public function getVisibleItems(): array
     {
-        $visible = $this->levelItems();
+        $visible    = $this->levelItems();
+        $linkedList = $this->withoutLinkList();
 
-        if (!$this->onlyWithoutTeacher) {
+        if (!$this->onlyWithoutTeacher && $linkedList === null) {
             return $visible;
         }
 
-        return array_values(array_filter($visible, function (ListItem $item): bool {
+        return array_values(array_filter($visible, function (ListItem $item) use ($linkedList): bool {
             foreach ($this->items->findLeafDescendants($item) as $leaf) {
-                if ($this->lacksTeacherInCourse($leaf)) {
+                if ($this->onlyWithoutTeacher ? $this->lacksTeacherInCourse($leaf) : ($linkedList !== null && !$this->hasLinkInto($leaf, $linkedList))) {
                     return true;
                 }
             }
@@ -461,6 +501,9 @@ class ListItemTreeComponent extends AbstractController
         $this->editActive        = $selected?->isActive() ?? true;
         $this->associationKeys   = $this->associationKeysFor($selected);
         $this->teacherIds        = array_map(static fn (Teacher $t): string => $t->getId()->toRfc4122(), $selected?->getTeachers() ?? []);
+        $this->linkedListIds     = array_map(static fn (ListItem $l): string => $l->getId()->toRfc4122(), $this->managedList()?->getLinkedLists() ?? []);
+        $this->linkedListsConfirmKey   = '';
+        $this->linkedListsConfirmCount = 0;
     }
 
     /** @return string[] */
@@ -470,10 +513,7 @@ class ListItemTreeComponent extends AbstractController
             return [];
         }
 
-        return array_values(array_map(
-            static fn (ListItemProfile $a): string => ProfileAssignmentRow::keyFor($a->getSpecificProfile(), $a->getSubprofile()),
-            $item->getProfileAssociations()->toArray(),
-        ));
+        return array_map(static fn (ListItemAssociation $a): string => $a->key(), $item->getAssociations());
     }
 
     // ── Add / save / delete ──────────────────────────────────────────────────
@@ -672,7 +712,7 @@ class ListItemTreeComponent extends AbstractController
     {
         $target = $this->items->findByIdAndCentre($id, $this->centre);
         // With «Sin docente» on, the siblings sent are only the visible ones: numbering them would scramble the hidden ones.
-        if ($target === null || $this->onlyWithoutTeacher) {
+        if ($target === null || $this->isFiltered()) {
             return;
         }
 
@@ -729,36 +769,119 @@ class ListItemTreeComponent extends AbstractController
         $this->em->flush();
     }
 
-    // ── Association with a profile/subprofile ─────────────────────────────────
+    // ── Associations: elements of the associated lists, plain profiles ───────
 
-    /** @return ProfileAssignmentRow[] every active plain profile, plus one row per active subprofile and per intermediate node of a profile's list, to pick an association from. */
-    public function getAssociationRows(): array
+    /** The list being managed: the scoped root, or the selected item's own list in the centre-wide view. */
+    private function managedList(): ?ListItem
     {
-        return $this->rowBuilder->buildActiveRowsForAssociation($this->centre);
+        return $this->root ?? $this->getSelected()?->getRoot();
     }
 
     /**
-     * The association rows $keys name, in the order given — stale or tampered keys (no such row any
-     * more) are dropped.
+     * What an element of the managed list can be associated with: every node of each list it declares associated (a node stands for
+     * every leaf under it), labelled with its path inside that list, then the active plain profiles (those without a list). Grouped
+     * by list for the picker.
      *
-     * @param  string[]                $keys
-     * @return ProfileAssignmentRow[]
+     * @return list<array{key: string, label: string, group: string}>
      */
-    private function associationRowsFor(array $keys): array
+    public function getAssociationOptions(): array
     {
-        $rowsByKey = [];
-        foreach ($this->getAssociationRows() as $row) {
-            $rowsByKey[$row->key()] = $row;
+        $options = [];
+        foreach ($this->managedList()?->getLinkedLists() ?? [] as $linkedList) {
+            foreach ($this->items->findSubtree($linkedList) as $node) {
+                if ($node === $linkedList) {
+                    continue;
+                }
+                $association = ListItemAssociation::link($node);
+                $options[]   = ['key' => $association->key(), 'label' => self::pathBelow($node, $linkedList), 'group' => $linkedList->getName()];
+            }
+        }
+        foreach ($this->plainProfiles() as $profile) {
+            $options[] = ['key' => ListItemAssociation::profile($profile)->key(), 'label' => $profile->getName(), 'group' => $this->t('responsibilities.lists.association.profiles_group')];
         }
 
-        $rows = [];
+        return $options;
+    }
+
+    /** @return list<array{name: string, options: list<array{key: string, label: string, group: string}>}> getAssociationOptions() by list, for the pickers' groups */
+    public function getAssociationGroups(): array
+    {
+        $groups = [];
+        foreach ($this->getAssociationOptions() as $option) {
+            $groups[$option['group']] ??= ['name' => $option['group'], 'options' => []];
+            $groups[$option['group']]['options'][] = $option;
+        }
+
+        return array_values($groups);
+    }
+
+    /** @return list<SpecificProfile> the active profiles of the centre that have no list, by name */
+    private function plainProfiles(): array
+    {
+        $profiles = array_values(array_filter(
+            $this->profiles->findByCentre($this->centre),
+            static fn (SpecificProfile $p): bool => $p->isActive() && $p->getListItem() === null,
+        ));
+        usort($profiles, static fn (SpecificProfile $a, SpecificProfile $b): int => strnatcasecmp($a->getName(), $b->getName()));
+
+        return $profiles;
+    }
+
+    /** «FP › Informática» for an element of «Departamento»: the path below the list's root. */
+    private static function pathBelow(ListItem $node, ListItem $list): string
+    {
+        $names = [];
+        for ($n = $node; $n !== null && $n !== $list; $n = $n->getParent()) {
+            array_unshift($names, $n->getName());
+        }
+
+        return implode(' › ', $names);
+    }
+
+    /**
+     * The associations $keys name (`l:<item id>`, `p:<profile id>`), in the order given — stale or tampered keys (no such option any
+     * more) are dropped.
+     *
+     * @param  string[]                  $keys
+     * @return list<ListItemAssociation>
+     */
+    private function associationsFor(array $keys): array
+    {
+        $known = [];
+        foreach ($this->getAssociationOptions() as $option) {
+            $known[$option['key']] = true;
+        }
+        $index    = null;
+        $profiles = null;
+        $result   = [];
         foreach (array_unique(array_filter($keys, 'is_string')) as $key) {
-            if (isset($rowsByKey[$key])) {
-                $rows[] = $rowsByKey[$key];
+            if (!isset($known[$key])) {
+                continue;
+            }
+            $id = substr($key, 2);
+            if (str_starts_with($key, 'l:')) {
+                $index ??= $this->itemIndex();
+                if (isset($index[$id])) {
+                    $result[] = ListItemAssociation::link($index[$id]);
+                }
+            } else {
+                $profiles ??= array_column(array_map(static fn (SpecificProfile $p): array => [$p->getId()->toRfc4122(), $p], $this->plainProfiles()), 1, 0);
+                if (isset($profiles[$id])) {
+                    $result[] = ListItemAssociation::profile($profiles[$id]);
+                }
             }
         }
 
-        return $rows;
+        return $result;
+    }
+
+    private static function associate(ListItem $item, ListItemAssociation $association): void
+    {
+        if ($association->linked !== null) {
+            $item->addLink($association->linked);
+        } elseif ($association->profile !== null) {
+            $item->addProfileAssociation($association->profile);
+        }
     }
 
     #[LiveAction]
@@ -769,22 +892,230 @@ class ListItemTreeComponent extends AbstractController
             return;
         }
 
-        $rows = $this->associationRowsFor($this->associationKeys);
-        if ($rows === []) {
-            $selected->clearProfileAssociations();
-            $this->em->flush();
-            $this->flashSuccess($this->t('responsibilities.lists.association.flash.cleared'));
+        // The item ends up with exactly the picked ones.
+        $associations = $this->associationsFor($this->associationKeys);
+        $selected->clearAssociations();
+        foreach ($associations as $association) {
+            self::associate($selected, $association);
+        }
+        $this->em->flush();
+        $this->flashSuccess($this->t($associations === [] ? 'responsibilities.lists.association.flash.cleared' : 'responsibilities.lists.association.flash.saved'));
+    }
+
+    // ── Associated lists (on the list itself) ────────────────────────────────
+
+    /** @return list<ListItem> the other lists of the centre (and the list itself), what the managed list can be associated with */
+    public function getLinkableLists(): array
+    {
+        return array_values($this->items->findRootsByCentre($this->centre));
+    }
+
+    /**
+     * Saves the lists the managed list is associated with. Taking one away removes every association of its elements with that list:
+     * the first time it says how many and waits for a confirmation.
+     */
+    #[LiveAction]
+    public function saveLinkedLists(): void
+    {
+        $list = $this->managedList();
+        if ($list === null) {
+            return;
+        }
+
+        $byId = [];
+        foreach ($this->getLinkableLists() as $candidate) {
+            $byId[$candidate->getId()->toRfc4122()] = $candidate;
+        }
+        $wanted = [];
+        foreach (array_unique(array_filter($this->linkedListIds, 'is_string')) as $id) {
+            if (isset($byId[$id])) {
+                $wanted[$id] = $byId[$id];
+            }
+        }
+
+        $removed = array_values(array_filter($list->getLinkedLists(), static fn (ListItem $l): bool => !isset($wanted[$l->getId()->toRfc4122()])));
+        $count   = 0;
+        foreach ($removed as $gone) {
+            $count += $this->linksTo($list, $gone);
+        }
+        $confirmKey = implode(',', array_map(static fn (ListItem $l): string => $l->getId()->toRfc4122(), $removed));
+        if ($count > 0 && $this->linkedListsConfirmKey !== $confirmKey) {
+            $this->linkedListsConfirmKey   = $confirmKey;
+            $this->linkedListsConfirmCount = $count;
 
             return;
         }
 
-        // The item ends up with exactly the picked ones.
-        $selected->clearProfileAssociations();
-        foreach ($rows as $row) {
-            $selected->addProfileAssociation($row->profile, $row->listItem);
+        foreach ($removed as $gone) {
+            foreach ($this->items->findSubtree($list) as $node) {
+                $node->clearLinks($gone);
+            }
+            $list->removeLinkedList($gone);
+        }
+        foreach ($wanted as $linked) {
+            $list->addLinkedList($linked);
         }
         $this->em->flush();
-        $this->flashSuccess($this->t('responsibilities.lists.association.flash.saved'));
+
+        $this->linkedListsConfirmKey   = '';
+        $this->linkedListsConfirmCount = 0;
+        $this->flashSuccess($this->t('responsibilities.lists.linked_lists.flash.saved'));
+    }
+
+    #[LiveAction]
+    public function cancelLinkedLists(): void
+    {
+        $this->linkedListsConfirmKey   = '';
+        $this->linkedListsConfirmCount = 0;
+        $this->linkedListIds           = array_map(static fn (ListItem $l): string => $l->getId()->toRfc4122(), $this->managedList()?->getLinkedLists() ?? []);
+    }
+
+    /** How many own associations the elements of $list have with elements of $linkedList. */
+    private function linksTo(ListItem $list, ListItem $linkedList): int
+    {
+        $count = 0;
+        foreach ($this->items->findSubtree($list) as $node) {
+            foreach ($node->getLinks() as $link) {
+                if ($link->isUnder($linkedList)) {
+                    ++$count;
+                }
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * For each list the managed list is associated with, how many of its leaves have no element of it, own or inherited (after a
+     * Séneca import, the new ones): what the counters at the top of the tree say, each one a filter.
+     *
+     * @return list<array{list: ListItem, missing: int}>
+     */
+    public function getMissingLinks(): array
+    {
+        $list = $this->root;
+        if ($list === null) {
+            return [];
+        }
+
+        $leaves = $this->items->findLeafDescendants($list);
+        $result = [];
+        foreach ($list->getLinkedLists() as $linkedList) {
+            $missing = 0;
+            foreach ($leaves as $leaf) {
+                if (!$this->hasLinkInto($leaf, $linkedList)) {
+                    ++$missing;
+                }
+            }
+            $result[] = ['list' => $linkedList, 'missing' => $missing];
+        }
+
+        return $result;
+    }
+
+    private function hasLinkInto(ListItem $item, ListItem $linkedList): bool
+    {
+        foreach ($item->getEffectiveAssociations() as $association) {
+            if ($association->linked !== null && $association->linked->isUnder($linkedList)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Shows only the leaves with no element of that list (and the branches leading to them); the same id again shows everything. */
+    #[LiveAction]
+    public function toggleOnlyWithoutLink(#[LiveArg] string $listId): void
+    {
+        $this->onlyWithoutLinkTo = $this->onlyWithoutLinkTo === $listId ? '' : $listId;
+        $this->onlyWithoutTeacher = false;
+    }
+
+    /** The list the tree is filtered by («sin Departamento»), or null. */
+    private function withoutLinkList(): ?ListItem
+    {
+        if ($this->onlyWithoutLinkTo === '') {
+            return null;
+        }
+        foreach ($this->root?->getLinkedLists() ?? [] as $linkedList) {
+            if ($linkedList->getId()->toRfc4122() === $this->onlyWithoutLinkTo) {
+                return $linkedList;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The tree's chips of an item: its own associations, short («Informática»), with the full label as the title. Inherited ones are
+     * not repeated on every leaf.
+     *
+     * @return list<array{short: string, label: string}>
+     */
+    public function associationChips(ListItem $item): array
+    {
+        return array_map(static fn (ListItemAssociation $a): array => [
+            'short' => $a->linked?->getName() ?? ($a->profile?->getName() ?? ''),
+            'label' => $a->label(),
+        ], $item->getAssociations());
+    }
+
+    // ── Marking by name (bulk mode) ──────────────────────────────────────────
+
+    /** @return list<array{id: string, label: string}> where «Marcar por nombre» looks: the list, or one of its branches */
+    public function getMarkWithinOptions(): array
+    {
+        if ($this->root === null) {
+            return [];
+        }
+        $options = [['id' => '', 'label' => $this->root->getName()]];
+        foreach ($this->items->findSubtree($this->root) as $node) {
+            if ($node !== $this->root && !$node->isLeaf()) {
+                $options[] = ['id' => $node->getId()->toRfc4122(), 'label' => $this->root->getName() . ' › ' . self::pathBelow($node, $this->root)];
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * Checks every leaf under the chosen branch whose name is exactly $markName, ignoring case and accents («Itinerario Personal para
+     * la Empleabilidad I» in every course), on top of what is already checked.
+     */
+    #[LiveAction]
+    public function markByName(): void
+    {
+        $name = self::comparable($this->markName);
+        if ($name === '' || $this->root === null) {
+            return;
+        }
+        $within = $this->markWithinId === '' ? $this->root : $this->items->findByIdAndCentre($this->markWithinId, $this->centre);
+        if ($within === null || !$within->isUnder($this->root)) {
+            return;
+        }
+
+        $ids   = array_flip(array_map('strval', $this->bulkSelectedIds));
+        $count = 0;
+        foreach ($this->items->findLeafDescendants($within) as $leaf) {
+            if (self::comparable($leaf->getName()) === $name) {
+                $ids[$leaf->getId()->toRfc4122()] = true;
+                ++$count;
+            }
+        }
+        $this->bulkSelectedIds = array_keys($ids);
+        $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.mark.flash', ['%count%' => $count], 'admin'));
+    }
+
+    /** Lowercase, without accents nor repeated spaces: how «Marcar por nombre» compares. */
+    private static function comparable(string $name): string
+    {
+        $plain = \Normalizer::normalize(mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $name))), \Normalizer::FORM_D);
+        if (!is_string($plain)) {
+            return '';
+        }
+
+        return (string) preg_replace('/\p{Mn}/u', '', $plain);
     }
 
     // ── Associated teachers ──────────────────────────────────────────────────
@@ -1041,6 +1372,13 @@ class ListItemTreeComponent extends AbstractController
     public function toggleOnlyWithoutTeacher(): void
     {
         $this->onlyWithoutTeacher = !$this->onlyWithoutTeacher;
+        $this->onlyWithoutLinkTo  = '';
+    }
+
+    /** Whether the tree shows only part of each list («Sin docente», «sin Departamento»): then nothing can be dragged. */
+    public function isFiltered(): bool
+    {
+        return $this->onlyWithoutTeacher || $this->withoutLinkList() !== null;
     }
 
     // ── Bulk association ─────────────────────────────────────────────────────
@@ -1062,17 +1400,18 @@ class ListItemTreeComponent extends AbstractController
     }
 
     /**
-     * Adds the profiles/subprofiles in $bulkAssociationKeys to every checked item at once, on top of
-     * the ones each already has — the same ListItem::addProfileAssociation() a single-item save
-     * uses, just looped and flushed once instead of once per item.
+     * Applies the associations in $bulkAssociationKeys to every checked item at once, as $bulkAssociationMode says: 'add' them on top
+     * of what each has, 'replace' what each has of the same lists (or the same plain profiles) with them, or 'remove' them. Only the
+     * items' own ones: what they inherit is their ancestors'.
      */
     #[LiveAction]
     public function bulkSaveAssociation(): void
     {
-        $rows = $this->associationRowsFor($this->bulkAssociationKeys);
-        if ($this->bulkSelectedIds === [] || $rows === []) {
+        $associations = $this->associationsFor($this->bulkAssociationKeys);
+        if ($this->bulkSelectedIds === [] || $associations === []) {
             return;
         }
+        $mode = in_array($this->bulkAssociationMode, ['add', 'replace', 'remove'], true) ? $this->bulkAssociationMode : 'add';
 
         $count = 0;
         $index = $this->itemIndex();
@@ -1082,8 +1421,31 @@ class ListItemTreeComponent extends AbstractController
                 continue;
             }
 
-            foreach ($rows as $row) {
-                $item->addProfileAssociation($row->profile, $row->listItem);
+            if ($mode === 'replace') {
+                foreach ($associations as $association) {
+                    $list = $association->list();
+                    if ($list !== null) {
+                        $item->clearLinks($list);
+                    } else {
+                        foreach ($item->getProfileAssociations()->toArray() as $own) {
+                            $item->removeProfileAssociation($own);
+                        }
+                    }
+                }
+            }
+            foreach ($associations as $association) {
+                if ($mode === 'remove') {
+                    if ($association->linked !== null) {
+                        $item->removeLink($association->linked);
+                    }
+                    foreach ($item->getProfileAssociations()->toArray() as $own) {
+                        if ($association->profile !== null && $own->getSpecificProfile()->getId()->equals($association->profile->getId())) {
+                            $item->removeProfileAssociation($own);
+                        }
+                    }
+                } else {
+                    self::associate($item, $association);
+                }
             }
             ++$count;
         }
@@ -1110,7 +1472,7 @@ class ListItemTreeComponent extends AbstractController
                 continue;
             }
 
-            $item->clearProfileAssociations();
+            $item->clearAssociations();
             ++$count;
         }
 
@@ -1394,8 +1756,8 @@ class ListItemTreeComponent extends AbstractController
             foreach ($this->items->findSubtree($root) as $node) {
                 $parentId = spl_object_id($node->getParent() ?? $node);
                 $mine     = $node === $root ? [] : ($base[$parentId] ?? []);
-                foreach ($node->getProfileAssociations() as $association) {
-                    $mine[$association->getKey()] = true;
+                foreach ($node->getAssociations() as $association) {
+                    $mine[$association->key()] = true;
                 }
                 $base[spl_object_id($node)] = $mine;
 
@@ -1439,8 +1801,8 @@ class ListItemTreeComponent extends AbstractController
     {
         $keys = [];
         if ($item !== null) {
-            foreach ($item->getEffectiveProfileAssociations() as $association) {
-                $keys[$association->getKey()] = true;
+            foreach ($item->getEffectiveAssociations() as $association) {
+                $keys[$association->key()] = true;
             }
         }
 

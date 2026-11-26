@@ -335,12 +335,17 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
             return $this->byParentCache[$key];
         }
 
-        // With each item's profile associations in the same query: walking the tree asks every leaf
-        // (and its ancestors) for them — see ListItem::getEffectiveProfileAssociations(). Same for the
+        // With each item's associations in the same query: walking the tree asks every leaf (and its
+        // ancestors) for them — see ListItem::getEffectiveAssociations(): the links to elements of other
+        // lists, the plain profiles, and on the roots the lists they declare associated. Same for the
         // associated teachers (and the teacher itself, a to-one, so reading names or isActive() never
-        // queries): ListItem::getEffectiveTeachers(). Two collections in one query multiply the rows,
-        // but an element has a handful of each.
+        // queries): ListItem::getEffectiveTeachers(). Several collections in one query multiply the
+        // rows, but an element has a handful of each.
         $all = $this->createQueryBuilder('li')
+            ->leftJoin('li.links', 'lk')
+            ->addSelect('lk')
+            ->leftJoin('li.linkedLists', 'll')
+            ->addSelect('ll')
             ->leftJoin('li.profileAssociations', 'pa')
             ->addSelect('pa')
             ->leftJoin('li.teacherAssociations', 'ta')

@@ -40,6 +40,7 @@ final class ListItemsInheritanceReportCommandTest extends RepositoryTestCase
         $connection = $this->em->getConnection();
         $snapshot   = static fn (): array => [
             $connection->fetchOne('SELECT COUNT(*) FROM list_item_profile'),
+            $connection->fetchOne('SELECT COUNT(*) FROM list_item_link'),
             $connection->fetchOne('SELECT COUNT(*) FROM list_item'),
             $connection->fetchOne('SELECT COUNT(*) FROM activity'),
         ];
@@ -48,8 +49,8 @@ final class ListItemsInheritanceReportCommandTest extends RepositoryTestCase
         $output = $this->report()->getDisplay();
 
         self::assertStringContainsString('2º DAW', $output, 'the demo element with an own association under an associated parent');
-        self::assertStringContainsString('Tutor/a 2º DAW', $output);
-        self::assertStringContainsString('Jefe/a de Departamento Informática', $output);
+        self::assertStringContainsString('Grupo › 2º DAW', $output, 'its own: the element of «Grupo» the tutor owes');
+        self::assertStringContainsString('Departamento › Informática', $output);
         self::assertMatchesRegularExpression('/Programaciones didácticas\s+(\d+)\s+\1\s/', $output, 'in the demo no activity gains submissions: the folder of the only activity does not accept both profiles');
         self::assertStringNotContainsString('* El número de entregas cambia', $output);
         self::assertSame($before, $snapshot(), 'read-only');
@@ -83,7 +84,7 @@ final class ListItemsInheritanceReportCommandTest extends RepositoryTestCase
         self::assertMatchesRegularExpression('/A › B\s+PerfilY\s+PerfilX \(A\)/', $output, 'B too');
         self::assertStringContainsString('ahora queda cubierta', $output);
         $covered = substr($output, (int) strpos($output, 'ahora queda cubierta'));
-        self::assertMatchesRegularExpression('/Enseñanza › DAW\s+Jefatura Informática\s+Jefatura Área \(Enseñanza\)/', $covered, 'the own association is covered by the broader inherited one');
+        self::assertMatchesRegularExpression('/Enseñanza › DAW\s+Departamentos › Área › Informática\s+Departamentos › Área \(Enseñanza\)/', $covered, 'the own association is covered by the broader inherited one');
     }
 
     public function testCountsTheSubmissionsBeforeAndAfterTheAccumulation(): void

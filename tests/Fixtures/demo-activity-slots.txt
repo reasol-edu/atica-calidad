@@ -1,0 +1,30 @@
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 1º Bach. A (Científico) | Tutor/a | Grupo › 1º Bach. A (Científico) |  | s.méndez |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 1º Bach. B (Humanidades) | Tutor/a | Grupo › 1º Bach. B (Humanidades) |  | r.guerrero |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 1º DAM | Tutor/a | Grupo › 1º DAM |  | c.núñez |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 1º DAW | Tutor/a | Grupo › 1º DAW |  | m.pardo |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 1º ESO A | Tutor/a | Grupo › 1º ESO A |  | a.ruiz |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 1º ESO B | Tutor/a | Grupo › 1º ESO B |  | s.marín |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 2º Bach. A | Tutor/a | Grupo › 2º Bach. A |  | a.rey |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 2º Bach. B | Tutor/a | Grupo › 2º Bach. B |  | i.cortés |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 2º DAM | Tutor/a | Grupo › 2º DAM |  | n.bravo |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 2º DAW | Tutor/a | Grupo › 2º DAW |  | r.serrano |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 2º ESO A | Tutor/a | Grupo › 2º ESO A |  | i.campos |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 2º ESO B | Tutor/a | Grupo › 2º ESO B |  | c.vidal |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 3º ESO A | Tutor/a | Grupo › 3º ESO A |  | ó.peña |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 3º ESO B | Tutor/a | Grupo › 3º ESO B |  | b.soto |
+IES Ada Lovelace / Plan de Acción Tutorial (PAT) | Tutor/a 4º ESO A | Tutor/a | Grupo › 4º ESO A |  | f.crespo |
+IES Ada Lovelace / Programaciones didácticas | Bases de Datos | Jefe/a de Departamento | Departamento › Informática | Materia › Bases de Datos |  | Jefe/a de Departamento Informática
+IES Ada Lovelace / Programaciones didácticas | Biología y Geología | Jefe/a de Departamento | Departamento › Biología y Geología | Materia › Biología y Geología |  | Jefe/a de Departamento Biología y Geología
+IES Ada Lovelace / Programaciones didácticas | Desarrollo Web en Entorno Cliente | Jefe/a de Departamento | Departamento › Informática | Materia › Desarrollo Web en Entorno Cliente |  | Jefe/a de Departamento Informática
+IES Ada Lovelace / Programaciones didácticas | Desarrollo Web en Entorno Servidor | Jefe/a de Departamento | Departamento › Informática | Materia › Desarrollo Web en Entorno Servidor |  | Jefe/a de Departamento Informática
+IES Ada Lovelace / Programaciones didácticas | Educación Física | Jefe/a de Departamento | Departamento › Educación Física | Materia › Educación Física |  | Jefe/a de Departamento Educación Física
+IES Ada Lovelace / Programaciones didácticas | Fase de Formación en Empresa u Organismo Equiparado (FFEOE) | Jefe/a de Departamento | Departamento › Informática | Materia › Fase de Formación en Empresa u Organismo Equiparado (FFEOE) |  | Jefe/a de Departamento Informática
+IES Ada Lovelace / Programaciones didácticas | Física y Química | Jefe/a de Departamento | Departamento › Física y Química | Materia › Física y Química |  | Jefe/a de Departamento Física y Química
+IES Ada Lovelace / Programaciones didácticas | Geografía e Historia | Jefe/a de Departamento | Departamento › Geografía e Historia | Materia › Geografía e Historia |  | Jefe/a de Departamento Geografía e Historia
+IES Ada Lovelace / Programaciones didácticas | Inglés | Jefe/a de Departamento | Departamento › Inglés | Materia › Inglés |  | Jefe/a de Departamento Inglés
+IES Ada Lovelace / Programaciones didácticas | Lengua Castellana y Literatura | Jefe/a de Departamento | Departamento › Lengua Castellana y Literatura | Materia › Lengua Castellana y Literatura |  | Jefe/a de Departamento Lengua Castellana y Literatura
+IES Ada Lovelace / Programaciones didácticas | Matemáticas | Jefe/a de Departamento | Departamento › Matemáticas | Materia › Matemáticas |  | Jefe/a de Departamento Matemáticas
+IES Ada Lovelace / Programaciones didácticas | Programación | Jefe/a de Departamento | Departamento › Informática | Materia › Programación |  | Jefe/a de Departamento Informática
+IES Ada Lovelace / Programaciones didácticas | Sistemas Informáticos | Jefe/a de Departamento | Departamento › Informática | Materia › Sistemas Informáticos |  | Jefe/a de Departamento Informática
+IES Ada Lovelace / Programaciones didácticas | Tecnología | Jefe/a de Departamento | Departamento › Informática | Materia › Tecnología |  | Jefe/a de Departamento Informática
+IES Ada Lovelace / Programaciones didácticas | Tecnología | Jefe/a de Departamento | Departamento › Tecnología | Materia › Tecnología |  | Jefe/a de Departamento Tecnología
