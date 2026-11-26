@@ -31,8 +31,8 @@ class FormSubmission
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private Activity $activity;
 
-    /** ActivitySubmissionSlot::key() */
-    #[ORM\Column(length: 255)]
+    /** ActivitySubmissionSlot::key() (up to five parts: with the dimensions' combination it outgrows 255) */
+    #[ORM\Column(length: 400)]
     private string $slotKey;
 
     #[ORM\Column]

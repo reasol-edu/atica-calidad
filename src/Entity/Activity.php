@@ -193,6 +193,23 @@ class Activity implements Trashable
     #[ORM\OneToMany(targetEntity: ActivityDeliverySource::class, mappedBy: 'activity', cascade: ['persist'], orphanRemoval: true)]
     private Collection $deliverySources;
 
+    /**
+     * The lists the submissions are multiplied by («una entrega por materia y evaluación»), in the order their values go in the
+     * submission's name. See ActivityDimension.
+     *
+     * @var Collection<int, ActivityDimension>
+     */
+    #[ORM\OneToMany(targetEntity: ActivityDimension::class, mappedBy: 'activity', cascade: ['persist'], orphanRemoval: true)]
+    #[ORM\OrderBy(['position' => 'ASC'])]
+    private Collection $dimensions;
+
+    /**
+     * With a list element: one submission per element (true, what there always was) or one per owner gathering all the elements it
+     * owes (false: «Informática · 1ª» with every subject of Informática in the 1ª), always times the dimensions' combinations.
+     */
+    #[ORM\Column(options: ['default' => true])]
+    private bool $splitByElement = true;
+
     #[ORM\Column]
     private int $position = 0;
 
@@ -211,6 +228,7 @@ class Activity implements Trashable
         $this->responsibleProfiles = new ArrayCollection();
         $this->listItemDeadlines   = new ArrayCollection();
         $this->deliverySources     = new ArrayCollection();
+        $this->dimensions          = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -741,6 +759,75 @@ class Activity implements Trashable
         if ($source !== null) {
             $this->deliverySources->add(new ActivityDeliverySource($this, $blockKey, $source));
         }
+
+        return $this;
+    }
+
+    /** @return list<ActivityDimension> the lists the submissions are multiplied by, in order */
+    public function getDimensions(): array
+    {
+        $dimensions = array_values($this->dimensions->toArray());
+        usort($dimensions, static fn (ActivityDimension $a, ActivityDimension $b): int => $a->getPosition() <=> $b->getPosition());
+
+        return $dimensions;
+    }
+
+    public function hasDimensions(): bool
+    {
+        return !$this->dimensions->isEmpty();
+    }
+
+    /** The dimension whose values each have their own dates, if any. */
+    public function getDatedDimension(): ?ActivityDimension
+    {
+        foreach ($this->dimensions as $dimension) {
+            if ($dimension->isDated()) {
+                return $dimension;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Replaces the dimensions with these lists, in this order; $datedIndex is the one with dates (null: none). A list already there
+     * keeps its row (and nothing else changes for it).
+     *
+     * @param list<ListItem> $lists
+     */
+    public function setDimensions(array $lists, ?int $datedIndex = null): static
+    {
+        $byId = [];
+        foreach ($this->dimensions as $dimension) {
+            $byId[$dimension->getList()->identityKey()] = $dimension;
+        }
+        $kept = [];
+        foreach ($lists as $position => $list) {
+            $dimension = $byId[$list->identityKey()] ?? null;
+            if ($dimension === null) {
+                $dimension = new ActivityDimension($this, $list, $position);
+                $this->dimensions->add($dimension);
+            }
+            $dimension->setPosition($position)->setDated($position === $datedIndex);
+            $kept[spl_object_id($dimension)] = true;
+        }
+        foreach ($this->dimensions->toArray() as $dimension) {
+            if (!isset($kept[spl_object_id($dimension)])) {
+                $this->dimensions->removeElement($dimension);
+            }
+        }
+
+        return $this;
+    }
+
+    public function isSplitByElement(): bool
+    {
+        return $this->splitByElement;
+    }
+
+    public function setSplitByElement(bool $splitByElement): static
+    {
+        $this->splitByElement = $splitByElement;
 
         return $this;
     }

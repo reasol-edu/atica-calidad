@@ -38,8 +38,8 @@ final class ActivityCycleExtension extends AbstractExtension
             return null;
         }
 
-        $leaf = $this->slotBuilder->findLeafForDocument($activity, $document);
-        if ($cycleYear === $this->deadline->currentCycleKey($activity, $leaf)) {
+        $item = $this->slotBuilder->findDeadlineItemForDocument($activity, $document);
+        if ($cycleYear === $this->deadline->currentCycleKey($activity, $item)) {
             return null;
         }
 

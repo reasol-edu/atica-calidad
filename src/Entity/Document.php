@@ -52,6 +52,14 @@ class Document implements Trashable
     private int $position = 0;
 
     /**
+     * For the submission of an activity with dimensions («una entrega por materia y evaluación»): the ids of its combination, the fifth
+     * part of the slot's key (ActivitySubmissionSlot::combinationKey()). Part of what identifies the submission (resolveSlot()), so
+     * renaming a value never orphans it. Null for any other document — and for one of an activity without dimensions.
+     */
+    #[ORM\Column(length: 400, nullable: true)]
+    private ?string $slotCombination = null;
+
+    /**
      * For an activity submission (a document in a folder backing an Activity): the cycle key of
      * the occurrence it was submitted for (first calendar year of its academic year, 2026 for
      * 2026-2027 — see ActivityDeadlineChecker::currentCycleKey()), so next year's occurrence of
@@ -139,6 +147,18 @@ class Document implements Trashable
     public function getActivityCycleYear(): ?int
     {
         return $this->activityCycleYear;
+    }
+
+    public function getSlotCombination(): ?string
+    {
+        return $this->slotCombination;
+    }
+
+    public function setSlotCombination(?string $slotCombination): static
+    {
+        $this->slotCombination = $slotCombination === '' ? null : $slotCombination;
+
+        return $this;
     }
 
     public function setActivityCycleYear(?int $activityCycleYear): static

@@ -35,7 +35,8 @@ final class DocumentActivityCycleListener
             return;
         }
 
-        $leaf = $this->slotBuilder->findLeafForDocument($activity, $document);
-        $document->setActivityCycleYear($this->deadline->currentCycleKey($activity, $leaf));
+        // The dates are the dimension value's, when the activity has a dimension with dates (the evaluation of «… · 1ª»).
+        $item = $this->slotBuilder->findDeadlineItemForDocument($activity, $document);
+        $document->setActivityCycleYear($this->deadline->currentCycleKey($activity, $item));
     }
 }

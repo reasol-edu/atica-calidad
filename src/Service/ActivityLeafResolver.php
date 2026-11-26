@@ -73,7 +73,35 @@ final class ActivityLeafResolver implements ResetInterface
         $key    = spl_object_id($listItem) . '|' . ($activity->isSubmissionNameFullPath() ? '1' : '0');
         $byName = $this->leavesByName[$key] ??= $this->namesOf($listItem, $activity->isSubmissionNameFullPath());
 
-        return $byName[$document->getName()] ?? null;
+        // With dimensions the name ends in the values («… · Final 1»): only the part before them names the element. A grouped
+        // submission («Informática · 1ª») has no element: its name is only values, and matches no leaf.
+        $combination = $document->getSlotCombination();
+        $name        = $combination === null ? $document->getName() : ActivitySubmissionSlotBuilder::withoutValues($document->getName(), count(explode('+', $combination)));
+
+        return $byName[$name] ?? null;
+    }
+
+    /**
+     * The catalogue element whose dates $document's submission follows: the value of the activity's dimension with dates in its
+     * combination, or else the element it was named after (findLeafForDocument()). What its cycle is stamped with.
+     */
+    public function findDeadlineItemForDocument(Activity $activity, Document $document): ?ListItem
+    {
+        $combination = $document->getSlotCombination();
+        if ($combination !== null) {
+            $ids = explode('+', $combination);
+            foreach ($activity->getDimensions() as $index => $dimension) {
+                if ($dimension->isDated() && isset($ids[$index])) {
+                    foreach ($this->listItems->findLeafDescendants($dimension->getList()) as $value) {
+                        if ($value->getId()->toRfc4122() === $ids[$index]) {
+                            return $value;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $this->findLeafForDocument($activity, $document);
     }
 
     /** Any flush may have renamed, moved or added elements: the names are worked out again. */

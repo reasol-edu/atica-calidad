@@ -29,8 +29,15 @@ final readonly class ActivitySubmissionSlot
         public string $displayName,
         public ?Teacher $teacher,
         public ?string $ownerLabel = null,
+        /** @var list<ListItem> one value of each of the activity's dimensions, in their order (empty without dimensions) */
+        public array $combination = [],
     ) {}
 
+    /**
+     * profile : subprofile : element : teacher, each a UUID or empty — and, for an activity with dimensions, a fifth part with the
+     * combination (combinationKey()). Without dimensions it is exactly the four parts there always were, so what was delivered keeps
+     * matching.
+     */
     public function key(): string
     {
         $parts = [
@@ -39,8 +46,44 @@ final readonly class ActivitySubmissionSlot
             $this->nameListItem?->getId()->toRfc4122() ?? '',
             $this->teacher?->getId()->toRfc4122() ?? '',
         ];
+        if ($this->combination !== []) {
+            $parts[] = $this->combinationKey();
+        }
 
         return implode(':', $parts);
+    }
+
+    /** The ids of the combination's values joined by «+», in the dimensions' order; '' without dimensions. */
+    public function combinationKey(): string
+    {
+        return implode('+', array_map(static fn (ListItem $value): string => $value->getId()->toRfc4122(), $this->combination));
+    }
+
+    /**
+     * The value that gives this submission its dates: the one of the activity's dimension with dates, or else its element (whose own
+     * date range, if it has one, is an override of the activity's — ActivityDeadlineChecker). What every date is worked out with.
+     */
+    public function deadlineItem(\App\Entity\Activity $activity): ?ListItem
+    {
+        foreach ($activity->getDimensions() as $index => $dimension) {
+            if ($dimension->isDated()) {
+                return $this->combination[$index] ?? $this->nameListItem;
+            }
+        }
+
+        return $this->nameListItem;
+    }
+
+    /**
+     * The ids of the combination read back from a key (its fifth part); empty for a key without one or that is not a key.
+     *
+     * @return list<string>
+     */
+    public static function combinationOf(string $key): array
+    {
+        $parts = self::partsOf($key);
+
+        return $parts === null || $parts[4] === '' ? [] : explode('+', $parts[4]);
     }
 
     /**
@@ -71,23 +114,29 @@ final readonly class ActivitySubmissionSlot
     }
 
     /**
-     * The four parts of a key (see key()) — profile, subprofile, element, teacher — each a UUID or empty; null for anything else. The one
-     * place that reads the format back, for deliveredBy() and leafOf().
+     * The parts of a key (see key()) — profile, subprofile, element, teacher, each a UUID or empty, and the combination ('' when the
+     * key has only four parts: UUIDs joined by «+») — null for anything else. The one place that reads the format back, for
+     * deliveredBy(), leafOf() and combinationOf().
      *
-     * @return array{0: string, 1: string, 2: string, 3: string}|null
+     * @return array{0: string, 1: string, 2: string, 3: string, 4: string}|null
      */
     private static function partsOf(string $key): ?array
     {
+        $uuid  = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
         $parts = explode(':', $key);
-        if (count($parts) !== 4) {
+        if (count($parts) !== 4 && count($parts) !== 5) {
             return null;
         }
-        foreach ($parts as $part) {
-            if ($part !== '' && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $part) !== 1) {
+        foreach (array_slice($parts, 0, 4) as $part) {
+            if ($part !== '' && preg_match('/^' . $uuid . '$/', $part) !== 1) {
                 return null;
             }
         }
+        $combination = $parts[4] ?? '';
+        if ($combination !== '' && preg_match('/^' . $uuid . '(\+' . $uuid . ')*$/', $combination) !== 1) {
+            return null;
+        }
 
-        return [$parts[0], $parts[1], $parts[2], $parts[3]];
+        return [$parts[0], $parts[1], $parts[2], $parts[3], $combination];
     }
 }

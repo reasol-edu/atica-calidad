@@ -83,15 +83,18 @@ final class DocumentCreationService
         UploadedFile $file,
         Teacher $uploader,
         ?int $version = null,
+        string $slotCombination = '',
     ): Document {
         $content      = (string) file_get_contents($file->getPathname());
         $documentFile = $this->storeFile($content, $file->getMimeType() ?? 'application/octet-stream', $file->getClientOriginalName());
 
-        return $this->createFromStoredFile($folder, $name, $profile, $listItem, $documentFile, $uploader, $version);
+        return $this->createFromStoredFile($folder, $name, $profile, $listItem, $documentFile, $uploader, $version, false, $slotCombination);
     }
 
     /**
-     * The same as createWithFirstRevision() for a file already stored (the PDF a filled document generates).
+     * The same as createWithFirstRevision() for a file already stored (the PDF a filled document generates). $slotCombination is the
+     * combination of the activity submission it is (ActivitySubmissionSlot::combinationKey()), set before persisting: the cycle it is
+     * stamped with follows the dimension value with dates (DocumentActivityCycleListener).
      */
     public function createFromStoredFile(
         Folder $folder,
@@ -102,11 +105,13 @@ final class DocumentCreationService
         Teacher $uploader,
         ?int $version = null,
         bool $forceReview = false,
+        string $slotCombination = '',
     ): Document {
         $version ??= $this->versioning->minimum($folder->getEducationalCentre());
 
         $document = new Document($folder, $name);
         $document->setUploadProfile($profile, $listItem);
+        $document->setSlotCombination($slotCombination);
         $document->setPosition($this->documents->nextPositionInFolder($folder));
         $this->em->persist($document);
 

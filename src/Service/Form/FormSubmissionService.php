@@ -451,7 +451,7 @@ final class FormSubmissionService
         $document = $submission->getDocument();
         if ($document === null) {
             // Same identity rule as an uploaded file: whoever is assigned to an individual slot is its uploader.
-            $document = $this->documents->createFromStoredFile($folder, $slot->displayName, $slot->profile, $slot->listItem, $file, $slot->teacher ?? $by, null, $hasChain);
+            $document = $this->documents->createFromStoredFile($folder, $slot->displayName, $slot->profile, $slot->listItem, $file, $slot->teacher ?? $by, null, $hasChain, $slot->combinationKey());
             $submission->setDocument($document);
             $revision = $document->getRevisions()->first();
             if ($revision === false) {

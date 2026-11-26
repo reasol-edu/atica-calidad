@@ -326,7 +326,7 @@ class ActivityController extends AbstractController
             // uploader, or the document it creates would never match this slot again (it'd
             // permanently look unsubmitted here while sitting, orphaned, in the folder). For
             // ByProfile-scope slots $slot->teacher is always null, so this is just $teacher.
-            $this->documentCreation->createWithFirstRevision($folder, $slot->displayName, $slot->profile, $slot->listItem, $file, $slot->teacher ?? $teacher);
+            $this->documentCreation->createWithFirstRevision($folder, $slot->displayName, $slot->profile, $slot->listItem, $file, $slot->teacher ?? $teacher, null, $slot->combinationKey());
             ++$created;
             $anyLate = $anyLate || $window->late;
         }

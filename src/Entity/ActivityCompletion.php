@@ -67,7 +67,14 @@ class ActivityCompletion
     #[ORM\Column]
     private int $cycleYear;
 
-    public function __construct(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem, Teacher $completedBy, int $cycleYear, ?ListItem $leafListItem = null)
+    /**
+     * For an activity with dimensions: the combination of the submission this completes (ActivitySubmissionSlot::combinationKey()), so
+     * completing the 1ª never completes the 2ª. Null otherwise, and only then.
+     */
+    #[ORM\Column(length: 400, nullable: true)]
+    private ?string $combination = null;
+
+    public function __construct(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem, Teacher $completedBy, int $cycleYear, ?ListItem $leafListItem = null, ?string $combination = null)
     {
         $this->activity     = $activity;
         $this->cycleYear    = $cycleYear;
@@ -75,8 +82,14 @@ class ActivityCompletion
         $this->profile      = $profile;
         $this->listItem     = $listItem;
         $this->leafListItem = $leafListItem;
+        $this->combination  = $combination === '' ? null : $combination;
         $this->completedBy  = $completedBy;
         $this->completedAt  = now();
+    }
+
+    public function getCombination(): ?string
+    {
+        return $this->combination;
     }
 
     public function getId(): Uuid
