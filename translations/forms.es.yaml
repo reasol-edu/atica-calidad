@@ -688,6 +688,7 @@ layout.font_scale_help: 'Para reducir o ampliar el texto del documento. El 100 %
 layout.font_scale_reset: 'Restablecer al 100 %'
 layout.editor.hint: 'Los campos entre llaves, como {centro} o {pagina}, los rellena la aplicación al generar cada documento.'
 models.imported: 'Modelo importado como borrador. Revísalo antes de enviarlo a revisión.'
+models.import_unsourced: 'Estas tablas leían las entregas de un modelo que este centro no tiene (o que se llama de otra forma): %tables%. Elige en el editor de qué modelo salen antes de enviarlo a revisión.'
 models.import_unlinked: 'Estos campos tomaban sus opciones de una lista que este centro no tiene: %fields%. Quedan sin opciones; elige una lista del catálogo de este centro (o escribe las opciones) en el editor antes de enviar el modelo a revisión.'
 models.error.import: 'No se ha podido importar ese archivo: comprueba que es un modelo exportado, un .docx o un .odt, y que se ha elegido una carpeta.'
 fill.recovered: 'Se han recuperado cambios que no llegaron a guardarse en este navegador; se guardan ahora.'

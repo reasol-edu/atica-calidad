@@ -142,12 +142,14 @@ class FormModelLibraryController extends AbstractController
         $name      = trim($request->request->getString('name'));
         $extension = strtolower($file->getClientOriginalExtension());
         $unlinked  = [];
+        $unsourced = [];
         try {
             if ($extension === 'json') {
                 $payload  = json_decode((string) file_get_contents($file->getPathname()), true);
                 $imported = $this->porter->import(\is_array($payload) ? $payload : [], $folder, $name, $this->teacher());
                 $model    = $imported['model'];
                 $unlinked = $imported['unlinked'];
+                $unsourced = $imported['unsourced'];
             } elseif (\in_array($extension, FormOfficeWriter::FORMATS, true)) {
                 $model = $this->porter->importOffice($file->getPathname(), $extension, $folder, $name !== '' ? $name : pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME), $this->teacher());
             } else {
@@ -159,6 +161,9 @@ class FormModelLibraryController extends AbstractController
         $this->addFlash('success', $this->translator->trans('models.imported', [], 'forms'));
         if ($unlinked !== []) {
             $this->addFlash('error',$this->translator->trans('models.import_unlinked', ['%fields%' => implode(', ', array_map(static fn (string $l): string => '«' . $l . '»', $unlinked))], 'forms'));
+        }
+        if ($unsourced !== []) {
+            $this->addFlash('error', $this->translator->trans('models.import_unsourced', ['%tables%' => implode(', ', array_map(static fn (string $l): string => '«' . $l . '»', $unsourced))], 'forms'));
         }
 
         return $this->redirectToRoute('app_form_model_edit', ['id' => $model->getId()->toRfc4122()]);

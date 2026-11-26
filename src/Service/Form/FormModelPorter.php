@@ -8,6 +8,7 @@ use App\Entity\EducationalCentre;
 use App\Entity\Folder;
 use App\Entity\FormModel;
 use App\Entity\Teacher;
+use App\Repository\FormModelRepository;
 
 /**
  * Models in and out as files: the JSON library ("take this model to another centre"), the copy of a model within the centre and the
@@ -27,6 +28,7 @@ final class FormModelPorter
         private readonly FormDataNormalizer $data,
         private readonly FormListOptions $lists,
         private readonly FormLayoutResolver $layouts,
+        private readonly FormModelRepository $models,
     ) {}
 
     /**
@@ -38,10 +40,51 @@ final class FormModelPorter
     {
         $definition = $this->definitions->normalize($model->getDraftDefinition());
         unset($definition['approval']);
+        $centre     = $model->getDocument()->getFolder()->getEducationalCentre();
         // A list is an item of THIS centre's Responsabilidades: it travels as the names that lead to it.
-        $definition = $this->lists->toPaths($definition, $model->getDocument()->getFolder()->getEducationalCentre());
+        $definition = $this->lists->toPaths($definition, $centre);
+        // The model whose deliveries a table reads is one of THIS centre's: it travels as its title.
+        $titles     = [];
+        foreach ($this->models->findByCentre($centre) as $other) {
+            $titles[$other->getId()->toRfc4122()] = $other->getDocument()->getName();
+        }
+        $definition = $this->sourceModels($definition, static fn (string $id): string => $titles[$id] ?? '');
 
         return ['format' => self::FORMAT, 'version' => 1, 'name' => $model->getDocument()->getName(), 'code' => $model->getCode(), 'definition' => $definition];
+    }
+
+    /**
+     * $definition with the `sourceModel` of every table of deliveries (in any section, at any depth) replaced by $map($sourceModel).
+     *
+     * @param array<string, mixed>     $definition
+     * @param callable(string): string $map
+     *
+     * @return array<string, mixed>
+     */
+    private function sourceModels(array $definition, callable $map): array
+    {
+        $walk = static function (array $sections) use (&$walk, $map): array {
+            foreach ($sections as $i => $section) {
+                if (!is_array($section)) {
+                    continue;
+                }
+                $blocks = is_array($section['blocks'] ?? null) ? $section['blocks'] : [];
+                foreach ($blocks as $b => $block) {
+                    if (is_array($block) && ($block['type'] ?? '') === 'table' && ($block['mode'] ?? '') === 'delivered') {
+                        $block['sourceModel'] = $map(FormDefinition::str($block['sourceModel'] ?? ''));
+                        $blocks[$b]           = $block;
+                    }
+                }
+                $section['blocks'] = $blocks;
+                $section['children'] = $walk(is_array($section['children'] ?? null) ? $section['children'] : []);
+                $sections[$i]        = $section;
+            }
+
+            return $sections;
+        };
+        $definition['sections'] = $walk(is_array($definition['sections'] ?? null) ? $definition['sections'] : []);
+
+        return $definition;
     }
 
     /** The draft of a model as a DOCX or ODT, blank (what it will look like to fill in). */
@@ -66,7 +109,11 @@ final class FormModelPorter
      *
      * @param array<mixed> $payload the decoded JSON
      *
-     * @return array{model: FormModel, unlinked: list<string>} the new model and the labels of the fields left without a list
+     * A table of deliveries reads the model of the same title in this centre; when there is none it is left without one (the editor
+     * says so) and its label reported.
+     *
+     * @return array{model: FormModel, unlinked: list<string>, unsourced: list<string>} the new model, the labels of the fields left
+     *                                                                                 without a list and of the tables without a model
      *
      * @throws FormException `error.import_file` when it is not an exported model
      */
@@ -77,10 +124,23 @@ final class FormModelPorter
             throw new FormException('error.import_file');
         }
         unset($definition['approval']);
-        [$definition, $unlinked] = $this->lists->fromPaths($definition, $folder->getEducationalCentre());
+        $centre                  = $folder->getEducationalCentre();
+        [$definition, $unlinked] = $this->lists->fromPaths($definition, $centre);
         $title                   = $name !== null && trim($name) !== '' ? trim($name) : (\is_string($payload['name'] ?? null) ? $payload['name'] : 'Modelo');
 
-        return ['model' => $this->create($folder, $title, \is_string($payload['code'] ?? null) ? $payload['code'] : null, $definition, $by), 'unlinked' => $unlinked];
+        $ids = [];
+        foreach ($this->models->findByCentre($centre) as $other) {
+            $ids[mb_strtolower(trim($other->getDocument()->getName()))] ??= $other->getId()->toRfc4122();
+        }
+        $definition = $this->sourceModels($definition, static fn (string $title): string => $ids[mb_strtolower(trim($title))] ?? '');
+        $unsourced  = [];
+        foreach (FormDeliveredRows::tables($definition) as $block) {
+            if (FormDefinition::str($block['sourceModel'] ?? '') === '') {
+                $unsourced[] = FormDefinition::str($block['label'] ?? '');
+            }
+        }
+
+        return ['model' => $this->create($folder, $title, \is_string($payload['code'] ?? null) ? $payload['code'] : null, $definition, $by), 'unlinked' => $unlinked, 'unsourced' => $unsourced];
     }
 
     /** A copy of a model (its draft) in the same or another folder, as a new draft. */

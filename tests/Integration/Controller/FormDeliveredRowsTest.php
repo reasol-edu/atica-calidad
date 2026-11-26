@@ -367,6 +367,37 @@ final class FormDeliveredRowsTest extends ControllerTestCase
         self::assertContains('delivered_cycle', $codes([$table(['sourceModel' => $target->getId()->toRfc4122(), 'columns' => [['label' => 'Previstas', 'fieldType' => 'number', 'sourceField' => 'horas_previstas']]])], $source));
     }
 
+    public function testAnExportedModelReadsTheModelOfTheSameTitleWhereItIsImported(): void
+    {
+        $porter = self::getContainer()->get(\App\Service\Form\FormModelPorter::class);
+        $source = $this->fresh($this->reviews)->getFormModel();
+        $target = $this->fresh($this->report)->getFormModel();
+        self::assertNotNull($source);
+        self::assertNotNull($target);
+        $title  = $source->getDocument()->getName();
+        $tables = static fn (array $definition): array => FormDeliveredRows::tables($definition);
+
+        $payload = json_decode(json_encode($porter->export($target), JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame([$title], array_column($tables($payload['definition']), 'sourceModel'), 'it travels as the title');
+
+        $folder   = $target->getDocument()->getFolder();
+        $imported = $porter->import($payload, $folder, 'Informe importado', null);
+        self::assertSame([$source->getId()->toRfc4122()], array_column($tables($imported['model']->getDraftDefinition()), 'sourceModel'));
+        self::assertSame([], $imported['unsourced']);
+
+        $elsewhere = $payload;
+        foreach ($elsewhere['definition']['sections'] as $s => $section) {
+            foreach ($section['blocks'] as $b => $block) {
+                if (($block['mode'] ?? '') === 'delivered') {
+                    $elsewhere['definition']['sections'][$s]['blocks'][$b]['sourceModel'] = 'Un modelo que aquí no hay';
+                }
+            }
+        }
+        $imported = $porter->import($elsewhere, $this->em->getRepository(\App\Entity\Folder::class)->find($folder->getId()), 'Sin origen', null);
+        self::assertSame([''], array_column($tables($imported['model']->getDraftDefinition()), 'sourceModel'));
+        self::assertSame(array_column($tables($payload['definition']), 'label'), $imported['unsourced']);
+    }
+
     public function testTheEditorAsksForTheNamedFieldsOfAModel(): void
     {
         $source = $this->fresh($this->reviews)->getFormModel();
