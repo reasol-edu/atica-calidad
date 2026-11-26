@@ -341,6 +341,24 @@ actividades», entre las próximas.
 
 ![«Tus próximos pasos» de Noelia Bravo: la 2ª de «Programación» y de «Bases de Datos», con su fecha; la 1ª ya entregada no sale](img/actividades-una-entrega-por-tareas.png)
 
+**Empezar desde la evaluación anterior.** Con un modelo de documento, la casilla **Empezar cada una con lo
+entregado en la anterior** (marcada por defecto) hace que el borrador de la 2ª de una materia salga
+relleno con lo que se entregó en la 1ª de esa misma materia; si la 1ª no se entregó, con la anterior que
+sí. Se cuenta entre las evaluaciones de cada materia: el de Final 1 de un módulo de FP sale de la 2ª,
+nunca de la «Extr.». La página del borrador lo dice («Se ha rellenado con lo que se entregó en «1ª»») y
+ofrece «Volver a copiar» y «Empezar desde cero», como cualquier relleno. Si no hay nada anterior, se usa lo
+de siempre: la actividad de la que se rellena (para la 1ª, por ejemplo, la programación entregada) o el
+curso anterior.
+
+![Borrador de «Programación · 2ª» con el aviso «Se ha rellenado con lo que se entregó en «1ª»» y los botones «Volver a copiar» y «Empezar desde cero»](img/actividades-una-entrega-por-copia.png)
+
+**Informes que leen las entregas de su evaluación.** Si el modelo del informe tiene una tabla con una
+fila por entrega de otra actividad (ver [Modelos de documento](12-modelos-de-documento.md)) y las dos actividades
+se reparten por la misma lista (las dos por «Evaluación»), cada informe lee **solo las entregas de su
+evaluación**. El de la 1ª de Informática muestra las revisiones de la 1ª de las materias de Informática.
+
+![Tabla «Revisión de las materias» del informe de Informática de la 1ª: «solo las de «1ª»», las seis materias del departamento con su estado, el cumplimiento de las entregadas, la valoración del departamento y la media](img/actividades-una-entrega-por-informe.png)
+
 En los datos de demostración, el comando opcional `php bin/console app:load-demo-evaluations` crea las
 tres actividades del ejemplo. La 1ª de la revisión ya está entregada en Programación, Bases de Datos y
 Matemáticas, y la 2ª está en curso, con un borrador de Programación.

@@ -77,6 +77,11 @@ trash filter makes loading it throw, `Activity::getDeliverySources()` catches it
   `FormListOptions::belongsToSlot()`, except when the source is delivered by the same profile of a list: then the slot's own ROW must be
   who delivers — a subject shared by two departments shows each head their own) → `inject()` (pure: keeps own cells by `_key`, rows in read
   order) → stored in `data.tables` + `data.sources[tableKey]`. Row key = `Uuid::v5(NAMESPACE, slotKey)`.
+- **Shared dimensions** (phase 0e3): when both activities split by a list with the same ROOT (`sharedValues()`), only the source slots
+  with this document's value at that position are candidates, whatever the scope; `sources` gains `match` {rootId: valueId} and `within`
+  (the values' names, shown in the header «solo las de «1ª»»), and with no match the table is EMPTY (`inScope(…, fallBack: false)`, never
+  `assumedAll`). Row label (`rowLabel()`): the slot's name without the shared values, plus « — ownerLabel» only when two rows of the
+  table would read the same (a grouped source slot, whose name is only values, is named after its owner).
 - **The definition gets its rows only from the data** (`rowsFromData()`), called in `FormListOptions::expand()` and `delivered()`: every
   path that expands a draft or a revision sees them. `FormDefinition::hasGivenRows()` = fixed or delivered (normalizer rows, resolver).
 - `FormDataNormalizer` keeps a shape-checked `sources` (`clean()`); **`save()` replaces the browser's `sources` and source cells with the
@@ -232,6 +237,11 @@ because a script cannot read them: add a new icon in both places; the Spanish la
   against the new definition: values travel by the identity KEY, so what the new revision still has is kept; `lostOnUpdate()` lists (labels)
   what has no place any more and the page asks for confirmation. A mandatory revision whose date has come makes `deliver()` fail with
   `error.update_required`; before the date it is only a warning.
+- **Pre-filling from the previous value** (`FormPrefiller::previousValue()`, first of all when `Activity::formPrefillPrevious`, default
+  true): with dimensions, the same slot key with the dated dimension's (else the first's) value replaced by each earlier value in the
+  list's order, this cycle, the first one delivered (`from.kind` = `previous_value`, label = the value's name). Values the element lacks
+  have no submission, so they skip themselves. Looking in `formPrefillSource`, a source WITHOUT dimensions is matched on the key's first
+  four parts (the 1ª of a subject's review from its programme).
 - **Pre-filling** (`FormPrefiller`): a new draft starts from `Activity::formPrefillSource` (latest delivered of the SAME slot key there) or,
   failing that, from the same slot's latest earlier cycle. Same model → by key; different models → by the field's internal `name` and the
   same `fieldType` only (a number never goes into a text field). `FormSubmission::prefilledFrom` remembers the origin; the page offers "Volver

@@ -10,9 +10,11 @@
  */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 
 const baseUrl = process.env.SHOTS_BASE_URL ?? 'http://127.0.0.1:8744';
 const outDir  = process.env.SHOTS_OUT_DIR ?? 'docs/manual/img';
+const dbPath  = process.env.SHOTS_DB ?? 'var/capturas.db';
 const review  = 'Revisión de la programación';
 
 mkdirSync(outDir, { recursive: true });
@@ -88,6 +90,29 @@ const noelia = await login('n.bravo', 'prueba');
 await settle(noelia);
 const steps = noelia.locator('text=Tus próximos pasos').first().locator('xpath=ancestor::*[contains(@class, "rounded")][1]');
 await clipTo(noelia, steps, 'actividades-una-entrega-por-tareas', 900);
+
+// ── 4. Her draft of the 2ª of Programación: started from what she delivered in the 1ª ──
+const sql = (query) => execFileSync('sqlite3', [dbPath, query]).toString().trim();
+const uuid = (hex) => hex.toLowerCase().replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
+const reviewId = uuid(sql("SELECT hex(id) FROM activity WHERE title = 'Revisión de la programación'"));
+const draftKey = sql(`SELECT slot_key FROM form_submission WHERE prefilled_from IS NOT NULL AND activity_id = (SELECT id FROM activity WHERE title = 'Revisión de la programación')`);
+await noelia.goto(`${baseUrl}/actividades/${reviewId}/formulario/${encodeURIComponent(draftKey)}`);
+await settle(noelia);
+await hideToolbar(noelia);
+await noelia.screenshot({ path: `${outDir}/actividades-una-entrega-por-copia.png`, clip: { x: 0, y: 0, width: 1360, height: 640 } });
 await noelia.context().close();
+
+// ── 5. The report of the head of Informática for the 1ª: only its subjects' reviews of the 1ª ──
+const claudia = await login('c.núñez', 'prueba');
+const reportId = uuid(sql("SELECT hex(id) FROM activity WHERE title = 'Informe de evaluación del departamento'"));
+const head     = uuid(sql("SELECT hex(id) FROM specific_profile WHERE name = 'Jefe/a de Departamento'"));
+const informat = uuid(sql("SELECT hex(li.id) FROM list_item li JOIN list_item p ON p.id = li.parent_id WHERE li.name = 'Informática' AND p.name = 'Departamento'"));
+const first    = uuid(sql("SELECT hex(li.id) FROM list_item li JOIN list_item p ON p.id = li.parent_id WHERE li.name = '1ª' AND p.name = 'Evaluación'"));
+await claudia.goto(`${baseUrl}/actividades/${reportId}/formulario/${encodeURIComponent(`${head}:${informat}:::${first}`)}`);
+await settle(claudia);
+await claudia.locator('text=Revisión de las materias').first().waitFor();
+const table = claudia.locator('text=Revisión de las materias').first().locator('xpath=ancestor::section[1] | ancestor::*[contains(@class, "rounded-2xl")][1]').first();
+await clipTo(claudia, table, 'actividades-una-entrega-por-informe', 900);
+await claudia.context().close();
 
 await browser.close();

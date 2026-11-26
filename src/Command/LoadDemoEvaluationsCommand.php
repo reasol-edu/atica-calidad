@@ -121,7 +121,7 @@ final class LoadDemoEvaluationsCommand extends Command
         ];
 
         $review = $this->reviewActivity($centre, $category, $section, $head, $subjects, $evals, $dates, $author);
-        $this->reportActivity($category, $section, $head, $subjects, $evals, $dates);
+        $this->reportActivity($category, $section, $head, $subjects, $evals, $dates, $review, $author);
         $this->minutesActivity($centre, $category, $section, $head);
         $this->em->flush();
 
@@ -171,12 +171,33 @@ final class LoadDemoEvaluationsCommand extends Command
         return $activity;
     }
 
-    /** @param array<string, array{int, int, int, int}> $dates */
-    private function reportActivity(ActivityCategory $category, DocumentSection $section, SpecificProfile $head, ListItem $subjects, ListItem $evals, array $dates): void
+    /**
+     * One per department and evaluation, filled in with the model «Informe de evaluación del departamento», whose table «Revisión de
+     * las materias» has a row per review of the department's subjects in that evaluation (their degree of compliance) and a column of
+     * its own to assess each.
+     *
+     * @param array<string, array{int, int, int, int}> $dates
+     */
+    private function reportActivity(ActivityCategory $category, DocumentSection $section, SpecificProfile $head, ListItem $subjects, ListItem $evals, array $dates, Activity $review, \App\Entity\Teacher $author): void
     {
         $folder = (new Folder())->setDocumentSection($section)->setName('Informes de evaluación de los departamentos')->setGroupByProfile(true);
         $folder->addUploadProfile($head);
         $this->em->persist($folder);
+
+        $reviewModel = $review->getFormModel() ?? throw new \LogicException('The review has no model.');
+        $model       = $this->models->create($reviewModel->getDocument()->getFolder(), 'Informe de evaluación del departamento', 'MD-10');
+        $table       = FormDefinition::newKey();
+        $this->models->saveDraft($model, ['version' => 1, 'sections' => [[
+            'key' => FormDefinition::newKey(), 'title' => 'Materias del departamento', 'numbered' => true, 'help' => '', 'children' => [],
+            'blocks' => [
+                ['key' => $table, 'type' => 'table', 'mode' => 'delivered', 'label' => 'Revisión de las materias', 'sourceModel' => $reviewModel->getId()->toRfc4122(), 'sourceScope' => 'own', 'showStatus' => true, 'columns' => [
+                    ['key' => FormDefinition::newKey(), 'label' => 'Cumplimiento (%)', 'fieldType' => 'number', 'sourceField' => 'cumplimiento', 'total' => 'avg'],
+                    ['key' => FormDefinition::newKey(), 'label' => 'Valoración del departamento', 'fieldType' => 'long'],
+                ]],
+                ['key' => FormDefinition::newKey(), 'type' => 'field', 'name' => 'conclusiones', 'fieldType' => 'long', 'label' => 'Conclusiones', 'required' => false, 'help' => ''],
+            ],
+        ]]], $model->getDraftVersion(), $author);
+        $this->models->sendToReview($model, $author, null);
 
         $activity = (new Activity())
             ->setCategory($category)
@@ -186,7 +207,9 @@ final class LoadDemoEvaluationsCommand extends Command
             ->setAutoComplete(true)
             ->setListItem($subjects)
             ->setSplitByElement(false)
+            ->setFormModel($model)
             ->setDimensions([$evals], 0);
+        $activity->setDeliverySource($table, $review);
         $this->setDates($category->getEducationalCentre(), $activity, $evals, $dates);
         $this->em->persist($activity);
     }
