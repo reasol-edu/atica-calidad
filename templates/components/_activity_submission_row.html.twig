@@ -57,6 +57,13 @@
                         {{ 'status.no_revision'|trans({}, 'activity_content') }}
                     </span>
                 {% endif %}
+                {% if activity.isForm and this.isFormOutdated(activity, slot) %}
+                    {# The deliveries its tables read have newer data (information only: the document page offers a new revision). #}
+                    <span class="shrink-0 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700" data-testid="submission-outdated"
+                          title="{{ 'submission.outdated_help'|trans({}, 'activity_content') }}">
+                        {{ 'submission.outdated'|trans({}, 'activity_content') }}
+                    </span>
+                {% endif %}
             </div>
             {% if slot.ownerLabel %}
                 <p class="truncate text-xs font-medium text-forest-700">{{ slot.ownerLabel }}</p>

@@ -213,6 +213,18 @@
         </div>
     {% elseif last is not null %}
         {% set revision = lastRevision %}
+        {% if outdated.count > 0 %}
+            {# Information, not a task: no e-mail, no notification. #}
+            <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800" data-testid="delivered-outdated">
+                <span class="min-w-0 flex-1">{{ 'fill.delivered_outdated'|trans({'%count%': outdated.count, '%titles%': '«' ~ outdated.titles|join('», «') ~ '»'}, 'forms') }}</span>
+                {% if canEdit %}
+                    <form method="post" action="{{ path('app_form_correct', {activityId: activity.id.toRfc4122, slotKey: slot.key}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('form_correct_' ~ submission.id.toRfc4122) }}">
+                        <button type="submit" class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-medium hover:bg-amber-100">{{ 'fill.delivered_outdated_new_revision'|trans({}, 'forms') }}</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endif %}
         <div class="mb-4 flex flex-wrap items-center gap-2 text-sm">
             {% if revision.pendingReview %}<span class="rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-800">{{ 'fill.status_pending'|trans({}, 'forms') }}</span>
             {% elseif revision.rejected %}<span class="rounded-full bg-red-50 px-3 py-1 font-medium text-red-700">{{ 'fill.status_rejected'|trans({}, 'forms') }}</span>

@@ -78,6 +78,33 @@ trait ActivitySubmissions
         return $submission !== null && $submission->hasDraft() ? $submission : null;
     }
 
+    /** @var array<string, array<string, \App\Entity\FormSubmissionRevision>> the last delivered of each slot, by activity and cycle */
+    private array $formDeliveredByCycle = [];
+
+    /** @var array<string, mixed> what FormDeliveredRows loaded of each source activity during this render */
+    private array $deliveredSources = [];
+
+    /**
+     * Whether what $slot delivered (filling a model in) read deliveries that have newer data now: the badge «Datos desactualizados».
+     * Each activity's deliveries and each source activity are loaded once per render.
+     */
+    public function isFormOutdated(Activity $activity, ActivitySubmissionSlot $slot): bool
+    {
+        $model = $activity->isForm() ? $activity->getFormModel() : null;
+        if ($model === null || $activity->getDeliverySources() === []) {
+            return false;
+        }
+        $cycle = $this->submissionSlots->cycleKeyFor($activity, $slot);
+        $key   = $activity->getId()->toRfc4122() . '|' . $cycle;
+        $this->formDeliveredByCycle[$key] ??= $this->formRevisions->findLatestDeliveredByActivityCycle($activity, $cycle);
+        $filled = $this->formDeliveredByCycle[$key][$slot->key()] ?? null;
+
+        /** @var array<string, array{slots: list<ActivitySubmissionSlot>, delivered: array<string, \App\Entity\FormSubmissionRevision>, drafts: array<string, bool>}> $cache */
+        $cache  = &$this->deliveredSources;
+
+        return $filled !== null && $this->deliveredRows->outdated($filled, $cache)['count'] > 0;
+    }
+
     /** @return ActivitySubmissionSlot[] every expected submission of $activity. */
     public function getAllSlots(Activity $activity): array
     {

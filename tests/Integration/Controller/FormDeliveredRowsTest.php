@@ -367,6 +367,52 @@ final class FormDeliveredRowsTest extends ControllerTestCase
         self::assertContains('delivered_cycle', $codes([$table(['sourceModel' => $target->getId()->toRfc4122(), 'columns' => [['label' => 'Previstas', 'fieldType' => 'number', 'sourceField' => 'horas_previstas']]])], $source));
     }
 
+    public function testADeliveredReportSaysWhenTheDeliveriesItReadHaveNewerDataAndANewRevisionReadsThem(): void
+    {
+        $this->review($this->informatica, $this->programacion, 30);
+        $this->loginAs($this->claudia, $this->centre);
+        $this->client->request('GET', $this->url());
+        $this->clear();
+        $submission = $this->submission();
+        $token      = $this->csrf($submission);
+        $prog       = FormDeliveredRows::rowKey($this->slotKey($this->informatica, $this->programacion));
+        $this->post('/guardar', ['version' => 2, 'data' => ['tables' => [$this->keys['table'] => [['_key' => $prog, $this->keys['colOwn'] => 'Bien']]]]], $token);
+        $this->client->request('POST', $this->url('/entregar'), ['_token' => $this->csrf($submission, 'deliver')]);
+        $this->clear();
+        self::assertNotNull($this->submission()->getDocument(), 'delivered');
+
+        // Nothing newer: no warning.
+        $this->client->request('GET', $this->url());
+        self::assertSelectorNotExists('[data-testid="delivered-outdated"]');
+
+        // A draft of Bases de datos is no newer data; a new revision of Programación is.
+        $this->review($this->informatica, $this->bases, 20, true);
+        $this->client->request('GET', $this->url());
+        self::assertSelectorNotExists('[data-testid="delivered-outdated"]', 'a draft is not data');
+
+        $service = self::getContainer()->get(FormSubmissionService::class);
+        $reviews = $this->fresh($this->reviews);
+        $slot    = $service->slotFor($reviews, $this->slotKey($this->informatica, $this->programacion));
+        self::assertNotNull($slot);
+        $review  = $service->open($reviews, $slot);
+        $service->startCorrection($review);
+        $this->clear();
+        $this->review($this->informatica, $this->programacion, 26);
+
+        $filled = self::getContainer()->get(\App\Repository\FormSubmissionRevisionRepository::class)->findLatestDeliveredByActivityCycle($this->fresh($this->report), $this->submission()->getCycleYear());
+        self::assertSame(['count' => 1, 'titles' => [$this->fresh($this->reviews)->getTitle()]], self::getContainer()->get(FormDeliveredRows::class)->outdated(array_values($filled)[0]));
+
+        $this->client->request('GET', $this->url());
+        self::assertSelectorTextContains('[data-testid="delivered-outdated"]', 'Hay datos más recientes en 1 entrega de «' . $this->fresh($this->reviews)->getTitle() . '»');
+
+        // «Crear una revisión nueva» opens a draft that already shows the new figure.
+        $this->client->request('POST', $this->url('/corregir'), ['_token' => $this->csrf($this->submission(), 'correct')]);
+        $this->client->request('GET', $this->url());
+        $this->clear();
+        self::assertSame(26, $this->submission()->getDraftData()['tables'][$this->keys['table']][0][$this->keys['colHours']] ?? null);
+        self::assertSame('Bien', $this->submission()->getDraftData()['tables'][$this->keys['table']][0][$this->keys['colOwn']] ?? null);
+    }
+
     public function testAnExportedModelReadsTheModelOfTheSameTitleWhereItIsImported(): void
     {
         $porter = self::getContainer()->get(\App\Service\Form\FormModelPorter::class);

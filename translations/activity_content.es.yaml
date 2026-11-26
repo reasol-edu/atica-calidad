@@ -121,6 +121,8 @@ submission.stats_empty: 'No hay entregas previstas para esta actividad, así que
 submission.dropzone_hint: 'Arrastra el fichero aquí o haz clic para seleccionarlo'
 submission.form_fill_hint: 'Se entrega rellenando el modelo en línea'
 submission.form_open: 'Abrir el documento'
+submission.outdated: 'Datos desactualizados'
+submission.outdated_help: 'Alguna de las entregas que lee este documento tiene datos más recientes. Desde el documento se puede crear una revisión nueva.'
 submission.form_draft: 'Borrador en curso'
 submission.form_draft_new_version: 'Nueva versión en borrador'
 submission.form_draft_by: 'Última edición de %name% · %date%'

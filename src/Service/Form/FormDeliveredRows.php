@@ -59,16 +59,16 @@ final class FormDeliveredRows
      * The deliveries of the cycle of the activity (activities recur every academic year: the same year here and there). Building the
      * slots of the activity and two queries per activity read, whatever the number of rows (never a query per row).
      *
-     * @param array<string, mixed> $definition
+     * @param array<string, mixed>                                                                                                    $definition
+     * @param array<string, array{slots: list<ActivitySubmissionSlot>, delivered: array<string, FormSubmissionRevision>, drafts: array<string, bool>}> $cache what was
+     *                                                                                                                                                  loaded of each source activity, to share between reads of one request
      *
      * @return array<string, array{sources: array<string, mixed>, values: array<string, array<string, mixed>>, columns: list<string>}>
      */
-    public function read(array $definition, Activity $activity, int $cycleYear, string $slotKey): array
+    public function read(array $definition, Activity $activity, int $cycleYear, string $slotKey, array &$cache = []): array
     {
         $readings = [];
-        /** @var array<string, array{slots: list<ActivitySubmissionSlot>, delivered: array<string, FormSubmissionRevision>, drafts: array<string, bool>}> $cache */
-        $cache = [];
-        $now   = $this->clock->now()->format(\DateTimeInterface::ATOM);
+        $now      = $this->clock->now()->format(\DateTimeInterface::ATOM);
 
         foreach (self::tables($definition) as $block) {
             $key     = FormDefinition::str($block['key'] ?? '');
@@ -80,11 +80,11 @@ final class FormDeliveredRows
             }
 
             $id      = $source->getId()->toRfc4122();
-            $cache[$id] ??= $this->load($source, $cycleYear);
+            $loaded  = $cache[$id . '|' . $cycleYear] ??= $this->load($source, $cycleYear);
             // The lists both activities split their submissions by (the same root): only the deliveries with this document's value
             // of each — the report of the 1ª reads the reviews of the 1ª.
             ['match' => $match, 'positions' => $positions] = self::sharedValues($activity, $source, $slotKey);
-            $candidates = array_values(array_filter($cache[$id]['slots'], static function (ActivitySubmissionSlot $slot) use ($positions): bool {
+            $candidates = array_values(array_filter($loaded['slots'], static function (ActivitySubmissionSlot $slot) use ($positions): bool {
                 foreach ($positions as $position => $valueId) {
                     if (($slot->combination[$position] ?? null)?->getId()->toRfc4122() !== $valueId) {
                         return false;
@@ -102,13 +102,13 @@ final class FormDeliveredRows
             foreach ($slots as $slot) {
                 $slotKeyOf = $slot->key();
                 $rowKey    = self::rowKey($slotKeyOf);
-                $filled    = $cache[$id]['delivered'][$slotKeyOf] ?? null;
+                $filled    = $loaded['delivered'][$slotKeyOf] ?? null;
                 $revision  = $filled?->getRevision();
                 $rows[]    = [
                     'key'      => $rowKey,
                     'slot'     => $slotKeyOf,
                     'label'    => self::rowLabel($slot, array_keys($positions), ($names[self::rowLabel($slot, array_keys($positions), false)] ?? 0) > 1),
-                    'status'   => $filled !== null ? 'delivered' : (($cache[$id]['drafts'][$slotKeyOf] ?? false) ? 'draft' : 'none'),
+                    'status'   => $filled !== null ? 'delivered' : (($loaded['drafts'][$slotKeyOf] ?? false) ? 'draft' : 'none'),
                     'approval' => $revision === null ? null : ($revision->isRejected() ? 'rejected' : ($revision->isPendingReview() ? 'pending' : 'approved')),
                     'revision' => $revision?->getId()->toRfc4122(),
                     'version'  => $revision?->getVersion(),
@@ -132,6 +132,48 @@ final class FormDeliveredRows
         }
 
         return $readings;
+    }
+
+    /**
+     * How many of the deliveries a delivered document's tables read have something newer now: a delivered revision other than the one
+     * read, or a delivery that has come into the table since (delivered). Drafts, approvals and who teaches do not count: only data. By
+     * the title of each source activity with any, for the warning «Hay datos más recientes en 3 entregas de «…»».
+     *
+     * $cache is shared with read(): to check the deliveries of a list, each source activity and year is loaded once.
+     *
+     * @param array<string, array{slots: list<ActivitySubmissionSlot>, delivered: array<string, FormSubmissionRevision>, drafts: array<string, bool>}> $cache
+     *
+     * @return array{count: int, titles: list<string>}
+     */
+    public function outdated(FormSubmissionRevision $filled, array &$cache = []): array
+    {
+        $definition = $filled->getModelRevision()->getDefinition();
+        if (self::tables($definition) === []) {
+            return ['count' => 0, 'titles' => []];
+        }
+        $submission = $filled->getSubmission();
+        $stored     = FormDefinition::map($filled->getData()['sources'] ?? null) ?? [];
+        $count      = 0;
+        $titles     = [];
+        foreach ($this->read($definition, $submission->getActivity(), $submission->getCycleYear(), $submission->getSlotKey(), $cache) as $key => $reading) {
+            $read = [];
+            foreach (FormDefinition::listOf((FormDefinition::map($stored[$key] ?? null) ?? [])['rows'] ?? []) as $row) {
+                $read[FormDefinition::str($row['key'] ?? '')] = $row['revision'] ?? null;
+            }
+            $newer = 0;
+            foreach (FormDefinition::listOf($reading['sources']['rows'] ?? []) as $row) {
+                $rowKey = FormDefinition::str($row['key'] ?? '');
+                if (($row['status'] ?? '') === 'delivered' && (!array_key_exists($rowKey, $read) || $read[$rowKey] !== ($row['revision'] ?? null))) {
+                    ++$newer;
+                }
+            }
+            if ($newer > 0) {
+                $count   += $newer;
+                $titles[] = FormDefinition::str($reading['sources']['title'] ?? '');
+            }
+        }
+
+        return ['count' => $count, 'titles' => array_values(array_unique($titles))];
     }
 
     /** @return array{slots: list<ActivitySubmissionSlot>, delivered: array<string, FormSubmissionRevision>, drafts: array<string, bool>} */

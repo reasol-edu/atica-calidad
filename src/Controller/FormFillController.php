@@ -51,6 +51,7 @@ class FormFillController extends AbstractController
         private readonly \App\Service\Form\FormAttachmentService $attachments,
         private readonly \App\Service\UploadLimits $uploadLimits,
         private readonly \App\Service\DocumentTreeAccessChecker $treeAccess,
+        private readonly FormDeliveredRows $deliveredRows,
     ) {}
 
     /**
@@ -185,6 +186,8 @@ class FormFillController extends AbstractController
             $view      += [
                 'sections'      => $this->resolver->resolve($definition, $last->getData(), $this->service->contextFor($activity, $slot, $submission->getCycleYear())),
                 'lastRevision'  => $last->getRevision(),
+                // The deliveries its tables read have newer data: a new revision reads them again.
+                'outdated'      => $this->deliveredRows->outdated($last),
                 'folderId'      => $folder?->getId()->toRfc4122(),
                 'documentId'    => $submission->getDocument()?->getId()->toRfc4122(),
             ];
