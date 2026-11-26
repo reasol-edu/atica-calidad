@@ -81,7 +81,13 @@ final class CalendarFeedBuilder
 
     private function activityUid(ActivityDashboardItem $item): string
     {
-        return implode('-', ['activity', $item->activity->getId()->toRfc4122(), $item->profileId, $item->listItemId, $item->leafId, $item->deadline->format('Ymd')]);
+        // With dimensions the combination tells the 1ª from the 2ª (two evaluations may even end the same day); without, the uid is the same as always.
+        $parts = ['activity', $item->activity->getId()->toRfc4122(), $item->profileId, $item->listItemId, $item->leafId, $item->deadline->format('Ymd')];
+        if ($item->combination !== '') {
+            $parts[] = md5($item->combination);
+        }
+
+        return implode('-', $parts);
     }
 
     private function activitySummary(ActivityDashboardItem $item): string

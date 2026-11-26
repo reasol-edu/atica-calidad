@@ -43,6 +43,8 @@ final readonly class ActivityDashboardItem
         public string $uploadSlotKey = '',
         /** The rejected document when $uploadMode is 'revision'. */
         public string $uploadDocumentId = '',
+        /** With dimensions, the combination of this obligation (its ids, ActivitySubmissionSlot::combinationKey()); '' otherwise. */
+        public string $combination = '',
     ) {}
 
     /**

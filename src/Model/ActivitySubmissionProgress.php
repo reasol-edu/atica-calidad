@@ -25,6 +25,8 @@ final readonly class ActivitySubmissionProgress
         public int $rejected,
         /** Slots still to hand in (nothing sent, or rejected) whose own deadline has already passed. */
         public int $overdue = 0,
+        /** With a dimension with dates, the period these counts are of («1ª»: the one open, else the next); null otherwise. */
+        public ?string $period = null,
     ) {}
 
     public function deliveredPercentage(): int

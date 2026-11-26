@@ -36,9 +36,9 @@ trait ActivityCompletion
         return $this->completion->getMyCompletionOwners($this->teacher(), $activity);
     }
 
-    public function isCompletedFor(Activity $activity, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher, ?ListItem $leaf = null): bool
+    public function isCompletedFor(Activity $activity, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher, ?ListItem $leaf = null, string $combination = ''): bool
     {
-        return $this->completion->isCompletedFor($activity, $profile, $listItem, $teacher, $leaf);
+        return $this->completion->isCompletedFor($activity, $profile, $listItem, $teacher, $leaf, null, $combination === '' ? null : $combination);
     }
 
     /** Submission/completion window state for the current teacher — drives the deadline notices. $leaf resolves its own override, when it has one. */
@@ -72,9 +72,9 @@ trait ActivityCompletion
     }
 
     #[LiveAction]
-    public function askMarkCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = '', #[LiveArg] string $leafId = ''): void
+    public function askMarkCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = '', #[LiveArg] string $leafId = '', #[LiveArg] string $combination = ''): void
     {
-        $this->confirmingCompleteKey = $activityId . ':' . $profileId . ':' . $listItemId . ':' . $leafId;
+        $this->confirmingCompleteKey = $activityId . ':' . $profileId . ':' . $listItemId . ':' . $leafId . ($combination !== '' ? ':' . $combination : '');
     }
 
     #[LiveAction]
@@ -84,7 +84,7 @@ trait ActivityCompletion
     }
 
     #[LiveAction]
-    public function markCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = '', #[LiveArg] string $leafId = ''): void
+    public function markCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = '', #[LiveArg] string $leafId = '', #[LiveArg] string $combination = ''): void
     {
         $activity = $this->findActivity($activityId);
         // Auto-complete activities have nothing to mark: their status is always computed.
@@ -98,7 +98,7 @@ trait ActivityCompletion
 
         // Owner validation, window check, flush and the explicit log entry live in OwnCompletionManager
         // (shared with the dashboard's "Marcar hecha").
-        match ($this->ownCompletions->mark($this->teacher(), $activity, $this->centre, $profileId, $listItemId, $leafId)) {
+        match ($this->ownCompletions->mark($this->teacher(), $activity, $this->centre, $profileId, $listItemId, $leafId, $combination)) {
             OwnCompletionOutcome::OutOfWindow => $this->flashError($this->t('completion.error.out_of_window')),
             OwnCompletionOutcome::Marked      => $this->flashSuccess($this->t('activity.flash.completed')),
             OwnCompletionOutcome::Unchanged   => null,
@@ -107,18 +107,18 @@ trait ActivityCompletion
 
     /** No confirmation required — undoing a completion is low-stakes and easy to redo. */
     #[LiveAction]
-    public function unmarkCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = '', #[LiveArg] string $leafId = ''): void
+    public function unmarkCompleted(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = '', #[LiveArg] string $leafId = '', #[LiveArg] string $combination = ''): void
     {
         $activity = $this->findActivity($activityId);
         if ($activity === null || $activity->isAutoComplete()) {
             return;
         }
 
-        $teacher                     = $this->teacher();
-        [$profile, $listItem, $leaf] = $this->ownCompletions->resolveOwner($teacher, $activity, $this->centre, $profileId, $listItemId, $leafId);
-        $targetTeacher               = $profile === null ? $teacher : null;
+        $teacher                                   = $this->teacher();
+        [$profile, $listItem, $leaf, $combination] = $this->ownCompletions->resolveOwner($teacher, $activity, $this->centre, $profileId, $listItemId, $leafId, $combination);
+        $targetTeacher                             = $profile === null ? $teacher : null;
 
-        if (!$this->completion->unmarkCompleted($activity, $targetTeacher, $profile, $listItem, $leaf)) {
+        if (!$this->completion->unmarkCompleted($activity, $targetTeacher, $profile, $listItem, $leaf, $combination)) {
             return;
         }
 

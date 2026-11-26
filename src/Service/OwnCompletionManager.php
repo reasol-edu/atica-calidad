@@ -36,11 +36,11 @@ class OwnCompletionManager
     /**
      * The owner a (un)mark call targets, or AccessDeniedException unless it is one $teacher is
      * really offered: their own individual completion when the activity has one, or one of the
-     * profile / list item / element rows they hold.
+     * profile / list item / element rows they hold — with dimensions, one of its combinations ($combination: their ids, '' for none).
      *
-     * @return array{0: ?SpecificProfile, 1: ?ListItem, 2: ?ListItem}
+     * @return array{0: ?SpecificProfile, 1: ?ListItem, 2: ?ListItem, 3: ?string}
      */
-    public function resolveOwner(Teacher $teacher, Activity $activity, EducationalCentre $centre, string $profileId, string $listItemId, string $leafId): array
+    public function resolveOwner(Teacher $teacher, Activity $activity, EducationalCentre $centre, string $profileId, string $listItemId, string $leafId, string $combination = ''): array
     {
         $profile  = $profileId === '' ? null : $this->profiles->findByIdAndCentre($profileId, $centre);
         $listItem = $listItemId === '' ? null : $this->listItems->findByIdAndCentre($listItemId, $centre);
@@ -51,39 +51,40 @@ class OwnCompletionManager
         }
 
         if ($profile === null) {
-            if ($listItem !== null || $leaf !== null || !$this->completion->hasIndividualCompletionOwner($activity)
+            if ($listItem !== null || $leaf !== null || $combination !== '' || !$this->completion->hasIndividualCompletionOwner($activity)
                 || !$this->completion->isApplicableToTeacher($teacher, $activity)) {
                 throw new AccessDeniedException();
             }
 
-            return [null, null, null];
+            return [null, null, null, null];
         }
 
         foreach ($this->completion->getMyCompletionOwners($teacher, $activity) as $owner) {
-            if ($owner['profile'] === $profile && $owner['listItem'] === $listItem && $owner['leaf'] === $leaf) {
-                return [$profile, $listItem, $leaf];
+            if ($owner['profile'] === $profile && $owner['listItem'] === $listItem && $owner['leaf'] === $leaf && $owner['combination'] === $combination) {
+                return [$profile, $listItem, $leaf, $combination === '' ? null : $combination];
             }
         }
 
         throw new AccessDeniedException();
     }
 
-    public function mark(Teacher $teacher, Activity $activity, EducationalCentre $centre, string $profileId = '', string $listItemId = '', string $leafId = ''): OwnCompletionOutcome
+    public function mark(Teacher $teacher, Activity $activity, EducationalCentre $centre, string $profileId = '', string $listItemId = '', string $leafId = '', string $combination = ''): OwnCompletionOutcome
     {
         // Auto-complete activities have nothing to mark: their status is always computed.
         if ($activity->isAutoComplete()) {
             return OwnCompletionOutcome::Unchanged;
         }
 
-        [$profile, $listItem, $leaf] = $this->resolveOwner($teacher, $activity, $centre, $profileId, $listItemId, $leafId);
-        $targetTeacher               = $profile === null ? $teacher : null;
+        [$profile, $listItem, $leaf, $combination] = $this->resolveOwner($teacher, $activity, $centre, $profileId, $listItemId, $leafId, $combination);
+        $targetTeacher                             = $profile === null ? $teacher : null;
 
-        $window = $this->windows->for($activity, $teacher, $leaf);
+        // The dates are the combination's value with dates, when there is one.
+        $window = $this->windows->for($activity, $teacher, $this->completion->deadlineItemOf($activity, $leaf, $combination));
         if ($window->blocked) {
             return OwnCompletionOutcome::OutOfWindow;
         }
 
-        if (!$this->completion->markCompleted($activity, $targetTeacher, $profile, $listItem, $teacher, $leaf)) {
+        if (!$this->completion->markCompleted($activity, $targetTeacher, $profile, $listItem, $teacher, $leaf, $combination)) {
             return OwnCompletionOutcome::Unchanged;
         }
 
@@ -103,16 +104,16 @@ class OwnCompletionManager
      * Takes back a completion made with mark() — the "Deshacer" of the dashboard. Same owner
      * resolution and denial rules as mark(); returns whether there was a completion to remove.
      */
-    public function unmark(Teacher $teacher, Activity $activity, EducationalCentre $centre, string $profileId = '', string $listItemId = '', string $leafId = ''): bool
+    public function unmark(Teacher $teacher, Activity $activity, EducationalCentre $centre, string $profileId = '', string $listItemId = '', string $leafId = '', string $combination = ''): bool
     {
         if ($activity->isAutoComplete()) {
             return false;
         }
 
-        [$profile, $listItem, $leaf] = $this->resolveOwner($teacher, $activity, $centre, $profileId, $listItemId, $leafId);
+        [$profile, $listItem, $leaf, $combination] = $this->resolveOwner($teacher, $activity, $centre, $profileId, $listItemId, $leafId, $combination);
         $targetTeacher               = $profile === null ? $teacher : null;
 
-        if (!$this->completion->unmarkCompleted($activity, $targetTeacher, $profile, $listItem, $leaf)) {
+        if (!$this->completion->unmarkCompleted($activity, $targetTeacher, $profile, $listItem, $leaf, $combination)) {
             return false;
         }
 

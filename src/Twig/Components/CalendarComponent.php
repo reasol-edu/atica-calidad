@@ -258,7 +258,8 @@ class CalendarComponent extends AbstractCalendarComponent
         $items = [];
         foreach ($activities as $activity) {
             foreach ($this->activityCompletion->getMyOwnedObligations($user, $activity) as $owner) {
-                $leaf = $owner['leaf'];
+                // The dates of the element — or, with a dimension with dates, of its value (each evaluation its own occurrence).
+                $leaf = $owner['deadlineItem'] ?? $owner['leaf'];
                 $end  = $this->activityDeadline->cycleEndDateNear($activity, $reference, $leaf);
                 // A real start–end range fills every day between the two; an obligation whose
                 // start and end day/month are the same pair keeps its single-date marker (on that
@@ -267,7 +268,7 @@ class CalendarComponent extends AbstractCalendarComponent
                     ? $end
                     : $this->activityDeadline->cycleStartDateNear($activity, $reference, $leaf);
 
-                $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $leaf, $end);
+                $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $owner['leaf'], $end, $owner['combination']);
                 $items[]   = new ActivityDeadlineOccurrence($activity, $start, $end, $owner['label'], $owner['key'], $completed, ActivityObligationFinder::slotKeyFor($activity, $owner, !$completed));
             }
         }

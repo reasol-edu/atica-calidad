@@ -71,6 +71,7 @@
                                 <div class="bg-rose-400" style="width: {{ progress.rejected / progress.total * 100 }}%"></div>
                             </div>
                             <p class="mt-1 text-xs text-gray-500">
+                                {%- if progress.period is not null %}<span class="font-medium text-gray-600">{{ progress.period }}:</span> {% endif -%}
                                 {{- 'progress.delivered'|trans({'%delivered%': progress.delivered, '%total%': progress.total}, 'activity_content') -}}
                                 {%- if progress.inReview > 0 %} · <span class="text-sky-700">{{ 'progress.in_review'|trans({'%count%': progress.inReview}, 'activity_content') }}</span>{% endif -%}
                                 {%- if progress.rejected > 0 %} · <span class="text-rose-700">{{ 'progress.rejected'|trans({'%count%': progress.rejected}, 'activity_content') }}</span>{% endif -%}

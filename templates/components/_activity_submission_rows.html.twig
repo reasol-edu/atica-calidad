@@ -1,22 +1,27 @@
 {# The rows of a list of slots, in order. Expects: activity, folder, slots, and either editable (with
    form_id and offset — the first row's number in the upload form, so numbers stay unique across
-   several lists inside it) or nothing, for a read-only list. #}
+   several lists inside it) or nothing, for a read-only list. With a dimension with dates («una
+   entrega por materia y evaluación»), grouped by period: the current one open, the others folded. #}
 {% set editable = editable|default(false) %}
 {% set offset = offset|default(0) %}
-{% for slot in slots %}
-    {% set document = this.resolveSlot(activity, slot) %}
-    {# The rows of one element owed by several profiles go together, set apart from the other elements. #}
-    {% set same_before = not loop.first and slots[loop.index0 - 1].displayName == slot.displayName %}
-    {% set same_after = not loop.last and slots[loop.index0 + 1].displayName == slot.displayName %}
-    {% set grouped = slot.ownerLabel and (same_before or same_after) %}
-    <div class="{{ grouped ? 'border-l-2 border-forest-200 pl-2' : '' }} {{ grouped and not same_before and not loop.first ? 'pt-3' : '' }} {{ grouped and not same_after and not loop.last ? 'pb-3' : '' }}">
-        {% if editable %}
-            {% include 'components/_activity_submission_row.html.twig' with {activity: activity, folder: folder, slot: slot, document: document, index: offset + loop.index0, form_id: form_id, read_only: this.getActivityWindow(activity, slot.nameListItem).blocked} %}
-        {% else %}
-            {% include 'components/_activity_submission_row.html.twig' with {activity: activity, folder: folder, slot: slot, document: document, read_only: true} %}
-        {% endif %}
-        {% if document and document.id.toRfc4122 == revisionPanelDocumentId %}
-            {% include 'components/_activity_submission_panel.html.twig' with {activity: activity, folder: folder, document: document} %}
-        {% endif %}
-    </div>
-{% endfor %}
+{% set periods = this.getSlotPeriods(activity, slots) %}
+{% if periods is empty %}
+    {% include 'components/_activity_submission_rows_list.html.twig' with {slots: slots, offset: offset} %}
+{% else %}
+    {% set start_index = offset %}
+    {% for period in periods %}
+        <details class="group/period rounded-lg border border-gray-100" {{ period.current ? 'open' : '' }} data-testid="submission-period">
+            <summary class="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {{ ux_icon('heroicons:chevron-right', {class: 'h-4 w-4 shrink-0 text-gray-400 transition-transform group-open/period:rotate-90'}) }}
+                <span>{{ period.value.name }}</span>
+                <span class="text-xs font-normal text-gray-500">{{ 'submissions.period.dates'|trans({'%start%': period.start|date('d/m'), '%end%': period.end|date('d/m')}, 'activity_content') }}</span>
+                {% if period.current %}<span class="rounded-full bg-forest-50 px-2 py-0.5 text-xs font-medium text-forest-700">{{ 'submissions.period.current'|trans({}, 'activity_content') }}</span>{% endif %}
+                <span class="ml-auto text-xs font-normal text-gray-400">{{ period.slots|length }}</span>
+            </summary>
+            <div class="space-y-2 px-3 pb-3 pt-1">
+                {% include 'components/_activity_submission_rows_list.html.twig' with {slots: period.slots, offset: start_index} %}
+            </div>
+        </details>
+        {% set start_index = start_index + period.slots|length %}
+    {% endfor %}
+{% endif %}

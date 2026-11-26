@@ -233,6 +233,8 @@ obligation.detail.completed: 'Completada'
 
 # ── Avance global de las entregas (tarjetas de «Ver», para quien gestiona o revisa la carpeta) ──
 progress.title: 'Entregas de todos los perfiles en este curso'
+submissions.period.dates: 'del %start% al %end%'
+submissions.period.current: 'En curso'
 progress.delivered: '%delivered%/%total% entregadas'
 progress.in_review: '{1}1 en revisión|]1,Inf[%count% en revisión'
 progress.rejected: '{1}1 rechazada|]1,Inf[%count% rechazadas'

@@ -27,6 +27,7 @@ final class ActivitySubmissionProgressCalculator
         private readonly DocumentRepository $documents,
         private readonly ActivitySubmissionSlotBuilder $slotBuilder,
         private readonly ClockInterface $clock,
+        private readonly ActivityPeriods $periods,
     ) {}
 
     /** Null for an activity without a folder: there's nothing to submit. */
@@ -39,6 +40,12 @@ final class ActivitySubmissionProgressCalculator
 
         $slots = $this->completion->getAllSlots($activity);
 
+        // With a dimension with dates, the progress of the period that matters now (the one open, else the next): «1ª: 12/40».
+        $period = $this->periods->current($activity);
+        if ($period !== null) {
+            $slots = array_values(array_filter($slots, static fn (ActivitySubmissionSlot $s): bool => $s->deadlineItem($activity) === $period));
+        }
+
         // One query per distinct cycle: a list element with its own deadline override can belong to
         // a different academic-year occurrence than the activity's own (see ActivityDeadlineChecker).
         /** @var array<int, array<string, list<Document>>> $byCycle */
@@ -50,7 +57,7 @@ final class ActivitySubmissionProgressCalculator
             }
             $byCycle[$cycle] = [];
             foreach ($this->documents->findSubmissionsWithRevisions($folder, $cycle) as $document) {
-                $byCycle[$cycle][$this->key($document->getUploadProfile()?->getId()->toRfc4122(), $document->getUploadListItem()?->getId()->toRfc4122(), $document->getName())][] = $document;
+                $byCycle[$cycle][$this->key($document->getUploadProfile()?->getId()->toRfc4122(), $document->getUploadListItem()?->getId()->toRfc4122(), self::identity($document->getName(), $document->getSlotCombination() ?? ''))][] = $document;
             }
         }
 
@@ -60,7 +67,7 @@ final class ActivitySubmissionProgressCalculator
             ++$total;
             $document = $this->match($slot, $byCycle[$this->slotBuilder->cycleKeyFor($activity, $slot)] ?? []);
             $pending  = $document === null || (!$document->isPendingApproval() && $document->getActiveRevision() === null);
-            if ($pending && $now > $this->deadline->currentCycleEndDate($activity, $slot->nameListItem)) {
+            if ($pending && $now > $this->deadline->currentCycleEndDate($activity, $slot->deadlineItem($activity))) {
                 ++$overdue;
             }
             if ($document === null) {
@@ -74,13 +81,13 @@ final class ActivitySubmissionProgressCalculator
             };
         }
 
-        return new ActivitySubmissionProgress($total, $delivered, $accepted, $inReview, $rejected, $overdue);
+        return new ActivitySubmissionProgress($total, $delivered, $accepted, $inReview, $rejected, $overdue, $period?->getName());
     }
 
     /** @param array<string, list<Document>> $byKey */
     private function match(ActivitySubmissionSlot $slot, array $byKey): ?Document
     {
-        $candidates = $byKey[$this->key($slot->profile->getId()->toRfc4122(), $slot->listItem?->getId()->toRfc4122(), $slot->displayName)] ?? [];
+        $candidates = $byKey[$this->key($slot->profile->getId()->toRfc4122(), $slot->listItem?->getId()->toRfc4122(), self::identity($slot->displayName, $slot->combinationKey()))] ?? [];
         if ($slot->teacher === null) {
             return $candidates[0] ?? null;
         }
@@ -92,6 +99,15 @@ final class ActivitySubmissionProgressCalculator
         }
 
         return null;
+    }
+
+    /**
+     * What tells a submission apart besides its row: its name, or — with dimensions — the element's part of it and the combination,
+     * the same rule as ActivitySubmissionSlotBuilder::resolveSlot().
+     */
+    private static function identity(string $name, string $combination): string
+    {
+        return $combination === '' ? $name : ActivitySubmissionSlotBuilder::withoutValues($name, count(explode('+', $combination))) . '|' . $combination;
     }
 
     private function key(?string $profileId, ?string $listItemId, string $name): string

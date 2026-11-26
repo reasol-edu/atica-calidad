@@ -136,6 +136,7 @@ class ActivityBrowserComponent extends AbstractController
         private readonly FolderProfileSynchronizer $folderProfiles,
         private readonly ActivitySubmissionFilenameBuilder $submissionFilename,
         private readonly ActivitySubmissionSlotBuilder $submissionSlots,
+        private readonly \App\Service\ActivityPeriods $periods,
         private readonly TrashService $trash,
         private readonly DocumentVersioning $versioning,
         private readonly SlotResponsibility $responsibility,

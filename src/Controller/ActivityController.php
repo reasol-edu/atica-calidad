@@ -301,7 +301,7 @@ class ActivityController extends AbstractController
             // Each slot resolves its own window — a list-backed activity can have a leaf with its
             // own deadline override (see Activity::getDeadlineOverride()), open or closed
             // independently of the activity's own default window.
-            $window = $this->windowChecker->for($activity, $teacher, $slot->nameListItem);
+            $window = $this->windowChecker->for($activity, $teacher, $slot->deadlineItem($activity));
             if ($window->blocked) {
                 $blockedMessage ??= $window->reason === ActivityWindowBlock::BeforeStart
                     ? 'submission.error.before_start'

@@ -64,7 +64,7 @@ class FormFillController extends AbstractController
         if (!$this->isCsrfTokenValid('form_fill_' . $submission->getId()->toRfc4122(), $request->headers->get('X-CSRF-Token', ''))) {
             return new JsonResponse(['error' => 'csrf'], Response::HTTP_FORBIDDEN);
         }
-        if ($this->windows->for($activity, $teacher, $slot->nameListItem)->blocked) {
+        if ($this->windows->for($activity, $teacher, $slot->deadlineItem($activity))->blocked) {
             return new JsonResponse(['error' => 'window'], Response::HTTP_FORBIDDEN);
         }
         $file = $request->files->get('file');
@@ -89,7 +89,7 @@ class FormFillController extends AbstractController
     public function fill(string $activityId, string $slotKey, #[CurrentCentre] EducationalCentre $centre): Response
     {
         [$activity, $slot, $teacher] = $this->context($activityId, $slotKey, $centre);
-        $window = $this->windows->for($activity, $teacher, $slot->nameListItem);
+        $window = $this->windows->for($activity, $teacher, $slot->deadlineItem($activity));
 
         try {
             $submission = $this->service->open($activity, $slot);
@@ -193,7 +193,7 @@ class FormFillController extends AbstractController
         if (!$this->isCsrfTokenValid('form_fill_' . $submission->getId()->toRfc4122(), $request->headers->get('X-CSRF-Token', ''))) {
             return new JsonResponse(['error' => 'csrf'], Response::HTTP_FORBIDDEN);
         }
-        if ($this->windows->for($activity, $teacher, $slot->nameListItem)->blocked) {
+        if ($this->windows->for($activity, $teacher, $slot->deadlineItem($activity))->blocked) {
             return new JsonResponse(['error' => 'window'], Response::HTTP_FORBIDDEN);
         }
 
@@ -228,7 +228,7 @@ class FormFillController extends AbstractController
         if (!$this->isCsrfTokenValid('form_fill_' . $submission->getId()->toRfc4122(), $request->headers->get('X-CSRF-Token', ''))) {
             return new JsonResponse(['error' => 'csrf'], Response::HTTP_FORBIDDEN);
         }
-        if ($this->windows->for($activity, $teacher, $slot->nameListItem)->blocked) {
+        if ($this->windows->for($activity, $teacher, $slot->deadlineItem($activity))->blocked) {
             return new JsonResponse(['error' => 'window'], Response::HTTP_FORBIDDEN);
         }
         $payload = json_decode($request->getContent(), true);
@@ -374,7 +374,7 @@ class FormFillController extends AbstractController
         $submission = $this->service->open($activity, $slot);
         $this->checkToken($request, $submission->getId()->toRfc4122(), 'deliver');
 
-        $window = $this->windows->for($activity, $teacher, $slot->nameListItem);
+        $window = $this->windows->for($activity, $teacher, $slot->deadlineItem($activity));
         if ($window->blocked) {
             $this->addFlash('error', $this->translator->trans($window->reason === ActivityWindowBlock::BeforeStart ? 'fill.error.before_start' : 'fill.error.after_end', [], 'forms'));
 

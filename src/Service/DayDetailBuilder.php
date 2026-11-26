@@ -63,7 +63,8 @@ class DayDetailBuilder
         $items = [];
         foreach ($activities as $activity) {
             foreach ($this->activityCompletion->getMyOwnedObligations($viewer, $activity) as $owner) {
-                $leaf = $owner['leaf'];
+                // The dates of the element — or, with a dimension with dates, of its value (each evaluation its own occurrence).
+                $leaf = $owner['deadlineItem'] ?? $owner['leaf'];
                 $end  = $this->activityDeadline->cycleEndDateNear($activity, $date, $leaf);
 
                 // Single-date obligations (same start and end day/month) still only surface on
@@ -82,7 +83,7 @@ class DayDetailBuilder
                     }
                 }
 
-                $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $leaf, $end);
+                $completed = $this->activityCompletion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $owner['leaf'], $end, $owner['combination']);
                 $items[]   = new ActivityDeadlineOccurrence($activity, $start, $end, $owner['label'], $owner['key'], $completed, ActivityObligationFinder::slotKeyFor($activity, $owner, !$completed));
             }
         }

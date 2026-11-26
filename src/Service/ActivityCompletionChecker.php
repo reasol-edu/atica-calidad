@@ -54,6 +54,7 @@ final class ActivityCompletionChecker implements ResetInterface
         private readonly EntityManagerInterface $em,
         private readonly ActivityDeadlineChecker $deadline,
         private readonly SlotResponsibility $responsibility,
+        private readonly \App\Repository\ListItemRepository $listItems,
     ) {}
 
     /** @return ActivitySubmissionSlot[] every expected submission of $activity. */
@@ -153,7 +154,7 @@ final class ActivityCompletionChecker implements ResetInterface
      * own, with its own deadline — see ActivityObligationFinder. Only the ones $teacher really
      * holds: managing the folder does not make every profile's obligation theirs to mark.
      *
-     * @return list<array{profile: SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, displayName: string}>
+     * @return list<array{profile: SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, displayName: string, combination: string, deadlineItem: ?ListItem}>
      */
     public function getMyCompletionOwners(Teacher $teacher, Activity $activity): array
     {
@@ -161,7 +162,7 @@ final class ActivityCompletionChecker implements ResetInterface
     }
 
     /**
-     * @return list<array{profile: SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, displayName: string}>
+     * @return list<array{profile: SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, displayName: string, combination: string, deadlineItem: ?ListItem}>
      *         distinct upload rows $teacher personally holds among this activity's slots (ByProfile
      *         scope only), ignoring any folder-management rights — see getMyOwnedSlots().
      */
@@ -171,27 +172,52 @@ final class ActivityCompletionChecker implements ResetInterface
             return [];
         }
 
-        return $this->groupSlotsByOwner($this->getMyOwnedSlots($teacher, $activity));
+        return $this->groupSlotsByOwner($activity, $this->getMyOwnedSlots($teacher, $activity));
     }
 
     /**
+     * One owner per (row, element, combination): with dimensions every combination is its own obligation, with its own dates and its
+     * own completion (the 1ª and the 2ª are two tasks).
+     *
      * @param  ActivitySubmissionSlot[] $slots
-     * @return list<array{profile: SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, displayName: string}>
+     * @return list<array{profile: SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, displayName: string, combination: string, deadlineItem: ?ListItem}>
      */
-    private function groupSlotsByOwner(array $slots): array
+    private function groupSlotsByOwner(Activity $activity, array $slots): array
     {
         $seen   = [];
         $owners = [];
         foreach ($slots as $slot) {
-            $key = ProfileAssignmentRow::keyFor($slot->profile, $slot->listItem) . ':' . ($slot->nameListItem?->getId()->toRfc4122() ?? '');
+            $key = ProfileAssignmentRow::keyFor($slot->profile, $slot->listItem) . ':' . ($slot->nameListItem?->getId()->toRfc4122() ?? '') . ':' . $slot->combinationKey();
             if (isset($seen[$key])) {
                 continue;
             }
             $seen[$key] = true;
-            $owners[]   = ['profile' => $slot->profile, 'listItem' => $slot->listItem, 'leaf' => $slot->nameListItem, 'displayName' => $slot->displayName];
+            $owners[]   = [
+                'profile'      => $slot->profile,
+                'listItem'     => $slot->listItem,
+                'leaf'         => $slot->nameListItem,
+                'displayName'  => $slot->displayName,
+                'combination'  => $slot->combinationKey(),
+                'deadlineItem' => $slot->deadlineItem($activity),
+            ];
         }
 
         return $owners;
+    }
+
+    /**
+     * Whether $slot is the obligation of the owner given: the same row (or teacher), the same element when one is given, and exactly
+     * the same combination when one is given — a grouped slot has no element, so only the combination tells its 1ª from its 2ª.
+     */
+    public static function slotBelongsTo(ActivitySubmissionSlot $slot, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher, ?ListItem $leaf, ?string $combination): bool
+    {
+        $owns = $teacher !== null
+            ? $slot->teacher === $teacher
+            : ($slot->profile === $profile && $slot->listItem === $listItem && $slot->teacher === null);
+
+        return $owns
+            && ($leaf === null || $slot->nameListItem === $leaf)
+            && ($combination === null || $slot->combinationKey() === $combination);
     }
 
     /**
@@ -203,7 +229,10 @@ final class ActivityCompletionChecker implements ResetInterface
      * is an independent obligation, with its own deadline and status (see ActivityObligationFinder).
      * Shared by the dashboard activity summary and the calendar.
      *
-     * @return list<array{profile: ?SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, teacher: ?Teacher, label: ?string, key: string}>
+     * With dimensions, one per combination too (`combination`: its ids; `deadlineItem`: the value whose dates it follows). Without,
+     * `combination` is null and `deadlineItem` the element, as always.
+     *
+     * @return list<array{profile: ?SpecificProfile, listItem: ?ListItem, leaf: ?ListItem, teacher: ?Teacher, label: ?string, key: string, combination: ?string, deadlineItem: ?ListItem}>
      */
     public function getMyOwnedObligations(Teacher $teacher, Activity $activity): array
     {
@@ -212,7 +241,7 @@ final class ActivityCompletionChecker implements ResetInterface
                 return [];
             }
 
-            return [['profile' => null, 'listItem' => null, 'leaf' => null, 'teacher' => $teacher, 'label' => null, 'key' => '']];
+            return [['profile' => null, 'listItem' => null, 'leaf' => null, 'teacher' => $teacher, 'label' => null, 'key' => '', 'combination' => null, 'deadlineItem' => null]];
         }
 
         if ($this->hasIndividualCompletionOwner($activity)) {
@@ -220,18 +249,21 @@ final class ActivityCompletionChecker implements ResetInterface
                 return [];
             }
 
-            return [['profile' => null, 'listItem' => null, 'leaf' => null, 'teacher' => $teacher, 'label' => null, 'key' => '']];
+            return [['profile' => null, 'listItem' => null, 'leaf' => null, 'teacher' => $teacher, 'label' => null, 'key' => '', 'combination' => null, 'deadlineItem' => null]];
         }
 
         return array_map(
             static fn (array $owner): array => [
-                'profile'  => $owner['profile'],
-                'listItem' => $owner['listItem'],
-                'leaf'     => $owner['leaf'],
-                'teacher'  => null,
-                'label'    => $owner['profile']->getName() . ($owner['listItem'] !== null ? ' ' . $owner['listItem']->getName() : '')
-                              . ($owner['leaf'] !== null ? ' · ' . $owner['displayName'] : ''),
-                'key'      => ProfileAssignmentRow::keyFor($owner['profile'], $owner['listItem']) . ':' . ($owner['leaf']?->getId()->toRfc4122() ?? ''),
+                'profile'      => $owner['profile'],
+                'listItem'     => $owner['listItem'],
+                'leaf'         => $owner['leaf'],
+                'teacher'      => null,
+                'label'        => $owner['profile']->getName() . ($owner['listItem'] !== null ? ' ' . $owner['listItem']->getName() : '')
+                                  . ($owner['leaf'] !== null || $owner['combination'] !== '' ? ' · ' . $owner['displayName'] : ''),
+                'key'          => ProfileAssignmentRow::keyFor($owner['profile'], $owner['listItem']) . ':' . ($owner['leaf']?->getId()->toRfc4122() ?? '')
+                                  . ($owner['combination'] !== '' ? ':' . $owner['combination'] : ''),
+                'combination'  => $owner['combination'] === '' ? null : $owner['combination'],
+                'deadlineItem' => $owner['deadlineItem'],
             ],
             $this->getMyOwnedCompletionOwners($teacher, $activity),
         );
@@ -241,16 +273,14 @@ final class ActivityCompletionChecker implements ResetInterface
      * Whether the owner has completed the occurrence of $activity that $reference belongs to
      * ("now" if null — the calendar passes the day it's showing, which may be in another
      * academic year). $leaf narrows a ByProfile owner down to one specific leaf of a list-backed
-     * activity, when its upload row covers more than one — each is tracked independently.
+     * activity, when its upload row covers more than one — each is tracked independently; and
+     * $combination, with dimensions, to one combination (the 1ª is not the 2ª).
      */
-    public function isCompletedFor(Activity $activity, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher, ?ListItem $leaf = null, ?\DateTimeImmutable $reference = null): bool
+    public function isCompletedFor(Activity $activity, ?SpecificProfile $profile, ?ListItem $listItem, ?Teacher $teacher, ?ListItem $leaf = null, ?\DateTimeImmutable $reference = null, ?string $combination = null): bool
     {
         if ($activity->isAutoComplete()) {
             foreach ($this->getAllSlots($activity) as $slot) {
-                $owns = $teacher !== null
-                    ? $slot->teacher === $teacher
-                    : ($slot->profile === $profile && $slot->listItem === $listItem && $slot->teacher === null);
-                if (!$owns || ($leaf !== null && $slot->nameListItem !== $leaf)) {
+                if (!self::slotBelongsTo($slot, $profile, $listItem, $teacher, $leaf, $combination)) {
                     continue;
                 }
                 if ($this->resolveSlot($activity, $slot, $reference)?->getActiveRevision() === null) {
@@ -261,7 +291,30 @@ final class ActivityCompletionChecker implements ResetInterface
             return true;
         }
 
-        return $this->findCompletion($activity, $teacher, $profile, $listItem, $leaf, $this->cycleKey($activity, $leaf, $reference)) !== null;
+        return $this->findCompletion($activity, $teacher, $profile, $listItem, $leaf, $this->cycleKey($activity, $this->deadlineItemOf($activity, $leaf, $combination), $reference), $combination) !== null;
+    }
+
+    /**
+     * The element whose dates an obligation follows: with a combination and a dimension with dates, that dimension's value in it;
+     * otherwise the element.
+     */
+    public function deadlineItemOf(Activity $activity, ?ListItem $leaf, ?string $combination): ?ListItem
+    {
+        if ($combination === null || $combination === '') {
+            return $leaf;
+        }
+        $ids = explode('+', $combination);
+        foreach ($activity->getDimensions() as $index => $dimension) {
+            if ($dimension->isDated() && isset($ids[$index])) {
+                foreach ($this->listItems->findLeafDescendants($dimension->getList()) as $value) {
+                    if ($value->getId()->toRfc4122() === $ids[$index]) {
+                        return $value;
+                    }
+                }
+            }
+        }
+
+        return $leaf;
     }
 
     /**
@@ -311,7 +364,7 @@ final class ActivityCompletionChecker implements ResetInterface
      * The same match as ActivityCompletionRepository::findOneForOwner() — which documents it — made
      * over the occurrence's completions held in memory.
      */
-    private function findCompletion(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem, ?ListItem $leaf, int $cycleYear): ?ActivityCompletion
+    private function findCompletion(Activity $activity, ?Teacher $teacher, ?SpecificProfile $profile, ?ListItem $listItem, ?ListItem $leaf, int $cycleYear, ?string $combination = null): ?ActivityCompletion
     {
         $key = self::occurrenceKey($activity, $cycleYear);
         if (!isset($this->occurrenceMemo[$key])) {
@@ -327,6 +380,8 @@ final class ActivityCompletionChecker implements ResetInterface
                 && ($leaf !== null
                     ? ($completionLeaf === null || $completionLeaf->getId()->equals($leaf->getId()))
                     : $completionLeaf === null)
+                // The combination exactly (null only with null): completing the 1ª never completes the 2ª.
+                && $completion->getCombination() === ($combination === '' ? null : $combination)
             ) {
                 return $completion;
             }
@@ -344,18 +399,18 @@ final class ActivityCompletionChecker implements ResetInterface
      * Creates an ActivityCompletion for the given owner unless the activity is auto-complete or
      * one already exists. Does not flush — the caller decides when. Returns whether it created one.
      */
-    public function markCompleted(Activity $activity, ?Teacher $targetTeacher, ?SpecificProfile $profile, ?ListItem $listItem, Teacher $completedBy, ?ListItem $leaf = null): bool
+    public function markCompleted(Activity $activity, ?Teacher $targetTeacher, ?SpecificProfile $profile, ?ListItem $listItem, Teacher $completedBy, ?ListItem $leaf = null, ?string $combination = null): bool
     {
         if ($activity->isAutoComplete()) {
             return false;
         }
 
-        $cycleYear = $this->cycleKey($activity, $leaf);
-        if ($this->findCompletion($activity, $targetTeacher, $profile, $listItem, $leaf, $cycleYear) !== null) {
+        $cycleYear = $this->cycleKey($activity, $this->deadlineItemOf($activity, $leaf, $combination));
+        if ($this->findCompletion($activity, $targetTeacher, $profile, $listItem, $leaf, $cycleYear, $combination) !== null) {
             return false;
         }
 
-        $this->em->persist(new ActivityCompletion($activity, $targetTeacher, $profile, $listItem, $completedBy, $cycleYear, $leaf));
+        $this->em->persist(new ActivityCompletion($activity, $targetTeacher, $profile, $listItem, $completedBy, $cycleYear, $leaf, $combination));
 
         return true;
     }
@@ -365,13 +420,13 @@ final class ActivityCompletionChecker implements ResetInterface
      * nothing persisted to remove — their status is always computed, never stored. Does not
      * flush — the caller decides when. Returns whether it removed one.
      */
-    public function unmarkCompleted(Activity $activity, ?Teacher $targetTeacher, ?SpecificProfile $profile, ?ListItem $listItem, ?ListItem $leaf = null): bool
+    public function unmarkCompleted(Activity $activity, ?Teacher $targetTeacher, ?SpecificProfile $profile, ?ListItem $listItem, ?ListItem $leaf = null, ?string $combination = null): bool
     {
         if ($activity->isAutoComplete()) {
             return false;
         }
 
-        $completion = $this->findCompletion($activity, $targetTeacher, $profile, $listItem, $leaf, $this->cycleKey($activity, $leaf));
+        $completion = $this->findCompletion($activity, $targetTeacher, $profile, $listItem, $leaf, $this->cycleKey($activity, $this->deadlineItemOf($activity, $leaf, $combination)), $combination);
         if ($completion === null) {
             return false;
         }

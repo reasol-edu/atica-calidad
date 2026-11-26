@@ -105,7 +105,7 @@ final class ActivityObligationFinder implements ResetInterface
 
         $items = [];
         foreach ($owners as $owner) {
-            $window = $this->windows->for($activity, $teacher, $owner['leaf']);
+            $window = $this->windows->for($activity, $teacher, $owner['deadlineItem'] ?? $owner['leaf']);
             $status  = $this->statusOf($activity, $owner, $window);
             $upload  = $status->isActionable() && !$window->blocked ? $this->uploadTarget($activity, $owner) : ['mode' => '', 'slotKey' => '', 'documentId' => ''];
             $items[] = new ActivityDashboardItem(
@@ -125,6 +125,7 @@ final class ActivityObligationFinder implements ResetInterface
                 $upload['mode'],
                 $upload['slotKey'],
                 $upload['documentId'],
+                $owner['combination'] ?? '',
             );
         }
 
@@ -160,10 +161,10 @@ final class ActivityObligationFinder implements ResetInterface
 
     /**
      * The submission row to land on for an obligation still to do with files: its own slot key for
-     * a by-profile owner (profile : subprofile : element : nobody), "next" for an individual one,
+     * a by-profile owner (profile : subprofile : element : nobody [: combination]), "next" for an individual one,
      * who may have several rows. '' for anything that needs no file from them.
      *
-     * @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string} $owner
+     * @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string, combination?: ?string, deadlineItem?: ?\App\Entity\ListItem} $owner
      * @param bool $toDo whether the obligation still needs something from the teacher (the calendar passes "not completed")
      */
     public static function slotKeyFor(Activity $activity, array $owner, bool $toDo): string
@@ -175,18 +176,23 @@ final class ActivityObligationFinder implements ResetInterface
             return 'next';
         }
 
-        return implode(':', [
+        $parts = [
             $owner['profile']->getId()->toRfc4122(),
             $owner['listItem']?->getId()->toRfc4122() ?? '',
             $owner['leaf']?->getId()->toRfc4122() ?? '',
             '',
-        ]);
+        ];
+        if (($owner['combination'] ?? null) !== null) {
+            $parts[] = $owner['combination'];
+        }
+
+        return implode(':', $parts);
     }
 
-    /** @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string} $owner */
+    /** @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string, combination: ?string, deadlineItem: ?\App\Entity\ListItem} $owner */
     private function statusOf(Activity $activity, array $owner, ActivityWindow $window): ActivityObligationStatus
     {
-        if ($this->completion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $owner['leaf'])) {
+        if ($this->completion->isCompletedFor($activity, $owner['profile'], $owner['listItem'], $owner['teacher'], $owner['leaf'], null, $owner['combination'])) {
             return ActivityObligationStatus::Completed;
         }
 
@@ -215,7 +221,7 @@ final class ActivityObligationFinder implements ResetInterface
      * resubmitted; else any missing one is still to do; else any waiting for approval means it's
      * the reviewer's move. An activity without a folder has no submissions: always "missing".
      *
-     * @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string} $owner
+     * @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string, combination: ?string, deadlineItem: ?\App\Entity\ListItem} $owner
      */
     private function submissionState(Activity $activity, array $owner): string
     {
@@ -225,10 +231,7 @@ final class ActivityObligationFinder implements ResetInterface
 
         $states = [];
         foreach ($this->completion->getAllSlots($activity) as $slot) {
-            $owns = $owner['teacher'] !== null
-                ? $slot->teacher === $owner['teacher']
-                : ($slot->profile === $owner['profile'] && $slot->listItem === $owner['listItem'] && $slot->teacher === null);
-            if ($owns && ($owner['leaf'] === null || $slot->nameListItem === $owner['leaf'])) {
+            if (ActivityCompletionChecker::slotBelongsTo($slot, $owner['profile'], $owner['listItem'], $owner['teacher'], $owner['leaf'], $owner['combination'])) {
                 $states[] = $this->documentState($this->completion->resolveSlot($activity, $slot));
             }
         }
@@ -246,7 +249,7 @@ final class ActivityObligationFinder implements ResetInterface
      * What a single file can fix right now, without opening the activity: the new version of a
      * rejected submission, or the one empty row. Nothing when it's ambiguous (several empty rows).
      *
-     * @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string} $owner
+     * @param array{profile: ?\App\Entity\SpecificProfile, listItem: ?\App\Entity\ListItem, leaf: ?\App\Entity\ListItem, teacher: ?Teacher, label: ?string, key: string, combination: ?string, deadlineItem: ?\App\Entity\ListItem} $owner
      * @return array{mode: string, slotKey: string, documentId: string}
      */
     private function uploadTarget(Activity $activity, array $owner): array
@@ -258,10 +261,7 @@ final class ActivityObligationFinder implements ResetInterface
 
         $empty = [];
         foreach ($this->completion->getAllSlots($activity) as $slot) {
-            $owns = $owner['teacher'] !== null
-                ? $slot->teacher === $owner['teacher']
-                : ($slot->profile === $owner['profile'] && $slot->listItem === $owner['listItem'] && $slot->teacher === null);
-            if (!$owns || ($owner['leaf'] !== null && $slot->nameListItem !== $owner['leaf'])) {
+            if (!ActivityCompletionChecker::slotBelongsTo($slot, $owner['profile'], $owner['listItem'], $owner['teacher'], $owner['leaf'], $owner['combination'])) {
                 continue;
             }
             $document = $this->completion->resolveSlot($activity, $slot);

@@ -380,4 +380,53 @@ final class ActivityObligationFinderTest extends RepositoryTestCase
         self::assertSame(ActivityObligationStatus::Overdue, $byLabel['Jefatura · Física']->status, 'past its own deadline');
         self::assertSame(ActivityObligationStatus::Upcoming, $byLabel['Jefatura · Química']->status, 'its own, later occurrence has not opened yet');
     }
+
+    /**
+     * An activity with a dimension with dates («una entrega por materia y evaluación»): each evaluation is its own obligation, with the
+     * evaluation's dates, and completing one never completes another.
+     */
+    public function testEachValueOfTheDimensionWithDatesIsItsOwnObligationWithItsOwnDatesAndCompletion(): void
+    {
+        self::mockTime('2025-12-10 10:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Carpeta');
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $folder->addUploadProfile($profile);
+        $evals  = (new ListItem())->setName('Evaluación')->setEducationalCentre($centre);
+        $first  = (new ListItem())->setName('1ª')->setEducationalCentre($centre)->setParent($evals)->setPosition(0);
+        $second = (new ListItem())->setName('2ª')->setEducationalCentre($centre)->setParent($evals)->setPosition(1);
+        $root   = (new ListItem())->setName('Materias')->setEducationalCentre($centre);
+        $fisica = (new ListItem())->setName('Física')->setEducationalCentre($centre)->setParent($root);
+        $activity = $this->activity($category)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::ByProfile)->setListItem($root)
+            ->setDimensions([$evals], 0);
+        $activity->setDeadlineOverride($first, 1, 12, 20, 12);
+        $activity->setDeadlineOverride($second, 1, 3, 20, 3);
+        $teacher = $this->teacher('docente');
+        $assign  = new SpecificProfileAssignment($profile, null, $teacher);
+        $this->persist($centre, $category, $section, $folder, $profile, $evals, $first, $second, $root, $fisica, $activity, $teacher, $assign);
+
+        $byLabel = [];
+        foreach ($this->finder->forTeacher($teacher, $centre) as $item) {
+            $byLabel[(string) $item->ownerLabel] = $item;
+        }
+        self::assertSame(['Jefatura · Física · 1ª', 'Jefatura · Física · 2ª'], array_keys($byLabel));
+        self::assertSame('2025-12-20', $byLabel['Jefatura · Física · 1ª']->deadline->format('Y-m-d'), 'the 1ª\'s dates');
+        self::assertSame('2026-03-20', $byLabel['Jefatura · Física · 2ª']->deadline->format('Y-m-d'), 'the 2ª\'s dates');
+        self::assertSame(ActivityObligationStatus::Open, $byLabel['Jefatura · Física · 1ª']->status);
+        self::assertSame(ActivityObligationStatus::Upcoming, $byLabel['Jefatura · Física · 2ª']->status);
+        self::assertNotSame('', $byLabel['Jefatura · Física · 1ª']->combination);
+        self::assertCount(5, explode(':', $byLabel['Jefatura · Física · 1ª']->slotKey), 'it lands on its own row');
+
+        /** @var \App\Service\ActivityCompletionChecker $completion */
+        $completion  = self::getContainer()->get(\App\Service\ActivityCompletionChecker::class);
+        $combination = $byLabel['Jefatura · Física · 1ª']->combination;
+        self::assertTrue($completion->markCompleted($activity, null, $profile, null, $teacher, $fisica, $combination));
+        $this->em->flush();
+
+        self::assertTrue($completion->isCompletedFor($activity, $profile, null, null, $fisica, null, $combination));
+        self::assertFalse($completion->isCompletedFor($activity, $profile, null, null, $fisica, null, $byLabel['Jefatura · Física · 2ª']->combination), 'the 2ª is still to do');
+        self::assertFalse($completion->isCompletedFor($activity, $profile, null, null, $fisica), 'nor is a completion without combination');
+    }
 }

@@ -18,7 +18,8 @@ final class ActivityDeadlineSummaryBuilder
 
     public function for(Activity $activity): ActivityDeadlineSummary
     {
-        $root = $activity->getListItem();
+        // With a dimension with dates, the date ranges are its values' (one per evaluation), not the elements'.
+        $root = $activity->getDatedDimension()?->getList() ?? $activity->getListItem();
         if ($root === null || $activity->getListItemDeadlines()->isEmpty()) {
             return new ActivityDeadlineSummary(0, false, null, null);
         }

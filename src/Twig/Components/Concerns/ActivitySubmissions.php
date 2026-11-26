@@ -125,6 +125,18 @@ trait ActivitySubmissions
         );
     }
 
+    /**
+     * $slots by period, for an activity with a dimension with dates: one group per value («1ª», «2ª»…) with its dates, the current one
+     * open and the others folded. Empty without such a dimension (the list goes as it is).
+     *
+     * @param  list<ActivitySubmissionSlot> $slots
+     * @return list<array{value: \App\Entity\ListItem, start: \DateTimeImmutable, end: \DateTimeImmutable, current: bool, slots: list<ActivitySubmissionSlot>}>
+     */
+    public function getSlotPeriods(Activity $activity, array $slots): array
+    {
+        return $this->periods->group($activity, $slots);
+    }
+
     /** @return array{pending: int, toReview: int} how many of the managed slots still have no document, and how many have one waiting for review */
     public function getManagedSummary(Activity $activity): array
     {
