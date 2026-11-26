@@ -31,7 +31,14 @@
                     </h3>
                     <p class="text-xs text-gray-500">
                         {% set deadline_summary = this.getDeadlineSummary(activity) %}
-                        {% if deadline_summary.coversAll %}
+                        {% if deadline_summary.coversAll and activity.datedDimension %}
+                            {# Each value of the list that marks the dates has its own («Plazos por «Evaluación»»). #}
+                            {{ 'activity.deadline_per_value'|trans({
+                                '%list%': activity.datedDimension.list.root.name,
+                                '%start%': deadline_summary.firstStart|date('d/m'),
+                                '%end%': deadline_summary.lastEnd|date('d/m'),
+                            }, 'activity_content') }}
+                        {% elseif deadline_summary.coversAll %}
                             {{ 'activity.deadline_per_element'|trans({
                                 '%start%': deadline_summary.firstStart|date('d/m'),
                                 '%end%': deadline_summary.lastEnd|date('d/m'),
