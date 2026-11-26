@@ -105,8 +105,7 @@ marca un elemento [inactivo](#elementos-activos-e-inactivos); y los **enlaces** 
 «Formación Profesional» —la etiqueta «Informática» en la rama y un icono **atenuado** en cada elemento
 que cuelga de ella— son las [asociaciones](#asociar-un-elemento-con-un-perfil): la rama tiene una
 propia y sus descendientes la heredan. «2º DAW» tiene además la suya, así que lleva su propia
-etiqueta («2º DAW», su grupo): tiene las dos. Los contadores «sin Departamento» y «sin Grupo» de la
-barra dicen cuántas hojas no tienen ninguna asociación con esas listas.
+etiqueta («2º DAW», su grupo): tiene las dos.
 
 ![Árbol de la lista «Enseñanza» con sus tres ramas: ESO (con un elemento inactivo), Bachillerato y Formación Profesional, con DAM y DAW; la etiqueta «Informática» de la rama FP y la de «2º DAW» señalan las asociaciones](img/responsabilidades-lista-arbol.png)
 
@@ -208,7 +207,9 @@ asociar el departamento a las hojas y no a la materia.
 cuántas hojas no tienen ningún elemento de ella, propio o heredado («2 sin Evaluación»); al pulsarlo,
 el árbol muestra solo esas hojas (y las ramas que llevan a ellas), y al pulsarlo de nuevo, todo. Sirve
 sobre todo después de [importar desde Séneca](#importar-desde-seneca): las materias nuevas llegan sin
-asociaciones.
+asociaciones. Solo aparece cuando al menos la mitad de las hojas ya tiene un elemento de esa lista:
+en una lista donde asociar es la excepción (en «Enseñanza», solo la rama de FP tiene departamento) no
+avisaría de nada que falte.
 
 ![El árbol de «Materia» filtrado por «2 sin Evaluación»: solo Educación Física y la FFEOE](img/responsabilidades-sin-evaluacion.png)
 

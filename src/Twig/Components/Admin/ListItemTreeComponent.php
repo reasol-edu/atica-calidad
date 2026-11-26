@@ -987,7 +987,9 @@ class ListItemTreeComponent extends AbstractController
 
     /**
      * For each list the managed list is associated with, how many of its leaves have no element of it, own or inherited (after a
-     * Séneca import, the new ones): what the counters at the top of the tree say, each one a filter.
+     * Séneca import, the new ones): what the counters at the top of the tree say, each one a filter. Only for the lists that most
+     * leaves already have (at least half): there a leaf without one is something missing; in a list where associating is the
+     * exception («Enseñanza» with «Grupo») the count would only be noise. The one being filtered by always stays.
      *
      * @return list<array{list: ListItem, missing: int}>
      */
@@ -1007,7 +1009,10 @@ class ListItemTreeComponent extends AbstractController
                     ++$missing;
                 }
             }
-            $result[] = ['list' => $linkedList, 'missing' => $missing];
+            $filtering = $linkedList->getId()->toRfc4122() === $this->onlyWithoutLinkTo;
+            if ($filtering || ($missing > 0 && $missing * 2 <= count($leaves))) {
+                $result[] = ['list' => $linkedList, 'missing' => $missing];
+            }
         }
 
         return $result;

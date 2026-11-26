@@ -394,7 +394,7 @@ final class ListItemTreeComponentTest extends ControllerTestCase
 
         $this->loginAs($admin, $centre);
         $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre, 'root' => $subjects], $this->client);
-        self::assertStringContainsString('3 sin Departamento', $component->render()->toString());
+        self::assertStringNotContainsString('sin Departamento', $component->render()->toString(), 'no leaf has one yet: the list does not need the counter');
 
         $component->call('toggleBulkSelectMode');
         $component->set('markName', 'Itinerario Personal para la Empleabilidad I')->call('markByName');
@@ -407,7 +407,7 @@ final class ListItemTreeComponentTest extends ControllerTestCase
 
         $component->set('bulkAssociationKeys', ['l:' . $fol->getId()->toRfc4122()])->call('bulkSaveAssociation');
         $html = $component->render()->toString();
-        self::assertStringContainsString('1 sin Departamento', $html, 'only «Programación» is left');
+        self::assertStringContainsString('1 sin Departamento', $html, 'most leaves have one now: the counter shows the one left, «Programación»');
 
         $component->call('toggleOnlyWithoutLink', ['listId' => $depts->getId()->toRfc4122()]);
         $tree = implode('|', $component->render()->crawler()->filter('.js-list-item-node')->each(static fn ($node) => trim($node->text())));
