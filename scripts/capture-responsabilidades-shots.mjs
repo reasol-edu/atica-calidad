@@ -87,13 +87,36 @@ await shot('responsabilidades-lista-arbol');
 await selectElement('1º DAW');                 // no association of its own: inherits «Formación Profesional»'s
 await shot('responsabilidades-elemento-hereda');
 
-await openList('Enseñanza');                   // reloaded: switching element in place leaves a second picker behind
-await selectElement('2º DAW');                 // own association: replaces the inherited one
+await selectElement('2º DAW');                 // its own association (Grupo › 2º DAW), on top of the inherited one
 await shot('responsabilidades-elemento-propia');
 
 await openList('Materia');
-await selectElement('Tecnología');             // two associations: both departments deliver it
+await selectElement('Tecnología');             // two departments deliver it, and its four evaluations
 await shot('responsabilidades-elemento-varias');
+
+// ── 2b. Associated lists: the list's own card, the counter «sin Evaluación», «Marcar por nombre» ──
+await openList('Materia');
+await page.getByRole('button', { name: 'Editar la lista' }).first().click();
+await page.waitForSelector('[data-testid="linked-lists"]');
+await settle();
+await shot('responsabilidades-listas-asociadas');
+
+await openList('Materia');
+await page.locator('[data-testid="only-without-link"]:visible', { hasText: 'Evaluación' }).first().click();
+await settle();
+await shot('responsabilidades-sin-evaluacion');
+
+await openList('Materia');
+await page.locator('button:has-text("Seleccionar varios"):visible').first().click();
+await settle();
+await page.locator('[data-testid="mark-by-name"] input[type="text"]').fill('educación física');
+await page.locator('[data-testid="mark-by-name"] button[type="submit"]').click();
+await settle();
+await page.locator('[id="bulk-association-picker"] .ts-control').click();
+await page.locator('.ts-dropdown .option', { hasText: '1ª' }).first().click();
+await page.keyboard.press('Escape');
+await page.waitForTimeout(300);
+await shot('responsabilidades-marcar-por-nombre');
 
 // ── 3. Bulk move to another list, and its confirmation (cancelled) ──────────
 await openList('Departamento');

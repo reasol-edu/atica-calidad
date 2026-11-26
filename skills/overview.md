@@ -66,6 +66,7 @@ Depending on the area you're touching, also consult:
 | School event | `SchoolEvent` — a general or group-restricted event shown on the calendar |
 | Non-working day | A declared holiday (`NonWorkingDay`) or weekend; see `NonWorkingDayChecker` |
 | Setting | `SettingDefinition` + a value at global/centre/teacher scope, with lock inheritance |
+| Catalogue list | `ListItem` tree; a root is a list. A root declares its **associated lists** (`ListItem::$linkedLists`, «Materia» → «Departamento», «Evaluación»); each item **links** to items of those lists (`ListItem::$links`; an intermediate node stands for its leaves) or, rarely, to a plain profile without a list (`ListItemProfile`). Associations accumulate down the branch (`getEffectiveAssociations()`). Who owes an item is NOT stored: `ListItemOwners` derives it from the folder's upload rows — a profile whose list holds a linked item owes it (two profiles on the same list both do). Teachers (`ListItemTeacher`) are separate |
 
 ## Map of `src/`
 

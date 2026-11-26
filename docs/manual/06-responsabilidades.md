@@ -83,7 +83,7 @@ con su número de elementos. Un formulario en la parte superior crea una lista n
 elementos sin que se mezclen con los de las demás listas. Los botones de exportar e importar
 siguen en la pantalla del catálogo.
 
-![Pantalla del catálogo del centro con las cuatro listas del centro de demostración (Departamento, Grupo, Materia y Enseñanza), cada una con su número de elementos, flechas para ordenarlas y el formulario para crear una nueva](img/responsabilidades-listas.png)
+![Pantalla del catálogo del centro con las cinco listas del centro de demostración (Departamento, Grupo, Materia, Enseñanza y Evaluación), cada una con su número de elementos, flechas para ordenarlas y el formulario para crear una nueva](img/responsabilidades-listas.png)
 
 El número junto al nombre cuenta **todos** los elementos de la lista, de cualquier nivel (en
 «Enseñanza», los 16: tres ramas, dos ciclos y once cursos).
@@ -93,21 +93,22 @@ renombra, reordena o mueve a otro padre de la misma lista **arrastrándolo** (ic
 izquierda), igual que las secciones del árbol documental. El botón **+** junto al título añade un
 elemento en el primer nivel; el que aparece al pasar por encima de un elemento añade un hijo ahí
 mismo. **Editar la lista** abre el panel de edición de la propia raíz (nombre, estado,
-asociaciones, eliminarla). Un icono de enlace violeta junto al nombre indica que ese elemento ya
-tiene un perfil o subperfil asociado (ver
-[Asociar un elemento con un perfil](#asociar-un-elemento-con-un-perfil) más abajo).
+[listas asociadas](#asociar-un-elemento-con-un-perfil), eliminarla). Las etiquetas violetas con un
+icono de enlace junto al nombre son las asociaciones propias de ese elemento con otras listas (ver
+[Asociar un elemento con otras listas](#asociar-un-elemento-con-un-perfil) más abajo).
 
 ![Pantalla de una lista plana («Departamento»): sus nueve elementos, con los botones Editar la lista, Seleccionar varios y Añadir elemento](img/responsabilidades-lista-elementos.png)
 
 En una lista **anidada** el árbol muestra todos los niveles a la vez. En «Enseñanza» se ven, de un
 vistazo, las tres ramas con sus elementos; el **ojo tachado** de «Programa de Mejora (extinguido)»
-marca un elemento [inactivo](#elementos-activos-e-inactivos); y los iconos de **enlace** de la rama
-«Formación Profesional» —uno intenso en la rama y otro **atenuado** en cada elemento que cuelga de
-ella— son las [asociaciones](#asociar-un-elemento-con-un-perfil): la rama tiene una propia y sus
-descendientes la heredan. «2º DAW» tiene además la suya, así que lleva el icono intenso: tiene
-las dos.
+marca un elemento [inactivo](#elementos-activos-e-inactivos); y los **enlaces** de la rama
+«Formación Profesional» —la etiqueta «Informática» en la rama y un icono **atenuado** en cada elemento
+que cuelga de ella— son las [asociaciones](#asociar-un-elemento-con-un-perfil): la rama tiene una
+propia y sus descendientes la heredan. «2º DAW» tiene además la suya, así que lleva su propia
+etiqueta («2º DAW», su grupo): tiene las dos. Los contadores «sin Departamento» y «sin Grupo» de la
+barra dicen cuántas hojas no tienen ninguna asociación con esas listas.
 
-![Árbol de la lista «Enseñanza» con sus tres ramas: ESO (con un elemento inactivo), Bachillerato y Formación Profesional, con DAM y DAW; los iconos de enlace de la rama FP y de 2º DAW señalan las asociaciones](img/responsabilidades-lista-arbol.png)
+![Árbol de la lista «Enseñanza» con sus tres ramas: ESO (con un elemento inactivo), Bachillerato y Formación Profesional, con DAM y DAW; la etiqueta «Informática» de la rama FP y la de «2º DAW» señalan las asociaciones](img/responsabilidades-lista-arbol.png)
 
 En pantallas pequeñas se navega con migas de pan en su lugar: empiezas en el primer nivel de la
 lista y tocas el icono de flecha de un elemento para entrar en sus hijos, sin arrastrar — se
@@ -148,56 +149,91 @@ en listas propias.
 
 ![Aviso de confirmación al mover «Matemáticas» dentro de un elemento de otra lista que tiene un perfil asociado](img/responsabilidades-lista-mover-confirmar.png)
 
-### Asociar un elemento con un perfil
+### Asociar un elemento con otras listas {#asociar-un-elemento-con-un-perfil}
 
-Cada elemento puede vincularse, opcionalmente, a un perfil o subperfil de Responsabilidades — por
-ejemplo, una materia con la jefatura de departamento de la que depende. Es una referencia suelta,
-sin relación con la jerarquía de la lista, distinta de [asociar un perfil a una lista para generar
-subperfiles](#asociar-un-perfil-a-una-lista-subperfiles): esta usa
-[Actividades](08-actividades.md#campos-de-una-actividad) para decidir a qué perfil corresponde la
-entrega nombrada por cada hoja de una lista.
+Cada elemento puede vincularse con **elementos de otras listas** del catálogo: una materia con su
+departamento y con sus evaluaciones, un curso con su grupo… Es una referencia suelta, sin relación
+con la jerarquía de la lista, distinta de [asociar un perfil a una lista para generar
+subperfiles](#asociar-un-perfil-a-una-lista-subperfiles). Las asociaciones son **hechos** del
+catálogo («Programación es de Informática y tiene las evaluaciones de FP»); **quién entrega** lo
+decide cada actividad con los perfiles que suben en su carpeta. Una actividad que pida una entrega
+por materia a la «Jefe/a de Departamento» se la pide, por cada materia, a la jefatura del
+departamento al que está asociada ([Actividades](08-actividades.md#campos-de-una-actividad)). Si dos
+perfiles usan la misma lista (por ejemplo, la jefatura y una coordinación sobre «Departamento») y la
+carpeta acepta a los dos, los dos deben cada materia.
 
-Un elemento puede tener **varios** perfiles o subperfiles asociados. En los datos de demostración,
-la materia «Tecnología» la imparten dos departamentos, así que está asociada a **dos** subperfiles:
-«Jefe/a de Departamento Tecnología» y «Jefe/a de Departamento Informática». Una actividad que reparta
-una entrega por materia le pedirá entonces su programación a las dos jefaturas, cada una la suya.
+**Listas asociadas.** Primero se dice con qué listas se asocian los elementos de una lista: en la
+pantalla de la lista, **Editar la lista** muestra la tarjeta **Listas asociadas**. En la demo,
+«Materia» está asociada a «Departamento» y a «Evaluación». Una lista puede asociarse también a sí
+misma. Al quitar una lista que ya tiene asociaciones, la tarjeta dice cuántas se quitarán y pide
+confirmación.
 
-![Panel de edición del elemento «Tecnología» de la lista Materia: en «Asociado a», dos etiquetas, «Jefe/a de Departamento Tecnología» y «Jefe/a de Departamento Informática»](img/responsabilidades-elemento-varias.png)
+![Panel de la propia lista «Materia»: la tarjeta «Listas asociadas» con «Departamento» y «Evaluación», y en la barra del árbol el contador «2 sin Evaluación»](img/responsabilidades-listas-asociadas.png)
 
-Con un perfil asociado a una lista se puede elegir una hoja concreta (p. ej. «Coordinador/a de Nivel
-2º DAW») o un **elemento intermedio** (p. ej. «Coordinador/a de Nivel Formación Profesional
-(todos)»), que equivale a elegir una a una todas las hojas que cuelgan de él: la actividad pedirá una
-entrega por cada una de ellas. No se ofrece el perfil entero: un elemento asociado a un perfil con
-lista indica siempre en qué punto de ella.
+Después, en el panel de cada elemento, **Asociado a** ofrece los elementos de esas listas agrupados
+por lista (y, en un grupo aparte, los perfiles que no tienen lista, como «Orientación»). Se pueden
+elegir varios, y también un **elemento intermedio** (p. ej. «Departamento › FP»), que equivale a
+elegir todas las hojas que cuelgan de él. Guardar deja al elemento con exactamente los elegidos. En
+el árbol, cada elemento muestra sus asociaciones propias como etiquetas violetas (dos como mucho y
+«+N» con el resto; el nombre completo, al pasar el ratón).
+
+En los datos de demostración, la materia «Tecnología» la imparten dos departamentos, así que está
+asociada a **dos** elementos de «Departamento», «Tecnología» e «Informática», además de a sus cuatro
+evaluaciones. Una actividad que reparta una entrega por materia le pedirá su programación a las dos
+jefaturas, cada una la suya.
+
+![Panel de edición del elemento «Tecnología» de la lista Materia: en «Asociado a», las etiquetas «Tecnología», «Informática», «1ª», «2ª», «Ord.» y «Extr.»](img/responsabilidades-elemento-varias.png)
 
 Un elemento **hereda las asociaciones de todos los elementos de los que cuelga**, y se suman a las
 suyas propias: basta con asociar la rama para que lo apliquen todas sus hojas. En la lista
-«Enseñanza», la rama «Formación Profesional» está asociada al subperfil «Jefe/a de Departamento
-Informática», y «1º DAW» —que cuelga de ella, dentro de «DAW»— no tiene nada propio: el panel del
-elemento lo dice, debajo del selector y en gris, y el enlace atenuado del árbol lo marca.
+«Enseñanza», la rama «Formación Profesional» está asociada a «Departamento › Informática», y
+«1º DAW» —que cuelga de ella, dentro de «DAW»— no tiene nada propio: el panel del elemento lo dice,
+debajo del selector y en gris, y el enlace atenuado del árbol lo marca.
 
-![Panel de «1º DAW»: sin asociaciones propias, el selector está vacío y debajo, en gris, aparece el texto «Además, de «Formación Profesional»: Jefe/a de Departamento Informática»](img/responsabilidades-elemento-hereda.png)
+![Panel de «1º DAW»: sin asociaciones propias, el selector está vacío y debajo, en gris, aparece el texto «Además, de «Formación Profesional»: Departamento › Informática»](img/responsabilidades-elemento-hereda.png)
 
 Las asociaciones propias **no sustituyen** a las heredadas: se añaden a ellas. «2º DAW» también
-cuelga de «Formación Profesional» y tiene la suya —«Tutor/a 2º DAW»—, así que tiene las dos: en el
-selector aparece solo la propia, que es la que se edita, y debajo, en gris, lo que hereda de
-«Formación Profesional». Una actividad cuya carpeta acepte los dos perfiles pedirá por «2º DAW» una
-entrega a cada uno. Si una asociación propia ya se hereda de un elemento superior, el panel avisa
-en ámbar («Ya la hereda de «X»») de que sobra y se puede quitar.
+cuelga de «Formación Profesional» y tiene la suya —«Grupo › 2º DAW», el grupo del que es tutor el
+Tutor/a de 2º DAW—, así que tiene las dos: en el selector aparece solo la propia, que es la que se
+edita, y debajo, en gris, lo que hereda de «Formación Profesional». Una actividad cuya carpeta acepte
+los dos perfiles pedirá por «2º DAW» una entrega a cada uno. Si una asociación propia ya se hereda de
+un elemento superior, el panel avisa en ámbar («Ya la hereda de «X»») de que sobra y se puede quitar.
 
-![Panel de «2º DAW»: en «Asociado a», la etiqueta «Tutor/a 2º DAW» y, debajo, en gris, «Además, de «Formación Profesional»: Jefe/a de Departamento Informática»](img/responsabilidades-elemento-propia.png)
+![Panel de «2º DAW»: en «Asociado a», la etiqueta «2º DAW» y, debajo, en gris, «Además, de «Formación Profesional»: Departamento › Informática»](img/responsabilidades-elemento-propia.png)
 
 Como lo heredado ya no se puede tapar, si un grupo de una materia lo lleva otro departamento hay que
 asociar el departamento a las hojas y no a la materia.
 
-Para un elemento a la vez, se hace desde su panel de edición (**Asociado a**, con el mismo
-buscador de perfil/subperfil que en el resto de la aplicación, en el que se pueden elegir varios).
-Guardar deja al elemento con exactamente los elegidos. Para varios elementos a la vez, **Seleccionar
-varios** —junto al título en pantallas grandes, o junto al contador de elementos en pequeñas—
-sustituye el botón de cada elemento por una casilla; con uno o más marcados aparece una barra con
-el mismo buscador y dos botones: **Asignar** **añade** los perfiles elegidos a los que ya tenga cada
-elemento marcado, y **Quitar asociaciones** se las quita todas. La selección no se limita a los
-hijos de un mismo elemento: se puede marcar en varias ramas distintas antes de asignar.
+**Lo que falta por asociar.** En la barra del árbol, un contador por cada lista asociada dice
+cuántas hojas no tienen ningún elemento de ella, propio o heredado («2 sin Evaluación»); al pulsarlo,
+el árbol muestra solo esas hojas (y las ramas que llevan a ellas), y al pulsarlo de nuevo, todo. Sirve
+sobre todo después de [importar desde Séneca](#importar-desde-seneca): las materias nuevas llegan sin
+asociaciones.
+
+![El árbol de «Materia» filtrado por «2 sin Evaluación»: solo Educación Física y la FFEOE](img/responsabilidades-sin-evaluacion.png)
+
+**Varios elementos a la vez.** **Seleccionar varios** —junto al título en pantallas grandes, o junto
+al contador de elementos en pequeñas— sustituye el botón de cada elemento por una casilla; la
+selección no se limita a los hijos de un mismo elemento. Con uno o más marcados, la barra de abajo
+ofrece el mismo buscador y qué hacer con lo elegido: **Añadir** (se suma a lo que tenga cada
+elemento), **Sustituir las de esa lista** (las asociaciones de cada elemento con esa lista pasan a ser
+las elegidas; las de las otras listas no se tocan) o **Quitar**; y **Quitar asociaciones** se las
+quita todas. **Marcar por nombre** marca, sin distinguir mayúsculas ni tildes, todas las hojas con
+ese nombre exacto dentro de la lista o de la rama elegida en **dentro de**: con «Itinerario Personal
+para la Empleabilidad I» se marcan de una vez las de todos los cursos para asociarlas a FOL. El
+«dentro de» importa porque una materia con el mismo nombre puede ser de departamentos distintos según
+el ciclo.
+
+![Modo de selección de «Materia»: «Educación Física» marcada con «Marcar por nombre» y, en la barra, «Añadir» y la evaluación «1ª» elegidas antes de pulsar Asignar](img/responsabilidades-marcar-por-nombre.png)
+
+!!! note "Antes eran asociaciones con un perfil"
+    Hasta la versión con listas asociadas, un elemento se asociaba con «perfil › subperfil» («Jefe/a
+    de Departamento › Informática»). Al actualizar, cada una pasa a ser una asociación con ese
+    elemento de la lista del perfil («Departamento › Informática») y la lista queda asociada; las
+    entregas de las actividades no cambian. La única diferencia aparece cuando la carpeta de una
+    actividad acepta a **dos perfiles de la misma lista**: ahora los dos deben cada elemento. El
+    comando `php bin/console app:list-items:links-report` (solo lectura) lista esas actividades con
+    las entregas que pedirían con un perfil por lista y las que piden ahora.
 
 ### Docentes asociados {#docentes-asociados}
 
@@ -272,7 +308,7 @@ al entregarse, pero el elemento ya no se podrá elegir en ninguno. Los borradore
 elegido lo conservan, marcado, y no se podrán entregar hasta elegir otra opción. Si solo quieres que
 deje de ofrecerse, desactívalo.
 
-### Importar desde Séneca
+### Importar desde Séneca {#importar-desde-seneca}
 
 Dos botones en la parte superior del Catálogo del centro — **Importar grupos desde Séneca** e **Importar
 materias desde Séneca** — construyen una lista automáticamente a partir de los ficheros CSV que
@@ -344,8 +380,8 @@ tocar cualquiera de las dos, la previsualización se vuelve a calcular con el mi
 
 - **Por grupo** («1.º ESO A › Matemáticas»): cada materia dentro de su grupo, como hasta ahora.
 - **Por materia** («Matemáticas › 1.º ESO A»): cada grupo dentro de la materia. Así basta con
-  asociar cada materia a la jefatura de su departamento **una vez**: todos sus grupos la heredan
-  (ver [Asociar un elemento con un perfil](#asociar-un-elemento-con-un-perfil)).
+  asociar cada materia a su departamento **una vez**: todos sus grupos la heredan
+  (ver [Asociar un elemento con otras listas](#asociar-un-elemento-con-un-perfil)).
 
 Viene marcada la forma que ya tiene la lista: se deduce de los nombres de su primer nivel (si son
 grupos o materias del fichero) o, si la lista está organizada en categorías, de los de sus hojas. Si

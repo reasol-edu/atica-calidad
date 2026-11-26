@@ -32,6 +32,18 @@ requires a minimum of 2 characters. The autocompleters under `src/Autocomplete/`
 (`TeacherAutocompleter`, `TeacherCentreAutocompleter`) need a centre selected in
 session (`TenantContext`) to resolve meaningful results.
 
+### Tom Select inside a re-rendering Live Component: key the WRAPPER, not the ignored element
+
+A Tom Select picker sits in a `data-live-ignore` wrapper (the re-render would strip its `.ts-wrapper`). Two traps, both seen in
+`ListItemTreeComponent`:
+
+- **An ignored element whose `id` changes is never removed.** Keying the picker to what it depends on (`id="bulk-move-picker-{{ ids }}"`)
+  on the ignored element itself piles up one picker per change. Put the keyed `id` on a plain wrapper and `data-live-ignore` on a
+  child: `<div id="bulk-move-picker-{{ ids }}"><div data-live-ignore>…</div></div>`.
+- **Sections that come and go shift the morph.** When a panel shows an optional section before others (the list's «Listas asociadas»
+  card), the morph matches the remaining sections by position and moves an ignored picker into the wrong one. Give every section an
+  `id` keyed to the selected entity (`associations-panel-{{ sel.id }}`, `teachers-panel-{{ sel.id }}`) so each is replaced whole.
+
 ## Live Components: big browsers are split into traits
 
 `SectionBrowserComponent` (document tree) and `ActivityBrowserComponent` (activities) keep the

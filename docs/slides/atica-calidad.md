@@ -127,8 +127,10 @@ El Catálogo del centro muestra solo las **listas**; cada una se gestiona en **s
 pantalla**, y se pueden **mover elementos de una lista a otra** (con aviso si cambian los perfiles
 que les corresponden).
 
-Cada elemento puede **asociarse a uno o varios perfiles** y tener **docentes asociados** (quien
-imparte esa materia en ese grupo); todo se acumula a lo largo de la rama. Los grupos y las materias
+Cada lista se asocia a **otras listas** (Materia con Departamento y Evaluación) y cada elemento a
+**elementos de ellas** (su departamento, sus evaluaciones); quién entrega lo decide cada actividad.
+Un elemento tiene también **docentes asociados** (quien imparte esa materia en ese grupo); todo se
+acumula a lo largo de la rama. Los grupos y las materias
 se importan desde Séneca (por grupo o por materia), con sus docentes. Los elementos inactivos o en
 uso no se pierden ni se pueden borrar por accidente.
 

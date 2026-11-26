@@ -39,8 +39,14 @@ elemento nuevo aparece solo), y lo ya entregado conserva los nombres con que se 
 
 **Elemento del catálogo**
 : Cada nodo de una lista, a cualquier profundidad. Puede estar activo o inactivo, y puede asociarse
-a uno o varios perfiles o subperfiles; además de las suyas, hereda las de todos los elementos de los
+a uno o varios elementos de sus listas asociadas (una materia con su departamento y sus
+evaluaciones) o a perfiles sin lista; además de las suyas, hereda las de todos los elementos de los
 que cuelga.
+
+**Listas asociadas**
+: Las listas con cuyos elementos se pueden asociar los de una lista («Materia» con «Departamento» y
+«Evaluación»). Se eligen en el panel de la propia lista. Quién entrega cada elemento lo decide la
+actividad: el perfil de su carpeta que usa una de esas listas.
 
 **Docente asociado (a un elemento)**
 : Docente que imparte un elemento del catálogo (una materia, un grupo…). Se acumula a lo largo de la

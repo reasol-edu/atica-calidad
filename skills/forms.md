@@ -201,7 +201,8 @@ because a script cannot read them: add a new icon in both places; the Spanish la
 - **Step limited to the element** (`step.scope` ∈ `any|element`, default `any`; only offered for a profile of a list). `start()` copies it to
   `FormApprovalStep::elementScoped` (so editing the model never alters a chain under way). `FormApprovalChain::holdsStepProfile()` is the
   rule: for a limited step, the element is `ActivitySubmissionSlot::leafOf()` of the submission's slot key, and only whoever holds the step's
-  profile with one of the subprofiles that element is associated with (own or inherited, `getEffectiveProfileAssociations()`) counts. No
+  profile with one of the subprofiles that element is associated with (own or inherited elements of the step profile's list,
+  `ListItemOwners::linkedUnder()`) counts. No
   such association → `isLimitedWithoutElement()`: anyone with the profile, and the document page says so. `canDecide()` = manages the folder
   or `holdsStepProfile()`; `pendingFor()` (the review queue) and `FormReviewController::canParticipate()` follow from it.
 - **Steps approved by delivering**: after `start()`, `FormSubmissionService::approveOwnSteps()` approves, through
@@ -305,9 +306,9 @@ trap: a list-fed field normalized against the raw definition has no options, so 
   options by `FormListOptions` (`usesLists()` is the gate — every early return checks it, not `sources()`; `mapTables()` visits table
   blocks). Row key = the item's id, label = its path below the chosen item. **Filtered by who delivers** (`rowsOwn`):
   `ActivitySubmissionSlot::deliveredBy($slotKey)` reads `{profile, subprofile}` from the slot key (no slot building on every save) and
-  `FormListOptions::forSlot()` keeps the leaves whose EFFECTIVE associations (`ListItem::getEffectiveProfileAssociations()`: the
-  item's own replace the inherited ones) name that profile through the subprofile or one of its ancestors (plain profile: no
-  subprofile); none matching → all. The associations come in the same query as the tree (`groupChildrenByParent`): no query per item.
+  `FormListOptions::forSlot()` keeps the leaves whose EFFECTIVE associations (`ListItem::getEffectiveAssociations()`: own plus
+  inherited) are the subprofile or one of its ancestors (plain profile, no subprofile: that profile; `ListItemOwners::belongsTo()`);
+  none matching → all. The associations come in the same query as the tree (`groupChildrenByParent`): no query per item.
   EVERY place that expands a draft's definition passes the slot (`FormSubmissionService::definitionOf()`, the initial data of a new,
   restarted or discarded draft, correction, `FormPrefiller`, `FormUpdateService`); the blank model (send, `refreshBlankPdf`, previews,
   office export) expands with none → all items. A row with typed data (ignoring `_*` keys and calculated columns) whose item is not

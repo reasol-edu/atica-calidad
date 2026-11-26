@@ -267,7 +267,7 @@ nada. Se mira cómo están las asociaciones en cada momento: si una materia pasa
 paso pendiente pasa con ella a la cola de la nueva jefatura.
 
 Si no hay ningún subperfil al que limitarse (el documento no es de un elemento del catálogo, o su
-elemento no está asociado a ningún subperfil del perfil del paso), el paso queda abierto a cualquiera
+elemento no está asociado a ningún elemento de la lista del perfil del paso), el paso queda abierto a cualquiera
 con ese perfil, y la página del documento lo dice, para que la cadena no se quede sin nadie que la
 decida.
 
