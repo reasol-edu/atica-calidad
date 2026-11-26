@@ -187,6 +187,26 @@ trait ActivityFormOptions
     #[LiveProp(writable: true)]
     public bool $formTeachersDeliver = false;
 
+    /**
+     * «Una entrega por»: the lists the submissions are multiplied by (ids of catalogue nodes, in order — see ActivityDimension).
+     *
+     * @var list<string>
+     */
+    #[LiveProp(writable: true)]
+    public array $formDimensionIds = [];
+
+    /** The one of $formDimensionIds whose values each have their own dates ('' = none). */
+    #[LiveProp(writable: true, onUpdated: 'onFormDimensionsChanged')]
+    public string $formDatedDimensionId = '';
+
+    /** With a list element: one submission per element (true) or one per owner gathering its elements. */
+    #[LiveProp(writable: true)]
+    public bool $formSplitByElement = true;
+
+    /** The «Añadir lista» picker: a node picked there is added to $formDimensionIds and the picker empties. */
+    #[LiveProp(writable: true, onUpdated: 'onFormDimensionToAdd')]
+    public string $formDimensionToAdd = '';
+
     /** The other form activity whose delivered documents pre-fill this one ('' = only last year's own). */
     #[LiveProp(writable: true)]
     public string $formPrefillSourceId = '';
@@ -309,6 +329,11 @@ trait ActivityFormOptions
      */
     public function getFormListItemLeaves(): array
     {
+        // With a list that marks the dates («Evaluación»), the dates are its values' — one row each — and not the elements'.
+        $dated = $this->getFormDatedDimension();
+        if ($dated !== null) {
+            return $this->listItems->findLeafDescendants($dated);
+        }
         if ($this->formListItemId === '') {
             return [];
         }
@@ -316,6 +341,158 @@ trait ActivityFormOptions
         $root = $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
 
         return $root === null ? [] : $this->listItems->findLeafDescendants($root);
+    }
+
+    /** @return list<ListItem> the lists of «Una entrega por», in order — those that still exist in the centre */
+    public function getFormDimensionLists(): array
+    {
+        $lists = [];
+        foreach (array_unique(array_filter($this->formDimensionIds, 'is_string')) as $id) {
+            $list = $this->listItems->findByIdAndCentre($id, $this->centre);
+            if ($list !== null) {
+                $lists[] = $list;
+            }
+        }
+
+        return $lists;
+    }
+
+    /** The list of «Una entrega por» that marks the dates, if one is chosen (and still one of them). */
+    public function getFormDatedDimension(): ?ListItem
+    {
+        if ($this->formDatedDimensionId === '' || !in_array($this->formDatedDimensionId, $this->formDimensionIds, true) || $this->formFolderId === '') {
+            return null;
+        }
+
+        return $this->listItems->findByIdAndCentre($this->formDatedDimensionId, $this->centre);
+    }
+
+    /**
+     * Each list of «Una entrega por» as the form shows it: its path, whether it is associated with the activity's list (each element
+     * takes its own values) or free (every element, all of them), whether it marks the dates, and how many values it has.
+     *
+     * @return list<array{id: string, label: string, associated: bool, dated: bool, values: int}>
+     */
+    public function getFormDimensions(): array
+    {
+        $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
+        $rows     = [];
+        foreach ($this->getFormDimensionLists() as $list) {
+            $id     = $list->getId()->toRfc4122();
+            $rows[] = [
+                'id'         => $id,
+                'label'      => $this->getListItemLabel($list),
+                'associated' => $listItem !== null && $listItem->hasLinkedList($list),
+                'dated'      => $id === $this->formDatedDimensionId,
+                'values'     => \count($this->listItems->findLeafDescendants($list)),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /** @return list<ListItem> what «Añadir lista» offers: the catalogue's nodes with leaves, not the activity's list nor already chosen */
+    public function getFormDimensionChoices(): array
+    {
+        $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
+        $chosen   = array_flip($this->formDimensionIds);
+
+        return array_values(array_filter(
+            $this->getAvailableListItems(),
+            static fn (ListItem $item): bool => !$item->isLeaf() && !isset($chosen[$item->getId()->toRfc4122()])
+                && ($listItem === null || (!$item->isUnder($listItem) && !$listItem->isUnder($item))),
+        ));
+    }
+
+    /**
+     * For each associated list of «Una entrega por», how many elements of the activity's list have none of its values: they ask for
+     * nothing («37 materias sin Evaluación no piden entrega»).
+     *
+     * @return list<array{list: string, count: int}>
+     */
+    public function getFormElementsWithoutValues(): array
+    {
+        $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
+        if ($listItem === null || $this->formFolderId === '') {
+            return [];
+        }
+        $out    = [];
+        $leaves = $this->listItems->findLeafDescendants($listItem);
+        foreach ($this->getFormDimensionLists() as $list) {
+            if (!$listItem->hasLinkedList($list)) {
+                continue;
+            }
+            $count = 0;
+            foreach ($leaves as $leaf) {
+                if ($this->submissionSlots->valuesOf($leaf, $listItem, [$list])[0] === []) {
+                    ++$count;
+                }
+            }
+            if ($count > 0) {
+                $out[] = ['list' => $list->getRoot()->getName(), 'count' => $count];
+            }
+        }
+
+        return $out;
+    }
+
+    /** LiveProp(onUpdated:) of «Añadir lista»: the picked node joins «Una entrega por» (at most ActivityDimension::MAX), the picker empties. */
+    public function onFormDimensionToAdd(): void
+    {
+        $id                       = $this->formDimensionToAdd;
+        $this->formDimensionToAdd = '';
+        foreach ($this->getFormDimensionChoices() as $choice) {
+            if ($choice->getId()->toRfc4122() === $id && \count($this->formDimensionIds) < \App\Entity\ActivityDimension::MAX) {
+                $this->formDimensionIds[] = $id;
+            }
+        }
+        $this->onFormDimensionsChanged();
+    }
+
+    /** The rows of the dates follow the list that marks them: they are seeded again. */
+    public function onFormDimensionsChanged(): void
+    {
+        $this->seedOverrideArraysForCurrentListItem();
+    }
+
+    #[\Symfony\UX\LiveComponent\Attribute\LiveAction]
+    public function removeFormDimension(#[\Symfony\UX\LiveComponent\Attribute\LiveArg] string $id): void
+    {
+        $this->formDimensionIds = array_values(array_filter($this->formDimensionIds, static fn (string $d): bool => $d !== $id));
+        if ($this->formDatedDimensionId === $id) {
+            $this->formDatedDimensionId = '';
+        }
+        $this->onFormDimensionsChanged();
+    }
+
+    #[\Symfony\UX\LiveComponent\Attribute\LiveAction]
+    public function moveFormDimension(#[\Symfony\UX\LiveComponent\Attribute\LiveArg] string $id, #[\Symfony\UX\LiveComponent\Attribute\LiveArg] int $direction): void
+    {
+        $ids   = $this->formDimensionIds;
+        $index = array_search($id, $ids, true);
+        $to    = $index === false ? null : $index + ($direction < 0 ? -1 : 1);
+        if ($index === false || $to === null || !isset($ids[$to])) {
+            return;
+        }
+        [$ids[$index], $ids[$to]] = [$ids[$to], $ids[$index]];
+        $this->formDimensionIds   = array_values($ids);
+    }
+
+    /**
+     * Whether the activity being edited already has something delivered or drafted this academic year: then how its submissions are
+     * split («Una entrega por», its element, whether elements are gathered) can no longer change — every key would.
+     */
+    public function isFormSplitLocked(): bool
+    {
+        $activity = $this->formActivityId === '' ? null : $this->findActivity($this->formActivityId);
+        if ($activity === null) {
+            return false;
+        }
+        $folder = $activity->getFolder();
+        $cycle  = $this->deadline->currentCycleKey($activity);
+
+        return ($folder !== null && $this->documents->findByFolderAndCycleYearWithRevisions($folder, $cycle) !== [])
+            || $this->formSubmissions->findByActivityCycle($activity, $cycle) !== [];
     }
 
     /**
@@ -457,14 +634,21 @@ trait ActivityFormOptions
                 $listItem,
                 ActivitySubmissionScope::from($this->formScope === 'individual' ? 'individual' : 'by_profile'),
                 $rows,
+                true,
+                $this->getFormDimensionLists(),
+                $listItem === null || $this->formSplitByElement,
             );
             if ($slots === []) {
                 return $this->t('activity.summary.no_submissions');
             }
 
             $summary = $this->translator->trans('activity.summary.submissions', ['%count%' => \count($slots)], 'admin');
-            if ($listItem !== null) {
-                $elements = \count(array_unique(array_map(static fn (ActivitySubmissionSlot $s): string => $s->displayName, $slots)));
+            if ($listItem !== null && ($this->formSplitByElement || $this->formDimensionIds === [])) {
+                // Elements, not combinations: «Programación · 1ª» and «Programación · 2ª» are one element.
+                $elements = \count(array_unique(array_map(
+                    static fn (ActivitySubmissionSlot $s): string => $s->nameListItem?->getId()->toRfc4122() ?? $s->displayName,
+                    $slots,
+                )));
                 $summary .= ' ' . $this->translator->trans('activity.summary.of_elements', ['%count%' => $elements], 'admin');
 
                 if ($this->formTeachersDeliver && $this->formScope !== 'individual') {

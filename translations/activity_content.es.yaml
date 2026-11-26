@@ -233,6 +233,9 @@ obligation.detail.completed: 'Completada'
 
 # ── Avance global de las entregas (tarjetas de «Ver», para quien gestiona o revisa la carpeta) ──
 progress.title: 'Entregas de todos los perfiles en este curso'
+dimensions.line: 'Una entrega por cada elemento de «%element%» y %lists%.'
+dimensions.line_grouped: 'Una entrega por %lists%, con los elementos de «%element%» de cada responsable.'
+dimensions.line_plain: 'Una entrega por %lists%.'
 submissions.period.dates: 'del %start% al %end%'
 submissions.period.current: 'En curso'
 progress.delivered: '%delivered%/%total% entregadas'

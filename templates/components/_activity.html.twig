@@ -102,6 +102,15 @@
                     {% if activity.description %}
                         <p class="text-sm text-gray-600 whitespace-pre-line">{{ activity.description }}</p>
                     {% endif %}
+                    {# «Una entrega por»: what the submissions are multiplied by. #}
+                    {% if activity.hasDimensions %}
+                        {% set dimension_names = activity.dimensions|map(d => d.list.root.name ~ (d.list.isRoot ? '' : ' › ' ~ d.list.name)) %}
+                        <p class="text-xs text-gray-500" data-testid="dimensions-line">
+                            {{ (activity.listItem is null
+                                ? 'dimensions.line_plain'
+                                : (activity.splitByElement ? 'dimensions.line' : 'dimensions.line_grouped'))|trans({'%element%': activity.listItem ? activity.listItem.root.name : '', '%lists%': dimension_names|join(' y ')}, 'activity_content') }}
+                        </p>
+                    {% endif %}
                     {# The tables of its model with a row per delivery of another activity: which one each reads, or that it is missing. #}
                     {% for d in this.deliverySourceSummary(activity) %}
                         {% if d.source %}

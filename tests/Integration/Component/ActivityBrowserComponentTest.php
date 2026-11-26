@@ -904,6 +904,86 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertSame($reviews->getId()->toRfc4122(), $copy->getDeliverySource($table)?->getId()->toRfc4122());
     }
 
+    /**
+     * «Una entrega por»: a list added from the form multiplies the submissions (free: every element, all its values), the one that marks
+     * the dates turns the dates table into one row per value, saving keeps it, duplicating copies it, and once there is a delivery this
+     * year how the submissions are split can no longer change.
+     */
+    public function testTheFormMultipliesTheSubmissionsByAListWithItsOwnDatesPerValue(): void
+    {
+        [$component, , $category, $centre, $folder] = $this->formWithBranches('Lengua');
+        $managed = $this->em->find(EducationalCentre::class, $centre->getId());
+        self::assertNotNull($managed);
+        $evals  = (new \App\Entity\ListItem())->setName('Evaluación')->setEducationalCentre($managed);
+        $first  = (new \App\Entity\ListItem())->setName('1ª')->setEducationalCentre($managed)->setParent($evals)->setPosition(0);
+        $second = (new \App\Entity\ListItem())->setName('2ª')->setEducationalCentre($managed)->setParent($evals)->setPosition(1);
+        $this->persist($evals, $first, $second);
+        $this->em->clear();
+        self::getContainer()->get(\App\Repository\ListItemRepository::class)->reset();
+
+        self::assertStringContainsString('Se pedirán 2 entregas', $component->render()->toString());
+        $component->set('formDimensionToAdd', $evals->getId()->toRfc4122());
+        self::assertSame([$evals->getId()->toRfc4122()], $component->component()->formDimensionIds);
+        $html = $component->render()->toString();
+        self::assertStringContainsString('Se pedirán 4 entregas (de 2 elementos de la lista)', $html, 'Física and Lengua, each in the 1ª and the 2ª');
+        self::assertStringContainsString('Todos sus elementos', $html, 'not associated with «Materias»: a free list');
+
+        $component->set('formDatedDimensionId', $evals->getId()->toRfc4122());
+        $dates = $component->render()->crawler()->filter('[id^="activity-form-deadlines-"]');
+        self::assertStringContainsString('Fechas de cada «Evaluación»', $dates->text());
+        self::assertStringContainsString('1ª', $dates->text());
+        $component
+            ->set('formOverrideStartDay', [$first->getId()->toRfc4122() => '1', $second->getId()->toRfc4122() => '1'])
+            ->set('formOverrideStartMonth', [$first->getId()->toRfc4122() => '12', $second->getId()->toRfc4122() => '3'])
+            ->set('formOverrideEndDay', [$first->getId()->toRfc4122() => '20', $second->getId()->toRfc4122() => '20'])
+            ->set('formOverrideEndMonth', [$first->getId()->toRfc4122() => '12', $second->getId()->toRfc4122() => '3'])
+            ->call('saveActivity');
+        self::assertSame([], $component->component()->errors);
+
+        $activity = $this->em->getRepository(Activity::class)->findOneBy(['title' => 'Memoria']);
+        self::assertNotNull($activity);
+        self::assertCount(1, $activity->getDimensions());
+        self::assertTrue($activity->getDatedDimension()?->getList()->getId()->equals($evals->getId()));
+        self::assertSame(20, $activity->getDeadlineOverride($this->em->find(\App\Entity\ListItem::class, $first->getId()))?->getEndDay());
+        /** @var \App\Service\ActivitySubmissionSlotBuilder $slots */
+        $slots = self::getContainer()->get(\App\Service\ActivitySubmissionSlotBuilder::class);
+        self::assertSame(['Ciencias › Física · 1ª', 'Ciencias › Física · 2ª', 'Letras › Lengua · 1ª', 'Letras › Lengua · 2ª'], array_map(static fn ($s): string => $s->displayName, $slots->buildSlots($activity)));
+
+        // Reopened, as saved; duplicated, the same.
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()]);
+        self::assertSame([$evals->getId()->toRfc4122()], $component->component()->formDimensionIds);
+        self::assertSame($evals->getId()->toRfc4122(), $component->component()->formDatedDimensionId);
+        $component->call('duplicateActivity', ['id' => $activity->getId()->toRfc4122()]);
+        $copy = array_values(array_filter($this->em->getRepository(Activity::class)->findAll(), static fn (Activity $a): bool => str_contains($a->getTitle(), 'Memoria') && !$a->getId()->equals($activity->getId())))[0] ?? null;
+        self::assertNotNull($copy);
+        self::assertNotNull($copy->getDatedDimension());
+        self::assertNotNull($copy->getDeadlineOverride($this->em->find(\App\Entity\ListItem::class, $second->getId())));
+
+        // A draft this year: how the submissions are split can no longer change; the dates can.
+        $managedActivity = $this->em->find(Activity::class, $activity->getId());
+        self::assertNotNull($managedActivity);
+        $slot = $slots->buildSlots($managedActivity)[0];
+        /** @var \App\Service\ActivityDeadlineChecker $deadline */
+        $deadline = self::getContainer()->get(\App\Service\ActivityDeadlineChecker::class);
+        $model    = self::getContainer()->get(\App\Service\Form\FormModelService::class);
+        $admin    = $this->em->getRepository(Teacher::class)->findOneBy(['username' => 'admin']);
+        self::assertNotNull($admin);
+        $modelFolder = (new Folder())->setDocumentSection($this->em->find(Folder::class, $folder->getId())?->getDocumentSection())->setName('Modelos');
+        $this->persist($modelFolder);
+        $form = $model->create($modelFolder, 'Revisión', null);
+        $model->saveDraft($form, ['sections' => [['title' => 'Datos', 'blocks' => [['type' => 'field', 'fieldType' => 'text', 'name' => 'nota', 'label' => 'Nota']]]]], $form->getDraftVersion(), $admin);
+        $model->sendToReview($form, $admin, null);
+        $revision = self::getContainer()->get(\App\Repository\FormModelRevisionRepository::class)->findInForce($form);
+        self::assertNotNull($revision);
+        $this->persist(new \App\Entity\FormSubmission($managedActivity, $slot->key(), $deadline->currentCycleKey($managedActivity), $revision, []));
+
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()]);
+        self::assertCount(1, $component->render()->crawler()->filter('[data-testid="dimensions-locked"]'));
+        $component->call('removeFormDimension', ['id' => $evals->getId()->toRfc4122()])->call('saveActivity');
+        self::assertStringContainsString('no se puede cambiar cómo se reparten', $component->component()->errors['dimensions'] ?? '');
+        unset($category);
+    }
+
     /** With a catalogue element, the form offers the two ways of naming the document, each explained with a real example. */
     public function testTheFormOffersToNameTheDocumentWithTheFullPathOrTheLeafOnly(): void
     {

@@ -58,6 +58,10 @@ trait ActivityFormActions
         $this->formDraftsForAll = false;
         $this->formNameFullPath = true;
         $this->formTeachersDeliver = false;
+        $this->formDimensionIds     = [];
+        $this->formDatedDimensionId = '';
+        $this->formSplitByElement   = true;
+        $this->formDimensionToAdd   = '';
         $this->formPrefillSourceId = '';
         $this->formDeliverySources = [];
         $this->formHidden      = false;
@@ -94,6 +98,10 @@ trait ActivityFormActions
         $this->newFolderName      = '';
         $this->newFolderSectionId = '';
         $this->formListItemId   = $activity->getListItem()?->getId()->toRfc4122() ?? '';
+        $this->formDimensionIds     = array_map(static fn (\App\Entity\ActivityDimension $d): string => $d->getList()->getId()->toRfc4122(), $activity->getDimensions());
+        $this->formDatedDimensionId = $activity->getDatedDimension()?->getList()->getId()->toRfc4122() ?? '';
+        $this->formSplitByElement   = $activity->isSplitByElement();
+        $this->formDimensionToAdd   = '';
         $this->formOverrideStartDay   = [];
         $this->formOverrideStartMonth = [];
         $this->formOverrideEndDay     = [];
@@ -190,7 +198,15 @@ trait ActivityFormActions
             ->setEndDateEnforced($source->isEndDateEnforced())
             ->setEndDateGraceDays($source->getEndDateGraceDays())
             ->setGeneral($source->isGeneral())
+            ->setSplitByElement($source->isSplitByElement())
             ->setHidden(true);
+        // «Una entrega por» and the dates of each value (the overrides below include them).
+        $dimensions = $source->getDimensions();
+        $dated      = null;
+        foreach ($dimensions as $index => $dimension) {
+            $dated = $dimension->isDated() ? $index : $dated;
+        }
+        $copy->setDimensions(array_map(static fn (\App\Entity\ActivityDimension $d): ListItem => $d->getList(), $dimensions), $dated);
         foreach ($source->getListItemDeadlines() as $override) {
             $copy->setDeadlineOverride($override->getListItem(), $override->getStartDay(), $override->getStartMonth(), $override->getEndDay(), $override->getEndMonth());
         }
@@ -292,7 +308,8 @@ trait ActivityFormActions
         }
 
         $listItem = $this->formListItemId === '' ? null : $this->listItems->findByIdAndCentre($this->formListItemId, $this->centre);
-        $leaves   = $listItem === null ? [] : $this->listItems->findLeafDescendants($listItem);
+        // The rows with their own dates: the elements', or — with a list that marks the dates — its values'.
+        $leaves   = $this->getFormListItemLeaves();
         $overridesByLeafId = $this->readDeadlineOverrides($leaves);
         if ($overridesByLeafId === false) {
             $this->errors = ['dates' => $this->t('activity.error.invalid_date')];
@@ -382,6 +399,39 @@ trait ActivityFormActions
             // edited (nor silently turned into a brand new activity here instead).
             $activity = $this->findActivity($this->formActivityId) ?? throw $this->createNotFoundException();
         }
+
+        // «Una entrega por»: only with submissions; at most ActivityDimension::MAX lists, none the activity's own list (nor above or
+        // under it); and, once something is delivered or drafted this year, how the submissions are split can no longer change.
+        $dimensions = $folder === null ? [] : $this->getFormDimensionLists();
+        $splitBy    = $listItem === null || $this->formSplitByElement;
+        if (\count($dimensions) > \App\Entity\ActivityDimension::MAX) {
+            $this->errors = ['dimensions' => $this->t('activity.error.dimensions_too_many')];
+
+            return;
+        }
+        foreach ($dimensions as $dimension) {
+            if ($listItem !== null && ($dimension->isUnder($listItem) || $listItem->isUnder($dimension))) {
+                $this->errors = ['dimensions' => str_replace('%list%', $this->getListItemLabel($dimension), $this->t('activity.error.dimension_is_the_list'))];
+
+                return;
+            }
+        }
+        $dated      = $this->getFormDatedDimension();
+        $datedIndex = null;
+        foreach ($dimensions as $index => $dimension) {
+            $datedIndex = $dated !== null && $dimension === $dated ? $index : $datedIndex;
+        }
+        if ($activity !== null) {
+            $was     = array_map(static fn (\App\Entity\ActivityDimension $d): string => $d->getList()->getId()->toRfc4122(), $activity->getDimensions());
+            $now     = array_map(static fn (ListItem $l): string => $l->getId()->toRfc4122(), $dimensions);
+            // Only with dimensions before or after: without them nothing changes from what there always was.
+            $changes = $was !== $now || $activity->isSplitByElement() !== $splitBy || $activity->getListItem() !== $listItem;
+            if ($changes && ($was !== [] || $now !== [] || !$splitBy) && $this->isFormSplitLocked()) {
+                $this->errors = ['dimensions' => $this->t('activity.error.dimensions_locked')];
+
+                return;
+            }
+        }
         // Taken before anything is touched: the history records what this save changes.
         $before = $activity === null ? null : $this->changeRecorder->snapshot($activity);
         // What the delivered documents are named after, to rename them if only the naming changes (not the element).
@@ -401,6 +451,8 @@ trait ActivityFormActions
         $activity->setStart($startDay, $startMonth);
         $activity->setEnd($endDay, $endMonth);
         $activity->setListItem($listItem);
+        $activity->setDimensions($dimensions, $datedIndex);
+        $activity->setSplitByElement($splitBy);
         $activity->clearListItemDeadlines();
         foreach ($overridesByLeafId as $leafId => $range) {
             $leaf = $this->listItems->findByIdAndCentre($leafId, $this->centre);
