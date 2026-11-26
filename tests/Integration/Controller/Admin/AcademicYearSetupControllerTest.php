@@ -96,7 +96,11 @@ final class AcademicYearSetupControllerTest extends ControllerTestCase
         $profile = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
         $stays->addAcademicYear($old);
         $leaves->addAcademicYear($old);
-        $this->persist($centre, $old, $admin, $stays, $leaves, $profile, new SpecificProfileAssignment($profile, null, $leaves));
+        // Who teaches each subject: «Física» by whoever stays, «Química» by whoever leaves.
+        $subjects = (new \App\Entity\ListItem())->setEducationalCentre($centre)->setName('Materia');
+        $physics  = (new \App\Entity\ListItem())->setEducationalCentre($centre)->setName('Física')->setParent($subjects)->addTeacher($stays);
+        $chem     = (new \App\Entity\ListItem())->setEducationalCentre($centre)->setName('Química')->setParent($subjects)->setPosition(1)->addTeacher($leaves);
+        $this->persist($centre, $old, $admin, $stays, $leaves, $profile, new SpecificProfileAssignment($profile, null, $leaves), $subjects, $physics, $chem);
         $centreId = $centre->getId()->toRfc4122();
 
         $this->loginAs($admin, $centre);
@@ -108,7 +112,7 @@ final class AcademicYearSetupControllerTest extends ControllerTestCase
         $this->client->request('POST', "/centro/{$centreId}/cursos/preparar/crear", ['_token' => $this->csrfToken('year_setup_create_' . $centreId), 'name' => '2026-2027']);
         self::assertTrue($this->client->getResponse()->isRedirect());
         $crawler = $this->page($centre);
-        self::assertSame(['create' => 'done', 'activate' => 'todo', 'teachers' => 'blocked', 'non_working_days' => 'blocked', 'assignments' => 'blocked', 'activities' => 'blocked'], $this->states($crawler));
+        self::assertSame(['create' => 'done', 'activate' => 'todo', 'teachers' => 'blocked', 'subjects' => 'blocked', 'non_working_days' => 'blocked', 'assignments' => 'blocked', 'activities' => 'blocked'], $this->states($crawler));
 
         // 2. Activate
         $this->client->submit($crawler->filter('[data-step=activate] form')->form());
@@ -117,7 +121,7 @@ final class AcademicYearSetupControllerTest extends ControllerTestCase
         /** @var EducationalCentreRepository $centres */
         $centres = self::getContainer()->get(EducationalCentreRepository::class);
         self::assertSame('2026-2027', $centres->findByIdWithActiveYear($centreId)?->getActiveAcademicYear()?->getName());
-        self::assertSame(['create' => 'done', 'activate' => 'done', 'teachers' => 'todo', 'non_working_days' => 'todo', 'assignments' => 'blocked', 'activities' => 'blocked'], $this->states($this->page($centre)));
+        self::assertSame(['create' => 'done', 'activate' => 'done', 'teachers' => 'todo', 'subjects' => 'blocked', 'non_working_days' => 'todo', 'assignments' => 'blocked', 'activities' => 'blocked'], $this->states($this->page($centre)));
 
         // 3. Copy the teachers of 2025-2026: the assignment of whoever left is then flagged.
         $this->client->request('POST', "/centro/{$centreId}/cursos/preparar/copiar-docentes", ['_token' => $this->csrfToken('year_setup_copy_teachers_' . $centreId), 'source' => $old->getId()->toRfc4122()]);
@@ -140,8 +144,22 @@ final class AcademicYearSetupControllerTest extends ControllerTestCase
         $this->em->flush();
 
         $crawler = $this->page($centre);
-        self::assertSame(['create' => 'done', 'activate' => 'done', 'teachers' => 'done', 'non_working_days' => 'done', 'assignments' => 'todo', 'activities' => 'done'], $this->states($crawler));
+        self::assertSame(['create' => 'done', 'activate' => 'done', 'teachers' => 'done', 'subjects' => 'todo', 'non_working_days' => 'done', 'assignments' => 'todo', 'activities' => 'done'], $this->states($crawler));
         self::assertStringContainsString('seva, Nombre · Jefatura', $crawler->filter('[data-step=assignments]')->text());
+        // Química is still down as taught by whoever left; Física is fine.
+        self::assertSame('seva, Nombre · Materia › Química', trim($crawler->filter('[data-testid="stale-subject-teachers"] li')->text()));
+        self::assertCount(1, $crawler->filter('[data-testid="stale-subject-teachers"] li'));
+        self::assertCount(1, $crawler->filter('[data-step=subjects] a:contains("Importar materias de Séneca")'));
+
+        // Removing that association (as «Quitar docentes fuera de curso» does) leaves the step done.
+        $this->em->clear();
+        $chemistry = $this->em->getRepository(\App\Entity\ListItem::class)->find($chem->getId());
+        self::assertNotNull($chemistry);
+        foreach ($chemistry->getTeachers() as $teacher) {
+            $chemistry->removeTeacher($teacher);
+        }
+        $this->em->flush();
+        self::assertSame('done', $this->states($this->page($centre))['subjects']);
     }
 
     public function testTheActivityReviewFlagsProfilesNobodyHoldsInTheYear(): void

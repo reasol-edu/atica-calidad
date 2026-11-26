@@ -98,8 +98,35 @@
             {% endblock %}
         {% endembed %}
 
-        {# ── 4. Non-working days ───────────────────────────────────────────── #}
-        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 4, step: steps.non_working_days, title: 'year_setup.days.title'|trans({}, 'admin'),
+        {# ── 4. Subjects and who teaches them ──────────────────────────────── #}
+        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 4, step: steps.subjects, title: 'year_setup.subjects.title'|trans({}, 'admin'),
+            help: staleSubjects is empty ? 'year_setup.subjects.help'|trans({}, 'admin') : 'year_setup.subjects.stale'|trans({'%count%': staleSubjects|length}, 'admin')} %}
+            {% block actions %}
+            {% if not steps.subjects.blocked %}
+                {% if staleSubjects is not empty %}
+                    <ul class="max-h-48 overflow-y-auto rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2 text-xs text-gray-700 space-y-0.5" data-testid="stale-subject-teachers">
+                        {% for row in staleSubjects %}
+                            <li><span class="font-medium">{{ row.teacher.name.lastName }}, {{ row.teacher.name.firstName }}</span> · {{ row.path }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if is_granted('educational_centre.responsibilities', centre) %}
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a href="{{ path('app_responsibilities_lists_import_seneca_subjects', {centreId: centre.id}) }}" class="{{ steps.subjects.done ? link : button }}">
+                            {{ ux_icon('heroicons:arrow-up-tray', {class: 'h-4 w-4'}) }}
+                            {{ 'year_setup.subjects.import'|trans({}, 'admin') }}
+                        </a>
+                        <a href="{{ path('app_responsibilities_lists', {centreId: centre.id}) }}" class="{{ link }}">
+                            {{ 'year_setup.subjects.manage'|trans({}, 'admin') }}
+                        </a>
+                    </div>
+                {% endif %}
+            {% endif %}
+            {% endblock %}
+        {% endembed %}
+
+        {# ── 5. Non-working days ───────────────────────────────────────────── #}
+        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 5, step: steps.non_working_days, title: 'year_setup.days.title'|trans({}, 'admin'),
             help: steps.non_working_days.done ? 'year_setup.days.count'|trans({'%count%': steps.non_working_days.count}, 'admin') : 'year_setup.days.help'|trans({}, 'admin')} %}
             {% block actions %}
             {% if not steps.non_working_days.blocked %}
@@ -111,8 +138,8 @@
             {% endblock %}
         {% endembed %}
 
-        {# ── 5. Profile assignments ────────────────────────────────────────── #}
-        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 5, step: steps.assignments, title: 'year_setup.assignments.title'|trans({}, 'admin'),
+        {# ── 6. Profile assignments ────────────────────────────────────────── #}
+        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 6, step: steps.assignments, title: 'year_setup.assignments.title'|trans({}, 'admin'),
             help: stale is empty ? 'year_setup.assignments.help'|trans({}, 'admin') : 'year_setup.assignments.stale'|trans({'%count%': stale|length}, 'admin')} %}
             {% block actions %}
             {% if not steps.assignments.blocked %}
@@ -136,8 +163,8 @@
             {% endblock %}
         {% endembed %}
 
-        {# ── 6. Activities ─────────────────────────────────────────────────── #}
-        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 6, step: steps.activities, title: 'year_setup.activities.title'|trans({}, 'admin'),
+        {# ── 7. Activities ─────────────────────────────────────────────────── #}
+        {% embed "admin/academic_year/_setup_step.html.twig" with {number: 7, step: steps.activities, title: 'year_setup.activities.title'|trans({}, 'admin'),
             help: steps.activities.count > 0 ? 'year_setup.activities.flagged'|trans({'%count%': steps.activities.count}, 'admin') : 'year_setup.activities.help'|trans({}, 'admin')} %}
             {% block actions %}
             {% if not steps.activities.blocked %}

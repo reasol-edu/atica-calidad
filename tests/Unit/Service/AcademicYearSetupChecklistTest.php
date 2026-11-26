@@ -33,6 +33,7 @@ final class AcademicYearSetupChecklistTest extends TestCase
             $this->createStub(SpecificProfileAssignmentRepository::class),
             $this->createStub(ActivityYearReviewBuilder::class),
             new MockClock('2026-06-20'),
+            $this->createStub(\App\Repository\ListItemRepository::class),
         );
     }
 

@@ -55,6 +55,7 @@ class AcademicYearSetupController extends AbstractController
             'suggestedName' => $this->checklist->suggestedName($centre),
             'copySources'   => $this->checklist->copySources($centre, $target),
             'stale'         => $target === null ? [] : $this->checklist->staleAssignments($centre, $target),
+            'staleSubjects' => $target === null ? [] : $this->checklist->staleSubjectTeachers($centre, $target),
         ]);
     }
 

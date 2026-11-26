@@ -8,7 +8,10 @@ use App\Entity\AcademicYear;
 use App\Entity\EducationalCentre;
 use App\Entity\SpecificProfileAssignment;
 use App\Model\AcademicYearSetupStep;
+use App\Entity\ListItem;
+use App\Entity\Teacher;
 use App\Repository\AcademicYearRepository;
+use App\Repository\ListItemRepository;
 use App\Repository\NonWorkingDayRepository;
 use App\Repository\SpecificProfileAssignmentRepository;
 use Symfony\Component\Clock\ClockInterface;
@@ -28,6 +31,7 @@ final class AcademicYearSetupChecklist
     public const string STEP_CREATE      = 'create';
     public const string STEP_ACTIVATE    = 'activate';
     public const string STEP_TEACHERS    = 'teachers';
+    public const string STEP_SUBJECTS    = 'subjects';
     public const string STEP_DAYS        = 'non_working_days';
     public const string STEP_ASSIGNMENTS = 'assignments';
     public const string STEP_ACTIVITIES  = 'activities';
@@ -38,6 +42,7 @@ final class AcademicYearSetupChecklist
         private readonly SpecificProfileAssignmentRepository $assignments,
         private readonly ActivityYearReviewBuilder $activityReview,
         private readonly ClockInterface $clock,
+        private readonly ListItemRepository $items,
     ) {}
 
     /** The year being prepared: the latest one by name ("2026-2027" sorts after "2025-2026"), if any. */
@@ -90,16 +95,49 @@ final class AcademicYearSetupChecklist
         $teachers = $target?->getTeachers()->count() ?? 0;
         $days     = $target === null ? 0 : \count($this->nonWorkingDays->findByAcademicYearOrdered($target));
         $stale    = $target === null ? 0 : \count($this->staleAssignments($centre, $target));
+        $subjects = $target === null || $teachers === 0 ? 0 : \count($this->staleSubjectTeachers($centre, $target));
         $flagged  = $target === null || $teachers === 0 ? 0 : $this->activityReview->countWithIssues($centre, $target);
 
         return [
             new AcademicYearSetupStep(self::STEP_CREATE, $target !== null),
             new AcademicYearSetupStep(self::STEP_ACTIVATE, $active, blocked: $target === null),
             new AcademicYearSetupStep(self::STEP_TEACHERS, $teachers > 0, $teachers, blocked: !$active),
+            new AcademicYearSetupStep(self::STEP_SUBJECTS, $teachers > 0 && $subjects === 0, $subjects, blocked: !$active || $teachers === 0),
             new AcademicYearSetupStep(self::STEP_DAYS, $days > 0, $days, blocked: !$active),
             new AcademicYearSetupStep(self::STEP_ASSIGNMENTS, $teachers > 0 && $stale === 0, $stale, blocked: !$active || $teachers === 0),
             new AcademicYearSetupStep(self::STEP_ACTIVITIES, $teachers > 0 && $flagged === 0, $flagged, blocked: !$active || $teachers === 0),
         ];
+    }
+
+    /**
+     * The teachers associated with an element of the catalogue (who teaches each subject, group…) who aren't in $year: someone who left
+     * still down as teaching a subject — until the Séneca «Materias y grupos» import, or «Quitar docentes fuera de curso», updates it.
+     * Only the element's own associations (an inherited one is the ancestor's). By element path, for the list on the step.
+     *
+     * @return list<array{item: ListItem, path: string, teacher: Teacher}>
+     */
+    public function staleSubjectTeachers(EducationalCentre $centre, AcademicYear $year): array
+    {
+        $members = [];
+        foreach ($year->getTeachers() as $teacher) {
+            $members[$teacher->getId()->toRfc4122()] = true;
+        }
+
+        $found = [];
+        foreach ($this->items->findAllInTree($centre) as $item) {
+            foreach ($item->getTeachers() as $teacher) {
+                if (!isset($members[$teacher->getId()->toRfc4122()])) {
+                    $names = [];
+                    for ($node = $item; $node !== null; $node = $node->getParent()) {
+                        array_unshift($names, $node->getName());
+                    }
+                    $found[] = ['item' => $item, 'path' => implode(' › ', $names), 'teacher' => $teacher];
+                }
+            }
+        }
+        usort($found, static fn (array $a, array $b): int => strnatcasecmp($a['path'], $b['path']));
+
+        return $found;
     }
 
     /**
