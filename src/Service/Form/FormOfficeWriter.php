@@ -135,6 +135,11 @@ final class FormOfficeWriter
             $rows[] = $fixed ? array_merge(['Total'], $values) : $values;
         }
         $items[] = new DataTable($rows, 1, $fixed, $totals);
+        // A table of deliveries says, under it, where its rows came from and when they were read.
+        $from = FormDefinition::map($b['deliveredFrom'] ?? null);
+        if ($from !== null) {
+            $items[] = new Paragraph([new Run(Run::TEXT, FormDefinition::str($from['text'] ?? ''))]);
+        }
 
         return $items;
     }

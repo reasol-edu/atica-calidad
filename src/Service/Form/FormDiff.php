@@ -83,12 +83,14 @@ final class FormDiff
                     case 'table':
                         $columnKeys = array_values(array_map(static fn ($k): string => FormDefinition::str($k), is_array($block['columnKeys'] ?? null) ? $block['columnKeys'] : []));
                         $columns    = array_values(array_map(static fn ($c): string => FormDefinition::str($c), is_array($block['columns'] ?? null) ? $block['columns'] : []));
+                        // A table of deliveries: its rows are named after each delivery (by their stable key) and its «—» is nothing.
+                        $delivered  = array_key_exists('deliveredFrom', $block);
                         foreach (FormDefinition::listOf($block['rows'] ?? []) as $i => $row) {
                             $rowName = FormDefinition::str($row['label'] ?? '') ?: (string) ($i + 1);
                             foreach (array_values(array_map(static fn ($c): string => FormDefinition::str($c), is_array($row['cells'] ?? null) ? $row['cells'] : [])) as $c => $cell) {
                                 $out[$path . '|' . FormDefinition::str($block['key'] ?? '') . '|' . FormDefinition::str($row['key'] ?? '') . '|' . ($columnKeys[$c] ?? $c)] = [
                                     'label' => $where . ' › ' . FormDefinition::str($block['label'] ?? '') . ' › ' . $rowName . ' › ' . ($columns[$c] ?? ''),
-                                    'value' => $cell,
+                                    'value' => $delivered && $cell === '—' ? '' : $cell,
                                 ];
                             }
                         }

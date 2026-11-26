@@ -121,6 +121,9 @@
                                 {% endif %}
                             </table>
                         </div>
+                        {% if b.deliveredFrom is defined and b.deliveredFrom %}
+                            <p class="text-xs text-gray-500" data-testid="delivered-from">{{ b.deliveredFrom.text }}</p>
+                        {% endif %}
                         {{ _self.comments(ctx, s.path, b.key) }}
                     </div>
                 {% endif %}

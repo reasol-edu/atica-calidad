@@ -215,7 +215,7 @@ final class FormCalculationTest extends TestCase
     /** The twin of «a column that reads a delivery shows always the decimals it asks for» of tests/js/form-scopes.test.mjs. */
     public function testAColumnThatReadsADeliveryShowsAlwaysTheDecimalsItAsksFor(): void
     {
-        $def = $this->definitions->normalize(['sections' => [['title' => 'x', 'blocks' => [['type' => 'table', 'label' => 'Entregas', 'mode' => 'delivered', 'columns' => [
+        $def = $this->definitions->normalize(['sections' => [['title' => 'x', 'blocks' => [['type' => 'table', 'label' => 'Entregas', 'mode' => 'delivered', 'showStatus' => false, 'columns' => [
             ['label' => '%', 'fieldType' => 'number', 'unit' => '%', 'sourceField' => 'pct', 'displayDecimals' => 1, 'total' => 'sum'],
             ['label' => 'Media', 'fieldType' => 'number', 'sourceField' => 'pct', 'displayDecimals' => 1, 'total' => 'avg', 'totalDecimals' => 3],
             ['label' => 'Tal cual', 'fieldType' => 'number', 'unit' => '%', 'sourceField' => 'pct'],

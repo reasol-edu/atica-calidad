@@ -62,6 +62,9 @@
                         {% endif %}
                     </tbody>
                 </table>
+                {% if b.deliveredFrom is defined and b.deliveredFrom %}
+                    <p class="form-delivered-from">{{ b.deliveredFrom.text }}</p>
+                {% endif %}
             {% endif %}
         {% endfor %}
         {% for child in s.children %}{{ _self.section(child, blank, images) }}{% endfor %}
@@ -88,6 +91,7 @@
     .form-table { width: 100%; border-collapse: collapse; margin: 4px 0 8px; }
     .form-table th { background: #f6f1e6; border: 1px solid #e3d8c1; padding: 4px 6px; text-align: left; color: #5e5044; }
     .form-table td { border: 1px solid #e3d8c1; padding: 4px 6px; }
+    .form-delivered-from { margin: -4px 0 8px; font-size: {{ (7.5 * k)|round(2) }}pt; color: #7a6c5d; }
     .form-rowlabel { background: #fbf9f3; }
     .form-blank { border: 1px solid #e3d8c1; height: 60px; margin: 2px 0 8px; }
     .form-blank-row { height: 20px; }

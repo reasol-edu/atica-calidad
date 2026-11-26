@@ -40,13 +40,17 @@ final class FormResolver
     public function resolve(array $definition, array $data, array $context = []): array
     {
         // The attachments are numbered across the whole document («Anexo 1», «Anexo 2»…), in the order it shows them.
-        $this->annex = 0;
+        $this->annex   = 0;
+        $this->sources = FormDefinition::map($data['sources'] ?? null) ?? [];
 
         return $this->sections($this->walker->walk($definition, $data), '', true, 1, FormIndex::of($definition), $context);
     }
 
     /** The number of the last «Anexo» given while resolving a document. */
     private int $annex = 0;
+
+    /** @var array<string, mixed> where the tables of deliveries of the document being resolved came from (`data.sources`) */
+    private array $sources = [];
 
     /**
      * A title or a label with its references replaced, as plain text, for a walker instance.
@@ -209,7 +213,7 @@ final class FormResolver
             $resolved[] = ['key' => FormDefinition::str($row['_key'] ?? ''), 'label' => $labels[FormDefinition::str($row['_key'] ?? '')] ?? '', 'cells' => $cells];
         }
 
-        return [
+        $table = [
             'kind'       => 'table',
             'key'        => FormDefinition::str($block['key'] ?? ''),
             'label'      => $label,
@@ -220,6 +224,78 @@ final class FormResolver
             'rows'      => $resolved,
             'totals'    => $this->totals($columns, $rows, FormDefinition::map(FormDefinition::map($chain[0] ?? null)['fields'] ?? null) ?? []),
         ];
+
+        return ($block['mode'] ?? '') === 'delivered' ? $this->delivered($block, $table) : $table;
+    }
+
+    /**
+     * A table of deliveries the way a document shows it: «—» in a cell read from a delivery that has nothing (no delivery, or that field
+     * empty), the column «Estado» first when the model asks for it, and where the rows came from (`deliveredFrom`: the activity and when
+     * they were read), for a note under the table.
+     *
+     * @param array<string, mixed> $block
+     * @param array<string, mixed> $table
+     *
+     * @return array<string, mixed>
+     */
+    private function delivered(array $block, array $table): array
+    {
+        $key     = FormDefinition::str($block['key'] ?? '');
+        $source  = FormDefinition::map($this->sources[$key] ?? null) ?? [];
+        $columns = FormDefinition::listOf($block['columns'] ?? []);
+        $states  = [];
+        foreach (FormDefinition::listOf($source['rows'] ?? []) as $row) {
+            $states[FormDefinition::str($row['key'] ?? '')] = $row;
+        }
+
+        $strings = static fn (mixed $list): array => array_values(array_map(static fn (mixed $v): string => FormDefinition::str($v), is_array($list) ? $list : []));
+        $status  = ($block['showStatus'] ?? false) === true;
+        $rows    = [];
+        foreach (FormDefinition::listOf($table['rows']) as $row) {
+            $cells = $strings($row['cells'] ?? []);
+            foreach ($columns as $i => $column) {
+                if (FormDefinition::str($column['sourceField'] ?? '') !== '' && ($cells[$i] ?? '') === '') {
+                    $cells[$i] = '—';
+                }
+            }
+            if ($status) {
+                array_unshift($cells, $this->stateText(FormDefinition::map($states[FormDefinition::str($row['key'] ?? '')] ?? null) ?? []));
+            }
+            $rows[] = ['cells' => $cells] + $row;
+        }
+        $table['rows'] = $rows;
+        if ($status) {
+            $table['columnKeys'] = ['_status', ...$strings($table['columnKeys'])];
+            $table['columns']    = [$this->translator->trans('fill.delivered_status', [], 'forms'), ...$strings($table['columns'])];
+            $table['totals']     = is_array($table['totals']) ? ['', ...$strings($table['totals'])] : null;
+        }
+
+        $at                     = \DateTimeImmutable::createFromFormat(\DateTimeInterface::ATOM, FormDefinition::str($source['at'] ?? ''));
+        $title                  = FormDefinition::str($source['title'] ?? '');
+        $when                   = $at === false ? '' : $at->format('d/m/Y H:i');
+        $table['deliveredFrom'] = $title === '' ? null : [
+            'title' => $title,
+            'at'    => $when,
+            'text'  => $this->translator->trans('view.delivered_from', ['%title%' => $title, '%at%' => $when], 'forms'),
+        ];
+
+        return $table;
+    }
+
+    /**
+     * «Entregada · Aprobada», «Borrador», «Sin empezar» for a row of `sources`.
+     *
+     * @param array<string, mixed> $row
+     */
+    private function stateText(array $row): string
+    {
+        $status   = FormDefinition::str($row['status'] ?? 'none');
+        $text     = $this->translator->trans('fill.delivered_status_' . (in_array($status, ['delivered', 'draft'], true) ? $status : 'none'), [], 'forms');
+        $approval = FormDefinition::str($row['approval'] ?? '');
+
+        return $status === 'delivered' && in_array($approval, ['pending', 'approved', 'rejected'], true)
+            ? $text . ' · ' . $this->translator->trans('fill.delivered_approval_' . $approval, [], 'forms')
+            : $text;
     }
 
     /**
