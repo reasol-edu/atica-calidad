@@ -434,13 +434,13 @@ final class FormDeliveredRowsTest extends ControllerTestCase
         return '/actividades/' . $this->report->getId()->toRfc4122() . '/formulario/' . $this->slotKey($this->informatica) . $suffix;
     }
 
-    private function csrf(FormSubmission $submission): string
+    private function csrf(FormSubmission $submission, string $action = 'fill'): string
     {
         $requestStack = self::getContainer()->get('request_stack');
         $request      = $this->client->getRequest();
         $requestStack->push($request);
         try {
-            $token = self::getContainer()->get('security.csrf.token_manager')->getToken('form_fill_' . $submission->getId()->toRfc4122())->getValue();
+            $token = self::getContainer()->get('security.csrf.token_manager')->getToken('form_' . $action . '_' . $submission->getId()->toRfc4122())->getValue();
             $request->getSession()->save();
 
             return $token;
@@ -507,5 +507,43 @@ final class FormDeliveredRowsTest extends ControllerTestCase
         self::assertSame(['delivered', 'delivered'], array_column($answer['rows'][$this->keys['table']], 'status'));
         // The own column is required only of the delivered rows: both are now, and only Bases de datos lacks it.
         self::assertCount(1, array_filter($answer['problems'], static fn (array $p): bool => $p['code'] === 'required'));
+    }
+
+    public function testDeliveringReadsTheDeliveriesAgainAndStopsWhenTheyChanged(): void
+    {
+        $this->review($this->informatica, $this->programacion, 30);
+        $this->loginAs($this->claudia, $this->centre);
+        $this->client->request('GET', $this->url());
+        $this->clear();
+        $submission = $this->submission();
+        $token      = $this->csrf($submission);
+        $prog       = FormDeliveredRows::rowKey($this->slotKey($this->informatica, $this->programacion));
+        $bases      = FormDeliveredRows::rowKey($this->slotKey($this->informatica, $this->bases));
+        $this->post('/guardar', ['version' => 2, 'data' => ['tables' => [$this->keys['table'] => [['_key' => $prog, $this->keys['colOwn'] => 'Bien'], ['_key' => $bases, $this->keys['colOwn'] => 'Pendiente']]]]], $token);
+        self::assertSame(200, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+
+        // Bases de datos is delivered while the head was writing: delivering does not deliver, it brings it in and says so.
+        $this->review($this->informatica, $this->bases, 20);
+        $deliver = $this->csrf($submission, 'deliver');
+        $this->client->request('POST', $this->url('/entregar'), ['_token' => $deliver]);
+        self::assertResponseRedirects($this->url());
+        $this->clear();
+        self::assertNull($this->submission()->getDocument(), 'nothing delivered');
+        $draft = $this->submission()->getDraftData();
+        self::assertSame(20, $draft['tables'][$this->keys['table']][1][$this->keys['colHours']] ?? null, 'the draft has what is new');
+        self::assertSame('Pendiente', $draft['tables'][$this->keys['table']][1][$this->keys['colOwn']] ?? null, 'and keeps what was written');
+
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('[data-testid="delivered-rows-changed"]', 'han cambiado (1 fila)');
+        self::assertStringContainsString($bases, (string) $this->client->getCrawler()->filter('[data-controller~="form-fill"]')->attr('data-form-fill-config-value'), 'the cells to blink');
+        $this->client->request('GET', $this->url());
+        self::assertSelectorNotExists('[data-testid="delivered-rows-changed"]', 'said once');
+
+        // Nothing new now: it is delivered, with what was read.
+        $this->client->request('POST', $this->url('/entregar'), ['_token' => $deliver]);
+        self::assertResponseRedirects();
+        self::assertStringNotContainsString('/formulario/', (string) $this->client->getResponse()->headers->get('Location'));
+        $this->clear();
+        self::assertNotNull($this->submission()->getDocument());
     }
 }

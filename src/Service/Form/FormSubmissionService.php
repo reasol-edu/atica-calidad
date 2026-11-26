@@ -422,6 +422,12 @@ final class FormSubmissionService
         if ($holder !== null && !$holder->getId()->equals($by->getId())) {
             throw new FormException('error.locked');
         }
+        // The tables of deliveries are read once more: what is delivered is what the deliveries say now. When anything differs from
+        // the draft — a value, a state, the rows — nothing is delivered: the draft keeps what is new and the page says so.
+        $changed = $this->refreshDelivered($submission, true)['changed'];
+        if ($changed['count'] > 0) {
+            throw new FormException('error.delivered_rows_changed', [], $changed);
+        }
         if ($this->updates->isUpdateRequired($submission)) {
             throw new FormException('error.update_required');
         }

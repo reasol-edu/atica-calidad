@@ -30,6 +30,11 @@
         </div>
     {% endif %}
 
+    {% if deliveredChanged is defined and deliveredChanged is not null %}
+        {# Delivering read the tables of deliveries again and something had changed: nothing was delivered. #}
+        <p class="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert" data-testid="delivered-rows-changed">{{ 'fill.delivered_rows_changed'|trans({'%count%': deliveredChanged.count}, 'forms') }}</p>
+    {% endif %}
+
     {% if update is defined and update is not null and canEdit %}
         {# A newer revision of the model is in force: update (it keeps what still fits) or keep working on the old one, unless it is mandatory. #}
         <div class="mb-4 rounded-xl border px-4 py-3 text-sm {{ update.required ? 'border-red-200 bg-red-50 text-red-800' : 'border-sky-200 bg-sky-50 text-sky-900' }}" data-testid="update-banner">

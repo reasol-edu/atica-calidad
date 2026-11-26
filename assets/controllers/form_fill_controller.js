@@ -57,8 +57,9 @@ export default class extends Controller {
         this.state = { fields: asMap(data.fields), texts: asMap(data.texts), tables: asMap(data.tables), copies: asMap(data.copies) };
         // Where the rows of the tables of deliveries came from (written by the server only; the saves send it back and it is ignored).
         this.sources = asMap(data.sources);
-        // The cells «Actualizar» changed, to blink them once, and what it said, by table.
-        this.changedCells = new Set();
+        // The cells «Actualizar» changed, to blink them once, and what it said, by table. Delivering also reads them again: when it
+        // found changes, the page comes back with them (config `changed`).
+        this.changedCells = new Set((this.configValue.changed || []).map((c) => c.table + '|' + c.row + '|' + c.column));
         this.deliveredNotes = new Map();
         this.version = this.configValue.version;
         this.readOnly = this.configValue.readOnly === true;
@@ -106,6 +107,8 @@ export default class extends Controller {
         }
 
         this.render();
+        // Blinked once: a later redraw does not blink them again.
+        this.changedCells = new Set();
         if (!this.readOnly) {
             this.registerWorker();
             this.onOnline = () => { if (this.dirty && !this.stale) { this.flush(); } };

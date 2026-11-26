@@ -26,6 +26,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -86,7 +87,7 @@ class FormFillController extends AbstractController
     }
 
     #[Route('/actividades/{activityId}/formulario/{slotKey}', name: 'app_form_fill', methods: ['GET'])]
-    public function fill(string $activityId, string $slotKey, #[CurrentCentre] EducationalCentre $centre): Response
+    public function fill(string $activityId, string $slotKey, Request $request, #[CurrentCentre] EducationalCentre $centre): Response
     {
         [$activity, $slot, $teacher] = $this->context($activityId, $slotKey, $centre);
         $window = $this->windows->for($activity, $teacher, $slot->deadlineItem($activity));
@@ -144,9 +145,17 @@ class FormFillController extends AbstractController
             // Computed once: it normalizes and validates the whole draft.
             $pending = $readOnly ? ['problems' => [], 'warnings' => []] : $this->problemLists($submission);
             $definition = $this->service->definitionOf($submission, $data);
+            // Delivering found the deliveries had changed (deliver()): what changed, to say it and blink it once.
+            $changed = null;
+            $session = $request->getSession();
+            foreach ($session instanceof FlashBagAwareSessionInterface ? $session->getFlashBag()->get('form_delivered_changed') : [] as $details) {
+                $changed = is_array($details) ? ['count' => FormDefinition::int($details['count'] ?? 0), 'cells' => FormDefinition::listOf($details['cells'] ?? [])] : null;
+            }
 
             $view += [
-                'editor' => [
+                'deliveredChanged' => $changed,
+                'editor'           => [
+                    'changed'      => $changed['cells'] ?? [],
                     'definition'   => $definition,
                     'data'         => $data,
                     'refreshUrl'   => $this->generateUrl('app_form_refresh_delivered', $base),
@@ -384,6 +393,12 @@ class FormFillController extends AbstractController
         try {
             $this->service->deliver($submission, $slot, $teacher);
         } catch (FormException $e) {
+            if ($e->getMessage() === 'error.delivered_rows_changed') {
+                // Not an error: the draft already has what is new; the page says how many rows and blinks the cells.
+                $this->addFlash('form_delivered_changed', $e->details);
+
+                return $this->redirectToRoute('app_form_fill', ['activityId' => $activityId, 'slotKey' => $slotKey]);
+            }
             $this->addFlash('error', $this->translator->trans('fill.' . $e->getMessage(), [], 'forms'));
 
             return $this->redirectToRoute('app_form_fill', ['activityId' => $activityId, 'slotKey' => $slotKey]);
