@@ -44,7 +44,7 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 <div class="nota">
   <p>Con los ficheros de Séneca a mano, todo el proceso lleva pocos minutos y se repite una vez
   al año, al abrir cada curso nuevo. <strong>Centro educativo › Cursos académicos › Preparar el
-  nuevo curso</strong> guía los pasos 1, 2, 4 y 5 y marca los que ya están hechos; allí también se
+  nuevo curso</strong> guía todos estos pasos y marca los que ya están hechos; allí también se
   pueden copiar los docentes del curso anterior. Detalle completo en el capítulo «Preparar el curso
   académico» del manual.</p>
 </div>
@@ -122,7 +122,8 @@ footer: 'v{{VERSION}} ({{PUB_DATE}}) · ÁTICA Calidad'
 
 <div class="nota">
   <p>Hazlo <strong>después de añadir el profesorado</strong>: los nombres se buscan entre los docentes
-  del curso activo.</p>
+  del curso activo. En <strong>Preparar el nuevo curso</strong>, el paso «Materias y sus docentes»
+  enlaza con esta importación y lista las materias que siguen a nombre de quien ya no está.</p>
 </div>
 
 ---

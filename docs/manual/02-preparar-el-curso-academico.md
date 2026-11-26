@@ -49,13 +49,22 @@ solos cuando están hechos. Cada paso incluye su propio botón o un enlace a la 
 3. **Docentes del curso.** Con **Copiar docentes** se añaden de un clic todos los docentes de un
    curso anterior; después basta con quitar a quien ya no esté. Si tienes el listado de Séneca,
    también puedes importarlo.
-4. **Días no lectivos.** Sin ellos, los recordatorios por correo se envían también en vacaciones y
+4. **Materias y sus docentes.** Las materias, los grupos y quién imparte cada uno (los
+   [docentes asociados](06-responsabilidades.md#docentes-asociados) a los elementos del catálogo) pasan
+   de un curso a otro. **Importar materias de Séneca** abre la
+   [importación de «Materias y grupos»](06-responsabilidades.md#importar-desde-seneca) del curso nuevo,
+   que los pone al día. El paso lista las materias o grupos que siguen a nombre de un docente que ya no
+   está en el curso (su nombre y la ruta del elemento, como «Materia › 1º ESO › Física y Química»); se resuelve importando o con **Quitar docentes
+   fuera de curso** en el catálogo. Si el centro no asocia docentes a las materias, sale hecho.
+5. **Días no lectivos.** Sin ellos, los recordatorios por correo se envían también en vacaciones y
    festivos.
-5. **Asignación de perfiles.** Los perfiles y sus asignaciones pasan de un curso a otro. Este paso
+6. **Asignación de perfiles.** Los perfiles y sus asignaciones pasan de un curso a otro. Este paso
    lista las asignaciones de docentes que ya no están en el curso (una jefatura o una tutoría que
    sigue a nombre de alguien que se fue), para quitarlas o pasarlas a quien le sustituya.
+7. **Revisar las actividades.** Las actividades se reutilizan cada curso; este paso señala las que
+   piden algo a perfiles sin nadie en el curso o no se lo piden a nadie.
 
-![«Preparar el nuevo curso», con los pasos hechos marcados y los pendientes numerados](img/curso-preparar.png)
+![«Preparar el nuevo curso», con los pasos hechos marcados y los pendientes numerados: en «Materias y sus docentes», la materia «Fase de Formación en Empresa u Organismo Equiparado (FFEOE)» sigue a nombre de un docente que ya no está, con los botones «Importar materias de Séneca» y «Ver el catálogo»; en «Asignación de perfiles», su asignación de «Coordinador/a TIC»](img/curso-preparar.png)
 
 Las actividades y las revisiones de documentos no necesitan preparación: sus plazos se calculan
 solos según el curso.

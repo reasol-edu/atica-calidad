@@ -29,7 +29,7 @@ passwords equal to the username unless noted:
 | `calidad` | `calidad` | Quality manager (Laura Jiménez Soto) |
 | `multicentro` | `multicentro` | Belongs to **two centres**: the only account shown the centre selection screen |
 | `a.ruiz`, `p.sánchez`... | `prueba` | The 30 rank-and-file teachers (username = initial + first surname) |
-| `r.fuentes` | `prueba` | **Former** teacher: exists, is *not* in the 2026-2027 course, and still holds the profile «Coordinador/a TIC» |
+| `r.fuentes` | `prueba` | **Former** teacher: exists, is *not* in the 2026-2027 course, and still holds the profile «Coordinador/a TIC» and teaches FFEOE (so «Preparar el nuevo curso» shows steps 4 «Materias y sus docentes» and 6 «Asignación de perfiles» to do) |
 
 The second centre is «CEIP Miguel Hernández» (`18700123`), empty, only so `multicentro` has to choose.
 
