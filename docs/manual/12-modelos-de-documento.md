@@ -131,6 +131,9 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
   quitan las últimas, y antes de hacerlo la pantalla avisa cuando alguna de esas filas tiene algo
   escrito. Se puede poner un máximo de filas (hasta 100), que prevalece sobre el número.
 
+  Una tabla también puede tener **una fila por entrega de otra actividad**, con datos de cada entrega:
+  ver [Tablas con una fila por entrega de otra actividad](#tablas-de-entregas).
+
 Además:
 
 - **Repetición**: una sección puede repetirse una vez por fila de una tabla, tantas veces como diga un
@@ -241,6 +244,66 @@ Quitar o mover elementos de una lista afecta a los modelos que la usan, y las pa
 ![Confirmación de eliminar «Matemáticas» en la lista «Departamento»: «Aparece en 1 documento ya entregado de los modelos rellenables; seguirá mostrándose con el nombre que tenía al entregarlo, pero ya no se podrá elegir»](img/modelos-borrar-elemento.png)
 
 ![Confirmación de mover «Matemáticas» a la lista «Grupo»: el aviso de que aparece en 1 documento entregado, seguido del de los perfiles, con los botones «Sí, mover» y «Cancelar»](img/modelos-mover-elemento.png)
+
+### Tablas con una fila por entrega de otra actividad {#tablas-de-entregas}
+
+Un informe muchas veces recoge lo que otros ya han entregado: el informe de evaluación de un
+departamento resume la revisión de la programación de cada una de sus materias. En lugar de copiar
+esos datos a mano, una tabla del informe puede tener **una fila por cada entrega de otra actividad**
+y traer de cada una los datos que se elijan. Quien rellena el informe los ve aunque no pueda abrir
+esos documentos, y añade sus propias columnas (una valoración, por ejemplo).
+
+**Paso a paso, con el ejemplo del informe de evaluación:**
+
+1. **El modelo de las entregas tiene que estar en vigor** y sus campos, un **nombre interno** («Nombre
+   del campo»): es como la tabla los encuentra. En el ejemplo, el modelo «Revisión de la programación»
+   tiene el campo «Grado de cumplimiento (%)» con el nombre `cumplimiento`.
+2. **En el modelo del informe**, se añade una tabla y en *Filas* se elige **Una por entrega de otra
+   actividad**. Después:
+   - **Modelo de las entregas**: el que rellenan las entregas que se quieren ver («Revisión de la
+     programación»). Qué actividad concreta se elige luego, en cada actividad.
+   - **Columnas de la entrega**: los campos con nombre de ese modelo que se traen, cada uno como una
+     columna (con su tipo, decimales y total al pie, si se quiere: la media del cumplimiento).
+   - **Qué entregas**: **las de los elementos asociados a quien entrega** (la jefatura de un
+     departamento ve las de sus materias) o **todas las de la actividad**.
+   - **Mostrar el estado de cada entrega**: añade la columna «Estado» («Entregada · Aprobada»,
+     «Borrador», «Sin empezar»).
+   - Las **columnas propias** se añaden como en cualquier tabla y las rellena quien entrega el informe.
+
+   ![Editor de la tabla «Revisión de las materias»: Filas «Una por entrega de otra actividad», Modelo de las entregas «Revisión de la programación», marcada la columna de la entrega «Grado de cumplimiento (%)», «Qué entregas» con «Las de los elementos asociados a quien entrega», «Mostrar el estado de cada entrega» marcado, y las columnas «Cumplimiento (%)» (De la entrega, con la media al pie) y «Valoración del departamento» (texto largo)](img/modelos-tabla-entregas-editor.png)
+
+3. **En la actividad que se rellena con el informe**, el apartado **Datos de otras entregas** pide de
+   qué actividad salen los datos de cada tabla así: «Revisión de la programación». Si esa actividad
+   vence después que la del informe, avisa de que al rellenar puede que todavía falten entregas (con
+   [Una entrega por…](08-actividades.md#una-entrega-por), lo compara evaluación por evaluación).
+
+   ![Apartado «Datos de otras entregas» del formulario de la actividad «Informe de evaluación del departamento»: «Revisión de las materias» (sección «Materias del departamento») sale de la actividad «Revisión de la programación · vence el 10/09»](img/modelos-tabla-entregas-actividad.png)
+
+**Al rellenar**, la tabla se lee al abrir el borrador: una fila por entrega, con su estado, sus datos
+(«—» si aún no los tiene) y un enlace para abrirla si se puede. Los datos de las entregas no se
+escriben aquí: se corrigen en cada entrega. **Actualizar** vuelve a leerlas mientras se rellena, dice
+cuántas filas han cambiado y hace parpadear las celdas nuevas; lo escrito en las columnas propias se
+conserva. Si las dos actividades se reparten por la misma lista (las dos «Una entrega por»
+«Evaluación»), cada informe lee solo las entregas de su evaluación.
+
+**Al entregar**, se vuelven a leer. Si algo ha cambiado desde la última lectura (un valor, un estado,
+una entrega nueva), **no se entrega**: el borrador se queda con lo nuevo y la página avisa «Los datos de
+otras entregas han cambiado (2 filas). Revísalos y vuelve a entregar.», con las celdas cambiadas
+parpadeando. Si no ha cambiado nada, se entrega, y desde ese momento el documento conserva los datos tal
+como se leyeron: lo que pase después con las entregas no lo cambia.
+
+En el **documento entregado** (la página, el PDF, Word y OpenDocument), la tabla lleva la columna
+«Estado» si el modelo la pide, «—» donde una entrega no tenía el dato y, debajo, de dónde salen los
+datos y cuándo se leyeron. El historial de cambios entre revisiones nombra cada fila por su entrega.
+
+![Informe de Matemáticas de la 1ª, entregado: la tabla «Revisión de las materias» con «Matemáticas», «Entregada · Aprobada», un cumplimiento de 80, la valoración del departamento y la media al pie; debajo, «Datos de «Revisión de la programación» a…» y las conclusiones](img/modelos-tabla-entregas-entregado.png)
+
+El editor avisa, entre los problemas por resolver, de una tabla sin modelo de entregas, de un modelo
+que ya no está en vigor, de un campo que ya no existe o ha cambiado de tipo, de dos modelos que se leen
+el uno al otro y de una tabla así dentro de una sección que se repite (no se puede rellenar). Al
+[exportar](#compartir-y-reutilizar-modelos) el modelo, el modelo de las entregas viaja por su título; al
+importarlo se enlaza con el modelo del mismo título del centro y, si no lo hay, se avisa de qué tablas
+hay que completar.
 
 ## Aprobación de los documentos rellenados
 
@@ -468,7 +531,8 @@ En **Modelos de documento**:
 
 - **Exportar → JSON (otro centro)** descarga el modelo; **Importar** (arriba a la derecha; el archivo se suelta en la zona de arrastre) lo crea en otro centro
   (o en el mismo) como un **borrador nuevo**, que hay que revisar y enviar a revisión como cualquier
-  otro. Los pasos de aprobación no viajan, porque nombran perfiles de un centro concreto.
+  otro. Los pasos de aprobación no viajan, porque nombran perfiles de un centro concreto. Una
+  [tabla con una fila por entrega](#tablas-de-entregas) lee el modelo del mismo título del centro.
 - **Duplicar** crea una copia del borrador, «Copia de …», para partir de un modelo parecido.
 - **Importar desde Word u OpenDocument** (`.docx`, `.odt`) hace un **primer borrador**: los títulos
   pasan a ser secciones, los párrafos textos fijos y las tablas tablas de filas libres cuyas columnas

@@ -65,7 +65,7 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
 - Not done yet in this phase: the "another document" source of repetition (the "list of the centre" one is done: «Sections repeated by
   a list», below) and a minimum of manual copies as a delivery problem (it only applies when the document is created).
 
-### Tables of deliveries («Datos de otras entregas», phase 1 done 2026-11-25)
+### Tables of deliveries («Datos de otras entregas», phase 1 done 2026-11-25, phase 2 2026-11-26)
 
 A table with `mode: delivered` has **a row per delivery of another activity** (spec «Especificación: datos de otras entregas» in Claude
 Docs). The model says which model those deliveries fill (`sourceModel`), whose (`sourceScope` own|all) and `showStatus`; a column with
@@ -93,8 +93,18 @@ trash filter makes loading it throw, `Activity::getDeliverySources()` catches it
 - Model problems (`FormModelService::problems(…, $model)`): `delivered_without_model`, `_model_gone` (no revision in force), `_without_columns`,
   `_field_gone`, `_cycle` (models reading each other), `_in_repeat` (not in the spec: a table in a repeating section is never filled).
 - Editor: `GET /modelos/{id}/campos-con-nombre` (QualityVoter::MANAGE) fills the boxes; `deliveryModels` = other models with a revision in force.
-- Phase 2 (pending): re-read at delivery (`delivered_rows_changed`), PDF/office «—», state column and provenance note, `FormDiff` labels,
-  porter by title, demo data, manual. Phase 3: «Hay datos más recientes». Phase 4 only on request.
+- **Delivering re-reads** (phase 2): `deliver()` calls `refreshDelivered($submission, true)` FIRST (before update/validation); any
+  changed row → `FormException('error.delivered_rows_changed', [], $changed)` with the draft already stored. The controller does NOT
+  flash an error: it adds the flash `form_delivered_changed` (the details) and the fill page turns it into the amber banner
+  (`data-testid="delivered-rows-changed"`) and `editor.changed` (the cells blink once on load).
+- **Outputs**: `FormResolver::delivered()` (only `mode: delivered`, reading `data.sources` kept in `$this->sources` during resolve()):
+  «—» in an empty SOURCE cell (own columns stay empty), the column «Estado» prepended when `showStatus` (columnKeys `_status`, totals
+  shifted) and `deliveredFrom {title, at, text}` — `text` already translated because `FormOfficeWriter` has no translator. PDF, the
+  revision page and Office print the note under the table. `FormDiff` treats «—» as empty in those tables (rows keep their `_key` and
+  label). A unit test of a delivered table that only checks decimals must set `showStatus: false` (the normalizer defaults it to true).
+- **Porter**: `export()` writes `sourceModel` as the source model's document NAME; `import()` maps a name back (case-insensitive, first
+  match in the centre) or '' and returns `unsourced` (table labels) → flash `models.import_unsourced`. `duplicate()` keeps the id.
+- Phase 3: «Hay datos más recientes». Phase 4 only on request.
 
 ### Rich text: one Tiptap editor everywhere (migrated from Quill, 2026-11-23)
 

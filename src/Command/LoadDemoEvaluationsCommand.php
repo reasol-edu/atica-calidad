@@ -53,6 +53,9 @@ final class LoadDemoEvaluationsCommand extends Command
     /** @var array{cumplimiento: string, observaciones: string} the keys of the review model's fields */
     private array $reviewKeys = ['cumplimiento' => '', 'observaciones' => ''];
 
+    /** @var array{table: string, valoracion: string, conclusiones: string} the keys of the report's model */
+    private array $reportKeys = ['table' => '', 'valoracion' => '', 'conclusiones' => ''];
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly EducationalCentreRepository $centres,
@@ -121,11 +124,11 @@ final class LoadDemoEvaluationsCommand extends Command
         ];
 
         $review = $this->reviewActivity($centre, $category, $section, $head, $subjects, $evals, $dates, $author);
-        $this->reportActivity($category, $section, $head, $subjects, $evals, $dates, $review, $author);
+        $report = $this->reportActivity($category, $section, $head, $subjects, $evals, $dates, $review, $author);
         $this->minutesActivity($centre, $category, $section, $head);
         $this->em->flush();
 
-        $this->startingState($review);
+        $this->startingState($review, $report);
 
         $io->success('Actividades con una entrega por materia y evaluación creadas: «Revisión de la programación» (1ª entregada en Programación, Bases de Datos y Matemáticas; 2ª en curso, con un borrador de Programación), «Informe de evaluación del departamento» (una por departamento y evaluación) y «Acta trimestral del departamento» (una por departamento y trimestre).');
 
@@ -178,7 +181,7 @@ final class LoadDemoEvaluationsCommand extends Command
      *
      * @param array<string, array{int, int, int, int}> $dates
      */
-    private function reportActivity(ActivityCategory $category, DocumentSection $section, SpecificProfile $head, ListItem $subjects, ListItem $evals, array $dates, Activity $review, \App\Entity\Teacher $author): void
+    private function reportActivity(ActivityCategory $category, DocumentSection $section, SpecificProfile $head, ListItem $subjects, ListItem $evals, array $dates, Activity $review, \App\Entity\Teacher $author): Activity
     {
         $folder = (new Folder())->setDocumentSection($section)->setName('Informes de evaluación de los departamentos')->setGroupByProfile(true);
         $folder->addUploadProfile($head);
@@ -187,14 +190,15 @@ final class LoadDemoEvaluationsCommand extends Command
         $reviewModel = $review->getFormModel() ?? throw new \LogicException('The review has no model.');
         $model       = $this->models->create($reviewModel->getDocument()->getFolder(), 'Informe de evaluación del departamento', 'MD-10');
         $table       = FormDefinition::newKey();
+        $this->reportKeys = ['table' => $table, 'valoracion' => FormDefinition::newKey(), 'conclusiones' => FormDefinition::newKey()];
         $this->models->saveDraft($model, ['version' => 1, 'sections' => [[
             'key' => FormDefinition::newKey(), 'title' => 'Materias del departamento', 'numbered' => true, 'help' => '', 'children' => [],
             'blocks' => [
                 ['key' => $table, 'type' => 'table', 'mode' => 'delivered', 'label' => 'Revisión de las materias', 'sourceModel' => $reviewModel->getId()->toRfc4122(), 'sourceScope' => 'own', 'showStatus' => true, 'columns' => [
                     ['key' => FormDefinition::newKey(), 'label' => 'Cumplimiento (%)', 'fieldType' => 'number', 'sourceField' => 'cumplimiento', 'total' => 'avg'],
-                    ['key' => FormDefinition::newKey(), 'label' => 'Valoración del departamento', 'fieldType' => 'long'],
+                    ['key' => $this->reportKeys['valoracion'], 'label' => 'Valoración del departamento', 'fieldType' => 'long'],
                 ]],
-                ['key' => FormDefinition::newKey(), 'type' => 'field', 'name' => 'conclusiones', 'fieldType' => 'long', 'label' => 'Conclusiones', 'required' => false, 'help' => ''],
+                ['key' => $this->reportKeys['conclusiones'], 'type' => 'field', 'name' => 'conclusiones', 'fieldType' => 'long', 'label' => 'Conclusiones', 'required' => false, 'help' => ''],
             ],
         ]]], $model->getDraftVersion(), $author);
         $this->models->sendToReview($model, $author, null);
@@ -212,6 +216,8 @@ final class LoadDemoEvaluationsCommand extends Command
         $activity->setDeliverySource($table, $review);
         $this->setDates($category->getEducationalCentre(), $activity, $evals, $dates);
         $this->em->persist($activity);
+
+        return $activity;
     }
 
     private function minutesActivity(EducationalCentre $centre, ActivityCategory $category, DocumentSection $section, SpecificProfile $head): void
@@ -267,7 +273,7 @@ final class LoadDemoEvaluationsCommand extends Command
     }
 
     /** The 1ª delivered in three subjects, and a draft of the 2ª of Programación — through the same services the forms use. */
-    private function startingState(Activity $review): void
+    private function startingState(Activity $review, Activity $report): void
     {
         $compliance = $this->reviewKeys['cumplimiento'];
         $notes      = $this->reviewKeys['observaciones'];
@@ -293,6 +299,25 @@ final class LoadDemoEvaluationsCommand extends Command
             if ($deliver) {
                 $this->submissions->deliver($submission, $slot, $teacher);
             }
+        }
+
+        // The head of Matemáticas has delivered the department's report of the 1ª: its table, as read then, with the state of each
+        // review and where they came from.
+        $head = $this->teachers->findByUsername('p.sánchez');
+        foreach ($this->slotBuilder->buildSlots($report) as $slot) {
+            if ($head === null || $slot->listItem?->getName() !== 'Matemáticas' || ($slot->combination[0] ?? null)?->getName() !== '1ª') {
+                continue;
+            }
+            $submission = $this->submissions->open($report, $slot);
+            $read   = $this->submissions->refreshDelivered($submission, true)['data'];
+            $source = FormDefinition::map((FormDefinition::map($read['sources'] ?? null) ?? [])[$this->reportKeys['table']] ?? null) ?? [];
+            $rows   = [];
+            foreach (FormDefinition::listOf($source['rows'] ?? []) as $row) {
+                $delivered = ($row['status'] ?? '') === 'delivered';
+                $rows[]    = ['_key' => FormDefinition::str($row['key'] ?? ''), $this->reportKeys['valoracion'] => $delivered ? 'Ritmo adecuado; se refuerza el álgebra.' : ''];
+            }
+            $this->submissions->save($submission, ['tables' => [$this->reportKeys['table'] => $rows], 'fields' => [$this->reportKeys['conclusiones'] => '<p>La 1ª evaluación se ha desarrollado según lo previsto.</p>']], $submission->getDraftVersion(), $head);
+            $this->submissions->deliver($submission, $slot, $head);
         }
     }
 }

@@ -56,5 +56,13 @@ final class LoadDemoEvaluationsCommandTest extends RepositoryTestCase
             $delivered += $document !== null ? 1 : 0;
         }
         self::assertSame(3, $delivered, 'the 1ª of Programación, Bases de Datos and Matemáticas');
+
+        $reports = [];
+        foreach ($builder->buildSlots($byTitle['Informe de evaluación del departamento']) as $slot) {
+            if ($builder->resolveSlot($byTitle['Informe de evaluación del departamento'], $slot) !== null) {
+                $reports[] = $slot->ownerLabel . ' · ' . $slot->displayName;
+            }
+        }
+        self::assertSame(['Jefe/a de Departamento Matemáticas · 1ª'], $reports, 'the report of Matemáticas of the 1ª, delivered');
     }
 }

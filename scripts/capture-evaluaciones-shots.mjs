@@ -3,8 +3,12 @@
  * other lists) of chapter 8 (docs/manual/img/actividades-una-entrega-por-*.png), against the demo data from `app:load-demo-data` PLUS
  * `app:load-demo-module-programs` PLUS `app:load-demo-evaluations` — see skills/screenshots.md.
  *
- * Requires a server already running at SHOTS_BASE_URL on a DISPOSABLE database seeded with that data (never the real one). Read-only:
- * it logs in as `direccion` (the activity form and the card) and `n.bravo` (her tasks), and never saves anything.
+ * Also the screenshots of the tables with a row per delivery of chapter 12 (docs/manual/img/modelos-tabla-entregas-*.png).
+ *
+ * Requires a server already running at SHOTS_BASE_URL on a DISPOSABLE database seeded with that data (never the real one). It never
+ * presses save or deliver, but opening a fill page starts a draft (and stores what its tables of deliveries read): it logs in as
+ * `direccion` (the activity forms and the card), `n.bravo` (her tasks and draft), `c.núñez` (the report of Informática), `calidad` (the
+ * model editor) and `p.sánchez` (the delivered report of Matemáticas).
  *
  * Env: SHOTS_BASE_URL (default http://127.0.0.1:8744), SHOTS_OUT_DIR (default docs/manual/img).
  */
@@ -114,5 +118,41 @@ await claudia.locator('text=Revisión de las materias').first().waitFor();
 const table = claudia.locator('text=Revisión de las materias').first().locator('xpath=ancestor::section[1] | ancestor::*[contains(@class, "rounded-2xl")][1]').first();
 await clipTo(claudia, table, 'actividades-una-entrega-por-informe', 900);
 await claudia.context().close();
+
+// ── 6. Chapter 12: the editor of the report's model, its table «Revisión de las materias» (one row per delivery) ──
+const calidad = await login('calidad', 'calidad');
+const modelId = uuid(sql("SELECT hex(m.id) FROM form_model m JOIN document d ON d.id = m.document_id WHERE d.name = 'Informe de evaluación del departamento'"));
+await calidad.goto(`${baseUrl}/modelos/${modelId}`);
+await settle(calidad);
+const sourceBox = calidad.locator('text=Modelo de las entregas').first();
+await sourceBox.waitFor();
+const editorBlock = sourceBox.locator('xpath=ancestor::div[starts-with(@id, "blk-")][1]');
+await clipTo(calidad, editorBlock, 'modelos-tabla-entregas-editor', 1100);
+await calidad.context().close();
+
+// ── 7. Chapter 12: which activity the table reads, in the form of the report activity ──
+const manager = await login('direccion', 'direccion');
+await manager.goto(`${baseUrl}/actividades?tab=view`);
+await settle(manager);
+await manager.click('text=Sobre programaciones didácticas');
+const reportCard = manager.locator('[data-testid="activity-card"]', { hasText: 'Informe de evaluación del departamento' }).first();
+await reportCard.waitFor();
+await reportCard.locator('[data-live-action-param="startEditActivity"]').first().evaluate((el) => el.click());
+const sources = manager.locator('text=Datos de otras entregas').first();
+await sources.waitFor();
+await settle(manager);
+await clipTo(manager, sources.locator('xpath=ancestor::*[self::fieldset or self::section or contains(@class, "rounded-xl")][1]'), 'modelos-tabla-entregas-actividad', 500);
+await manager.context().close();
+
+// ── 8. Chapter 12: the report of Matemáticas for the 1ª, delivered: the state of each review, «—» and where they came from ──
+const pablo = await login('p.sánchez', 'prueba');
+const mates = uuid(sql("SELECT hex(li.id) FROM list_item li JOIN list_item p ON p.id = li.parent_id WHERE li.name = 'Matemáticas' AND p.name = 'Departamento'"));
+await pablo.goto(`${baseUrl}/actividades/${reportId}/formulario/${encodeURIComponent(`${head}:${mates}:::${first}`)}`);
+await settle(pablo);
+const note = pablo.locator('[data-testid="delivered-from"]').first();
+await note.waitFor();
+const deliveredTable = note.locator('xpath=ancestor::*[contains(@class, "rounded-2xl") or self::section][1]');
+await clipTo(pablo, deliveredTable, 'modelos-tabla-entregas-entregado', 900);
+await pablo.context().close();
 
 await browser.close();
