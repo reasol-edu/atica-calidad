@@ -205,7 +205,8 @@ aplicó el cambio.
 | Fecha de inicio / Fecha de fin | Solo **día y mes** (sin año): la actividad se repite automáticamente cada curso académico en esas fechas. Cada fecha se sitúa dentro del curso en vigor según el ajuste [Inicio del curso académico](10-administrar-la-plataforma.md#curso-academico) (15 de septiembre por defecto): una actividad de enero a febrero, consultada en octubre, se refiere a la del próximo enero, no a la del enero ya pasado. |
 | Carpeta | Opcional. Si se elige una, la actividad pasa a tener entregas (ver [Entregas y revisión](#entregas-y-revision)); si se deja vacía, se completa a mano. |
 | Elemento del catálogo | Opcional. Un elemento del [Catálogo del centro](06-responsabilidades.md#catalogo-del-centro) (p. ej. «Materia», o una rama concreta): **cada hoja que cuelga de él** —a cualquier profundidad— es una entrega esperada, con nombre igual a su **ruta bajo el elemento elegido** (p. ej. «Ciencias › Física»; ver *Nombre del documento* abajo para dejar solo «Física»). Si la carpeta tiene un único perfil de subida, todas las hojas cuentan; si tiene varios, solo cuentan las hojas [asociadas](06-responsabilidades.md#asociar-un-elemento-con-un-perfil) (directamente o por heredarlo de su elemento padre) a un elemento de la lista de alguno de ellos —o a ese perfil, si no tiene lista—, que además determina a quién le corresponde. Una hoja con varias asociaciones, o asociada a un elemento intermedio de esa lista, se pide **una vez por cada subperfil** que abarca (p. ej. «FP» abarca «Informática» y «Sanidad»: cada jefatura entrega la suya), siempre que la carpeta acepte subidas de ese subperfil. Si dos perfiles de la carpeta usan la misma lista, los dos la deben. |
-| Plazos por elemento | Aparece al elegir un elemento del catálogo: un plazo propio opcional para cada elemento hoja. |
+| Una entrega por | Solo con carpeta. Hasta tres listas del catálogo por las que se multiplican las entregas (una por materia y evaluación, una por departamento y trimestre…), cuál marca los plazos y si se pide una por cada elemento o una por responsable con todos sus elementos — ver [Una entrega por…](#una-entrega-por). |
+| Plazos por elemento | Aparece al elegir un elemento del catálogo: un plazo propio opcional para cada elemento hoja. Con una lista que marca los plazos en «Una entrega por», son las fechas de cada uno de sus elementos (cada evaluación). |
 | Nombre del documento de cada entrega | Aparece al elegir un elemento del catálogo y se elige con dos opciones: **Incluir la ruta completa del elemento del catálogo** (lo que se hacía hasta ahora: «Ciencias › Física») o **Solo el nombre del elemento hoja** («Física»), más corto. Con la segunda, cada hoja necesita un nombre distinto: si dos se llaman igual (por ejemplo, «Física» en «Ciencias» y en «Letras»), el formulario no deja guardar y dice cuáles. Si la actividad ya tiene entregas, al cambiar la opción se **renombran** con el nuevo criterio para que cada una siga en su fila. Si todas las hojas cuelgan directamente del elemento, las dos opciones dan el mismo nombre y el formulario lo indica. |
 | Los docentes asociados a cada elemento también lo entregan | Casilla que aparece solo con un elemento del catálogo y una entrega **por perfil** (no individual), desmarcada por defecto. Marcada, cada docente [asociado al elemento](06-responsabilidades.md#docentes-asociados) ve su entrega en «Mis actividades» y puede rellenarla y entregarla; quien tenga el perfil asociado al elemento (por ejemplo, la jefatura del departamento) también puede. Ver [Docentes asociados a cada elemento](#docentes-asociados-a-cada-elemento). El resumen del formulario añade, con la casilla marcada, cuántos elementos están «sin docente asociado» («· 3 sin docente asociado»). Duplicar la actividad copia la casilla; la edición en bloque no la toca. |
 | Documentos relacionados | Documentos del árbol documental enlazados como lectura de apoyo, independientes de la carpeta de entregas. |
@@ -290,6 +291,59 @@ del departamento de esa materia, y después, si se quiere, jefatura de estudios 
 espera en la cola de revisión de Claudia Núñez y no en la de Pablo Sánchez (Matemáticas), y
 «Sistemas Informáticos», que entregó la propia Claudia, tiene su paso aprobado y espera a jefatura de
 estudios.
+
+### Una entrega por… (evaluación, trimestre…) {#una-entrega-por}
+
+Una misma actividad puede pedir **una entrega por cada combinación** de su elemento con los elementos de
+otras listas del catálogo. Por ejemplo, una **revisión de la programación por materia y evaluación**, un
+**informe por departamento y evaluación** o un **acta por departamento y trimestre**: una sola actividad
+que dura todo el curso, en vez de una por evaluación.
+
+![Sección «Una entrega por» del formulario de la «Revisión de la programación»: la lista «Evaluación», «Según cada elemento» y «Marca los plazos», el aviso de que ya hay entregas y la tabla con las fechas de cada evaluación](img/actividades-una-entrega-por-formulario.png)
+
+Se configura en la sección **Una entrega por** del formulario, con hasta tres listas:
+
+- **Añadir lista…** ofrece las listas del catálogo y sus ramas (por ejemplo, «Evaluación»). Cada una sale
+  con una etiqueta que dice qué valores toma cada elemento:
+    - **Según cada elemento**: la lista está [asociada](06-responsabilidades.md#asociar-un-elemento-con-un-perfil)
+      a la de los elementos, así que cada materia solo usa sus evaluaciones. Una materia de FP pide la
+      1ª, la 2ª, Final 1 y Final 2, y nunca la «Ord.». Una materia sin ninguna evaluación no pide nada, y
+      el resumen del formulario lo avisa («2 elementos sin «Evaluación» no piden entrega»).
+    - **Todos sus elementos**: la lista no está asociada. Cada entrega se repite por todos sus elementos;
+      por ejemplo, el acta de cada departamento en el 1T, el 2T y el 3T.
+- **Marca los plazos** elige la lista cuyos elementos tienen fechas propias. La tabla de plazos pasa a
+  tener una fila por cada uno («Fechas de cada «Evaluación»»): cada evaluación con sus fechas. Con una
+  lista que marca los plazos no hay plazos por elemento.
+- **Cada elemento** viene marcada: una entrega por materia y evaluación. **Desmarcada**, se pide **una
+  sola entrega a cada responsable con todos sus elementos**. Así, el informe de evaluación del
+  departamento es uno por departamento y evaluación, y **solo se pide en las evaluaciones en las que el
+  departamento tiene materias**: un departamento solo de ESO no tiene informe de Final 1.
+- Las flechas ordenan las listas (el orden en que se nombran las entregas: «Programación · Final 1») y
+  la **×** quita una.
+
+El resumen del formulario cuenta las entregas que se pedirán. Una vez que la actividad tiene alguna
+entrega o borrador en el curso, **ya no se puede cambiar cómo se reparten** (las listas, «Cada
+elemento» ni el elemento del catálogo): el formulario lo dice y, para repartirlas de otra forma, se
+duplica la actividad. Las fechas sí se pueden cambiar. **Duplicar** copia las listas y las fechas de
+cada valor.
+
+En la tarjeta de la actividad, la línea «Una entrega por cada elemento de «Materia» y Evaluación.» lo
+recuerda, y las entregas se **agrupan por evaluación**. La evaluación en curso (o, si no hay ninguna,
+la próxima) va abierta y marcada «En curso»; las demás van plegadas, cada una con sus fechas y cuántas
+entregas tiene. La barra de progreso es la de esa evaluación («2ª: 0/13 entregadas»).
+
+![Tarjeta de la «Revisión de la programación»: «Plazos de cada «Evaluación»», «2ª: 0/13 entregadas», la línea «Una entrega por…» y las entregas agrupadas: la 1ª plegada y la 2ª abierta, «En curso»](img/actividades-una-entrega-por-tarjeta.png)
+
+Cada evaluación es **una tarea aparte**, con sus fechas, en el calendario, en «Mis actividades», en
+los recordatorios y en «Tus próximos pasos». Entregar o completar la 1ª no completa la 2ª. En
+«Tus próximos pasos» solo sale lo que se puede hacer ya; las evaluaciones siguientes esperan en «Mis
+actividades», entre las próximas.
+
+![«Tus próximos pasos» de Noelia Bravo: la 2ª de «Programación» y de «Bases de Datos», con su fecha; la 1ª ya entregada no sale](img/actividades-una-entrega-por-tareas.png)
+
+En los datos de demostración, el comando opcional `php bin/console app:load-demo-evaluations` crea las
+tres actividades del ejemplo. La 1ª de la revisión ya está entregada en Programación, Bases de Datos y
+Matemáticas, y la 2ª está en curso, con un borrador de Programación.
 
 ### Subir los ficheros {#subir-varios-ficheros}
 

@@ -192,6 +192,8 @@ Tres formas de buscar según el contexto —global sobre todo el árbol, local d
   aprobar/rechazar); sin carpeta, se completa a mano.
 - Sin carpeta, puede restringirse a uno o varios perfiles/subperfiles: solo es
   pendiente para quien los tenga.
+- **Una entrega por** materia y evaluación (o departamento y trimestre…): una sola
+  actividad para todo el curso, con las fechas de cada evaluación.
 - **Mis actividades** resume lo pendiente y lo vencido; el panel principal y el
   calendario avisan también de los próximos plazos.
 
