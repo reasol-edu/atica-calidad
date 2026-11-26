@@ -1481,7 +1481,12 @@ export default class extends Controller {
             ...(block.label ? [h('p', { class: 'mb-1 text-sm font-medium text-gray-700' }, [this.liveText('span', {}, block.label, inst)])] : []),
             // On a phone: where it comes from on one line, the count and the button on the next.
             h('div', { class: 'mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1' }, [
-                h('p', { class: 'min-w-0 text-xs text-gray-500' }, [this.l.delivered_from.split('%title%')[0], title, this.l.delivered_from.split('%title%')[1] || '', when ? ' · ' + when : '']),
+                h('p', { class: 'min-w-0 text-xs text-gray-500' }, [
+                    this.l.delivered_from.split('%title%')[0], title, this.l.delivered_from.split('%title%')[1] || '',
+                    // The values both activities share: only the deliveries of this document's («· de la 1ª»).
+                    Array.isArray(source.within) && source.within.length > 0 ? ' · ' + this.l.delivered_within.replace('%values%', source.within.join(', ')) : '',
+                    when ? ' · ' + when : '',
+                ]),
                 h('div', { class: 'flex shrink-0 items-center gap-2' }, [counter, button]),
             ]),
             ...(source.assumedAll ? [h('p', { class: 'mb-1 text-xs text-gray-500', text: this.l.delivered_assumed_all })] : []),

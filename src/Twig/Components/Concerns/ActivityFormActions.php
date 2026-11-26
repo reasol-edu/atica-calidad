@@ -61,6 +61,7 @@ trait ActivityFormActions
         $this->formDimensionIds     = [];
         $this->formDatedDimensionId = '';
         $this->formSplitByElement   = true;
+        $this->formPrefillPrevious  = true;
         $this->formDimensionToAdd   = '';
         $this->formPrefillSourceId = '';
         $this->formDeliverySources = [];
@@ -101,6 +102,7 @@ trait ActivityFormActions
         $this->formDimensionIds     = array_map(static fn (\App\Entity\ActivityDimension $d): string => $d->getList()->getId()->toRfc4122(), $activity->getDimensions());
         $this->formDatedDimensionId = $activity->getDatedDimension()?->getList()->getId()->toRfc4122() ?? '';
         $this->formSplitByElement   = $activity->isSplitByElement();
+        $this->formPrefillPrevious  = $activity->isFormPrefillPrevious();
         $this->formDimensionToAdd   = '';
         $this->formOverrideStartDay   = [];
         $this->formOverrideStartMonth = [];
@@ -199,6 +201,7 @@ trait ActivityFormActions
             ->setEndDateGraceDays($source->getEndDateGraceDays())
             ->setGeneral($source->isGeneral())
             ->setSplitByElement($source->isSplitByElement())
+            ->setFormPrefillPrevious($source->isFormPrefillPrevious())
             ->setHidden(true);
         // «Una entrega por» and the dates of each value (the overrides below include them).
         $dimensions = $source->getDimensions();
@@ -453,6 +456,7 @@ trait ActivityFormActions
         $activity->setListItem($listItem);
         $activity->setDimensions($dimensions, $datedIndex);
         $activity->setSplitByElement($splitBy);
+        $activity->setFormPrefillPrevious($this->formPrefillPrevious);
         $activity->clearListItemDeadlines();
         foreach ($overridesByLeafId as $leafId => $range) {
             $leaf = $this->listItems->findByIdAndCentre($leafId, $this->centre);

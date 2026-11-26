@@ -203,6 +203,10 @@ trait ActivityFormOptions
     #[LiveProp(writable: true)]
     public bool $formSplitByElement = true;
 
+    /** With «Una entrega por» and a model: each new draft starts with what was delivered in the previous value (the 2ª from the 1ª). */
+    #[LiveProp(writable: true)]
+    public bool $formPrefillPrevious = true;
+
     /** The «Añadir lista» picker: a node picked there is added to $formDimensionIds and the picker empties. */
     #[LiveProp(writable: true, onUpdated: 'onFormDimensionToAdd')]
     public string $formDimensionToAdd = '';
@@ -722,27 +726,68 @@ trait ActivityFormOptions
      * «Datos de otras entregas» of the form being edited: a row per table of deliveries of the chosen model, with the activities it can
      * read (each with its deadline) and, for the one chosen, whether it ends after this activity.
      *
-     * @return list<array{key: string, label: string, section: string, choices: list<array{id: string, name: string, due: string}>, chosen: string, late: bool}>
+     * When both activities split their submissions by the same list with dates («Evaluación»), the deadlines are compared value by
+     * value, and `lateValues` names the ones that end later there («2ª»).
+     *
+     * @return list<array{key: string, label: string, section: string, choices: list<array{id: string, name: string, due: string}>, chosen: string, late: bool, lateValues: list<string>}>
      */
     public function getFormDeliveredTables(): array
     {
         $model = $this->formModelId === '' ? null : $this->formModels->findByIdAndCentre($this->formModelId, $this->centre);
         $out   = [];
         foreach ($this->deliverySources->tablesOf($model) as $table) {
-            $chosen  = $this->formDeliverySources[$table['key']] ?? '';
-            $choices = [];
-            $late    = false;
+            $chosen     = $this->formDeliverySources[$table['key']] ?? '';
+            $choices    = [];
+            $late       = false;
+            $lateValues = [];
             foreach ($this->deliverySources->choicesFor($this->centre, $table['sourceModel'], $this->formActivityId) as $activity) {
                 $id        = $activity->getId()->toRfc4122();
                 $choices[] = ['id' => $id, 'name' => $activity->getTitle(), 'due' => sprintf('%02d/%02d', $activity->getEndDay(), $activity->getEndMonth())];
-                if ($id === $chosen && $this->formEndDay !== '' && $this->formEndMonth !== '') {
-                    $late = ActivityDeliverySources::endsAfter($activity->getEndDay(), $activity->getEndMonth(), (int) $this->formEndDay, (int) $this->formEndMonth);
+                if ($id !== $chosen) {
+                    continue;
+                }
+                $lateValues = $this->lateValuesOf($activity);
+                if ($lateValues !== null) {
+                    $late = $lateValues !== [];
+                } elseif ($this->formEndDay !== '' && $this->formEndMonth !== '') {
+                    $late       = ActivityDeliverySources::endsAfter($activity->getEndDay(), $activity->getEndMonth(), (int) $this->formEndDay, (int) $this->formEndMonth);
+                    $lateValues = [];
                 }
             }
-            $out[] = $table + ['choices' => $choices, 'chosen' => $chosen, 'late' => $late];
+            $out[] = $table + ['choices' => $choices, 'chosen' => $chosen, 'late' => $late, 'lateValues' => $lateValues ?? []];
         }
 
         return $out;
+    }
+
+    /**
+     * The values of the list with dates both activities share whose range ends later in $source than in this form (its own row of
+     * dates, else its general end). Null when they do not share one: then the general deadlines are compared.
+     *
+     * @return list<string>|null
+     */
+    private function lateValuesOf(Activity $source): ?array
+    {
+        $mine   = $this->getFormDatedDimension();
+        $theirs = $source->getDatedDimension()?->getList();
+        if ($mine === null || $theirs === null || $mine->getRoot()->identityKey() !== $theirs->getRoot()->identityKey()) {
+            return null;
+        }
+        $late = [];
+        foreach ($this->listItems->findLeafDescendants($mine) as $value) {
+            $id       = $value->getId()->toRfc4122();
+            $override = $source->getDeadlineOverride($value);
+            $endDay   = ($this->formOverrideEndDay[$id] ?? '') !== '' ? (int) $this->formOverrideEndDay[$id] : (int) $this->formEndDay;
+            $endMonth = ($this->formOverrideEndMonth[$id] ?? '') !== '' ? (int) $this->formOverrideEndMonth[$id] : (int) $this->formEndMonth;
+            if ($endDay === 0 || $endMonth === 0) {
+                continue;
+            }
+            if (ActivityDeliverySources::endsAfter($override?->getEndDay() ?? $source->getEndDay(), $override?->getEndMonth() ?? $source->getEndMonth(), $endDay, $endMonth)) {
+                $late[] = $value->getName();
+            }
+        }
+
+        return $late;
     }
 
     /**

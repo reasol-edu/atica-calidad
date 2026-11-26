@@ -210,6 +210,13 @@ class Activity implements Trashable
     #[ORM\Column(options: ['default' => true])]
     private bool $splitByElement = true;
 
+    /**
+     * With dimensions and a model: a new draft starts with what was delivered in the previous value of the same submission (the 2ª
+     * from the 1ª; of an element's own values, in the list's order: Final 1 from the 2ª), before anything else (FormPrefiller).
+     */
+    #[ORM\Column(options: ['default' => true])]
+    private bool $formPrefillPrevious = true;
+
     #[ORM\Column]
     private int $position = 0;
 
@@ -816,6 +823,18 @@ class Activity implements Trashable
                 $this->dimensions->removeElement($dimension);
             }
         }
+
+        return $this;
+    }
+
+    public function isFormPrefillPrevious(): bool
+    {
+        return $this->formPrefillPrevious;
+    }
+
+    public function setFormPrefillPrevious(bool $formPrefillPrevious): static
+    {
+        $this->formPrefillPrevious = $formPrefillPrevious;
 
         return $this;
     }

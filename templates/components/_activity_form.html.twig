@@ -245,6 +245,16 @@
                         </select>
                     </div></div>
                 {% endif %}
+                {% if form_dimensions is not empty and formModelId != '' %}
+                    <label class="mt-2 flex items-start gap-2 text-sm text-gray-700" data-testid="prefill-previous">
+                        <input type="checkbox" data-model="formPrefillPrevious" {{ formPrefillPrevious ? 'checked' : '' }}
+                               class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-forest-600 focus:ring-forest-500/30">
+                        <span>
+                            <span class="font-medium">{{ 'activity.field.prefill_previous'|trans({}, 'admin') }}</span>
+                            <span class="mt-0.5 block text-xs text-gray-500">{{ 'activity.field.prefill_previous_help'|trans({}, 'admin') }}</span>
+                        </span>
+                    </label>
+                {% endif %}
                 {% for missing in this.formElementsWithoutValues %}
                     <p class="mt-1 text-xs text-amber-700" data-testid="dimension-without-values">{{ 'activity.field.dimensions_without_values'|trans({'%count%': missing.count, '%list%': missing.list}, 'admin') }}</p>
                 {% endfor %}
@@ -501,7 +511,10 @@
                                     </select>
                                 {% endif %}
                                 {% if error %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endif %}
-                                {% if t.late %}
+                                {% if t.late and t.lateValues is not empty %}
+                                    {# Both split by the same list with dates: compared evaluation by evaluation. #}
+                                    <p class="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900" data-testid="delivery-source-late-values">{{ 'activity.field.delivery_source_late_values'|trans({'%values%': t.lateValues|join('», «')}, 'admin') }}</p>
+                                {% elseif t.late %}
                                     <p class="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900">{{ 'activity.field.delivery_source_late'|trans({}, 'admin') }}</p>
                                 {% endif %}
                             </div>

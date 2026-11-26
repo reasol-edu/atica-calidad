@@ -81,8 +81,22 @@ final class FormDeliveredRows
 
             $id      = $source->getId()->toRfc4122();
             $cache[$id] ??= $this->load($source, $cycleYear);
-            ['slots' => $slots, 'assumedAll' => $assumedAll] = $this->inScope($cache[$id]['slots'], $source, FormDefinition::str($block['sourceScope'] ?? 'own'), $slotKey);
+            // The lists both activities split their submissions by (the same root): only the deliveries with this document's value
+            // of each — the report of the 1ª reads the reviews of the 1ª.
+            ['match' => $match, 'positions' => $positions] = self::sharedValues($activity, $source, $slotKey);
+            $candidates = array_values(array_filter($cache[$id]['slots'], static function (ActivitySubmissionSlot $slot) use ($positions): bool {
+                foreach ($positions as $position => $valueId) {
+                    if (($slot->combination[$position] ?? null)?->getId()->toRfc4122() !== $valueId) {
+                        return false;
+                    }
+                }
 
+                return true;
+            }));
+            ['slots' => $slots, 'assumedAll' => $assumedAll] = $this->inScope($candidates, $source, FormDefinition::str($block['sourceScope'] ?? 'own'), $slotKey, $positions === []);
+
+            // A name that two rows of this table share says whose each one is («FP › 2ª — Jefe/a de Departamento Sanidad»).
+            $names  = array_count_values(array_map(static fn (ActivitySubmissionSlot $s): string => self::rowLabel($s, array_keys($positions), false), $slots));
             $rows   = [];
             $values = [];
             foreach ($slots as $slot) {
@@ -93,7 +107,7 @@ final class FormDeliveredRows
                 $rows[]    = [
                     'key'      => $rowKey,
                     'slot'     => $slotKeyOf,
-                    'label'    => $slot->displayName,
+                    'label'    => self::rowLabel($slot, array_keys($positions), ($names[self::rowLabel($slot, array_keys($positions), false)] ?? 0) > 1),
                     'status'   => $filled !== null ? 'delivered' : (($cache[$id]['drafts'][$slotKeyOf] ?? false) ? 'draft' : 'none'),
                     'approval' => $revision === null ? null : ($revision->isRejected() ? 'rejected' : ($revision->isPendingReview() ? 'pending' : 'approved')),
                     'revision' => $revision?->getId()->toRfc4122(),
@@ -110,7 +124,8 @@ final class FormDeliveredRows
             }
 
             $readings[$key] = [
-                'sources' => ['activity' => $id, 'title' => $source->getTitle(), 'at' => $now, 'assumedAll' => $assumedAll, 'teachersAsked' => $source->isTeachersDeliver(), 'rows' => $rows],
+                'sources' => ['activity' => $id, 'title' => $source->getTitle(), 'at' => $now, 'assumedAll' => $assumedAll, 'teachersAsked' => $source->isTeachersDeliver(), 'rows' => $rows]
+                    + ($match === [] ? [] : ['match' => $match, 'within' => $this->valueNames($activity, $match)]),
                 'values'  => $values,
                 'columns' => array_keys($columns),
             ];
@@ -137,15 +152,79 @@ final class FormDeliveredRows
     }
 
     /**
+     * The values this document has in the lists both activities split their submissions by — a dimension of each with the same root
+     * («Evaluación» in the review and in the report) —: by that list's root id, the value's id (`match`, what the table's header says), and
+     * by the position of that list among the SOURCE's dimensions, the value's id its slots must have (`positions`).
+     *
+     * @return array{match: array<string, string>, positions: array<int, string>}
+     */
+    public static function sharedValues(Activity $activity, Activity $source, string $slotKey): array
+    {
+        $ids       = ActivitySubmissionSlot::combinationOf($slotKey);
+        $match     = [];
+        $positions = [];
+        foreach ($activity->getDimensions() as $index => $dimension) {
+            $root = $dimension->getList()->getRoot();
+            foreach ($source->getDimensions() as $position => $theirs) {
+                if (isset($ids[$index]) && $theirs->getList()->getRoot()->identityKey() === $root->identityKey()) {
+                    $match[$root->getId()->toRfc4122()] = $ids[$index];
+                    $positions[$position]               = $ids[$index];
+                }
+            }
+        }
+
+        return ['match' => $match, 'positions' => $positions];
+    }
+
+    /**
+     * The names of the values in $match («1ª»), for the header of the table.
+     *
+     * @param array<string, string> $match
+     *
+     * @return list<string>
+     */
+    private function valueNames(Activity $activity, array $match): array
+    {
+        $index = $this->items->indexByCentre($activity->getCategory()->getEducationalCentre());
+
+        return array_values(array_filter(array_map(static fn (string $id): ?string => ($index[$id] ?? null)?->getName(), array_values($match))));
+    }
+
+    /**
+     * A row's name: the delivery's own name without the values of the lists both activities share (the header already says «solo las
+     * de «1ª»»), and, with $withOwner (two rows of the table would read the same), who delivers it («Tecnología — Jefe/a de
+     * Departamento Informática»). A grouped delivery, whose name was only values, is named after who delivers it.
+     *
+     * @param list<int> $sharedPositions positions among the source's dimensions
+     */
+    public static function rowLabel(ActivitySubmissionSlot $slot, array $sharedPositions, bool $withOwner = true): string
+    {
+        $count  = \count($slot->combination);
+        $parts  = $count === 0 ? [$slot->displayName] : explode(' · ', $slot->displayName);
+        $offset = \count($parts) - $count;
+        foreach ($sharedPositions as $position) {
+            unset($parts[$offset + $position]);
+        }
+        $label = implode(' · ', $parts);
+        $owner = $slot->ownerLabel ?? '';
+        if ($label === '') {
+            return $owner;
+        }
+
+        return $withOwner && $owner !== '' ? $label . ' — ' . $owner : $label;
+    }
+
+    /**
      * The slots a table shows: all of them, or (scope `own`) those whose element belongs to who delivers the document — the same rule as
      * the rows of a table of a list (FormListOptions::belongsToSlot()). Slots with no element always stay. When no slot with an element
-     * is left, all of them, and the table says so (`assumedAll`).
+     * is left, all of them, and the table says so (`assumedAll`) — unless $fallBack is false (the activities share a list: an empty
+     * table is the truth, «nothing of this department in this evaluation»).
      *
      * @param list<ActivitySubmissionSlot> $slots
      *
      * @return array{slots: list<ActivitySubmissionSlot>, assumedAll: bool}
      */
-    private function inScope(array $slots, Activity $source, string $scope, string $slotKey): array
+    private function inScope(array $slots, Activity $source, string $scope, string $slotKey, bool $fallBack = true): array
     {
         $who = ActivitySubmissionSlot::deliveredBy($slotKey);
         if ($scope !== 'own' || $who === null) {
@@ -163,6 +242,10 @@ final class FormDeliveredRows
                 $kept[] = $slot;
                 $any    = true;
             }
+        }
+
+        if (!$any && !$fallBack) {
+            return ['slots' => array_values(array_filter($kept, static fn (ActivitySubmissionSlot $s): bool => ($s->nameListItem ?? $s->listItem) === null)), 'assumedAll' => false];
         }
 
         return $any ? ['slots' => $kept, 'assumedAll' => false] : ['slots' => $slots, 'assumedAll' => true];
@@ -564,7 +647,7 @@ final class FormDeliveredRows
                 $document = FormDefinition::str($row['document'] ?? '');
                 $rows[]   = [
                     'key'      => $rowKey,
-                    'slot'     => mb_substr(FormDefinition::str($row['slot'] ?? ''), 0, 255),
+                    'slot'     => mb_substr(FormDefinition::str($row['slot'] ?? ''), 0, 400),
                     'label'    => mb_substr(FormDefinition::str($row['label'] ?? ''), 0, 500),
                     'status'   => in_array($status, self::STATUSES, true) ? $status : 'none',
                     'approval' => in_array($approval, self::APPROVALS, true) ? $approval : null,
@@ -582,6 +665,17 @@ final class FormDeliveredRows
                 'teachersAsked' => ($source['teachersAsked'] ?? false) === true,
                 'rows'       => $rows,
             ];
+            // The values of the lists both activities share (only when there are): by list root id, the value's id, and their names.
+            $match = [];
+            foreach (FormDefinition::map($source['match'] ?? null) ?? [] as $root => $value) {
+                if (FormListOptions::isItemId($root) && is_string($value) && FormListOptions::isItemId($value)) {
+                    $match[$root] = $value;
+                }
+            }
+            if ($match !== []) {
+                $out[$key]['match']  = $match;
+                $out[$key]['within'] = array_slice(array_map(static fn (string $n): string => mb_substr($n, 0, 255), array_values(array_filter(is_array($source['within'] ?? null) ? $source['within'] : [], 'is_string'))), 0, 3);
+            }
         }
 
         return $out;

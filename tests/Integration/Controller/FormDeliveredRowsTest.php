@@ -166,6 +166,115 @@ final class FormDeliveredRowsTest extends ControllerTestCase
         $this->clear();
     }
 
+    /**
+     * Both activities split by «Evaluación» (associated with «Materia»): the reviews one per subject and evaluation, the report one per
+     * department and evaluation (the subjects gathered). Programación has the 1ª, the 2ª and Final 1; Bases de datos and Álgebra, the 1ª
+     * and the 2ª.
+     *
+     * @return array<string, ListItem> the evaluations by name
+     */
+    private function byEvaluation(): array
+    {
+        $centre = $this->em->getRepository(EducationalCentre::class)->find($this->centre->getId());
+        self::assertNotNull($centre);
+        $evals  = (new ListItem())->setEducationalCentre($centre)->setName('Evaluación');
+        $values = [];
+        foreach (['1ª', '2ª', 'Final 1'] as $i => $name) {
+            $values[$name] = (new ListItem())->setEducationalCentre($centre)->setName($name)->setParent($evals)->setPosition($i);
+        }
+        $this->persist($evals, ...array_values($values));
+
+        $find = fn (ListItem $i): ListItem => $this->em->getRepository(ListItem::class)->find($i->getId()) ?? throw new \LogicException();
+        $find($this->programacion)->getRoot()->addLinkedList($evals);
+        foreach (['1ª', '2ª', 'Final 1'] as $name) {
+            $find($this->programacion)->addLink($values[$name]);
+        }
+        foreach ([$this->bases, $this->algebra] as $subject) {
+            $find($subject)->addLink($values['1ª'])->addLink($values['2ª']);
+        }
+        $this->fresh($this->reviews)->setDimensions([$evals], 0);
+        $this->fresh($this->report)->setListItem($find($this->programacion)->getRoot())->setSplitByElement(false)->setDimensions([$evals], 0);
+        $this->flush();
+        $this->clear();
+
+        return $values;
+    }
+
+    /** Fills (and delivers, unless $draftOnly) the review of $subject in $evaluation; returns the submission. */
+    private function reviewIn(ListItem $subprofile, ListItem $subject, ListItem $evaluation, int $hours, bool $draftOnly = false): FormSubmission
+    {
+        $service = self::getContainer()->get(FormSubmissionService::class);
+        $teacher = $this->em->getRepository(Teacher::class)->find($subprofile === $this->informatica ? $this->claudia->getId() : $this->pablo->getId());
+        $slot    = $service->slotFor($this->fresh($this->reviews), $this->slotKey($subprofile, $subject) . ':' . $evaluation->getId()->toRfc4122());
+        self::assertNotNull($slot, 'the review of ' . $subject->getName() . ' in the ' . $evaluation->getName());
+        self::assertNotNull($teacher);
+        $submission = $service->open($this->fresh($this->reviews), $slot);
+        if ($hours > 0) {
+            $service->save($submission, ['fields' => [$this->keys['hours'] => $hours, $this->keys['done'] => $hours - 2]], $submission->getDraftVersion(), $teacher);
+        }
+        if (!$draftOnly) {
+            $service->deliver($submission, $slot, $teacher);
+        }
+        $this->clear();
+
+        return $submission;
+    }
+
+    public function testTheReportOfAnEvaluationReadsOnlyTheReviewsOfThatEvaluationOfItsDepartment(): void
+    {
+        $values = $this->byEvaluation();
+        $this->reviewIn($this->informatica, $this->programacion, $values['1ª'], 30);
+        $this->reviewIn($this->informatica, $this->programacion, $values['2ª'], 25);
+        $this->reviewIn($this->matematicas, $this->algebra, $values['1ª'], 40);
+
+        $report = $this->fresh($this->report);
+        $definition = self::getContainer()->get(\App\Repository\FormModelRevisionRepository::class)->findInForce($report->getFormModel())->getDefinition();
+        $cycle      = self::getContainer()->get(ActivityDeadlineChecker::class)->currentCycleKey($report);
+        $read       = fn (ListItem $subprofile, ListItem $evaluation): array => self::getContainer()->get(FormDeliveredRows::class)
+            ->read($definition, $report, $cycle, $this->slotKey($subprofile) . ':' . $evaluation->getId()->toRfc4122())[$this->keys['table']];
+
+        $first = $read($this->informatica, $values['1ª']);
+        self::assertSame(['Programación', 'Bases de datos'], array_column($first['sources']['rows'], 'label'), 'its subjects in the 1ª, named without «· 1ª»');
+        self::assertSame(['delivered', 'none'], array_column($first['sources']['rows'], 'status'));
+        self::assertSame(['1ª'], $first['sources']['within']);
+        self::assertSame([$values['1ª']->getId()->toRfc4122()], array_values($first['sources']['match']));
+        self::assertSame(30, array_values($first['values'])[0][$this->keys['colHours']] ?? null, 'the 1ª\'s figures, not the 2ª\'s');
+
+        self::assertSame(['Programación'], array_column($read($this->informatica, $values['Final 1'])['sources']['rows'], 'label'), 'only Programación has Final 1');
+
+        $none = $read($this->matematicas, $values['Final 1']);
+        self::assertSame([], $none['sources']['rows'], 'no subject of Matemáticas in Final 1: nothing, not every delivery');
+        self::assertFalse($none['sources']['assumedAll']);
+        $kept = FormDeliveredRows::clean([$this->keys['table'] => $first['sources']]);
+        self::assertSame(['1ª'], $kept[$this->keys['table']]['within'] ?? null, 'saving keeps what the header says');
+    }
+
+    public function testTheDraftOfAnEvaluationStartsFromWhatWasDeliveredInTheSubjectsPreviousOne(): void
+    {
+        $values = $this->byEvaluation();
+        $this->reviewIn($this->informatica, $this->programacion, $values['1ª'], 30);
+
+        $second = $this->reviewIn($this->informatica, $this->programacion, $values['2ª'], 0, true);
+        $found  = $this->em->getRepository(FormSubmission::class)->find($second->getId());
+        self::assertNotNull($found);
+        self::assertSame('previous_value', $found->getPrefilledFrom()['kind'] ?? null);
+        self::assertSame('1ª', $found->getPrefilledFrom()['label'] ?? null);
+        self::assertSame(30, $found->getDraftData()['fields'][$this->keys['hours']] ?? null);
+
+        // Final 1 starts from the last one delivered before it: the 1ª (the 2ª is only a draft).
+        $final = $this->reviewIn($this->informatica, $this->programacion, $values['Final 1'], 0, true);
+        $found = $this->em->getRepository(FormSubmission::class)->find($final->getId());
+        self::assertSame('1ª', $found?->getPrefilledFrom()['label'] ?? null);
+
+        // Without the box, as before: nothing to copy from (no earlier year, no activity to copy from).
+        $reviews = $this->fresh($this->reviews)->setFormPrefillPrevious(false);
+        $this->flush();
+        $this->clear();
+        $bases = $this->reviewIn($this->informatica, $this->bases, $values['2ª'], 0, true);
+        self::assertNull($this->em->getRepository(FormSubmission::class)->find($bases->getId())?->getPrefilledFrom());
+        unset($reviews);
+    }
+
     /** @return array<string, array{sources: array<string, mixed>, values: array<string, array<string, mixed>>, columns: list<string>}> */
     private function read(ListItem $subprofile): array
     {
