@@ -319,5 +319,17 @@ final class LoadDemoEvaluationsCommand extends Command
             $this->submissions->save($submission, ['tables' => [$this->reportKeys['table'] => $rows], 'fields' => [$this->reportKeys['conclusiones'] => '<p>La 1ª evaluación se ha desarrollado según lo previsto.</p>']], $submission->getDraftVersion(), $head);
             $this->submissions->deliver($submission, $slot, $head);
         }
+
+        // Afterwards the review of Matemáticas of the 1ª is corrected (85 %): the delivered report has newer data to read.
+        $teacher = $this->teachers->findByUsername('p.sánchez');
+        foreach ($this->slotBuilder->buildSlots($review) as $slot) {
+            if ($teacher === null || $slot->nameListItem?->getName() !== 'Matemáticas' || ($slot->combination[0] ?? null)?->getName() !== '1ª') {
+                continue;
+            }
+            $submission = $this->submissions->open($review, $slot);
+            $this->submissions->startCorrection($submission);
+            $this->submissions->save($submission, ['fields' => [$compliance => 85, $notes => 'Se refuerza el bloque de álgebra; recuperada la unidad pendiente.']], $submission->getDraftVersion(), $teacher);
+            $this->submissions->deliver($submission, $slot, $teacher);
+        }
     }
 }

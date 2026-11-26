@@ -65,7 +65,7 @@ the PDF (`templates/pdf/form_document.html.twig`) draw — keep the two template
 - Not done yet in this phase: the "another document" source of repetition (the "list of the centre" one is done: «Sections repeated by
   a list», below) and a minimum of manual copies as a delivery problem (it only applies when the document is created).
 
-### Tables of deliveries («Datos de otras entregas», phase 1 done 2026-11-25, phase 2 2026-11-26)
+### Tables of deliveries («Datos de otras entregas», phase 1 done 2026-11-25, phases 2 and 3 2026-11-26)
 
 A table with `mode: delivered` has **a row per delivery of another activity** (spec «Especificación: datos de otras entregas» in Claude
 Docs). The model says which model those deliveries fill (`sourceModel`), whose (`sourceScope` own|all) and `showStatus`; a column with
@@ -104,7 +104,13 @@ trash filter makes loading it throw, `Activity::getDeliverySources()` catches it
   label). A unit test of a delivered table that only checks decimals must set `showStatus: false` (the normalizer defaults it to true).
 - **Porter**: `export()` writes `sourceModel` as the source model's document NAME; `import()` maps a name back (case-insensitive, first
   match in the centre) or '' and returns `unsourced` (table labels) → flash `models.import_unsourced`. `duplicate()` keeps the id.
-- Phase 3: «Hay datos más recientes». Phase 4 only on request.
+- **Outdated** (phase 3): `FormDeliveredRows::outdated($filled, &$cache)` re-reads with `read()` and counts current rows `delivered` whose
+  `revision` differs from the one stored in `data.sources` (or that were not there): drafts, approvals and teachers never count.
+  `read()` takes the same by-ref `$cache` (keyed `sourceId|cycle`) so a list loads each source activity once. Shown on the delivered
+  fill page (`data-testid="delivered-outdated"`, button = POST `app_form_correct`, the draft then reads live) and as the badge
+  `submission-outdated` from `ActivitySubmissions::isFormOutdated()` (deliveries per activity+cycle and the source cache kept for the
+  render). No notification, by design.
+- Phase 4 only on request.
 
 ### Rich text: one Tiptap editor everywhere (migrated from Quill, 2026-11-23)
 

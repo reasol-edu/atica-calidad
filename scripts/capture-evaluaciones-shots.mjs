@@ -153,6 +153,27 @@ const note = pablo.locator('[data-testid="delivered-from"]').first();
 await note.waitFor();
 const deliveredTable = note.locator('xpath=ancestor::*[contains(@class, "rounded-2xl") or self::section][1]');
 await clipTo(pablo, deliveredTable, 'modelos-tabla-entregas-entregado', 900);
+
+// ── 9. Chapter 12: the review of Matemáticas was corrected after the report: «Hay datos más recientes…» and its badge ──
+const outdated = pablo.locator('[data-testid="delivered-outdated"]').first();
+await outdated.waitFor();
+await hideToolbar(pablo);
+const band = await outdated.boundingBox();
+if (!band) throw new Error('No se encuentra el aviso «Hay datos más recientes».');
+await pablo.screenshot({ path: `${outDir}/modelos-tabla-entregas-desactualizado.png`, clip: { x: band.x - 16, y: Math.max(0, band.y - 110), width: band.width + 32, height: band.height + 180 } });
+await pablo.goto(`${baseUrl}/actividades?tab=view`);
+await settle(pablo);
+await pablo.click('text=Sobre programaciones didácticas');
+const pabloCard = pablo.locator('[data-testid="activity-card"]', { hasText: 'Informe de evaluación del departamento' }).first();
+await pabloCard.waitFor();
+await pabloCard.locator('[data-testid="activity-toggle"]').click();
+const badge = pabloCard.locator('[data-testid="submission-outdated"]').first();
+await badge.waitFor({ state: 'attached' });
+// The 1ª is over: its period is folded.
+await badge.evaluate((el) => { for (let d = el.closest('details'); d; d = d.parentElement?.closest('details')) { d.open = true; } });
+await badge.waitFor();
+await settle(pablo);
+await clipTo(pablo, badge.locator('xpath=ancestor::*[@data-role="submission-row"][1]'), 'modelos-tabla-entregas-insignia', 200);
 await pablo.context().close();
 
 await browser.close();

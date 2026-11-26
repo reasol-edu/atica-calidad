@@ -298,6 +298,19 @@ datos y cuándo se leyeron. El historial de cambios entre revisiones nombra cada
 
 ![Informe de Matemáticas de la 1ª, entregado: la tabla «Revisión de las materias» con «Matemáticas», «Entregada · Aprobada», un cumplimiento de 80, la valoración del departamento y la media al pie; debajo, «Datos de «Revisión de la programación» a…» y las conclusiones](img/modelos-tabla-entregas-entregado.png)
 
+**Cuando las entregas cambian después.** Si, ya entregado el informe, alguna de las entregas que leyó
+tiene una revisión nueva (una materia corrige su revisión) o entra una entrega nueva, la página del
+documento lo avisa: «Hay datos más recientes en 1 entrega de «Revisión de la programación».», con el
+botón **Crear una revisión nueva**, que abre un borrador de corrección (como «Corregir») ya con los datos
+nuevos y lo escrito en las columnas propias. En la lista de entregas de la actividad, ese documento lleva
+la insignia **Datos desactualizados**. Un borrador o una aprobación de las entregas no cuentan: solo los
+datos entregados. Es solo información: no se envía ningún correo ni aviso, y el documento entregado no
+cambia hasta que alguien crea la revisión nueva.
+
+![Página del informe de Matemáticas de la 1ª, entregado y aprobado: la banda ámbar «Hay datos más recientes en 1 entrega de «Revisión de la programación».» con el botón «Crear una revisión nueva», encima de «Aprobado · Versión 1» y los botones «Seguimiento, comentarios y cambios», «PDF» y «Corregir»](img/modelos-tabla-entregas-desactualizado.png)
+
+![Fila «1ª» de la jefatura del departamento de Matemáticas en la lista de entregas del informe, con la insignia «Datos desactualizados»](img/modelos-tabla-entregas-insignia.png)
+
 El editor avisa, entre los problemas por resolver, de una tabla sin modelo de entregas, de un modelo
 que ya no está en vigor, de un campo que ya no existe o ha cambiado de tipo, de dos modelos que se leen
 el uno al otro y de una tabla así dentro de una sección que se repite (no se puede rellenar). Al
