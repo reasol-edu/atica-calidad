@@ -52,6 +52,7 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
         private readonly ActivityDeadlineChecker $deadline,
         private readonly ActivityLeafResolver $leaves,
         private readonly ListItemOwners $owners,
+        private readonly LeafTeachers $leafTeachers,
     ) {}
 
     /** @var array<string, array<string, int>> by dimension: the names two of its values share (see combinationName()) */
@@ -79,6 +80,7 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
             $activity->isSubmissionNameFullPath(),
             array_map(static fn (\App\Entity\ActivityDimension $d): ListItem => $d->getList(), $activity->getDimensions()),
             $activity->isSplitByElement(),
+            $activity->isTeachersDeliver() ? $activity->getCategory()->getEducationalCentre() : null,
         );
     }
 
@@ -90,13 +92,17 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
      * associated one (the activity's list declares its list associated), the values the element is linked to — none, no slot —; of a
      * free one, all of them. Without $splitByElement, the elements an owner owes are gathered: one slot per owner and combination.
      *
+     * Individual: one slot per teacher who holds the row's profile — and, with $teachersOf (the activity asks the teachers associated
+     * with each element, Activity::isTeachersDeliver(); the centre whose active course counts), one more per teacher associated with
+     * the slot's element, own or inherited, who does not hold it: each delivers their own.
+     *
      * @param ProfileAssignmentRow[] $uploadRows see DocumentTreeAccessChecker::getFolderUploadRows()
      * @param bool                   $fullPath   how the leaves are named, see submissionName()
      * @param list<ListItem>         $dimensions the lists of the dimensions, in order
      *
      * @return ActivitySubmissionSlot[]
      */
-    public function buildSlotsFor(?ListItem $listItem, ActivitySubmissionScope $scope, array $uploadRows, bool $fullPath = true, array $dimensions = [], bool $splitByElement = true): array
+    public function buildSlotsFor(?ListItem $listItem, ActivitySubmissionScope $scope, array $uploadRows, bool $fullPath = true, array $dimensions = [], bool $splitByElement = true, ?\App\Entity\EducationalCentre $teachersOf = null): array
     {
         $rowSlots = $listItem === null
             ? $this->plainRowSlots($uploadRows, $dimensions)
@@ -110,8 +116,17 @@ final class ActivitySubmissionSlotBuilder implements ResetInterface
 
         $slots = [];
         foreach ($rowSlots as $slot) {
-            $key = ProfileAssignmentRow::keyFor($slot->profile, $slot->listItem);
+            $key      = ProfileAssignmentRow::keyFor($slot->profile, $slot->listItem);
+            $teachers = [];
             foreach ($this->teachersHoldingCache[$key] ?? [] as $teacher) {
+                $teachers[$teacher->getId()->toRfc4122()] = $teacher;
+            }
+            if ($teachersOf !== null && $slot->nameListItem !== null) {
+                foreach ($this->leafTeachers->ofLeaf($slot->nameListItem, $teachersOf) as $teacher) {
+                    $teachers[$teacher->getId()->toRfc4122()] ??= $teacher;
+                }
+            }
+            foreach ($teachers as $teacher) {
                 $slots[] = new ActivitySubmissionSlot($slot->profile, $slot->listItem, $slot->nameListItem, $slot->displayName, $teacher, $slot->ownerLabel, $slot->combination);
             }
         }

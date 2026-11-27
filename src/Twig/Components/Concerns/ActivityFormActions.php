@@ -473,8 +473,8 @@ trait ActivityFormActions
         $activity->setEndDateGraceDays(max(0, (int) $this->formEndDateGraceDays));
         $activity->setFolder($folder);
         $activity->setSubmissionNameFullPath($listItem === null || $this->formNameFullPath);
-        // The teachers of the elements only make sense for an activity of a catalogue element delivered as a shared one, not individually.
-        $activity->setTeachersDeliver($listItem !== null && $folder !== null && $scope !== ActivitySubmissionScope::Individual && $this->formTeachersDeliver);
+        // The teachers of the elements only make sense for an activity of a catalogue element. Shared deliveries: the element's teachers also fill in its one document. Individual: each of them delivers their own.
+        $activity->setTeachersDeliver($listItem !== null && $folder !== null && $this->formTeachersDeliver);
         // Same element, other naming: what is already delivered takes the new names, so its rows keep finding it.
         if ($wasListItemId !== null && $wasListItemId === $listItem?->getId()->toRfc4122()) {
             $this->submissionSlots->renameDocumentsForNameMode($activity, $wasFullPath);

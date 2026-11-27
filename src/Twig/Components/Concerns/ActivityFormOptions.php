@@ -641,6 +641,7 @@ trait ActivityFormOptions
                 true,
                 $this->getFormDimensionLists(),
                 $listItem === null || $this->formSplitByElement,
+                $this->formTeachersDeliver ? $this->centre : null,
             );
             if ($slots === []) {
                 return $this->t('activity.summary.no_submissions');

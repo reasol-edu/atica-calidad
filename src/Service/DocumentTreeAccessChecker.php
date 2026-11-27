@@ -141,7 +141,12 @@ final class DocumentTreeAccessChecker implements ResetInterface
     private function isTeacherOfDocument(Teacher $teacher, Document $document): bool
     {
         $activity = $document->getFolder()->getActivity();
-        if ($activity === null || !$activity->isTeachersDeliver() || $activity->getSubmissionScope() === ActivitySubmissionScope::Individual) {
+        if ($activity === null || !$activity->isTeachersDeliver()) {
+            return false;
+        }
+        // Individual: each teacher of the element delivers their own, matched to them by who uploaded it first (as the slots do).
+        if ($activity->getSubmissionScope() === ActivitySubmissionScope::Individual
+            && $document->getFirstRevision()?->getUploadedBy()->getId()->equals($teacher->getId()) !== true) {
             return false;
         }
         $leaf = $this->leafResolver->findLeafForDocument($activity, $document);
@@ -470,7 +475,7 @@ final class DocumentTreeAccessChecker implements ResetInterface
     private function isTeacherOfSomeElement(Teacher $teacher, Activity $activity): bool
     {
         $listItem = $activity->getListItem();
-        if ($listItem === null || !$activity->isTeachersDeliver() || $activity->getSubmissionScope() === ActivitySubmissionScope::Individual) {
+        if ($listItem === null || !$activity->isTeachersDeliver()) {
             return false;
         }
 

@@ -1081,7 +1081,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
     }
 
     /** The box «Los docentes asociados a cada elemento también lo entregan»: only with a catalogue element and a shared delivery, off by default. */
-    public function testTheFormOffersTheTeachersBoxOnlyWithACatalogueElementAndASharedDelivery(): void
+    public function testTheFormOffersTheTeachersBoxOnlyWithACatalogueElement(): void
     {
         [$component] = $this->formWithBranches('Lengua');
         $box = static fn ($component) => $component->render()->crawler()->filter('[id^="activity-form-teachers-deliver-"]');
@@ -1092,7 +1092,7 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertCount(0, $box($component)->filter('input[type="checkbox"][checked]'), 'off by default');
 
         $component->set('formScope', 'individual');
-        self::assertCount(0, $box($component), 'an individual delivery is each teacher\'s own: nothing to share');
+        self::assertStringContainsString('cada docente asociado a un elemento entrega la suya', $box($component)->text(), 'individual: each teacher their own');
         $component->set('formScope', 'by_profile')->set('formListItemId', '');
         self::assertCount(0, $box($component), 'without a catalogue element there is no element to teach');
     }
@@ -1157,14 +1157,18 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertNotNull($category);
     }
 
-    public function testTheTeachersBoxIsLostWithoutAnElementOrWithAnIndividualDelivery(): void
+    public function testTheTeachersBoxIsKeptWithAnIndividualDeliveryAndLostWithoutAnElement(): void
     {
         [$component] = $this->formWithBranches('Lengua');
         $component->set('formTeachersDeliver', true)->set('formScope', 'individual')->call('saveActivity');
         self::assertSame([], $component->component()->errors);
         $activity = $this->em->getRepository(Activity::class)->findOneBy(['title' => 'Memoria']);
         self::assertNotNull($activity);
-        self::assertFalse($activity->isTeachersDeliver(), 'an individual delivery has nobody to share with');
+        self::assertTrue($activity->isTeachersDeliver(), 'individual: each teacher of an element delivers their own');
+
+        $component->call('startEditActivity', ['id' => $activity->getId()->toRfc4122()]);
+        $component->set('formListItemId', '')->call('saveActivity');
+        self::assertFalse($this->em->find(Activity::class, $activity->getId())?->isTeachersDeliver(), 'without an element there is nobody teaching it');
     }
 
     /** «Completado» sits right under «Obligatoriedad»; the advanced options keep only hiding the activity. */

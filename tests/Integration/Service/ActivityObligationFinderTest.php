@@ -430,6 +430,45 @@ final class ActivityObligationFinderTest extends RepositoryTestCase
         self::assertFalse($completion->isCompletedFor($activity, $profile, null, null, $fisica), 'nor is a completion without combination');
     }
 
+    public function testIndividuallyEachTeacherOfAnElementDeliversTheirOwnBesidesWhoHoldsTheProfile(): void
+    {
+        self::mockTime('2025-10-10 10:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Revisiones');
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Jefatura');
+        $folder->addUploadProfile($profile);
+        $head     = $this->teacher('jefa');
+        $noelia   = $this->teacher('noelia');
+        $root     = (new ListItem())->setName('Materias')->setEducationalCentre($centre);
+        $physics  = (new ListItem())->setName('Física')->setEducationalCentre($centre)->setParent($root)->addTeacher($noelia);
+        $chem     = (new ListItem())->setName('Química')->setEducationalCentre($centre)->setParent($root)->setPosition(1);
+        $year     = (new \App\Entity\AcademicYear())->setName('2025-2026')->setEducationalCentre($centre)->addTeacher($head)->addTeacher($noelia);
+        $centre->setActiveAcademicYear($year);
+        $activity = $this->activity($category)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::Individual)->setListItem($root)->setTeachersDeliver(true);
+        $this->persist($centre, $category, $section, $folder, $profile, $head, $noelia, $root, $physics, $chem, $year, $activity, new SpecificProfileAssignment($profile, null, $head));
+
+        /** @var \App\Service\ActivitySubmissionSlotBuilder $builder */
+        $builder = self::getContainer()->get(\App\Service\ActivitySubmissionSlotBuilder::class);
+        $who     = array_map(static fn ($s): string => $s->displayName . ' — ' . $s->teacher?->getUsername(), $builder->buildSlots($activity));
+        sort($who);
+        self::assertSame(['Física — jefa', 'Física — noelia', 'Química — jefa'], $who, 'Noelia teaches Física: her own one, besides the head\'s');
+
+        /** @var \App\Service\SlotResponsibility $responsibility */
+        $responsibility = self::getContainer()->get(\App\Service\SlotResponsibility::class);
+        foreach ($builder->buildSlots($activity) as $slot) {
+            self::assertSame($slot->teacher === $noelia, $responsibility->canFill($noelia, $activity, $slot), 'she fills in only her own: ' . $slot->displayName);
+        }
+        self::assertCount(1, $this->finder->forTeacher($noelia, $centre), 'her task: the activity, for her own delivery');
+
+        // Without the box, only who holds the profile.
+        $activity->setTeachersDeliver(false);
+        $this->em->flush();
+        $builder->reset();
+        self::assertCount(2, $builder->buildSlots($activity));
+    }
+
     public function testWithIndividualSubmissionsEachValueIsStillItsOwnObligationWithItsOwnDates(): void
     {
         self::mockTime('2025-12-10 10:00:00');

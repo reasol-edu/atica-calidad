@@ -1306,6 +1306,7 @@ activity.field.name_full_path_same: 'Con este elemento las dos opciones dan el m
 activity.field.name_full_path_note: 'Si la actividad ya tiene entregas, se renombran con el criterio elegido para que sigan en su sitio.'
 activity.field.teachers_deliver: 'Los docentes asociados a cada elemento también lo entregan'
 activity.field.teachers_deliver_help: 'Cada docente asociado a un elemento verá su entrega en «Mis actividades» y podrá rellenarla y entregarla. Quien tenga el perfil asociado al elemento (por ejemplo, la jefatura del departamento) también podrá.'
+activity.field.teachers_deliver_help_individual: 'Además de quien tiene el perfil, cada docente asociado a un elemento entrega la suya: en una materia de un desdoble, cada uno de sus docentes entrega su propio documento.'
 activity.error.name_leaf_duplicated: 'Con «solo el nombre del elemento hoja», cada hoja necesita un nombre distinto y hay repetidos: «%names%». Cambia el nombre de alguno o elige la ruta completa.'
 activity.field.submission_prefix: 'Prefijo de entrega'
 activity.field.submission_preview: 'Así se descargaría una entrega de ejemplo'
