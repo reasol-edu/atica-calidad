@@ -283,6 +283,17 @@ final class FormDeliveredRows
      */
     private function inScope(array $slots, Activity $source, string $scope, string $slotKey, bool $fallBack = true): array
     {
+        // «La del mismo elemento»: the delivery of this document's own element (the review of Física for the report of Física), and
+        // nothing for a document without one.
+        if ($scope === 'same') {
+            $element = explode(':', $slotKey)[2] ?? '';
+
+            return ['slots' => $element === '' ? [] : array_values(array_filter(
+                $slots,
+                static fn (ActivitySubmissionSlot $s): bool => ($s->nameListItem ?? $s->listItem)?->getId()->toRfc4122() === $element,
+            )), 'assumedAll' => false];
+        }
+
         $who = ActivitySubmissionSlot::deliveredBy($slotKey);
         if ($scope !== 'own' || $who === null) {
             return ['slots' => $slots, 'assumedAll' => false];

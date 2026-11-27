@@ -367,6 +367,35 @@ final class FormDeliveredRowsTest extends ControllerTestCase
         self::assertContains('delivered_cycle', $codes([$table(['sourceModel' => $target->getId()->toRfc4122(), 'columns' => [['label' => 'Previstas', 'fieldType' => 'number', 'sourceField' => 'horas_previstas']]])], $source));
     }
 
+    public function testTheSameElementScopeReadsOnlyTheDeliveryOfTheDocumentsOwnElement(): void
+    {
+        $this->review($this->informatica, $this->programacion, 30);
+        $this->review($this->informatica, $this->bases, 20);
+
+        $report     = $this->fresh($this->report);
+        $definition = self::getContainer()->get(\App\Repository\FormModelRevisionRepository::class)->findInForce($report->getFormModel())->getDefinition();
+        foreach ($definition['sections'] as $s => $section) {
+            foreach ($section['blocks'] as $b => $block) {
+                if (($block['mode'] ?? '') === 'delivered') {
+                    $definition['sections'][$s]['blocks'][$b]['sourceScope'] = 'same';
+                }
+            }
+        }
+        $cycle = self::getContainer()->get(ActivityDeadlineChecker::class)->currentCycleKey($report);
+        $rows  = self::getContainer()->get(FormDeliveredRows::class);
+
+        $bases = $rows->read($definition, $report, $cycle, $this->slotKey($this->informatica, $this->bases))[$this->keys['table']];
+        self::assertSame(['Bases de datos'], array_column($bases['sources']['rows'], 'label'), 'one row: the review of its own subject');
+        self::assertSame(20, array_values($bases['values'])[0][$this->keys['colHours']] ?? null);
+        self::assertFalse($bases['sources']['assumedAll']);
+
+        $none = $rows->read($definition, $report, $cycle, $this->slotKey($this->informatica))[$this->keys['table']];
+        self::assertSame([], $none['sources']['rows'], 'a document without an element: none, not every delivery');
+
+        $normalizer = self::getContainer()->get(\App\Service\Form\FormDefinitionNormalizer::class);
+        self::assertSame('same', FormDeliveredRows::tables($normalizer->normalize($definition))[0]['sourceScope'], 'the model keeps it');
+    }
+
     public function testRemindingARowNotDeliveredWritesToWhoeverOwesItOnceAnHour(): void
     {
         // Claudia, the head of Informática, owes the reviews of its subjects: she needs an address to be written to.

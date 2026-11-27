@@ -1430,7 +1430,8 @@ export default class extends Controller {
         }
 
         if (delivered && rows.length === 0) {
-            const none = (block.sourceScope || 'own') === 'own' && !source.assumedAll ? this.l.delivered_none_own : this.l.delivered_none;
+            const scope = block.sourceScope || 'own';
+            const none = scope === 'same' ? this.l.delivered_none_same : (scope === 'own' && !source.assumedAll ? this.l.delivered_none_own : this.l.delivered_none);
             return [
                 ...this.deliveredHeader(block, inst, source, null),
                 h('p', { class: 'rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500', text: none.replace('%title%', source.title || '') }),

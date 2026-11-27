@@ -118,6 +118,8 @@ trash filter makes loading it throw, `Activity::getDeliverySources()` catches it
   sanitizes a `long` column WITH `sourceField` as rich text (own `long` cells stay plain). `FormResolver::delivered()` adds `html`
   (by cell index, shifted by «Estado») for the PDF and the revision page (`sanitize_html('app.rich_text')`); cells keep the plain text
   for Office, `FormDiff` and indicators. JS `deliveredCell()` sets the server-sanitized HTML.
+- **Scope `same`** (piece 3, `DELIVERED_SCOPES`): `inScope()` keeps the source slots whose element (`nameListItem ?? listItem`) is the
+  document's (slot key part 3); none for a document without one, never `assumedAll`. Shared-dimension filtering still applies first.
 - Phase 4: pieces 1–5 done on request (2026-11-27); source tables, repeat by rows, multi-activity report and «No heredar» still parked.
 
 ### Rich text: one Tiptap editor everywhere (migrated from Quill, 2026-11-23)

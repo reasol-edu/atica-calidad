@@ -83,7 +83,7 @@ final class FormDefinition
     public const array DELIVERED_TYPES = ['number', 'short', 'long', 'date', 'time', 'bool'];
 
     /** Whose deliveries a table of deliveries shows: those of the elements associated with whoever delivers, or all. */
-    public const array DELIVERED_SCOPES = ['own', 'all'];
+    public const array DELIVERED_SCOPES = ['own', 'all', 'same'];
 
     /**
      * Whether the rows of a table are given (by the model, a list, a number field or the deliveries of another activity) rather than

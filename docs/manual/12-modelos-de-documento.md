@@ -267,7 +267,9 @@ esos documentos, y añade sus propias columnas (una valoración, por ejemplo).
      **texto largo** conserva su formato (negritas, listas…) al rellenar, en la página del documento y
      en el PDF; en Word y OpenDocument sale como texto.
    - **Qué entregas**: **las de los elementos asociados a quien entrega** (la jefatura de un
-     departamento ve las de sus materias) o **todas las de la actividad**.
+     departamento ve las de sus materias), **la del mismo elemento** (una sola fila: en un documento por
+     materia, la entrega de esa misma materia; un documento sin elemento no muestra ninguna) o **todas
+     las de la actividad**.
    - **Mostrar el estado de cada entrega**: añade la columna «Estado» («Entregada · Aprobada»,
      «Borrador», «Sin empezar»).
    - Las **columnas propias** se añaden como en cualquier tabla y las rellena quien entrega el informe.

@@ -1233,8 +1233,9 @@ export default class extends Controller {
         ]);
         parts.push(h('fieldset', { class: 'space-y-1.5' }, [
             h('legend', { class: 'mb-1 text-xs font-medium text-gray-600', text: this.l.delivered_scope }),
-            h('div', { class: 'grid gap-2 sm:grid-cols-2' }, [
+            h('div', { class: 'grid gap-2 sm:grid-cols-3' }, [
                 card('own', this.l.delivered_scope_own, this.l.delivered_scope_own_help),
+                card('same', this.l.delivered_scope_same, this.l.delivered_scope_same_help),
                 card('all', this.l.delivered_scope_all, this.l.delivered_scope_all_help),
             ]),
         ]));
