@@ -7,6 +7,13 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.12.0] - 2026-11-27
+
+Incluye siete migraciones nuevas que se aplican solas al actualizar y conservan los datos; una de ellas
+cambia cómo se guardan las asociaciones del catálogo y otra no tiene vuelta atrás. Antes de actualizar,
+haz una copia de seguridad (Administración → Copias de seguridad). Después, conviene revisar los informes
+`app:list-items:inheritance-report` y `app:list-items:links-report` (ver **Changed**).
+
 ### Added
 
 - Cursos académicos: **Preparar el nuevo curso** tiene un paso nuevo, **Materias y sus docentes** (el 4), con los botones «Importar materias de Séneca» y «Ver el catálogo». Lista las materias y grupos del catálogo que siguen a nombre de un docente que ya no está en el curso y se marca hecho cuando no queda ninguno (o si el centro no asocia docentes a las materias). La ficha rápida «Configurar un curso académico nuevo» ya dice que el asistente guía todos los pasos.
