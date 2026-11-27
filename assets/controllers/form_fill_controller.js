@@ -1570,10 +1570,18 @@ export default class extends Controller {
 
     /** A cell read from a delivery: its value as it shows (unit, decimals), or a grey dash; it blinks once if «Actualizar» changed it. */
     deliveredCell(block, row, column, cls) {
-        const text = format(column, row[column.key], this.l);
-        const cell = h('td', { class: cls + ' bg-gray-50 text-gray-800', 'data-cell': row._key + '|' + column.key }, [
-            text === '' ? h('span', { class: 'text-gray-300', text: '—' }) : text,
-        ]);
+        const value = row[column.key];
+        // A «texto largo» keeps its formatting: the HTML the server read and sanitized (the browser cannot change these cells).
+        const rich = column.fieldType === 'long' && typeof value === 'string' && /<[a-z][\s\S]*>/i.test(value);
+        const text = rich ? '' : format(column, value, this.l);
+        let content;
+        if (rich) {
+            content = h('div', { class: 'prose prose-sm max-w-none' });
+            content.innerHTML = value;
+        } else {
+            content = text === '' ? h('span', { class: 'text-gray-300', text: '—' }) : text;
+        }
+        const cell = h('td', { class: cls + ' bg-gray-50 text-gray-800', 'data-cell': row._key + '|' + column.key }, [content]);
         if (this.changedCells.has(block.key + '|' + row._key + '|' + column.key)) {
             cell.classList.add('delivered-changed');
         }

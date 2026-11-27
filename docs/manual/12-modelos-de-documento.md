@@ -263,7 +263,9 @@ esos documentos, y añade sus propias columnas (una valoración, por ejemplo).
    - **Modelo de las entregas**: el que rellenan las entregas que se quieren ver («Revisión de la
      programación»). Qué actividad concreta se elige luego, en cada actividad.
    - **Columnas de la entrega**: los campos con nombre de ese modelo que se traen, cada uno como una
-     columna (con su tipo, decimales y total al pie, si se quiere: la media del cumplimiento).
+     columna (con su tipo, decimales y total al pie, si se quiere: la media del cumplimiento). Un
+     **texto largo** conserva su formato (negritas, listas…) al rellenar, en la página del documento y
+     en el PDF; en Word y OpenDocument sale como texto.
    - **Qué entregas**: **las de los elementos asociados a quien entrega** (la jefatura de un
      departamento ve las de sus materias) o **todas las de la actividad**.
    - **Mostrar el estado de cada entrega**: añade la columna «Estado» («Entregada · Aprobada»,

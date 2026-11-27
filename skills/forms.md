@@ -114,6 +114,10 @@ trash filter makes loading it throw, `Activity::getDeliverySources()` catches it
   draft's `sources`, not delivered, and its `activity` the table's source; recipients = `ActivityPendingOwnersFinder::find(source)`
   narrowed to items whose `slotKey` is the row's `slot`, with an address; limiter `activity_reminder` keyed `sourceId|slot`; sending
   and recording through `ActivityReminderSender` (shared with «Recordar a pendientes»), log event `activity.remind_delivery`.
+- **Rich text columns** (piece 2): `value()` of a `long` source field is its HTML (`FormRichText::html`), and `FormDataNormalizer::coerce()`
+  sanitizes a `long` column WITH `sourceField` as rich text (own `long` cells stay plain). `FormResolver::delivered()` adds `html`
+  (by cell index, shifted by «Estado») for the PDF and the revision page (`sanitize_html('app.rich_text')`); cells keep the plain text
+  for Office, `FormDiff` and indicators. JS `deliveredCell()` sets the server-sanitized HTML.
 - Phase 4: pieces 1–5 done on request (2026-11-27); source tables, repeat by rows, multi-activity report and «No heredar» still parked.
 
 ### Rich text: one Tiptap editor everywhere (migrated from Quill, 2026-11-23)

@@ -107,6 +107,30 @@ final class FormDeliveredOutputTest extends TestCase
         self::assertSame(['—', ''], $table['rows'][1]['cells']);
     }
 
+    public function testAColumnThatReadsARichTextKeepsItsFormattingInTheDocument(): void
+    {
+        $notes      = 'b0000000-0000-4000-8000-000000000020';
+        $definition = $this->definition();
+        $definition['sections'][0]['blocks'][0]['columns'][] = ['key' => $notes, 'label' => 'Observaciones', 'fieldType' => 'long', 'sourceField' => 'observaciones'];
+        $data = $this->data(30);
+        $data['tables'][self::TABLE][0][$notes] = '<p>Bien, <strong>salvo</strong> la unidad 5.</p>';
+
+        $table = $this->table($definition, $data);
+        self::assertSame('Bien, salvo la unidad 5.', $table['rows'][0]['cells'][3], 'the plain text, for Word and the history');
+        self::assertSame([3 => '<p>Bien, <strong>salvo</strong> la unidad 5.</p>'], $table['rows'][0]['html'], 'its HTML, by the index of the cell (after «Estado»)');
+        self::assertSame([], $table['rows'][1]['html'], 'nothing read: the dash');
+        self::assertSame('—', $table['rows'][1]['cells'][3]);
+    }
+
+    public function testTheDraftKeepsTheSanitizedHtmlOfASourceRichTextButAnOwnLongCellStaysPlain(): void
+    {
+        $sanitizer  = new \Symfony\Component\HtmlSanitizer\HtmlSanitizer((new \Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig())->allowElement('p')->allowElement('strong'));
+        $normalizer = new \App\Service\Form\FormDataNormalizer($sanitizer, new \App\Service\Form\FormCalculator(new FormWalker(), new \App\Service\Form\FormEvaluator()));
+
+        self::assertSame('<p>Bien, <strong>salvo</strong> la 5.</p>', $normalizer->coerce(['fieldType' => 'long', 'sourceField' => 'observaciones'], '<p onclick="x()">Bien, <strong>salvo</strong> la 5.</p><script>x()</script>'));
+        self::assertSame('Bien, salvo la 5.', $normalizer->coerce(['fieldType' => 'long'], '<p>Bien, <strong>salvo</strong> la 5.</p>'), 'an own column of a table: plain text');
+    }
+
     public function testTheHistoryNamesTheRowsAfterEachDeliveryAndADashIsNothing(): void
     {
         $diff    = new FormDiff($this->resolver);

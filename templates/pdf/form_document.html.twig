@@ -49,7 +49,7 @@
                         {% for r in b.rows %}
                             <tr>
                                 {% if b.fixed %}<td class="form-rowlabel">{{ r.label }}</td>{% endif %}
-                                {% for cell in r.cells %}<td>{{ cell }}</td>{% endfor %}
+                                {% for cell in r.cells %}<td>{% if r.html[loop.index0] is defined %}<div class="form-text">{{ r.html[loop.index0]|sanitize_html('app.rich_text') }}</div>{% else %}{{ cell }}{% endif %}</td>{% endfor %}
                             </tr>
                         {% else %}
                             <tr><td colspan="{{ b.columns|length + (b.fixed ? 1 : 0) }}" class="form-blank-row">&nbsp;</td></tr>

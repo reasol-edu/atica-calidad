@@ -77,7 +77,9 @@ final class FormDeliveredRowsTest extends TestCase
         self::assertNull(FormDeliveredRows::value(['fieldType' => 'calculated'], true), 'a calculated yes/no is not a number');
         self::assertSame(4, FormDeliveredRows::value(['fieldType' => 'scale'], 4));
         self::assertSame('Bien', FormDeliveredRows::value(['fieldType' => 'short'], 'Bien'));
-        self::assertSame("Uno\nDos", FormDeliveredRows::value(['fieldType' => 'long'], '<p>Uno</p><p>Dos</p>'), 'a rich text as plain text');
+        self::assertSame('<p>Uno <strong>y</strong></p><ul><li>Dos</li></ul>', FormDeliveredRows::value(['fieldType' => 'long'], '<p>Uno <strong>y</strong></p><ul><li>Dos</li></ul>'), 'a rich text keeps its formatting');
+        self::assertSame('<p>Uno</p><p>Dos</p>', FormDeliveredRows::value(['fieldType' => 'long'], "Uno\n\nDos"), 'a plain one becomes its paragraphs');
+        self::assertNull(FormDeliveredRows::value(['fieldType' => 'long'], '<p> </p>'), 'an empty one is nothing');
         self::assertSame('2026-12-03', FormDeliveredRows::value(['fieldType' => 'date'], '2026-12-03'));
         self::assertFalse(FormDeliveredRows::value(['fieldType' => 'bool'], false));
         $choice = ['key' => 'c', 'fieldType' => 'multichoice', 'options' => [['key' => 'a', 'label' => 'Uno'], ['key' => 'b', 'label' => 'Dos']]];

@@ -225,20 +225,22 @@ final class FormResolver
             'totals'    => $this->totals($columns, $rows, FormDefinition::map(FormDefinition::map($chain[0] ?? null)['fields'] ?? null) ?? []),
         ];
 
-        return ($block['mode'] ?? '') === 'delivered' ? $this->delivered($block, $table) : $table;
+        return ($block['mode'] ?? '') === 'delivered' ? $this->delivered($block, $table, $rows) : $table;
     }
 
     /**
      * A table of deliveries the way a document shows it: «—» in a cell read from a delivery that has nothing (no delivery, or that field
      * empty), the column «Estado» first when the model asks for it, and where the rows came from (`deliveredFrom`: the activity and when
-     * they were read), for a note under the table.
+     * they were read), for a note under the table. A column that reads a «texto largo» gives, besides its plain text, its HTML (`html`,
+     * by cell index) for the document and the PDF to draw with its formatting.
      *
-     * @param array<string, mixed> $block
-     * @param array<string, mixed> $table
+     * @param array<string, mixed>       $block
+     * @param array<string, mixed>       $table
+     * @param list<array<string, mixed>> $raw   the rows as stored, by the same order
      *
      * @return array<string, mixed>
      */
-    private function delivered(array $block, array $table): array
+    private function delivered(array $block, array $table, array $raw = []): array
     {
         $key     = FormDefinition::str($block['key'] ?? '');
         $source  = FormDefinition::map($this->sources[$key] ?? null) ?? [];
@@ -251,17 +253,26 @@ final class FormResolver
         $strings = static fn (mixed $list): array => array_values(array_map(static fn (mixed $v): string => FormDefinition::str($v), is_array($list) ? $list : []));
         $status  = ($block['showStatus'] ?? false) === true;
         $rows    = [];
-        foreach (FormDefinition::listOf($table['rows']) as $row) {
+        foreach (FormDefinition::listOf($table['rows']) as $r => $row) {
             $cells = $strings($row['cells'] ?? []);
+            $html  = [];
             foreach ($columns as $i => $column) {
-                if (FormDefinition::str($column['sourceField'] ?? '') !== '' && ($cells[$i] ?? '') === '') {
+                if (FormDefinition::str($column['sourceField'] ?? '') === '') {
+                    continue;
+                }
+                if (($cells[$i] ?? '') === '') {
                     $cells[$i] = '—';
+                    continue;
+                }
+                $value = ($raw[$r] ?? [])[FormDefinition::str($column['key'] ?? '')] ?? null;
+                if (($column['fieldType'] ?? '') === 'long' && is_string($value)) {
+                    $html[$i + ($status ? 1 : 0)] = FormRichText::html($value);
                 }
             }
             if ($status) {
                 array_unshift($cells, $this->stateText(FormDefinition::map($states[FormDefinition::str($row['key'] ?? '')] ?? null) ?? []));
             }
-            $rows[] = ['cells' => $cells] + $row;
+            $rows[] = ['cells' => $cells, 'html' => $html] + $row;
         }
         $table['rows'] = $rows;
         if ($status) {

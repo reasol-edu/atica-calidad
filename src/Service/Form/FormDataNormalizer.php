@@ -579,8 +579,9 @@ final class FormDataNormalizer
     {
         $type = FormDefinition::str($spec['fieldType'] ?? 'short');
 
-        // A «texto largo» field has rich text (the cells of a table keep plain text).
-        if ($type === 'long' && ($spec['type'] ?? '') === 'field') {
+        // A «texto largo» field has rich text, and so has a column of a table of deliveries that reads one (the other cells of a table
+        // keep plain text).
+        if ($type === 'long' && (($spec['type'] ?? '') === 'field' || FormDefinition::str($spec['sourceField'] ?? '') !== '')) {
             return $this->richText($value);
         }
 

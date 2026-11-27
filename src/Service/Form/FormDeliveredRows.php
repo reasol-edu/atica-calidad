@@ -439,10 +439,13 @@ final class FormDeliveredRows
                 return is_int($value) || is_float($value) ? $value : (is_string($value) && is_numeric($value) ? $value + 0 : null);
 
             case 'short':
-            case 'long':
-                $text = is_string($value) ? ($type === 'long' ? FormRichText::plain($value) : trim($value)) : '';
+                $text = is_string($value) ? trim($value) : '';
 
                 return $text === '' ? null : $text;
+
+            case 'long':
+                // Rich text keeps its formatting (bold, lists…): the column shows it as it was written. The normalizer sanitizes it.
+                return is_string($value) && trim(FormRichText::plain($value)) !== '' ? FormRichText::html($value) : null;
 
             case 'date':
             case 'time':
