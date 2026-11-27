@@ -7,6 +7,11 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Eliminar un elemento (o varios a la vez) dentro de una lista del catálogo daba un error 500 al volver a pintar la
+  pantalla, aunque el borrado sí se hacía.
+
 ## [2.12.0] - 2026-11-27
 
 Incluye siete migraciones nuevas que se aplican solas al actualizar y conservan los datos; una de ellas

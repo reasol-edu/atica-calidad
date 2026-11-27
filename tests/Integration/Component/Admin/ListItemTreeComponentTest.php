@@ -239,6 +239,30 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertNotNull($items->findByIdAndCentre($parentId, $centre), 'a branch with a descendant assigned to a teacher must never be deletable');
     }
 
+    /**
+     * Inside a list (a `root`), the render after a delete reads the tree again: the repository's per-request copy must be forgotten,
+     * or it still holds the removed items, whose id Doctrine has unset (500 «$id must not be accessed before initialization»).
+     */
+    public function testDeleteInsideAListRendersAfterwards(): void
+    {
+        $centre   = $this->centre();
+        $subjects = (new ListItem())->setEducationalCentre($centre)->setName('Materias');
+        $maths    = (new ListItem())->setEducationalCentre($centre)->setName('Matemáticas')->setParent($subjects);
+        $physics  = (new ListItem())->setEducationalCentre($centre)->setName('Física')->setParent($subjects);
+        $admin    = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $subjects, $maths, $physics, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre, 'root' => $subjects], $this->client);
+        $component->call('selectItem', ['id' => $maths->getId()->toRfc4122()]);
+        $component->call('deleteSelected');
+
+        $html = $component->render()->toString();
+        self::assertStringNotContainsString('Matemáticas', $html);
+        self::assertStringContainsString('Física', $html);
+    }
+
     public function testDeleteSelectedRemovesALeafItem(): void
     {
         $centre = $this->centre();

@@ -501,6 +501,17 @@ class ListItemTreeComponent extends AbstractController
         $this->errors          = [];
     }
 
+    /**
+     * Writes the changes and forgets the tree the repository holds for this request (and the off-course pairs read from it): the
+     * render that follows reads it again, and a deleted item left there has lost its id (Doctrine unsets it on removal).
+     */
+    private function save(): void
+    {
+        $this->em->flush();
+        $this->items->reset();
+        $this->offCourseMemo = null;
+    }
+
     private function loadDetail(): void
     {
         $this->errors           = [];
@@ -565,7 +576,7 @@ class ListItemTreeComponent extends AbstractController
         $item->setParent($parent);
 
         $this->em->persist($item);
-        $this->em->flush();
+        $this->save();
 
         $this->addName        = '';
         $this->addingParentId = '';
@@ -589,7 +600,7 @@ class ListItemTreeComponent extends AbstractController
 
         $selected->setName($name);
         $selected->setActive($this->editActive);
-        $this->em->flush();
+        $this->save();
 
         $this->errors = [];
         $this->flashSuccess($this->t('responsibilities.lists.flash.saved'));
@@ -645,7 +656,7 @@ class ListItemTreeComponent extends AbstractController
         foreach (array_reverse($subtree) as $node) {
             $this->em->remove($node);
         }
-        $this->em->flush();
+        $this->save();
 
         if ($wasScopedRoot) {
             $this->addFlash('success', $this->t('responsibilities.lists.flash.deleted'));
@@ -705,7 +716,7 @@ class ListItemTreeComponent extends AbstractController
         $target->setPosition($swapWith->getPosition());
         $swapWith->setPosition($targetPosition);
 
-        $this->em->flush();
+        $this->save();
     }
 
     /**
@@ -763,7 +774,7 @@ class ListItemTreeComponent extends AbstractController
             }
         }
 
-        $this->em->flush();
+        $this->save();
     }
 
     #[LiveAction]
@@ -776,7 +787,7 @@ class ListItemTreeComponent extends AbstractController
             $item->setPosition($position);
         }
 
-        $this->em->flush();
+        $this->save();
     }
 
     // ── Associations: elements of the associated lists, plain profiles ───────
@@ -908,7 +919,7 @@ class ListItemTreeComponent extends AbstractController
         foreach ($associations as $association) {
             self::associate($selected, $association);
         }
-        $this->em->flush();
+        $this->save();
         $this->flashSuccess($this->t($associations === [] ? 'responsibilities.lists.association.flash.cleared' : 'responsibilities.lists.association.flash.saved'));
     }
 
@@ -972,7 +983,7 @@ class ListItemTreeComponent extends AbstractController
         foreach ($wanted as $linked) {
             $list->addLinkedList($linked);
         }
-        $this->em->flush();
+        $this->save();
 
         $this->linkedListsConfirmKey        = '';
         $this->linkedListsConfirmCount      = 0;
@@ -1305,7 +1316,7 @@ class ListItemTreeComponent extends AbstractController
         }
 
         $this->setTeachers($selected, $this->teachersFor($this->teacherIds, $selected->getTeachers()));
-        $this->em->flush();
+        $this->save();
         $this->teacherIds = array_map(static fn (Teacher $t): string => $t->getId()->toRfc4122(), $selected->getTeachers());
         $this->flashSuccess($this->t('responsibilities.lists.teachers.flash.saved'));
     }
@@ -1362,7 +1373,7 @@ class ListItemTreeComponent extends AbstractController
         }
 
         $this->offCourseMemo = null;
-        $this->em->flush();
+        $this->save();
         $this->bulkSelectedIds = [];
         $this->bulkTeacherIds  = [];
         ++$this->bulkTeacherRound;
@@ -1428,7 +1439,7 @@ class ListItemTreeComponent extends AbstractController
             ++$removed;
         }
         $this->offCourseMemo = null;
-        $this->em->flush();
+        $this->save();
         $this->loadDetail();
         $this->flashSuccess($this->translator->trans('responsibilities.lists.teachers.flash.off_course_removed', ['%count%' => $removed], 'admin'));
     }
@@ -1516,7 +1527,7 @@ class ListItemTreeComponent extends AbstractController
             ++$count;
         }
 
-        $this->em->flush();
+        $this->save();
         $this->bulkSelectedIds     = [];
         $this->bulkAssociationKeys = [];
         $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.flash.saved', ['%count%' => $count], 'admin'));
@@ -1542,7 +1553,7 @@ class ListItemTreeComponent extends AbstractController
             ++$count;
         }
 
-        $this->em->flush();
+        $this->save();
         $this->bulkSelectedIds     = [];
         $this->bulkAssociationKeys = [];
         $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.flash.cleared', ['%count%' => $count], 'admin'));
@@ -1608,7 +1619,7 @@ class ListItemTreeComponent extends AbstractController
         foreach (array_reverse($subtree) as $node) {
             $this->em->remove($node);
         }
-        $this->em->flush();
+        $this->save();
 
         $count                 = count($roots);
         $this->bulkSelectedIds = [];
@@ -1773,7 +1784,7 @@ class ListItemTreeComponent extends AbstractController
             ++$position;
         }
 
-        $this->em->flush();
+        $this->save();
 
         $count                  = count($ordered);
         $this->bulkSelectedIds  = [];
