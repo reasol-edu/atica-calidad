@@ -278,8 +278,10 @@ el borrador sigue donde estaba y el nuevo lo abre tal cual.
 entrega **su propio documento** de ese elemento, además de quienes tienen el perfil de la entrega (que
 entregan el suyo como siempre). En una materia de un desdoble, cada uno de sus docentes entrega el
 suyo. Es tarea de cada uno, solo él la rellena y la ve aunque no tenga el perfil de la carpeta. Aquí sí
-cuentan los cambios del catálogo: un docente que se asocia a un elemento pasa a deber su entrega, como
-quien recibe el perfil.
+cuentan los cambios del catálogo, como con los perfiles: un docente que se asocia a un elemento pasa a
+deber su entrega, y uno que deja el elemento o el curso deja de tenerla. Lo que ya hubiera rellenado o
+entregado no se borra, pero deja de aparecer en la lista de entregas de la actividad. Por eso conviene
+cambiar los docentes del catálogo antes de que empiecen las entregas.
 
 Bajo el nombre de cada entrega, en gris, salen sus docentes («Noelia Bravo Escudero, Marcos Pardo
 Esteban»), o «Sin docente asociado» en ámbar. La jefatura ve entre sus entregas las de los elementos

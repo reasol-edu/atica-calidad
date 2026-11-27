@@ -29,7 +29,11 @@ this file records what the code does and the traps already hit. Phase 1 is imple
   slot's teacher, otherwise `holdsProfile()`» (grep `holdsProfile($teacher, $slot->profile` must find only it). With the activity's box
   `teachersDeliver` checked, the teachers associated with the slot's element (own + ancestors, `ListItem::getEffectiveTeachers()`,
   kept to those active and in the centre's active course by `LeafTeachers`) fill it and own it; the head holding the profile fills it
-  and owns it only when the element has no such teacher. The teachers never change `slotKey` or the set of slots. `LeafTeachers` and
+  and owns it only when the element has no such teacher. In a SHARED delivery the teachers never change `slotKey` or the set of slots.
+  In an INDIVIDUAL one (phase 4, piece 5) they do: `ActivitySubmissionSlotBuilder::buildSlotsFor(…, $teachersOf: centre)` adds one slot
+  per associated teacher who does not hold the profile (`LeafTeachers::ofLeaf()`), owned and filled only by them (`slot->teacher`);
+  `DocumentTreeAccessChecker::isTeacherOfDocument()`/`isTeacherOfSomeElement()` let them browse the activity and open their own document
+  (matched by first uploader). When they leave the course or the element, their slot goes, like a profile holder's. `LeafTeachers` and
   `ActivityLeafResolver` exist apart so that `DocumentTreeAccessChecker` (which `SlotResponsibility` depends on) can use them for
   `canViewDocument()` / `canManageDocumentAsUploader()` without a circular dependency.
 

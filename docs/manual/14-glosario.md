@@ -52,7 +52,8 @@ actividad: el perfil de su carpeta que usa una de esas listas.
 : Docente que imparte un elemento del catálogo (una materia, un grupo…). Se acumula a lo largo de la
 rama como las asociaciones con perfiles y solo cuenta si está en el curso activo. En las actividades
 con la casilla «Los docentes asociados a cada elemento también lo entregan», rellena y entrega el
-documento de su elemento (ver [Docentes asociados](06-responsabilidades.md#docentes-asociados)).
+documento de su elemento, o el suyo propio si la entrega es individual (ver
+[Docentes asociados](06-responsabilidades.md#docentes-asociados)).
 
 **Perfil específico**
 : Responsabilidad personalizada que cada centro crea en **Responsabilidades → Perfiles

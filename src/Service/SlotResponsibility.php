@@ -22,8 +22,10 @@ use Symfony\Contracts\Service\ResetInterface;
  *    element has teachers, those, and only when it has none whoever holds the profile — so the head of department is not asked for
  *    what a teacher of the department has to deliver. Never by managing the folder.
  *
- * The teachers never create or remove slots (their key does not change with them, so a draft stays put when a substitute arrives),
- * and only those active and in the active course count (see LeafTeachers).
+ * In a shared delivery the teachers never create or remove slots (their key does not change with them, so a draft stays put when a
+ * substitute arrives). In an INDIVIDUAL one with the box checked they do: each associated teacher has a slot of their own
+ * (ActivitySubmissionSlotBuilder::buildSlotsFor()), which goes when they leave the course or the element — like a profile holder's.
+ * Only those active and in the active course count (see LeafTeachers).
  */
 #[AsDoctrineListener(event: Events::postFlush)]
 final class SlotResponsibility implements ResetInterface
