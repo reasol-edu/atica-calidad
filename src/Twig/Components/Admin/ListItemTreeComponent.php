@@ -124,6 +124,10 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp(writable: true)]
     public string $markWithinId = '';
 
+    /** «Búsqueda parcial»: the name only has to appear inside the leaf's («Empleabilidad» finds «… para la Empleabilidad I» and «… II»). */
+    #[LiveProp(writable: true)]
+    public bool $markPartial = false;
+
     /** What the bulk association does with the picked ones on the checked items: 'add', 'replace' (those of the same lists) or 'remove'. */
     #[LiveProp(writable: true)]
     public string $bulkAssociationMode = 'add';
@@ -161,6 +165,13 @@ class ListItemTreeComponent extends AbstractController
      */
     #[LiveProp(writable: true)]
     public array $bulkAssociationKeys = [];
+
+    /**
+     * Bumped after each bulk association action, like $bulkTeacherRound: the picker is data-live-ignore, so emptying
+     * $bulkAssociationKeys alone left the previous profiles on screen, and the next pick sent them again with the new one.
+     */
+    #[LiveProp]
+    public int $bulkAssociationRound = 0;
 
     /**
      * Ids of the teachers associated with the selected item as its own (not the ones it inherits): what the «Docentes» picker of the
@@ -1156,8 +1167,10 @@ class ListItemTreeComponent extends AbstractController
     }
 
     /**
-     * Checks every leaf under the chosen branch whose name is exactly $markName, ignoring case and accents («Itinerario Personal para
-     * la Empleabilidad I» in every course), on top of what is already checked.
+     * Checks every leaf under the chosen branch whose name is $markName — exactly or, with $markPartial, containing it —, ignoring case
+     * and accents («Itinerario Personal para la Empleabilidad I» in every course). The found ones REPLACE what was checked: adding
+     * them on top left the leaves of earlier searches checked (often in collapsed branches, out of sight), and the next «Asignar»
+     * reached them too.
      */
     #[LiveAction]
     public function markByName(): void
@@ -1171,15 +1184,15 @@ class ListItemTreeComponent extends AbstractController
             return;
         }
 
-        $ids   = array_flip(array_map('strval', $this->bulkSelectedIds));
-        $count = 0;
+        $ids = [];
         foreach ($this->items->findLeafDescendants($within) as $leaf) {
-            if (self::comparable($leaf->getName()) === $name) {
-                $ids[$leaf->getId()->toRfc4122()] = true;
-                ++$count;
+            $leafName = self::comparable($leaf->getName());
+            if ($this->markPartial ? str_contains($leafName, $name) : $leafName === $name) {
+                $ids[] = $leaf->getId()->toRfc4122();
             }
         }
-        $this->bulkSelectedIds = array_keys($ids);
+        $count                 = \count($ids);
+        $this->bulkSelectedIds = $ids;
         $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.mark.flash', ['%count%' => $count], 'admin'));
     }
 
@@ -1530,6 +1543,7 @@ class ListItemTreeComponent extends AbstractController
         $this->save();
         $this->bulkSelectedIds     = [];
         $this->bulkAssociationKeys = [];
+        ++$this->bulkAssociationRound;
         $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.flash.saved', ['%count%' => $count], 'admin'));
     }
 
@@ -1556,6 +1570,7 @@ class ListItemTreeComponent extends AbstractController
         $this->save();
         $this->bulkSelectedIds     = [];
         $this->bulkAssociationKeys = [];
+        ++$this->bulkAssociationRound;
         $this->flashSuccess($this->translator->trans('responsibilities.lists.bulk.flash.cleared', ['%count%' => $count], 'admin'));
     }
 

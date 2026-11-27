@@ -226,7 +226,10 @@ las elegidas; las de las otras listas no se tocan, y los perfiles sin lista cuen
 sustituir por «Orientador/a» deja ese perfil en lugar de los perfiles sin lista que tuviera) o **Quitar**; y **Quitar asociaciones** se las
 quita todas. **Marcar por nombre** marca, sin distinguir mayúsculas ni tildes, todas las hojas con
 ese nombre exacto dentro de la lista o de la rama elegida en **dentro de**: con «Itinerario Personal
-para la Empleabilidad I» se marcan de una vez las de todos los cursos para asociarlas a FOL. El
+para la Empleabilidad I» se marcan de una vez las de todos los cursos para asociarlas a FOL. Con la
+casilla **Búsqueda parcial** basta con que el nombre contenga el texto: «Empleabilidad» marca a la vez
+las de I y II. Cada búsqueda **sustituye** lo que estuviera marcado, para que no se cuelen en la
+siguiente asignación elementos de una búsqueda anterior que quizá ya no se ven en el árbol. El
 «dentro de» importa porque una materia con el mismo nombre puede ser de departamentos distintos según
 el ciclo.
 

@@ -112,7 +112,7 @@ await settle();
 await page.locator('[data-testid="mark-by-name"] input[type="text"]').fill('educación física');
 await page.locator('[data-testid="mark-by-name"] button[type="submit"]').click();
 await settle();
-await page.locator('[id="bulk-association-picker"] .ts-control').click();
+await page.locator('[id^="bulk-association-picker-"] .ts-control').click();
 await page.locator('.ts-dropdown .option', { hasText: '1ª' }).first().click();
 await page.keyboard.press('Escape');
 await page.waitForTimeout(300);

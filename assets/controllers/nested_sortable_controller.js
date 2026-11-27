@@ -5,10 +5,12 @@ import Sortable from 'sortablejs';
 /*
  * Turns every nested `<ul data-parent-id>` inside the controller's element into a SortableJS list
  * sharing one group, so a node can be dragged to reorder within its level or dropped into another
- * node's list to reparent it, in a single interaction. Re-scans on every Live Component re-render
- * (`live:render`) to pick up lists that didn't exist yet (e.g. a newly added child's own, still-
- * empty, list) — already-initialised lists are skipped via a flag kept on the element itself,
- * since morphdom reuses matching DOM nodes across renders.
+ * node's list to reparent it, in a single interaction. Re-scans after every Live Component re-render
+ * (the component's `render:finished` hook — there is no `live:render` DOM event, and listening for one
+ * left every list that appeared after the first render undraggable: the drag selected text instead)
+ * to pick up lists that didn't exist yet (e.g. a newly added child's own, still-empty, list) —
+ * already-initialised lists are skipped via a flag kept on the element itself, since the morph reuses
+ * matching DOM nodes across renders.
  *
  * Generic over which entity is being reordered (document sections, list items...) via three
  * Stimulus values, so the same controller drives every nested tree editor instead of one
@@ -28,14 +30,16 @@ export default class extends Controller {
         group: String,
     };
 
-    connect() {
-        this.onRender = () => this.initSortables();
-        this.element.addEventListener('live:render', this.onRender);
+    async connect() {
         this.initSortables();
+        this.onRender = () => this.initSortables();
+        this.component = await getComponent(this.element);
+        this.component.on('render:finished', this.onRender);
     }
 
     disconnect() {
-        this.element.removeEventListener('live:render', this.onRender);
+        this.component?.off('render:finished', this.onRender);
+        this.component = null;
         this.element.querySelectorAll('[data-parent-id]').forEach((list) => {
             list.sortableInstance?.destroy();
             delete list.sortableInstance;

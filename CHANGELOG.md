@@ -7,6 +7,26 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- Responsabilidades: **Marcar por nombre** tiene la casilla **Búsqueda parcial**, que marca también los elementos cuyo
+  nombre contiene el texto («Empleabilidad» marca los dos «Itinerario Personal para la Empleabilidad»).
+
+### Changed
+
+- Responsabilidades: cada **Marcar por nombre** sustituye lo que estuviera marcado en vez de sumarse a ello. Antes, los
+  elementos de búsquedas anteriores (a menudo en ramas plegadas, sin verse) seguían marcados y recibían también la
+  siguiente asignación.
+
+### Fixed
+
+- Responsabilidades, modo de selección: después de **Asignar** o **Quitar asociaciones**, el buscador de perfiles seguía
+  mostrando los perfiles recién asignados, y al elegir otro se volvían a enviar todos juntos: se asignaban perfiles que
+  no tocaban. Ahora vuelve a quedar vacío.
+- Responsabilidades: el arrastrar y soltar del árbol dejaba de funcionar tras reordenar o añadir elementos (se
+  seleccionaba el texto de la rama en lugar de moverla) hasta recargar la página. Afectaba también a las secciones de
+  las carpetas.
+
 ## [2.12.1] - 2026-11-27
 
 ### Fixed

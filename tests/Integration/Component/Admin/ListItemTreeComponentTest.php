@@ -474,6 +474,46 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertStringNotContainsString('Itinerario Personal', $tree, 'the filter shows only what has no department');
     }
 
+    /**
+     * «Marcar por nombre» replaces what is checked (the leaves of an earlier search, often out of sight, used to stay checked and get
+     * the next «Asignar» too); «Búsqueda parcial» marks the leaves whose name contains the text. After «Asignar», the profile picker
+     * comes back empty, so the profiles just assigned are not sent again with the next ones.
+     */
+    public function testMarkByNameReplacesTheCheckedOnesAndCanMatchPartially(): void
+    {
+        $centre   = $this->centre();
+        $depts    = (new ListItem())->setEducationalCentre($centre)->setName('Departamento');
+        $fol      = (new ListItem())->setEducationalCentre($centre)->setName('FOL')->setParent($depts);
+        $subjects = (new ListItem())->setEducationalCentre($centre)->setName('Materia')->addLinkedList($depts);
+        $dam      = (new ListItem())->setEducationalCentre($centre)->setName('1º DAM')->setParent($subjects);
+        $ipe1     = (new ListItem())->setEducationalCentre($centre)->setName('Itinerario Personal para la Empleabilidad I')->setParent($dam);
+        $ipe2     = (new ListItem())->setEducationalCentre($centre)->setName('Itinerario Personal para la Empleabilidad II')->setParent($dam);
+        $prog     = (new ListItem())->setEducationalCentre($centre)->setName('Programación')->setParent($dam);
+        $admin    = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $depts, $fol, $subjects, $dam, $ipe1, $ipe2, $prog, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre, 'root' => $subjects], $this->client);
+        $component->call('toggleBulkSelectMode');
+
+        $component->set('markName', 'Programación')->call('markByName');
+        $component->set('markName', 'empleabilidad')->call('markByName');
+        self::assertSame([], $this->props($component)['bulkSelectedIds'], 'not an exact name: nothing marked, and «Programación» no longer either');
+
+        $component->set('markPartial', true)->call('markByName');
+        $checked = $this->props($component)['bulkSelectedIds'];
+        self::assertIsArray($checked);
+        sort($checked);
+        $expected = [$ipe1->getId()->toRfc4122(), $ipe2->getId()->toRfc4122()];
+        sort($expected);
+        self::assertSame($expected, $checked, 'partial: both «Empleabilidad», case and accents aside');
+
+        self::assertStringContainsString('id="bulk-association-picker-0"', $component->render()->toString());
+        $component->set('bulkAssociationKeys', ['l:' . $fol->getId()->toRfc4122()])->call('bulkSaveAssociation');
+        self::assertStringContainsString('id="bulk-association-picker-1"', $component->render()->toString(), 'a fresh, empty picker after «Asignar»');
+    }
+
     public function testBulkReplaceChangesOnlyTheAssociationsOfTheSameList(): void
     {
         $centre   = $this->centre();

@@ -182,7 +182,8 @@
     {% if bulkSelectMode %}
         <div class="overflow-hidden rounded-xl border border-violet-200 bg-violet-50/60 px-4 py-3">
             {% set bulk_groups = this.associationGroups %}
-            {# «Marcar por nombre»: checks every leaf with that name under the chosen branch, on top of what is checked. #}
+            {# «Marcar por nombre»: checks every leaf with that name (or containing it, «Búsqueda parcial») under the chosen branch, replacing
+               what was checked. #}
             {% set mark_within = this.markWithinOptions %}
             {% if mark_within is not empty %}
                 <form data-action="submit->live#action:prevent" data-live-action-param="markByName"
@@ -198,6 +199,12 @@
                             <option value="{{ option.id }}" {{ option.id == markWithinId ? 'selected' : '' }}>{{ 'responsibilities.lists.bulk.mark.within_option'|trans({'%name%': option.label}, 'admin') }}</option>
                         {% endfor %}
                     </select>
+                    <label class="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-violet-800"
+                           title="{{ 'responsibilities.lists.bulk.mark.partial_title'|trans({}, 'admin') }}">
+                        <input type="checkbox" data-model="norender|markPartial" {{ markPartial ? 'checked' : '' }} data-testid="mark-partial"
+                               class="h-4 w-4 rounded border-violet-300 text-violet-600 focus:ring-violet-500">
+                        {{ 'responsibilities.lists.bulk.mark.partial'|trans({}, 'admin') }}
+                    </label>
                     <button type="submit" class="shrink-0 rounded-lg border border-violet-300 bg-white px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50 transition-colors">
                         {{ 'responsibilities.lists.bulk.mark.submit'|trans({}, 'admin') }}
                     </button>
@@ -215,12 +222,11 @@
                             <option value="{{ mode }}" {{ bulkAssociationMode == mode ? 'selected' : '' }}>{{ ('responsibilities.lists.bulk.mode_' ~ mode)|trans({}, 'admin') }}</option>
                         {% endfor %}
                     </select>
-                    {# Stable id (never changes, unlike the single-item picker's sel.id-keyed one): this
-                       picker is never tied to one particular item, so it never needs to be torn down and
-                       rebuilt — data-live-ignore alone is enough to survive the re-renders bulkSelectedIds
-                       triggers on every checkbox click (kept live, unlike associationKeys, so the count
-                       above updates). #}
-                    <div id="bulk-association-picker" data-live-ignore class="min-w-[14rem] flex-1">
+                    {# data-live-ignore so it survives the re-renders bulkSelectedIds triggers on every checkbox click (kept live, unlike
+                       associationKeys, so the count above updates). Keyed by bulkAssociationRound on a wrapper outside the ignored part,
+                       like the teacher picker: after «Asignar» or «Quitar» a fresh, empty picker replaces it — otherwise the profiles
+                       just assigned stayed chosen and were sent again with the next ones. #}
+                    <div id="bulk-association-picker-{{ bulkAssociationRound }}" class="min-w-[14rem] flex-1"><div data-live-ignore>
                         <select multiple data-controller="tom-select"
                                 data-tom-select-placeholder-value="{{ 'responsibilities.lists.association.picker_placeholder'|trans({}, 'admin') }}"
                                 data-tom-select-no-results-value="{{ 'responsibilities.lists.association.picker_no_results'|trans({}, 'admin') }}"
@@ -235,7 +241,7 @@
                                 </optgroup>
                             {% endfor %}
                         </select>
-                    </div>
+                    </div></div>
                     <button type="button" data-action="live#action" data-live-action-param="bulkSaveAssociation"
                             {{ bulkSelectedIds is empty ? 'disabled' : '' }}
                             class="shrink-0 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
