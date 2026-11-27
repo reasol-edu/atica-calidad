@@ -7,6 +7,8 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.12.1] - 2026-11-27
+
 ### Fixed
 
 - Eliminar un elemento (o varios a la vez) dentro de una lista del catálogo daba un error 500 al volver a pintar la
