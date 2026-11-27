@@ -453,7 +453,12 @@
                         </form>
                         {% if linkedListsConfirmKey != '' %}
                             <div class="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800" data-testid="linked-lists-confirm">
-                                <span>{{ 'responsibilities.lists.linked_lists.confirm'|trans({'%count%': linkedListsConfirmCount}, 'admin') }}</span>
+                                {% if linkedListsConfirmCount > 0 %}
+                                    <span>{{ 'responsibilities.lists.linked_lists.confirm'|trans({'%count%': linkedListsConfirmCount}, 'admin') }}</span>
+                                {% endif %}
+                                {% if linkedListsConfirmActivities is not empty %}
+                                    <span data-testid="linked-lists-confirm-activities">{{ 'responsibilities.lists.linked_lists.confirm_activities'|trans({'%count%': linkedListsConfirmActivities|length, '%titles%': '«' ~ linkedListsConfirmActivities|join('», «') ~ '»'}, 'admin') }}</span>
+                                {% endif %}
                                 <button type="button" data-action="live#action" data-live-action-param="saveLinkedLists"
                                         class="rounded-md bg-amber-600 px-2 py-1 font-medium text-white hover:bg-amber-700">{{ 'responsibilities.lists.linked_lists.confirm_yes'|trans({}, 'admin') }}</button>
                                 <button type="button" data-action="live#action" data-live-action-param="cancelLinkedLists"

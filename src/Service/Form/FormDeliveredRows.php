@@ -60,7 +60,7 @@ final class FormDeliveredRows
      * slots of the activity and two queries per activity read, whatever the number of rows (never a query per row).
      *
      * @param array<string, mixed>                                                                                                    $definition
-     * @param array<string, array{slots: list<ActivitySubmissionSlot>, delivered: array<string, FormSubmissionRevision>, drafts: array<string, bool>}> $cache what was
+     * @param array<string, array{slots: list<ActivitySubmissionSlot>, byValue: array<int, array<string, list<ActivitySubmissionSlot>>>, delivered: array<string, FormSubmissionRevision>, drafts: array<string, bool>}> $cache what was
      *                                                                                                                                                  loaded of each source activity, to share between reads of one request
      *
      * @return array<string, array{sources: array<string, mixed>, values: array<string, array<string, mixed>>, columns: list<string>}>
@@ -84,7 +84,13 @@ final class FormDeliveredRows
             // The lists both activities split their submissions by (the same root): only the deliveries with this document's value
             // of each — the report of the 1ª reads the reviews of the 1ª.
             ['match' => $match, 'positions' => $positions] = self::sharedValues($activity, $source, $slotKey);
-            $candidates = array_values(array_filter($loaded['slots'], static function (ActivitySubmissionSlot $slot) use ($positions): bool {
+            // Only the slots with the first shared value (indexed once per source): a list of many rows does not walk every slot each time.
+            $pool = $loaded['slots'];
+            foreach ($positions as $position => $valueId) {
+                $pool = $loaded['byValue'][$position][$valueId] ?? [];
+                break;
+            }
+            $candidates = array_values(array_filter($pool, static function (ActivitySubmissionSlot $slot) use ($positions): bool {
                 foreach ($positions as $position => $valueId) {
                     if (($slot->combination[$position] ?? null)?->getId()->toRfc4122() !== $valueId) {
                         return false;
@@ -141,7 +147,7 @@ final class FormDeliveredRows
      *
      * $cache is shared with read(): to check the deliveries of a list, each source activity and year is loaded once.
      *
-     * @param array<string, array{slots: list<ActivitySubmissionSlot>, delivered: array<string, FormSubmissionRevision>, drafts: array<string, bool>}> $cache
+     * @param array<string, array{slots: list<ActivitySubmissionSlot>, byValue: array<int, array<string, list<ActivitySubmissionSlot>>>, delivered: array<string, FormSubmissionRevision>, drafts: array<string, bool>}> $cache
      *
      * @return array{count: int, titles: list<string>}
      */
@@ -176,7 +182,7 @@ final class FormDeliveredRows
         return ['count' => $count, 'titles' => array_values(array_unique($titles))];
     }
 
-    /** @return array{slots: list<ActivitySubmissionSlot>, delivered: array<string, FormSubmissionRevision>, drafts: array<string, bool>} */
+    /** @return array{slots: list<ActivitySubmissionSlot>, byValue: array<int, array<string, list<ActivitySubmissionSlot>>>, delivered: array<string, FormSubmissionRevision>, drafts: array<string, bool>} */
     private function load(Activity $source, int $cycleYear): array
     {
         $drafts = [];
@@ -186,8 +192,17 @@ final class FormDeliveredRows
             }
         }
 
+        $slots   = array_values($this->slots->buildSlots($source));
+        $byValue = [];
+        foreach ($slots as $slot) {
+            foreach ($slot->combination as $position => $value) {
+                $byValue[$position][$value->getId()->toRfc4122()][] = $slot;
+            }
+        }
+
         return [
-            'slots'     => array_values($this->slots->buildSlots($source)),
+            'slots'     => $slots,
+            'byValue'   => $byValue,
             'delivered' => $this->revisions->findLatestDeliveredByActivityCycle($source, $cycleYear),
             'drafts'    => $drafts,
         ];

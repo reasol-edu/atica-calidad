@@ -429,4 +429,47 @@ final class ActivityObligationFinderTest extends RepositoryTestCase
         self::assertFalse($completion->isCompletedFor($activity, $profile, null, null, $fisica, null, $byLabel['Jefatura · Física · 2ª']->combination), 'the 2ª is still to do');
         self::assertFalse($completion->isCompletedFor($activity, $profile, null, null, $fisica), 'nor is a completion without combination');
     }
+
+    public function testWithIndividualSubmissionsEachValueIsStillItsOwnObligationWithItsOwnDates(): void
+    {
+        self::mockTime('2025-12-10 10:00:00');
+        $centre   = $this->centre();
+        $category = $this->category($centre);
+        $section  = (new DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $folder   = (new Folder())->setDocumentSection($section)->setName('Carpeta');
+        $profile  = (new SpecificProfile())->setEducationalCentre($centre)->setName('Tutoría');
+        $folder->addUploadProfile($profile);
+        $evals  = (new ListItem())->setName('Evaluación')->setEducationalCentre($centre);
+        $first  = (new ListItem())->setName('1ª')->setEducationalCentre($centre)->setParent($evals)->setPosition(0);
+        $second = (new ListItem())->setName('2ª')->setEducationalCentre($centre)->setParent($evals)->setPosition(1);
+        $activity = $this->activity($category)->setFolder($folder)->setSubmissionScope(ActivitySubmissionScope::Individual)->setDimensions([$evals], 0);
+        $activity->setDeadlineOverride($first, 1, 12, 20, 12);
+        $activity->setDeadlineOverride($second, 1, 3, 20, 3);
+        $teacher = $this->teacher('docente');
+        $this->persist($centre, $category, $section, $folder, $profile, $evals, $first, $second, $activity, $teacher, new SpecificProfileAssignment($profile, null, $teacher));
+
+        $byLabel = [];
+        foreach ($this->finder->forTeacher($teacher, $centre) as $item) {
+            $byLabel[(string) $item->ownerLabel] = $item;
+        }
+        self::assertSame(['1ª', '2ª'], array_keys($byLabel), 'one per evaluation, not one for the whole activity');
+        self::assertSame('2025-12-20', $byLabel['1ª']->deadline->format('Y-m-d'));
+        self::assertSame('2026-03-20', $byLabel['2ª']->deadline->format('Y-m-d'));
+        self::assertSame(ActivityObligationStatus::Open, $byLabel['1ª']->status);
+        self::assertSame(ActivityObligationStatus::Upcoming, $byLabel['2ª']->status);
+
+        // Ticking off the 1ª by hand (OwnCompletionManager, as the list does) leaves the 2ª to do.
+        $manager = self::getContainer()->get(\App\Service\OwnCompletionManager::class);
+        self::assertSame(\App\Model\OwnCompletionOutcome::Marked, $manager->mark($teacher, $activity, $centre, '', '', '', $byLabel['1ª']->combination));
+        $this->em->flush();
+        $statuses = [];
+        foreach ($this->finder->forTeacher($teacher, $centre) as $item) {
+            $statuses[(string) $item->ownerLabel] = $item->status;
+        }
+        self::assertSame(ActivityObligationStatus::Completed, $statuses['1ª']);
+        self::assertSame(ActivityObligationStatus::Upcoming, $statuses['2ª']);
+
+        $this->expectException(\Symfony\Component\Security\Core\Exception\AccessDeniedException::class);
+        $manager->mark($teacher, $activity, $centre, '', '', '', 'not-a-combination');
+    }
 }

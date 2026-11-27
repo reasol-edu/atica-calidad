@@ -65,6 +65,7 @@ final readonly class ActivitySubmissionSlot
      */
     public function deadlineItem(\App\Entity\Activity $activity): ?ListItem
     {
+        // The same rule as ActivityLeafResolver::datedValueOf(), on the values this slot already holds.
         foreach ($activity->getDimensions() as $index => $dimension) {
             if ($dimension->isDated()) {
                 return $this->combination[$index] ?? $this->nameListItem;

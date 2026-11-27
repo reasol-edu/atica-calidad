@@ -47,15 +47,17 @@ class AcademicYearSetupController extends AbstractController
     {
         $centre = $this->requireCentre($centreId);
         $target = $this->checklist->targetYear($centre);
+        // Walks the whole catalogue: once, for the step and for its list.
+        $staleSubjects = $target === null ? [] : $this->checklist->staleSubjectTeachers($centre, $target);
 
         return $this->render('admin/academic_year/setup.html.twig', [
             'centre'        => $centre,
             'target'        => $target,
-            'steps'         => $this->checklist->steps($centre, $target),
+            'steps'         => $this->checklist->steps($centre, $target, $staleSubjects),
             'suggestedName' => $this->checklist->suggestedName($centre),
             'copySources'   => $this->checklist->copySources($centre, $target),
             'stale'         => $target === null ? [] : $this->checklist->staleAssignments($centre, $target),
-            'staleSubjects' => $target === null ? [] : $this->checklist->staleSubjectTeachers($centre, $target),
+            'staleSubjects' => $staleSubjects,
         ]);
     }
 

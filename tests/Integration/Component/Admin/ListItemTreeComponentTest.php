@@ -377,6 +377,41 @@ final class ListItemTreeComponentTest extends ControllerTestCase
         self::assertSame([], $items->findByIdAndCentre($subjects->getId()->toRfc4122(), $centre)?->getLinkedLists());
     }
 
+    public function testTakingAwayAListAnActivitySplitsByAsksFirstEvenWithoutAssociations(): void
+    {
+        $centre   = $this->centre();
+        $evals    = (new ListItem())->setEducationalCentre($centre)->setName('Evaluación');
+        $first    = (new ListItem())->setEducationalCentre($centre)->setName('1ª')->setParent($evals);
+        $subjects = (new ListItem())->setEducationalCentre($centre)->setName('Materia')->addLinkedList($evals);
+        $subject  = (new ListItem())->setEducationalCentre($centre)->setName('Programación')->setParent($subjects);
+        $category = (new \App\Entity\ActivityCategory())->setEducationalCentre($centre)->setName('Programaciones');
+        $section  = (new \App\Entity\DocumentSection())->setEducationalCentre($centre)->setName('Sección');
+        $folder   = (new \App\Entity\Folder())->setDocumentSection($section)->setName('Revisiones');
+        $activity = (new \App\Entity\Activity())->setCategory($category)->setTitle('Revisión de la programación')->setStart(1, 10)->setEnd(31, 10)->setFolder($folder)
+            ->setListItem($subjects)->setDimensions([$evals], 0);
+        $admin    = $this->admin();
+        $centre->getAdmins()->add($admin);
+        $this->persist($centre, $evals, $first, $subjects, $subject, $category, $section, $folder, $activity, $admin);
+
+        $this->loginAs($admin, $centre);
+        $component = $this->createLiveComponent('Admin:ListItemTreeComponent', ['centre' => $centre, 'root' => $subjects], $this->client);
+        $component->call('selectItem', ['id' => $subjects->getId()->toRfc4122()]);
+
+        // No element is associated with an evaluation yet, but the activity would ask every subject for every one.
+        $component->set('linkedListIds', [])->call('saveLinkedLists');
+        self::assertSame(['Revisión de la programación'], $this->props($component)['linkedListsConfirmActivities']);
+        self::assertStringContainsString('«Revisión de la programación» se reparte por esa lista', $component->render()->toString());
+        $this->em->clear();
+        /** @var ListItemRepository $items */
+        $items = self::getContainer()->get(ListItemRepository::class);
+        self::assertCount(1, $items->findByIdAndCentre($subjects->getId()->toRfc4122(), $centre)?->getLinkedLists() ?? [], 'nothing changed yet');
+
+        $component->call('saveLinkedLists');
+        $this->em->clear();
+        $items->reset();
+        self::assertSame([], $items->findByIdAndCentre($subjects->getId()->toRfc4122(), $centre)?->getLinkedLists());
+    }
+
     public function testMarkByNameChecksEveryLeafWithThatNameUnderTheBranchAndTheCounterFiltersTheMissingOnes(): void
     {
         $centre   = $this->centre();

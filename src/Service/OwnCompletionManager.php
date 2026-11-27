@@ -51,12 +51,21 @@ class OwnCompletionManager
         }
 
         if ($profile === null) {
-            if ($listItem !== null || $leaf !== null || $combination !== '' || !$this->completion->hasIndividualCompletionOwner($activity)
+            if ($listItem !== null || $leaf !== null || !$this->completion->hasIndividualCompletionOwner($activity)
                 || !$this->completion->isApplicableToTeacher($teacher, $activity)) {
                 throw new AccessDeniedException();
             }
+            if ($combination === '') {
+                return [null, null, null, null];
+            }
+            // Individual, with «Una entrega por»: one of the combinations the teacher really owes.
+            foreach ($this->completion->getMyOwnedObligations($teacher, $activity) as $obligation) {
+                if ($obligation['combination'] === $combination) {
+                    return [null, null, null, $combination];
+                }
+            }
 
-            return [null, null, null, null];
+            throw new AccessDeniedException();
         }
 
         foreach ($this->completion->getMyCompletionOwners($teacher, $activity) as $owner) {

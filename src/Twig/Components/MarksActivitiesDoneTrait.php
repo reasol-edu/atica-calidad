@@ -25,7 +25,7 @@ trait MarksActivitiesDoneTrait
      * The activity just ticked off with markDone(), for the "Deshacer" line (null for none). Not
      * writable, so the browser can't alter it; undoing still re-checks the owner server-side.
      *
-     * @var array{activityId: string, profileId: string, listItemId: string, leafId: string, title: string}|null
+     * @var array{activityId: string, profileId: string, listItemId: string, leafId: string, combination?: string, title: string}|null
      */
     #[LiveProp]
     public ?array $lastDone = null;
@@ -36,15 +36,16 @@ trait MarksActivitiesDoneTrait
      * isn't really offered; the list then re-renders without the line.
      */
     #[LiveAction]
-    public function markDone(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = '', #[LiveArg] string $leafId = ''): void
+    public function markDone(#[LiveArg] string $activityId, #[LiveArg] string $profileId = '', #[LiveArg] string $listItemId = '', #[LiveArg] string $leafId = '', #[LiveArg] string $combination = ''): void
     {
         $activity = $this->requireActivity($activityId);
 
-        $outcome = $this->ownCompletions->mark($this->teacher(), $activity, $this->centre, $profileId, $listItemId, $leafId);
+        // With «Una entrega por», the combination (the evaluation…) is part of whose the line is.
+        $outcome = $this->ownCompletions->mark($this->teacher(), $activity, $this->centre, $profileId, $listItemId, $leafId, $combination);
         if ($outcome === OwnCompletionOutcome::Marked) {
             // Instead of a flash: a line in the card itself with "Deshacer", since the row changes
             // and a stray tap (easy on a phone) would otherwise be a trip to the activity to undo.
-            $this->lastDone = ['activityId' => $activityId, 'profileId' => $profileId, 'listItemId' => $listItemId, 'leafId' => $leafId, 'title' => $activity->getTitle()];
+            $this->lastDone = ['activityId' => $activityId, 'profileId' => $profileId, 'listItemId' => $listItemId, 'leafId' => $leafId, 'combination' => $combination, 'title' => $activity->getTitle()];
         } elseif ($outcome === OwnCompletionOutcome::OutOfWindow) {
             // Only this fragment re-renders, so the flash goes out as a browser event the layout shows.
             $this->dispatchBrowserEvent('flash:show', ['type' => 'error', 'message' => $this->translator->trans('completion.error.out_of_window', [], 'activity_content')]);
@@ -62,7 +63,7 @@ trait MarksActivitiesDoneTrait
         $this->lastDone = null;
 
         $activity = $this->requireActivity($done['activityId']);
-        if ($this->ownCompletions->unmark($this->teacher(), $activity, $this->centre, $done['profileId'], $done['listItemId'], $done['leafId'])) {
+        if ($this->ownCompletions->unmark($this->teacher(), $activity, $this->centre, $done['profileId'], $done['listItemId'], $done['leafId'], $done['combination'] ?? '')) {
             $this->dispatchBrowserEvent('flash:show', ['type' => 'success', 'message' => $this->translator->trans('activity.flash.completion_undone', [], 'admin')]);
         }
     }

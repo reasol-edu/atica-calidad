@@ -87,21 +87,32 @@ final class ActivityLeafResolver implements ResetInterface
      */
     public function findDeadlineItemForDocument(Activity $activity, Document $document): ?ListItem
     {
-        $combination = $document->getSlotCombination();
-        if ($combination !== null) {
-            $ids = explode('+', $combination);
-            foreach ($activity->getDimensions() as $index => $dimension) {
-                if ($dimension->isDated() && isset($ids[$index])) {
-                    foreach ($this->listItems->findLeafDescendants($dimension->getList()) as $value) {
-                        if ($value->getId()->toRfc4122() === $ids[$index]) {
-                            return $value;
-                        }
+        return $this->datedValueOf($activity, $document->getSlotCombination()) ?? $this->findLeafForDocument($activity, $document);
+    }
+
+    /**
+     * THE rule of which element gives the dates of a combination: the value, in $combination (ids joined by «+», in the dimensions'
+     * order), of the activity's dimension with dates. Null without a combination, without a dimension with dates or when the value is
+     * no longer one of its leaves — then the element's own dates apply. ActivitySubmissionSlot::deadlineItem() applies the same rule
+     * to the values a slot already holds.
+     */
+    public function datedValueOf(Activity $activity, ?string $combination): ?ListItem
+    {
+        if ($combination === null || $combination === '') {
+            return null;
+        }
+        $ids = explode('+', $combination);
+        foreach ($activity->getDimensions() as $index => $dimension) {
+            if ($dimension->isDated() && isset($ids[$index])) {
+                foreach ($this->listItems->findLeafDescendants($dimension->getList()) as $value) {
+                    if ($value->getId()->toRfc4122() === $ids[$index]) {
+                        return $value;
                     }
                 }
             }
         }
 
-        return $this->findLeafForDocument($activity, $document);
+        return null;
     }
 
     /** Any flush may have renamed, moved or added elements: the names are worked out again. */

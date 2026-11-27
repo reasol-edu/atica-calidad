@@ -104,6 +104,15 @@ class ListItemTreeComponent extends AbstractController
     #[LiveProp]
     public int $linkedListsConfirmCount = 0;
 
+    /**
+     * The activities split by a list that goes («Una entrega por») over elements of this one: they would ask every element for every
+     * value of it from then on. Their titles, said in the same confirmation.
+     *
+     * @var list<string>
+     */
+    #[LiveProp]
+    public array $linkedListsConfirmActivities = [];
+
     /** The tree shows only the leaves with no element of this list (its id), own or inherited; '' = everything. */
     #[LiveProp(writable: true)]
     public string $onlyWithoutLinkTo = '';
@@ -502,8 +511,9 @@ class ListItemTreeComponent extends AbstractController
         $this->associationKeys   = $this->associationKeysFor($selected);
         $this->teacherIds        = array_map(static fn (Teacher $t): string => $t->getId()->toRfc4122(), $selected?->getTeachers() ?? []);
         $this->linkedListIds     = array_map(static fn (ListItem $l): string => $l->getId()->toRfc4122(), $this->managedList()?->getLinkedLists() ?? []);
-        $this->linkedListsConfirmKey   = '';
-        $this->linkedListsConfirmCount = 0;
+        $this->linkedListsConfirmKey        = '';
+        $this->linkedListsConfirmCount      = 0;
+        $this->linkedListsConfirmActivities = [];
     }
 
     /** @return string[] */
@@ -938,10 +948,12 @@ class ListItemTreeComponent extends AbstractController
         foreach ($removed as $gone) {
             $count += $this->linksTo($list, $gone);
         }
+        $activities = $this->activitiesSplitBy($list, $removed);
         $confirmKey = implode(',', array_map(static fn (ListItem $l): string => $l->getId()->toRfc4122(), $removed));
-        if ($count > 0 && $this->linkedListsConfirmKey !== $confirmKey) {
-            $this->linkedListsConfirmKey   = $confirmKey;
-            $this->linkedListsConfirmCount = $count;
+        if (($count > 0 || $activities !== []) && $this->linkedListsConfirmKey !== $confirmKey) {
+            $this->linkedListsConfirmKey        = $confirmKey;
+            $this->linkedListsConfirmCount      = $count;
+            $this->linkedListsConfirmActivities = $activities;
 
             return;
         }
@@ -957,16 +969,59 @@ class ListItemTreeComponent extends AbstractController
         }
         $this->em->flush();
 
-        $this->linkedListsConfirmKey   = '';
-        $this->linkedListsConfirmCount = 0;
+        $this->linkedListsConfirmKey        = '';
+        $this->linkedListsConfirmCount      = 0;
+        $this->linkedListsConfirmActivities = [];
         $this->flashSuccess($this->t('responsibilities.lists.linked_lists.flash.saved'));
+    }
+
+    /**
+     * The titles of the activities over $list (its root or a branch) that split their submissions by one of $lists: without the
+     * association, their dimension takes every value for every element.
+     *
+     * @param list<ListItem> $lists
+     *
+     * @return list<string>
+     */
+    private function activitiesSplitBy(ListItem $list, array $lists): array
+    {
+        if ($lists === []) {
+            return [];
+        }
+        $roots = [];
+        foreach ($lists as $gone) {
+            $roots[$gone->getRoot()->getId()->toRfc4122()] = true;
+        }
+        $titles = [];
+        /** @var list<\App\Entity\Activity> $activities */
+        $activities = $this->em->createQueryBuilder()
+            ->select('DISTINCT a')->from(\App\Entity\Activity::class, 'a')
+            ->join('a.dimensions', 'd')->join('a.category', 'c')
+            ->where('c.educationalCentre = :centre')->setParameter('centre', $this->centre->getId(), 'uuid')
+            ->getQuery()->getResult();
+        foreach ($activities as $activity) {
+            $item = $activity->getListItem();
+            if ($item === null || $item->getRoot() !== $list->getRoot()) {
+                continue;
+            }
+            foreach ($activity->getDimensions() as $dimension) {
+                if (isset($roots[$dimension->getList()->getRoot()->getId()->toRfc4122()])) {
+                    $titles[] = $activity->getTitle();
+                    break;
+                }
+            }
+        }
+        sort($titles);
+
+        return $titles;
     }
 
     #[LiveAction]
     public function cancelLinkedLists(): void
     {
-        $this->linkedListsConfirmKey   = '';
-        $this->linkedListsConfirmCount = 0;
+        $this->linkedListsConfirmKey        = '';
+        $this->linkedListsConfirmCount      = 0;
+        $this->linkedListsConfirmActivities = [];
         $this->linkedListIds           = array_map(static fn (ListItem $l): string => $l->getId()->toRfc4122(), $this->managedList()?->getLinkedLists() ?? []);
     }
 
@@ -1406,7 +1461,8 @@ class ListItemTreeComponent extends AbstractController
 
     /**
      * Applies the associations in $bulkAssociationKeys to every checked item at once, as $bulkAssociationMode says: 'add' them on top
-     * of what each has, 'replace' what each has of the same lists (or the same plain profiles) with them, or 'remove' them. Only the
+     * of what each has, 'replace' what each has of the same lists with them — the plain profiles count as one more list: picking one
+     * replaces all of an item's plain profiles, as picking an element of «Departamento» replaces its departments —, or 'remove' them. Only the
      * items' own ones: what they inherit is their ancestors'.
      */
     #[LiveAction]

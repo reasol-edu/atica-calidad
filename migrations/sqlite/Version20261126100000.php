@@ -43,7 +43,8 @@ final class Version20261126100000 extends AbstractMigration
         $this->addSql('CREATE TEMPORARY TABLE __temp__list_item_profile AS SELECT id, list_item_id, specific_profile_id FROM list_item_profile WHERE subprofile_id IS NULL');
         $this->addSql('DROP TABLE list_item_profile');
         $this->addSql('CREATE TABLE list_item_profile (id BLOB NOT NULL, list_item_id BLOB NOT NULL, specific_profile_id BLOB NOT NULL, PRIMARY KEY (id), CONSTRAINT FK_F0EF6940CE208F53 FOREIGN KEY (list_item_id) REFERENCES list_item (id) ON UPDATE NO ACTION ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE, CONSTRAINT FK_F0EF6940DF5533E FOREIGN KEY (specific_profile_id) REFERENCES specific_profile (id) ON UPDATE NO ACTION ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE)');
-        $this->addSql('INSERT INTO list_item_profile (id, list_item_id, specific_profile_id) SELECT id, list_item_id, specific_profile_id FROM __temp__list_item_profile');
+        // The old unique index had the nullable subprofile_id in it, so nothing stopped the same element and profile twice: one each.
+        $this->addSql('INSERT INTO list_item_profile (id, list_item_id, specific_profile_id) SELECT MIN(id), list_item_id, specific_profile_id FROM __temp__list_item_profile GROUP BY list_item_id, specific_profile_id');
         $this->addSql('DROP TABLE __temp__list_item_profile');
         $this->addSql('CREATE INDEX IDX_F0EF6940DF5533E ON list_item_profile (specific_profile_id)');
         $this->addSql('CREATE INDEX IDX_F0EF6940CE208F53 ON list_item_profile (list_item_id)');

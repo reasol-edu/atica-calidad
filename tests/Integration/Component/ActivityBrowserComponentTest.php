@@ -928,6 +928,11 @@ final class ActivityBrowserComponentTest extends ControllerTestCase
         self::assertStringContainsString('Se pedirán 4 entregas (de 2 elementos de la lista)', $html, 'Física and Lengua, each in the 1ª and the 2ª');
         self::assertStringContainsString('Todos sus elementos', $html, 'not associated with «Materias»: a free list');
 
+        // Marked by mistake and back: «Ninguna» returns the dates to the elements.
+        $component->set('formDatedDimensionId', $evals->getId()->toRfc4122());
+        self::assertCount(1, $component->render()->crawler()->filter('[data-testid="dimension-dated-none"]'));
+        $component->set('formDatedDimensionId', '');
+        self::assertStringNotContainsString('Fechas de cada «Evaluación»', $component->render()->toString());
         $component->set('formDatedDimensionId', $evals->getId()->toRfc4122());
         $dates = $component->render()->crawler()->filter('[id^="activity-form-deadlines-"]');
         self::assertStringContainsString('Fechas de cada «Evaluación»', $dates->text());

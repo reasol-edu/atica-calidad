@@ -218,7 +218,8 @@ al contador de elementos en pequeñas— sustituye el botón de cada elemento po
 selección no se limita a los hijos de un mismo elemento. Con uno o más marcados, la barra de abajo
 ofrece el mismo buscador y qué hacer con lo elegido: **Añadir** (se suma a lo que tenga cada
 elemento), **Sustituir las de esa lista** (las asociaciones de cada elemento con esa lista pasan a ser
-las elegidas; las de las otras listas no se tocan) o **Quitar**; y **Quitar asociaciones** se las
+las elegidas; las de las otras listas no se tocan, y los perfiles sin lista cuentan como una lista más:
+sustituir por «Orientador/a» deja ese perfil en lugar de los perfiles sin lista que tuviera) o **Quitar**; y **Quitar asociaciones** se las
 quita todas. **Marcar por nombre** marca, sin distinguir mayúsculas ni tildes, todas las hojas con
 ese nombre exacto dentro de la lista o de la rama elegida en **dentro de**: con «Itinerario Personal
 para la Empleabilidad I» se marcan de una vez las de todos los cursos para asociarlas a FOL. El

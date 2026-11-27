@@ -99,7 +99,7 @@ trait ActivitySubmissions
         $this->formDeliveredByCycle[$key] ??= $this->formRevisions->findLatestDeliveredByActivityCycle($activity, $cycle);
         $filled = $this->formDeliveredByCycle[$key][$slot->key()] ?? null;
 
-        /** @var array<string, array{slots: list<ActivitySubmissionSlot>, delivered: array<string, \App\Entity\FormSubmissionRevision>, drafts: array<string, bool>}> $cache */
+        /** @var array<string, array{slots: list<ActivitySubmissionSlot>, byValue: array<int, array<string, list<ActivitySubmissionSlot>>>, delivered: array<string, \App\Entity\FormSubmissionRevision>, drafts: array<string, bool>}> $cache */
         $cache  = &$this->deliveredSources;
 
         return $filled !== null && $this->deliveredRows->outdated($filled, $cache)['count'] > 0;

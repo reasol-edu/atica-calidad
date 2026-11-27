@@ -154,7 +154,8 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
     public function findAllByCentre(EducationalCentre $centre): array
     {
         // The associated teachers come along (with the teacher itself, a to-one): the tree paints a badge with their names.
-        return $this->createQueryBuilder('li')
+        /** @var ListItem[] $items */
+        $items = $this->createQueryBuilder('li')
             ->leftJoin('li.profileAssociations', 'pa')
             ->addSelect('pa')
             ->leftJoin('li.teacherAssociations', 'ta')
@@ -166,6 +167,20 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
             ->orderBy('li.position')
             ->getQuery()
             ->getResult();
+
+        // The elements of other lists each one is associated with, and the lists a list is: the tree asks every node. In a second query
+        // (the same entities fill their collections), not as more joins of the first, which would multiply its rows.
+        $this->createQueryBuilder('li')
+            ->leftJoin('li.links', 'lk')
+            ->addSelect('lk')
+            ->leftJoin('li.linkedLists', 'll')
+            ->addSelect('ll')
+            ->where('li.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid')
+            ->getQuery()
+            ->getResult();
+
+        return $items;
     }
 
     /**

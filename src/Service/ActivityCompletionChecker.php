@@ -54,7 +54,7 @@ final class ActivityCompletionChecker implements ResetInterface
         private readonly EntityManagerInterface $em,
         private readonly ActivityDeadlineChecker $deadline,
         private readonly SlotResponsibility $responsibility,
-        private readonly \App\Repository\ListItemRepository $listItems,
+        private readonly ActivityLeafResolver $leaves,
     ) {}
 
     /** @return ActivitySubmissionSlot[] every expected submission of $activity. */
@@ -245,11 +245,30 @@ final class ActivityCompletionChecker implements ResetInterface
         }
 
         if ($this->hasIndividualCompletionOwner($activity)) {
-            if ($this->getMyOwnedSlots($teacher, $activity) === []) {
+            $slots = $this->getMyOwnedSlots($teacher, $activity);
+            if ($slots === []) {
                 return [];
             }
+            if ($activity->getDimensions() === []) {
+                return [['profile' => null, 'listItem' => null, 'leaf' => null, 'teacher' => $teacher, 'label' => null, 'key' => '', 'combination' => null, 'deadlineItem' => null]];
+            }
 
-            return [['profile' => null, 'listItem' => null, 'leaf' => null, 'teacher' => $teacher, 'label' => null, 'key' => '', 'combination' => null, 'deadlineItem' => null]];
+            // With «Una entrega por», each combination (the 1ª, the 2ª…) is an obligation of its own, with its own dates.
+            $byCombination = [];
+            foreach ($slots as $slot) {
+                $byCombination[$slot->combinationKey()] ??= [
+                    'profile'      => null,
+                    'listItem'     => null,
+                    'leaf'         => null,
+                    'teacher'      => $teacher,
+                    'label'        => implode(' · ', array_map(static fn (ListItem $value): string => $value->getName(), $slot->combination)),
+                    'key'          => $slot->combinationKey(),
+                    'combination'  => $slot->combinationKey(),
+                    'deadlineItem' => $slot->deadlineItem($activity),
+                ];
+            }
+
+            return array_values($byCombination);
         }
 
         return array_map(
@@ -300,21 +319,7 @@ final class ActivityCompletionChecker implements ResetInterface
      */
     public function deadlineItemOf(Activity $activity, ?ListItem $leaf, ?string $combination): ?ListItem
     {
-        if ($combination === null || $combination === '') {
-            return $leaf;
-        }
-        $ids = explode('+', $combination);
-        foreach ($activity->getDimensions() as $index => $dimension) {
-            if ($dimension->isDated() && isset($ids[$index])) {
-                foreach ($this->listItems->findLeafDescendants($dimension->getList()) as $value) {
-                    if ($value->getId()->toRfc4122() === $ids[$index]) {
-                        return $value;
-                    }
-                }
-            }
-        }
-
-        return $leaf;
+        return $this->leaves->datedValueOf($activity, $combination) ?? $leaf;
     }
 
     /**

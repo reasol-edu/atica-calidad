@@ -88,14 +88,19 @@ final class AcademicYearSetupChecklist
         return $years;
     }
 
-    /** @return list<AcademicYearSetupStep> in the order they're best done */
-    public function steps(EducationalCentre $centre, ?AcademicYear $target): array
+    /**
+     * @param list<array{item: ListItem, path: string, teacher: Teacher}>|null $staleSubjects staleSubjectTeachers(), when the caller
+     *                                                                                    already has it (it walks the whole catalogue)
+     *
+     * @return list<AcademicYearSetupStep> in the order they're best done
+     */
+    public function steps(EducationalCentre $centre, ?AcademicYear $target, ?array $staleSubjects = null): array
     {
         $active   = $target !== null && $centre->getActiveAcademicYear() === $target;
         $teachers = $target?->getTeachers()->count() ?? 0;
         $days     = $target === null ? 0 : \count($this->nonWorkingDays->findByAcademicYearOrdered($target));
         $stale    = $target === null ? 0 : \count($this->staleAssignments($centre, $target));
-        $subjects = $target === null || $teachers === 0 ? 0 : \count($this->staleSubjectTeachers($centre, $target));
+        $subjects = $target === null || $teachers === 0 ? 0 : \count($staleSubjects ?? $this->staleSubjectTeachers($centre, $target));
         $flagged  = $target === null || $teachers === 0 ? 0 : $this->activityReview->countWithIssues($centre, $target);
 
         return [

@@ -39,6 +39,8 @@ final class Version20261126100000 extends AbstractMigration
         $this->addSql('INSERT INTO list_item_link (list_item_id, linked_item_id) SELECT DISTINCT list_item_id, subprofile_id FROM list_item_profile WHERE subprofile_id IS NOT NULL');
         $this->addSql('INSERT INTO list_item_linked_list (list_id, linked_list_id) ' . self::ROOTS . ' SELECT DISTINCT a.root_id, b.root_id FROM list_item_profile p JOIN r a ON a.id = p.list_item_id JOIN r b ON b.id = p.subprofile_id WHERE p.subprofile_id IS NOT NULL');
         $this->addSql('DELETE FROM list_item_profile WHERE subprofile_id IS NOT NULL');
+        // The old unique index had the nullable subprofile_id in it, so nothing stopped the same element and profile twice: one each.
+        $this->addSql('DELETE a FROM list_item_profile a JOIN list_item_profile b ON a.list_item_id = b.list_item_id AND a.specific_profile_id = b.specific_profile_id AND a.id > b.id');
 
         $this->addSql('ALTER TABLE list_item_profile DROP FOREIGN KEY FK_F0EF6940936BF51B');
         $this->addSql('DROP INDEX IDX_F0EF6940936BF51B ON list_item_profile');
