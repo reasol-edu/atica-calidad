@@ -15,6 +15,7 @@ use App\Search\TextNormalizer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -220,7 +221,7 @@ class ImprovementActionRepository extends ServiceEntityRepository
             )
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', TextNormalizer::likeContains($query))
-            ->orderBy('a.dueDate', 'DESC')
+            ->orderBy('a.dueDate', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();

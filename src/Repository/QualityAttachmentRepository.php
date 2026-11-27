@@ -12,6 +12,7 @@ use App\Entity\TextIndexStatus;
 use App\Search\TextNormalizer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -77,6 +78,6 @@ class QualityAttachmentRepository extends ServiceEntityRepository
             $qb->andWhere(\sprintf("t.folded LIKE :term%d ESCAPE '!'", $i))->setParameter('term' . $i, TextNormalizer::likeContains($term));
         }
 
-        return $qb->orderBy('q.uploadedAt', 'DESC')->addOrderBy('q.id')->setMaxResults($limit)->setFirstResult($offset)->getQuery()->getResult();
+        return $qb->orderBy('q.uploadedAt', SortDirection::Descending)->addOrderBy('q.id')->setMaxResults($limit)->setFirstResult($offset)->getQuery()->getResult();
     }
 }

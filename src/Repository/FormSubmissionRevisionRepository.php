@@ -9,6 +9,7 @@ use App\Entity\FormSubmission;
 use App\Entity\FormSubmissionRevision;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -57,7 +58,7 @@ class FormSubmissionRevisionRepository extends ServiceEntityRepository
             ->join('s.revision', 'r')->addSelect('r')
             ->where('s.submission = :submission')
             ->setParameter('submission', $submission->getId(), 'uuid')
-            ->orderBy('r.version', 'DESC')
+            ->orderBy('r.version', SortDirection::Descending)
             ->getQuery()
             ->getResult();
 
@@ -84,7 +85,7 @@ class FormSubmissionRevisionRepository extends ServiceEntityRepository
             ->andWhere('r.rejected = false')
             ->setParameter('activity', $activity->getId(), 'uuid')
             ->setParameter('cycle', $cycleYear)
-            ->orderBy('r.version', 'DESC')
+            ->orderBy('r.version', SortDirection::Descending)
             ->getQuery()
             ->getResult();
 
@@ -116,7 +117,7 @@ class FormSubmissionRevisionRepository extends ServiceEntityRepository
             ->andWhere('NOT EXISTS (SELECT 1 FROM ' . FormSubmissionRevision::class . ' s2 JOIN s2.revision r2 WHERE s2.submission = s.submission AND r2.version > r.version)')
             ->setParameter('activity', $activity->getId(), 'uuid')
             ->setParameter('cycle', $cycleYear)
-            ->orderBy('r.version', 'DESC')
+            ->orderBy('r.version', SortDirection::Descending)
             ->getQuery()
             ->getResult();
 
@@ -153,7 +154,7 @@ class FormSubmissionRevisionRepository extends ServiceEntityRepository
             ->join('s.revision', 'r')
             ->where('s.submission = :submission')
             ->setParameter('submission', $submission->getId(), 'uuid')
-            ->orderBy('r.version', 'DESC')
+            ->orderBy('r.version', SortDirection::Descending)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

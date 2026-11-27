@@ -339,7 +339,7 @@ class FindingRepository extends ServiceEntityRepository
             )
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', TextNormalizer::likeContains($query))
-            ->orderBy('f.reportedAt', 'DESC')
+            ->orderBy('f.reportedAt', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();

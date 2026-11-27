@@ -11,6 +11,7 @@ use Doctrine\ORM\AbstractQuery;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -137,8 +138,8 @@ class DocumentFileTextRepository extends ServiceEntityRepository
                 ->setParameter('statuses', $statuses)
                 ->setParameter('types', $mimeTypes)
                 ->setParameter('max', $maxBytes)
-                ->orderBy('t.indexedAt', 'ASC')
-                ->addOrderBy('t.id', 'ASC')
+                ->orderBy('t.indexedAt', SortDirection::Ascending)
+                ->addOrderBy('t.id', SortDirection::Ascending)
                 ->setMaxResults($limit - \count($ids));
             if ($statuses[0] !== TextIndexStatus::OcrPending) {
                 $qb->andWhere('t.ocrPage IS NULL');

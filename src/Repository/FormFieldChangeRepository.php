@@ -9,6 +9,7 @@ use App\Entity\FormSubmission;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 
 /**
  * @extends ServiceEntityRepository<FormFieldChange>
@@ -30,7 +31,7 @@ class FormFieldChangeRepository extends ServiceEntityRepository
         /** @var list<FormFieldChange> $changes */
         $changes = $this->forValue($submission, $blockKey, $path, $rowKey, $columnKey)
             ->leftJoin('c.changedBy', 'author')->addSelect('author')
-            ->orderBy('c.changedAt', 'DESC')->addOrderBy('c.id', 'DESC')
+            ->orderBy('c.changedAt', SortDirection::Descending)->addOrderBy('c.id', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
@@ -42,7 +43,7 @@ class FormFieldChangeRepository extends ServiceEntityRepository
     public function findLastForValue(FormSubmission $submission, string $blockKey, string $path, ?string $rowKey, ?string $columnKey): ?FormFieldChange
     {
         $change = $this->forValue($submission, $blockKey, $path, $rowKey, $columnKey)
-            ->orderBy('c.changedAt', 'DESC')->addOrderBy('c.id', 'DESC')
+            ->orderBy('c.changedAt', SortDirection::Descending)->addOrderBy('c.id', SortDirection::Descending)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

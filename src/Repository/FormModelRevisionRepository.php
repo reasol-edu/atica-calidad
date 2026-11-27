@@ -9,6 +9,7 @@ use App\Entity\FormModel;
 use App\Entity\FormModelRevision;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -34,7 +35,7 @@ class FormModelRevisionRepository extends ServiceEntityRepository
             ->join('r.revision', 'dr')
             ->where('r.model = :model')
             ->setParameter('model', $model->getId(), 'uuid')
-            ->orderBy('dr.version', 'DESC')
+            ->orderBy('dr.version', SortDirection::Descending)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

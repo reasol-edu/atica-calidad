@@ -8,6 +8,7 @@ use App\Entity\Indicator;
 use App\Entity\IndicatorFormSource;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 
 /**
  * @extends ServiceEntityRepository<IndicatorFormSource>
@@ -34,7 +35,7 @@ class IndicatorFormSourceRepository extends ServiceEntityRepository
             ->join('s.indicator', 'i')->addSelect('i')
             ->where('a.formModel = :model')
             ->setParameter('model', $model->getId(), 'uuid')
-            ->orderBy('i.name', 'ASC')
+            ->orderBy('i.name', SortDirection::Ascending)
             ->getQuery()
             ->getResult();
 

@@ -11,6 +11,7 @@ use App\Search\TextNormalizer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Persistence\ManagerRegistry;
+use SortDirection;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -111,7 +112,7 @@ class AuditRepository extends ServiceEntityRepository
             )
             ->setParameter('centre', $centre->getId(), 'uuid')
             ->setParameter('query', TextNormalizer::likeContains($query))
-            ->orderBy('a.code', 'DESC')
+            ->orderBy('a.code', SortDirection::Descending)
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
