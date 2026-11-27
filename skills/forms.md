@@ -127,6 +127,13 @@ trash filter makes loading it throw, `Activity::getDeliverySources()` catches it
 - **Teachers count as «who delivers»** (piece 4): `ActivitySubmissionSlot::deliveredBy()` also returns `teacher` (key part 4, null for
   a shared document); `ListItemOwners::belongsTo()` accepts an element whose own or inherited teachers include it, on top of the
   profile rule — tables and repeats of a list, and delivered tables with scope `own`.
+- **Columns pinned to a value** (piece «informe de varias actividades», option A): a source column may have `sourceValue` (a leaf id of a
+  catalogue list). `FormDeliveredRows::pinnedValues()`; with any, `readByValue()` groups the in-scope source slots by their key WITHOUT
+  the dimension whose root is the value's root (row key = `rowKey(groupKey)`), each pinned column reads the delivery of its value;
+  rows have `slot: ''`, `revision: null` and `revisions` {valueId: revisionId|null} (kept by `clean()`, compared by `outdated()`),
+  status `delivered`/`partial`/`draft`/`none` (`partial` is in `STATUSES`; JS hides «Recordar» without `slot`). Model problems
+  `delivered_values_mixed`, `delivered_values_lists`, `delivered_value_gone`. The porter moves `sourceValue` as its path
+  («Evaluación › 1ª»); an unknown path goes to `unlinked`. The editor offers the leaves of the ROOT lists of `pickable()`.
 - Phase 4: pieces 1–5 done on request (2026-11-27); source tables, repeat by rows, multi-activity report and «No heredar» still parked.
 
 ### Rich text: one Tiptap editor everywhere (migrated from Quill, 2026-11-23)

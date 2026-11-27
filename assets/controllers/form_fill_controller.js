@@ -1394,8 +1394,11 @@ export default class extends Controller {
             counter = h('span', { class: 'shrink-0 text-xs text-gray-500' });
             // A table of deliveries counts what is delivered, not what is typed here.
             const done = () => (delivered ? rows.filter((r) => (rowInfo.get(r._key) || {}).status === 'delivered').length : filledRows());
+            // Columns pinned to values: a row with some of them delivered is «en parte», said apart.
+            const partial = () => (delivered ? rows.filter((r) => (rowInfo.get(r._key) || {}).status === 'partial').length : 0);
             const show = () => {
                 counter.textContent = (delivered ? this.l.delivered_count : this.l.rows_filled).replace('%done%', String(done())).replace('%total%', String(rows.length))
+                    + (partial() > 0 ? ' · ' + this.l.delivered_partial_count.replace('%count%', String(partial())) : '')
                     + (shownRows < rows.length ? ' · ' + this.l.rows_shown.replace('%shown%', String(shownRows)).replace('%total%', String(rows.length)) : '');
             };
             show();

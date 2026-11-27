@@ -176,4 +176,14 @@ await settle(pablo);
 await clipTo(pablo, badge.locator('xpath=ancestor::*[@data-role="submission-row"][1]'), 'modelos-tabla-entregas-insignia', 200);
 await pablo.context().close();
 
+// ── 10. Chapter 12: the final report of Informática, a column per evaluation («Solo la de»), a row per subject ──
+const finalHead = await login('c.núñez', 'prueba');
+const finalId   = uuid(sql("SELECT hex(id) FROM activity WHERE title = 'Memoria final del departamento'"));
+await finalHead.goto(`${baseUrl}/actividades/${finalId}/formulario/${encodeURIComponent(`${head}:${informat}::`)}`);
+await settle(finalHead);
+await finalHead.locator('text=Cumplimiento por evaluación').first().waitFor();
+const finalTable = finalHead.locator('text=Cumplimiento por evaluación').first().locator('xpath=ancestor::section[1] | ancestor::*[contains(@class, "rounded-2xl")][1]').first();
+await clipTo(finalHead, finalTable, 'modelos-tabla-entregas-por-valor', 900);
+await finalHead.context().close();
+
 await browser.close();

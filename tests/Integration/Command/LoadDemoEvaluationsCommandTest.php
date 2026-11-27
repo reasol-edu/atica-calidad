@@ -64,5 +64,19 @@ final class LoadDemoEvaluationsCommandTest extends RepositoryTestCase
             }
         }
         self::assertSame(['Jefe/a de Departamento Matemáticas · 1ª'], $reports, 'the report of Matemáticas of the 1ª, delivered');
+
+        // The final report of Informática: a row per subject, a column per evaluation (only the 1ª delivered so far).
+        $final = $byTitle['Memoria final del departamento'];
+        $slot  = null;
+        foreach ($builder->buildSlots($final) as $candidate) {
+            $slot = $candidate->ownerLabel === 'Jefe/a de Departamento Informática' || str_contains($candidate->displayName, 'Informática') ? $candidate : $slot;
+        }
+        self::assertNotNull($slot);
+        $definition = self::getContainer()->get(\App\Repository\FormModelRevisionRepository::class)->findInForce($final->getFormModel())->getDefinition();
+        $table      = \App\Service\Form\FormDeliveredRows::tables($definition)[0];
+        $read       = self::getContainer()->get(\App\Service\Form\FormDeliveredRows::class)->read($definition, $final, self::getContainer()->get(\App\Service\ActivityDeadlineChecker::class)->currentCycleKey($final), $slot->key())[$table['key']];
+        $rows       = array_column($read['sources']['rows'], null, 'label');
+        self::assertSame('partial', $rows['Programación']['status'] ?? null, 'the 1ª delivered, the 2ª not yet');
+        self::assertSame(90, $read['values'][$rows['Programación']['key']][$table['columns'][0]['key']] ?? null, 'its 1ª');
     }
 }

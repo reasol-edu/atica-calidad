@@ -296,6 +296,19 @@ actividad, solo para esa entrega, y queda registrado igual. Cada entrega se pued
 hora. Si las dos actividades se reparten por la misma lista (las dos «Una entrega por»
 «Evaluación»), cada informe lee solo las entregas de su evaluación.
 
+**Comparar evaluaciones en columnas.** Cada columna que trae un dato de la entrega tiene, en el editor,
+**Solo la de**: por defecto «La de cada fila», o un valor de una lista del catálogo. Con una columna
+para «Evaluación › 1ª», otra para la 2ª y otra para la Ordinaria, todas leyendo el cumplimiento, la
+tabla tiene **una fila por materia** y una columna por evaluación: es la memoria final del departamento,
+que compara el curso entero. Sirve cuando la actividad de origen se reparte por esa lista
+([Una entrega por…](08-actividades.md#una-entrega-por)); el informe en sí no se reparte por ella. El
+estado de cada materia es «Entregada» cuando lo están todas sus evaluaciones y **«En parte»** cuando
+solo algunas, y la cabecera las cuenta («Entregadas 0 de 6 · 2 en parte»). En una tabla así, todas las
+columnas de la entrega tienen que fijar un valor y todos de la misma lista; el editor avisa si no. Estas
+filas reúnen varias entregas, así que no tienen «Recordar» ni enlace para abrir una entrega concreta.
+
+![Tabla «Cumplimiento por evaluación (%)» de la memoria final del departamento de Informática: una fila por materia con su estado («En parte» en Programación y Bases de Datos, «Sin empezar» en el resto), las columnas «1ª», «2ª» y «Ordinaria» con el cumplimiento de la 1ª ya entregada (90 y 100) y «—» en las demás, y la media al pie](img/modelos-tabla-entregas-por-valor.png)
+
 **Al entregar**, se vuelven a leer. Si algo ha cambiado desde la última lectura (un valor, un estado,
 una entrega nueva), **no se entrega**: el borrador se queda con lo nuevo y la página avisa «Los datos de
 otras entregas han cambiado (2 filas). Revísalos y vuelve a entregar.», con las celdas cambiadas

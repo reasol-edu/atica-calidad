@@ -40,6 +40,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *   subjects' teachers delivering. The 1ª is over and delivered in three subjects; the 2ª is open, with a draft of Programación.
  * - «Informe de evaluación del departamento»: the subjects gathered by head of department, one per department and evaluation it has
  *   subjects in (a file).
+ * - «Memoria final del departamento»: one per department, without evaluations; its table has a column per evaluation (1ª, 2ª,
+ *   Ordinaria), each reading the review of that evaluation, and a row per subject.
  * - «Acta trimestral del departamento»: no element, times the new list «Trimestre» (free: every department, every term).
  *
  * The dates of the 1ª and the 2ª are worked out from today, so the 1ª is always over and the 2ª always open when the screenshots are
@@ -125,6 +127,7 @@ final class LoadDemoEvaluationsCommand extends Command
 
         $review = $this->reviewActivity($centre, $category, $section, $head, $subjects, $evals, $dates, $author);
         $report = $this->reportActivity($category, $section, $head, $subjects, $evals, $dates, $review, $author);
+        $this->finalReportActivity($category, $section, $head, $subjects, $evals, $review, $author);
         $this->minutesActivity($centre, $category, $section, $head);
         $this->em->flush();
 
@@ -218,6 +221,52 @@ final class LoadDemoEvaluationsCommand extends Command
         $this->em->persist($activity);
 
         return $activity;
+    }
+
+    /**
+     * One per department, at the end of the year, without evaluations: its table «Cumplimiento por evaluación» has a row per subject of
+     * the department and a column per evaluation (the 1ª, the 2ª, the Ordinaria), each reading the review of that evaluation.
+     */
+    private function finalReportActivity(ActivityCategory $category, DocumentSection $section, SpecificProfile $head, ListItem $subjects, ListItem $evals, Activity $review, \App\Entity\Teacher $author): void
+    {
+        $folder = (new Folder())->setDocumentSection($section)->setName('Memorias finales de los departamentos')->setGroupByProfile(true);
+        $folder->addUploadProfile($head);
+        $this->em->persist($folder);
+
+        $values = [];
+        foreach ($this->items->findLeafDescendants($evals) as $value) {
+            $values[$value->getName()] = $value->getId()->toRfc4122();
+        }
+        $reviewModel = $review->getFormModel() ?? throw new \LogicException('The review has no model.');
+        $model       = $this->models->create($reviewModel->getDocument()->getFolder(), 'Memoria final del departamento', 'MD-11');
+        $table       = FormDefinition::newKey();
+        $column      = static fn (string $label, string $value): array => ['key' => FormDefinition::newKey(), 'label' => $label, 'fieldType' => 'number', 'sourceField' => 'cumplimiento', 'sourceValue' => $value, 'total' => 'avg'];
+        $this->models->saveDraft($model, ['version' => 1, 'sections' => [[
+            'key' => FormDefinition::newKey(), 'title' => 'Cumplimiento de las programaciones', 'numbered' => true, 'help' => '', 'children' => [],
+            'blocks' => [
+                ['key' => $table, 'type' => 'table', 'mode' => 'delivered', 'label' => 'Cumplimiento por evaluación (%)', 'sourceModel' => $reviewModel->getId()->toRfc4122(), 'sourceScope' => 'own', 'showStatus' => true, 'columns' => [
+                    $column('1ª', $values['1ª'] ?? ''),
+                    $column('2ª', $values['2ª'] ?? ''),
+                    $column('Ordinaria', $values['Ord.'] ?? ''),
+                ]],
+                ['key' => FormDefinition::newKey(), 'type' => 'field', 'name' => 'propuestas', 'fieldType' => 'long', 'label' => 'Propuestas de mejora para el próximo curso', 'required' => false, 'help' => ''],
+            ],
+        ]]], $model->getDraftVersion(), $author);
+        $this->models->sendToReview($model, $author, null);
+
+        $activity = (new Activity())
+            ->setCategory($category)
+            ->setTitle('Memoria final del departamento')
+            ->setDescription('Al final del curso, cada jefatura de departamento compara el cumplimiento de las programaciones de sus materias en cada evaluación.')
+            ->setFolder($folder)
+            ->setAutoComplete(true)
+            ->setListItem($subjects)
+            ->setSplitByElement(false)
+            ->setFormModel($model)
+            ->setStart(1, 6)
+            ->setEnd(30, 6);
+        $activity->setDeliverySource($table, $review);
+        $this->em->persist($activity);
     }
 
     private function minutesActivity(EducationalCentre $centre, ActivityCategory $category, DocumentSection $section, SpecificProfile $head): void
