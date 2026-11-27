@@ -126,7 +126,7 @@ final class ActivityDimensionSlotsTest extends RepositoryTestCase
         self::assertCount(5, explode(':', $key));
         self::assertSame([$first->getId()->toRfc4122()], ActivitySubmissionSlot::combinationOf($key));
         self::assertSame($this->items['Materia/Programación']->getId()->toRfc4122(), ActivitySubmissionSlot::leafOf($key));
-        self::assertSame(['profile' => $this->head->getId()->toRfc4122(), 'subprofile' => $this->items['Departamento/Informática']->getId()->toRfc4122()], ActivitySubmissionSlot::deliveredBy($key));
+        self::assertSame(['profile' => $this->head->getId()->toRfc4122(), 'subprofile' => $this->items['Departamento/Informática']->getId()->toRfc4122(), 'teacher' => null], ActivitySubmissionSlot::deliveredBy($key));
         self::assertSame($first, $slot->deadlineItem($activity), 'the evaluation gives the dates');
         self::assertSame([], ActivitySubmissionSlot::combinationOf(substr($key, 0, (int) strrpos($key, ':'))), 'a key of four parts has none');
     }

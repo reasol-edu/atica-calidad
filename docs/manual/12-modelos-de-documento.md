@@ -119,7 +119,10 @@ Un modelo se compone de **secciones** (numeradas jerárquicamente, anidables) co
   salen esos: la memoria de la jefatura del departamento de Ciencias lleva una fila por cada una de
   sus materias, y no las del resto. Cuenta la asociación como en Responsabilidades: la propia del
   elemento o la heredada de un elemento superior, y la de un subperfil intermedio vale para todos los
-  de debajo. Si quien entrega no está asociado a ninguno, salen todos; en el modelo en blanco y en
+  de debajo. En el documento de **un docente** (una actividad de entrega individual) cuentan además los
+  elementos que imparte ([docentes asociados](06-responsabilidades.md#docentes-asociados), propios o
+  heredados): su memoria lleva una fila por cada una de sus materias, y lo mismo vale para «las de los
+  elementos asociados a quien entrega» de una tabla de entregas. Si quien entrega no está asociado a ninguno, salen todos; en el modelo en blanco y en
   la vista previa salen siempre todos. Si un elemento deja de corresponder mientras se rellena (se
   desactiva, se mueve o cambia la asociación), su fila desaparece; si ya tenía algo escrito se queda,
   tachada y marcada, con el botón **«Ya no corresponde: vaciar la fila»**, y no se puede entregar

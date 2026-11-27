@@ -120,6 +120,9 @@ trash filter makes loading it throw, `Activity::getDeliverySources()` catches it
   for Office, `FormDiff` and indicators. JS `deliveredCell()` sets the server-sanitized HTML.
 - **Scope `same`** (piece 3, `DELIVERED_SCOPES`): `inScope()` keeps the source slots whose element (`nameListItem ?? listItem`) is the
   document's (slot key part 3); none for a document without one, never `assumedAll`. Shared-dimension filtering still applies first.
+- **Teachers count as «who delivers»** (piece 4): `ActivitySubmissionSlot::deliveredBy()` also returns `teacher` (key part 4, null for
+  a shared document); `ListItemOwners::belongsTo()` accepts an element whose own or inherited teachers include it, on top of the
+  profile rule — tables and repeats of a list, and delivered tables with scope `own`.
 - Phase 4: pieces 1–5 done on request (2026-11-27); source tables, repeat by rows, multi-activity report and «No heredar» still parked.
 
 ### Rich text: one Tiptap editor everywhere (migrated from Quill, 2026-11-23)

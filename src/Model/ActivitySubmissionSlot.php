@@ -100,9 +100,10 @@ final readonly class ActivitySubmissionSlot
 
     /**
      * Who delivers a slot, read back from its key (see key()) without building the activity's slots: the profile and, for a profile of
-     * a list, its subprofile. What the rows and copies taken from a list filter by (FormListOptions). Null for a key that is not one.
+     * a list, its subprofile — and, for an individual one, the teacher. What the rows and copies taken from a list filter by
+     * (FormListOptions). Null for a key that is not one.
      *
-     * @return array{profile: string, subprofile: ?string}|null
+     * @return array{profile: string, subprofile: ?string, teacher?: ?string}|null
      */
     public static function deliveredBy(string $key): ?array
     {
@@ -111,7 +112,7 @@ final readonly class ActivitySubmissionSlot
             return null;
         }
 
-        return ['profile' => $parts[0], 'subprofile' => $parts[1] === '' ? null : $parts[1]];
+        return ['profile' => $parts[0], 'subprofile' => $parts[1] === '' ? null : $parts[1], 'teacher' => $parts[3] === '' ? null : $parts[3]];
     }
 
     /**

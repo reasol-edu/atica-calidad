@@ -81,13 +81,25 @@ final class ListItemOwners
 
     /**
      * Whether $item belongs to who delivers a document: one of its associations (own or inherited) is the subprofile that delivers it
-     * or a node above it, for a profile of a list; with no subprofile, the plain profile itself.
+     * or a node above it, for a profile of a list; with no subprofile, the plain profile itself. A document of one teacher (an
+     * individual delivery) also has the elements that teacher is associated with, own or inherited: the subjects they teach.
      *
-     * @param array{profile: string, subprofile: ?string} $who
-     * @param array<string, ListItem>                      $index the centre's items by id
+     * @param array{profile: string, subprofile: ?string, teacher?: ?string} $who
+     * @param array<string, ListItem>                                        $index the centre's items by id
      */
     public static function belongsTo(ListItem $item, array $who, array $index): bool
     {
+        $teacher = $who['teacher'] ?? null;
+        if ($teacher !== null) {
+            for ($node = $item; $node !== null; $node = $node->getParent()) {
+                foreach ($node->getTeachers() as $associated) {
+                    if ($associated->getId()->toRfc4122() === $teacher) {
+                        return true;
+                    }
+                }
+            }
+        }
+
         // The subprofile and the items above it: an association to any of them covers it.
         $covering = [];
         for ($node = $who['subprofile'] === null ? null : ($index[$who['subprofile']] ?? null); $node !== null && !isset($covering[$node->getId()->toRfc4122()]); $node = $node->getParent()) {

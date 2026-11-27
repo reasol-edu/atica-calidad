@@ -675,11 +675,11 @@ final class FormListOptions
 
     /**
      * Whether an item of a list belongs to who delivers a document (see forSlot()): its associations, own or inherited, name the slot's
-     * profile through the slot's subprofile or one of its ancestors (for a profile of a list), or with no subprofile (a plain one). The
-     * one rule of the tables of a list and the tables of deliveries.
+     * profile through the slot's subprofile or one of its ancestors (for a profile of a list), or with no subprofile (a plain one) — or,
+     * in a document of one teacher, that teacher is associated with it. The one rule of the tables of a list and the tables of deliveries.
      *
-     * @param array{profile: string, subprofile: ?string} $slot
-     * @param array<string, ListItem>                      $index the centre's items by id
+     * @param array{profile: string, subprofile: ?string, teacher?: ?string} $slot
+     * @param array<string, ListItem>                                        $index the centre's items by id
      */
     public static function belongsToSlot(ListItem $item, array $slot, array $index): bool
     {

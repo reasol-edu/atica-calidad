@@ -105,8 +105,8 @@ final class FormListRowsTest extends RepositoryTestCase
     {
         $profile = $this->headOfDepartment->getId()->toRfc4122();
         $sub     = $this->items['ciencias']->getId()->toRfc4122();
-        self::assertSame(['profile' => $profile, 'subprofile' => $sub], \App\Model\ActivitySubmissionSlot::deliveredBy($profile . ':' . $sub . '::'));
-        self::assertSame(['profile' => $profile, 'subprofile' => null], \App\Model\ActivitySubmissionSlot::deliveredBy($profile . ':::'));
+        self::assertSame(['profile' => $profile, 'subprofile' => $sub, 'teacher' => null], \App\Model\ActivitySubmissionSlot::deliveredBy($profile . ':' . $sub . '::'));
+        self::assertSame(['profile' => $profile, 'subprofile' => null, 'teacher' => null], \App\Model\ActivitySubmissionSlot::deliveredBy($profile . ':::'));
         self::assertNull(\App\Model\ActivitySubmissionSlot::deliveredBy('otra:::'));
     }
 
