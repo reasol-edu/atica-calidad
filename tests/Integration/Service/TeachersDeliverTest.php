@@ -429,6 +429,14 @@ final class TeachersDeliverTest extends ControllerTestCase
         $builder = self::getContainer()->get(ActivitySubmissionSlotBuilder::class);
         self::assertSame('Álgebra', $resolver->submissionName($this->subjects, $this->leaves['Álgebra']));
         self::assertSame($builder->submissionName($this->subjects, $this->leaves['Álgebra']), $resolver->submissionName($this->subjects, $this->leaves['Álgebra']));
+
+        // A second «Sistemas» appears in the catalogue after the activity was saved: the name names neither, rather than guessing
+        // (the first one's teachers would open the other's document).
+        $twin = (new \App\Entity\ListItem())->setEducationalCentre($this->subjects->getEducationalCentre())->setName('Sistemas')->setParent($this->subjects)->setPosition(99);
+        $this->persist($twin);
+        $resolver->reset();
+        self::getContainer()->get(\App\Repository\ListItemRepository::class)->reset();
+        self::assertNull($resolver->findLeafForDocument($this->activity, $document));
     }
 
     public function testTheOutcomeGoesToWhoeverTheTaskBelongsTo(): void

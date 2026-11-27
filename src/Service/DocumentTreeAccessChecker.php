@@ -43,6 +43,9 @@ final class DocumentTreeAccessChecker implements ResetInterface
     /** @var array<string, array<string, list<string>>> teacher id => what they hold, see holds() */
     private array $heldByTeacher = [];
 
+    /** @var array<string, bool> isTeacherOfSomeElement() per (teacher, activity) for this request: it walks every leaf of the list */
+    private array $teacherOfSomeElement = [];
+
     public function __construct(
         private readonly SpecificProfileAssignmentRepository $assignments,
         private readonly ProfileAssignmentRowBuilder $rowBuilder,
@@ -362,8 +365,9 @@ final class DocumentTreeAccessChecker implements ResetInterface
     /** Forgets what was memoized — see ResetInterface (a long-lived worker mustn't carry one request's assignments into the next). */
     public function reset(): void
     {
-        $this->holdsProfileCache = [];
-        $this->heldByTeacher     = [];
+        $this->holdsProfileCache    = [];
+        $this->heldByTeacher        = [];
+        $this->teacherOfSomeElement = [];
     }
 
     /**
@@ -479,12 +483,14 @@ final class DocumentTreeAccessChecker implements ResetInterface
             return false;
         }
 
-        foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
-            if ($this->leafTeachers->includes($activity, $leaf, $teacher)) {
-                return true;
+        return $this->teacherOfSomeElement[$teacher->getId()->toRfc4122() . '|' . $activity->getId()->toRfc4122()] ??= (function () use ($listItem, $activity, $teacher): bool {
+            foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
+                if ($this->leafTeachers->includes($activity, $leaf, $teacher)) {
+                    return true;
+                }
             }
-        }
 
-        return false;
+            return false;
+        })();
     }
 }

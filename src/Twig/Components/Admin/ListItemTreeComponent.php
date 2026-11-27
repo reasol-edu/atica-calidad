@@ -914,7 +914,12 @@ class ListItemTreeComponent extends AbstractController
 
     // ── Associated lists (on the list itself) ────────────────────────────────
 
-    /** @return list<ListItem> the other lists of the centre (and the list itself), what the managed list can be associated with */
+    /**
+     * The lists of the centre the managed list can be associated with — itself too, on purpose: each group of «Grupo» delivered by
+     * the tutor of that same group is an element linked to itself (what «Tutor/a › 1º ESO A» on «1º ESO A» became in 0e1).
+     *
+     * @return list<ListItem>
+     */
     public function getLinkableLists(): array
     {
         return array_values($this->items->findRootsByCentre($this->centre));

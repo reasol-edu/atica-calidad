@@ -409,6 +409,19 @@ final class FormDeliveredRowsTest extends ControllerTestCase
         $kept = FormDeliveredRows::clean([$this->keys['table'] => $read['sources']]);
         self::assertSame($rows['Programación']['revisions'], $kept[$this->keys['table']]['rows'][0]['revisions'] ?? null, 'saving keeps what each value read');
 
+        // A report split by «Evaluación» too: the pinned list is spread across the columns, so its own evaluation narrows nothing.
+        $evaluations = $this->em->getRepository(\App\Entity\ListItem::class)->find($values['1ª']->getId())?->getParent();
+        self::assertNotNull($evaluations);
+        $this->fresh($this->report)->setDimensions([$evaluations], 0);
+        $this->flush();
+        $this->clear();
+        $report = $this->fresh($this->report);
+        $split  = self::getContainer()->get(FormDeliveredRows::class)->read($definition, $report, $cycle, $this->slotKey($this->informatica) . ':' . $values['1ª']->getId()->toRfc4122())[$this->keys['table']];
+        $byName = array_column($split['sources']['rows'], null, 'label');
+        self::assertSame('delivered', $byName['Programación']['status'] ?? null, 'the 2ª is read too');
+        self::assertSame(23, $split['values'][$byName['Programación']['key']][$this->keys['colDone']] ?? null);
+        self::assertArrayNotHasKey('within', $split['sources'], 'the header does not say «solo las de «1ª»»');
+
         // A column of «each row» beside them is a problem of the model, and so are values of two lists.
         $problems = static fn (array $columns): array => array_column(self::getContainer()->get(FormModelService::class)->problems($normalizer->normalize(['sections' => [['title' => 'S', 'blocks' => [
             ['type' => 'table', 'mode' => 'delivered', 'label' => 'Final', 'sourceModel' => $report->getFormModel()?->getId()->toRfc4122(), 'columns' => $columns],

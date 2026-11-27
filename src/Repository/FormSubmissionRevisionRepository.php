@@ -112,6 +112,8 @@ class FormSubmissionRevisionRepository extends ServiceEntityRepository
             ->join('s.modelRevision', 'm')->addSelect('m')
             ->where('sub.activity = :activity')
             ->andWhere('sub.cycleYear = :cycle')
+            // Only the newest of each submission: the older versions (and their data) are never loaded.
+            ->andWhere('NOT EXISTS (SELECT 1 FROM ' . FormSubmissionRevision::class . ' s2 JOIN s2.revision r2 WHERE s2.submission = s.submission AND r2.version > r.version)')
             ->setParameter('activity', $activity->getId(), 'uuid')
             ->setParameter('cycle', $cycleYear)
             ->orderBy('r.version', 'DESC')

@@ -342,6 +342,19 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
         }
     }
 
+    /** The centre's items with these collections fetch-joined (each aliased by its own name). */
+    private function centreItemsWith(EducationalCentre $centre, string ...$collections): \Doctrine\ORM\QueryBuilder
+    {
+        $qb = $this->createQueryBuilder('li')
+            ->where('li.educationalCentre = :centre')
+            ->setParameter('centre', $centre->getId(), 'uuid');
+        foreach ($collections as $collection) {
+            $qb->leftJoin('li.' . $collection, $collection)->addSelect($collection);
+        }
+
+        return $qb;
+    }
+
     /** @return array<string, ListItem[]> keyed by parent UUID (RFC4122), root items under '' */
     private function groupChildrenByParent(EducationalCentre $centre): array
     {
@@ -350,28 +363,16 @@ class ListItemRepository extends ServiceEntityRepository implements ResetInterfa
             return $this->byParentCache[$key];
         }
 
-        // With each item's associations in the same query: walking the tree asks every leaf (and its
-        // ancestors) for them — see ListItem::getEffectiveAssociations(): the links to elements of other
-        // lists, the plain profiles, and on the roots the lists they declare associated. Same for the
-        // associated teachers (and the teacher itself, a to-one, so reading names or isActive() never
-        // queries): ListItem::getEffectiveTeachers(). Several collections in one query multiply the
-        // rows, but an element has a handful of each.
-        $all = $this->createQueryBuilder('li')
-            ->leftJoin('li.links', 'lk')
-            ->addSelect('lk')
-            ->leftJoin('li.linkedLists', 'll')
-            ->addSelect('ll')
-            ->leftJoin('li.profileAssociations', 'pa')
-            ->addSelect('pa')
-            ->leftJoin('li.teacherAssociations', 'ta')
-            ->addSelect('ta')
-            ->leftJoin('ta.teacher', 'tt')
-            ->addSelect('tt')
-            ->where('li.educationalCentre = :centre')
-            ->setParameter('centre', $centre->getId(), 'uuid')
-            ->orderBy('li.position')
-            ->getQuery()
-            ->getResult();
+        // With each item's associations: walking the tree asks every leaf (and its ancestors) for them —
+        // see ListItem::getEffectiveAssociations(): the links to elements of other lists, the plain
+        // profiles, and on the roots the lists they declare associated. Same for the associated teachers
+        // (and the teacher itself, a to-one, so reading names or isActive() never queries):
+        // ListItem::getEffectiveTeachers(). One query per kind (the same entities fill their
+        // collections): joined in one they would multiply each other's rows.
+        /** @var ListItem[] $all */
+        $all = $this->centreItemsWith($centre, 'profileAssociations')->orderBy('li.position')->getQuery()->getResult();
+        $this->centreItemsWith($centre, 'links', 'linkedLists')->getQuery()->getResult();
+        $this->centreItemsWith($centre, 'teacherAssociations')->leftJoin('teacherAssociations.teacher', 'tt')->addSelect('tt')->getQuery()->getResult();
 
         $map = [];
         foreach ($all as $item) {

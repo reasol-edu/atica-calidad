@@ -515,6 +515,11 @@ final class FormSubmissionService
                 // The delivery is already saved: a failure here leaves the step pending (to be decided by hand) instead of
                 // reporting a delivery that did happen as failed — which would invite a second one.
                 $this->errors->error('The step approved by delivering could not be decided.', ['exception' => $e, 'revision' => $revision->getId()->toRfc4122()]);
+                // A database error closes the entity manager: nothing after this could be saved, so carrying on would only fail later
+                // with a less honest message. The delivery itself is already in the database either way.
+                if (!$this->em->isOpen()) {
+                    throw $e;
+                }
 
                 return;
             }

@@ -126,14 +126,24 @@ final class ActivityLeafResolver implements ResetInterface
         $this->leavesByName = [];
     }
 
-    /** @return array<string, ListItem> each leaf under $listItem by its submission name — the first one, if two share it */
+    /**
+     * Each leaf under $listItem by its submission name. A name two leaves share (possible with «solo el nombre del elemento» when the
+     * catalogue changes after the activity was saved) names neither: guessing would give one element's teachers the other's document.
+     *
+     * @return array<string, ListItem>
+     */
     private function namesOf(ListItem $listItem, bool $fullPath): array
     {
         $byName = [];
+        $shared = [];
         foreach ($this->listItems->findLeafDescendants($listItem) as $leaf) {
-            $byName[$this->submissionName($listItem, $leaf, $fullPath)] ??= $leaf;
+            $name = $this->submissionName($listItem, $leaf, $fullPath);
+            if (isset($byName[$name])) {
+                $shared[$name] = true;
+            }
+            $byName[$name] = $leaf;
         }
 
-        return $byName;
+        return array_diff_key($byName, $shared);
     }
 }

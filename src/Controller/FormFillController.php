@@ -311,17 +311,19 @@ class FormFillController extends AbstractController
         $this->em->flush(); // the renewed lock, when nothing else changed
 
         $tables     = [];
+        $rows       = [];
         $definition = $this->service->definitionOf($submission, $result['data']);
         foreach (FormDeliveredRows::tables($definition) as $block) {
             $key          = FormDefinition::str($block['key'] ?? '');
             $tables[$key] = FormDefinition::listOf((FormDefinition::map($result['data']['tables'] ?? null) ?? [])[$key] ?? []);
+            $rows[$key]   = FormDefinition::listOf($block['rows'] ?? []);
         }
 
         return new JsonResponse([
             'version' => $submission->getDraftVersion(),
             'tables'  => $tables,
             'sources' => $result['data']['sources'] ?? new \stdClass(),
-            'rows'    => array_combine(array_keys($tables), array_map(static fn (array $b): array => FormDefinition::listOf($b['rows'] ?? []), FormDeliveredRows::tables($definition))),
+            'rows'    => $rows,
             'changed' => $result['changed'],
         ] + $this->problemLists($submission));
     }

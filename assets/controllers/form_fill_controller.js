@@ -1628,17 +1628,37 @@ export default class extends Controller {
             this.sources = asMap(body.sources);
             const rowsByTable = asMap(body.rows);
             const tables = asMap(body.tables);
+            // The cells read come from the server; the own columns keep what is on the page, which may have been typed while the
+            // request was on its way (the draft saved before it had the rest).
+            const ownColumns = {};
             const visit = (sections) => (sections || []).forEach((s) => {
                 (s.blocks || []).forEach((b) => {
-                    if (b.type === 'table' && b.mode === 'delivered' && rowsByTable[b.key]) {
-                        b.rows = rowsByTable[b.key];
+                    if (b.type === 'table' && b.mode === 'delivered') {
+                        ownColumns[b.key] = (b.columns || []).filter((c) => !c.sourceField).map((c) => c.key);
+                        if (rowsByTable[b.key]) {
+                            b.rows = rowsByTable[b.key];
+                        }
                     }
                 });
                 visit(s.children);
             });
             visit(this.def.sections);
             for (const [table, rows] of Object.entries(tables)) {
-                this.state.tables[table] = rows;
+                const before = new Map((this.state.tables[table] || []).map((r) => [r._key, r]));
+                this.state.tables[table] = rows.map((row) => {
+                    const typed = before.get(row._key);
+                    if (!typed) {
+                        return row;
+                    }
+                    const merged = { ...row };
+                    for (const key of ownColumns[table] || []) {
+                        if (key in typed) {
+                            merged[key] = typed[key];
+                        }
+                    }
+
+                    return merged;
+                });
             }
             this.index = buildIndex(this.def);
             this.changedCells = new Set((body.changed?.cells || []).map((c) => c.table + '|' + c.row + '|' + c.column));

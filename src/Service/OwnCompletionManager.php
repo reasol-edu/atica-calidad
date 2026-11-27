@@ -56,6 +56,11 @@ class OwnCompletionManager
                 throw new AccessDeniedException();
             }
             if ($combination === '') {
+                // With «Una entrega por» every obligation has its combination: a completion without one would be read by nobody.
+                if ($activity->getDimensions() !== []) {
+                    throw new AccessDeniedException();
+                }
+
                 return [null, null, null, null];
             }
             // Individual, with «Una entrega por»: one of the combinations the teacher really owes.

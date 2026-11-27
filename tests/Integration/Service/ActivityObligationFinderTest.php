@@ -508,6 +508,11 @@ final class ActivityObligationFinderTest extends RepositoryTestCase
         self::assertSame(ActivityObligationStatus::Completed, $statuses['1ª']);
         self::assertSame(ActivityObligationStatus::Upcoming, $statuses['2ª']);
 
+        try {
+            $manager->mark($teacher, $activity, $centre, '', '', '', '');
+            self::fail('without a combination, a completion nobody reads');
+        } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException) {
+        }
         $this->expectException(\Symfony\Component\Security\Core\Exception\AccessDeniedException::class);
         $manager->mark($teacher, $activity, $centre, '', '', '', 'not-a-combination');
     }

@@ -85,6 +85,13 @@ final class FormDeliveredRows
             // The lists both activities split their submissions by (the same root): only the deliveries with this document's value
             // of each — the report of the 1ª reads the reviews of the 1ª.
             ['match' => $match, 'positions' => $positions] = self::sharedValues($activity, $source, $slotKey);
+            // Columns pinned to values of a list: that list is spread across the columns, so it never narrows the rows (even when
+            // the document has a value of it too).
+            $pinned   = self::pinnedValues($block);
+            $position = $pinned === [] ? null : $this->pinnedPosition($source, $pinned);
+            if ($position !== null && isset($positions[$position])) {
+                unset($positions[$position], $match[$source->getDimensions()[$position]->getList()->getRoot()->getId()->toRfc4122()]);
+            }
             // Only the slots with the first shared value (indexed once per source): a list of many rows does not walk every slot each time.
             $pool = $loaded['slots'];
             foreach ($positions as $position => $valueId) {
@@ -103,9 +110,8 @@ final class FormDeliveredRows
             ['slots' => $slots, 'assumedAll' => $assumedAll] = $this->inScope($candidates, $source, FormDefinition::str($block['sourceScope'] ?? 'own'), $slotKey, $positions === []);
 
             // Columns pinned to a value of a list the source splits by: one row per delivery without that list, a column per value.
-            $pinned = self::pinnedValues($block);
             ['rows' => $rows, 'values' => $values] = $pinned !== []
-                ? $this->readByValue($source, $slots, $pinned, $columns, $loaded, array_keys($positions))
+                ? $this->readByValue($source, $slots, $pinned, $columns, $loaded, array_keys($positions), $position)
                 : $this->readBySlot($source, $slots, $columns, $loaded, array_keys($positions));
 
             $readings[$key] = [
@@ -163,6 +169,27 @@ final class FormDeliveredRows
     }
 
     /**
+     * The position, among the source's dimensions, of the list the pinned values belong to; null when none of them is of a list the
+     * source splits by.
+     *
+     * @param array<string, string> $pinned value id by column key
+     */
+    private function pinnedPosition(Activity $source, array $pinned): ?int
+    {
+        $index = $this->items->indexByCentre($source->getCategory()->getEducationalCentre());
+        foreach (array_unique($pinned) as $valueId) {
+            $root = ($index[$valueId] ?? null)?->getRoot();
+            foreach ($source->getDimensions() as $at => $dimension) {
+                if ($root !== null && $dimension->getList()->getRoot()->identityKey() === $root->identityKey()) {
+                    return $at;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * The columns of a table that read the delivery of one value of a list (`sourceValue`), by column key.
      *
      * @param array<string, mixed> $block
@@ -198,18 +225,8 @@ final class FormDeliveredRows
      *
      * @return array{rows: list<array<string, mixed>>, values: array<string, array<string, mixed>>}
      */
-    private function readByValue(Activity $source, array $slots, array $pinned, array $columns, array $loaded, array $shared): array
+    private function readByValue(Activity $source, array $slots, array $pinned, array $columns, array $loaded, array $shared, ?int $position): array
     {
-        $index    = $this->items->indexByCentre($source->getCategory()->getEducationalCentre());
-        $position = null;
-        foreach (array_unique($pinned) as $valueId) {
-            $root = ($index[$valueId] ?? null)?->getRoot();
-            foreach ($source->getDimensions() as $at => $dimension) {
-                if ($root !== null && $dimension->getList()->getRoot()->identityKey() === $root->identityKey()) {
-                    $position = $at;
-                }
-            }
-        }
         if ($position === null) {
             return ['rows' => [], 'values' => []];
         }
@@ -425,9 +442,9 @@ final class FormDeliveredRows
         // «La del mismo elemento»: the delivery of this document's own element (the review of Física for the report of Física), and
         // nothing for a document without one.
         if ($scope === 'same') {
-            $element = explode(':', $slotKey)[2] ?? '';
+            $element = ActivitySubmissionSlot::leafOf($slotKey);
 
-            return ['slots' => $element === '' ? [] : array_values(array_filter(
+            return ['slots' => $element === null ? [] : array_values(array_filter(
                 $slots,
                 static fn (ActivitySubmissionSlot $s): bool => ($s->nameListItem ?? $s->listItem)?->getId()->toRfc4122() === $element,
             )), 'assumedAll' => false];
