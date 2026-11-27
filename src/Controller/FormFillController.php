@@ -52,6 +52,9 @@ class FormFillController extends AbstractController
         private readonly \App\Service\UploadLimits $uploadLimits,
         private readonly \App\Service\DocumentTreeAccessChecker $treeAccess,
         private readonly FormDeliveredRows $deliveredRows,
+        private readonly \App\Service\ActivityPendingOwnersFinder $pendingOwners,
+        private readonly \App\Service\ActivityReminderSender $reminderSender,
+        private readonly \Symfony\Component\RateLimiter\RateLimiterFactoryInterface $activityReminderLimiter,
     ) {}
 
     /**
@@ -160,6 +163,7 @@ class FormFillController extends AbstractController
                     'definition'   => $definition,
                     'data'         => $data,
                     'refreshUrl'   => $this->generateUrl('app_form_refresh_delivered', $base),
+                    'remindUrl'    => $this->generateUrl('app_form_remind_delivery', $base),
                     'delivered'    => $this->deliveredLinks($activity, $definition, $teacher),
                     'version'      => $submission->getDraftVersion(),
                     'saveUrl'      => $this->generateUrl('app_form_save', $base),
@@ -226,6 +230,52 @@ class FormFillController extends AbstractController
         }
 
         return new JsonResponse(['version' => $submission->getDraftVersion()] + $this->problemLists($submission));
+    }
+
+    /**
+     * «Recordar» on a row of a table of deliveries not delivered yet: the e-mail «Recordar a pendientes» of the SOURCE activity, only to
+     * whoever owes that delivery (the row's slot), from whoever fills this document in. The row must be one the draft read (its
+     * `sources`), and not delivered; once an hour per delivery. JSON { table, row } → { sent } | 409 { error, message }.
+     */
+    #[Route('/actividades/{activityId}/formulario/{slotKey}/recordar-entrega', name: 'app_form_remind_delivery', methods: ['POST'])]
+    public function remindDelivery(string $activityId, string $slotKey, Request $request, #[CurrentCentre] EducationalCentre $centre): JsonResponse
+    {
+        [$activity, $slot, $teacher] = $this->context($activityId, $slotKey, $centre, true);
+        $submission = $this->service->open($activity, $slot);
+        if (!$this->isCsrfTokenValid('form_fill_' . $submission->getId()->toRfc4122(), $request->headers->get('X-CSRF-Token', ''))) {
+            return new JsonResponse(['error' => 'csrf'], Response::HTTP_FORBIDDEN);
+        }
+        $payload = json_decode($request->getContent(), true);
+        $table   = is_array($payload) ? FormDefinition::str($payload['table'] ?? '') : '';
+        $rowKey  = is_array($payload) ? FormDefinition::str($payload['row'] ?? '') : '';
+        $source  = $activity->getDeliverySource($table);
+        $read    = FormDefinition::map((FormDefinition::map(($submission->getDraftData() ?? [])['sources'] ?? null) ?? [])[$table] ?? null) ?? [];
+        $row     = null;
+        foreach (FormDefinition::listOf($read['rows'] ?? []) as $candidate) {
+            $row = ($candidate['key'] ?? null) === $rowKey ? $candidate : $row;
+        }
+        if ($source === null || $row === null || ($read['activity'] ?? null) !== $source->getId()->toRfc4122() || ($row['status'] ?? '') === 'delivered') {
+            return new JsonResponse(['error' => 'row', 'message' => $this->translator->trans('fill.remind.error.row', [], 'forms')], Response::HTTP_CONFLICT);
+        }
+
+        // Who owes that delivery and still has it to do, with an address: only that row of each one's obligations.
+        $owed    = FormDefinition::str($row['slot'] ?? '');
+        $pending = [];
+        foreach ($this->pendingOwners->find($source) as ['teacher' => $owner, 'items' => $items]) {
+            $items = array_values(array_filter($items, static fn ($item): bool => $item->slotKey === $owed));
+            if ($items !== [] && $owner->getEmail() !== null) {
+                $pending[] = ['teacher' => $owner, 'items' => $items];
+            }
+        }
+        if ($pending === []) {
+            return new JsonResponse(['error' => 'nobody', 'message' => $this->translator->trans('fill.remind.error.nobody', [], 'forms')], Response::HTTP_CONFLICT);
+        }
+        if (!$this->activityReminderLimiter->create($source->getId()->toRfc4122() . '|' . $owed)->consume()->isAccepted()) {
+            return new JsonResponse(['error' => 'too_soon', 'message' => $this->translator->trans('fill.remind.error.too_soon', [], 'forms')], Response::HTTP_CONFLICT);
+        }
+        $sent = $this->reminderSender->send($source, $pending, $teacher, '', $centre, 'activity.remind_delivery');
+
+        return new JsonResponse(['sent' => $sent, 'message' => $this->translator->trans('fill.remind.sent', ['%count%' => $sent], 'forms')]);
     }
 
     /**

@@ -283,7 +283,10 @@ esos documentos, y añade sus propias columnas (una valoración, por ejemplo).
 («—» si aún no los tiene) y un enlace para abrirla si se puede. Los datos de las entregas no se
 escriben aquí: se corrigen en cada entrega. **Actualizar** vuelve a leerlas mientras se rellena, dice
 cuántas filas han cambiado y hace parpadear las celdas nuevas; lo escrito en las columnas propias se
-conserva. Si las dos actividades se reparten por la misma lista (las dos «Una entrega por»
+conserva. Bajo cada entrega que todavía no se ha entregado hay un botón **Recordar**: envía a quien la
+debe el mismo correo que «[Recordar a pendientes](08-actividades.md#recordar-a-pendientes)» de esa
+actividad, solo para esa entrega, y queda registrado igual. Cada entrega se puede recordar una vez por
+hora. Si las dos actividades se reparten por la misma lista (las dos «Una entrega por»
 «Evaluación»), cada informe lee solo las entregas de su evaluación.
 
 **Al entregar**, se vuelven a leer. Si algo ha cambiado desde la última lectura (un valor, un estado,

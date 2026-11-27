@@ -6,7 +6,6 @@ namespace App\Controller;
 
 use App\Attribute\CurrentCentre;
 use App\Entity\Activity;
-use App\Entity\ActivityReminder;
 use App\Entity\EducationalCentre;
 use App\Entity\Teacher;
 use App\Model\ActivityWindowBlock;
@@ -21,7 +20,6 @@ use App\Service\ActivityWindowChecker;
 use App\Service\DocumentCreationService;
 use App\Service\DocumentRevisionReviewer;
 use App\Service\DocumentTreeAccessChecker;
-use App\Service\NotificationMailer;
 use App\Service\SlotResponsibility;
 use App\Service\UploadLimits;
 use Doctrine\ORM\EntityManagerInterface;
@@ -30,11 +28,8 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
-use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
-use Twig\Environment;
 
 /**
  * "Actividades": the index page (mounts ActivityBrowserComponent/Admin:ActivityCategoryTreeComponent,
@@ -55,7 +50,6 @@ class ActivityController extends AbstractController
     private const MAX_REMINDER_MESSAGE = 1000;
 
     public function __construct(
-        private readonly ClockInterface $clock,
         private readonly EntityManagerInterface $em,
         private readonly TranslatorInterface $translator,
         private readonly ActivityRepository $activities,
@@ -67,11 +61,10 @@ class ActivityController extends AbstractController
         private readonly DocumentRevisionRepository $revisions,
         private readonly DocumentRevisionReviewer $reviewer,
         private readonly ActivityPendingOwnersFinder $pendingOwners,
-        private readonly NotificationMailer $mailer,
-        private readonly Environment $twig,
         private readonly RateLimiterFactoryInterface $activityReminderLimiter,
         private readonly UploadLimits $uploadLimits,
         private readonly SlotResponsibility $responsibility,
+        private readonly \App\Service\ActivityReminderSender $reminderSender,
     ) {}
 
     /**
@@ -164,27 +157,7 @@ class ActivityController extends AbstractController
             return $back;
         }
 
-        $delivered = 0;
-        foreach ($pending as ['teacher' => $recipient, 'items' => $items]) {
-            // The button lands on this teacher's own row to fill in, not just on the activity.
-            $url  = $this->generateUrl('app_activities', $items[0]->linkParams(), UrlGeneratorInterface::ABSOLUTE_URL);
-            $sent = $this->mailer->send(
-                $recipient,
-                $centre,
-                'activity_manual_reminder',
-                $this->translator->trans('emails.activity_manual_reminder.subject', ['%title%' => $activity->getTitle()], 'emails'),
-                $this->translator->trans('emails.activity_manual_reminder.heading', ['%title%' => $activity->getTitle()], 'emails'),
-                $this->twig->render('email/_activity_manual_reminder_body.html.twig', ['sender' => $sender, 'activity' => $activity, 'items' => $items, 'message' => $message]),
-                $url,
-                $this->translator->trans('emails.activity_manual_reminder.cta', [], 'emails'),
-            );
-            $delivered += $sent ? 1 : 0;
-            // The record of who was reminded, when and with what words (and whether it went out).
-            $this->em->persist(new ActivityReminder($activity, $recipient, $sender, $this->clock->now(), $message === '' ? null : $message, $sent));
-        }
-        $this->em->flush();
-
-        $this->activityLogger->record('activity.remind_pending', ['activity' => $activity->getTitle(), 'recipients' => \count($pending), 'delivered' => $delivered, 'message' => $message !== ''], $centre);
+        $delivered = $this->reminderSender->send($activity, $pending, $sender, $message, $centre);
         if ($delivered > 0) {
             $this->addFlash('success', $this->translator->trans('remind_pending.flash.sent', ['%count%' => $delivered], 'activity_content'));
         }

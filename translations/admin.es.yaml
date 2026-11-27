@@ -1104,6 +1104,7 @@ activity_log.action.trash.restore: 'Recuperado de la papelera'
 activity_log.action.trash.purge: 'Eliminado definitivamente de la papelera'
 activity_log.action.academic_year.copy_teachers: 'Docentes copiados de otro curso'
 activity_log.action.activity.remind_pending: 'Recordatorio enviado a los pendientes de una actividad'
+activity_log.action.activity.remind_delivery: 'Recordatorio enviado desde una tabla de entregas a quien debe una entrega'
 
 activity_log.action.list_item.created: 'Elemento del catálogo creado'
 activity_log.action.list_item.updated: 'Elemento del catálogo modificado'

@@ -110,7 +110,11 @@ trash filter makes loading it throw, `Activity::getDeliverySources()` catches it
   fill page (`data-testid="delivered-outdated"`, button = POST `app_form_correct`, the draft then reads live) and as the badge
   `submission-outdated` from `ActivitySubmissions::isFormOutdated()` (deliveries per activity+cycle and the source cache kept for the
   render). No notification, by design.
-- Phase 4 only on request.
+- **«Recordar»** (phase 4, piece 1): `POST …/recordar-entrega` {table, row} (fill CSRF header, editing access): the row must be in the
+  draft's `sources`, not delivered, and its `activity` the table's source; recipients = `ActivityPendingOwnersFinder::find(source)`
+  narrowed to items whose `slotKey` is the row's `slot`, with an address; limiter `activity_reminder` keyed `sourceId|slot`; sending
+  and recording through `ActivityReminderSender` (shared with «Recordar a pendientes»), log event `activity.remind_delivery`.
+- Phase 4: pieces 1–5 done on request (2026-11-27); source tables, repeat by rows, multi-activity report and «No heredar» still parked.
 
 ### Rich text: one Tiptap editor everywhere (migrated from Quill, 2026-11-23)
 

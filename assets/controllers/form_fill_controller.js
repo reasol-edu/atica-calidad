@@ -1514,7 +1514,47 @@ export default class extends Controller {
             ...(teachers !== ''
                 ? [h('span', { class: 'block text-xs text-gray-500', text: teachers })]
                 : (source.teachersAsked ? [h('span', { class: 'block text-xs text-gray-400', text: this.l.delivered_no_teacher })] : [])),
+            ...this.remindButton(block, info),
         ]);
+    }
+
+    /**
+     * «Recordar» under a delivery not delivered yet: an e-mail to whoever owes it (the server checks the row, who owes it and that it
+     * was not reminded in the last hour). What it answered stays in place of the button until the page is reloaded.
+     */
+    remindButton(block, info) {
+        if (this.readOnly || !this.configValue.remindUrl || !info.key || (info.status || 'none') === 'delivered') {
+            return [];
+        }
+        const id = block.key + '|' + info.key;
+        this.reminded ??= new Map();
+        const done = this.reminded.get(id);
+        if (done) {
+            return [h('span', { class: 'mt-0.5 block text-xs ' + (done.ok ? 'text-forest-700' : 'text-amber-700'), role: 'status', text: done.text, 'data-testid': 'remind-result' })];
+        }
+
+        return [h('button', {
+            type: 'button', class: 'mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-gray-500 underline decoration-dotted hover:text-forest-700',
+            title: this.l.remind_title, 'data-testid': 'remind-delivery', text: this.l.remind_button,
+            onclick: async (e) => {
+                e.currentTarget.disabled = true;
+                e.currentTarget.textContent = this.l.remind_sending;
+                let result;
+                try {
+                    const response = await fetch(this.configValue.remindUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': this.configValue.csrf },
+                        body: JSON.stringify({ table: block.key, row: info.key }),
+                    });
+                    const body = await response.json().catch(() => ({}));
+                    result = { ok: response.ok && (body.sent || 0) > 0, text: body.message || this.l.offline };
+                } catch (err) {
+                    result = { ok: false, text: this.l.offline };
+                }
+                this.reminded.set(id, result);
+                this.render();
+            },
+        })];
     }
 
     /** The state of a delivery: delivered (and how its review goes), a draft, or not started. */

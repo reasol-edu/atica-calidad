@@ -367,6 +367,39 @@ final class FormDeliveredRowsTest extends ControllerTestCase
         self::assertContains('delivered_cycle', $codes([$table(['sourceModel' => $target->getId()->toRfc4122(), 'columns' => [['label' => 'Previstas', 'fieldType' => 'number', 'sourceField' => 'horas_previstas']]])], $source));
     }
 
+    public function testRemindingARowNotDeliveredWritesToWhoeverOwesItOnceAnHour(): void
+    {
+        // Claudia, the head of Informática, owes the reviews of its subjects: she needs an address to be written to.
+        // (Whether the e-mail goes out is NotificationMailer's, tested with «Recordar a pendientes»: here, who is reminded of what.)
+        $this->em->getRepository(Teacher::class)->find($this->claudia->getId())?->setEmail('claudia@example.test');
+        $this->flush();
+        $this->review($this->informatica, $this->programacion, 30);
+        $this->loginAs($this->claudia, $this->centre);
+        $this->client->request('GET', $this->url());
+        self::assertStringContainsString('remindUrl', (string) $this->client->getResponse()->getContent());
+        $this->clear();
+        $token = $this->csrf($this->submission());
+        $prog  = FormDeliveredRows::rowKey($this->slotKey($this->informatica, $this->programacion));
+        $bases = FormDeliveredRows::rowKey($this->slotKey($this->informatica, $this->bases));
+
+        $this->post('/recordar-entrega', ['table' => $this->keys['table'], 'row' => $prog], $token);
+        self::assertSame(409, $this->client->getResponse()->getStatusCode(), 'delivered: nothing to remind');
+
+        $this->post('/recordar-entrega', ['table' => $this->keys['table'], 'row' => $bases], 'wrong');
+        self::assertSame(403, $this->client->getResponse()->getStatusCode());
+
+        $this->post('/recordar-entrega', ['table' => $this->keys['table'], 'row' => $bases], $token);
+        self::assertSame(200, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+        $reminders = $this->em->getRepository(\App\Entity\ActivityReminder::class)->findAll();
+        self::assertCount(1, $reminders);
+        self::assertSame('claudia', $reminders[0]->getRecipient()->getUsername(), 'who owes the review of Bases de datos');
+        self::assertSame($this->reviews->getId()->toRfc4122(), $reminders[0]->getActivity()->getId()->toRfc4122(), 'the reminder of the review, not of the report');
+
+        $this->post('/recordar-entrega', ['table' => $this->keys['table'], 'row' => $bases], $token);
+        self::assertSame(409, $this->client->getResponse()->getStatusCode());
+        self::assertSame('too_soon', json_decode((string) $this->client->getResponse()->getContent(), true)['error']);
+    }
+
     public function testADeliveredReportSaysWhenTheDeliveriesItReadHaveNewerDataAndANewRevisionReadsThem(): void
     {
         $this->review($this->informatica, $this->programacion, 30);
