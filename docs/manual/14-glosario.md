@@ -135,6 +135,11 @@ cualquier otro documento del árbol documental.
 : Si una actividad es **por perfil** (una entrega compartida por todos los que tienen ese
 perfil/subperfil) o **individual** (cada docente entrega la suya).
 
+**Una entrega por**
+: Listas del catálogo por las que una actividad con carpeta multiplica sus entregas: con «Evaluación»,
+una revisión por materia y evaluación. Una de ellas puede marcar los plazos (cada evaluación con sus
+fechas) — ver [Una entrega por…](08-actividades.md#una-entrega-por).
+
 **Completado al entregar**
 : Modo de una actividad con carpeta en el que no hay botón de completar: se considera hecha en
 cuanto se publican todos los documentos que hay que entregar. Lo contrario es «a mano».
@@ -181,6 +186,12 @@ funciona — ver [Acciones](09-mejora-continua.md#acciones).
 : Documento con estructura (secciones, textos, campos y tablas) que se rellena en línea. Es un documento
 del árbol documental con versiones propias; una actividad puede pedir que se entregue rellenándolo —
 ver [Modelos de documento](12-modelos-de-documento.md).
+
+**Tabla de entregas**
+: Tabla de un modelo con una fila por cada entrega de otra actividad, que trae datos de esas entregas
+(el cumplimiento de cada materia en el informe del departamento) junto a columnas propias. Se lee al
+rellenar, se vuelve a leer al entregar y queda fija en el documento entregado — ver
+[Tablas con una fila por entrega de otra actividad](12-modelos-de-documento.md#tablas-de-entregas).
 
 **Indicador**
 : Medida de cómo va un proceso del centro (por ejemplo, el alumnado que promociona), con su meta y su

@@ -351,6 +351,10 @@ actividades», entre las próximas.
 
 ![«Tus próximos pasos» de Noelia Bravo: la 2ª de «Programación» y de «Bases de Datos», con su fecha; la 1ª ya entregada no sale](img/actividades-una-entrega-por-tareas.png)
 
+**Ninguna marca los plazos.** Debajo de las listas, la opción **Ninguna marca los plazos** deshace la
+elección de la lista que da las fechas: cada elemento vuelve a tener sus propios plazos y todas sus
+entregas siguen el plazo general o el del elemento.
+
 **Empezar desde la evaluación anterior.** Con un modelo de documento, la casilla **Empezar cada una con lo
 entregado en la anterior** (marcada por defecto) hace que el borrador de la 2ª de una materia salga
 relleno con lo que se entregó en la 1ª de esa misma materia; si la 1ª no se entregó, con la anterior que
@@ -556,6 +560,7 @@ avisos por correo —al instante o en un resumen diario— se configura en
 | Deshacer un completado manual | — | ✅ (la propia) | ✅ | ✅ |
 | Aprobar o rechazar una entrega pendiente, una a una o varias a la vez | — | — | ✅ (con perfil de revisión) | ✅ |
 | Recordar a pendientes | — | — | ✅ | ✅ |
+| «Recordar» una sola entrega desde la [tabla de entregas](12-modelos-de-documento.md#tablas-de-entregas) de un documento que rellena (por ejemplo, la jefatura desde su informe) | ✅ (si rellena ese documento) | ✅ (si rellena ese documento) | ✅ | ✅ |
 | Ver las estadísticas de completado (actividad sin carpeta) | — | — | ✅ (con perfil responsable de la actividad) | ✅ |
 | Marcar/desmarcar la completada de otro docente (actividad sin carpeta) | — | — | ✅ (con perfil responsable de la actividad) | ✅ |
 | Crear/editar categorías y actividades | — | — | — | ✅ |

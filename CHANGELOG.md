@@ -31,6 +31,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 - Responsabilidades: las asociaciones de los elementos con **«perfil › subperfil»** pasan a ser asociaciones con el **elemento de la lista** de ese perfil («Jefe/a de Departamento › Informática» → «Departamento › Informática»), y la lista queda asociada. Quién entrega cada elemento lo decide la actividad con los perfiles de subida de su carpeta: las entregas no cambian, salvo cuando la carpeta acepta a **dos perfiles de la misma lista**, que ahora deben los dos cada elemento. Las asociaciones con perfiles sin lista se mantienen. Los datos de demostración añaden la lista «Evaluación» (1ª, 2ª, Ord., Extr., Final 1, Final 2), asociada a «Materia», con dos materias sin evaluación. Incluye una migración nueva (`Version20261126100000`: tablas `list_item_link` y `list_item_linked_list`, copia de las asociaciones con subperfil y sin la columna `list_item_profile.subprofile_id`). **Después de actualizar**, `php bin/console app:list-items:links-report` (solo lectura) lista las actividades cuya carpeta admite a dos perfiles de la misma lista, con las entregas que pedirían con un perfil por lista y las que piden ahora.
 - **Justo después de actualizar**, ejecuta `php bin/console app:list-items:inheritance-report` (el comando nace con esta versión y calcula aparte la regla anterior): es de solo lectura y lista, por centro, los elementos que ahora tienen más asociaciones que antes, aparte los que tienen una propia que queda cubierta por otra más amplia de un elemento superior (conviene reorganizarla) y, para cada actividad con elemento del catálogo, cuántas entregas pedía con la regla anterior y cuántas pide ahora. Las entregas que ya existen no se tocan.
 
+### Fixed
+
+- Modelos de documento: el aviso de una fila de una tabla de una lista que ya no corresponde al documento («la fila «…» ya no corresponde a este documento; vacíala para poder entregar») se mostraba como su clave interna (`fill.problem.row_gone`) desde la 2.10.0.
+
 ## [2.11.1] - 2026-11-24
 
 ### Fixed
