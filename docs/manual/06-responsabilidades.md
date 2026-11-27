@@ -88,6 +88,10 @@ siguen en la pantalla del catálogo.
 El número junto al nombre cuenta **todos** los elementos de la lista, de cualquier nivel (en
 «Enseñanza», los 16: tres ramas, dos ciclos y once cursos).
 
+El nombre de un elemento no puede contener « › » ni « · » (con sus espacios): la aplicación los usa
+para componer rutas («Ciencias › Física») y nombres de entregas («Física · 1ª»). Al crear, renombrar
+o importar un elemento se cambian solos por « - » («Física · Química» queda «Física - Química»).
+
 En la pantalla de una lista, en pantallas grandes se muestra su árbol completo: cada elemento se
 renombra, reordena o mueve a otro padre de la misma lista **arrastrándolo** (icono ⣿ a su
 izquierda), igual que las secciones del árbol documental. El botón **+** junto al título añade un

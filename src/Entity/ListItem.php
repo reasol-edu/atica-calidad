@@ -112,9 +112,17 @@ class ListItem
         return $this->name;
     }
 
+    /** What separates the parts of a name the application builds: an element's path, and an element from its values. */
+    public const array SEPARATORS = [' › ', ' · '];
+
+    /**
+     * The name, with the separators the application uses to build names (SEPARATORS) turned into « - »: a name never contains them,
+     * so a path («Ciencias › Física») or a delivery («Física · 1ª») splits back into its parts. Every way a name comes in passes
+     * here: typed in the catalogue, renamed, imported (JSON, Séneca) or the demo data.
+     */
     public function setName(string $name): static
     {
-        $this->name = $name;
+        $this->name = str_replace(self::SEPARATORS, ' - ', $name);
 
         return $this;
     }

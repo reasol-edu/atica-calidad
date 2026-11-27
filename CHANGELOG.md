@@ -33,6 +33,7 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Fixed
 
+- Responsabilidades: el nombre de un elemento del catálogo ya no puede contener « › » ni « · » (con sus espacios), los separadores con que la aplicación compone rutas («Ciencias › Física») y nombres de entregas («Física · 1ª»); al crearlo, renombrarlo o importarlo se cambian por « - ». Una migración nueva (`Version20261127100000`) corrige los nombres que ya los tengan (no tiene vuelta atrás).
 - Modelos de documento: el aviso de una fila de una tabla de una lista que ya no corresponde al documento («la fila «…» ya no corresponde a este documento; vacíala para poder entregar») se mostraba como su clave interna (`fill.problem.row_gone`) desde la 2.10.0.
 
 ## [2.11.1] - 2026-11-24

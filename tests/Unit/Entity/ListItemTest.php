@@ -39,6 +39,13 @@ final class ListItemTest extends TestCase
         return $profile;
     }
 
+    public function testANameNeverHoldsTheSeparatorsOfPathsAndDeliveries(): void
+    {
+        self::assertSame('Física - Química', (new ListItem())->setName('Física · Química')->getName(), 'a delivery «Física · Química · 1ª» would split wrong');
+        self::assertSame('Ciencias - Física', (new ListItem())->setName('Ciencias › Física')->getName(), 'a path «… › Ciencias › Física» too');
+        self::assertSame('Física·Química y 1º›2º', (new ListItem())->setName('Física·Química y 1º›2º')->getName(), 'only the separators, with their spaces');
+    }
+
     public function testSetParentRejectsCrossCentreAttachment(): void
     {
         $item   = $this->item($this->centre());
