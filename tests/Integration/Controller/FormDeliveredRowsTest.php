@@ -367,6 +367,86 @@ final class FormDeliveredRowsTest extends ControllerTestCase
         self::assertContains('delivered_cycle', $codes([$table(['sourceModel' => $target->getId()->toRfc4122(), 'columns' => [['label' => 'Previstas', 'fieldType' => 'number', 'sourceField' => 'horas_previstas']]])], $source));
     }
 
+    public function testColumnsPinnedToEvaluationsGiveOneRowPerSubjectAndAColumnPerEvaluation(): void
+    {
+        $values = $this->byEvaluation();
+        // The final report: one per department, without evaluations (it compares them).
+        $this->fresh($this->report)->setListItem(null)->setDimensions([]);
+        $this->flush();
+        $this->clear();
+        $this->reviewIn($this->informatica, $this->programacion, $values['1ª'], 30);
+        $this->reviewIn($this->informatica, $this->programacion, $values['2ª'], 25);
+        $this->reviewIn($this->informatica, $this->bases, $values['1ª'], 20);
+
+        $report     = $this->fresh($this->report);
+        $definition = self::getContainer()->get(\App\Repository\FormModelRevisionRepository::class)->findInForce($report->getFormModel())->getDefinition();
+        foreach ($definition['sections'][0]['blocks'][0]['columns'] as $c => $column) {
+            $pin = ['colHours' => '1ª', 'colDone' => '2ª'][array_search($column['key'], $this->keys, true)] ?? null;
+            if ($pin !== null) {
+                $definition['sections'][0]['blocks'][0]['columns'][$c]['sourceValue'] = $values[$pin]->getId()->toRfc4122();
+            }
+        }
+        $normalizer = self::getContainer()->get(\App\Service\Form\FormDefinitionNormalizer::class);
+        $definition = $normalizer->normalize($definition);
+        self::assertSame([$this->keys['colHours'] => $values['1ª']->getId()->toRfc4122(), $this->keys['colDone'] => $values['2ª']->getId()->toRfc4122()], FormDeliveredRows::pinnedValues($definition['sections'][0]['blocks'][0]), 'the model keeps them');
+
+        $cycle = self::getContainer()->get(ActivityDeadlineChecker::class)->currentCycleKey($report);
+        $read  = self::getContainer()->get(FormDeliveredRows::class)->read($definition, $report, $cycle, $this->slotKey($this->informatica))[$this->keys['table']];
+        $rows  = array_column($read['sources']['rows'], null, 'label');
+
+        self::assertSame(['Programación', 'Bases de datos'], array_keys($rows), 'one row per subject, not per subject and evaluation');
+        self::assertSame('delivered', $rows['Programación']['status'], 'the 1ª and the 2ª delivered');
+        self::assertSame('partial', $rows['Bases de datos']['status'], 'only the 1ª');
+        self::assertSame('', $rows['Programación']['slot'], 'no single delivery: nothing to remind or open');
+        self::assertCount(2, $rows['Programación']['revisions']);
+        self::assertNull($rows['Bases de datos']['revisions'][$values['2ª']->getId()->toRfc4122()]);
+
+        $prog = $read['values'][$rows['Programación']['key']];
+        self::assertSame(30, $prog[$this->keys['colHours']], 'planned hours of the 1ª');
+        self::assertSame(23, $prog[$this->keys['colDone']], 'hours taught in the 2ª');
+        self::assertSame([$this->keys['colHours'] => 20], $read['values'][$rows['Bases de datos']['key']], 'Bases de datos has no 2ª yet');
+
+        $kept = FormDeliveredRows::clean([$this->keys['table'] => $read['sources']]);
+        self::assertSame($rows['Programación']['revisions'], $kept[$this->keys['table']]['rows'][0]['revisions'] ?? null, 'saving keeps what each value read');
+
+        // A column of «each row» beside them is a problem of the model, and so are values of two lists.
+        $problems = static fn (array $columns): array => array_column(self::getContainer()->get(FormModelService::class)->problems($normalizer->normalize(['sections' => [['title' => 'S', 'blocks' => [
+            ['type' => 'table', 'mode' => 'delivered', 'label' => 'Final', 'sourceModel' => $report->getFormModel()?->getId()->toRfc4122(), 'columns' => $columns],
+        ]]]]), $report->getCategory()->getEducationalCentre()), 'code');
+        self::assertContains('delivered_values_mixed', $problems([
+            ['label' => 'A', 'fieldType' => 'number', 'sourceField' => 'horas_previstas', 'sourceValue' => $values['1ª']->getId()->toRfc4122()],
+            ['label' => 'B', 'fieldType' => 'number', 'sourceField' => 'horas_impartidas'],
+        ]));
+        self::assertContains('delivered_values_lists', $problems([
+            ['label' => 'A', 'fieldType' => 'number', 'sourceField' => 'horas_previstas', 'sourceValue' => $values['1ª']->getId()->toRfc4122()],
+            ['label' => 'B', 'fieldType' => 'number', 'sourceField' => 'horas_impartidas', 'sourceValue' => $this->informatica->getId()->toRfc4122()],
+        ]));
+    }
+
+    public function testAColumnPinnedToAValueTravelsAsItsPath(): void
+    {
+        $values  = $this->byEvaluation();
+        $service = self::getContainer()->get(FormModelService::class);
+        $porter  = self::getContainer()->get(\App\Service\Form\FormModelPorter::class);
+        $model   = $this->fresh($this->report)->getFormModel();
+        self::assertNotNull($model);
+        $draft = $model->getDraftDefinition();
+        $draft['sections'][0]['blocks'][0]['columns'][0]['sourceValue'] = $values['2ª']->getId()->toRfc4122();
+        $service->saveDraft($model, $draft, $model->getDraftVersion(), $this->em->getRepository(Teacher::class)->find($this->admin->getId()));
+
+        $payload = json_decode(json_encode($porter->export($model), JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('Evaluación › 2ª', FormDeliveredRows::tables($payload['definition'])[0]['columns'][0]['sourceValue']);
+
+        $imported = $porter->import($payload, $model->getDocument()->getFolder(), 'Copia', null);
+        self::assertSame($values['2ª']->getId()->toRfc4122(), FormDeliveredRows::tables($imported['model']->getDraftDefinition())[0]['columns'][0]['sourceValue']);
+        self::assertSame([], $imported['unlinked']);
+
+        $payload['definition']['sections'][0]['blocks'][0]['columns'][0]['sourceValue'] = 'Trimestre › 1T';
+        $elsewhere = $porter->import($payload, $this->em->getRepository(\App\Entity\Folder::class)->find($model->getDocument()->getFolder()->getId()), 'Otra', null);
+        self::assertSame('', FormDeliveredRows::tables($elsewhere['model']->getDraftDefinition())[0]['columns'][0]['sourceValue'], 'not in this centre: «each row»');
+        self::assertSame(['Trimestre › 1T'], $elsewhere['unlinked']);
+    }
+
     public function testTheSameElementScopeReadsOnlyTheDeliveryOfTheDocumentsOwnElement(): void
     {
         $this->review($this->informatica, $this->programacion, 30);

@@ -1320,6 +1320,23 @@ export default class extends Controller {
                 this.l.delivered_reads.replace('%label%', field ? field.label : column.sourceField).replace('%name%', column.sourceField),
             ]),
         ];
+        // «Solo la de»: the delivery of one value of a list the source splits by — a column per evaluation, a row per subject. The
+        // values of every list of the catalogue (its leaves, named after the list); which ones the activity splits by is not known here.
+        const values = [['', this.l.delivered_value_each]];
+        for (const list of this.centreLists()) {
+            if (!list.label.includes(' › ')) {
+                for (const option of list.options) {
+                    values.push([option.key, list.label + ' › ' + option.label]);
+                }
+            }
+        }
+        if (column.sourceValue && !values.some(([v]) => v === column.sourceValue)) {
+            values.push([column.sourceValue, this.l.delivered_value_gone]);
+        }
+        parts.push(h('div', { class: 'space-y-1' }, [
+            this.labelled(this.l.delivered_value, this.select(column.sourceValue || '', values, (v) => { column.sourceValue = v; this.touch(); }, this.l.delivered_value), 'max-w-md'),
+            h('p', { class: 'text-xs text-gray-500', text: this.l.delivered_value_help }),
+        ]));
         if (column.fieldType === 'number') {
             const places = [['', this.l.delivered_decimals_any], ...[0, 1, 2, 3, 4, 5, 6].map((n) => [String(n), String(n)])];
             parts.push(h('div', { class: 'flex flex-wrap items-end gap-3' }, [

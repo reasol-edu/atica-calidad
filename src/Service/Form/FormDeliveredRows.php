@@ -37,7 +37,8 @@ final class FormDeliveredRows
     /** The namespace of the row keys: Uuid::v5(NAMESPACE, slot key), the same row for the same slot whatever the order. */
     public const string NAMESPACE = '4b1f6f0e-7a51-4c1e-9d0b-2f6a3c8e5d17';
 
-    public const array STATUSES  = ['delivered', 'draft', 'none'];
+    /** `partial`: a row of columns pinned to values (readByValue()) with some of them delivered. */
+    public const array STATUSES  = ['delivered', 'partial', 'draft', 'none'];
     public const array APPROVALS = ['pending', 'approved', 'rejected'];
 
     public function __construct(
@@ -101,33 +102,11 @@ final class FormDeliveredRows
             }));
             ['slots' => $slots, 'assumedAll' => $assumedAll] = $this->inScope($candidates, $source, FormDefinition::str($block['sourceScope'] ?? 'own'), $slotKey, $positions === []);
 
-            // A name that two rows of this table share says whose each one is («FP › 2ª — Jefe/a de Departamento Sanidad»).
-            $names  = array_count_values(array_map(static fn (ActivitySubmissionSlot $s): string => self::rowLabel($s, array_keys($positions), false), $slots));
-            $rows   = [];
-            $values = [];
-            foreach ($slots as $slot) {
-                $slotKeyOf = $slot->key();
-                $rowKey    = self::rowKey($slotKeyOf);
-                $filled    = $loaded['delivered'][$slotKeyOf] ?? null;
-                $revision  = $filled?->getRevision();
-                $rows[]    = [
-                    'key'      => $rowKey,
-                    'slot'     => $slotKeyOf,
-                    'label'    => self::rowLabel($slot, array_keys($positions), ($names[self::rowLabel($slot, array_keys($positions), false)] ?? 0) > 1),
-                    'status'   => $filled !== null ? 'delivered' : (($loaded['drafts'][$slotKeyOf] ?? false) ? 'draft' : 'none'),
-                    'approval' => $revision === null ? null : ($revision->isRejected() ? 'rejected' : ($revision->isPendingReview() ? 'pending' : 'approved')),
-                    'revision' => $revision?->getId()->toRfc4122(),
-                    'version'  => $revision?->getVersion(),
-                    'document' => $revision?->getDocument()->getId()->toRfc4122(),
-                    'teachers' => array_map(static fn ($t): string => $t->getName()->full(), $this->responsibility->teachersOf($source, $slot)),
-                ];
-                if ($filled !== null) {
-                    $cells = $this->cells($filled, $columns);
-                    if ($cells !== []) {
-                        $values[$rowKey] = $cells;
-                    }
-                }
-            }
+            // Columns pinned to a value of a list the source splits by: one row per delivery without that list, a column per value.
+            $pinned = self::pinnedValues($block);
+            ['rows' => $rows, 'values' => $values] = $pinned !== []
+                ? $this->readByValue($source, $slots, $pinned, $columns, $loaded, array_keys($positions))
+                : $this->readBySlot($source, $slots, $columns, $loaded, array_keys($positions));
 
             $readings[$key] = [
                 'sources' => ['activity' => $id, 'title' => $source->getTitle(), 'at' => $now, 'assumedAll' => $assumedAll, 'teachersAsked' => $source->isTeachersDeliver(), 'rows' => $rows]
@@ -138,6 +117,161 @@ final class FormDeliveredRows
         }
 
         return $readings;
+    }
+
+    /**
+     * One row per delivery (slot) of the source.
+     *
+     * @param list<ActivitySubmissionSlot>                                                                                                                                      $slots
+     * @param array<string, string>                                                                                                                                             $columns
+     * @param array{slots: list<ActivitySubmissionSlot>, byValue: array<int, array<string, list<ActivitySubmissionSlot>>>, delivered: array<string, FormSubmissionRevision>, drafts: array<string, bool>} $loaded
+     * @param list<int>                                                                                                                                                         $shared the positions of the lists both activities share (left out of the names)
+     *
+     * @return array{rows: list<array<string, mixed>>, values: array<string, array<string, mixed>>}
+     */
+    private function readBySlot(Activity $source, array $slots, array $columns, array $loaded, array $shared): array
+    {
+        // A name that two rows of this table share says whose each one is («FP › 2ª — Jefe/a de Departamento Sanidad»).
+        $names  = array_count_values(array_map(static fn (ActivitySubmissionSlot $s): string => self::rowLabel($s, $shared, false), $slots));
+        $rows   = [];
+        $values = [];
+        foreach ($slots as $slot) {
+            $slotKeyOf = $slot->key();
+            $rowKey    = self::rowKey($slotKeyOf);
+            $filled    = $loaded['delivered'][$slotKeyOf] ?? null;
+            $revision  = $filled?->getRevision();
+            $rows[]    = [
+                'key'      => $rowKey,
+                'slot'     => $slotKeyOf,
+                'label'    => self::rowLabel($slot, $shared, ($names[self::rowLabel($slot, $shared, false)] ?? 0) > 1),
+                'status'   => $filled !== null ? 'delivered' : (($loaded['drafts'][$slotKeyOf] ?? false) ? 'draft' : 'none'),
+                'approval' => $revision === null ? null : ($revision->isRejected() ? 'rejected' : ($revision->isPendingReview() ? 'pending' : 'approved')),
+                'revision' => $revision?->getId()->toRfc4122(),
+                'version'  => $revision?->getVersion(),
+                'document' => $revision?->getDocument()->getId()->toRfc4122(),
+                'teachers' => array_map(static fn ($t): string => $t->getName()->full(), $this->responsibility->teachersOf($source, $slot)),
+            ];
+            if ($filled !== null) {
+                $cells = $this->cells($filled, $columns);
+                if ($cells !== []) {
+                    $values[$rowKey] = $cells;
+                }
+            }
+        }
+
+        return ['rows' => $rows, 'values' => $values];
+    }
+
+    /**
+     * The columns of a table that read the delivery of one value of a list (`sourceValue`), by column key.
+     *
+     * @param array<string, mixed> $block
+     *
+     * @return array<string, string>
+     */
+    public static function pinnedValues(array $block): array
+    {
+        $out = [];
+        foreach (FormDefinition::listOf($block['columns'] ?? []) as $column) {
+            $value = FormDefinition::str($column['sourceValue'] ?? '');
+            if ($value !== '' && FormDefinition::str($column['sourceField'] ?? '') !== '') {
+                $out[FormDefinition::str($column['key'] ?? '')] = $value;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * One row per delivery of the source WITHOUT the list the pinned columns take their values from: the review of Física in the 1ª,
+     * the 2ª and the Ordinaria is one row, and each pinned column reads the delivery of its value («Cumplimiento en la 1ª»). A column
+     * not pinned reads nothing here (the model says so). The row's state: `delivered` when every pinned value is, `partial` when some
+     * is, else `draft` or `none`; `revisions` holds the revision read for each value (what «Hay datos más recientes» compares).
+     *
+     * When the pinned values are not of a list the source splits by, the table has no rows.
+     *
+     * @param list<ActivitySubmissionSlot>                                                                                                                                      $slots
+     * @param array<string, string>                                                                                                                                             $pinned  value id by column key
+     * @param array<string, string>                                                                                                                                             $columns field name by column key
+     * @param array{slots: list<ActivitySubmissionSlot>, byValue: array<int, array<string, list<ActivitySubmissionSlot>>>, delivered: array<string, FormSubmissionRevision>, drafts: array<string, bool>} $loaded
+     * @param list<int>                                                                                                                                                         $shared
+     *
+     * @return array{rows: list<array<string, mixed>>, values: array<string, array<string, mixed>>}
+     */
+    private function readByValue(Activity $source, array $slots, array $pinned, array $columns, array $loaded, array $shared): array
+    {
+        $index    = $this->items->indexByCentre($source->getCategory()->getEducationalCentre());
+        $position = null;
+        foreach (array_unique($pinned) as $valueId) {
+            $root = ($index[$valueId] ?? null)?->getRoot();
+            foreach ($source->getDimensions() as $at => $dimension) {
+                if ($root !== null && $dimension->getList()->getRoot()->identityKey() === $root->identityKey()) {
+                    $position = $at;
+                }
+            }
+        }
+        if ($position === null) {
+            return ['rows' => [], 'values' => []];
+        }
+
+        // The deliveries of one element (and the other lists' values), each by its value of the pinned list.
+        $groups = [];
+        foreach ($slots as $slot) {
+            $value = $slot->combination[$position] ?? null;
+            if ($value === null) {
+                continue;
+            }
+            $rest = $slot->combination;
+            unset($rest[$position]);
+            $group = implode(':', [
+                $slot->profile->getId()->toRfc4122(),
+                $slot->listItem?->getId()->toRfc4122() ?? '',
+                $slot->nameListItem?->getId()->toRfc4122() ?? '',
+                $slot->teacher?->getId()->toRfc4122() ?? '',
+            ]) . ($rest === [] ? '' : ':' . implode('+', array_map(static fn ($v): string => $v->getId()->toRfc4122(), $rest)));
+            $groups[$group][$value->getId()->toRfc4122()] = $slot;
+        }
+
+        $hidden = [...$shared, $position];
+        $label  = static fn (ActivitySubmissionSlot $s, bool $owner): string => self::rowLabel($s, $hidden, $owner);
+        $names  = array_count_values(array_map(static fn (array $g): string => $label(reset($g), false), $groups));
+        $rows   = [];
+        $values = [];
+        foreach ($groups as $group => $byValue) {
+            $first     = reset($byValue);
+            $rowKey    = self::rowKey($group);
+            $revisions = [];
+            $delivered = 0;
+            $drafts    = false;
+            foreach (array_unique($pinned) as $valueId) {
+                $slot   = $byValue[$valueId] ?? null;
+                $filled = $slot === null ? null : ($loaded['delivered'][$slot->key()] ?? null);
+                $revisions[$valueId] = $filled?->getRevision()->getId()->toRfc4122();
+                $delivered += $filled !== null ? 1 : 0;
+                $drafts = $drafts || ($slot !== null && ($loaded['drafts'][$slot->key()] ?? false));
+            }
+            foreach ($pinned as $columnKey => $valueId) {
+                $slot   = $byValue[$valueId] ?? null;
+                $filled = $slot === null ? null : ($loaded['delivered'][$slot->key()] ?? null);
+                if ($filled !== null && isset($columns[$columnKey])) {
+                    $values[$rowKey] = ($values[$rowKey] ?? []) + $this->cells($filled, [$columnKey => $columns[$columnKey]]);
+                }
+            }
+            $rows[] = [
+                'key'       => $rowKey,
+                'slot'      => '',
+                'label'     => $label($first, ($names[$label($first, false)] ?? 0) > 1),
+                'status'    => $delivered === \count($revisions) ? 'delivered' : ($delivered > 0 ? 'partial' : ($drafts ? 'draft' : 'none')),
+                'approval'  => null,
+                'revision'  => null,
+                'version'   => null,
+                'document'  => null,
+                'revisions' => $revisions,
+                'teachers'  => array_map(static fn ($t): string => $t->getName()->full(), $this->responsibility->teachersOf($source, $first)),
+            ];
+        }
+
+        return ['rows' => $rows, 'values' => $values];
     }
 
     /**
@@ -162,15 +296,20 @@ final class FormDeliveredRows
         $count      = 0;
         $titles     = [];
         foreach ($this->read($definition, $submission->getActivity(), $submission->getCycleYear(), $submission->getSlotKey(), $cache) as $key => $reading) {
-            $read = [];
+            // The revisions each row read, by value ('' for a row of one delivery; a row of pinned columns has one per value).
+            $revisionsOf = static fn (array $row): array => is_array($row['revisions'] ?? null) ? $row['revisions'] : ['' => $row['revision'] ?? null];
+            $read        = [];
             foreach (FormDefinition::listOf((FormDefinition::map($stored[$key] ?? null) ?? [])['rows'] ?? []) as $row) {
-                $read[FormDefinition::str($row['key'] ?? '')] = $row['revision'] ?? null;
+                $read[FormDefinition::str($row['key'] ?? '')] = $revisionsOf($row);
             }
             $newer = 0;
             foreach (FormDefinition::listOf($reading['sources']['rows'] ?? []) as $row) {
-                $rowKey = FormDefinition::str($row['key'] ?? '');
-                if (($row['status'] ?? '') === 'delivered' && (!array_key_exists($rowKey, $read) || $read[$rowKey] !== ($row['revision'] ?? null))) {
-                    ++$newer;
+                $before = $read[FormDefinition::str($row['key'] ?? '')] ?? [];
+                foreach ($revisionsOf($row) as $value => $revision) {
+                    if ($revision !== null && ($before[$value] ?? null) !== $revision) {
+                        ++$newer;
+                        break;
+                    }
                 }
             }
             if ($newer > 0) {
@@ -727,6 +866,16 @@ final class FormDeliveredRows
                     'document' => FormListOptions::isItemId($document) ? $document : null,
                     'teachers' => array_slice(array_map(static fn (string $t): string => mb_substr($t, 0, 255), array_values(array_filter(is_array($row['teachers'] ?? null) ? $row['teachers'] : [], 'is_string'))), 0, 20),
                 ];
+                // A row of columns pinned to values: the revision read for each value (null: not delivered).
+                if (is_array($row['revisions'] ?? null)) {
+                    $revisions = [];
+                    foreach (array_slice($row['revisions'], 0, 20, true) as $value => $revisionId) {
+                        if (FormListOptions::isItemId((string) $value)) {
+                            $revisions[(string) $value] = is_string($revisionId) && FormListOptions::isItemId($revisionId) ? $revisionId : null;
+                        }
+                    }
+                    $rows[\count($rows) - 1]['revisions'] = $revisions;
+                }
             }
             $out[$key] = [
                 'activity'   => FormListOptions::isItemId($activity) ? $activity : null,

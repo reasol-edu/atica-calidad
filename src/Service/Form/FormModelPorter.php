@@ -29,6 +29,7 @@ final class FormModelPorter
         private readonly FormListOptions $lists,
         private readonly FormLayoutResolver $layouts,
         private readonly FormModelRepository $models,
+        private readonly \App\Repository\ListItemRepository $items,
     ) {}
 
     /**
@@ -49,8 +50,24 @@ final class FormModelPorter
             $titles[$other->getId()->toRfc4122()] = $other->getDocument()->getName();
         }
         $definition = $this->sourceModels($definition, static fn (string $id): string => $titles[$id] ?? '');
+        // A column «Solo la de» names a value of THIS centre's lists: it travels as its path («Evaluación › 1ª»).
+        $paths      = [];
+        foreach ($this->items->indexByCentre($centre) as $id => $item) {
+            $paths[$id] = self::pathOf($item);
+        }
+        $definition = $this->sourceValues($definition, static fn (string $id): string => $paths[$id] ?? '');
 
         return ['format' => self::FORMAT, 'version' => 1, 'name' => $model->getDocument()->getName(), 'code' => $model->getCode(), 'definition' => $definition];
+    }
+
+    private static function pathOf(\App\Entity\ListItem $item): string
+    {
+        $names = [];
+        for ($node = $item; $node !== null; $node = $node->getParent()) {
+            array_unshift($names, $node->getName());
+        }
+
+        return implode(' › ', $names);
     }
 
     /**
@@ -63,7 +80,48 @@ final class FormModelPorter
      */
     private function sourceModels(array $definition, callable $map): array
     {
-        $walk = static function (array $sections) use (&$walk, $map): array {
+        return $this->deliveredTables($definition, static function (array $block) use ($map): array {
+            $block['sourceModel'] = $map(FormDefinition::str($block['sourceModel'] ?? ''));
+
+            return $block;
+        });
+    }
+
+    /**
+     * $definition with the `sourceValue` of every column of a table of deliveries that has one replaced by $map($sourceValue).
+     *
+     * @param array<string, mixed>     $definition
+     * @param callable(string): string $map
+     *
+     * @return array<string, mixed>
+     */
+    private function sourceValues(array $definition, callable $map): array
+    {
+        return $this->deliveredTables($definition, static function (array $block) use ($map): array {
+            $columns = is_array($block['columns'] ?? null) ? $block['columns'] : [];
+            foreach ($columns as $c => $column) {
+                if (is_array($column) && FormDefinition::str($column['sourceValue'] ?? '') !== '') {
+                    $column['sourceValue'] = $map(FormDefinition::str($column['sourceValue']));
+                    $columns[$c]           = $column;
+                }
+            }
+            $block['columns'] = $columns;
+
+            return $block;
+        });
+    }
+
+    /**
+     * $definition with every table of deliveries (in any section, at any depth) replaced by $change($table).
+     *
+     * @param array<string, mixed>                                $definition
+     * @param callable(array<mixed, mixed>): array<mixed, mixed> $change
+     *
+     * @return array<string, mixed>
+     */
+    private function deliveredTables(array $definition, callable $change): array
+    {
+        $walk = static function (array $sections) use (&$walk, $change): array {
             foreach ($sections as $i => $section) {
                 if (!is_array($section)) {
                     continue;
@@ -71,8 +129,7 @@ final class FormModelPorter
                 $blocks = is_array($section['blocks'] ?? null) ? $section['blocks'] : [];
                 foreach ($blocks as $b => $block) {
                     if (is_array($block) && ($block['type'] ?? '') === 'table' && ($block['mode'] ?? '') === 'delivered') {
-                        $block['sourceModel'] = $map(FormDefinition::str($block['sourceModel'] ?? ''));
-                        $blocks[$b]           = $block;
+                        $blocks[$b] = $change($block);
                     }
                 }
                 $section['blocks'] = $blocks;
@@ -139,6 +196,21 @@ final class FormModelPorter
                 $unsourced[] = FormDefinition::str($block['label'] ?? '');
             }
         }
+
+        // The values of the columns «Solo la de», by their path in this centre's lists; one not here leaves the column on «each row»
+        // and is reported with the fields left without a list.
+        $byPath = [];
+        foreach ($this->items->indexByCentre($centre) as $id => $item) {
+            $byPath[mb_strtolower(self::pathOf($item))] ??= $id;
+        }
+        $definition = $this->sourceValues($definition, static function (string $path) use ($byPath, &$unlinked): string {
+            $id = $byPath[mb_strtolower(trim($path))] ?? null;
+            if ($id === null) {
+                $unlinked[] = $path;
+            }
+
+            return $id ?? '';
+        });
 
         return ['model' => $this->create($folder, $title, \is_string($payload['code'] ?? null) ? $payload['code'] : null, $definition, $by), 'unlinked' => $unlinked, 'unsourced' => $unsourced];
     }

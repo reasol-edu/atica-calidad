@@ -1524,7 +1524,8 @@ export default class extends Controller {
      * was not reminded in the last hour). What it answered stays in place of the button until the page is reloaded.
      */
     remindButton(block, info) {
-        if (this.readOnly || !this.configValue.remindUrl || !info.key || (info.status || 'none') === 'delivered') {
+        // Only a row of one delivery (a row of columns pinned to values gathers several: no single one to remind).
+        if (this.readOnly || !this.configValue.remindUrl || !info.key || !info.slot || (info.status || 'none') === 'delivered') {
             return [];
         }
         const id = block.key + '|' + info.key;
@@ -1561,7 +1562,7 @@ export default class extends Controller {
     /** The state of a delivery: delivered (and how its review goes), a draft, or not started. */
     deliveredStatusCell(info) {
         const status = info.status || 'none';
-        const tone = { delivered: 'bg-forest-50 text-forest-700', draft: 'bg-gray-100 text-gray-700', none: 'bg-gray-50 text-gray-400' }[status] || 'bg-gray-50 text-gray-400';
+        const tone = { delivered: 'bg-forest-50 text-forest-700', partial: 'bg-amber-50 text-amber-800', draft: 'bg-gray-100 text-gray-700', none: 'bg-gray-50 text-gray-400' }[status] || 'bg-gray-50 text-gray-400';
 
         return h('td', { class: 'px-2 py-2 align-top' }, [
             h('span', { class: 'inline-block rounded-full px-2 py-0.5 text-xs font-medium ' + tone, text: this.l['delivered_status_' + status] || status }),

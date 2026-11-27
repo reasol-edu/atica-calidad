@@ -39,6 +39,7 @@ final class FormModelService
         private readonly FormListOptions $lists,
         private readonly \App\Repository\FormModelRevisionRepository $modelRevisions,
         private readonly \App\Repository\FormModelRepository $models,
+        private readonly \App\Repository\ListItemRepository $listItems,
     ) {}
 
     /**
@@ -168,6 +169,25 @@ final class FormModelService
             $columns = FormDeliveredRows::sourceColumns($block);
             if ($columns === []) {
                 $problems[] = ['code' => 'delivered_without_columns', 'params' => ['%label%' => $label]];
+            }
+            // Columns pinned to a value of a list (one per evaluation): all of them, and all of one list — the rows are the deliveries
+            // without that list, so a column of «each delivery» or of another list has nothing to read.
+            $pinned = FormDeliveredRows::pinnedValues($block);
+            if ($pinned !== []) {
+                if (\count($pinned) < \count($columns)) {
+                    $problems[] = ['code' => 'delivered_values_mixed', 'params' => ['%label%' => $label]];
+                }
+                $index = $this->listItems->indexByCentre($centre);
+                $roots = [];
+                foreach ($pinned as $valueId) {
+                    $value = $index[$valueId] ?? null;
+                    $roots[$value === null ? '?' : $value->getRoot()->getId()->toRfc4122()] = true;
+                }
+                if (isset($roots['?'])) {
+                    $problems[] = ['code' => 'delivered_value_gone', 'params' => ['%label%' => $label]];
+                } elseif (\count($roots) > 1) {
+                    $problems[] = ['code' => 'delivered_values_lists', 'params' => ['%label%' => $label]];
+                }
             }
             $fields = FormDeliveredRows::namedFields($force->getDefinition());
             foreach (FormDefinition::listOf($block['columns'] ?? []) as $column) {

@@ -301,7 +301,7 @@ final class FormResolver
     private function stateText(array $row): string
     {
         $status   = FormDefinition::str($row['status'] ?? 'none');
-        $text     = $this->translator->trans('fill.delivered_status_' . (in_array($status, ['delivered', 'draft'], true) ? $status : 'none'), [], 'forms');
+        $text     = $this->translator->trans('fill.delivered_status_' . (in_array($status, ['delivered', 'partial', 'draft'], true) ? $status : 'none'), [], 'forms');
         $approval = FormDefinition::str($row['approval'] ?? '');
 
         return $status === 'delivered' && in_array($approval, ['pending', 'approved', 'rejected'], true)

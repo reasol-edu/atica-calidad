@@ -663,6 +663,10 @@ final class FormDefinitionNormalizer
                 + ['totalName' => $footName, 'totalFormula' => $formula, 'totalKey' => $isField ? $this->key($column['totalKey'] ?? null) : '']
                 + ($delivered ? [
                     'sourceField'     => $sourceField,
+                    // Only the delivery of this value of a list the source splits by («Evaluación › 1ª»): a column per evaluation, a row
+                    // per subject (FormDeliveredRows::readByValue()). '' = the delivery of each row.
+                    'sourceValue'     => $sourceField !== '' && is_string($column['sourceValue'] ?? null) && FormListOptions::isItemId(strtolower(trim($column['sourceValue'])))
+                        ? strtolower(trim($column['sourceValue'])) : '',
                     // How a number read from a delivery shows: null, as it comes (up to six decimals); 0–6, always that many.
                     'displayDecimals' => $sourceField !== '' && $props['fieldType'] === 'number' && is_numeric($column['displayDecimals'] ?? null)
                         ? min(6, max(0, (int) $column['displayDecimals'])) : null,
