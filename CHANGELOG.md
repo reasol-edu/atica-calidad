@@ -7,6 +7,10 @@ a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [2.13.0] - 2026-11-28
+
+Sin migraciones.
+
 ### Added
 
 - Responsabilidades: **Marcar por nombre** tiene la casilla **Búsqueda parcial**, que marca también los elementos cuyo
